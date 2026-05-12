@@ -1,0 +1,29 @@
+# Go build and test artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+
+# Local Go cache
+.gocache/
+
+# Logs
+server.log
+server.err.log
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

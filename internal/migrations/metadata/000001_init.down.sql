@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS core.index_jobs;
+DROP TABLE IF EXISTS core.tenant_schema_migrations;
+DROP TABLE IF EXISTS core.schema_change_log;
+DROP TABLE IF EXISTS core.table_options;
+DROP TABLE IF EXISTS core.model_pivots;
+DROP TABLE IF EXISTS core.model_links;
+DROP TABLE IF EXISTS core.model_fields;
+DROP TABLE IF EXISTS core.model_tables;
+DROP TABLE IF EXISTS core.tenants;
+DROP SCHEMA IF EXISTS core;
