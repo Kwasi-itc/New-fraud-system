@@ -38,7 +38,7 @@ paths:
     get:
       tags: [health]
       summary: Liveness probe
-      description: Returns `200` when the service process is running.
+      description: "Returns 200 when the service process is running."
       responses:
         '200':
           description: Service is alive
@@ -50,7 +50,7 @@ paths:
     get:
       tags: [health]
       summary: Readiness probe
-      description: Returns `200` when the service can reach its database dependency.
+      description: "Returns 200 when the service can reach its database dependency."
       responses:
         '200':
           description: Service is ready
@@ -258,8 +258,8 @@ paths:
       description: |-
         Deletes a table from metadata and the tenant schema.
 
-        Use `dry_run=true` to check whether the table can be deleted without performing the delete.
-        If internal dependencies block deletion, the API returns `409` with a conflict report.
+        Use dry_run=true to check whether the table can be deleted without performing the delete.
+        If internal dependencies block deletion, the API returns 409 with a conflict report.
       security:
         - bearerAuth: []
       parameters:
@@ -353,7 +353,7 @@ paths:
       description: |-
         Deletes a field from metadata and drops the backing physical column.
 
-        Use `dry_run=true` to inspect conflicts before deleting.
+        Use dry_run=true to inspect conflicts before deleting.
       security:
         - bearerAuth: []
       parameters:
@@ -416,7 +416,7 @@ paths:
       description: |-
         Deletes a logical link.
 
-        Use `dry_run=true` to inspect whether pivots or other internal references block the delete.
+        Use dry_run=true to inspect whether pivots or other internal references block the delete.
       security:
         - bearerAuth: []
       parameters:
@@ -501,7 +501,7 @@ paths:
       tags: [data-model]
       operationId: deletePivot
       summary: Delete pivot
-      description: Deletes a pivot definition. `dry_run=true` returns a delete report without performing the delete.
+      description: "Deletes a pivot definition. dry_run=true returns a delete report without performing the delete."
       security:
         - bearerAuth: []
       parameters:
@@ -656,7 +656,7 @@ components:
       scheme: bearer
       bearerFormat: opaque
       description: >
-        Required for `/v1` routes when auth mode is set to `token`.
+        Required for /v1 routes when auth mode is set to token.
         In local development, auth may be disabled entirely.
   parameters:
     TenantId:
@@ -703,7 +703,7 @@ components:
       name: dry_run
       in: query
       required: false
-      description: When `true`, validates delete preconditions and returns a delete report without performing the delete.
+      description: "When true, validates delete preconditions and returns a delete report without performing the delete."
       schema:
         type: boolean
   responses:
@@ -1039,7 +1039,7 @@ components:
       properties:
         performed:
           type: boolean
-          description: `true` when the delete was executed, `false` for dry-run or blocked deletes.
+          description: "True when the delete was executed, false for dry-run or blocked deletes."
         conflicts:
           type: object
           description: Internal reasons the delete could not proceed.

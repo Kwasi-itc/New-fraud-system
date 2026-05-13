@@ -48,6 +48,17 @@ The service does not yet manage:
 - schema reconciliation CLI
 - first PostgreSQL-backed integration test path
 
+## Local tooling
+
+Optional local tooling:
+
+- `mise` for loading `.env` automatically into local commands
+
+This service now supports both styles:
+
+- plain `go run` from the service root because the app loads `.env` locally
+- `mise exec -- ...` if you want the same workflow style used by `api/`
+
 ## Project layout
 
 ```text
@@ -309,6 +320,13 @@ Typical local flow:
 4. Call tenant create + provision
 5. Create tables/fields/links/pivots
 6. Run reconcile if needed
+
+If you prefer `mise`, the equivalent command style is:
+
+```bash
+mise exec -- go run ./cmd/migrate up
+mise exec -- go run ./cmd/server
+```
 
 Detailed setup steps are in [SETUP_AND_RUN_GUIDE.md](./SETUP_AND_RUN_GUIDE.md).
 

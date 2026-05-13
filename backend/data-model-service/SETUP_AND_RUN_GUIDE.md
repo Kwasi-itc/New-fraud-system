@@ -5,6 +5,7 @@ This guide explains how to set up, run, verify, and stop the standalone data mod
 ## What you need
 
 - Go installed locally
+- optional: [mise](https://mise.jdx.dev/) if you want `.env` loaded externally like `api/`
 - Docker Desktop or another local Docker runtime
 - PostgreSQL available through Docker using the provided `docker-compose.yml`
 - PowerShell if you are following the Windows examples below
@@ -71,10 +72,18 @@ If Docker is not running, start Docker Desktop first.
 
 ## Step 3: run metadata migrations
 
+Plain `go run`:
+
 ```powershell
 $env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
-$env:DATABASE_URL='postgres://datamodel:datamodel@localhost:5434/datamodel?sslmode=disable'
 go run ./cmd/migrate up
+```
+
+With `mise`:
+
+```powershell
+$env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
+mise exec -- go run ./cmd/migrate up
 ```
 
 What this does:
@@ -88,23 +97,30 @@ Recommended interactive run:
 
 ```powershell
 $env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
-$env:DATABASE_URL='postgres://datamodel:datamodel@localhost:5434/datamodel?sslmode=disable'
-$env:PORT='8080'
-$env:SERVICE_AUTH_MODE='disabled'
-$env:GIN_MODE='debug'
 go run ./cmd/server
+```
+
+Equivalent `mise` run:
+
+```powershell
+$env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
+mise exec -- go run ./cmd/server
 ```
 
 If you want token auth:
 
 ```powershell
 $env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
-$env:DATABASE_URL='postgres://datamodel:datamodel@localhost:5434/datamodel?sslmode=disable'
-$env:PORT='8080'
 $env:SERVICE_AUTH_MODE='token'
 $env:SERVICE_AUTH_TOKEN='change-me'
-$env:GIN_MODE='debug'
 go run ./cmd/server
+```
+
+With `mise`, you can instead put those values in `.env` and run:
+
+```powershell
+$env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
+mise exec -- go run ./cmd/server
 ```
 
 Expected startup behavior:
