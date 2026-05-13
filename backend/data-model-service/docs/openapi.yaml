@@ -1,0 +1,1142 @@
+openapi: 3.0.3
+info:
+  title: Data Model Service API
+  version: 0.1.0
+  description: >
+    Standalone tenant-aware data model service for managing logical metadata,
+    physical per-tenant PostgreSQL schemas, schema changes, and reconciliation.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: health
+  - name: tenants
+  - name: data-model
+  - name: schema-changes
+  - name: reconcile
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /readyz:
+    get:
+      tags: [health]
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '503':
+          description: Database is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyErrorResponse'
+  /v1/tenants:
+    post:
+      tags: [tenants]
+      summary: Create tenant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantRequest'
+      responses:
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tenant:
+                    $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [tenants]
+      summary: List tenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tenant list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tenants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tenant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}:
+    get:
+      tags: [tenants]
+      summary: Get tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Tenant
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tenant:
+                    $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/provision:
+    post:
+      tags: [tenants]
+      summary: Provision tenant schema
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Tenant provisioned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tenant:
+                    $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/data-model:
+    get:
+      tags: [data-model]
+      summary: Get assembled data model
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Assembled data model
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_model:
+                    $ref: '#/components/schemas/AssembledDataModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/tables:
+    post:
+      tags: [data-model]
+      summary: Create table
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTableRequest'
+      responses:
+        '201':
+          description: Table created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  table:
+                    $ref: '#/components/schemas/Table'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tables/{tableId}:
+    patch:
+      tags: [data-model]
+      summary: Update table
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTableRequest'
+      responses:
+        '200':
+          description: Table updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  table:
+                    $ref: '#/components/schemas/Table'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [data-model]
+      summary: Delete table
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+        - $ref: '#/components/parameters/DryRun'
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Delete conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+  /v1/tables/{tableId}/fields:
+    post:
+      tags: [data-model]
+      summary: Create field
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFieldRequest'
+      responses:
+        '201':
+          description: Field created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  field:
+                    $ref: '#/components/schemas/Field'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/fields/{fieldId}:
+    patch:
+      tags: [data-model]
+      summary: Update field
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FieldId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFieldRequest'
+      responses:
+        '200':
+          description: Field updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  field:
+                    $ref: '#/components/schemas/Field'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [data-model]
+      summary: Delete field
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FieldId'
+        - $ref: '#/components/parameters/DryRun'
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Delete conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+  /v1/tenants/{tenantId}/links:
+    post:
+      tags: [data-model]
+      summary: Create link
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '201':
+          description: Link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    $ref: '#/components/schemas/Link'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/links/{linkId}:
+    delete:
+      tags: [data-model]
+      summary: Delete link
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LinkId'
+        - $ref: '#/components/parameters/DryRun'
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Delete conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+  /v1/tenants/{tenantId}/pivots:
+    get:
+      tags: [data-model]
+      summary: List pivots
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Pivot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pivots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pivot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [data-model]
+      summary: Create pivot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePivotRequest'
+      responses:
+        '201':
+          description: Pivot created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pivot:
+                    $ref: '#/components/schemas/Pivot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/pivots/{pivotId}:
+    delete:
+      tags: [data-model]
+      summary: Delete pivot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PivotId'
+        - $ref: '#/components/parameters/DryRun'
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tables/{tableId}/options:
+    get:
+      tags: [data-model]
+      summary: Get table options
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: Table options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableOptions'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [data-model]
+      summary: Upsert table options
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TableOptionsRequest'
+      responses:
+        '200':
+          description: Table options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableOptions'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/schema-change-log:
+    get:
+      tags: [schema-changes]
+      summary: List schema changes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Schema changes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schema_changes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SchemaChange'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/schema-migrations:
+    get:
+      tags: [schema-changes]
+      summary: List tenant schema migrations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Tenant schema migration history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tenant_schema_migrations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TenantSchemaMigration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/admin/reconcile:
+    get:
+      tags: [reconcile]
+      summary: Run schema reconciliation
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reconciliation report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report:
+                    $ref: '#/components/schemas/ReconcileReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: Reconciliation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TableId:
+      name: tableId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FieldId:
+      name: fieldId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LinkId:
+      name: linkId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PivotId:
+      name: pivotId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DryRun:
+      name: dry_run
+      in: query
+      required: false
+      schema:
+        type: boolean
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ReadyErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          type: string
+      required: [status, error]
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+    CreateTenantRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        external_key:
+          type: string
+          nullable: true
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        external_key:
+          type: string
+          nullable: true
+        schema_name:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateTableRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        alias:
+          type: string
+        semantic_type:
+          type: string
+    UpdateTableRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        alias:
+          type: string
+        semantic_type:
+          type: string
+        caption_field:
+          type: string
+    Table:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        alias:
+          type: string
+        semantic_type:
+          type: string
+        caption_field:
+          type: string
+        archived:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateFieldRequest:
+      type: object
+      required: [name, data_type]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        data_type:
+          type: string
+          enum: [bool, int, float, string, timestamp, ip_address]
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+    UpdateFieldRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+    Field:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        data_type:
+          type: string
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+        archived:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateLinkRequest:
+      type: object
+      required: [name, parent_table_id, parent_field_id, child_table_id, child_field_id]
+      properties:
+        name:
+          type: string
+        parent_table_id:
+          type: string
+          format: uuid
+        parent_field_id:
+          type: string
+          format: uuid
+        child_table_id:
+          type: string
+          format: uuid
+        child_field_id:
+          type: string
+          format: uuid
+    Link:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        parent_table_id:
+          type: string
+          format: uuid
+        parent_field_id:
+          type: string
+          format: uuid
+        child_table_id:
+          type: string
+          format: uuid
+        child_field_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+    CreatePivotRequest:
+      type: object
+      required: [base_table_id]
+      properties:
+        base_table_id:
+          type: string
+          format: uuid
+        field_id:
+          type: string
+          format: uuid
+          nullable: true
+        path_link_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    Pivot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        base_table_id:
+          type: string
+          format: uuid
+        field_id:
+          type: string
+          format: uuid
+          nullable: true
+        path_link_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+    TableOptionsRequest:
+      type: object
+      properties:
+        displayed_fields:
+          type: array
+          items:
+            type: string
+            format: uuid
+        field_order:
+          type: array
+          items:
+            type: string
+            format: uuid
+    TableOptions:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        table_id:
+          type: string
+          format: uuid
+        displayed_fields:
+          type: array
+          items:
+            type: string
+            format: uuid
+        field_order:
+          type: array
+          items:
+            type: string
+            format: uuid
+        updated_at:
+          type: string
+          format: date-time
+    DeleteReport:
+      type: object
+      properties:
+        performed:
+          type: boolean
+        conflicts:
+          type: object
+          properties:
+            reserved:
+              type: boolean
+            links:
+              type: array
+              items:
+                type: string
+                format: uuid
+            pivots:
+              type: array
+              items:
+                type: string
+                format: uuid
+    AssembledDataModel:
+      type: object
+      properties:
+        tables:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AssembledTable'
+        pivots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssembledPivot'
+    AssembledTable:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        alias:
+          type: string
+        semantic_type:
+          type: string
+        caption_field:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AssembledField'
+        links_to_single:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AssembledLink'
+        navigation_options:
+          type: array
+          items:
+            type: object
+        options:
+          $ref: '#/components/schemas/TableOptions'
+          nullable: true
+    AssembledField:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        data_type:
+          type: string
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+    AssembledLink:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        parent_table_id:
+          type: string
+          format: uuid
+        parent_field_id:
+          type: string
+          format: uuid
+        child_table_id:
+          type: string
+          format: uuid
+        child_field_id:
+          type: string
+          format: uuid
+        parent_table_name:
+          type: string
+        parent_field_name:
+          type: string
+        child_table_name:
+          type: string
+        child_field_name:
+          type: string
+    AssembledPivot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        base_table_id:
+          type: string
+          format: uuid
+        base_table:
+          type: string
+        field_id:
+          type: string
+          format: uuid
+          nullable: true
+        field:
+          type: string
+        path_link_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        path_links:
+          type: array
+          items:
+            type: string
+    SchemaChange:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        operation:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        details:
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+        created_at:
+          type: string
+          format: date-time
+    TenantSchemaMigration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        applied_at:
+          type: string
+          format: date-time
+    ReconcileReport:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+        tenants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReconcileTenantReport'
+    ReconcileTenantReport:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        tenant_name:
+          type: string
+        schema_name:
+          type: string
+        schema_exists:
+          type: boolean
+        missing_tables:
+          type: array
+          items:
+            type: string
+        unexpected_tables:
+          type: array
+          items:
+            type: string
+        table_reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReconcileTableReport'
+        schema_healthy:
+          type: boolean
+        metadata_only_state:
+          type: boolean
+    ReconcileTableReport:
+      type: object
+      properties:
+        table_name:
+          type: string
+        physical_exists:
+          type: boolean
+        missing_columns:
+          type: array
+          items:
+            type: string
+        unexpected_columns:
+          type: array
+          items:
+            type: string
+        healthy:
+          type: boolean
