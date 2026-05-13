@@ -96,7 +96,7 @@ func (m SchemaManager) createIndex(ctx context.Context, record tenant.Tenant, ta
 	}
 	query := fmt.Sprintf("CREATE %sINDEX IF NOT EXISTS %s ON %s (%s)",
 		modifier,
-		sanitizeIdentifier(record.SchemaName, indexName(table.Name, columns, unique)),
+		sanitizeIdentifier(indexName(table.Name, columns, unique)),
 		sanitizeIdentifier(record.SchemaName, table.Name),
 		strings.Join(indexColumns, ", "),
 	)
