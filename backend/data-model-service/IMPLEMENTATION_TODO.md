@@ -22,14 +22,15 @@ This file tracks the remaining work for the standalone data model service after 
 - schema reconciliation CLI for metadata vs physical tenant drift
 - structured request logging and request IDs
 - initial unit tests for domain validation, pivot deletion behavior, handler validation, and middleware behavior
-- first PostgreSQL-backed integration test for transaction rollback on unique index creation failure
+- PostgreSQL-backed integration coverage for happy-path lifecycle, delete flows, dry-run conflict reporting, and transactional rollback cases
+- repository-level PostgreSQL verification for tenant, table, field, link, pivot, table options, schema change, tenant schema migration, and assembled read repositories
+- V1 destructive lifecycle policy: hard delete with internal dry-run conflict checks
 
 ## Next Priority
 
-- expand PostgreSQL-backed integration coverage across create, delete, and schema-change flows
 - expand request/response integration tests against Gin handlers and router wiring
-- add repository tests against a real PostgreSQL container
-- add table and field archival semantics where destructive deletes should preserve history
+- add more rollback/failure-path coverage as new mutation behaviors are introduced
+- add archival semantics only if the target product requires history-preserving deletes
 
 ## Operational Hardening
 
@@ -44,7 +45,7 @@ This file tracks the remaining work for the standalone data model service after 
 
 - navigation option CRUD if required by the downstream fraud platform
 - physical secondary index management beyond unique field indexes
-- asynchronous index job worker backed by `core.index_jobs`
+- asynchronous index job worker backed by `core.index_jobs` if index orchestration is promoted from deferred status
 - support for additional data types such as `coords` if the target system needs them
 
 ## Integration Work

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the target design for a new standalone Go backend under `new/` that extracts Marble's data model subsystem into an independently deployable service. The new service will own logical data model metadata and real per-tenant physical PostgreSQL schemas, and it will be consumable by another fraud detection system over a network API.
+This document defines the target design for a standalone Go backend now located under `new/backend/data-model-service` that extracts Marble's data model subsystem into an independently deployable service. The new service will own logical data model metadata and real per-tenant physical PostgreSQL schemas, and it will be consumable by another fraud detection system over a network API.
 
 This is a design-first document. It does not prescribe immediate code movement. It defines the service boundary, migration target, and phased extraction plan.
 
@@ -636,7 +636,7 @@ Recommended companion local stack:
 - service container
 - PostgreSQL container
 
-Under `new/`, the eventual runtime should include:
+Under `new/backend/data-model-service`, the runtime should include:
 
 - `Dockerfile`
 - `docker-compose.yml` or compose snippet
@@ -727,7 +727,7 @@ Mitigation:
 
 ### Phase 1: Service Skeleton
 
-- create `new/` service layout
+- create the service layout
 - boot server
 - add config, health, DB connection, migration runner
 
@@ -787,7 +787,7 @@ This gives another fraud detection system a reusable schema-management module in
 
 After approval of this document, the next artifact should be a technical implementation blueprint containing:
 
-- exact package tree under `new/`
+- exact package tree under `new/backend/data-model-service`
 - chosen migration tool
 - initial SQL schema for metadata tables
 - DTO contracts for V1 endpoints

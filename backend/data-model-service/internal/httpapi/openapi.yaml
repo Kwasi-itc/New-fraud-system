@@ -2,23 +2,43 @@ openapi: 3.0.3
 info:
   title: Data Model Service API
   version: 0.1.0
-  description: >
-    Standalone tenant-aware data model service for managing logical metadata,
-    physical per-tenant PostgreSQL schemas, schema changes, and reconciliation.
+  description: |-
+    Standalone tenant-aware data model service for managing:
+    - tenant registration and schema provisioning
+    - logical metadata for tables, fields, links, pivots, and table options
+    - physical per-tenant PostgreSQL schema changes
+    - schema change history and tenant schema migration history
+    - reconciliation between metadata and physical tenant schemas
+
+    Typical workflow:
+    1. Create a tenant.
+    2. Provision the tenant schema.
+    3. Create tables and fields.
+    4. Add links, pivots, and table options as needed.
+    5. Read the assembled data model through `/v1/tenants/{tenantId}/data-model`.
+
+    Delete operations support `dry_run=true`.
+    In V1, destructive operations are hard deletes. When a delete is blocked by internal dependencies, the API returns `409` with a delete report that lists the conflicts.
 servers:
   - url: http://localhost:8080
     description: Local development server
 tags:
   - name: health
+    description: Liveness and readiness probes for runtime and database availability.
   - name: tenants
+    description: Tenant registration and physical schema provisioning.
   - name: data-model
+    description: CRUD operations for tables, fields, links, pivots, and table options.
   - name: schema-changes
+    description: Audit-style history for logical and physical schema operations.
   - name: reconcile
+    description: Administrative reconciliation between metadata and physical tenant schemas.
 paths:
   /healthz:
     get:
       tags: [health]
       summary: Liveness probe
+      description: Returns `200` when the service process is running.
       responses:
         '200':
           description: Service is alive
@@ -30,6 +50,7 @@ paths:
     get:
       tags: [health]
       summary: Readiness probe
+      description: Returns `200` when the service can reach its database dependency.
       responses:
         '200':
           description: Service is ready
@@ -46,7 +67,9 @@ paths:
   /v1/tenants:
     post:
       tags: [tenants]
+      operationId: createTenant
       summary: Create tenant
+      description: Registers a tenant in metadata. This does not provision the tenant's physical PostgreSQL schema yet.
       security:
         - bearerAuth: []
       requestBody:
@@ -71,7 +94,9 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     get:
       tags: [tenants]
+      operationId: listTenants
       summary: List tenants
+      description: Lists all registered tenants and their current provisioning status.
       security:
         - bearerAuth: []
       responses:
@@ -91,7 +116,9 @@ paths:
   /v1/tenants/{tenantId}:
     get:
       tags: [tenants]
+      operationId: getTenant
       summary: Get tenant
+      description: Returns one tenant by id.
       security:
         - bearerAuth: []
       parameters:
@@ -115,7 +142,9 @@ paths:
   /v1/tenants/{tenantId}/provision:
     post:
       tags: [tenants]
+      operationId: provisionTenant
       summary: Provision tenant schema
+      description: Creates the tenant's physical PostgreSQL schema and marks the tenant as provisioned.
       security:
         - bearerAuth: []
       parameters:
@@ -139,7 +168,9 @@ paths:
   /v1/tenants/{tenantId}/data-model:
     get:
       tags: [data-model]
+      operationId: getAssembledDataModel
       summary: Get assembled data model
+      description: Returns the tenant's assembled read model, including tables, fields, links, pivots, navigation options, and table options.
       security:
         - bearerAuth: []
       parameters:
@@ -161,7 +192,9 @@ paths:
   /v1/tenants/{tenantId}/tables:
     post:
       tags: [data-model]
+      operationId: createTable
       summary: Create table
+      description: Creates a logical table and its physical tenant table in the provisioned tenant schema.
       security:
         - bearerAuth: []
       parameters:
@@ -189,7 +222,9 @@ paths:
   /v1/tables/{tableId}:
     patch:
       tags: [data-model]
+      operationId: updateTable
       summary: Update table
+      description: Updates mutable table metadata. The table name is immutable after creation.
       security:
         - bearerAuth: []
       parameters:
@@ -218,7 +253,13 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags: [data-model]
+      operationId: deleteTable
       summary: Delete table
+      description: |-
+        Deletes a table from metadata and the tenant schema.
+
+        Use `dry_run=true` to check whether the table can be deleted without performing the delete.
+        If internal dependencies block deletion, the API returns `409` with a conflict report.
       security:
         - bearerAuth: []
       parameters:
@@ -246,7 +287,9 @@ paths:
   /v1/tables/{tableId}/fields:
     post:
       tags: [data-model]
+      operationId: createField
       summary: Create field
+      description: Creates a field in metadata and adds the backing column to the tenant's physical table.
       security:
         - bearerAuth: []
       parameters:
@@ -274,7 +317,9 @@ paths:
   /v1/fields/{fieldId}:
     patch:
       tags: [data-model]
+      operationId: updateField
       summary: Update field
+      description: Updates mutable field metadata and applies compatible physical schema changes where needed.
       security:
         - bearerAuth: []
       parameters:
@@ -303,7 +348,12 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags: [data-model]
+      operationId: deleteField
       summary: Delete field
+      description: |-
+        Deletes a field from metadata and drops the backing physical column.
+
+        Use `dry_run=true` to inspect conflicts before deleting.
       security:
         - bearerAuth: []
       parameters:
@@ -331,7 +381,9 @@ paths:
   /v1/tenants/{tenantId}/links:
     post:
       tags: [data-model]
+      operationId: createLink
       summary: Create link
+      description: Creates a logical relationship between a parent field and a child field within the tenant model.
       security:
         - bearerAuth: []
       parameters:
@@ -359,7 +411,12 @@ paths:
   /v1/links/{linkId}:
     delete:
       tags: [data-model]
+      operationId: deleteLink
       summary: Delete link
+      description: |-
+        Deletes a logical link.
+
+        Use `dry_run=true` to inspect whether pivots or other internal references block the delete.
       security:
         - bearerAuth: []
       parameters:
@@ -387,7 +444,9 @@ paths:
   /v1/tenants/{tenantId}/pivots:
     get:
       tags: [data-model]
+      operationId: listPivots
       summary: List pivots
+      description: Lists pivot definitions for a tenant.
       security:
         - bearerAuth: []
       parameters:
@@ -410,7 +469,9 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     post:
       tags: [data-model]
+      operationId: createPivot
       summary: Create pivot
+      description: Creates a pivot rooted at a base table, optionally using a field and a path of link ids.
       security:
         - bearerAuth: []
       parameters:
@@ -438,7 +499,9 @@ paths:
   /v1/pivots/{pivotId}:
     delete:
       tags: [data-model]
+      operationId: deletePivot
       summary: Delete pivot
+      description: Deletes a pivot definition. `dry_run=true` returns a delete report without performing the delete.
       security:
         - bearerAuth: []
       parameters:
@@ -460,7 +523,9 @@ paths:
   /v1/tables/{tableId}/options:
     get:
       tags: [data-model]
+      operationId: getTableOptions
       summary: Get table options
+      description: Returns UI-oriented table options such as displayed field ids and field order.
       security:
         - bearerAuth: []
       parameters:
@@ -480,7 +545,9 @@ paths:
           $ref: '#/components/responses/NotFound'
     put:
       tags: [data-model]
+      operationId: upsertTableOptions
       summary: Upsert table options
+      description: Creates or replaces table options for one table.
       security:
         - bearerAuth: []
       parameters:
@@ -507,7 +574,9 @@ paths:
   /v1/tenants/{tenantId}/schema-change-log:
     get:
       tags: [schema-changes]
+      operationId: listSchemaChanges
       summary: List schema changes
+      description: Returns the recorded logical and physical schema changes associated with the tenant.
       security:
         - bearerAuth: []
       parameters:
@@ -531,7 +600,9 @@ paths:
   /v1/tenants/{tenantId}/schema-migrations:
     get:
       tags: [schema-changes]
+      operationId: listTenantSchemaMigrations
       summary: List tenant schema migrations
+      description: Returns the applied tenant schema migration history for one tenant.
       security:
         - bearerAuth: []
       parameters:
@@ -555,7 +626,9 @@ paths:
   /v1/admin/reconcile:
     get:
       tags: [reconcile]
+      operationId: reconcileSchemas
       summary: Run schema reconciliation
+      description: Compares metadata state against physical tenant schemas and reports drift.
       security:
         - bearerAuth: []
       responses:
@@ -582,11 +655,15 @@ components:
       type: http
       scheme: bearer
       bearerFormat: opaque
+      description: >
+        Required for `/v1` routes when auth mode is set to `token`.
+        In local development, auth may be disabled entirely.
   parameters:
     TenantId:
       name: tenantId
       in: path
       required: true
+      description: Tenant identifier.
       schema:
         type: string
         format: uuid
@@ -594,6 +671,7 @@ components:
       name: tableId
       in: path
       required: true
+      description: Table identifier.
       schema:
         type: string
         format: uuid
@@ -601,6 +679,7 @@ components:
       name: fieldId
       in: path
       required: true
+      description: Field identifier.
       schema:
         type: string
         format: uuid
@@ -608,6 +687,7 @@ components:
       name: linkId
       in: path
       required: true
+      description: Link identifier.
       schema:
         type: string
         format: uuid
@@ -615,6 +695,7 @@ components:
       name: pivotId
       in: path
       required: true
+      description: Pivot identifier.
       schema:
         type: string
         format: uuid
@@ -622,23 +703,24 @@ components:
       name: dry_run
       in: query
       required: false
+      description: When `true`, validates delete preconditions and returns a delete report without performing the delete.
       schema:
         type: boolean
   responses:
     BadRequest:
-      description: Bad request
+      description: Invalid input, invalid id, or failed domain validation.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
     Unauthorized:
-      description: Unauthorized
+      description: Missing or invalid bearer token.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
     NotFound:
-      description: Not found
+      description: Requested resource was not found.
       content:
         application/json:
           schema:
@@ -646,12 +728,15 @@ components:
   schemas:
     StatusResponse:
       type: object
+      description: Simple health status envelope.
       properties:
         status:
           type: string
+          example: ok
       required: [status]
     ReadyErrorResponse:
       type: object
+      description: Readiness failure envelope.
       properties:
         status:
           type: string
@@ -660,25 +745,34 @@ components:
       required: [status, error]
     ErrorEnvelope:
       type: object
+      description: Standard error envelope used by request validation and not-found responses.
       properties:
         error:
           type: object
           properties:
             code:
               type: string
+              example: bad_parameter
             message:
               type: string
+              example: invalid tenantId
+          required: [code, message]
+      required: [error]
     CreateTenantRequest:
       type: object
+      description: Payload for registering a tenant before physical schema provisioning.
       required: [name]
       properties:
         name:
           type: string
+          example: Acme Risk Ops
         external_key:
           type: string
           nullable: true
+          example: acme-prod
     Tenant:
       type: object
+      description: Tenant metadata record.
       properties:
         id:
           type: string
@@ -690,28 +784,36 @@ components:
           nullable: true
         schema_name:
           type: string
+          example: tenant_f2a11b37
         status:
           type: string
+          example: active
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+      required: [id, name, schema_name, status, created_at, updated_at]
     CreateTableRequest:
       type: object
+      description: Payload for creating a logical table in a tenant.
       required: [name]
       properties:
         name:
           type: string
+          example: transactions
         description:
           type: string
         alias:
           type: string
+          example: Transactions
         semantic_type:
           type: string
+          example: entity
     UpdateTableRequest:
       type: object
+      description: Mutable fields for a table. Omitted properties remain unchanged.
       properties:
         description:
           type: string
@@ -721,8 +823,10 @@ components:
           type: string
         caption_field:
           type: string
+          example: object_id
     Table:
       type: object
+      description: Table metadata record.
       properties:
         id:
           type: string
@@ -745,17 +849,21 @@ components:
         updated_at:
           type: string
           format: date-time
+      required: [id, name, description, alias, semantic_type, caption_field, archived, created_at, updated_at]
     CreateFieldRequest:
       type: object
+      description: Payload for creating a field and its backing physical column.
       required: [name, data_type]
       properties:
         name:
           type: string
+          example: amount
         description:
           type: string
         data_type:
           type: string
           enum: [bool, int, float, string, timestamp, ip_address]
+          example: float
         nullable:
           type: boolean
         is_enum:
@@ -764,6 +872,7 @@ components:
           type: boolean
     UpdateFieldRequest:
       type: object
+      description: Mutable field properties. Omitted properties remain unchanged.
       properties:
         description:
           type: string
@@ -775,6 +884,7 @@ components:
           type: boolean
     Field:
       type: object
+      description: Field metadata record.
       properties:
         id:
           type: string
@@ -799,12 +909,15 @@ components:
         updated_at:
           type: string
           format: date-time
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at]
     CreateLinkRequest:
       type: object
+      description: Payload for creating a logical relationship between two fields.
       required: [name, parent_table_id, parent_field_id, child_table_id, child_field_id]
       properties:
         name:
           type: string
+          example: transaction_to_account
         parent_table_id:
           type: string
           format: uuid
@@ -819,6 +932,7 @@ components:
           format: uuid
     Link:
       type: object
+      description: Link metadata record.
       properties:
         id:
           type: string
@@ -840,8 +954,10 @@ components:
         created_at:
           type: string
           format: date-time
+      required: [id, name, parent_table_id, parent_field_id, child_table_id, child_field_id, created_at]
     CreatePivotRequest:
       type: object
+      description: Payload for creating a pivot rooted at a base table.
       required: [base_table_id]
       properties:
         base_table_id:
@@ -858,6 +974,7 @@ components:
             format: uuid
     Pivot:
       type: object
+      description: Pivot definition.
       properties:
         id:
           type: string
@@ -877,8 +994,10 @@ components:
         created_at:
           type: string
           format: date-time
+      required: [id, base_table_id, path_link_ids, created_at]
     TableOptionsRequest:
       type: object
+      description: UI-oriented table options.
       properties:
         displayed_fields:
           type: array
@@ -892,6 +1011,7 @@ components:
             format: uuid
     TableOptions:
       type: object
+      description: Stored table options.
       properties:
         id:
           type: string
@@ -912,28 +1032,38 @@ components:
         updated_at:
           type: string
           format: date-time
+      required: [id, table_id, displayed_fields, field_order, updated_at]
     DeleteReport:
       type: object
+      description: Result of a delete or delete dry-run operation.
       properties:
         performed:
           type: boolean
+          description: `true` when the delete was executed, `false` for dry-run or blocked deletes.
         conflicts:
           type: object
+          description: Internal reasons the delete could not proceed.
           properties:
             reserved:
               type: boolean
+              description: The target is reserved and cannot be deleted.
             links:
               type: array
+              description: Link ids that still depend on the target.
               items:
                 type: string
                 format: uuid
             pivots:
               type: array
+              description: Pivot ids that still depend on the target.
               items:
                 type: string
                 format: uuid
+          required: [reserved, links, pivots]
+      required: [performed, conflicts]
     AssembledDataModel:
       type: object
+      description: Tenant read model assembled from tables, fields, links, pivots, and options.
       properties:
         tables:
           type: object
@@ -943,8 +1073,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AssembledPivot'
+      required: [tables, pivots]
     AssembledTable:
       type: object
+      description: Table entry inside the assembled read model.
       properties:
         id:
           type: string
@@ -969,6 +1101,7 @@ components:
             $ref: '#/components/schemas/AssembledLink'
         navigation_options:
           type: array
+          description: Service-computed navigation options for the table.
           items:
             type: object
         options:
@@ -976,6 +1109,7 @@ components:
           nullable: true
     AssembledField:
       type: object
+      description: Field entry inside the assembled read model.
       properties:
         id:
           type: string
@@ -994,6 +1128,7 @@ components:
           type: boolean
     AssembledLink:
       type: object
+      description: Link entry inside the assembled read model.
       properties:
         id:
           type: string
@@ -1022,6 +1157,7 @@ components:
           type: string
     AssembledPivot:
       type: object
+      description: Pivot entry inside the assembled read model.
       properties:
         id:
           type: string
@@ -1048,6 +1184,7 @@ components:
             type: string
     SchemaChange:
       type: object
+      description: Recorded schema change event for tenant metadata or physical DDL work.
       properties:
         id:
           type: string
@@ -1064,6 +1201,7 @@ components:
           format: uuid
         status:
           type: string
+          example: applied
         details:
           oneOf:
             - type: object
@@ -1074,6 +1212,7 @@ components:
           format: date-time
     TenantSchemaMigration:
       type: object
+      description: Applied migration row for a tenant schema.
       properties:
         id:
           type: string
@@ -1088,6 +1227,7 @@ components:
           format: date-time
     ReconcileReport:
       type: object
+      description: Drift report produced by the reconciliation endpoint.
       properties:
         healthy:
           type: boolean
@@ -1097,6 +1237,7 @@ components:
             $ref: '#/components/schemas/ReconcileTenantReport'
     ReconcileTenantReport:
       type: object
+      description: Per-tenant reconciliation result.
       properties:
         tenant_id:
           type: string
@@ -1125,6 +1266,7 @@ components:
           type: boolean
     ReconcileTableReport:
       type: object
+      description: Per-table reconciliation result.
       properties:
         table_name:
           type: string

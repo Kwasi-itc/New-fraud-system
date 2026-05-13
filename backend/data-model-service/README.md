@@ -205,6 +205,24 @@ This is important for operations like:
 
 If physical DDL fails during a transactional mutation, metadata changes should roll back with it.
 
+## Delete behavior
+
+Current V1 delete behavior is:
+
+- hard delete for tables, fields, links, and pivots
+- dry-run conflict reporting before destructive execution
+- internal conflict checks only
+
+Current internal conflicts include cases such as:
+
+- reserved fields
+- fields referenced by links
+- fields referenced by pivots
+- links referenced by pivot paths
+- tables still referenced by links or pivots
+
+Archive or soft-delete semantics are not part of the current V1 contract. They should only be added if the downstream product requires history-preserving destructive changes.
+
 ## Schema reconciliation
 
 The service includes a reconciliation CLI and admin API that compare:
@@ -279,7 +297,7 @@ Not yet supported in the current implementation:
 - no background worker for `core.index_jobs`
 - no metrics/tracing yet
 - auth is static bearer-token based, not user/tenant aware
-- broader PostgreSQL integration coverage is still pending
+- broader request/response integration coverage is still pending
 
 ## Development workflow
 

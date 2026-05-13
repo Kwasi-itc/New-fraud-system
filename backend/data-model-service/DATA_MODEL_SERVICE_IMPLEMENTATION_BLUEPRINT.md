@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This blueprint turns the extraction design into an implementation-ready plan for the new standalone service under `new/`.
+This blueprint turns the extraction design into an implementation-ready plan for the standalone service under `new/backend/data-model-service`.
 
 It defines:
 
@@ -62,7 +62,7 @@ Rationale:
 ## Proposed Folder Tree
 
 ```text
-new/
+new/backend/data-model-service/
   DATA_MODEL_SERVICE_EXTRACTION_DESIGN.md
   DATA_MODEL_SERVICE_IMPLEMENTATION_BLUEPRINT.md
   cmd/
@@ -1183,7 +1183,7 @@ Target:
 
 ### Step 1
 
-- scaffold `new/` module
+- scaffold the service module
 - add config, server, health endpoint
 - add DB connection and migration runner
 
@@ -1248,7 +1248,7 @@ Before scaffolding code, confirm these final choices:
 
 After approval of this blueprint, the next task should be:
 
-- scaffold the `new/` Go service
+- scaffold the Go service
 - create the first metadata migration
 - wire the server, config, DB, and health endpoint
 

@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -15,6 +16,8 @@ type Config struct {
 }
 
 func LoadConfig() (Config, error) {
+	loadDotEnvIfPresent()
+
 	cfg := Config{
 		Port:             getEnv("PORT", "8080"),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
@@ -40,4 +43,32 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func loadDotEnvIfPresent() {
+	content, err := os.ReadFile(".env")
+	if err != nil {
+		return
+	}
+
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+
+		key = strings.TrimSpace(key)
+		if key == "" || os.Getenv(key) != "" {
+			continue
+		}
+
+		value = strings.TrimSpace(value)
+		value = strings.Trim(value, `"'`)
+		_ = os.Setenv(key, value)
+	}
 }

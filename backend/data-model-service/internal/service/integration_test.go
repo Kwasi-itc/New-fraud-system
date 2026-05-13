@@ -342,6 +342,436 @@ func TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure(t *testing.
 	}
 }
 
+func TestIntegrationDeleteDryRunsReportInternalConflicts(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(50)}
+	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)}
+
+	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
+	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
+
+	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Conflict Tenant"})
+	if err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	record, err = tenantService.Provision(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("provision tenant: %v", err)
+	}
+
+	accounts, err := tableService.Create(ctx, CreateTableInput{TenantID: record.ID, Name: "accounts"})
+	if err != nil {
+		t.Fatalf("create accounts table: %v", err)
+	}
+	transactions, err := tableService.Create(ctx, CreateTableInput{TenantID: record.ID, Name: "transactions"})
+	if err != nil {
+		t.Fatalf("create transactions table: %v", err)
+	}
+
+	transactionsAccountID, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:  transactions.ID,
+		Name:     "account_id",
+		DataType: datamodel.DataTypeString,
+	})
+	if err != nil {
+		t.Fatalf("create transactions.account_id: %v", err)
+	}
+
+	accountFields, err := fieldRepo.ListByTable(ctx, accounts.ID)
+	if err != nil {
+		t.Fatalf("list account fields: %v", err)
+	}
+	accountsObjectID := findFieldByName(t, accountFields, "object_id")
+
+	link, err := linkService.Create(ctx, CreateLinkInput{
+		TenantID:    record.ID,
+		Name:        "account",
+		ParentTable: accounts.ID,
+		ParentField: accountsObjectID.ID,
+		ChildTable:  transactions.ID,
+		ChildField:  transactionsAccountID.ID,
+	})
+	if err != nil {
+		t.Fatalf("create link: %v", err)
+	}
+
+	fieldPivot, err := pivotService.Create(ctx, CreatePivotInput{
+		TenantID:    record.ID,
+		BaseTableID: transactions.ID,
+		FieldID:     &transactionsAccountID.ID,
+	})
+	if err != nil {
+		t.Fatalf("create field-based pivot: %v", err)
+	}
+	pathPivot, err := pivotService.Create(ctx, CreatePivotInput{
+		TenantID:    record.ID,
+		BaseTableID: transactions.ID,
+		PathLinkIDs: []uuid.UUID{link.ID},
+	})
+	if err != nil {
+		t.Fatalf("create path-based pivot: %v", err)
+	}
+
+	fieldReport, err := fieldService.Delete(ctx, transactionsAccountID.ID, true)
+	if err == nil {
+		t.Fatal("expected field dry-run delete conflict")
+	}
+	if fieldReport.Performed {
+		t.Fatal("expected field dry-run not to perform delete")
+	}
+	if !slices.Contains(fieldReport.Conflicts.Links, link.ID) {
+		t.Fatalf("expected field conflict to include link %s, got %v", link.ID, fieldReport.Conflicts.Links)
+	}
+	if !slices.Contains(fieldReport.Conflicts.Pivots, fieldPivot.ID) {
+		t.Fatalf("expected field conflict to include pivot %s, got %v", fieldPivot.ID, fieldReport.Conflicts.Pivots)
+	}
+
+	linkReport, err := linkService.Delete(ctx, link.ID, true)
+	if err == nil {
+		t.Fatal("expected link dry-run delete conflict")
+	}
+	if linkReport.Performed {
+		t.Fatal("expected link dry-run not to perform delete")
+	}
+	if !slices.Contains(linkReport.Conflicts.Pivots, pathPivot.ID) {
+		t.Fatalf("expected link conflict to include pivot %s, got %v", pathPivot.ID, linkReport.Conflicts.Pivots)
+	}
+
+	tableReport, err := tableService.Delete(ctx, transactions.ID, true)
+	if err == nil {
+		t.Fatal("expected table dry-run delete conflict")
+	}
+	if tableReport.Performed {
+		t.Fatal("expected table dry-run not to perform delete")
+	}
+	if !slices.Contains(tableReport.Conflicts.Links, link.ID) {
+		t.Fatalf("expected table conflict to include link %s, got %v", link.ID, tableReport.Conflicts.Links)
+	}
+	if !slices.Contains(tableReport.Conflicts.Pivots, fieldPivot.ID) || !slices.Contains(tableReport.Conflicts.Pivots, pathPivot.ID) {
+		t.Fatalf("expected table conflict to include pivots %s and %s, got %v", fieldPivot.ID, pathPivot.ID, tableReport.Conflicts.Pivots)
+	}
+
+	assertTenantColumnExists(t, ctx, pool, record.SchemaName, transactions.Name, transactionsAccountID.Name)
+}
+
+func TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(60)}
+	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 14, 0, 0, 0, time.UTC)}
+
+	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
+	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
+
+	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Delete Tenant"})
+	if err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	record, err = tenantService.Provision(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("provision tenant: %v", err)
+	}
+
+	accounts, err := tableService.Create(ctx, CreateTableInput{TenantID: record.ID, Name: "accounts"})
+	if err != nil {
+		t.Fatalf("create accounts table: %v", err)
+	}
+	transactions, err := tableService.Create(ctx, CreateTableInput{TenantID: record.ID, Name: "transactions"})
+	if err != nil {
+		t.Fatalf("create transactions table: %v", err)
+	}
+	casesTable, err := tableService.Create(ctx, CreateTableInput{TenantID: record.ID, Name: "cases"})
+	if err != nil {
+		t.Fatalf("create cases table: %v", err)
+	}
+
+	transactionsAccountID, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:  transactions.ID,
+		Name:     "account_id",
+		DataType: datamodel.DataTypeString,
+	})
+	if err != nil {
+		t.Fatalf("create transactions.account_id: %v", err)
+	}
+	casesEmail, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:   casesTable.ID,
+		Name:      "email",
+		DataType:  datamodel.DataTypeString,
+		IsUnique:  true,
+		Nullable:  false,
+	})
+	if err != nil {
+		t.Fatalf("create cases.email: %v", err)
+	}
+
+	accountFields, err := fieldRepo.ListByTable(ctx, accounts.ID)
+	if err != nil {
+		t.Fatalf("list account fields: %v", err)
+	}
+	accountsObjectID := findFieldByName(t, accountFields, "object_id")
+
+	link, err := linkService.Create(ctx, CreateLinkInput{
+		TenantID:    record.ID,
+		Name:        "account",
+		ParentTable: accounts.ID,
+		ParentField: accountsObjectID.ID,
+		ChildTable:  transactions.ID,
+		ChildField:  transactionsAccountID.ID,
+	})
+	if err != nil {
+		t.Fatalf("create link: %v", err)
+	}
+	pathPivot, err := pivotService.Create(ctx, CreatePivotInput{
+		TenantID:    record.ID,
+		BaseTableID: transactions.ID,
+		PathLinkIDs: []uuid.UUID{link.ID},
+	})
+	if err != nil {
+		t.Fatalf("create path pivot: %v", err)
+	}
+
+	pivotDeleteReport, err := pivotService.Delete(ctx, pathPivot.ID, false)
+	if err != nil {
+		t.Fatalf("delete pivot: %v", err)
+	}
+	if !pivotDeleteReport.Performed {
+		t.Fatal("expected pivot delete to be performed")
+	}
+	if _, err := pivotRepo.GetByID(ctx, pathPivot.ID); err == nil {
+		t.Fatal("expected pivot metadata to be deleted")
+	}
+
+	linkDeleteReport, err := linkService.Delete(ctx, link.ID, false)
+	if err != nil {
+		t.Fatalf("delete link: %v", err)
+	}
+	if !linkDeleteReport.Performed {
+		t.Fatal("expected link delete to be performed")
+	}
+	if _, err := linkRepo.GetByID(ctx, link.ID); err == nil {
+		t.Fatal("expected link metadata to be deleted")
+	}
+
+	fieldDeleteReport, err := fieldService.Delete(ctx, casesEmail.ID, false)
+	if err != nil {
+		t.Fatalf("delete field: %v", err)
+	}
+	if !fieldDeleteReport.Performed {
+		t.Fatal("expected field delete to be performed")
+	}
+	if _, err := fieldRepo.GetByID(ctx, casesEmail.ID); err == nil {
+		t.Fatal("expected field metadata to be deleted")
+	}
+	assertTenantColumnAbsent(t, ctx, pool, record.SchemaName, casesTable.Name, casesEmail.Name)
+	exists, err := uniqueIndexOnColumnExists(ctx, pool, record.SchemaName, casesTable.Name, casesEmail.Name)
+	if err != nil {
+		t.Fatalf("check deleted field unique index: %v", err)
+	}
+	if exists {
+		t.Fatal("expected unique index for deleted field to be removed")
+	}
+
+	tableDeleteReport, err := tableService.Delete(ctx, casesTable.ID, false)
+	if err != nil {
+		t.Fatalf("delete table: %v", err)
+	}
+	if !tableDeleteReport.Performed {
+		t.Fatal("expected table delete to be performed")
+	}
+	if _, err := tableRepo.GetByID(ctx, casesTable.ID); err == nil {
+		t.Fatal("expected table metadata to be deleted")
+	}
+	assertTenantTableAbsent(t, ctx, pool, record.SchemaName, casesTable.Name)
+
+	changes, err := schemaChanges.ListByTenant(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("list schema changes: %v", err)
+	}
+	assertSchemaChangeOperations(t, changes, "delete_pivot", "delete_link", "delete_field", "delete_table")
+
+	assertTenantSchemaMigrationVersionExists(t, ctx, tenantSchemaMigrations, record.ID, "delete_pivot:pivot")
+	assertTenantSchemaMigrationVersionExists(t, ctx, tenantSchemaMigrations, record.ID, "delete_link:link")
+	assertTenantSchemaMigrationVersionExists(t, ctx, tenantSchemaMigrations, record.ID, "delete_field:field")
+	assertTenantSchemaMigrationVersionExists(t, ctx, tenantSchemaMigrations, record.ID, "delete_table:table")
+}
+
+func TestIntegrationCreateTableRollsBackWhenTenantSchemaMissing(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	now := time.Date(2026, 5, 13, 16, 0, 0, 0, time.UTC)
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(20)}
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, fixedIntegrationClock{now: now})
+
+	record := tenant.Tenant{
+		ID:         uuid.MustParse("30000000-0000-0000-0000-000000000001"),
+		Name:       "Broken Tenant",
+		SchemaName: tenant.SchemaNameFor(uuid.MustParse("30000000-0000-0000-0000-000000000001")),
+		Status:     tenant.StatusActive,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := tenantRepo.Create(ctx, record); err != nil {
+		t.Fatalf("seed active tenant: %v", err)
+	}
+
+	_, err := tableService.Create(ctx, CreateTableInput{
+		TenantID: record.ID,
+		Name:     "transactions",
+	})
+	if err == nil {
+		t.Fatal("expected create table to fail when tenant schema is missing")
+	}
+
+	tables, err := tableRepo.ListByTenant(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("list tables after failed create: %v", err)
+	}
+	if len(tables) != 0 {
+		t.Fatalf("expected no table metadata after rollback, got %v", tables)
+	}
+
+	changes, err := schemaChanges.ListByTenant(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("list schema changes after failed create: %v", err)
+	}
+	for _, change := range changes {
+		if change.Operation == "create_table" {
+			t.Fatalf("expected no persisted create_table schema change after rollback, got %v", changes)
+		}
+	}
+}
+
+func TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	now := time.Date(2026, 5, 13, 17, 0, 0, 0, time.UTC)
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, fixedIntegrationClock{now: now})
+
+	tenantID := uuid.MustParse("31000000-0000-0000-0000-000000000001")
+	record := tenant.Tenant{
+		ID:         tenantID,
+		Name:       "Missing Table Tenant",
+		SchemaName: tenant.SchemaNameFor(tenantID),
+		Status:     tenant.StatusActive,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := tenantRepo.Create(ctx, record); err != nil {
+		t.Fatalf("seed active tenant: %v", err)
+	}
+	if err := schemaManager.ProvisionTenantSchema(ctx, record); err != nil {
+		t.Fatalf("provision tenant schema directly: %v", err)
+	}
+
+	tableID := uuid.MustParse("31000000-0000-0000-0000-000000000002")
+	table := datamodel.Table{
+		ID:          tableID,
+		TenantID:    tenantID,
+		Name:        "transactions",
+		Description: "metadata only table",
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	if err := tableRepo.Create(ctx, table); err != nil {
+		t.Fatalf("seed metadata table: %v", err)
+	}
+
+	_, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:   tableID,
+		Name:      "amount",
+		DataType:  datamodel.DataTypeFloat,
+		Nullable:  false,
+		IsUnique:  false,
+		IsEnum:    false,
+	})
+	if err == nil {
+		t.Fatal("expected create field to fail when physical tenant table is missing")
+	}
+
+	fields, err := fieldRepo.ListByTable(ctx, tableID)
+	if err != nil {
+		t.Fatalf("list fields after failed create: %v", err)
+	}
+	if len(fields) != 0 {
+		t.Fatalf("expected no field metadata after rollback, got %v", fields)
+	}
+
+	changes, err := schemaChanges.ListByTenant(ctx, tenantID)
+	if err != nil {
+		t.Fatalf("list schema changes after failed field create: %v", err)
+	}
+	for _, change := range changes {
+		if change.Operation == "create_field" {
+			t.Fatalf("expected no persisted create_field schema change after rollback, got %v", changes)
+		}
+	}
+}
+
 func integrationDatabaseURL(t *testing.T) string {
 	t.Helper()
 	if url := os.Getenv("DATA_MODEL_TEST_DATABASE_URL"); url != "" {
@@ -556,6 +986,45 @@ func assertTenantColumnExists(t *testing.T, ctx context.Context, pool *pgxpool.P
 	}
 	if !exists {
 		t.Fatalf("expected tenant column %s.%s.%s to exist", schemaName, tableName, columnName)
+	}
+}
+
+func assertTenantColumnAbsent(t *testing.T, ctx context.Context, pool *pgxpool.Pool, schemaName, tableName, columnName string) {
+	t.Helper()
+	var exists bool
+	err := pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = $1
+			  AND table_name = $2
+			  AND column_name = $3
+		)
+	`, schemaName, tableName, columnName).Scan(&exists)
+	if err != nil {
+		t.Fatalf("check tenant column absence: %v", err)
+	}
+	if exists {
+		t.Fatalf("expected tenant column %s.%s.%s to be absent", schemaName, tableName, columnName)
+	}
+}
+
+func assertTenantTableAbsent(t *testing.T, ctx context.Context, pool *pgxpool.Pool, schemaName, tableName string) {
+	t.Helper()
+	var exists bool
+	err := pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.tables
+			WHERE table_schema = $1
+			  AND table_name = $2
+		)
+	`, schemaName, tableName).Scan(&exists)
+	if err != nil {
+		t.Fatalf("check tenant table absence: %v", err)
+	}
+	if exists {
+		t.Fatalf("expected tenant table %s.%s to be absent", schemaName, tableName)
 	}
 }
 

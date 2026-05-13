@@ -42,6 +42,10 @@ const docsHTML = `<!doctype html>
     <header>
       <strong>Data Model Service API</strong>
       <span style="margin-left:16px;">Raw spec: <a href="/openapi.yaml">/openapi.yaml</a></span>
+      <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
+        Flow: create tenant, provision schema, create tables and fields, then read the assembled model.
+        Delete routes support <code>dry_run=true</code> and return conflict details when a delete is blocked.
+      </div>
     </header>
     <div id="swagger-ui"></div>
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
