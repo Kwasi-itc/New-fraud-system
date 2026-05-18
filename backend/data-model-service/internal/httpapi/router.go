@@ -45,12 +45,15 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	tenantRepository := storepostgres.NewTenantRepository(db)
 	tableRepository := storepostgres.NewTableRepository(db)
 	fieldRepository := storepostgres.NewFieldRepository(db)
+	fieldEnumValueRepository := storepostgres.NewFieldEnumValueRepository(db)
 	linkRepository := storepostgres.NewLinkRepository(db)
 	pivotRepository := storepostgres.NewPivotRepository(db)
 	optionsRepository := storepostgres.NewTableOptionsRepository(db)
+	navigationOptionRepository := storepostgres.NewNavigationOptionRepository(db)
 	readRepository := storepostgres.NewDataModelReadRepository(db)
 	schemaChangeRepository := storepostgres.NewSchemaChangeRepository(db)
 	tenantSchemaMigrationRepository := storepostgres.NewTenantSchemaMigrationRepository(db)
+	indexJobRepository := storepostgres.NewIndexJobRepository(db)
 	schemaManager := tenantdbpostgres.NewSchemaManager(db)
 	transactionManager := storepostgres.NewTransactionManager(db)
 	tenantService := service.NewTenantService(
@@ -78,6 +81,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		tenantRepository,
 		tableRepository,
 		fieldRepository,
+		fieldEnumValueRepository,
 		linkRepository,
 		pivotRepository,
 		schemaChangeRepository,
@@ -91,6 +95,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		fieldRepository,
 		linkRepository,
 		pivotRepository,
+		schemaChangeRepository,
+		transactionManager,
+		uuidGenerator{},
+		systemClock{},
+	)
+	enumValueService := service.NewFieldEnumValueService(
+		fieldRepository,
+		fieldEnumValueRepository,
 		schemaChangeRepository,
 		transactionManager,
 		uuidGenerator{},
@@ -115,17 +127,39 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		uuidGenerator{},
 		systemClock{},
 	)
+	navigationOptionService := service.NewNavigationOptionService(
+		tableRepository,
+		fieldRepository,
+		navigationOptionRepository,
+		schemaChangeRepository,
+		transactionManager,
+		uuidGenerator{},
+		systemClock{},
+	)
 	readService := service.NewDataModelReadService(readRepository)
+	indexJobService := service.NewIndexJobService(
+		tenantRepository,
+		tableRepository,
+		fieldRepository,
+		indexJobRepository,
+		schemaChangeRepository,
+		transactionManager,
+		uuidGenerator{},
+		systemClock{},
+	)
 	dataModelHandler := handlers.NewDataModelHandler(
 		readService,
 		tableService,
 		fieldService,
+		enumValueService,
 		linkService,
 		pivotService,
 		optionsService,
+		navigationOptionService,
 	)
 	schemaChangeHandler := handlers.NewSchemaChangeHandler(service.NewSchemaChangeService(schemaChangeRepository))
 	tenantSchemaMigrationHandler := handlers.NewTenantSchemaMigrationHandler(service.NewTenantSchemaMigrationService(tenantSchemaMigrationRepository))
+	indexJobHandler := handlers.NewIndexJobHandler(indexJobService)
 	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db))
 
 	v1 := router.Group("/v1")
@@ -140,19 +174,30 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/data-model", dataModelHandler.GetDataModel)
 	v1.POST("/tenants/:tenantId/tables", dataModelHandler.CreateTable)
 	v1.POST("/tables/:tableId/fields", dataModelHandler.CreateField)
+	v1.GET("/fields/:fieldId/enum-values", dataModelHandler.ListFieldEnumValues)
+	v1.POST("/fields/:fieldId/enum-values", dataModelHandler.CreateFieldEnumValue)
 	v1.POST("/tenants/:tenantId/links", dataModelHandler.CreateLink)
 	v1.GET("/tenants/:tenantId/pivots", dataModelHandler.ListPivots)
 	v1.POST("/tenants/:tenantId/pivots", dataModelHandler.CreatePivot)
 	v1.GET("/tables/:tableId/options", dataModelHandler.GetOptions)
 	v1.PUT("/tables/:tableId/options", dataModelHandler.UpsertOptions)
+	v1.GET("/tables/:tableId/navigation-options", dataModelHandler.ListNavigationOptions)
+	v1.POST("/tables/:tableId/navigation-options", dataModelHandler.CreateNavigationOption)
 	v1.GET("/tenants/:tenantId/schema-change-log", schemaChangeHandler.List)
 	v1.GET("/tenants/:tenantId/schema-migrations", tenantSchemaMigrationHandler.List)
+	v1.POST("/tenants/:tenantId/index-jobs", indexJobHandler.Create)
+	v1.GET("/tenants/:tenantId/index-jobs", indexJobHandler.List)
+	v1.GET("/index-jobs/:jobId", indexJobHandler.Get)
+	v1.POST("/index-jobs/:jobId/retry", indexJobHandler.Retry)
 	v1.PATCH("/tables/:tableId", dataModelHandler.UpdateTable)
 	v1.PATCH("/fields/:fieldId", dataModelHandler.UpdateField)
+	v1.PATCH("/enum-values/:enumValueId", dataModelHandler.UpdateFieldEnumValue)
 	v1.DELETE("/tables/:tableId", dataModelHandler.DeleteTable)
 	v1.DELETE("/fields/:fieldId", dataModelHandler.DeleteField)
+	v1.DELETE("/enum-values/:enumValueId", dataModelHandler.DeleteFieldEnumValue)
 	v1.DELETE("/links/:linkId", dataModelHandler.DeleteLink)
 	v1.DELETE("/pivots/:pivotId", dataModelHandler.DeletePivot)
+	v1.DELETE("/navigation-options/:navigationOptionId", dataModelHandler.DeleteNavigationOption)
 	v1.GET("/admin/reconcile", reconcileHandler.Run)
 
 	return router

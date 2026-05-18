@@ -26,8 +26,12 @@ Current `data-model` routes:
 - `PATCH /v1/tables/:tableId`
 - `DELETE /v1/tables/:tableId?dry_run=true`
 - `POST /v1/tables/:tableId/fields`
+- `GET /v1/fields/:fieldId/enum-values`
+- `POST /v1/fields/:fieldId/enum-values`
 - `PATCH /v1/fields/:fieldId`
+- `PATCH /v1/enum-values/:enumValueId`
 - `DELETE /v1/fields/:fieldId?dry_run=true`
+- `DELETE /v1/enum-values/:enumValueId`
 - `POST /v1/tenants/:tenantId/links`
 - `DELETE /v1/links/:linkId?dry_run=true`
 - `GET /v1/tenants/:tenantId/pivots`
@@ -94,6 +98,101 @@ A table is a tenant-owned object collection. It exists:
 
 - as metadata in `core.model_tables`
 - as a physical PostgreSQL table inside the tenant schema
+
+### Table Metadata Fields
+
+Tables also carry three important metadata fields:
+
+- `alias`
+- `semantic_type`
+- `caption_field`
+
+These are part of the logical model definition, even though they do not directly change the physical PostgreSQL table shape.
+
+#### `alias`
+
+`alias` is the human-friendly display label for the table.
+
+Example:
+
+- `name`: `transactions`
+- `alias`: `Transactions`
+
+Why both exist:
+
+- `name` is the stable technical identifier
+- `alias` is the user-facing label for UI, docs, or consumer displays
+
+Current state in the service:
+
+- stored in metadata
+- returned in API responses
+- included in the assembled data model
+- mainly used as display metadata
+
+#### `semantic_type`
+
+`semantic_type` is meant to describe what kind of real-world entity the table represents.
+
+This is a business-meaning field, not a physical-schema field.
+
+Historical intent from the old `api` model was:
+
+- `unknown`
+- `person`
+- `company`
+
+In the new service today:
+
+- it is stored as a plain string
+- it is not currently validated as a strict enum
+- it therefore behaves as free-form metadata unless additional validation is added
+
+Practical recommendation:
+
+- prefer `person`
+- prefer `company`
+- use blank or `unknown` when the table does not clearly fit a known semantic category
+
+#### `caption_field`
+
+`caption_field` tells the system which field should be used as the main human-readable label for a record in that table.
+
+Example:
+
+- table: `customers`
+- fields: `object_id`, `email`, `full_name`
+- `caption_field`: `full_name`
+
+That means a downstream system should prefer `full_name` when it needs a readable label for a customer record.
+
+Think of it as:
+
+- title field
+- label field
+- primary display field
+
+Current state in the service:
+
+- stored in metadata
+- updateable
+- returned in the assembled data model
+- not strongly validated yet against existing table fields
+
+Practical recommendation:
+
+- point it to a real descriptive field such as `full_name`, `email`, `merchant_name`, or `account_name`
+- avoid using technical fields like `id` or `updated_at` unless there is no better display candidate
+
+### Important Current Limitation
+
+In the new service, `alias`, `semantic_type`, and `caption_field` are primarily metadata today.
+
+- `alias` is immediately useful as a display label
+- `semantic_type` carries intended business meaning but is not strongly enforced yet
+- `caption_field` carries intended record-label meaning but is not strongly enforced yet
+
+So these fields should be understood as part of the logical contract of the model, even though some of their intended downstream behavior is still soft rather than strictly validated.
 
 ### Create Table
 
@@ -194,6 +293,43 @@ Supported data types currently include:
 - `string`
 - `timestamp`
 - `ip_address`
+
+### Enum Values
+
+If `is_enum=true`, the field can now have a managed list of enum values.
+
+Endpoints:
+
+- `GET /v1/fields/:fieldId/enum-values`
+- `POST /v1/fields/:fieldId/enum-values`
+- `PATCH /v1/enum-values/:enumValueId`
+- `DELETE /v1/enum-values/:enumValueId`
+
+Enum values are metadata records attached to a field. Each enum value contains:
+
+- `value`
+- `label`
+- `sort_order`
+
+Current rules:
+
+- enum values can only be attached to fields where `is_enum=true`
+- enum values are only supported for `string`, `int`, and `float` fields
+- the raw stored value is modeled as text, but it is validated against the owning field's data type
+
+Example:
+
+- field name: `status`
+- enum values:
+  - `pending`
+  - `approved`
+  - `rejected`
+
+Design intent:
+
+- `is_enum` is no longer just a conceptual flag
+- the service can now act as the source of truth for the allowed values of an enum-like field
+- downstream systems can read enum options from the service rather than managing them separately
 
 ### Update Field
 

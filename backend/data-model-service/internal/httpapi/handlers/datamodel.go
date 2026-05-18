@@ -17,26 +17,32 @@ type DataModelHandler struct {
 	readService    service.DataModelReadService
 	tableService   service.TableService
 	fieldService   service.FieldService
+	enumValueService service.FieldEnumValueService
 	linkService    service.LinkService
 	pivotService   service.PivotService
 	optionsService service.OptionsService
+	navigationOptionService service.NavigationOptionService
 }
 
 func NewDataModelHandler(
 	readService service.DataModelReadService,
 	tableService service.TableService,
 	fieldService service.FieldService,
+	enumValueService service.FieldEnumValueService,
 	linkService service.LinkService,
 	pivotService service.PivotService,
 	optionsService service.OptionsService,
+	navigationOptionService service.NavigationOptionService,
 ) DataModelHandler {
 	return DataModelHandler{
 		readService:    readService,
 		tableService:   tableService,
 		fieldService:   fieldService,
+		enumValueService: enumValueService,
 		linkService:    linkService,
 		pivotService:   pivotService,
 		optionsService: optionsService,
+		navigationOptionService: navigationOptionService,
 	}
 }
 
@@ -306,6 +312,140 @@ func (h DataModelHandler) UpsertOptions(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, dto.AdaptTableOptions(options))
+}
+
+func (h DataModelHandler) ListNavigationOptions(c *gin.Context) {
+	tableID, ok := parseUUIDParam(c, "tableId")
+	if !ok {
+		return
+	}
+	options, err := h.navigationOptionService.ListByTable(c.Request.Context(), tableID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response := make([]dto.NavigationOptionResponse, len(options))
+	for i, option := range options {
+		response[i] = dto.AdaptNavigationOption(option)
+	}
+	c.JSON(http.StatusOK, gin.H{"navigation_options": response})
+}
+
+func (h DataModelHandler) CreateNavigationOption(c *gin.Context) {
+	tableID, ok := parseUUIDParam(c, "tableId")
+	if !ok {
+		return
+	}
+	var request dto.CreateNavigationOptionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	table, err := h.tableService.Get(c.Request.Context(), tableID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	option, err := h.navigationOptionService.Create(c.Request.Context(), service.CreateNavigationOptionInput{
+		TenantID:        table.TenantID,
+		SourceTableID:   tableID,
+		SourceFieldID:   request.SourceFieldID,
+		TargetTableID:   request.TargetTableID,
+		FilterFieldID:   request.FilterFieldID,
+		OrderingFieldID: request.OrderingFieldID,
+	})
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"navigation_option": dto.AdaptNavigationOption(option)})
+}
+
+func (h DataModelHandler) DeleteNavigationOption(c *gin.Context) {
+	optionID, ok := parseUUIDParam(c, "navigationOptionId")
+	if !ok {
+		return
+	}
+	if err := h.navigationOptionService.Delete(c.Request.Context(), optionID); err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h DataModelHandler) ListFieldEnumValues(c *gin.Context) {
+	fieldID, ok := parseUUIDParam(c, "fieldId")
+	if !ok {
+		return
+	}
+	values, err := h.enumValueService.List(c.Request.Context(), fieldID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response := make([]dto.FieldEnumValueResponse, len(values))
+	for i, value := range values {
+		response[i] = dto.AdaptFieldEnumValue(value)
+	}
+	c.JSON(http.StatusOK, gin.H{"enum_values": response})
+}
+
+func (h DataModelHandler) CreateFieldEnumValue(c *gin.Context) {
+	fieldID, ok := parseUUIDParam(c, "fieldId")
+	if !ok {
+		return
+	}
+	var request dto.CreateFieldEnumValueRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	value, err := h.enumValueService.Create(c.Request.Context(), service.CreateFieldEnumValueInput{
+		FieldID:   fieldID,
+		Value:     request.Value,
+		Label:     request.Label,
+		SortOrder: request.SortOrder,
+	})
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"enum_value": dto.AdaptFieldEnumValue(value)})
+}
+
+func (h DataModelHandler) UpdateFieldEnumValue(c *gin.Context) {
+	enumValueID, ok := parseUUIDParam(c, "enumValueId")
+	if !ok {
+		return
+	}
+	var request dto.UpdateFieldEnumValueRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	value, err := h.enumValueService.Update(c.Request.Context(), service.UpdateFieldEnumValueInput{
+		EnumValueID: enumValueID,
+		Value:       request.Value,
+		Label:       request.Label,
+		SortOrder:   request.SortOrder,
+	})
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"enum_value": dto.AdaptFieldEnumValue(value)})
+}
+
+func (h DataModelHandler) DeleteFieldEnumValue(c *gin.Context) {
+	enumValueID, ok := parseUUIDParam(c, "enumValueId")
+	if !ok {
+		return
+	}
+	if err := h.enumValueService.Delete(c.Request.Context(), enumValueID); err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func parseUUIDParam(c *gin.Context, name string) (uuid.UUID, bool) {

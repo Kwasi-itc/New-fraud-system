@@ -979,16 +979,30 @@ CREATE TABLE core.tenant_schema_migrations (
 
 ### `index_jobs`
 
+Current implementation status:
+
+- implemented as a real metadata-backed worker flow, not just a placeholder table
+- supports `navigation` and `repair` job orchestration
+- supports retry scheduling, attempt counts, and dedupe keys
+- used by navigation-option creation and reconcile-triggered repair
+
 ```sql
 CREATE TABLE core.index_jobs (
   id UUID PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE,
+  table_id UUID NULL REFERENCES core.model_tables(id) ON DELETE CASCADE,
   table_name TEXT NOT NULL,
   index_type TEXT NOT NULL,
   columns TEXT[] NOT NULL,
   status TEXT NOT NULL,
+  requested_by_operation TEXT NOT NULL,
+  error_message TEXT NULL,
+  attempt_count INTEGER NOT NULL,
   requested_at TIMESTAMPTZ NOT NULL,
-  completed_at TIMESTAMPTZ NULL
+  started_at TIMESTAMPTZ NULL,
+  completed_at TIMESTAMPTZ NULL,
+  scheduled_at TIMESTAMPTZ NULL,
+  dedupe_key TEXT NOT NULL
 );
 ```
 
@@ -1057,9 +1071,13 @@ Conditionally create:
 
 ### Navigation Index Rules
 
-For V1, keep navigation options metadata-ready but index creation simple:
+Current implementation:
 
 - create btree index on `(filter_field, ordering_field)`
+- enqueue index creation asynchronously from navigation-option creation
+- detect missing managed indexes during reconcile
+- schedule `repair` jobs automatically when drift is found
+- retry failed worker executions with scheduled backoff before terminal failure
 
 ## Local Development Runtime
 

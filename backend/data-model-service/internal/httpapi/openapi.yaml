@@ -29,6 +29,8 @@ tags:
     description: Tenant registration and physical schema provisioning.
   - name: data-model
     description: CRUD operations for tables, fields, links, pivots, and table options.
+  - name: index-jobs
+    description: Async managed-index job enqueueing, inspection, and retry operations.
   - name: schema-changes
     description: Audit-style history for logical and physical schema operations.
   - name: reconcile
@@ -314,6 +316,65 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/fields/{fieldId}/enum-values:
+    get:
+      tags: [data-model]
+      operationId: listFieldEnumValues
+      summary: List field enum values
+      description: Returns the managed enum values for one enum field.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FieldId'
+      responses:
+        '200':
+          description: Enum value list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enum_values:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FieldEnumValue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [data-model]
+      operationId: createFieldEnumValue
+      summary: Create field enum value
+      description: Creates one managed enum value for a field marked with is_enum=true.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FieldId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFieldEnumValueRequest'
+      responses:
+        '201':
+          description: Enum value created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enum_value:
+                    $ref: '#/components/schemas/FieldEnumValue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/fields/{fieldId}:
     patch:
       tags: [data-model]
@@ -378,6 +439,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteReport'
+  /v1/enum-values/{enumValueId}:
+    patch:
+      tags: [data-model]
+      operationId: updateFieldEnumValue
+      summary: Update field enum value
+      description: Updates one managed enum value.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EnumValueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFieldEnumValueRequest'
+      responses:
+        '200':
+          description: Enum value updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enum_value:
+                    $ref: '#/components/schemas/FieldEnumValue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [data-model]
+      operationId: deleteFieldEnumValue
+      summary: Delete field enum value
+      description: Deletes one managed enum value from a field.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EnumValueId'
+      responses:
+        '204':
+          description: Enum value deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/tenants/{tenantId}/links:
     post:
       tags: [data-model]
@@ -571,6 +682,84 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/tables/{tableId}/navigation-options:
+    get:
+      tags: [data-model]
+      operationId: listNavigationOptions
+      summary: List navigation options
+      description: Returns stored navigation options for a source table, including resolved table and field names.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: Navigation options
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  navigation_options:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NavigationOption'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [data-model]
+      operationId: createNavigationOption
+      summary: Create navigation option
+      description: Creates navigation-option metadata and enqueues an async managed-index job for the target table.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNavigationOptionRequest'
+      responses:
+        '201':
+          description: Navigation option created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  navigation_option:
+                    $ref: '#/components/schemas/NavigationOption'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/navigation-options/{navigationOptionId}:
+    delete:
+      tags: [data-model]
+      operationId: deleteNavigationOption
+      summary: Delete navigation option
+      description: Deletes a stored navigation option.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NavigationOptionId'
+      responses:
+        '204':
+          description: Navigation option deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/tenants/{tenantId}/schema-change-log:
     get:
       tags: [schema-changes]
@@ -597,6 +786,115 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/index-jobs:
+    get:
+      tags: [index-jobs]
+      operationId: listIndexJobs
+      summary: List index jobs
+      description: Returns async managed-index jobs for one tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Index jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IndexJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [index-jobs]
+      operationId: createIndexJob
+      summary: Create index job
+      description: Enqueues an async managed-index job for a tenant table.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIndexJobRequest'
+      responses:
+        '201':
+          description: Index job created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_job:
+                    $ref: '#/components/schemas/IndexJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/index-jobs/{jobId}:
+    get:
+      tags: [index-jobs]
+      operationId: getIndexJob
+      summary: Get index job
+      description: Returns one async managed-index job.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Index job
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_job:
+                    $ref: '#/components/schemas/IndexJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/index-jobs/{jobId}/retry:
+    post:
+      tags: [index-jobs]
+      operationId: retryIndexJob
+      summary: Retry index job
+      description: Resets a failed index job back to pending so the worker can claim it again.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Index job retry scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_job:
+                    $ref: '#/components/schemas/IndexJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/tenants/{tenantId}/schema-migrations:
     get:
       tags: [schema-changes]
@@ -628,7 +926,7 @@ paths:
       tags: [reconcile]
       operationId: reconcileSchemas
       summary: Run schema reconciliation
-      description: Compares metadata state against physical tenant schemas and reports drift.
+      description: Compares metadata state against physical tenant schemas, reports drift, and schedules repair index jobs when managed secondary indexes are missing.
       security:
         - bearerAuth: []
       responses:
@@ -696,6 +994,30 @@ components:
       in: path
       required: true
       description: Pivot identifier.
+      schema:
+        type: string
+        format: uuid
+    NavigationOptionId:
+      name: navigationOptionId
+      in: path
+      required: true
+      description: Navigation option identifier.
+      schema:
+        type: string
+        format: uuid
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: Index job identifier.
+      schema:
+        type: string
+        format: uuid
+    EnumValueId:
+      name: enumValueId
+      in: path
+      required: true
+      description: Enum value identifier.
       schema:
         type: string
         format: uuid
@@ -882,6 +1204,30 @@ components:
           type: boolean
         is_unique:
           type: boolean
+    CreateFieldEnumValueRequest:
+      type: object
+      description: Payload for creating one enum value for an enum field.
+      required: [value, label]
+      properties:
+        value:
+          type: string
+          example: pending
+        label:
+          type: string
+          example: Pending
+        sort_order:
+          type: integer
+          example: 10
+    UpdateFieldEnumValueRequest:
+      type: object
+      description: Mutable enum value properties. Omitted properties remain unchanged.
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        sort_order:
+          type: integer
     Field:
       type: object
       description: Field metadata record.
@@ -910,6 +1256,29 @@ components:
           type: string
           format: date-time
       required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at]
+    FieldEnumValue:
+      type: object
+      description: One managed enum value belonging to a field.
+      properties:
+        id:
+          type: string
+          format: uuid
+        field_id:
+          type: string
+          format: uuid
+        value:
+          type: string
+        label:
+          type: string
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, field_id, value, label, sort_order, created_at, updated_at]
     CreateLinkRequest:
       type: object
       description: Payload for creating a logical relationship between two fields.
@@ -1009,6 +1378,23 @@ components:
           items:
             type: string
             format: uuid
+    CreateNavigationOptionRequest:
+      type: object
+      description: Payload for creating a navigation option from one source table into a target table.
+      properties:
+        source_field_id:
+          type: string
+          format: uuid
+        target_table_id:
+          type: string
+          format: uuid
+        filter_field_id:
+          type: string
+          format: uuid
+        ordering_field_id:
+          type: string
+          format: uuid
+      required: [source_field_id, target_table_id, filter_field_id, ordering_field_id]
     TableOptions:
       type: object
       description: Stored table options.
@@ -1033,6 +1419,45 @@ components:
           type: string
           format: date-time
       required: [id, table_id, displayed_fields, field_order, updated_at]
+    NavigationOption:
+      type: object
+      description: Stored navigation option plus resolved display names.
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        source_table_id:
+          type: string
+          format: uuid
+        source_field_id:
+          type: string
+          format: uuid
+        target_table_id:
+          type: string
+          format: uuid
+        filter_field_id:
+          type: string
+          format: uuid
+        ordering_field_id:
+          type: string
+          format: uuid
+        source_table_name:
+          type: string
+        source_field_name:
+          type: string
+        target_table_name:
+          type: string
+        filter_field_name:
+          type: string
+        ordering_field_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, source_table_id, source_field_id, target_table_id, filter_field_id, ordering_field_id, source_table_name, source_field_name, target_table_name, filter_field_name, ordering_field_name, created_at]
     DeleteReport:
       type: object
       description: Result of a delete or delete dry-run operation.
@@ -1101,9 +1526,9 @@ components:
             $ref: '#/components/schemas/AssembledLink'
         navigation_options:
           type: array
-          description: Service-computed navigation options for the table.
+          description: Stored navigation options for the table.
           items:
-            type: object
+            $ref: '#/components/schemas/NavigationOption'
         options:
           $ref: '#/components/schemas/TableOptions'
           nullable: true
@@ -1126,6 +1551,10 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        enum_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldEnumValue'
     AssembledLink:
       type: object
       description: Link entry inside the assembled read model.
@@ -1225,12 +1654,85 @@ components:
         applied_at:
           type: string
           format: date-time
+    CreateIndexJobRequest:
+      type: object
+      description: Payload for enqueueing an async managed-index job.
+      properties:
+        table_id:
+          type: string
+          format: uuid
+        index_type:
+          type: string
+          example: navigation
+        columns:
+          type: array
+          items:
+            type: string
+        requested_by_operation:
+          type: string
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [table_id, index_type, columns]
+    IndexJob:
+      type: object
+      description: Async managed-index job tracked in metadata.
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        table_id:
+          type: string
+          format: uuid
+          nullable: true
+        table_name:
+          type: string
+        index_type:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          example: pending
+        requested_by_operation:
+          type: string
+        error_message:
+          type: string
+          nullable: true
+        attempt_count:
+          type: integer
+        requested_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+        dedupe_key:
+          type: string
+      required: [id, tenant_id, table_name, index_type, columns, status, requested_by_operation, attempt_count, requested_at, dedupe_key]
     ReconcileReport:
       type: object
       description: Drift report produced by the reconciliation endpoint.
       properties:
         healthy:
           type: boolean
+        repair_jobs_scheduled:
+          type: integer
         tenants:
           type: array
           items:
@@ -1264,6 +1766,8 @@ components:
           type: boolean
         metadata_only_state:
           type: boolean
+        repair_jobs_scheduled:
+          type: integer
     ReconcileTableReport:
       type: object
       description: Per-table reconciliation result.
@@ -1280,5 +1784,26 @@ components:
           type: array
           items:
             type: string
+        missing_managed_indexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagedIndexGap'
+        repair_job_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
         healthy:
           type: boolean
+    ManagedIndexGap:
+      type: object
+      description: Expected managed secondary index missing from the tenant schema.
+      properties:
+        index_name:
+          type: string
+        index_type:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string

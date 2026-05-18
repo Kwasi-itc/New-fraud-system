@@ -13,18 +13,22 @@ import (
 type DataModelReadRepository struct {
 	tableRepository        TableRepository
 	fieldRepository        FieldRepository
+	fieldEnumValueRepository FieldEnumValueRepository
 	linkRepository         LinkRepository
 	pivotRepository        PivotRepository
 	tableOptionsRepository TableOptionsRepository
+	navigationOptionRepository NavigationOptionRepository
 }
 
 func NewDataModelReadRepository(db *pgxpool.Pool) DataModelReadRepository {
 	return DataModelReadRepository{
 		tableRepository:        NewTableRepository(db),
 		fieldRepository:        NewFieldRepository(db),
+		fieldEnumValueRepository: NewFieldEnumValueRepository(db),
 		linkRepository:         NewLinkRepository(db),
 		pivotRepository:        NewPivotRepository(db),
 		tableOptionsRepository: NewTableOptionsRepository(db),
+		navigationOptionRepository: NewNavigationOptionRepository(db),
 	}
 }
 
@@ -38,6 +42,10 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 		return datamodel.AssembledDataModel{}, err
 	}
 	pivots, err := r.pivotRepository.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return datamodel.AssembledDataModel{}, err
+	}
+	navigationOptions, err := r.navigationOptionRepository.ListByTenant(ctx, tenantID)
 	if err != nil {
 		return datamodel.AssembledDataModel{}, err
 	}
@@ -82,6 +90,16 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,
 				IsUnique:    field.IsUnique,
+				EnumValues:  []datamodel.FieldEnumValue{},
+			}
+			if field.IsEnum {
+				enumValues, err := r.fieldEnumValueRepository.ListByField(ctx, field.ID)
+				if err != nil {
+					return datamodel.AssembledDataModel{}, err
+				}
+				assembledField := assembledTable.Fields[field.Name]
+				assembledField.EnumValues = enumValues
+				assembledTable.Fields[field.Name] = assembledField
 			}
 			result.Tables[table.Name] = assembledTable
 		}
@@ -140,6 +158,27 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 			}
 		}
 		result.Pivots = append(result.Pivots, assembledPivot)
+	}
+
+	for _, option := range navigationOptions {
+		sourceTable, ok := tableByID[option.SourceTableID]
+		if !ok {
+			return datamodel.AssembledDataModel{}, fmt.Errorf("source table not found while assembling navigation options")
+		}
+		targetTable := tableByID[option.TargetTableID]
+		sourceField := fieldByID[option.SourceFieldID]
+		filterField := fieldByID[option.FilterFieldID]
+		orderingField := fieldByID[option.OrderingFieldID]
+
+		option.SourceTableName = sourceTable.Name
+		option.SourceFieldName = sourceField.Name
+		option.TargetTableName = targetTable.Name
+		option.FilterFieldName = filterField.Name
+		option.OrderingFieldName = orderingField.Name
+
+		assembledTable := result.Tables[sourceTable.Name]
+		assembledTable.NavigationOptions = append(assembledTable.NavigationOptions, option)
+		result.Tables[sourceTable.Name] = assembledTable
 	}
 
 	return result, nil

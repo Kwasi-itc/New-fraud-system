@@ -14,6 +14,7 @@ type FieldService struct {
 	tenantRepository ports.TenantRepository
 	tableRepository  ports.TableRepository
 	fieldRepository  ports.FieldRepository
+	fieldEnumValueRepository ports.FieldEnumValueRepository
 	linkRepository   ports.LinkRepository
 	pivotRepository  ports.PivotRepository
 	schemaChanges    ports.SchemaChangeRepository
@@ -45,6 +46,7 @@ func NewFieldService(
 	tenantRepository ports.TenantRepository,
 	tableRepository ports.TableRepository,
 	fieldRepository ports.FieldRepository,
+	fieldEnumValueRepository ports.FieldEnumValueRepository,
 	linkRepository ports.LinkRepository,
 	pivotRepository ports.PivotRepository,
 	schemaChanges ports.SchemaChangeRepository,
@@ -57,6 +59,7 @@ func NewFieldService(
 		tenantRepository: tenantRepository,
 		tableRepository:  tableRepository,
 		fieldRepository:  fieldRepository,
+		fieldEnumValueRepository: fieldEnumValueRepository,
 		linkRepository:   linkRepository,
 		pivotRepository:  pivotRepository,
 		schemaChanges:    schemaChanges,
@@ -160,6 +163,15 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 		field.Nullable = *input.Nullable
 	}
 	if input.IsEnum != nil {
+		if field.IsEnum && !*input.IsEnum {
+			enumValues, err := s.fieldEnumValueRepository.ListByField(ctx, field.ID)
+			if err != nil {
+				return datamodel.Field{}, err
+			}
+			if len(enumValues) > 0 {
+				return datamodel.Field{}, fmt.Errorf("remove enum values before unsetting is_enum")
+			}
+		}
 		field.IsEnum = *input.IsEnum
 	}
 	if input.IsUnique != nil {

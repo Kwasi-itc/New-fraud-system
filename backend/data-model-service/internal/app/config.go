@@ -3,7 +3,9 @@ package app
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -13,6 +15,10 @@ type Config struct {
 	ServiceAuthToken string
 	LogLevel         string
 	GinMode          string
+	IndexWorkerPollInterval time.Duration
+	IndexWorkerMaxAttempts  int
+	IndexWorkerRetryBaseDelay time.Duration
+	IndexWorkerRetryMaxDelay  time.Duration
 }
 
 func LoadConfig() (Config, error) {
@@ -25,7 +31,23 @@ func LoadConfig() (Config, error) {
 		ServiceAuthToken: os.Getenv("SERVICE_AUTH_TOKEN"),
 		LogLevel:         getEnv("LOG_LEVEL", "info"),
 		GinMode:          getEnv("GIN_MODE", "debug"),
+		IndexWorkerMaxAttempts: getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5),
 	}
+	pollInterval, err := getEnvDuration("INDEX_WORKER_POLL_INTERVAL", 2*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IndexWorkerPollInterval = pollInterval
+	retryBaseDelay, err := getEnvDuration("INDEX_WORKER_RETRY_BASE_DELAY", 5*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IndexWorkerRetryBaseDelay = retryBaseDelay
+	retryMaxDelay, err := getEnvDuration("INDEX_WORKER_RETRY_MAX_DELAY", 2*time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IndexWorkerRetryMaxDelay = retryMaxDelay
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
@@ -43,6 +65,30 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
+	}
+	return parsed, nil
+}
+
+func getEnvInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func loadDotEnvIfPresent() {

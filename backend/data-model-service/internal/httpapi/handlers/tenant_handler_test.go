@@ -86,6 +86,12 @@ func (stubSchemaManager) CreateUniqueIndex(context.Context, tenant.Tenant, datam
 func (stubSchemaManager) DropUniqueIndex(context.Context, tenant.Tenant, datamodel.Table, []string) error {
 	return nil
 }
+func (stubSchemaManager) CreateManagedIndex(context.Context, tenant.Tenant, datamodel.Table, datamodel.IndexJob) error {
+	return nil
+}
+func (stubSchemaManager) GetManagedIndexState(context.Context, tenant.Tenant, datamodel.Table, datamodel.IndexJob) (datamodel.ManagedIndexState, error) {
+	return datamodel.ManagedIndexState{}, nil
+}
 
 type stubChangeRepository struct{}
 
@@ -118,19 +124,24 @@ type stubMutationStore struct {
 	tenants                ports.TenantRepository
 	schemaChanges          ports.SchemaChangeRepository
 	tenantSchemaMigrations ports.TenantSchemaMigrationRepository
+	navigationOptions      ports.NavigationOptionRepository
+	indexJobs              ports.IndexJobRepository
 	schemaManager          ports.SchemaManager
 }
 
 func (s stubMutationStore) Tenants() ports.TenantRepository             { return s.tenants }
 func (s stubMutationStore) Tables() ports.TableRepository               { return nil }
 func (s stubMutationStore) Fields() ports.FieldRepository               { return nil }
+func (s stubMutationStore) FieldEnumValues() ports.FieldEnumValueRepository { return nil }
 func (s stubMutationStore) Links() ports.LinkRepository                 { return nil }
 func (s stubMutationStore) Pivots() ports.PivotRepository               { return nil }
 func (s stubMutationStore) TableOptions() ports.TableOptionsRepository  { return nil }
+func (s stubMutationStore) NavigationOptions() ports.NavigationOptionRepository { return s.navigationOptions }
 func (s stubMutationStore) SchemaChanges() ports.SchemaChangeRepository { return s.schemaChanges }
 func (s stubMutationStore) TenantSchemaMigrations() ports.TenantSchemaMigrationRepository {
 	return s.tenantSchemaMigrations
 }
+func (s stubMutationStore) IndexJobs() ports.IndexJobRepository { return s.indexJobs }
 func (s stubMutationStore) SchemaManager() ports.SchemaManager { return s.schemaManager }
 
 func TestTenantHandlerCreateReturnsCreatedTenant(t *testing.T) {

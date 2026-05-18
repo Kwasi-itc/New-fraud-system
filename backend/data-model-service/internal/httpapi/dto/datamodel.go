@@ -77,6 +77,28 @@ type FieldResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type CreateFieldEnumValueRequest struct {
+	Value     string `json:"value" binding:"required"`
+	Label     string `json:"label" binding:"required"`
+	SortOrder int    `json:"sort_order"`
+}
+
+type UpdateFieldEnumValueRequest struct {
+	Value     *string `json:"value"`
+	Label     *string `json:"label"`
+	SortOrder *int    `json:"sort_order"`
+}
+
+type FieldEnumValueResponse struct {
+	ID        uuid.UUID `json:"id"`
+	FieldID   uuid.UUID `json:"field_id"`
+	Value     string    `json:"value"`
+	Label     string    `json:"label"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 func AdaptField(field datamodel.Field) FieldResponse {
 	return FieldResponse{
 		ID:          field.ID,
@@ -89,6 +111,18 @@ func AdaptField(field datamodel.Field) FieldResponse {
 		Archived:    field.Archived,
 		CreatedAt:   field.CreatedAt,
 		UpdatedAt:   field.UpdatedAt,
+	}
+}
+
+func AdaptFieldEnumValue(value datamodel.FieldEnumValue) FieldEnumValueResponse {
+	return FieldEnumValueResponse{
+		ID:        value.ID,
+		FieldID:   value.FieldID,
+		Value:     value.Value,
+		Label:     value.Label,
+		SortOrder: value.SortOrder,
+		CreatedAt: value.CreatedAt,
+		UpdatedAt: value.UpdatedAt,
 	}
 }
 
@@ -151,6 +185,13 @@ type TableOptionsRequest struct {
 	FieldOrder      []uuid.UUID `json:"field_order"`
 }
 
+type CreateNavigationOptionRequest struct {
+	SourceFieldID   uuid.UUID `json:"source_field_id" binding:"required"`
+	TargetTableID   uuid.UUID `json:"target_table_id" binding:"required"`
+	FilterFieldID   uuid.UUID `json:"filter_field_id" binding:"required"`
+	OrderingFieldID uuid.UUID `json:"ordering_field_id" binding:"required"`
+}
+
 type TableOptionsResponse struct {
 	ID              uuid.UUID   `json:"id"`
 	TableID         uuid.UUID   `json:"table_id"`
@@ -166,6 +207,40 @@ func AdaptTableOptions(options datamodel.TableOptions) TableOptionsResponse {
 		DisplayedFields: options.DisplayedFields,
 		FieldOrder:      options.FieldOrder,
 		UpdatedAt:       options.UpdatedAt,
+	}
+}
+
+type NavigationOptionResponse struct {
+	ID                uuid.UUID `json:"id"`
+	TenantID          uuid.UUID `json:"tenant_id"`
+	SourceTableID     uuid.UUID `json:"source_table_id"`
+	SourceFieldID     uuid.UUID `json:"source_field_id"`
+	TargetTableID     uuid.UUID `json:"target_table_id"`
+	FilterFieldID     uuid.UUID `json:"filter_field_id"`
+	OrderingFieldID   uuid.UUID `json:"ordering_field_id"`
+	SourceTableName   string    `json:"source_table_name"`
+	SourceFieldName   string    `json:"source_field_name"`
+	TargetTableName   string    `json:"target_table_name"`
+	FilterFieldName   string    `json:"filter_field_name"`
+	OrderingFieldName string    `json:"ordering_field_name"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+func AdaptNavigationOption(option datamodel.NavigationOption) NavigationOptionResponse {
+	return NavigationOptionResponse{
+		ID:                option.ID,
+		TenantID:          option.TenantID,
+		SourceTableID:     option.SourceTableID,
+		SourceFieldID:     option.SourceFieldID,
+		TargetTableID:     option.TargetTableID,
+		FilterFieldID:     option.FilterFieldID,
+		OrderingFieldID:   option.OrderingFieldID,
+		SourceTableName:   option.SourceTableName,
+		SourceFieldName:   option.SourceFieldName,
+		TargetTableName:   option.TargetTableName,
+		FilterFieldName:   option.FilterFieldName,
+		OrderingFieldName: option.OrderingFieldName,
+		CreatedAt:         option.CreatedAt,
 	}
 }
 
@@ -214,6 +289,7 @@ type AssembledFieldResponse struct {
 	Nullable    bool      `json:"nullable"`
 	IsEnum      bool      `json:"is_enum"`
 	IsUnique    bool      `json:"is_unique"`
+	EnumValues  []FieldEnumValueResponse `json:"enum_values"`
 }
 
 type AssembledLinkResponse struct {
@@ -260,6 +336,7 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel) AssembledDataMo
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,
 				IsUnique:    field.IsUnique,
+				EnumValues:  adaptFieldEnumValues(field.EnumValues),
 			}
 		}
 		links := make(map[string]AssembledLinkResponse, len(table.LinksToSingle))
@@ -300,6 +377,14 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel) AssembledDataMo
 			PathLinkIDs: pivot.PathLinkIDs,
 			PathLinks:   pivot.PathLinks,
 		}
+	}
+	return response
+}
+
+func adaptFieldEnumValues(values []datamodel.FieldEnumValue) []FieldEnumValueResponse {
+	response := make([]FieldEnumValueResponse, len(values))
+	for i, value := range values {
+		response[i] = AdaptFieldEnumValue(value)
 	}
 	return response
 }

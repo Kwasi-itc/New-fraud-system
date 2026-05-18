@@ -17,13 +17,14 @@ The service manages:
 - physical per-tenant PostgreSQL tables and columns
 - links and pivots used for higher-level graph navigation
 - table display/options metadata
+- navigation-option metadata
 - schema change audit logging
+- async secondary index job orchestration
 - schema drift reconciliation
 
 The service does not yet manage:
 
 - workflow/scenario/rule dependency registration across external systems
-- background index job execution
 - rich tenant-scoped authorization
 - schema migration history orchestration beyond metadata tables
 
@@ -37,6 +38,8 @@ The service does not yet manage:
 - link CRUD
 - pivot CRUD
 - table options read and upsert
+- navigation option CRUD
+- async index job enqueue/list/get/retry
 - assembled data model read endpoint
 - schema change log endpoint
 - tenant schema migration history endpoint
@@ -46,6 +49,7 @@ The service does not yet manage:
 - Swagger-style docs page
 - request IDs and structured request logging
 - schema reconciliation CLI
+- background index job worker
 - first PostgreSQL-backed integration test path
 
 ## Local tooling
@@ -67,6 +71,7 @@ new/backend/data-model-service/
     migrate/                 metadata migration runner
     reconcile/              schema drift report CLI
     server/                 HTTP service entrypoint
+    worker/                 async index job worker
   internal/
     app/                    config and app bootstrap
     domain/
@@ -107,11 +112,14 @@ The service is split into a few layers:
   - transaction manager
 - `tenantdb/postgres`
   - physical tenant schema DDL
-  - table creation, column creation, and unique index management
+  - table creation, column creation, unique index management, and managed secondary indexes
 - `httpapi`
   - transport layer
   - auth middleware
   - health and operational routes
+- `worker`
+  - polling runtime for async index jobs
+  - apply/fail job state transitions and audit logging
 - `reconcile`
   - compares metadata expectations to physical tenant schemas
 
@@ -125,6 +133,7 @@ The metadata database currently contains these primary tables:
 - `core.model_links`
 - `core.model_pivots`
 - `core.table_options`
+- `core.navigation_options`
 - `core.schema_change_log`
 - `core.tenant_schema_migrations`
 - `core.index_jobs`
@@ -167,15 +176,22 @@ Authenticated `/v1` routes:
 - `POST /v1/tables/:tableId/fields`
 - `PATCH /v1/fields/:fieldId`
 - `DELETE /v1/fields/:fieldId?dry_run=true`
+- `GET /v1/tables/:tableId/navigation-options`
+- `POST /v1/tables/:tableId/navigation-options`
 - `POST /v1/tenants/:tenantId/links`
 - `DELETE /v1/links/:linkId?dry_run=true`
 - `GET /v1/tenants/:tenantId/pivots`
 - `POST /v1/tenants/:tenantId/pivots`
 - `DELETE /v1/pivots/:pivotId?dry_run=true`
+- `DELETE /v1/navigation-options/:navigationOptionId`
 - `GET /v1/tables/:tableId/options`
 - `PUT /v1/tables/:tableId/options`
 - `GET /v1/tenants/:tenantId/schema-change-log`
 - `GET /v1/tenants/:tenantId/schema-migrations`
+- `POST /v1/tenants/:tenantId/index-jobs`
+- `GET /v1/tenants/:tenantId/index-jobs`
+- `GET /v1/index-jobs/:jobId`
+- `POST /v1/index-jobs/:jobId/retry`
 - `GET /v1/admin/reconcile`
 
 ## Auth
@@ -276,6 +292,26 @@ HTTP:
 
 - `GET /v1/tenants/:tenantId/schema-migrations`
 
+## Async index jobs
+
+Optional or heavier secondary-index work is handled through `core.index_jobs` plus the background worker in `cmd/worker`.
+
+Current flow:
+
+- create navigation options or explicitly enqueue index jobs through the API
+- run `go run ./cmd/worker` or `make run-worker`
+- the worker claims pending jobs, applies managed indexes, retries transient failures with scheduled backoff, marks jobs `applied` or `failed`, and records schema-change audit rows for each transition
+- `reconcile` detects missing managed indexes and schedules repair jobs automatically
+
+HTTP:
+
+- `POST /v1/tenants/:tenantId/index-jobs`
+- `GET /v1/tenants/:tenantId/index-jobs`
+- `GET /v1/index-jobs/:jobId`
+- `POST /v1/index-jobs/:jobId/retry`
+
+The reconcile report now includes missing managed-index details and repair-job scheduling counts when drift is detected.
+
 ## Logging
 
 The service emits:
@@ -305,7 +341,6 @@ Not yet supported in the current implementation:
 
 - Dockerized local PostgreSQL works, but local service process detachment may behave differently on Windows shells
 - no external dependency registry for downstream workflows/rules/scenarios
-- no background worker for `core.index_jobs`
 - no metrics/tracing yet
 - auth is static bearer-token based, not user/tenant aware
 - broader request/response integration coverage is still pending
@@ -317,15 +352,17 @@ Typical local flow:
 1. Start PostgreSQL
 2. Run metadata migrations
 3. Start the API
-4. Call tenant create + provision
-5. Create tables/fields/links/pivots
-6. Run reconcile if needed
+4. Start the worker if you want async index execution
+5. Call tenant create + provision
+6. Create tables/fields/links/pivots/navigation options
+7. Run reconcile if needed
 
 If you prefer `mise`, the equivalent command style is:
 
 ```bash
 mise exec -- go run ./cmd/migrate up
 mise exec -- go run ./cmd/server
+mise exec -- go run ./cmd/worker
 ```
 
 Detailed setup steps are in [SETUP_AND_RUN_GUIDE.md](./SETUP_AND_RUN_GUIDE.md).

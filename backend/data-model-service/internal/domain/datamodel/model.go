@@ -2,10 +2,13 @@ package datamodel
 
 import (
 	"cmp"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,6 +86,17 @@ type Field struct {
 	UpdatedAt   time.Time
 }
 
+type FieldEnumValue struct {
+	ID        uuid.UUID
+	TenantID  uuid.UUID
+	FieldID   uuid.UUID
+	Value     string
+	Label     string
+	SortOrder int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type Link struct {
 	ID          uuid.UUID
 	TenantID    uuid.UUID
@@ -113,6 +127,8 @@ type TableOptions struct {
 }
 
 type NavigationOption struct {
+	ID                uuid.UUID `json:"id"`
+	TenantID          uuid.UUID `json:"tenant_id"`
 	SourceTableID     uuid.UUID `json:"source_table_id"`
 	SourceFieldID     uuid.UUID `json:"source_field_id"`
 	TargetTableID     uuid.UUID `json:"target_table_id"`
@@ -123,6 +139,7 @@ type NavigationOption struct {
 	TargetTableName   string    `json:"target_table_name"`
 	FilterFieldName   string    `json:"filter_field_name"`
 	OrderingFieldName string    `json:"ordering_field_name"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type AssembledDataModel struct {
@@ -151,6 +168,7 @@ type AssembledField struct {
 	Nullable    bool
 	IsEnum      bool
 	IsUnique    bool
+	EnumValues  []FieldEnumValue
 }
 
 type AssembledLink struct {
@@ -205,6 +223,47 @@ type TenantSchemaMigration struct {
 	AppliedAt time.Time
 }
 
+type IndexJobType string
+
+const (
+	IndexJobTypeNavigation IndexJobType = "navigation"
+	IndexJobTypeSearch     IndexJobType = "search"
+	IndexJobTypeRepair     IndexJobType = "repair"
+)
+
+type IndexJobStatus string
+
+const (
+	IndexJobStatusPending   IndexJobStatus = "pending"
+	IndexJobStatusRunning   IndexJobStatus = "running"
+	IndexJobStatusApplied   IndexJobStatus = "applied"
+	IndexJobStatusFailed    IndexJobStatus = "failed"
+	IndexJobStatusCancelled IndexJobStatus = "cancelled"
+)
+
+type IndexJob struct {
+	ID                   uuid.UUID
+	TenantID             uuid.UUID
+	TableID              *uuid.UUID
+	TableName            string
+	IndexType            IndexJobType
+	Columns              []string
+	Status               IndexJobStatus
+	RequestedByOperation string
+	ErrorMessage         *string
+	AttemptCount         int
+	RequestedAt          time.Time
+	StartedAt            *time.Time
+	CompletedAt          *time.Time
+	ScheduledAt          *time.Time
+	DedupeKey            string
+}
+
+type ManagedIndexState struct {
+	Name   string
+	Exists bool
+}
+
 func NewDeleteReport() DeleteReport {
 	return DeleteReport{
 		Conflicts: DeleteConflicts{
@@ -216,6 +275,47 @@ func NewDeleteReport() DeleteReport {
 
 func NormalizeName(value string) string {
 	return strings.TrimSpace(strings.ToLower(value))
+}
+
+func ParseIndexJobType(value string) (IndexJobType, error) {
+	jobType := IndexJobType(strings.TrimSpace(value))
+	switch jobType {
+	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair:
+		return jobType, nil
+	default:
+		return "", fmt.Errorf("unsupported index job type: %s", value)
+	}
+}
+
+func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
+	switch jobType {
+	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair:
+	default:
+		return fmt.Errorf("unsupported index job type: %s", jobType)
+	}
+
+	if len(columns) == 0 {
+		return fmt.Errorf("at least one column is required")
+	}
+
+	seen := make(map[string]struct{}, len(columns))
+	for _, column := range columns {
+		name := NormalizeName(column)
+		if err := ValidateObjectName("index column", name); err != nil {
+			return err
+		}
+		if _, ok := seen[name]; ok {
+			return fmt.Errorf("duplicate index column: %s", name)
+		}
+		seen[name] = struct{}{}
+	}
+
+	return nil
+}
+
+func BuildIndexJobDedupeKey(tenantID, tableID uuid.UUID, indexType IndexJobType, columns []string) string {
+	sum := sha1.Sum([]byte(tenantID.String() + ":" + tableID.String() + ":" + string(indexType) + ":" + strings.Join(columns, ",")))
+	return hex.EncodeToString(sum[:])
 }
 
 func ValidateObjectName(kind, value string) error {
@@ -297,6 +397,40 @@ func ValidatePivot(fieldID *uuid.UUID, pathLinkIDs []uuid.UUID) error {
 	return nil
 }
 
+func ValidateEnumValueCreate(field Field, value, label string) error {
+	if !field.IsEnum {
+		return fmt.Errorf("field is not marked as enum")
+	}
+	if strings.TrimSpace(value) == "" {
+		return fmt.Errorf("enum value is required")
+	}
+	if err := validateEnumValueForDataType(field.DataType, value); err != nil {
+		return err
+	}
+	if strings.TrimSpace(label) == "" {
+		return fmt.Errorf("enum label is required")
+	}
+	return nil
+}
+
+func ValidateEnumValueUpdate(field Field, value, label *string) error {
+	if !field.IsEnum {
+		return fmt.Errorf("field is not marked as enum")
+	}
+	if value != nil {
+		if strings.TrimSpace(*value) == "" {
+			return fmt.Errorf("enum value is required")
+		}
+		if err := validateEnumValueForDataType(field.DataType, *value); err != nil {
+			return err
+		}
+	}
+	if label != nil && strings.TrimSpace(*label) == "" {
+		return fmt.Errorf("enum label is required")
+	}
+	return nil
+}
+
 func SortFieldOrder(fields []Field, current TableOptions) []uuid.UUID {
 	if len(fields) == 0 {
 		return []uuid.UUID{}
@@ -337,4 +471,24 @@ func supportsEnum(dataType DataType) bool {
 func isReservedFieldName(name string) bool {
 	_, ok := reservedFieldNames[NormalizeName(name)]
 	return ok
+}
+
+func validateEnumValueForDataType(dataType DataType, value string) error {
+	trimmed := strings.TrimSpace(value)
+	switch dataType {
+	case DataTypeString:
+		return nil
+	case DataTypeInt:
+		if _, err := strconv.Atoi(trimmed); err != nil {
+			return fmt.Errorf("enum value must be a valid int")
+		}
+		return nil
+	case DataTypeFloat:
+		if _, err := strconv.ParseFloat(trimmed, 64); err != nil {
+			return fmt.Errorf("enum value must be a valid float")
+		}
+		return nil
+	default:
+		return fmt.Errorf("enum values are only supported for string, int, or float fields")
+	}
 }

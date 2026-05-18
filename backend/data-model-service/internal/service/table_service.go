@@ -66,6 +66,10 @@ func NewTableService(
 	}
 }
 
+func (s TableService) Get(ctx context.Context, tableID uuid.UUID) (datamodel.Table, error) {
+	return s.tableRepository.GetByID(ctx, tableID)
+}
+
 func (s TableService) Create(ctx context.Context, input CreateTableInput) (datamodel.Table, error) {
 	if err := datamodel.ValidateTableCreate(input.Name); err != nil {
 		return datamodel.Table{}, err

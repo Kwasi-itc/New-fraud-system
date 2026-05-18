@@ -2,9 +2,12 @@ package reconcile
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +16,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
+	tenantdbpostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/tenantdb/postgres"
 )
 
 var implicitPhysicalColumns = map[string]struct{}{
@@ -22,11 +26,17 @@ var implicitPhysicalColumns = map[string]struct{}{
 }
 
 type Service struct {
-	db         *pgxpool.Pool
-	tenants    ports.TenantRepository
-	tables     ports.TableRepository
-	fields     ports.FieldRepository
-	introspect Introspector
+	db                *pgxpool.Pool
+	tenants           ports.TenantRepository
+	tables            ports.TableRepository
+	fields            ports.FieldRepository
+	navigationOptions ports.NavigationOptionRepository
+	indexJobs         ports.IndexJobRepository
+	schemaChanges     ports.SchemaChangeRepository
+	schemaManager     ports.SchemaManager
+	idGenerator       ports.IDGenerator
+	clock             ports.Clock
+	introspect        Introspector
 }
 
 type Introspector interface {
@@ -36,37 +46,53 @@ type Introspector interface {
 }
 
 type Report struct {
-	Healthy bool           `json:"healthy"`
-	Tenants []TenantReport `json:"tenants"`
+	Healthy             bool           `json:"healthy"`
+	RepairJobsScheduled int            `json:"repair_jobs_scheduled"`
+	Tenants             []TenantReport `json:"tenants"`
 }
 
 type TenantReport struct {
-	TenantID          uuid.UUID     `json:"tenant_id"`
-	TenantName        string        `json:"tenant_name"`
-	SchemaName        string        `json:"schema_name"`
-	SchemaExists      bool          `json:"schema_exists"`
-	MissingTables     []string      `json:"missing_tables"`
-	UnexpectedTables  []string      `json:"unexpected_tables"`
-	TableReports      []TableReport `json:"table_reports"`
-	SchemaHealthy     bool          `json:"schema_healthy"`
-	MetadataOnlyState bool          `json:"metadata_only_state"`
+	TenantID            uuid.UUID     `json:"tenant_id"`
+	TenantName          string        `json:"tenant_name"`
+	SchemaName          string        `json:"schema_name"`
+	SchemaExists        bool          `json:"schema_exists"`
+	MissingTables       []string      `json:"missing_tables"`
+	UnexpectedTables    []string      `json:"unexpected_tables"`
+	TableReports        []TableReport `json:"table_reports"`
+	SchemaHealthy       bool          `json:"schema_healthy"`
+	MetadataOnlyState   bool          `json:"metadata_only_state"`
+	RepairJobsScheduled int           `json:"repair_jobs_scheduled"`
 }
 
 type TableReport struct {
-	TableName         string   `json:"table_name"`
-	PhysicalExists    bool     `json:"physical_exists"`
-	MissingColumns    []string `json:"missing_columns"`
-	UnexpectedColumns []string `json:"unexpected_columns"`
-	Healthy           bool     `json:"healthy"`
+	TableName             string             `json:"table_name"`
+	PhysicalExists        bool               `json:"physical_exists"`
+	MissingColumns        []string           `json:"missing_columns"`
+	UnexpectedColumns     []string           `json:"unexpected_columns"`
+	MissingManagedIndexes []ManagedIndexGap  `json:"missing_managed_indexes"`
+	RepairJobIDs          []uuid.UUID        `json:"repair_job_ids"`
+	Healthy               bool               `json:"healthy"`
+}
+
+type ManagedIndexGap struct {
+	IndexName string   `json:"index_name"`
+	IndexType string   `json:"index_type"`
+	Columns   []string `json:"columns"`
 }
 
 func NewService(db *pgxpool.Pool) Service {
 	return Service{
-		db:         db,
-		tenants:    storepostgres.NewTenantRepository(db),
-		tables:     storepostgres.NewTableRepository(db),
-		fields:     storepostgres.NewFieldRepository(db),
-		introspect: NewPostgresIntrospector(db),
+		db:                db,
+		tenants:           storepostgres.NewTenantRepository(db),
+		tables:            storepostgres.NewTableRepository(db),
+		fields:            storepostgres.NewFieldRepository(db),
+		navigationOptions: storepostgres.NewNavigationOptionRepository(db),
+		indexJobs:         storepostgres.NewIndexJobRepository(db),
+		schemaChanges:     storepostgres.NewSchemaChangeRepository(db),
+		schemaManager:     tenantdbpostgres.NewSchemaManager(db),
+		idGenerator:       reconcileUUIDGenerator{},
+		clock:             reconcileSystemClock{},
+		introspect:        NewPostgresIntrospector(db),
 	}
 }
 
@@ -88,6 +114,7 @@ func (s Service) Run(ctx context.Context) (Report, error) {
 		if !tenantReport.SchemaHealthy {
 			report.Healthy = false
 		}
+		report.RepairJobsScheduled += tenantReport.RepairJobsScheduled
 		report.Tenants = append(report.Tenants, tenantReport)
 	}
 	return report, nil
@@ -98,6 +125,15 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 	if err != nil {
 		return TenantReport{}, fmt.Errorf("list tenant tables: %w", err)
 	}
+	navigationOptions, err := s.navigationOptions.ListByTenant(ctx, record.ID)
+	if err != nil {
+		return TenantReport{}, fmt.Errorf("list tenant navigation options: %w", err)
+	}
+	indexJobs, err := s.indexJobs.ListByTenant(ctx, record.ID)
+	if err != nil {
+		return TenantReport{}, fmt.Errorf("list tenant index jobs: %w", err)
+	}
+	expectedManagedIndexes := expectedManagedIndexesByTable(navigationOptions)
 
 	schemaExists, err := s.introspect.SchemaExists(ctx, record.SchemaName)
 	if err != nil {
@@ -146,9 +182,17 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 	}
 
 	for _, table := range tables {
-		tableReport, err := s.reconcileTable(ctx, record.SchemaName, table)
+		tableReport, err := s.reconcileTable(ctx, record, table, expectedManagedIndexes[table.ID])
 		if err != nil {
 			return TenantReport{}, err
+		}
+		if tableReport.PhysicalExists && len(tableReport.MissingManagedIndexes) > 0 {
+			repairJobIDs, err := s.scheduleRepairJobs(ctx, record, table, tableReport.MissingManagedIndexes, indexJobs)
+			if err != nil {
+				return TenantReport{}, err
+			}
+			tableReport.RepairJobIDs = repairJobIDs
+			result.RepairJobsScheduled += len(repairJobIDs)
 		}
 		if !tableReport.Healthy {
 			result.SchemaHealthy = false
@@ -171,21 +215,28 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 	return result, nil
 }
 
-func (s Service) reconcileTable(ctx context.Context, schemaName string, table datamodel.Table) (TableReport, error) {
+func (s Service) reconcileTable(
+	ctx context.Context,
+	record tenant.Tenant,
+	table datamodel.Table,
+	expectedManagedIndexes []ManagedIndexGap,
+) (TableReport, error) {
 	fields, err := s.fields.ListByTable(ctx, table.ID)
 	if err != nil {
 		return TableReport{}, fmt.Errorf("list fields for table %s: %w", table.Name, err)
 	}
-	columns, err := s.introspect.ListColumns(ctx, schemaName, table.Name)
+	columns, err := s.introspect.ListColumns(ctx, record.SchemaName, table.Name)
 	if err != nil {
 		return TableReport{}, fmt.Errorf("list columns for table %s: %w", table.Name, err)
 	}
 	if len(columns) == 0 {
 		return TableReport{
-			TableName:      table.Name,
-			PhysicalExists: false,
-			MissingColumns: expectedColumns(fields),
-			Healthy:        false,
+			TableName:             table.Name,
+			PhysicalExists:        false,
+			MissingColumns:        expectedColumns(fields),
+			MissingManagedIndexes: []ManagedIndexGap{},
+			RepairJobIDs:          []uuid.UUID{},
+			Healthy:               false,
 		}, nil
 	}
 
@@ -212,13 +263,118 @@ func (s Service) reconcileTable(ctx context.Context, schemaName string, table da
 
 	slices.Sort(missingColumns)
 	slices.Sort(unexpectedColumns)
+
+	missingManagedIndexes := make([]ManagedIndexGap, 0, len(expectedManagedIndexes))
+	for _, gap := range expectedManagedIndexes {
+		state, err := s.schemaManager.GetManagedIndexState(ctx, record, table, datamodel.IndexJob{
+			IndexType: datamodel.IndexJobTypeRepair,
+			Columns:   gap.Columns,
+		})
+		if err != nil {
+			return TableReport{}, fmt.Errorf("inspect managed index for table %s: %w", table.Name, err)
+		}
+		if !state.Exists {
+			missingManagedIndexes = append(missingManagedIndexes, ManagedIndexGap{
+				IndexName: state.Name,
+				IndexType: gap.IndexType,
+				Columns:   gap.Columns,
+			})
+		}
+	}
+
 	return TableReport{
-		TableName:         table.Name,
-		PhysicalExists:    true,
-		MissingColumns:    missingColumns,
-		UnexpectedColumns: unexpectedColumns,
-		Healthy:           len(missingColumns) == 0 && len(unexpectedColumns) == 0,
+		TableName:             table.Name,
+		PhysicalExists:        true,
+		MissingColumns:        missingColumns,
+		UnexpectedColumns:     unexpectedColumns,
+		MissingManagedIndexes: missingManagedIndexes,
+		RepairJobIDs:          []uuid.UUID{},
+		Healthy:               len(missingColumns) == 0 && len(unexpectedColumns) == 0 && len(missingManagedIndexes) == 0,
 	}, nil
+}
+
+func (s Service) scheduleRepairJobs(
+	ctx context.Context,
+	record tenant.Tenant,
+	table datamodel.Table,
+	gaps []ManagedIndexGap,
+	indexJobs []datamodel.IndexJob,
+) ([]uuid.UUID, error) {
+	scheduled := make([]uuid.UUID, 0, len(gaps))
+	now := s.clock.Now()
+	for _, gap := range gaps {
+		dedupeKey := datamodel.BuildIndexJobDedupeKey(record.ID, table.ID, datamodel.IndexJobTypeRepair, gap.Columns)
+		existingIndex := slices.IndexFunc(indexJobs, func(job datamodel.IndexJob) bool {
+			return job.DedupeKey == dedupeKey
+		})
+		if existingIndex >= 0 {
+			existing := indexJobs[existingIndex]
+			if existing.Status == datamodel.IndexJobStatusPending || existing.Status == datamodel.IndexJobStatusRunning {
+				continue
+			}
+			if err := s.indexJobs.Retry(ctx, existing.ID, now); err != nil {
+				return nil, fmt.Errorf("requeue repair job: %w", err)
+			}
+			scheduled = append(scheduled, existing.ID)
+			indexJobs[existingIndex].Status = datamodel.IndexJobStatusPending
+			indexJobs[existingIndex].ScheduledAt = &now
+			s.recordSchemaChange(ctx, record.ID, existing.ID, now, table, gap.Columns)
+			continue
+		}
+
+		jobID := s.idGenerator.New()
+		job := datamodel.IndexJob{
+			ID:                   jobID,
+			TenantID:             record.ID,
+			TableID:              &table.ID,
+			TableName:            table.Name,
+			IndexType:            datamodel.IndexJobTypeRepair,
+			Columns:              gap.Columns,
+			Status:               datamodel.IndexJobStatusPending,
+			RequestedByOperation: "reconcile_repair",
+			RequestedAt:          now,
+			ScheduledAt:          &now,
+			DedupeKey:            dedupeKey,
+		}
+		if err := s.indexJobs.Create(ctx, job); err != nil {
+			return nil, fmt.Errorf("create repair job: %w", err)
+		}
+		scheduled = append(scheduled, jobID)
+		indexJobs = append(indexJobs, job)
+		s.recordSchemaChange(ctx, record.ID, jobID, now, table, gap.Columns)
+	}
+	return scheduled, nil
+}
+
+func (s Service) recordSchemaChange(
+	ctx context.Context,
+	tenantID uuid.UUID,
+	jobID uuid.UUID,
+	createdAt time.Time,
+	table datamodel.Table,
+	columns []string,
+) {
+	payload, err := json.Marshal(map[string]any{
+		"table_id":     table.ID,
+		"table_name":   table.Name,
+		"index_type":   datamodel.IndexJobTypeRepair,
+		"columns":      columns,
+		"reason":       "missing_managed_index",
+		"scheduled_by": "reconcile",
+	})
+	if err != nil {
+		payload = []byte(`{}`)
+	}
+	_ = s.schemaChanges.Create(ctx, datamodel.SchemaChange{
+		ID:           s.idGenerator.New(),
+		TenantID:     tenantID,
+		Operation:    "request_index_job",
+		ResourceType: "index_job",
+		ResourceID:   jobID,
+		Status:       "applied",
+		Details:      payload,
+		CreatedAt:    createdAt,
+	})
 }
 
 type PostgresIntrospector struct {
@@ -302,4 +458,37 @@ func expectedColumns(fields []datamodel.Field) []string {
 	}
 	slices.Sort(result)
 	return result
+}
+
+func expectedManagedIndexesByTable(options []datamodel.NavigationOption) map[uuid.UUID][]ManagedIndexGap {
+	grouped := make(map[uuid.UUID][]ManagedIndexGap)
+	seen := make(map[string]struct{})
+	for _, option := range options {
+		columns := []string{
+			datamodel.NormalizeName(option.FilterFieldName),
+			datamodel.NormalizeName(option.OrderingFieldName),
+		}
+		key := option.TargetTableID.String() + ":" + strings.Join(columns, ",")
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		grouped[option.TargetTableID] = append(grouped[option.TargetTableID], ManagedIndexGap{
+			IndexType: string(datamodel.IndexJobTypeNavigation),
+			Columns:   columns,
+		})
+	}
+	return grouped
+}
+
+type reconcileUUIDGenerator struct{}
+
+func (reconcileUUIDGenerator) New() uuid.UUID {
+	return uuid.New()
+}
+
+type reconcileSystemClock struct{}
+
+func (reconcileSystemClock) Now() time.Time {
+	return time.Now().UTC()
 }

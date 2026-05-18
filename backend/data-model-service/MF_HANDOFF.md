@@ -331,7 +331,6 @@ Why these matter:
 
 ### Medium priority
 
-- background index job worker using `core.index_jobs`
 - stronger authorization model beyond static bearer token
 - startup/readiness hardening around schema state
 
@@ -345,7 +344,6 @@ Why these matter:
 ### Product-scope expansion
 
 - external dependency-awareness model for downstream systems
-- navigation option CRUD if the host fraud platform needs it
 - more data types such as `coords`
 
 ## Recommended next steps
@@ -355,7 +353,7 @@ If a new session is picking this up, the best next order is:
 1. Expand PostgreSQL-backed integration coverage
 2. Add repository-level DB tests
 3. Design and implement archival/soft-delete semantics
-4. Decide whether `core.index_jobs` should become a real worker now or remain deferred
+4. Verify async index flows with `cmd/worker` and `cmd/reconcile`
 5. Improve auth/authorization if multi-user or multi-tenant security requirements are expected soon
 
 ## If the next task is “run the system”

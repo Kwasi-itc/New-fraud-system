@@ -16,4 +16,6 @@ type SchemaManager interface {
 	ArchiveField(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, field datamodel.Field) error
 	CreateUniqueIndex(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, columns []string) error
 	DropUniqueIndex(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, columns []string) error
+	CreateManagedIndex(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) error
+	GetManagedIndexState(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) (datamodel.ManagedIndexState, error)
 }

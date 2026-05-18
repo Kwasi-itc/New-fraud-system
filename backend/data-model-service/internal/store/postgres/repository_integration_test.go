@@ -36,8 +36,10 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	linkRepo := NewLinkRepository(pool)
 	pivotRepo := NewPivotRepository(pool)
 	optionsRepo := NewTableOptionsRepository(pool)
+	navigationOptionRepo := NewNavigationOptionRepository(pool)
 	schemaChangeRepo := NewSchemaChangeRepository(pool)
 	tenantSchemaMigrationRepo := NewTenantSchemaMigrationRepository(pool)
+	indexJobRepo := NewIndexJobRepository(pool)
 	readRepo := NewDataModelReadRepository(pool)
 
 	now := time.Date(2026, 5, 13, 18, 0, 0, 0, time.UTC)
@@ -52,6 +54,8 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	optionsID := uuid.MustParse("40000000-0000-0000-0000-000000000009")
 	changeID := uuid.MustParse("40000000-0000-0000-0000-000000000010")
 	migrationID := uuid.MustParse("40000000-0000-0000-0000-000000000011")
+	navigationOptionID := uuid.MustParse("40000000-0000-0000-0000-000000000012")
+	indexJobID := uuid.MustParse("40000000-0000-0000-0000-000000000013")
 
 	externalKey := "repo-tenant"
 	record := tenant.New(tenantID, now, "Repository Tenant", &externalKey)
@@ -182,6 +186,34 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	if err := optionsRepo.Upsert(ctx, options); err != nil {
 		t.Fatalf("upsert table options: %v", err)
 	}
+	navigationOption := datamodel.NavigationOption{
+		ID:                navigationOptionID,
+		TenantID:          tenantID,
+		SourceTableID:     accountTableID,
+		SourceFieldID:     accountObjectIDFieldID,
+		TargetTableID:     transactionTableID,
+		FilterFieldID:     transactionAccountIDFieldID,
+		OrderingFieldID:   transactionObjectIDFieldID,
+		CreatedAt:         now.Add(6 * time.Minute),
+	}
+	if err := navigationOptionRepo.Create(ctx, navigationOption); err != nil {
+		t.Fatalf("create navigation option: %v", err)
+	}
+	indexJob := datamodel.IndexJob{
+		ID:                   indexJobID,
+		TenantID:             tenantID,
+		TableID:              &transactionTableID,
+		TableName:            "transactions",
+		IndexType:            datamodel.IndexJobTypeNavigation,
+		Columns:              []string{"account_id", "object_id"},
+		Status:               datamodel.IndexJobStatusPending,
+		RequestedByOperation: "repository_test",
+		RequestedAt:          now.Add(6 * time.Minute),
+		DedupeKey:            "repo-test-navigation-index",
+	}
+	if err := indexJobRepo.Create(ctx, indexJob); err != nil {
+		t.Fatalf("create index job: %v", err)
+	}
 
 	details, _ := json.Marshal(map[string]any{"ok": true})
 	change := datamodel.SchemaChange{
@@ -258,6 +290,43 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	if storedOptions == nil || !slices.Equal(storedOptions.FieldOrder, options.FieldOrder) {
 		t.Fatalf("unexpected table options: %#v", storedOptions)
 	}
+	storedNavigationOptions, err := navigationOptionRepo.ListBySourceTable(ctx, accountTableID)
+	if err != nil {
+		t.Fatalf("list navigation options: %v", err)
+	}
+	if len(storedNavigationOptions) != 1 {
+		t.Fatalf("expected 1 navigation option, got %d", len(storedNavigationOptions))
+	}
+	if storedNavigationOptions[0].SourceTableName != "accounts" || storedNavigationOptions[0].TargetTableName != "transactions" {
+		t.Fatalf("unexpected navigation option names: %+v", storedNavigationOptions[0])
+	}
+	claimedJob, err := indexJobRepo.ClaimNext(ctx, now.Add(7*time.Minute), 3)
+	if err != nil {
+		t.Fatalf("claim index job: %v", err)
+	}
+	if claimedJob.ID != indexJobID || claimedJob.Status != datamodel.IndexJobStatusRunning {
+		t.Fatalf("unexpected claimed job: %+v", claimedJob)
+	}
+	if err := indexJobRepo.MarkFailed(ctx, indexJobID, "repo failure", now.Add(8*time.Minute)); err != nil {
+		t.Fatalf("mark index job failed: %v", err)
+	}
+	failedJob, err := indexJobRepo.GetByID(ctx, indexJobID)
+	if err != nil {
+		t.Fatalf("get failed index job: %v", err)
+	}
+	if failedJob.ErrorMessage == nil || *failedJob.ErrorMessage != "repo failure" {
+		t.Fatalf("unexpected failed job message: %+v", failedJob)
+	}
+	if err := indexJobRepo.Retry(ctx, indexJobID, now.Add(9*time.Minute)); err != nil {
+		t.Fatalf("retry index job: %v", err)
+	}
+	retriedJob, err := indexJobRepo.GetByID(ctx, indexJobID)
+	if err != nil {
+		t.Fatalf("get retried index job: %v", err)
+	}
+	if retriedJob.Status != datamodel.IndexJobStatusPending || retriedJob.ScheduledAt == nil {
+		t.Fatalf("unexpected retried job: %+v", retriedJob)
+	}
 
 	changes, err := schemaChangeRepo.ListByTenant(ctx, tenantID)
 	if err != nil {
@@ -294,6 +363,9 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	}
 	if txTable.Options == nil || !slices.Equal(txTable.Options.FieldOrder, options.FieldOrder) {
 		t.Fatalf("unexpected assembled options: %#v", txTable.Options)
+	}
+	if len(model.Tables["accounts"].NavigationOptions) != 1 || model.Tables["accounts"].NavigationOptions[0].TargetTableName != "transactions" {
+		t.Fatalf("unexpected assembled navigation options: %+v", model.Tables["accounts"].NavigationOptions)
 	}
 	if len(model.Pivots) != 1 || !slices.Equal(model.Pivots[0].PathLinks, []string{"account"}) {
 		t.Fatalf("unexpected assembled pivots: %v", model.Pivots)

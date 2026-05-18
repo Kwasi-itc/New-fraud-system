@@ -78,11 +78,15 @@ func (m SchemaManager) CreateUniqueIndex(ctx context.Context, record tenant.Tena
 }
 
 func (m SchemaManager) DropUniqueIndex(ctx context.Context, record tenant.Tenant, table datamodel.Table, columns []string) error {
-	query := fmt.Sprintf("DROP INDEX IF EXISTS %s", sanitizeIdentifier(record.SchemaName, indexName(table.Name, columns, true)))
+	query := fmt.Sprintf("DROP INDEX IF EXISTS %s", sanitizeIdentifier(record.SchemaName, managedIndexName(table.Name, columns, true)))
 	if _, err := m.db.Exec(ctx, query); err != nil {
 		return fmt.Errorf("drop unique index: %w", err)
 	}
 	return nil
+}
+
+func (m SchemaManager) CreateManagedIndex(ctx context.Context, record tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) error {
+	return m.createIndex(ctx, record, table, job.Columns, false)
 }
 
 func (m SchemaManager) createIndex(ctx context.Context, record tenant.Tenant, table datamodel.Table, columns []string, unique bool) error {
@@ -96,7 +100,7 @@ func (m SchemaManager) createIndex(ctx context.Context, record tenant.Tenant, ta
 	}
 	query := fmt.Sprintf("CREATE %sINDEX IF NOT EXISTS %s ON %s (%s)",
 		modifier,
-		sanitizeIdentifier(indexName(table.Name, columns, unique)),
+		sanitizeIdentifier(managedIndexName(table.Name, columns, unique)),
 		sanitizeIdentifier(record.SchemaName, table.Name),
 		strings.Join(indexColumns, ", "),
 	)
@@ -125,7 +129,7 @@ func toPgType(dataType datamodel.DataType) (string, error) {
 	}
 }
 
-func indexName(tableName string, columns []string, unique bool) string {
+func managedIndexName(tableName string, columns []string, unique bool) string {
 	prefix := "idx"
 	if unique {
 		prefix = "uniq"

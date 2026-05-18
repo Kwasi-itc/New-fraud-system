@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -24,6 +25,14 @@ type FieldRepository interface {
 	Update(ctx context.Context, field datamodel.Field) error
 }
 
+type FieldEnumValueRepository interface {
+	Create(ctx context.Context, value datamodel.FieldEnumValue) error
+	GetByID(ctx context.Context, id uuid.UUID) (datamodel.FieldEnumValue, error)
+	ListByField(ctx context.Context, fieldID uuid.UUID) ([]datamodel.FieldEnumValue, error)
+	Update(ctx context.Context, value datamodel.FieldEnumValue) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
 type LinkRepository interface {
 	Create(ctx context.Context, link datamodel.Link) error
 	GetByID(ctx context.Context, id uuid.UUID) (datamodel.Link, error)
@@ -43,6 +52,14 @@ type TableOptionsRepository interface {
 	Upsert(ctx context.Context, options datamodel.TableOptions) error
 }
 
+type NavigationOptionRepository interface {
+	Create(ctx context.Context, option datamodel.NavigationOption) error
+	GetByID(ctx context.Context, id uuid.UUID) (datamodel.NavigationOption, error)
+	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.NavigationOption, error)
+	ListBySourceTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.NavigationOption, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
 type DataModelReadRepository interface {
 	GetAssembledDataModel(ctx context.Context, tenantID uuid.UUID) (datamodel.AssembledDataModel, error)
 }
@@ -55,4 +72,15 @@ type SchemaChangeRepository interface {
 type TenantSchemaMigrationRepository interface {
 	Create(ctx context.Context, migration datamodel.TenantSchemaMigration) error
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.TenantSchemaMigration, error)
+}
+
+type IndexJobRepository interface {
+	Create(ctx context.Context, job datamodel.IndexJob) error
+	GetByID(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error)
+	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.IndexJob, error)
+	ClaimNext(ctx context.Context, now time.Time, maxAttempts int) (*datamodel.IndexJob, error)
+	MarkApplied(ctx context.Context, id uuid.UUID, completedAt time.Time) error
+	MarkFailed(ctx context.Context, id uuid.UUID, message string, completedAt time.Time) error
+	Reschedule(ctx context.Context, id uuid.UUID, message string, scheduledAt time.Time) error
+	Retry(ctx context.Context, id uuid.UUID, scheduledAt time.Time) error
 }

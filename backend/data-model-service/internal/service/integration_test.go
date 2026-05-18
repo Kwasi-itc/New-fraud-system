@@ -34,6 +34,7 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 	tenantRepo := storepostgres.NewTenantRepository(pool)
 	tableRepo := storepostgres.NewTableRepository(pool)
 	fieldRepo := storepostgres.NewFieldRepository(pool)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
 	linkRepo := storepostgres.NewLinkRepository(pool)
 	pivotRepo := storepostgres.NewPivotRepository(pool)
 	optionsRepo := storepostgres.NewTableOptionsRepository(pool)
@@ -48,7 +49,7 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
-	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	optionsService := NewOptionsService(tableRepo, fieldRepo, optionsRepo, schemaChanges, txManager, idGen, clock)
@@ -241,6 +242,105 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 	}
 }
 
+func TestIntegrationEnumValuesPersistAndAppearInAssembledModel(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	readRepo := storepostgres.NewDataModelReadRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(20)}
+	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 11, 0, 0, 0, time.UTC)}
+
+	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	enumValueService := NewFieldEnumValueService(fieldRepo, fieldEnumValueRepo, schemaChanges, txManager, idGen, clock)
+	readService := NewDataModelReadService(readRepo)
+
+	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Enum Tenant"})
+	if err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	record, err = tenantService.Provision(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("provision tenant: %v", err)
+	}
+
+	table, err := tableService.Create(ctx, CreateTableInput{
+		TenantID:    record.ID,
+		Name:        "cases",
+		Description: "Case records",
+	})
+	if err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+
+	field, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:     table.ID,
+		Name:        "status",
+		Description: "Case status",
+		DataType:    datamodel.DataTypeString,
+		Nullable:    false,
+		IsEnum:      true,
+	})
+	if err != nil {
+		t.Fatalf("create enum field: %v", err)
+	}
+
+	if _, err := enumValueService.Create(ctx, CreateFieldEnumValueInput{
+		FieldID:   field.ID,
+		Value:     "pending",
+		Label:     "Pending",
+		SortOrder: 10,
+	}); err != nil {
+		t.Fatalf("create first enum value: %v", err)
+	}
+	if _, err := enumValueService.Create(ctx, CreateFieldEnumValueInput{
+		FieldID:   field.ID,
+		Value:     "approved",
+		Label:     "Approved",
+		SortOrder: 20,
+	}); err != nil {
+		t.Fatalf("create second enum value: %v", err)
+	}
+
+	values, err := enumValueService.List(ctx, field.ID)
+	if err != nil {
+		t.Fatalf("list enum values: %v", err)
+	}
+	if len(values) != 2 {
+		t.Fatalf("expected 2 enum values, got %d", len(values))
+	}
+	if values[0].Value != "pending" || values[1].Value != "approved" {
+		t.Fatalf("unexpected enum values ordering: %#v", values)
+	}
+
+	model, err := readService.Get(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("read assembled data model: %v", err)
+	}
+	statusField := model.Tables["cases"].Fields["status"]
+	if len(statusField.EnumValues) != 2 {
+		t.Fatalf("expected assembled field to contain 2 enum values, got %d", len(statusField.EnumValues))
+	}
+	if statusField.EnumValues[0].Label != "Pending" || statusField.EnumValues[1].Label != "Approved" {
+		t.Fatalf("unexpected assembled enum values: %#v", statusField.EnumValues)
+	}
+}
+
 func TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure(t *testing.T) {
 	databaseURL := integrationDatabaseURL(t)
 	ctx := context.Background()
@@ -275,7 +375,8 @@ func TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure(t *testing.
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, &idGen, clock)
 	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, &idGen, clock)
-	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, &idGen, clock)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, &idGen, clock)
 
 	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Integration Tenant"})
 	if err != nil {
@@ -364,7 +465,8 @@ func TestIntegrationDeleteDryRunsReportInternalConflicts(t *testing.T) {
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
-	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 
@@ -495,7 +597,8 @@ func TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL(t *testing.T) {
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
-	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 
@@ -710,7 +813,8 @@ func TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing(t *testing.T) {
 
 	now := time.Date(2026, 5, 13, 17, 0, 0, 0, time.UTC)
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
-	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, fixedIntegrationClock{now: now})
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, fixedIntegrationClock{now: now})
 
 	tenantID := uuid.MustParse("31000000-0000-0000-0000-000000000001")
 	record := tenant.Tenant{

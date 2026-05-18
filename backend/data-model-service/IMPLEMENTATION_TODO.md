@@ -13,6 +13,9 @@ This file tracks the remaining work for the standalone data model service after 
 - link create, delete, and dry-run delete conflict reporting
 - pivot create, list, delete, and dry-run support
 - table options get and upsert
+- navigation option CRUD
+- async index job enqueue/list/get/retry APIs
+- background index job worker with retry/backoff
 - assembled data model read endpoint
 - schema change log recording and read endpoint
 - transactional mutation execution across metadata writes and tenant DDL
@@ -24,6 +27,7 @@ This file tracks the remaining work for the standalone data model service after 
 - initial unit tests for domain validation, pivot deletion behavior, handler validation, and middleware behavior
 - PostgreSQL-backed integration coverage for happy-path lifecycle, delete flows, dry-run conflict reporting, and transactional rollback cases
 - repository-level PostgreSQL verification for tenant, table, field, link, pivot, table options, schema change, tenant schema migration, and assembled read repositories
+- repository/service/worker verification for async index jobs and reconcile-triggered repair scheduling
 - V1 destructive lifecycle policy: hard delete with internal dry-run conflict checks
 
 ## Next Priority
@@ -43,9 +47,7 @@ This file tracks the remaining work for the standalone data model service after 
 
 ## Data Model Features Still Missing
 
-- navigation option CRUD if required by the downstream fraud platform
-- physical secondary index management beyond unique field indexes
-- asynchronous index job worker backed by `core.index_jobs` if index orchestration is promoted from deferred status
+- additional managed-index strategies beyond the current navigation/repair flows if the target product needs them
 - support for additional data types such as `coords` if the target system needs them
 
 ## Integration Work

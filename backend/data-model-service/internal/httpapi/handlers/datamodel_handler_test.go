@@ -19,9 +19,11 @@ func TestDataModelHandlerCreateFieldRejectsUnsupportedDataType(t *testing.T) {
 		service.DataModelReadService{},
 		service.TableService{},
 		service.FieldService{},
+		service.FieldEnumValueService{},
 		service.LinkService{},
 		service.PivotService{},
 		service.OptionsService{},
+		service.NavigationOptionService{},
 	)
 	router := gin.New()
 	router.POST("/v1/tables/:tableId/fields", handler.CreateField)

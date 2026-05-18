@@ -1,6 +1,6 @@
 # Setup And Run Guide
 
-This guide explains how to set up, run, verify, and stop the standalone data model service in `new/backend/data-model-service`.
+This guide explains how to set up, run, verify, and stop the standalone data model service in `new/backend/data-model-service`, including the async index worker.
 
 ## What you need
 
@@ -128,7 +128,37 @@ Expected startup behavior:
 - Gin prints route registration in debug mode
 - the service logs a startup message including the selected port
 
-## Step 5: verify health
+## Step 5: start the async index worker
+
+Run this in a separate terminal if you want pending `core.index_jobs` to be executed:
+
+```powershell
+$env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
+go run ./cmd/worker
+```
+
+Equivalent `mise` run:
+
+```powershell
+$env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
+mise exec -- go run ./cmd/worker
+```
+
+There is also a Makefile target:
+
+```powershell
+make run-worker
+```
+
+What this does:
+
+- polls `core.index_jobs`
+- creates managed secondary indexes for pending jobs
+- retries failed jobs with scheduled backoff until max attempts are exhausted
+- marks jobs `applied` or `failed`
+- writes schema-change audit rows for retry/apply/fail transitions
+
+## Step 6: verify health
 
 Open a second terminal and run:
 
@@ -154,7 +184,7 @@ You can also open the API docs in a browser:
 - `http://127.0.0.1:8080/docs`
 - `http://127.0.0.1:8080/openapi.yaml`
 
-## Step 6: create a tenant
+## Step 7: create a tenant
 
 When auth is disabled:
 
@@ -191,7 +221,7 @@ Invoke-WebRequest `
 
 Save the returned `tenant.id`.
 
-## Step 7: provision the tenant schema
+## Step 8: provision the tenant schema
 
 Replace `<tenant-id>` with the real value:
 
@@ -210,7 +240,7 @@ What this does:
 - creates the physical PostgreSQL schema for that tenant
 - marks the tenant as active
 
-## Step 8: create a table
+## Step 9: create a table
 
 Replace `<tenant-id>`:
 
@@ -237,7 +267,7 @@ What this does:
 - adds default metadata fields `object_id` and `updated_at`
 - creates the unique `object_id` index
 
-## Step 9: create a field
+## Step 10: create a field
 
 Replace `<table-id>`:
 
@@ -259,7 +289,47 @@ Invoke-WebRequest `
   Select-Object -ExpandProperty Content
 ```
 
-## Step 10: read the assembled data model
+## Step 11: create a navigation option
+
+This creates navigation-option metadata and enqueues a background index job for the target table.
+
+Replace `<table-id>`, `<source-field-id>`, `<target-table-id>`, `<filter-field-id>`, and `<ordering-field-id>`:
+
+```powershell
+$body = @{
+  source_field_id = "<source-field-id>"
+  target_table_id = "<target-table-id>"
+  filter_field_id = "<filter-field-id>"
+  ordering_field_id = "<ordering-field-id>"
+} | ConvertTo-Json
+
+Invoke-WebRequest `
+  -Method POST `
+  -Uri http://127.0.0.1:8080/v1/tables/<table-id>/navigation-options `
+  -ContentType "application/json" `
+  -Body $body |
+  Select-Object -ExpandProperty Content
+```
+
+List the navigation options for a table:
+
+```powershell
+Invoke-WebRequest `
+  -Method GET `
+  -Uri http://127.0.0.1:8080/v1/tables/<table-id>/navigation-options |
+  Select-Object -ExpandProperty Content
+```
+
+List index jobs for the tenant:
+
+```powershell
+Invoke-WebRequest `
+  -Method GET `
+  -Uri http://127.0.0.1:8080/v1/tenants/<tenant-id>/index-jobs |
+  Select-Object -ExpandProperty Content
+```
+
+## Step 12: read the assembled data model
 
 ```powershell
 Invoke-WebRequest `
@@ -268,7 +338,7 @@ Invoke-WebRequest `
   Select-Object -ExpandProperty Content
 ```
 
-## Step 11: run reconciliation
+## Step 13: run reconciliation
 
 CLI:
 
@@ -287,7 +357,9 @@ Invoke-WebRequest `
   Select-Object -ExpandProperty Content
 ```
 
-## Step 12: inspect tenant schema migration history
+This report now includes missing managed-index details and the number of repair jobs scheduled by reconcile.
+
+## Step 14: inspect tenant schema migration history
 
 ```powershell
 Invoke-WebRequest `
@@ -388,4 +460,5 @@ For reliable local development on this machine:
 1. `docker compose up -d postgres`
 2. `go run ./cmd/migrate up`
 3. `go run ./cmd/server` in an interactive terminal
-4. use a second terminal for API requests and tests
+4. `go run ./cmd/worker` in a second interactive terminal if you are testing async indexes
+5. use another terminal for API requests and tests
