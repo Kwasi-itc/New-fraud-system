@@ -637,6 +637,14 @@ Response:
 ```json
 {
   "data_model": {
+    "revision_id": "opaque-version-id",
+    "ingestion_contract": {
+      "tenant_status": "active",
+      "writable": true,
+      "managed_system_fields": ["object_id", "updated_at", "valid_from", "valid_until"],
+      "record_lookup_field": "object_id",
+      "partial_updates": true
+    },
     "tables": {
       "transactions": {
         "id": "uuid",
@@ -650,6 +658,13 @@ Response:
   }
 }
 ```
+
+Contract expectations:
+
+- `revision_id` is opaque and must be stored by downstream ingestion as the schema snapshot identifier for the write
+- the value changes when tenant published state or tenant schema migration history changes
+- downstream consumers must not attempt to derive meaning from the string itself
+- enum values in assembled fields are authoritative and must not be extended implicitly by ingestion writes
 
 ### Tables
 

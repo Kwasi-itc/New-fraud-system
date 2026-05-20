@@ -70,8 +70,15 @@ func (s TableService) Get(ctx context.Context, tableID uuid.UUID) (datamodel.Tab
 	return s.tableRepository.GetByID(ctx, tableID)
 }
 
+func (s TableService) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.Table, error) {
+	return s.tableRepository.ListByTenant(ctx, tenantID)
+}
+
 func (s TableService) Create(ctx context.Context, input CreateTableInput) (datamodel.Table, error) {
 	if err := datamodel.ValidateTableCreate(input.Name); err != nil {
+		return datamodel.Table{}, err
+	}
+	if err := datamodel.ValidateSemanticType(input.SemanticType); err != nil {
 		return datamodel.Table{}, err
 	}
 
@@ -90,7 +97,7 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 		Name:         datamodel.NormalizeName(input.Name),
 		Description:  input.Description,
 		Alias:        input.Alias,
-		SemanticType: input.SemanticType,
+		SemanticType: datamodel.NormalizeName(input.SemanticType),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -172,6 +179,11 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 		return datamodel.Table{}, err
 	}
 
+	fields, err := s.fieldRepository.ListByTable(ctx, table.ID)
+	if err != nil {
+		return datamodel.Table{}, err
+	}
+
 	if input.Description != nil {
 		table.Description = *input.Description
 	}
@@ -179,10 +191,23 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 		table.Alias = *input.Alias
 	}
 	if input.SemanticType != nil {
-		table.SemanticType = *input.SemanticType
+		if err := datamodel.ValidateSemanticType(*input.SemanticType); err != nil {
+			return datamodel.Table{}, err
+		}
+		table.SemanticType = datamodel.NormalizeName(*input.SemanticType)
 	}
 	if input.CaptionField != nil {
-		table.CaptionField = *input.CaptionField
+		captionField := datamodel.NormalizeName(*input.CaptionField)
+		if captionField != "" {
+			field, ok := findTableFieldByName(fields, captionField)
+			if !ok {
+				return datamodel.Table{}, fmt.Errorf("caption field %s not found on table %s", captionField, table.Name)
+			}
+			if field.DataType != datamodel.DataTypeString {
+				return datamodel.Table{}, fmt.Errorf("caption field must be a string field")
+			}
+		}
+		table.CaptionField = captionField
 	}
 	table.UpdatedAt = s.clock.Now()
 
@@ -276,4 +301,14 @@ func (s TableService) Delete(ctx context.Context, tableID uuid.UUID, dryRun bool
 	}
 	report.Performed = true
 	return report, nil
+}
+
+func findTableFieldByName(fields []datamodel.Field, name string) (datamodel.Field, bool) {
+	for _, field := range fields {
+		if field.Name == name {
+			return field, true
+		}
+	}
+
+	return datamodel.Field{}, false
 }

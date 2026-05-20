@@ -154,6 +154,7 @@ type AssembledTable struct {
 	Alias             string
 	SemanticType      string
 	CaptionField      string
+	Archived          bool
 	Fields            map[string]AssembledField
 	LinksToSingle     map[string]AssembledLink
 	NavigationOptions []NavigationOption
@@ -168,6 +169,7 @@ type AssembledField struct {
 	Nullable    bool
 	IsEnum      bool
 	IsUnique    bool
+	Archived    bool
 	EnumValues  []FieldEnumValue
 }
 
@@ -382,6 +384,15 @@ func ValidateFieldUpdate(current Field, dataType DataType, isEnum, isUnique, nul
 
 func ValidateTableCreate(name string) error {
 	return ValidateObjectName("table", name)
+}
+
+func ValidateSemanticType(value string) error {
+	normalized := NormalizeName(value)
+	if normalized == "" {
+		return nil
+	}
+
+	return ValidateObjectName("semantic_type", normalized)
 }
 
 func ValidateLinkName(name string) error {

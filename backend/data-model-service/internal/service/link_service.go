@@ -52,6 +52,10 @@ func NewLinkService(
 	}
 }
 
+func (s LinkService) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.Link, error) {
+	return s.linkRepository.ListByTenant(ctx, tenantID)
+}
+
 func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamodel.Link, error) {
 	if err := datamodel.ValidateLinkName(input.Name); err != nil {
 		return datamodel.Link{}, err

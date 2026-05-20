@@ -15,6 +15,7 @@ The service manages:
 - tenant registration and provisioning
 - logical data-model metadata
 - physical per-tenant PostgreSQL tables and columns
+- published ingestion-safe tenant schema contracts
 - links and pivots used for higher-level graph navigation
 - table display/options metadata
 - navigation-option metadata
@@ -154,6 +155,8 @@ Each managed tenant table currently includes implicit physical columns:
 
 Reserved field names are blocked at the metadata layer so logical metadata cannot drift from this physical layout.
 
+The assembled data-model endpoint publishes these managed system fields as part of the ingestion contract so downstream writers know they are reserved and service-owned.
+
 ## API summary
 
 Public operational routes:
@@ -231,6 +234,51 @@ This is important for operations like:
 - delete table
 
 If physical DDL fails during a transactional mutation, metadata changes should roll back with it.
+
+## Published ingestion contract
+
+`GET /v1/tenants/:tenantId/data-model` is the canonical published contract for downstream ingestion.
+
+The response now includes:
+
+- `revision_id` for pinning writes to an exact published tenant schema snapshot
+- `ingestion_contract.tenant_status` and `ingestion_contract.writable` so downstream services can reject writes for non-active tenants
+- `ingestion_contract.managed_system_fields` so ingestion does not try to overwrite service-owned columns
+- `ingestion_contract.record_lookup_field` and `ingestion_contract.partial_updates` to define baseline upsert semantics
+- assembled table and field `archived` flags
+- enum values inside assembled fields
+
+This service remains the sole schema authority. It publishes the contract and manages tenant physical layout, but it does not expose a business-record write API.
+
+### `revision_id` semantics
+
+`revision_id` is a deterministic identifier for the published tenant schema contract returned by the assembled data-model endpoint.
+
+Current V1 behavior:
+
+- it changes when tenant writability state changes, such as `pending` to `active`
+- it changes when the recorded tenant schema migration set changes
+- it remains stable for equivalent published state, even if repository row ordering differs
+
+Downstream ingestion should:
+
+- fetch the contract before validating writes
+- store the `revision_id` alongside ingestion logs and jobs
+- treat a changed `revision_id` as a signal to refresh cached schema assumptions
+
+The V1 contract does not guarantee any semantic decoding of the revision string. Consumers should treat it as an opaque identifier.
+
+### Enum policy for ingestion consumers
+
+Enum values returned in assembled fields are the canonical allowed values for managed enum fields.
+
+Current V1 policy:
+
+- `data-model-service` publishes enum metadata and remains the source of truth
+- `ingestion-service` should validate incoming enum values against the published contract
+- unseen enum values should be rejected by downstream ingestion unless a separate explicit enum-management flow adds them to the model first
+
+This intentionally avoids Marble's current pattern where ingestion may backfill new enum values into the model asynchronously.
 
 ## Delete behavior
 

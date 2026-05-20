@@ -32,6 +32,13 @@ type CreateFieldInput struct {
 	Nullable    bool
 	IsEnum      bool
 	IsUnique    bool
+	EnumValues  []CreateFieldEnumValueSeed
+}
+
+type CreateFieldEnumValueSeed struct {
+	Value     string
+	Label     string
+	SortOrder int
 }
 
 type UpdateFieldInput struct {
@@ -70,9 +77,16 @@ func NewFieldService(
 	}
 }
 
+func (s FieldService) ListByTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.Field, error) {
+	return s.fieldRepository.ListByTable(ctx, tableID)
+}
+
 func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datamodel.Field, error) {
 	if err := datamodel.ValidateFieldCreate(input.Name, input.DataType, input.IsEnum, input.IsUnique); err != nil {
 		return datamodel.Field{}, err
+	}
+	if len(input.EnumValues) > 0 && !input.IsEnum {
+		return datamodel.Field{}, fmt.Errorf("enum_values can only be provided when is_enum=true")
 	}
 
 	table, err := s.tableRepository.GetByID(ctx, input.TableID)
@@ -109,6 +123,39 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
 				return err
 			}
+		}
+		for _, seed := range input.EnumValues {
+			if err := datamodel.ValidateEnumValueCreate(field, seed.Value, seed.Label); err != nil {
+				return err
+			}
+			value := datamodel.FieldEnumValue{
+				ID:        s.idGenerator.New(),
+				TenantID:  field.TenantID,
+				FieldID:   field.ID,
+				Value:     seed.Value,
+				Label:     seed.Label,
+				SortOrder: seed.SortOrder,
+				CreatedAt: now,
+				UpdatedAt: now,
+			}
+			if err := store.FieldEnumValues().Create(ctx, value); err != nil {
+				return err
+			}
+			_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+				s.idGenerator.New(),
+				field.TenantID,
+				"create_field_enum_value",
+				"field_enum_value",
+				value.ID,
+				now,
+				map[string]any{
+					"field_id":   field.ID,
+					"value":      value.Value,
+					"label":      value.Label,
+					"sort_order": value.SortOrder,
+				},
+			))
+			recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field_enum_value", "field_enum_value"), now)
 		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
 			s.idGenerator.New(),

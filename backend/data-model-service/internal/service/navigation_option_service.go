@@ -14,6 +14,8 @@ import (
 type NavigationOptionService struct {
 	tableRepository       ports.TableRepository
 	fieldRepository       ports.FieldRepository
+	linkRepository        ports.LinkRepository
+	pivotRepository       ports.PivotRepository
 	navigationRepository  ports.NavigationOptionRepository
 	schemaChanges         ports.SchemaChangeRepository
 	txManager             ports.TransactionManager
@@ -33,6 +35,8 @@ type CreateNavigationOptionInput struct {
 func NewNavigationOptionService(
 	tableRepository ports.TableRepository,
 	fieldRepository ports.FieldRepository,
+	linkRepository ports.LinkRepository,
+	pivotRepository ports.PivotRepository,
 	navigationRepository ports.NavigationOptionRepository,
 	schemaChanges ports.SchemaChangeRepository,
 	txManager ports.TransactionManager,
@@ -42,6 +46,8 @@ func NewNavigationOptionService(
 	return NavigationOptionService{
 		tableRepository:      tableRepository,
 		fieldRepository:      fieldRepository,
+		linkRepository:       linkRepository,
+		pivotRepository:      pivotRepository,
 		navigationRepository: navigationRepository,
 		schemaChanges:        schemaChanges,
 		txManager:            txManager,
@@ -83,6 +89,46 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 	orderingField, ok := findFieldByID(targetFields, input.OrderingFieldID)
 	if !ok {
 		return datamodel.NavigationOption{}, fmt.Errorf("ordering field does not belong to target table")
+	}
+	if sourceField.DataType != datamodel.DataTypeString {
+		return datamodel.NavigationOption{}, fmt.Errorf("source field must be a string field")
+	}
+	if input.FilterFieldID == input.OrderingFieldID {
+		return datamodel.NavigationOption{}, fmt.Errorf("filter and ordering fields must be different")
+	}
+	if sourceTable.ID == targetTable.ID && sourceField.ID != filterField.ID {
+		return datamodel.NavigationOption{}, fmt.Errorf("if source and target tables are the same, source and filter fields must match")
+	}
+
+	links, err := s.linkRepository.ListByTenant(ctx, input.TenantID)
+	if err != nil {
+		return datamodel.NavigationOption{}, err
+	}
+	pivots, err := s.pivotRepository.ListByTenant(ctx, input.TenantID)
+	if err != nil {
+		return datamodel.NavigationOption{}, err
+	}
+
+	canCreate := false
+	for _, link := range links {
+		if link.ParentTable == sourceTable.ID &&
+			link.ParentField == sourceField.ID &&
+			link.ChildTable == targetTable.ID &&
+			link.ChildField == filterField.ID {
+			canCreate = true
+			break
+		}
+	}
+	if !canCreate && sourceTable.ID == targetTable.ID {
+		for _, pivot := range pivots {
+			if pivot.BaseTableID == sourceTable.ID && pivot.FieldID != nil && *pivot.FieldID == sourceField.ID {
+				canCreate = true
+				break
+			}
+		}
+	}
+	if !canCreate {
+		return datamodel.NavigationOption{}, fmt.Errorf("navigation option must be backed by a reverse link or self-table pivot")
 	}
 
 	now := s.clock.Now()

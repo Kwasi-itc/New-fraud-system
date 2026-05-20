@@ -14,13 +14,13 @@ import (
 )
 
 type DataModelHandler struct {
-	readService    service.DataModelReadService
-	tableService   service.TableService
-	fieldService   service.FieldService
-	enumValueService service.FieldEnumValueService
-	linkService    service.LinkService
-	pivotService   service.PivotService
-	optionsService service.OptionsService
+	readService             service.DataModelReadService
+	tableService            service.TableService
+	fieldService            service.FieldService
+	enumValueService        service.FieldEnumValueService
+	linkService             service.LinkService
+	pivotService            service.PivotService
+	optionsService          service.OptionsService
 	navigationOptionService service.NavigationOptionService
 }
 
@@ -35,13 +35,13 @@ func NewDataModelHandler(
 	navigationOptionService service.NavigationOptionService,
 ) DataModelHandler {
 	return DataModelHandler{
-		readService:    readService,
-		tableService:   tableService,
-		fieldService:   fieldService,
-		enumValueService: enumValueService,
-		linkService:    linkService,
-		pivotService:   pivotService,
-		optionsService: optionsService,
+		readService:             readService,
+		tableService:            tableService,
+		fieldService:            fieldService,
+		enumValueService:        enumValueService,
+		linkService:             linkService,
+		pivotService:            pivotService,
+		optionsService:          optionsService,
 		navigationOptionService: navigationOptionService,
 	}
 }
@@ -51,12 +51,35 @@ func (h DataModelHandler) GetDataModel(c *gin.Context) {
 	if !ok {
 		return
 	}
-	model, err := h.readService.Get(c.Request.Context(), tenantID)
+	publishedModel, err := h.readService.Get(c.Request.Context(), tenantID)
 	if err != nil {
 		writeError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data_model": dto.AdaptAssembledDataModel(model)})
+	c.JSON(http.StatusOK, gin.H{
+		"data_model": dto.AdaptAssembledDataModel(
+			publishedModel.Model,
+			publishedModel.RevisionID,
+			publishedModel.Tenant.Status,
+		),
+	})
+}
+
+func (h DataModelHandler) ListTables(c *gin.Context) {
+	tenantID, ok := parseUUIDParam(c, "tenantId")
+	if !ok {
+		return
+	}
+	tables, err := h.tableService.ListByTenant(c.Request.Context(), tenantID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response := make([]dto.TableResponse, len(tables))
+	for i, table := range tables {
+		response[i] = dto.AdaptTable(table)
+	}
+	c.JSON(http.StatusOK, gin.H{"tables": response})
 }
 
 func (h DataModelHandler) CreateTable(c *gin.Context) {
@@ -81,6 +104,23 @@ func (h DataModelHandler) CreateTable(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"table": dto.AdaptTable(table)})
+}
+
+func (h DataModelHandler) ListFields(c *gin.Context) {
+	tableID, ok := parseUUIDParam(c, "tableId")
+	if !ok {
+		return
+	}
+	fields, err := h.fieldService.ListByTable(c.Request.Context(), tableID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response := make([]dto.FieldResponse, len(fields))
+	for i, field := range fields {
+		response[i] = dto.AdaptField(field)
+	}
+	c.JSON(http.StatusOK, gin.H{"fields": response})
 }
 
 func (h DataModelHandler) UpdateTable(c *gin.Context) {
@@ -143,12 +183,25 @@ func (h DataModelHandler) CreateField(c *gin.Context) {
 		Nullable:    request.Nullable,
 		IsEnum:      request.IsEnum,
 		IsUnique:    request.IsUnique,
+		EnumValues:  adaptCreateFieldEnumValueSeeds(request.EnumValues),
 	})
 	if err != nil {
 		writeError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"field": dto.AdaptField(field)})
+}
+
+func adaptCreateFieldEnumValueSeeds(values []dto.CreateFieldEnumValueRequest) []service.CreateFieldEnumValueSeed {
+	seeds := make([]service.CreateFieldEnumValueSeed, len(values))
+	for i, value := range values {
+		seeds[i] = service.CreateFieldEnumValueSeed{
+			Value:     value.Value,
+			Label:     value.Label,
+			SortOrder: value.SortOrder,
+		}
+	}
+	return seeds
 }
 
 func (h DataModelHandler) UpdateField(c *gin.Context) {
@@ -211,6 +264,23 @@ func (h DataModelHandler) CreateLink(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"link": dto.AdaptLink(link)})
+}
+
+func (h DataModelHandler) ListLinks(c *gin.Context) {
+	tenantID, ok := parseUUIDParam(c, "tenantId")
+	if !ok {
+		return
+	}
+	links, err := h.linkService.ListByTenant(c.Request.Context(), tenantID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response := make([]dto.LinkResponse, len(links))
+	for i, link := range links {
+		response[i] = dto.AdaptLink(link)
+	}
+	c.JSON(http.StatusOK, gin.H{"links": response})
 }
 
 func (h DataModelHandler) DeleteLink(c *gin.Context) {
@@ -289,7 +359,12 @@ func (h DataModelHandler) GetOptions(c *gin.Context) {
 		writeError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, dto.AdaptTableOptions(options))
+	fields, err := h.fieldService.ListByTable(c.Request.Context(), tableID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.AdaptTableOptions(options, fields))
 }
 
 func (h DataModelHandler) UpsertOptions(c *gin.Context) {
@@ -311,7 +386,12 @@ func (h DataModelHandler) UpsertOptions(c *gin.Context) {
 		writeError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, dto.AdaptTableOptions(options))
+	fields, err := h.fieldService.ListByTable(c.Request.Context(), tableID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.AdaptTableOptions(options, fields))
 }
 
 func (h DataModelHandler) ListNavigationOptions(c *gin.Context) {

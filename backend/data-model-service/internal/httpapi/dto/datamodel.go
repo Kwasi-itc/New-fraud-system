@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 )
 
 type CreateTableRequest struct {
@@ -49,12 +50,13 @@ func AdaptTable(table datamodel.Table) TableResponse {
 }
 
 type CreateFieldRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	DataType    string `json:"data_type" binding:"required"`
-	Nullable    bool   `json:"nullable"`
-	IsEnum      bool   `json:"is_enum"`
-	IsUnique    bool   `json:"is_unique"`
+	Name        string                        `json:"name" binding:"required"`
+	Description string                        `json:"description"`
+	DataType    string                        `json:"data_type" binding:"required"`
+	Nullable    bool                          `json:"nullable"`
+	IsEnum      bool                          `json:"is_enum"`
+	IsUnique    bool                          `json:"is_unique"`
+	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
 }
 
 type UpdateFieldRequest struct {
@@ -193,20 +195,39 @@ type CreateNavigationOptionRequest struct {
 }
 
 type TableOptionsResponse struct {
-	ID              uuid.UUID   `json:"id"`
-	TableID         uuid.UUID   `json:"table_id"`
-	DisplayedFields []uuid.UUID `json:"displayed_fields"`
-	FieldOrder      []uuid.UUID `json:"field_order"`
-	UpdatedAt       time.Time   `json:"updated_at"`
+	ID                    uuid.UUID                         `json:"id"`
+	TableID               uuid.UUID                         `json:"table_id"`
+	DisplayedFields       []uuid.UUID                       `json:"displayed_fields"`
+	DisplayedFieldDetails []TableOptionsFieldDetailResponse `json:"displayed_field_details"`
+	FieldOrder            []uuid.UUID                       `json:"field_order"`
+	FieldOrderDetails     []TableOptionsFieldDetailResponse `json:"field_order_details"`
+	UpdatedAt             time.Time                         `json:"updated_at"`
 }
 
-func AdaptTableOptions(options datamodel.TableOptions) TableOptionsResponse {
+type TableOptionsFieldDetailResponse struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	DataType    string    `json:"data_type"`
+	Description string    `json:"description"`
+	Nullable    bool      `json:"nullable"`
+	IsEnum      bool      `json:"is_enum"`
+	IsUnique    bool      `json:"is_unique"`
+}
+
+func AdaptTableOptions(options datamodel.TableOptions, fields []datamodel.Field) TableOptionsResponse {
+	fieldMap := make(map[uuid.UUID]datamodel.Field, len(fields))
+	for _, field := range fields {
+		fieldMap[field.ID] = field
+	}
+
 	return TableOptionsResponse{
-		ID:              options.ID,
-		TableID:         options.TableID,
-		DisplayedFields: options.DisplayedFields,
-		FieldOrder:      options.FieldOrder,
-		UpdatedAt:       options.UpdatedAt,
+		ID:                    options.ID,
+		TableID:               options.TableID,
+		DisplayedFields:       options.DisplayedFields,
+		DisplayedFieldDetails: adaptTableOptionFieldDetails(options.DisplayedFields, fieldMap),
+		FieldOrder:            options.FieldOrder,
+		FieldOrderDetails:     adaptTableOptionFieldDetails(options.FieldOrder, fieldMap),
+		UpdatedAt:             options.UpdatedAt,
 	}
 }
 
@@ -264,8 +285,18 @@ func AdaptDeleteReport(report datamodel.DeleteReport) DeleteReportResponse {
 }
 
 type AssembledDataModelResponse struct {
-	Tables map[string]AssembledTableResponse `json:"tables"`
-	Pivots []AssembledPivotResponse          `json:"pivots"`
+	RevisionID        string                            `json:"revision_id"`
+	IngestionContract IngestionContractResponse         `json:"ingestion_contract"`
+	Tables            map[string]AssembledTableResponse `json:"tables"`
+	Pivots            []AssembledPivotResponse          `json:"pivots"`
+}
+
+type IngestionContractResponse struct {
+	TenantStatus        string   `json:"tenant_status"`
+	Writable            bool     `json:"writable"`
+	ManagedSystemFields []string `json:"managed_system_fields"`
+	RecordLookupField   string   `json:"record_lookup_field"`
+	PartialUpdates      bool     `json:"partial_updates"`
 }
 
 type AssembledTableResponse struct {
@@ -275,6 +306,7 @@ type AssembledTableResponse struct {
 	Alias             string                            `json:"alias"`
 	SemanticType      string                            `json:"semantic_type"`
 	CaptionField      string                            `json:"caption_field"`
+	Archived          bool                              `json:"archived"`
 	Fields            map[string]AssembledFieldResponse `json:"fields"`
 	LinksToSingle     map[string]AssembledLinkResponse  `json:"links_to_single"`
 	NavigationOptions []datamodel.NavigationOption      `json:"navigation_options"`
@@ -282,13 +314,14 @@ type AssembledTableResponse struct {
 }
 
 type AssembledFieldResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	DataType    string    `json:"data_type"`
-	Nullable    bool      `json:"nullable"`
-	IsEnum      bool      `json:"is_enum"`
-	IsUnique    bool      `json:"is_unique"`
+	ID          uuid.UUID                `json:"id"`
+	Name        string                   `json:"name"`
+	Description string                   `json:"description"`
+	DataType    string                   `json:"data_type"`
+	Nullable    bool                     `json:"nullable"`
+	IsEnum      bool                     `json:"is_enum"`
+	IsUnique    bool                     `json:"is_unique"`
+	Archived    bool                     `json:"archived"`
 	EnumValues  []FieldEnumValueResponse `json:"enum_values"`
 }
 
@@ -315,15 +348,36 @@ type AssembledPivotResponse struct {
 	PathLinks   []string    `json:"path_links"`
 }
 
-func AdaptAssembledDataModel(model datamodel.AssembledDataModel) AssembledDataModelResponse {
+func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID string, tenantStatus tenant.Status) AssembledDataModelResponse {
 	response := AssembledDataModelResponse{
+		RevisionID: revisionID,
+		IngestionContract: IngestionContractResponse{
+			TenantStatus:        string(tenantStatus),
+			Writable:            tenantStatus == tenant.StatusActive,
+			ManagedSystemFields: []string{"object_id", "updated_at", "valid_from", "valid_until"},
+			RecordLookupField:   "object_id",
+			PartialUpdates:      true,
+		},
 		Tables: make(map[string]AssembledTableResponse, len(model.Tables)),
 		Pivots: make([]AssembledPivotResponse, len(model.Pivots)),
 	}
 	for key, table := range model.Tables {
 		var options *TableOptionsResponse
 		if table.Options != nil {
-			adapted := AdaptTableOptions(*table.Options)
+			fieldList := make([]datamodel.Field, 0, len(table.Fields))
+			for _, field := range table.Fields {
+				fieldList = append(fieldList, datamodel.Field{
+					ID:          field.ID,
+					TableID:     table.ID,
+					Name:        field.Name,
+					Description: field.Description,
+					DataType:    field.DataType,
+					Nullable:    field.Nullable,
+					IsEnum:      field.IsEnum,
+					IsUnique:    field.IsUnique,
+				})
+			}
+			adapted := AdaptTableOptions(*table.Options, fieldList)
 			options = &adapted
 		}
 		fields := make(map[string]AssembledFieldResponse, len(table.Fields))
@@ -336,6 +390,7 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel) AssembledDataMo
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,
 				IsUnique:    field.IsUnique,
+				Archived:    field.Archived,
 				EnumValues:  adaptFieldEnumValues(field.EnumValues),
 			}
 		}
@@ -361,6 +416,7 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel) AssembledDataMo
 			Alias:             table.Alias,
 			SemanticType:      table.SemanticType,
 			CaptionField:      table.CaptionField,
+			Archived:          table.Archived,
 			Fields:            fields,
 			LinksToSingle:     links,
 			NavigationOptions: table.NavigationOptions,
@@ -385,6 +441,26 @@ func adaptFieldEnumValues(values []datamodel.FieldEnumValue) []FieldEnumValueRes
 	response := make([]FieldEnumValueResponse, len(values))
 	for i, value := range values {
 		response[i] = AdaptFieldEnumValue(value)
+	}
+	return response
+}
+
+func adaptTableOptionFieldDetails(fieldIDs []uuid.UUID, fieldMap map[uuid.UUID]datamodel.Field) []TableOptionsFieldDetailResponse {
+	response := make([]TableOptionsFieldDetailResponse, 0, len(fieldIDs))
+	for _, fieldID := range fieldIDs {
+		field, ok := fieldMap[fieldID]
+		if !ok {
+			continue
+		}
+		response = append(response, TableOptionsFieldDetailResponse{
+			ID:          field.ID,
+			Name:        field.Name,
+			DataType:    string(field.DataType),
+			Description: field.Description,
+			Nullable:    field.Nullable,
+			IsEnum:      field.IsEnum,
+			IsUnique:    field.IsUnique,
+		})
 	}
 	return response
 }

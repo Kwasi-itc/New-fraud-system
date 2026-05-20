@@ -104,6 +104,21 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	}
 	mustUnmarshal(t, createTransactionsRec.Body.Bytes(), &createTransactionsBody)
 
+	listTablesRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+tenantID+"/tables", nil, "")
+	if listTablesRec.Code != http.StatusOK {
+		t.Fatalf("expected list tables 200, got %d: %s", listTablesRec.Code, listTablesRec.Body.String())
+	}
+	var listTablesBody struct {
+		Tables []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"tables"`
+	}
+	mustUnmarshal(t, listTablesRec.Body.Bytes(), &listTablesBody)
+	if len(listTablesBody.Tables) != 2 {
+		t.Fatalf("expected 2 tables, got %d", len(listTablesBody.Tables))
+	}
+
 	createFieldRec := doJSONRequest(t, router, http.MethodPost, "/v1/tables/"+createTransactionsBody.Table.ID+"/fields", map[string]any{
 		"name":      "account_id",
 		"data_type": "string",
@@ -119,22 +134,71 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	}
 	mustUnmarshal(t, createFieldRec.Body.Bytes(), &createFieldBody)
 
+	listFieldsRec := doRequest(t, router, http.MethodGet, "/v1/tables/"+createTransactionsBody.Table.ID+"/fields", nil, "")
+	if listFieldsRec.Code != http.StatusOK {
+		t.Fatalf("expected list fields 200, got %d: %s", listFieldsRec.Code, listFieldsRec.Body.String())
+	}
+	var listFieldsBody struct {
+		Fields []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"fields"`
+	}
+	mustUnmarshal(t, listFieldsRec.Body.Bytes(), &listFieldsBody)
+	if len(listFieldsBody.Fields) < 3 {
+		t.Fatalf("expected at least 3 fields on transactions table, got %d", len(listFieldsBody.Fields))
+	}
+
 	dataModelRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+tenantID+"/data-model", nil, "")
 	if dataModelRec.Code != http.StatusOK {
 		t.Fatalf("expected data model 200, got %d: %s", dataModelRec.Code, dataModelRec.Body.String())
 	}
 	var dataModelBody struct {
 		DataModel struct {
+			RevisionID        string `json:"revision_id"`
+			IngestionContract struct {
+				TenantStatus        string   `json:"tenant_status"`
+				Writable            bool     `json:"writable"`
+				ManagedSystemFields []string `json:"managed_system_fields"`
+				RecordLookupField   string   `json:"record_lookup_field"`
+				PartialUpdates      bool     `json:"partial_updates"`
+			} `json:"ingestion_contract"`
 			Tables map[string]struct {
-				ID            string `json:"id"`
-				Fields        map[string]struct {
-					ID string `json:"id"`
+				ID       string `json:"id"`
+				Archived bool   `json:"archived"`
+				Fields   map[string]struct {
+					ID       string `json:"id"`
+					Archived bool   `json:"archived"`
 				} `json:"fields"`
 				LinksToSingle map[string]any `json:"links_to_single"`
 			} `json:"tables"`
 		} `json:"data_model"`
 	}
 	mustUnmarshal(t, dataModelRec.Body.Bytes(), &dataModelBody)
+	if dataModelBody.DataModel.RevisionID == "" {
+		t.Fatal("expected revision_id in assembled data model response")
+	}
+	if dataModelBody.DataModel.IngestionContract.TenantStatus != "active" {
+		t.Fatalf("expected active tenant status in ingestion contract, got %s", dataModelBody.DataModel.IngestionContract.TenantStatus)
+	}
+	if !dataModelBody.DataModel.IngestionContract.Writable {
+		t.Fatal("expected ingestion contract to mark active tenant as writable")
+	}
+	if dataModelBody.DataModel.IngestionContract.RecordLookupField != "object_id" {
+		t.Fatalf("expected object_id record lookup field, got %s", dataModelBody.DataModel.IngestionContract.RecordLookupField)
+	}
+	if !dataModelBody.DataModel.IngestionContract.PartialUpdates {
+		t.Fatal("expected ingestion contract to allow partial updates")
+	}
+	expectedManagedFields := []string{"object_id", "updated_at", "valid_from", "valid_until"}
+	if len(dataModelBody.DataModel.IngestionContract.ManagedSystemFields) != len(expectedManagedFields) {
+		t.Fatalf("unexpected managed system fields: %v", dataModelBody.DataModel.IngestionContract.ManagedSystemFields)
+	}
+	for i, fieldName := range expectedManagedFields {
+		if dataModelBody.DataModel.IngestionContract.ManagedSystemFields[i] != fieldName {
+			t.Fatalf("unexpected managed system fields ordering: %v", dataModelBody.DataModel.IngestionContract.ManagedSystemFields)
+		}
+	}
 	accountObjectID := dataModelBody.DataModel.Tables["accounts"].Fields["object_id"].ID
 
 	createLinkRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantID+"/links", map[string]any{
@@ -153,6 +217,21 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 		} `json:"link"`
 	}
 	mustUnmarshal(t, createLinkRec.Body.Bytes(), &createLinkBody)
+
+	listLinksRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+tenantID+"/links", nil, "")
+	if listLinksRec.Code != http.StatusOK {
+		t.Fatalf("expected list links 200, got %d: %s", listLinksRec.Code, listLinksRec.Body.String())
+	}
+	var listLinksBody struct {
+		Links []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"links"`
+	}
+	mustUnmarshal(t, listLinksRec.Body.Bytes(), &listLinksBody)
+	if len(listLinksBody.Links) != 1 || listLinksBody.Links[0].ID != createLinkBody.Link.ID {
+		t.Fatalf("unexpected links payload: %+v", listLinksBody.Links)
+	}
 
 	createPivotRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantID+"/pivots", map[string]any{
 		"base_table_id": createTransactionsBody.Table.ID,
@@ -179,6 +258,20 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	if getOptionsRec.Code != http.StatusOK {
 		t.Fatalf("expected get options 200, got %d: %s", getOptionsRec.Code, getOptionsRec.Body.String())
 	}
+	var getOptionsBody struct {
+		FieldOrder        []string `json:"field_order"`
+		FieldOrderDetails []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"field_order_details"`
+	}
+	mustUnmarshal(t, getOptionsRec.Body.Bytes(), &getOptionsBody)
+	if len(getOptionsBody.FieldOrderDetails) != len(getOptionsBody.FieldOrder) {
+		t.Fatalf("expected field order details to match field order length, got %+v", getOptionsBody)
+	}
+	if len(getOptionsBody.FieldOrderDetails) == 0 || getOptionsBody.FieldOrderDetails[0].Name == "" {
+		t.Fatalf("expected resolved field order details, got %+v", getOptionsBody.FieldOrderDetails)
+	}
 
 	dataModelAfterLinkRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+tenantID+"/data-model", nil, "")
 	if dataModelAfterLinkRec.Code != http.StatusOK {
@@ -186,9 +279,11 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	}
 	var dataModelAfterLinkBody struct {
 		DataModel struct {
-			Tables map[string]struct {
-				Fields        map[string]struct {
-					ID string `json:"id"`
+			RevisionID string `json:"revision_id"`
+			Tables     map[string]struct {
+				Fields map[string]struct {
+					ID       string `json:"id"`
+					Archived bool   `json:"archived"`
 				} `json:"fields"`
 				LinksToSingle map[string]struct {
 					ID              string `json:"id"`
@@ -204,9 +299,18 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 		} `json:"data_model"`
 	}
 	mustUnmarshal(t, dataModelAfterLinkRec.Body.Bytes(), &dataModelAfterLinkBody)
+	if dataModelAfterLinkBody.DataModel.RevisionID == "" {
+		t.Fatal("expected revision_id after link creation")
+	}
+	if dataModelAfterLinkBody.DataModel.RevisionID == dataModelBody.DataModel.RevisionID {
+		t.Fatal("expected revision_id to change after schema-affecting mutations")
+	}
 	txTable := dataModelAfterLinkBody.DataModel.Tables["transactions"]
 	if _, ok := txTable.Fields["account_id"]; !ok {
 		t.Fatal("expected account_id field in assembled data model")
+	}
+	if txTable.Fields["account_id"].Archived {
+		t.Fatal("expected active field to report archived=false")
 	}
 	if link, ok := txTable.LinksToSingle["account"]; !ok || link.ParentTableName != "accounts" {
 		t.Fatalf("unexpected links_to_single payload: %+v", txTable.LinksToSingle)

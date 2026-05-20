@@ -130,13 +130,19 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	navigationOptionService := service.NewNavigationOptionService(
 		tableRepository,
 		fieldRepository,
+		linkRepository,
+		pivotRepository,
 		navigationOptionRepository,
 		schemaChangeRepository,
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
 	)
-	readService := service.NewDataModelReadService(readRepository)
+	readService := service.NewDataModelReadService(
+		readRepository,
+		tenantRepository,
+		tenantSchemaMigrationRepository,
+	)
 	indexJobService := service.NewIndexJobService(
 		tenantRepository,
 		tableRepository,
@@ -172,10 +178,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId", tenantHandler.Get)
 	v1.POST("/tenants/:tenantId/provision", tenantHandler.Provision)
 	v1.GET("/tenants/:tenantId/data-model", dataModelHandler.GetDataModel)
+	v1.GET("/tenants/:tenantId/tables", dataModelHandler.ListTables)
 	v1.POST("/tenants/:tenantId/tables", dataModelHandler.CreateTable)
+	v1.GET("/tables/:tableId/fields", dataModelHandler.ListFields)
 	v1.POST("/tables/:tableId/fields", dataModelHandler.CreateField)
 	v1.GET("/fields/:fieldId/enum-values", dataModelHandler.ListFieldEnumValues)
 	v1.POST("/fields/:fieldId/enum-values", dataModelHandler.CreateFieldEnumValue)
+	v1.GET("/tenants/:tenantId/links", dataModelHandler.ListLinks)
 	v1.POST("/tenants/:tenantId/links", dataModelHandler.CreateLink)
 	v1.GET("/tenants/:tenantId/pivots", dataModelHandler.ListPivots)
 	v1.POST("/tenants/:tenantId/pivots", dataModelHandler.CreatePivot)

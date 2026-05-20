@@ -172,7 +172,7 @@ paths:
       tags: [data-model]
       operationId: getAssembledDataModel
       summary: Get assembled data model
-      description: Returns the tenant's assembled read model, including tables, fields, links, pivots, navigation options, and table options.
+      description: Returns the tenant's published assembled read model for downstream ingestion, including a versioned revision id, tenant writability metadata, tables, fields, links, pivots, navigation options, and table options.
       security:
         - bearerAuth: []
       parameters:
@@ -192,6 +192,31 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
   /v1/tenants/{tenantId}/tables:
+    get:
+      tags: [data-model]
+      operationId: listTables
+      summary: List tenant tables
+      description: Lists the logical tables currently defined for one tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Table list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tables:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Table'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [data-model]
       operationId: createTable
@@ -287,6 +312,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteReport'
   /v1/tables/{tableId}/fields:
+    get:
+      tags: [data-model]
+      operationId: listFields
+      summary: List table fields
+      description: Lists the fields currently defined for one table.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: Field list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fields:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Field'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
     post:
       tags: [data-model]
       operationId: createField
@@ -490,6 +542,31 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
   /v1/tenants/{tenantId}/links:
+    get:
+      tags: [data-model]
+      operationId: listLinks
+      summary: List tenant links
+      description: Lists the logical links currently defined for one tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Link list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Link'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [data-model]
       operationId: createLink
@@ -636,7 +713,7 @@ paths:
       tags: [data-model]
       operationId: getTableOptions
       summary: Get table options
-      description: Returns UI-oriented table options such as displayed field ids and field order.
+      description: Returns UI-oriented table options with both raw field ids and resolved field details for displayed fields and field order.
       security:
         - bearerAuth: []
       parameters:
@@ -1192,6 +1269,11 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        enum_values:
+          type: array
+          description: Optional inline enum values created transactionally with the field when is_enum=true.
+          items:
+            $ref: '#/components/schemas/CreateFieldEnumValueRequest'
     UpdateFieldRequest:
       type: object
       description: Mutable field properties. Omitted properties remain unchanged.
@@ -1397,7 +1479,7 @@ components:
       required: [source_field_id, target_table_id, filter_field_id, ordering_field_id]
     TableOptions:
       type: object
-      description: Stored table options.
+      description: Stored table options enriched with resolved field details so clients do not need to separately map field ids back to field names.
       properties:
         id:
           type: string
@@ -1410,15 +1492,43 @@ components:
           items:
             type: string
             format: uuid
+        displayed_field_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableOptionsFieldDetail'
         field_order:
           type: array
           items:
             type: string
             format: uuid
+        field_order_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableOptionsFieldDetail'
         updated_at:
           type: string
           format: date-time
-      required: [id, table_id, displayed_fields, field_order, updated_at]
+      required: [id, table_id, displayed_fields, displayed_field_details, field_order, field_order_details, updated_at]
+    TableOptionsFieldDetail:
+      type: object
+      description: Resolved field metadata for a field referenced by table options.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        data_type:
+          type: string
+        description:
+          type: string
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+      required: [id, name, data_type, description, nullable, is_enum, is_unique]
     NavigationOption:
       type: object
       description: Stored navigation option plus resolved display names.
@@ -1488,8 +1598,13 @@ components:
       required: [performed, conflicts]
     AssembledDataModel:
       type: object
-      description: Tenant read model assembled from tables, fields, links, pivots, and options.
+      description: Tenant read model assembled from tables, fields, links, pivots, and options, published as the ingestion-safe contract for downstream services.
       properties:
+        revision_id:
+          type: string
+          description: Versioned identifier for the published tenant schema snapshot that downstream ingestion should pin to when validating and writing records.
+        ingestion_contract:
+          $ref: '#/components/schemas/IngestionContract'
         tables:
           type: object
           additionalProperties:
@@ -1498,7 +1613,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AssembledPivot'
-      required: [tables, pivots]
+      required: [revision_id, ingestion_contract, tables, pivots]
+    IngestionContract:
+      type: object
+      description: Downstream write contract that tells ingestion consumers whether the tenant is writable and which physical/system fields are managed by the data-model service.
+      properties:
+        tenant_status:
+          type: string
+          example: active
+        writable:
+          type: boolean
+        managed_system_fields:
+          type: array
+          items:
+            type: string
+        record_lookup_field:
+          type: string
+          example: object_id
+        partial_updates:
+          type: boolean
+      required: [tenant_status, writable, managed_system_fields, record_lookup_field, partial_updates]
     AssembledTable:
       type: object
       description: Table entry inside the assembled read model.
@@ -1516,6 +1650,8 @@ components:
           type: string
         caption_field:
           type: string
+        archived:
+          type: boolean
         fields:
           type: object
           additionalProperties:
@@ -1532,6 +1668,7 @@ components:
         options:
           $ref: '#/components/schemas/TableOptions'
           nullable: true
+      required: [id, name, description, alias, semantic_type, caption_field, archived, fields, links_to_single, navigation_options]
     AssembledField:
       type: object
       description: Field entry inside the assembled read model.
@@ -1551,10 +1688,13 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        archived:
+          type: boolean
         enum_values:
           type: array
           items:
             $ref: '#/components/schemas/FieldEnumValue'
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, enum_values]
     AssembledLink:
       type: object
       description: Link entry inside the assembled read model.

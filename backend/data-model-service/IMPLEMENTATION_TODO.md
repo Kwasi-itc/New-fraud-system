@@ -29,10 +29,14 @@ This file tracks the remaining work for the standalone data model service after 
 - repository-level PostgreSQL verification for tenant, table, field, link, pivot, table options, schema change, tenant schema migration, and assembled read repositories
 - repository/service/worker verification for async index jobs and reconcile-triggered repair scheduling
 - V1 destructive lifecycle policy: hard delete with internal dry-run conflict checks
+- ingestion compatibility updates on the assembled data-model contract:
+  - top-level `revision_id`
+  - tenant writability metadata
+  - managed system field publication
+  - archived flags in assembled tables and fields
 
 ## Next Priority
 
-- expand request/response integration tests against Gin handlers and router wiring
 - add more rollback/failure-path coverage as new mutation behaviors are introduced
 - add archival semantics only if the target product requires history-preserving deletes
 

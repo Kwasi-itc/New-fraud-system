@@ -119,6 +119,12 @@ The service is the sole writer of:
 
 Other systems should treat the service as the authority for schema structure.
 
+For ingestion compatibility, this authority includes:
+
+- the published assembled tenant schema contract
+- the opaque `revision_id` used to pin downstream writes to a concrete published snapshot
+- managed enum catalogs for enum-backed fields
+
 ## Domain Modules
 
 ### 1. Tenant Registry
@@ -500,7 +506,17 @@ Recommended deletion semantics:
 - response should include:
   - whether deletion was performed
   - internal conflicts detected
-  - archived resources if applicable
+- archived resources if applicable
+
+For downstream ingestion, `GET /v1/tenants/{tenantId}/data-model` should be treated as the canonical published contract.
+
+That contract should provide:
+
+- a top-level opaque `revision_id`
+- tenant writability state
+- managed system fields that downstream writers must not overwrite directly
+- enum values for managed enum fields
+- archived flags for tables and fields so ingestion can reject inactive schema members
 
 ## Authentication and Authorization
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service"
 )
 
@@ -40,5 +41,26 @@ func TestDataModelHandlerCreateFieldRejectsUnsupportedDataType(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCreateFieldRequestBindsInlineEnumValues(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	req := httptest.NewRequest(http.MethodPost, "/v1/tables/field-id/fields",
+		bytes.NewBufferString(`{"name":"status","data_type":"string","is_enum":true,"enum_values":[{"value":"open","label":"Open"}]}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	ctx.Request = req
+
+	var payload dto.CreateFieldRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		t.Fatalf("expected enum_values payload to bind, got error: %v", err)
+	}
+	if len(payload.EnumValues) != 1 || payload.EnumValues[0].Value != "open" {
+		t.Fatalf("unexpected bound enum values: %+v", payload.EnumValues)
 	}
 }

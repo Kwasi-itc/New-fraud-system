@@ -11,23 +11,23 @@ import (
 )
 
 type DataModelReadRepository struct {
-	tableRepository        TableRepository
-	fieldRepository        FieldRepository
-	fieldEnumValueRepository FieldEnumValueRepository
-	linkRepository         LinkRepository
-	pivotRepository        PivotRepository
-	tableOptionsRepository TableOptionsRepository
+	tableRepository            TableRepository
+	fieldRepository            FieldRepository
+	fieldEnumValueRepository   FieldEnumValueRepository
+	linkRepository             LinkRepository
+	pivotRepository            PivotRepository
+	tableOptionsRepository     TableOptionsRepository
 	navigationOptionRepository NavigationOptionRepository
 }
 
 func NewDataModelReadRepository(db *pgxpool.Pool) DataModelReadRepository {
 	return DataModelReadRepository{
-		tableRepository:        NewTableRepository(db),
-		fieldRepository:        NewFieldRepository(db),
-		fieldEnumValueRepository: NewFieldEnumValueRepository(db),
-		linkRepository:         NewLinkRepository(db),
-		pivotRepository:        NewPivotRepository(db),
-		tableOptionsRepository: NewTableOptionsRepository(db),
+		tableRepository:            NewTableRepository(db),
+		fieldRepository:            NewFieldRepository(db),
+		fieldEnumValueRepository:   NewFieldEnumValueRepository(db),
+		linkRepository:             NewLinkRepository(db),
+		pivotRepository:            NewPivotRepository(db),
+		tableOptionsRepository:     NewTableOptionsRepository(db),
 		navigationOptionRepository: NewNavigationOptionRepository(db),
 	}
 }
@@ -70,6 +70,7 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 			Alias:             table.Alias,
 			SemanticType:      table.SemanticType,
 			CaptionField:      table.CaptionField,
+			Archived:          table.Archived,
 			Fields:            map[string]datamodel.AssembledField{},
 			LinksToSingle:     map[string]datamodel.AssembledLink{},
 			NavigationOptions: []datamodel.NavigationOption{},
@@ -90,6 +91,7 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,
 				IsUnique:    field.IsUnique,
+				Archived:    field.Archived,
 				EnumValues:  []datamodel.FieldEnumValue{},
 			}
 			if field.IsEnum {

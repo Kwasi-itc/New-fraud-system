@@ -53,7 +53,7 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 	linkService := NewLinkService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	pivotService := NewPivotService(tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, txManager, idGen, clock)
 	optionsService := NewOptionsService(tableRepo, fieldRepo, optionsRepo, schemaChanges, txManager, idGen, clock)
-	readService := NewDataModelReadService(readRepo)
+	readService := NewDataModelReadService(readRepo, tenantRepo, tenantSchemaMigrations)
 
 	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Lifecycle Tenant"})
 	if err != nil {
@@ -157,10 +157,11 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 		t.Fatalf("upsert table options: %v", err)
 	}
 
-	model, err := readService.Get(ctx, record.ID)
+	publishedModel, err := readService.Get(ctx, record.ID)
 	if err != nil {
 		t.Fatalf("read assembled data model: %v", err)
 	}
+	model := publishedModel.Model
 
 	assertTenantSchemaExists(t, ctx, pool, record.SchemaName)
 	assertTenantTableExists(t, ctx, pool, record.SchemaName, accounts.Name)
@@ -268,7 +269,8 @@ func TestIntegrationEnumValuesPersistAndAppearInAssembledModel(t *testing.T) {
 	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	enumValueService := NewFieldEnumValueService(fieldRepo, fieldEnumValueRepo, schemaChanges, txManager, idGen, clock)
-	readService := NewDataModelReadService(readRepo)
+	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
+	readService := NewDataModelReadService(readRepo, tenantRepo, tenantSchemaMigrations)
 
 	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Enum Tenant"})
 	if err != nil {
@@ -328,16 +330,100 @@ func TestIntegrationEnumValuesPersistAndAppearInAssembledModel(t *testing.T) {
 		t.Fatalf("unexpected enum values ordering: %#v", values)
 	}
 
-	model, err := readService.Get(ctx, record.ID)
+	publishedModel, err := readService.Get(ctx, record.ID)
 	if err != nil {
 		t.Fatalf("read assembled data model: %v", err)
 	}
+	model := publishedModel.Model
 	statusField := model.Tables["cases"].Fields["status"]
 	if len(statusField.EnumValues) != 2 {
 		t.Fatalf("expected assembled field to contain 2 enum values, got %d", len(statusField.EnumValues))
 	}
 	if statusField.EnumValues[0].Label != "Pending" || statusField.EnumValues[1].Label != "Approved" {
 		t.Fatalf("unexpected assembled enum values: %#v", statusField.EnumValues)
+	}
+}
+
+func TestIntegrationCreateFieldWithInlineEnumValuesPersistsEverything(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	readRepo := storepostgres.NewDataModelReadRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
+	clock := fixedIntegrationClock{now: time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)}
+
+	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
+	readService := NewDataModelReadService(readRepo, tenantRepo, tenantSchemaMigrations)
+
+	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Inline Enum Tenant"})
+	if err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	record, err = tenantService.Provision(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("provision tenant: %v", err)
+	}
+
+	table, err := tableService.Create(ctx, CreateTableInput{
+		TenantID:    record.ID,
+		Name:        "cases",
+		Description: "Case records",
+	})
+	if err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+
+	field, err := fieldService.Create(ctx, CreateFieldInput{
+		TableID:     table.ID,
+		Name:        "status",
+		Description: "Case status",
+		DataType:    datamodel.DataTypeString,
+		IsEnum:      true,
+		EnumValues: []CreateFieldEnumValueSeed{
+			{Value: "pending", Label: "Pending", SortOrder: 10},
+			{Value: "approved", Label: "Approved", SortOrder: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create enum field with inline values: %v", err)
+	}
+
+	values, err := fieldEnumValueRepo.ListByField(ctx, field.ID)
+	if err != nil {
+		t.Fatalf("list enum values: %v", err)
+	}
+	if len(values) != 2 {
+		t.Fatalf("expected 2 enum values, got %d", len(values))
+	}
+	if values[0].Value != "pending" || values[1].Value != "approved" {
+		t.Fatalf("unexpected enum values: %#v", values)
+	}
+
+	publishedModel, err := readService.Get(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("read assembled model: %v", err)
+	}
+	model := publishedModel.Model
+	statusField := model.Tables["cases"].Fields["status"]
+	if len(statusField.EnumValues) != 2 {
+		t.Fatalf("expected assembled enum values, got %d", len(statusField.EnumValues))
 	}
 }
 
@@ -633,11 +719,11 @@ func TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL(t *testing.T) {
 		t.Fatalf("create transactions.account_id: %v", err)
 	}
 	casesEmail, err := fieldService.Create(ctx, CreateFieldInput{
-		TableID:   casesTable.ID,
-		Name:      "email",
-		DataType:  datamodel.DataTypeString,
-		IsUnique:  true,
-		Nullable:  false,
+		TableID:  casesTable.ID,
+		Name:     "email",
+		DataType: datamodel.DataTypeString,
+		IsUnique: true,
+		Nullable: false,
 	})
 	if err != nil {
 		t.Fatalf("create cases.email: %v", err)
@@ -846,12 +932,12 @@ func TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing(t *testing.T) {
 	}
 
 	_, err := fieldService.Create(ctx, CreateFieldInput{
-		TableID:   tableID,
-		Name:      "amount",
-		DataType:  datamodel.DataTypeFloat,
-		Nullable:  false,
-		IsUnique:  false,
-		IsEnum:    false,
+		TableID:  tableID,
+		Name:     "amount",
+		DataType: datamodel.DataTypeFloat,
+		Nullable: false,
+		IsUnique: false,
+		IsEnum:   false,
 	})
 	if err == nil {
 		t.Fatal("expected create field to fail when physical tenant table is missing")

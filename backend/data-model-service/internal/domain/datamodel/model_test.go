@@ -43,6 +43,20 @@ func TestValidateFieldUpdateRejectsReservedFieldMutations(t *testing.T) {
 	}
 }
 
+func TestValidateSemanticType(t *testing.T) {
+	t.Parallel()
+
+	if err := ValidateSemanticType(""); err != nil {
+		t.Fatalf("expected blank semantic type to be allowed, got %v", err)
+	}
+	if err := ValidateSemanticType("financial_record"); err != nil {
+		t.Fatalf("expected normalized semantic type to be allowed, got %v", err)
+	}
+	if err := ValidateSemanticType("Financial Record"); err == nil {
+		t.Fatal("expected semantic type with spaces and uppercase letters to be rejected")
+	}
+}
+
 func TestValidatePivotRequiresExactlyOneMode(t *testing.T) {
 	t.Parallel()
 
