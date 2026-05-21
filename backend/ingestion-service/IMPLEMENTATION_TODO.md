@@ -33,7 +33,7 @@
 - implement PostgreSQL writer adapter
 - write directly to tenant schemas managed by `data-model-service`
 - decide chunking and upsert strategy
-- define idempotency strategy
+- document idempotency replay contract
 
 ## CSV flow
 
@@ -68,3 +68,27 @@
 - integration tests for multi-ingest
 - integration tests for CSV worker
 - contract tests for `data-model-service` integration
+
+## Completed In Current Slice
+
+- Go module, bootstrap, migrate command, and service scaffold
+- health and readiness routes
+- service auth middleware
+- `DataModelReader` HTTP client and contract mapping tests
+- single-record ingest endpoints
+- batch ingest endpoints
+- payload validation against published object schemas
+- patch semantics for partial updates
+- PostgreSQL tenant data writer with direct tenant-schema upserts
+- ingestion audit metadata persistence
+- durable outbox-event metadata persistence
+- idempotent response replay for repeated successful requests
+- CSV upload endpoint, upload-log read APIs, and worker polling loop
+- bounded CSV retry handling with terminal failure after max attempts
+- OpenAPI for sync ingest and upload-log routes
+
+## Remaining Priority
+
+- integration tests against a real PostgreSQL tenant schema
+- outbox delivery consumers for monitoring and scoring
+- dead-letter or quarantine flow for permanently failed CSV jobs

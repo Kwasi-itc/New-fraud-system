@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: Ingestion Service API
+  version: 0.1.0
+  description: |-
+    Standalone ingestion service for the new fraud platform.
+
+    Current implementation status:
+    - health and readiness endpoints
+    - service auth middleware
+    - upstream data-model-service contract client
+    - single-record ingest endpoints
+    - batch ingest endpoints
+    - CSV upload endpoint
+    - upload-log read endpoints
+    - payload validation against the published data model
+    - patch semantics
+    - direct writes into tenant schemas
+    - ingestion audit persistence
+    - durable outbox-event persistence
+    - idempotent response replay for repeated successful requests
+    - bounded CSV retry handling with terminal failure after max attempts
+
+    Remaining planned work:
+    - monitoring and scoring consumers
+    - dead-letter or quarantine flow for permanently failed CSV jobs
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /readyz:
+    get:
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '503':
+          description: Database is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyErrorResponse'
+  /v1/tenants/{tenantId}/ingest/{objectType}:
+    post:
+      summary: Ingest one record
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Record ingested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/IngestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    patch:
+      summary: Patch one record
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Record patched
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/IngestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/tenants/{tenantId}/ingest/{objectType}/batch:
+    post:
+      summary: Ingest a batch of records
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+      responses:
+        '200':
+          description: Batch ingested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IngestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/tenants/{tenantId}/ingest/{objectType}/csv:
+    post:
+      summary: Upload a CSV file for asynchronous ingestion
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [create, patch]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '202':
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_log:
+                    $ref: '#/components/schemas/UploadLog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/ingest/{objectType}/upload-logs:
+    get:
+      summary: List upload logs for one tenant/object type
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+      responses:
+        '200':
+          description: Upload-log list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UploadLog'
+  /v1/upload-logs/{uploadLogId}:
+    get:
+      summary: Get one upload log
+      parameters:
+        - name: uploadLogId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Upload log
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_log:
+                    $ref: '#/components/schemas/UploadLog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+components:
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ObjectType:
+      name: objectType
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Idempotency conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ValidationFailed:
+      description: Payload validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationFailureEnvelope'
+  schemas:
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ReadyErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          type: string
+      required: [status, error]
+    IngestResult:
+      type: object
+      properties:
+        object_id:
+          type: string
+        action:
+          type: string
+          enum: [created, updated]
+        revision_id:
+          type: string
+        replayed:
+          type: boolean
+      required: [object_id, action, revision_id]
+    ValidationError:
+      type: object
+      properties:
+        object_id:
+          type: string
+        field:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+      required: [field, code, message]
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required: [code, message]
+      required: [error]
+    ValidationFailureEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required: [code, message]
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+      required: [error, validation_errors]
+    UploadLog:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        object_type:
+          type: string
+        mode:
+          type: string
+          enum: [create, patch]
+        filename:
+          type: string
+        content_type:
+          type: string
+        status:
+          type: string
+          enum: [pending, uploaded, processing, completed, failed]
+        total_rows:
+          type: integer
+        successful_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        attempt_count:
+          type: integer
+        error_message:
+          type: string
+      required: [id, tenant_id, object_type, mode, filename, content_type, status, total_rows, successful_rows, failed_rows, attempt_count]

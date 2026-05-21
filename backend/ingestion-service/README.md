@@ -8,6 +8,30 @@ Current location in the workspace:
 
 This service is intended to own record intake, validation against the published data model, upsert behavior into tenant data stores, batch ingestion orchestration, and downstream event publication for monitoring workflows.
 
+Current implementation status:
+
+- implemented
+  - service scaffold and bootstrap
+  - upstream `data-model-service` contract client
+  - `POST /v1/tenants/:tenantId/ingest/:objectType`
+  - `PATCH /v1/tenants/:tenantId/ingest/:objectType`
+  - `POST /v1/tenants/:tenantId/ingest/:objectType/batch`
+  - `PATCH /v1/tenants/:tenantId/ingest/:objectType/batch`
+  - `POST /v1/tenants/:tenantId/ingest/:objectType/csv`
+  - `GET /v1/tenants/:tenantId/ingest/:objectType/upload-logs`
+  - `GET /v1/upload-logs/:uploadLogId`
+  - payload validation against the published model contract
+  - patch semantics for partial updates
+  - direct tenant-schema upserts
+  - ingestion audit persistence
+  - durable outbox event persistence
+  - idempotent response replay for repeated successful requests
+  - worker polling for uploaded CSV logs
+  - bounded CSV retry handling with terminal failure after max attempts
+- not implemented yet
+  - event delivery consumers for monitoring or scoring
+  - dead-letter or quarantine flow for permanently failed CSV jobs
+
 ## Purpose
 
 The service should manage:
@@ -91,12 +115,10 @@ The current webhook subsystem is outbound delivery only. It is not the ingestion
 - service-to-service auth
 - read-only dependency on `data-model-service`
 - version-pinned writes against published schema revisions
-- PostgreSQL-backed metadata for batch jobs and upload logs
+- PostgreSQL-backed metadata for upload logs, audits, idempotency keys, and outbox events
 - tenant data writer abstraction
 - synchronous ingestion endpoints
 - batch ingestion endpoints
-- CSV upload intake
-- background worker for asynchronous CSV processing
 - structured validation errors
 - idempotent ingestion contract
 - request IDs and structured logs
@@ -162,6 +184,25 @@ Likely internal routes:
 - `GET /v1/tenants/:tenantId/ingest/:objectType/upload-logs`
 - `GET /v1/upload-logs/:uploadLogId`
 
+Current sync-ingest behavior:
+
+- validates object type and fields against the published `data-model-service` contract
+- requires `object_id` on both full writes and patch writes
+- rejects unknown or archived fields
+- rejects managed system fields other than `object_id`
+- enforces required fields on full writes only
+- records the `revision_id` used for validation in ingestion audit rows
+- writes durable outbox rows after successful ingests
+
+Current CSV behavior:
+
+- accepts multipart uploads through the CSV endpoint
+- stores upload-log metadata and file payload in PostgreSQL
+- worker claims `uploaded` logs and transitions them through processing to completed or failed
+- malformed or transient processing failures are retried up to `WORKER_MAX_ATTEMPTS`
+- validation failures remain terminal immediately because replaying the same invalid rows is not useful
+- parses CSV headers as field names and feeds rows through the same batch validation and write path
+
 Expected upstream contract from `data-model-service`:
 
 - `GET /v1/tenants/:tenantId/data-model`
@@ -170,6 +211,13 @@ Expected upstream contract from `data-model-service`:
 - enum values
 - tenant provisioning or active status
 - physical write-safe metadata needed by ingestion
+
+Current idempotency behavior:
+
+- optional `Idempotency-Key` request header
+- duplicate key with identical payload replays the original successful response
+- duplicate key with different payload is rejected as key reuse
+- replayed results include `replayed: true`
 
 ## Key docs
 
