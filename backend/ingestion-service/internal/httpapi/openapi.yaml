@@ -24,9 +24,17 @@ info:
     Remaining planned work:
     - monitoring and scoring consumers
     - dead-letter or quarantine flow for permanently failed CSV jobs
+tags:
+  - name: Health
+    description: Liveness and readiness endpoints for service monitoring.
+  - name: Tenant Ingestion
+    description: Tenant-scoped record ingestion endpoints.
+  - name: Upload Logs
+    description: CSV upload and upload-log inspection endpoints.
 paths:
   /healthz:
     get:
+      tags: [Health]
       summary: Liveness probe
       responses:
         '200':
@@ -37,6 +45,7 @@ paths:
                 $ref: '#/components/schemas/StatusResponse'
   /readyz:
     get:
+      tags: [Health]
       summary: Readiness probe
       responses:
         '200':
@@ -53,6 +62,7 @@ paths:
                 $ref: '#/components/schemas/ReadyErrorResponse'
   /v1/tenants/{tenantId}/ingest/{objectType}:
     post:
+      tags: [Tenant Ingestion]
       summary: Ingest one record
       parameters:
         - $ref: '#/components/parameters/TenantId'
@@ -81,6 +91,7 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationFailed'
     patch:
+      tags: [Tenant Ingestion]
       summary: Patch one record
       parameters:
         - $ref: '#/components/parameters/TenantId'
@@ -110,6 +121,7 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
   /v1/tenants/{tenantId}/ingest/{objectType}/batch:
     post:
+      tags: [Tenant Ingestion]
       summary: Ingest a batch of records
       parameters:
         - $ref: '#/components/parameters/TenantId'
@@ -143,6 +155,7 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
   /v1/tenants/{tenantId}/ingest/{objectType}/csv:
     post:
+      tags: [Upload Logs]
       summary: Upload a CSV file for asynchronous ingestion
       parameters:
         - $ref: '#/components/parameters/TenantId'
@@ -177,6 +190,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/ingest/{objectType}/upload-logs:
     get:
+      tags: [Upload Logs]
       summary: List upload logs for one tenant/object type
       parameters:
         - $ref: '#/components/parameters/TenantId'
@@ -195,6 +209,7 @@ paths:
                       $ref: '#/components/schemas/UploadLog'
   /v1/upload-logs/{uploadLogId}:
     get:
+      tags: [Upload Logs]
       summary: Get one upload log
       parameters:
         - name: uploadLogId

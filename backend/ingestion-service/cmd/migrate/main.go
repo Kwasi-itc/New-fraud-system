@@ -1,14 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/app"
 )
@@ -24,7 +26,20 @@ func main() {
 	}
 
 	migrationsPath := "file://" + filepath.ToSlash(filepath.Join("internal", "migrations", "metadata"))
-	m, err := migrate.New(migrationsPath, cfg.DatabaseURL)
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("open database connection: %v", err)
+	}
+	defer db.Close()
+
+	driver, err := migratepostgres.WithInstance(db, &migratepostgres.Config{
+		MigrationsTable: "schema_migrations_ingestion",
+	})
+	if err != nil {
+		log.Fatalf("create postgres migration driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(migrationsPath, "postgres", driver)
 	if err != nil {
 		log.Fatalf("create migrate client: %v", err)
 	}

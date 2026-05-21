@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,11 +12,12 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
@@ -447,7 +449,20 @@ func runMetadataMigrations(t *testing.T, databaseURL string) {
 	rootDir := filepath.Clean(filepath.Join(filepath.Dir(fileName), "..", ".."))
 	migrationsPath := "file://" + filepath.ToSlash(filepath.Join(rootDir, "internal", "migrations", "metadata"))
 
-	m, err := migrate.New(migrationsPath, databaseURL)
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		t.Fatalf("open migration database connection: %v", err)
+	}
+	defer db.Close()
+
+	driver, err := migratepostgres.WithInstance(db, &migratepostgres.Config{
+		MigrationsTable: "schema_migrations_ingestion",
+	})
+	if err != nil {
+		t.Fatalf("create postgres migration driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(migrationsPath, "postgres", driver)
 	if err != nil {
 		t.Fatalf("create migrate client: %v", err)
 	}
