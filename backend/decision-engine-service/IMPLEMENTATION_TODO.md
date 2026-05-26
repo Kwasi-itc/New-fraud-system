@@ -1,12 +1,47 @@
 # Implementation TODO
 
+## Current implementation progress
+
+- done: service scaffold, module wiring, health endpoints, migrate command
+- done: scenario authoring persistence, services, and APIs
+- done: draft iteration persistence, services, and APIs
+- done: iteration commit and publication lifecycle persistence, services, and APIs
+- done: rule authoring persistence, services, and APIs
+- done: AST domain model and dry-run validation against `data-model-service`
+- done: real `data-model-service` client and tenant model contract loading
+- done: decision persistence and core runtime evaluation skeleton
+- done: ingestion-triggered evaluation contract and payload-driven evaluation path
+- done: test runs and phantom decision persistence, services, and APIs
+- done: workflows and post-decision execution side-effect skeleton
+- done: workflow reorder support for the extracted service
+- done: structured workflow rule/condition/action authoring model
+- done: structured workflow runtime matching and execution creation
+- done: scenario copy now clones structured workflows
+- done: snoozes and runtime suppression hooks
+- done: event/outbox side effects
+- done: async execution and scheduled execution foundations
+- done: worker processes and execution processing baseline
+- done: batch-style worker command for scheduled, async, workflow, screening, scoring, and outbox processing
+- done: poll-loop worker mode in addition to one-shot batch mode
+- done: screening and scoring integration shells
+- done: dispatch/status progression for workflow, screening, scoring, and outbox records
+- done: screening execution and scoring request inspection, status update, and retry endpoints
+- done: evaluator support for platform-aware helpers (`in_custom_list`, `record_has_tag`, `record_risk_level`, `has_ip_flag`, `past_decision_count`, `related_count`, `related_field`)
+- done: service-level tests passing for current evaluator and dispatch baseline
+- done: V1 operating decisions captured for worker mode, workflow dispatch boundary, helper-data ownership, and screening/scoring ownership
+
+## Current gaps to close next
+
+- tighten evaluator semantics and expand tests around related-record access and other context-heavy functions
+- document and keep aligned the exact contract expected from `data-model-service` and `ingestion-service`
+- define how workflow side effects are executed in production beyond the current dispatch shell
+- harden observability, retries, and idempotency around the chosen worker and dispatch model
+- define provider result payload ingestion beyond the current status/retry lifecycle endpoints
+
 ## Planning
 
 - finalize service boundary for `decision-engine-service`
-- confirm whether scoring is inside this service for V1 or remains an integration point
-- confirm whether screening is inside this service for V1 or remains an integration point
 - confirm whether tenant data reads are direct PostgreSQL reads in V1
-- confirm whether custom lists remain external or move into the service boundary
 - confirm whether feature-access checks stay external
 
 ## Contracts
@@ -24,19 +59,19 @@
 
 ## Domain extraction
 
-- map Marble scenario domain models to new service-owned models
-- map Marble decision domain models to new service-owned models
-- map Marble workflow models to new service-owned models
-- map Marble AST models to new service-owned models
-- map Marble test-run and phantom-decision models to new service-owned models
-- map Marble rule-snooze models to new service-owned models
+- done: Marble scenario domain models mapped into service-owned models
+- done: Marble decision domain models mapped into service-owned models
+- done: Marble workflow models mapped into service-owned models, including structured rule/condition/action support
+- done: Marble AST models mapped into service-owned models
+- done: Marble test-run and phantom-decision models mapped into service-owned models
+- done: Marble rule-snooze models mapped into service-owned models
 - map workflow-to-case action semantics and dependencies
 
 ## Runtime extraction
 
-- port AST function catalog
-- port AST evaluation engine
-- port dry-run validation flow
+- done: port AST function catalog subset needed by the standalone service
+- done: port AST evaluation engine into `internal/runtime/ast_eval`
+- done: port dry-run validation flow into `internal/runtime/ast_eval`
 - port scenario execution flow
 - map payload parsing and enrichment behavior used before evaluation
 - identify all context-dependent evaluators and their required dependencies
@@ -62,15 +97,17 @@
 
 ## API planning
 
-- define authoring endpoints
-- define validation endpoints
-- define publication endpoints
-- define test-run endpoints
-- define rule-snooze endpoints
-- define synchronous evaluation endpoints
-- define async execution endpoints
-- define scheduled execution endpoints
-- define workflow endpoints
+- done: authoring endpoints baseline
+- done: validation endpoint baseline
+- done: publication endpoints baseline
+- done: test-run endpoints baseline
+- done: rule-snooze endpoints baseline
+- done: synchronous evaluation endpoint baseline
+- done: async execution endpoints baseline
+- done: scheduled execution endpoints baseline
+- done: workflow endpoints baseline
+- done: screening/scoring execution/request lifecycle endpoints
+- done: OpenAPI baseline now mirrors the implemented handler and DTO contracts
 
 ## Migration planning
 

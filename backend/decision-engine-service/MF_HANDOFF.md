@@ -1,30 +1,37 @@
 # MF Handoff
 
-This file is a compact handoff for the planned standalone decision engine service in `new/backend/decision-engine-service`.
+This file is a compact handoff for the current standalone decision engine service in `new/backend/decision-engine-service`.
 
 ## What this service is
 
 This is not just an AST evaluator.
 
-It is the standalone extraction of Marble's full decisioning domain, including:
+It is the standalone extraction of Marble's decisioning domain, with an implemented baseline that already includes:
 
 - scenario and rule authoring
 - rule snooze management
 - scenario iteration versioning
 - publication/live version handling
-- publication preparation handling
 - AST validation
 - runtime evaluation
 - decision persistence
-- analytics field persistence and optional evaluation offloading
+- rule execution persistence
 - phantom decisions and scenario test runs
 - scheduled executions
 - async decision executions
-- workflow triggering
-- workflow-driven case creation / add-to-case behavior
-- webhook and event creation tied to decisions and workflows
-- payload parsing/enrichment behavior for raw evaluation requests
-- optional screening and scoring integrations
+- workflow triggering, including structured workflow rule/condition/action authoring
+- screening and scoring integration shells plus request/execution lifecycle control
+- outbox/event creation tied to decisions and workflows
+
+It does not yet implement the full future-state scope described in the design docs. In particular, payload parsing/enrichment, evaluation offloading, and settled workflow-to-case semantics remain open design areas.
+
+## Current code shape
+
+- HTTP API, repositories, and service orchestration are implemented
+- AST runtime and AST validation are extracted into `internal/runtime/ast_eval`
+- PostgreSQL metadata schema is implemented with follow-up migrations for workflow ordering and structured workflows
+- worker processing supports both one-shot batch mode and long-running poll mode
+- A maintained OpenAPI spec and Swagger UI route now exist and mirror the implemented handler and DTO contracts
 
 ## What it depends on
 
@@ -44,16 +51,11 @@ It is the standalone extraction of Marble's full decisioning domain, including:
 
 The decision engine should be the execution authority, while `data-model-service` remains schema authority and `ingestion-service` remains write authority.
 
-## Immediate next planning tasks
+## Immediate next implementation tasks
 
-- define the exact contract from `data-model-service`
-- define the tenant data read abstraction
-- define test-run and phantom-decision persistence needs
-- define rule-snooze ownership and APIs
-- define workflow-to-case integration ownership
-- define webhook/outbox ownership
-- define payload enrichment ownership
-- define watermark ownership for summaries/offloading if retained
-- decide V1 screening scope
-- decide V1 scoring scope
-- define the service-owned persistence model
+- finalize the exact contract from `data-model-service`
+- finalize the tenant data read abstraction beyond the current baseline
+- define the production shape of workflow side effects
+- tighten relation-heavy evaluator semantics and coverage
+- decide the provider result payload contract for screening and scoring beyond the current status/retry endpoints
+- decide whether feature-access stays external and whether tenant-data reads remain HTTP-based or move to direct reads

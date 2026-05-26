@@ -1,0 +1,2722 @@
+openapi: 3.0.3
+info:
+  title: Decision Engine Service API
+  version: 0.2.0
+  description: |-
+    Standalone Marble-inspired decision engine service for the new fraud platform.
+
+    Current implementation status:
+    - health and readiness endpoints
+    - service auth middleware
+    - scenario, iteration, publication, and rule authoring APIs
+    - tenant-model-backed AST validation
+    - decision evaluation and decision-history reads
+    - test-run and phantom-decision evaluation
+    - rule snooze persistence and lookup
+    - workflow, screening, scoring, async-execution, and scheduled-execution records
+    - platform helper-data endpoints for custom lists, record tags, risk snapshots, and IP flags
+    - ingestion-triggered evaluation callback
+    - worker command for batch dispatch and execution processing
+
+    Remaining planned work:
+    - settle worker model beyond the current one-shot batch processor
+    - finalize downstream workflow/case side effects
+    - harden relation-heavy rule-engine semantics further
+tags:
+  - name: Health
+    description: Liveness, readiness, docs, and service metadata.
+  - name: Scenario Authoring
+    description: Tenant-scoped scenario, iteration, publication, and rule management.
+  - name: Validation
+    description: AST and iteration validation against tenant data models.
+  - name: Decisions
+    description: Live evaluation, decision history, and ingestion-triggered execution.
+  - name: Test Runs
+    description: Test-run creation, listing, and evaluation.
+  - name: Workflows
+    description: Workflow definitions and execution records.
+  - name: Execution
+    description: Rule snoozes plus scheduled and asynchronous decision execution records.
+  - name: Screening and Scoring
+    description: Screening and scoring configuration and execution records.
+  - name: Platform Helpers
+    description: Helper-data endpoints consumed by evaluator functions.
+  - name: Outbox
+    description: Tenant-scoped outbox event inspection.
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '503':
+          description: Database is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyErrorResponse'
+  /v1/service-info:
+    get:
+      tags: [Health]
+      summary: Service metadata and upstream URLs
+      responses:
+        '200':
+          description: Service info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfo'
+  /v1/tenants/{tenantId}/scenarios:
+    get:
+      tags: [Scenario Authoring]
+      summary: List scenarios for one tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Scenario list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scenario Authoring]
+      summary: Create a scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScenarioRequest'
+      responses:
+        '201':
+          description: Scenario created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations:
+    get:
+      tags: [Scenario Authoring]
+      summary: List iterations for one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Iteration list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scenario Authoring]
+      summary: Create a draft iteration
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '201':
+          description: Iteration created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}:
+    put:
+      tags: [Scenario Authoring]
+      summary: Update one draft iteration
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIterationRequest'
+      responses:
+        '200':
+          description: Iteration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/commit:
+    post:
+      tags: [Scenario Authoring]
+      summary: Commit one iteration for publication
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '200':
+          description: Iteration committed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/publications:
+    get:
+      tags: [Scenario Authoring]
+      summary: List publications for one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Publication list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scenario Authoring]
+      summary: Publish or unpublish an iteration
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicationActionRequest'
+      responses:
+        '200':
+          description: Publication actions recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules:
+    get:
+      tags: [Scenario Authoring]
+      summary: List rules for one iteration
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '200':
+          description: Rule list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scenario Authoring]
+      summary: Create a rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}:
+    put:
+      tags: [Scenario Authoring]
+      summary: Update one rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+        - $ref: '#/components/parameters/RuleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRuleRequest'
+      responses:
+        '200':
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Scenario Authoring]
+      summary: Delete one rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+        - $ref: '#/components/parameters/RuleId'
+      responses:
+        '204':
+          description: Rule deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/validate:
+    post:
+      tags: [Validation]
+      summary: Validate one iteration and its rules against the tenant model
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '200':
+          description: Validation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationEnvelope'
+        '422':
+          description: Validation completed with rule or trigger errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationEnvelope'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate:
+    post:
+      tags: [Decisions]
+      summary: Evaluate one scenario against one record payload
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateDecisionRequest'
+      responses:
+        '200':
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionEvaluationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/decisions:
+    get:
+      tags: [Decisions]
+      summary: List decisions by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Decision list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/decisions/{decisionId}:
+    get:
+      tags: [Decisions]
+      summary: Get one decision and its rule executions
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/DecisionId'
+      responses:
+        '200':
+          description: Decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionWithRulesEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/ingestion-events/record-ingested:
+    post:
+      tags: [Decisions]
+      summary: Evaluate all live scenarios for an ingested record
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestionTriggerRequest'
+      responses:
+        '200':
+          description: Multi-scenario evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiDecisionEvaluationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs:
+    get:
+      tags: [Test Runs]
+      summary: List test runs by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Test-run list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Test Runs]
+      summary: Create a test run
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestRunRequest'
+      responses:
+        '201':
+          description: Test run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate:
+    post:
+      tags: [Test Runs]
+      summary: Evaluate one test run against a record payload
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TestRunId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateDecisionRequest'
+      responses:
+        '200':
+          description: Test-run evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunEvaluationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows:
+    get:
+      tags: [Workflows]
+      summary: List workflows by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Workflow list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Workflows]
+      summary: Create a workflow
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowRequest'
+      responses:
+        '201':
+          description: Workflow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder:
+    post:
+      tags: [Workflows]
+      summary: Reorder workflows by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '204':
+          description: Workflows reordered
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules:
+    get:
+      tags: [Workflows]
+      summary: List structured workflow rules by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Workflow rule list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRuleListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Workflows]
+      summary: Create a structured workflow rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowRuleRequest'
+      responses:
+        '201':
+          description: Workflow rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRuleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder:
+    post:
+      tags: [Workflows]
+      summary: Reorder structured workflow rules by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '204':
+          description: Workflow rules reordered
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}:
+    get:
+      tags: [Workflows]
+      summary: Get one structured workflow rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workflow rule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRuleEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Workflows]
+      summary: Update one structured workflow rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowRuleRequest'
+      responses:
+        '200':
+          description: Workflow rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRuleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Workflows]
+      summary: Delete one structured workflow rule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workflow rule deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions:
+    post:
+      tags: [Workflows]
+      summary: Create a workflow condition
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowConditionRequest'
+      responses:
+        '201':
+          description: Workflow condition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowConditionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}:
+    put:
+      tags: [Workflows]
+      summary: Update a workflow condition
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: conditionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowConditionRequest'
+      responses:
+        '200':
+          description: Workflow condition updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowConditionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Workflows]
+      summary: Delete a workflow condition
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: conditionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workflow condition deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions:
+    post:
+      tags: [Workflows]
+      summary: Create a workflow action
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowActionRequest'
+      responses:
+        '201':
+          description: Workflow action created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}:
+    put:
+      tags: [Workflows]
+      summary: Update a workflow action
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowActionRequest'
+      responses:
+        '200':
+          description: Workflow action updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Workflows]
+      summary: Delete a workflow action
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workflow action deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/decisions/{decisionId}/workflow-executions:
+    get:
+      tags: [Workflows]
+      summary: List workflow executions by decision
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/DecisionId'
+      responses:
+        '200':
+          description: Workflow execution list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowExecutionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs:
+    get:
+      tags: [Screening and Scoring]
+      summary: List screening configs by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Screening config list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningConfigListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Screening and Scoring]
+      summary: Create a screening config
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScreeningConfigRequest'
+      responses:
+        '201':
+          description: Screening config created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningConfigEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions:
+    get:
+      tags: [Screening and Scoring]
+      summary: List screening executions by decision
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/DecisionId'
+      responses:
+        '200':
+          description: Screening execution list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningExecutionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/screening-executions/{executionId}:
+    get:
+      tags: [Screening and Scoring]
+      summary: Get one screening execution
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screening execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningExecutionEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/screening-executions/{executionId}/status:
+    post:
+      tags: [Screening and Scoring]
+      summary: Update screening execution status and provider result payload
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScreeningExecutionStatusRequest'
+            example:
+              status: completed
+              provider_reference: screening-job-42
+              response_json:
+                matches:
+                  - dataset: pep
+                    score: 0.98
+                provider_status: cleared
+              last_error: ''
+      responses:
+        '200':
+          description: Screening execution updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screening-executions/{executionId}/retry:
+    post:
+      tags: [Screening and Scoring]
+      summary: Retry a screening execution
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screening execution requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs:
+    get:
+      tags: [Screening and Scoring]
+      summary: List scoring configs by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Scoring config list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringConfigListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Screening and Scoring]
+      summary: Create a scoring config
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScoringConfigRequest'
+      responses:
+        '201':
+          description: Scoring config created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringConfigEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/decisions/{decisionId}/scoring-requests:
+    get:
+      tags: [Screening and Scoring]
+      summary: List scoring requests by decision
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/DecisionId'
+      responses:
+        '200':
+          description: Scoring request list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringRequestListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/scoring-requests/{requestId}:
+    get:
+      tags: [Screening and Scoring]
+      summary: Get one scoring request
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scoring request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringRequestEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/scoring-requests/{requestId}/status:
+    post:
+      tags: [Screening and Scoring]
+      summary: Update scoring request status and provider result payload
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScoringRequestStatusRequest'
+            example:
+              status: failed
+              provider_reference: score-run-17
+              response_json:
+                provider_status: error
+                reason_code: upstream_timeout
+              last_error: provider timeout after 30s
+      responses:
+        '200':
+          description: Scoring request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringRequestEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scoring-requests/{requestId}/retry:
+    post:
+      tags: [Screening and Scoring]
+      summary: Retry a scoring request
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scoring request requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringRequestEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes:
+    get:
+      tags: [Execution]
+      summary: List active rule snoozes by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: object_type
+          in: query
+          schema:
+            type: string
+        - name: object_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rule snooze list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleSnoozeListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Execution]
+      summary: Create a rule snooze
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleSnoozeRequest'
+      responses:
+        '201':
+          description: Rule snooze created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleSnoozeEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions:
+    get:
+      tags: [Execution]
+      summary: List scheduled executions by scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Scheduled execution list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledExecutionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Execution]
+      summary: Create a scheduled execution
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScheduledExecutionRequest'
+      responses:
+        '201':
+          description: Scheduled execution created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/async-decision-executions:
+    get:
+      tags: [Execution]
+      summary: List asynchronous decision executions by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Async execution list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncDecisionExecutionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Execution]
+      summary: Create an asynchronous decision execution
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAsyncDecisionExecutionRequest'
+      responses:
+        '201':
+          description: Async decision execution created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-list-entries:
+    get:
+      tags: [Platform Helpers]
+      summary: List custom-list entries by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: list_name
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Custom-list entry list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEntryListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Platform Helpers]
+      summary: Create a custom-list entry
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomListEntryRequest'
+      responses:
+        '201':
+          description: Custom-list entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEntryEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/record-tags:
+    get:
+      tags: [Platform Helpers]
+      summary: List record tags by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: object_type
+          in: query
+          schema:
+            type: string
+        - name: object_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Record tag list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordTagListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Platform Helpers]
+      summary: Create a record tag
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecordTagRequest'
+      responses:
+        '201':
+          description: Record tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordTagEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/risk-snapshots:
+    post:
+      tags: [Platform Helpers]
+      summary: Create a risk snapshot
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRiskSnapshotRequest'
+      responses:
+        '201':
+          description: Risk snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskSnapshotEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/ip-flags:
+    get:
+      tags: [Platform Helpers]
+      summary: List IP flags by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: ip_address
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: IP flag list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPFlagListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Platform Helpers]
+      summary: Create an IP flag
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIPFlagRequest'
+      responses:
+        '201':
+          description: IP flag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPFlagEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/outbox-events:
+    get:
+      tags: [Outbox]
+      summary: List outbox events by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Outbox event list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxEventListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ScenarioId:
+      name: scenarioId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IterationId:
+      name: iterationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RuleId:
+      name: ruleId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DecisionId:
+      name: decisionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TestRunId:
+      name: testRunId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Request validation or domain validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    InternalError:
+      description: Internal processing failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    UpstreamError:
+      description: Upstream dependency call failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ReadyErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          type: string
+      required: [status, error]
+    ServiceInfo:
+      type: object
+      properties:
+        service:
+          type: string
+        data_model_service_url:
+          type: string
+        ingestion_service_url:
+          type: string
+      required: [service, data_model_service_url, ingestion_service_url]
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required: [error]
+    JSONValue:
+      type: object
+      additionalProperties: true
+    ASTNode:
+      oneOf:
+        - type: object
+          properties:
+            function:
+              type: string
+            constant: {}
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/ASTNode'
+            named_children:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/ASTNode'
+          additionalProperties: true
+        - type: array
+          items: {}
+        - type: string
+        - type: number
+        - type: boolean
+    CreateScenarioRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        trigger_object_type:
+          type: string
+      required: [name, trigger_object_type]
+    ScenarioResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        trigger_object_type:
+          type: string
+        live_iteration_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, name, trigger_object_type, created_at, updated_at]
+    IterationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        scenario_id:
+          type: string
+        tenant_id:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+        trigger_formula:
+          $ref: '#/components/schemas/ASTNode'
+        score_review_threshold:
+          type: integer
+          nullable: true
+        score_block_and_review_threshold:
+          type: integer
+          nullable: true
+        score_decline_threshold:
+          type: integer
+          nullable: true
+        schedule:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        committed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, scenario_id, tenant_id, version, status, created_at]
+    UpdateIterationRequest:
+      type: object
+      properties:
+        trigger_formula:
+          $ref: '#/components/schemas/ASTNode'
+        score_review_threshold:
+          type: integer
+          nullable: true
+        score_block_and_review_threshold:
+          type: integer
+          nullable: true
+        score_decline_threshold:
+          type: integer
+          nullable: true
+        schedule:
+          type: string
+    PublicationActionRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [publish, unpublish]
+        iteration_id:
+          type: string
+      required: [action, iteration_id]
+    PublicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        iteration_id:
+          type: string
+        action:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, iteration_id, action, created_at]
+    CreateRuleRequest:
+      type: object
+      properties:
+        display_order:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        formula:
+          $ref: '#/components/schemas/ASTNode'
+        score_modifier:
+          type: integer
+        rule_group:
+          type: string
+        snooze_group_id:
+          type: string
+          nullable: true
+        stable_rule_id:
+          type: string
+      required: [display_order, name, description, formula, score_modifier, rule_group, stable_rule_id]
+    UpdateRuleRequest:
+      $ref: '#/components/schemas/CreateRuleRequest'
+    RuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        iteration_id:
+          type: string
+        tenant_id:
+          type: string
+        display_order:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        formula:
+          $ref: '#/components/schemas/ASTNode'
+        score_modifier:
+          type: integer
+        rule_group:
+          type: string
+        snooze_group_id:
+          type: string
+          nullable: true
+        stable_rule_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, iteration_id, tenant_id, display_order, name, description, formula, score_modifier, rule_group, stable_rule_id, created_at, updated_at]
+    RuleValidationResultResponse:
+      type: object
+      properties:
+        rule_id:
+          type: string
+        name:
+          type: string
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+      required: [rule_id, name, valid, errors]
+    IterationValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        model_revision:
+          type: string
+        trigger_errors:
+          type: array
+          items:
+            type: string
+        rule_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleValidationResultResponse'
+        errors:
+          type: array
+          items:
+            type: string
+      required: [valid, model_revision, trigger_errors, rule_results, errors]
+    EvaluateDecisionRequest:
+      type: object
+      properties:
+        object_id:
+          type: string
+        object_type:
+          type: string
+        fields:
+          type: object
+          additionalProperties: true
+      required: [object_id, object_type, fields]
+    IngestionTriggerRequest:
+      type: object
+      properties:
+        object_id:
+          type: string
+        object_type:
+          type: string
+        fields:
+          type: object
+          additionalProperties: true
+        source:
+          type: string
+      required: [object_id, object_type, fields]
+    DecisionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        scenario_iteration_id:
+          type: string
+        object_id:
+          type: string
+        object_type:
+          type: string
+        outcome:
+          type: string
+        score:
+          type: integer
+        triggered:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, outcome, score, triggered, created_at]
+    RuleExecutionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        decision_id:
+          type: string
+        rule_id:
+          type: string
+        rule_name:
+          type: string
+        outcome:
+          type: string
+        score_modifier:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+      required: [id, decision_id, rule_id, rule_name, outcome, score_modifier, created_at]
+    DecisionEvaluationResponse:
+      type: object
+      properties:
+        triggered:
+          type: boolean
+        decision:
+          allOf:
+            - $ref: '#/components/schemas/DecisionResponse'
+          nullable: true
+        rule_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleExecutionResponse'
+      required: [triggered]
+    MultiDecisionEvaluationResponse:
+      type: object
+      properties:
+        object_id:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionEvaluationResponse'
+      required: [object_id, results]
+    CreateTestRunRequest:
+      type: object
+      properties:
+        phantom_iteration_id:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+      required: [phantom_iteration_id, expires_at]
+    TestRunResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        live_iteration_id:
+          type: string
+        phantom_iteration_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, live_iteration_id, phantom_iteration_id, status, created_at, expires_at, updated_at]
+    TestRunEvaluationResponse:
+      type: object
+      properties:
+        live:
+          $ref: '#/components/schemas/DecisionEvaluationResponse'
+        phantom:
+          $ref: '#/components/schemas/DecisionEvaluationResponse'
+      required: [live, phantom]
+    CreateWorkflowRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        action_type:
+          type: string
+        action_config:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+      required: [name, description, allowed_outcomes, action_type, action_config, active]
+    CreateWorkflowRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        fallthrough:
+          type: boolean
+      required: [name, fallthrough]
+    UpdateWorkflowRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        fallthrough:
+          type: boolean
+      required: [name, fallthrough]
+    WorkflowConditionRequest:
+      type: object
+      properties:
+        function:
+          type: string
+        params:
+          $ref: '#/components/schemas/JSONValue'
+      required: [function, params]
+    WorkflowActionRequest:
+      type: object
+      properties:
+        action_type:
+          type: string
+        action_config:
+          $ref: '#/components/schemas/JSONValue'
+      required: [action_type, action_config]
+    WorkflowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        display_order:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        action_type:
+          type: string
+        action_config:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, display_order, name, description, allowed_outcomes, action_type, action_config, active, created_at, updated_at]
+    WorkflowExecutionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        workflow_id:
+          type: string
+          nullable: true
+        workflow_rule_id:
+          type: string
+          nullable: true
+        workflow_action_id:
+          type: string
+          nullable: true
+        decision_id:
+          type: string
+        scenario_id:
+          type: string
+        action_type:
+          type: string
+        status:
+          type: string
+        action_config:
+          $ref: '#/components/schemas/JSONValue'
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, decision_id, scenario_id, action_type, status, action_config, created_at]
+    WorkflowRuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        name:
+          type: string
+        priority:
+          type: integer
+        fallthrough:
+          type: boolean
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowConditionResponse'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowActionResponse'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, name, priority, fallthrough, conditions, actions, created_at, updated_at]
+    WorkflowConditionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        rule_id:
+          type: string
+        function:
+          type: string
+        params:
+          $ref: '#/components/schemas/JSONValue'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, rule_id, function, params, created_at, updated_at]
+    WorkflowActionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        rule_id:
+          type: string
+        action_type:
+          type: string
+        action_config:
+          $ref: '#/components/schemas/JSONValue'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, rule_id, action_type, action_config, created_at, updated_at]
+    CreateScheduledExecutionRequest:
+      type: object
+      properties:
+        scheduled_for:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluateDecisionRequest'
+        candidate_limit:
+          type: integer
+      required: [scheduled_for, items, candidate_limit]
+    ScheduledExecutionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        scenario_iteration_id:
+          type: string
+        status:
+          type: string
+        scheduled_for:
+          type: string
+          format: date-time
+        request_body:
+          type: string
+          format: byte
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at]
+    CreateAsyncDecisionExecutionRequest:
+      type: object
+      properties:
+        scenario_id:
+          type: string
+        object_type:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluateDecisionRequest'
+      required: [scenario_id, object_type, items]
+    AsyncDecisionExecutionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        object_type:
+          type: string
+        status:
+          type: string
+        request_body:
+          type: string
+          format: byte
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, object_type, status, request_body, created_at]
+    CreateScreeningConfigRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        provider:
+          type: string
+        config_json:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+      required: [name, allowed_outcomes, provider, config_json, active]
+    ScreeningConfigResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        name:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        provider:
+          type: string
+        config_json:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at]
+    ScreeningExecutionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        config_id:
+          type: string
+        decision_id:
+          type: string
+        scenario_id:
+          type: string
+        status:
+          type: string
+        request_json:
+          $ref: '#/components/schemas/JSONValue'
+        response_json:
+          $ref: '#/components/schemas/JSONValue'
+        provider_reference:
+          type: string
+        last_error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        failed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at]
+    UpdateScreeningExecutionStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, queued, sent, completed, failed]
+        provider_reference:
+          type: string
+        response_json:
+          $ref: '#/components/schemas/JSONValue'
+        last_error:
+          type: string
+      required: [status]
+    CreateScoringConfigRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        ruleset_ref:
+          type: string
+        config_json:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+      required: [name, allowed_outcomes, ruleset_ref, config_json, active]
+    ScoringConfigResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        name:
+          type: string
+        allowed_outcomes:
+          type: array
+          items:
+            type: string
+        ruleset_ref:
+          type: string
+        config_json:
+          $ref: '#/components/schemas/JSONValue'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, name, allowed_outcomes, ruleset_ref, config_json, active, created_at, updated_at]
+    ScoringRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        config_id:
+          type: string
+        decision_id:
+          type: string
+        scenario_id:
+          type: string
+        status:
+          type: string
+        request_json:
+          $ref: '#/components/schemas/JSONValue'
+        response_json:
+          $ref: '#/components/schemas/JSONValue'
+        provider_reference:
+          type: string
+        last_error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        failed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at]
+    UpdateScoringRequestStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, queued, sent, completed, failed]
+        provider_reference:
+          type: string
+        response_json:
+          $ref: '#/components/schemas/JSONValue'
+        last_error:
+          type: string
+      required: [status]
+    CreateRuleSnoozeRequest:
+      type: object
+      properties:
+        object_type:
+          type: string
+        object_id:
+          type: string
+        snooze_group_id:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+      required: [object_type, object_id, snooze_group_id, expires_at]
+    RuleSnoozeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        scenario_id:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        snooze_group_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, object_type, object_id, snooze_group_id, created_at, expires_at]
+    CreateCustomListEntryRequest:
+      type: object
+      properties:
+        list_name:
+          type: string
+        value:
+          type: string
+      required: [list_name, value]
+    CreateRecordTagRequest:
+      type: object
+      properties:
+        object_type:
+          type: string
+        object_id:
+          type: string
+        tag:
+          type: string
+      required: [object_type, object_id, tag]
+    CreateRiskSnapshotRequest:
+      type: object
+      properties:
+        object_type:
+          type: string
+        object_id:
+          type: string
+        risk_level:
+          type: string
+      required: [object_type, object_id, risk_level]
+    CreateIPFlagRequest:
+      type: object
+      properties:
+        ip_address:
+          type: string
+        flag:
+          type: string
+      required: [ip_address, flag]
+    CustomListEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        list_name:
+          type: string
+        value:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, list_name, value, created_at]
+    RecordTagResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        tag:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, object_type, object_id, tag, created_at]
+    RiskSnapshotResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        risk_level:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, object_type, object_id, risk_level, created_at]
+    IPFlagResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        ip_address:
+          type: string
+        flag:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, ip_address, flag, created_at]
+    OutboxEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        aggregate_type:
+          type: string
+        aggregate_id:
+          type: string
+        event_type:
+          type: string
+        payload:
+          $ref: '#/components/schemas/JSONValue'
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, aggregate_type, aggregate_id, event_type, payload, status, created_at]
+    ScenarioEnvelope:
+      type: object
+      properties:
+        scenario:
+          $ref: '#/components/schemas/ScenarioResponse'
+      required: [scenario]
+    ScenarioListEnvelope:
+      type: object
+      properties:
+        scenarios:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioResponse'
+      required: [scenarios]
+    IterationEnvelope:
+      type: object
+      properties:
+        iteration:
+          $ref: '#/components/schemas/IterationResponse'
+      required: [iteration]
+    IterationListEnvelope:
+      type: object
+      properties:
+        iterations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IterationResponse'
+      required: [iterations]
+    PublicationListEnvelope:
+      type: object
+      properties:
+        publications:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicationResponse'
+      required: [publications]
+    RuleEnvelope:
+      type: object
+      properties:
+        rule:
+          $ref: '#/components/schemas/RuleResponse'
+      required: [rule]
+    RuleListEnvelope:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleResponse'
+      required: [rules]
+    ValidationEnvelope:
+      type: object
+      properties:
+        validation:
+          $ref: '#/components/schemas/IterationValidationResponse'
+      required: [validation]
+    DecisionEnvelope:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionResponse'
+      required: [decision]
+    DecisionWithRulesEnvelope:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionResponse'
+        rule_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleExecutionResponse'
+      required: [decision, rule_executions]
+    DecisionEvaluationEnvelope:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/DecisionEvaluationResponse'
+      required: [result]
+    MultiDecisionEvaluationEnvelope:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/MultiDecisionEvaluationResponse'
+      required: [result]
+    DecisionListEnvelope:
+      type: object
+      properties:
+        decisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionResponse'
+      required: [decisions]
+    TestRunEnvelope:
+      type: object
+      properties:
+        test_run:
+          $ref: '#/components/schemas/TestRunResponse'
+      required: [test_run]
+    TestRunListEnvelope:
+      type: object
+      properties:
+        test_runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRunResponse'
+      required: [test_runs]
+    TestRunEvaluationEnvelope:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/TestRunEvaluationResponse'
+      required: [result]
+    WorkflowEnvelope:
+      type: object
+      properties:
+        workflow:
+          $ref: '#/components/schemas/WorkflowResponse'
+      required: [workflow]
+    WorkflowListEnvelope:
+      type: object
+      properties:
+        workflows:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowResponse'
+      required: [workflows]
+    WorkflowExecutionListEnvelope:
+      type: object
+      properties:
+        workflow_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowExecutionResponse'
+      required: [workflow_executions]
+    WorkflowRuleEnvelope:
+      type: object
+      properties:
+        workflow_rule:
+          $ref: '#/components/schemas/WorkflowRuleResponse'
+      required: [workflow_rule]
+    WorkflowRuleListEnvelope:
+      type: object
+      properties:
+        workflow_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowRuleResponse'
+      required: [workflow_rules]
+    WorkflowConditionEnvelope:
+      type: object
+      properties:
+        workflow_condition:
+          $ref: '#/components/schemas/WorkflowConditionResponse'
+      required: [workflow_condition]
+    WorkflowActionEnvelope:
+      type: object
+      properties:
+        workflow_action:
+          $ref: '#/components/schemas/WorkflowActionResponse'
+      required: [workflow_action]
+    ScreeningConfigEnvelope:
+      type: object
+      properties:
+        screening_config:
+          $ref: '#/components/schemas/ScreeningConfigResponse'
+      required: [screening_config]
+    ScreeningConfigListEnvelope:
+      type: object
+      properties:
+        screening_configs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningConfigResponse'
+      required: [screening_configs]
+    ScreeningExecutionListEnvelope:
+      type: object
+      properties:
+        screening_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningExecutionResponse'
+      required: [screening_executions]
+    ScreeningExecutionEnvelope:
+      type: object
+      properties:
+        screening_execution:
+          $ref: '#/components/schemas/ScreeningExecutionResponse'
+      required: [screening_execution]
+    ScoringConfigEnvelope:
+      type: object
+      properties:
+        scoring_config:
+          $ref: '#/components/schemas/ScoringConfigResponse'
+      required: [scoring_config]
+    ScoringConfigListEnvelope:
+      type: object
+      properties:
+        scoring_configs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoringConfigResponse'
+      required: [scoring_configs]
+    ScoringRequestListEnvelope:
+      type: object
+      properties:
+        scoring_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoringRequestResponse'
+      required: [scoring_requests]
+    ScoringRequestEnvelope:
+      type: object
+      properties:
+        scoring_request:
+          $ref: '#/components/schemas/ScoringRequestResponse'
+      required: [scoring_request]
+    RuleSnoozeEnvelope:
+      type: object
+      properties:
+        rule_snooze:
+          $ref: '#/components/schemas/RuleSnoozeResponse'
+      required: [rule_snooze]
+    RuleSnoozeListEnvelope:
+      type: object
+      properties:
+        rule_snoozes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleSnoozeResponse'
+      required: [rule_snoozes]
+    ScheduledExecutionEnvelope:
+      type: object
+      properties:
+        scheduled_execution:
+          $ref: '#/components/schemas/ScheduledExecutionResponse'
+      required: [scheduled_execution]
+    ScheduledExecutionListEnvelope:
+      type: object
+      properties:
+        scheduled_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduledExecutionResponse'
+      required: [scheduled_executions]
+    AsyncDecisionExecutionEnvelope:
+      type: object
+      properties:
+        async_decision_execution:
+          $ref: '#/components/schemas/AsyncDecisionExecutionResponse'
+      required: [async_decision_execution]
+    AsyncDecisionExecutionListEnvelope:
+      type: object
+      properties:
+        async_decision_executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AsyncDecisionExecutionResponse'
+      required: [async_decision_executions]
+    CustomListEntryEnvelope:
+      type: object
+      properties:
+        custom_list_entry:
+          $ref: '#/components/schemas/CustomListEntryResponse'
+      required: [custom_list_entry]
+    CustomListEntryListEnvelope:
+      type: object
+      properties:
+        custom_list_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomListEntryResponse'
+      required: [custom_list_entries]
+    RecordTagEnvelope:
+      type: object
+      properties:
+        record_tag:
+          $ref: '#/components/schemas/RecordTagResponse'
+      required: [record_tag]
+    RecordTagListEnvelope:
+      type: object
+      properties:
+        record_tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordTagResponse'
+      required: [record_tags]
+    RiskSnapshotEnvelope:
+      type: object
+      properties:
+        risk_snapshot:
+          $ref: '#/components/schemas/RiskSnapshotResponse'
+      required: [risk_snapshot]
+    IPFlagEnvelope:
+      type: object
+      properties:
+        ip_flag:
+          $ref: '#/components/schemas/IPFlagResponse'
+      required: [ip_flag]
+    IPFlagListEnvelope:
+      type: object
+      properties:
+        ip_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/IPFlagResponse'
+      required: [ip_flags]
+    OutboxEventListEnvelope:
+      type: object
+      properties:
+        outbox_events:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutboxEventResponse'
+      required: [outbox_events]
