@@ -48,6 +48,7 @@ func (s IterationService) CreateDraft(ctx context.Context, tenantID, scenarioID 
 			TenantID:                     tenantID,
 			Version:                      version,
 			Status:                       scenario.IterationStatusDraft,
+			TriggerFormula:               json.RawMessage(`{"constant":true}`),
 			ScoreReviewThreshold:         intPtr(1),
 			ScoreBlockAndReviewThreshold: intPtr(10),
 			ScoreDeclineThreshold:        intPtr(20),

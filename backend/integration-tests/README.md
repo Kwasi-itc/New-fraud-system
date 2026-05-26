@@ -35,7 +35,7 @@ For a detailed pass-only summary that includes each test purpose, endpoints call
 python3 -m pytest --endpoint-summary
 ```
 
-Limit the response snippet size when the output is too long:
+By default, endpoint output is not truncated. Limit the response snippet size when the output is too long:
 
 ```bash
 python3 -m pytest --endpoint-summary --endpoint-output-limit=300

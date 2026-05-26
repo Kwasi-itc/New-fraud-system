@@ -46,7 +46,7 @@ func (r NavigationOptionRepository) GetByID(ctx context.Context, id uuid.UUID) (
 		JOIN core.model_tables tt ON tt.id = no.target_table_id
 		JOIN core.model_fields ff ON ff.id = no.filter_field_id
 		JOIN core.model_fields ofld ON ofld.id = no.ordering_field_id
-		WHERE id = $1
+		WHERE no.id = $1
 	`
 	return scanNavigationOption(r.db.QueryRow(ctx, query, id))
 }

@@ -53,6 +53,11 @@ def record_payload(object_id: str | None = None, amount: int = 1250) -> dict[str
         "status": "pending",
         "account_id": f"acct_{uuid.uuid4().hex[:8]}",
         "ip": "1.2.3.4",
+        "merchant": "ITC Market",
+        "email": "Risk@Example.com",
+        "country": "gh",
+        "owner_id": f"owner_{uuid.uuid4().hex[:8]}",
+        "note": None,
     }
 
 
@@ -150,8 +155,8 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--endpoint-output-limit",
         action="store",
         type=int,
-        default=700,
-        help="Maximum response-body characters to show per endpoint in --endpoint-summary output.",
+        default=0,
+        help="Maximum response-body characters to show per endpoint; 0 means no truncation.",
     )
 
 
@@ -252,6 +257,8 @@ def display_path(path: str) -> str:
 
 def truncate(value: str, limit: int) -> str:
     value = " ".join(value.split())
+    if limit <= 0:
+        return value
     if len(value) <= limit:
         return value
     return value[: max(limit - 3, 0)] + "..."
@@ -366,6 +373,11 @@ def tenant_model(data_model: ApiClient) -> dict[str, Any]:
         },
         {"name": "account_id", "data_type": "string", "nullable": True},
         {"name": "ip", "data_type": "ip_address", "nullable": True},
+        {"name": "merchant", "data_type": "string", "nullable": False},
+        {"name": "email", "data_type": "string", "nullable": False},
+        {"name": "country", "data_type": "string", "nullable": False},
+        {"name": "owner_id", "data_type": "string", "nullable": True},
+        {"name": "note", "data_type": "string", "nullable": True},
     ]:
         created = require_key(
             assert_status(data_model.post(f"/v1/tables/{transactions['id']}/fields", json=field), 201),
@@ -383,6 +395,42 @@ def tenant_model(data_model: ApiClient) -> dict[str, Any]:
         ),
         "field",
     )
+    account_status = require_key(
+        assert_status(
+            data_model.post(
+                f"/v1/tables/{accounts['id']}/fields",
+                json={"name": "account_status", "data_type": "string", "nullable": False},
+            ),
+            201,
+        ),
+        "field",
+    )
+    account_owner_id = require_key(
+        assert_status(
+            data_model.post(
+                f"/v1/tables/{accounts['id']}/fields",
+                json={"name": "owner_id", "data_type": "string", "nullable": True},
+            ),
+            201,
+        ),
+        "field",
+    )
+    account_link = require_key(
+        assert_status(
+            data_model.post(
+                f"/v1/tenants/{tenant_id}/links",
+                json={
+                    "name": "account",
+                    "parent_table_id": accounts["id"],
+                    "parent_field_id": account_key["id"],
+                    "child_table_id": transactions["id"],
+                    "child_field_id": fields["account_id"]["id"],
+                },
+            ),
+            201,
+        ),
+        "link",
+    )
 
     return {
         "tenant": tenant,
@@ -391,6 +439,9 @@ def tenant_model(data_model: ApiClient) -> dict[str, Any]:
         "accounts": accounts,
         "fields": fields,
         "account_key": account_key,
+        "account_status": account_status,
+        "account_owner_id": account_owner_id,
+        "account_link": account_link,
     }
 
 
