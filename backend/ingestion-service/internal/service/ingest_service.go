@@ -21,6 +21,20 @@ type IngestService struct {
 	clock           ports.Clock
 }
 
+type RecordLookupResult struct {
+	ObjectID   string         `json:"object_id"`
+	ObjectType string         `json:"object_type"`
+	Fields     map[string]any `json:"fields"`
+}
+
+type RecordListResult struct {
+	Records []RecordLookupResult `json:"records"`
+}
+
+type RecordQueryResult struct {
+	Records []RecordLookupResult `json:"records"`
+}
+
 type IngestInput struct {
 	TenantID       uuid.UUID
 	ObjectType     string
@@ -424,4 +438,93 @@ func filterErrorsForObject(errors []ingestion.ValidationError, objectID string) 
 		return slices.Clone(errors)
 	}
 	return filtered
+}
+
+func (s IngestService) GetRecord(ctx context.Context, tenantID uuid.UUID, objectType, objectID string) (RecordLookupResult, error) {
+	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	if err != nil {
+		return RecordLookupResult{}, err
+	}
+
+	var result RecordLookupResult
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		record, err := store.TenantReader().GetRecord(ctx, model, objectType, objectID)
+		if err != nil {
+			return err
+		}
+		result = RecordLookupResult{
+			ObjectID:   objectID,
+			ObjectType: objectType,
+			Fields:     record,
+		}
+		return nil
+	})
+	if err != nil {
+		return RecordLookupResult{}, err
+	}
+	return result, nil
+}
+
+func (s IngestService) ListRecords(ctx context.Context, tenantID uuid.UUID, objectType string, limit int) (RecordListResult, error) {
+	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	if err != nil {
+		return RecordListResult{}, err
+	}
+
+	var result RecordListResult
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		records, err := store.TenantReader().ListRecords(ctx, model, objectType, limit)
+		if err != nil {
+			return err
+		}
+		result.Records = make([]RecordLookupResult, len(records))
+		for i, record := range records {
+			objectID := ""
+			if value, ok := record[model.RecordLookupField]; ok && value != nil {
+				objectID = fmt.Sprint(value)
+			}
+			result.Records[i] = RecordLookupResult{
+				ObjectID:   objectID,
+				ObjectType: objectType,
+				Fields:     record,
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return RecordListResult{}, err
+	}
+	return result, nil
+}
+
+func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, objectType, fieldName, value string, limit int) (RecordQueryResult, error) {
+	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	if err != nil {
+		return RecordQueryResult{}, err
+	}
+
+	var result RecordQueryResult
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		records, err := store.TenantReader().QueryRecords(ctx, model, objectType, fieldName, value, limit)
+		if err != nil {
+			return err
+		}
+		result.Records = make([]RecordLookupResult, len(records))
+		for i, record := range records {
+			objectID := ""
+			if raw, ok := record[model.RecordLookupField]; ok && raw != nil {
+				objectID = fmt.Sprint(raw)
+			}
+			result.Records[i] = RecordLookupResult{
+				ObjectID:   objectID,
+				ObjectType: objectType,
+				Fields:     record,
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return RecordQueryResult{}, err
+	}
+	return result, nil
 }

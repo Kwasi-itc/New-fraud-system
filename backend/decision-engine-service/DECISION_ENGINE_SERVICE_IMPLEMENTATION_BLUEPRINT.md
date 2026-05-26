@@ -4,6 +4,18 @@
 
 The service should be built as a standalone Go backend consistent with the `data-model-service` and `ingestion-service` layout.
 
+## Current status note
+
+Parts of this blueprint are now implemented. Treat this document as the intended architecture and package direction, not as an exact reflection of the current file tree.
+
+Current notable differences from the original proposed layout:
+
+- `internal/runtime/ast_eval` now exists and contains both evaluation and validation logic
+- `runtime/evaluators` has not been split out yet
+- a dedicated `domain/testrun` package was not created; test-run types currently live under `domain/scenario` and `domain/decision`
+- worker behavior currently lives in `cmd/worker` rather than a dedicated `internal/worker` package
+- screening, scoring, and platform helper integrations are implemented as baseline service/repository flows rather than their full planned future-state boundaries
+
 ## Proposed layout
 
 ```text
@@ -65,16 +77,21 @@ Should contain:
 
 ### `runtime/ast_eval`
 
-Should contain:
+Current implementation contains:
 
 - AST execution engine
+- dry-run and runtime evaluation support
+
+Still open:
+
 - cache support
 - short-circuit and cost optimization logic
-- dry-run and runtime evaluation support
 
 ### `runtime/evaluators`
 
-Should contain evaluator implementations grouped by kind:
+Planned split, not yet implemented as a separate package.
+
+It should contain evaluator implementations grouped by kind:
 
 - pure evaluators
 - payload evaluators
@@ -95,7 +112,9 @@ Should contain:
 
 ### `domain/testrun`
 
-Should contain:
+Planned domain package, not currently present as a separate package.
+
+It should contain:
 
 - scenario test run
 - phantom decision
@@ -213,6 +232,10 @@ Background workers should likely include:
 - optional screening follow-up worker
 - optional webhook dispatch/outbox relay worker if not delegated elsewhere
 - optional watermark maintenance workers where summary/offloading logic requires them
+
+Current implementation note:
+
+- the current `cmd/worker` runs scheduled execution, async execution, workflow dispatch, screening dispatch, scoring dispatch, and outbox dispatch once per invocation
 
 ## Suggested phases
 

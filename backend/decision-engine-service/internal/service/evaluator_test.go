@@ -150,10 +150,13 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 		TenantID:   "tenant-1",
 		ObjectID:   "record-1",
 		ObjectType: "transactions",
+		Now:        now,
 		Fields: map[string]any{
 			"ip":         "1.2.3.4",
 			"account_id": "acct-1",
 			"owner_id":   "record-1",
+			"created_at": now.Format(time.RFC3339),
+			"amount":     float64(120),
 		},
 		Model: &ports.TenantModel{
 			RecordLookupField: "object_id",
@@ -164,6 +167,10 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 						"ip":         {Name: "ip", Type: "string"},
 						"account_id": {Name: "account_id", Type: "string"},
 						"owner_id":   {Name: "owner_id", Type: "string"},
+						"amount":     {Name: "amount", Type: "number"},
+						"status":     {Name: "status", Type: "string"},
+						"country":    {Name: "country", Type: "string"},
+						"created_at": {Name: "created_at", Type: "timestamp"},
 					},
 					LinksToSingle: map[string]ports.TenantModelLink{
 						"account": {
@@ -204,6 +211,10 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 		},
 		TenantDataReader: stubTenantDataReader{
 			records: []ports.TenantRecord{
+				{ObjectID: "record-1", ObjectType: "transactions", Fields: map[string]any{"object_id": "record-1", "owner_id": "record-1", "account_id": "acct-1", "amount": float64(120), "status": "review", "country": "GH", "created_at": now.Add(-2 * time.Hour).Format(time.RFC3339)}},
+				{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"object_id": "txn-2", "owner_id": "record-1", "account_id": "acct-1", "amount": float64(80), "status": "review", "country": "GH", "created_at": now.Add(-23 * time.Hour).Format(time.RFC3339)}},
+				{ObjectID: "txn-3", ObjectType: "transactions", Fields: map[string]any{"object_id": "txn-3", "owner_id": "record-1", "account_id": "acct-1", "amount": float64(50), "status": "approved", "country": "NG", "created_at": now.Add(-26 * time.Hour).Format(time.RFC3339)}},
+				{ObjectID: "txn-4", ObjectType: "transactions", Fields: map[string]any{"object_id": "txn-4", "owner_id": "other", "account_id": "acct-1", "amount": float64(40), "status": "review", "country": "GH", "created_at": now.Add(-1 * time.Hour).Format(time.RFC3339)}},
 				{ObjectID: "acct-1", ObjectType: "accounts", Fields: map[string]any{"object_id": "acct-1", "status": "active", "owner_id": "record-1", "profile_id": "profile-1"}},
 				{ObjectID: "r1", ObjectType: "accounts", Fields: map[string]any{"object_id": "r1", "owner_id": "record-1"}},
 				{ObjectID: "r2", ObjectType: "accounts", Fields: map[string]any{"object_id": "r2", "owner_id": "record-1"}},
@@ -450,6 +461,526 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "related records with time window count",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "list_count",
+						Children: []domainast.Node{
+							{
+								Function: "related_records",
+								NamedChildren: map[string]domainast.Node{
+									"object_type":     {Constant: "transactions"},
+									"match_field":     {Constant: "owner_id"},
+									"equals":          {Constant: "record-1"},
+									"timestamp_field": {Constant: "created_at"},
+									"within_hours":    {Constant: float64(24)},
+								},
+							},
+						},
+					},
+					{Constant: float64(2)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "sum related amounts",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "sum",
+						Children: []domainast.Node{
+							{
+								Function: "map_field",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "amount"},
+								},
+							},
+						},
+					},
+					{Constant: float64(250)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "average related amounts",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "avg",
+						Children: []domainast.Node{
+							{
+								Function: "map_field",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "amount"},
+								},
+							},
+						},
+					},
+					{Constant: float64(250.0 / 3.0)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "minimum related amount",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "min",
+						Children: []domainast.Node{
+							{
+								Function: "map_field",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "amount"},
+								},
+							},
+						},
+					},
+					{Constant: float64(50)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "maximum related amount",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "max",
+						Children: []domainast.Node{
+							{
+								Function: "map_field",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "amount"},
+								},
+							},
+						},
+					},
+					{Constant: float64(120)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "filter records then count",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "list_count",
+						Children: []domainast.Node{
+							{
+								Function: "filter_eq",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "status"},
+									"value": {Constant: "review"},
+								},
+							},
+						},
+					},
+					{Constant: float64(2)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "group count and read result",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "object_get",
+						NamedChildren: map[string]domainast.Node{
+							"object": {
+								Function: "group_count",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"field": {Constant: "status"},
+								},
+							},
+							"key": {Constant: "review"},
+						},
+					},
+					{Constant: float64(2)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "group sum and read result",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "object_get",
+						NamedChildren: map[string]domainast.Node{
+							"object": {
+								Function: "group_sum",
+								NamedChildren: map[string]domainast.Node{
+									"items": {
+										Function: "related_records",
+										NamedChildren: map[string]domainast.Node{
+											"object_type": {Constant: "transactions"},
+											"match_field": {Constant: "owner_id"},
+											"equals":      {Constant: "record-1"},
+										},
+									},
+									"group_field": {Constant: "country"},
+									"value_field": {Constant: "amount"},
+								},
+							},
+							"key": {Constant: "GH"},
+						},
+					},
+					{Constant: float64(200)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "marble aggregator count distinct in last 24h",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "Aggregator",
+						NamedChildren: map[string]domainast.Node{
+							"tableName":  {Constant: "transactions"},
+							"fieldName":  {Constant: "object_id"},
+							"aggregator": {Constant: "COUNT_DISTINCT"},
+							"filters": {
+								Function: "List",
+								Children: []domainast.Node{
+									{
+										Function: "Filter",
+										NamedChildren: map[string]domainast.Node{
+											"tableName": {Constant: "transactions"},
+											"fieldName": {Constant: "owner_id"},
+											"operator":  {Constant: "="},
+											"value":     {Function: "Payload", Children: []domainast.Node{{Constant: "owner_id"}}},
+										},
+									},
+									{
+										Function: "Filter",
+										NamedChildren: map[string]domainast.Node{
+											"tableName": {Constant: "transactions"},
+											"fieldName": {Constant: "created_at"},
+											"operator":  {Constant: ">="},
+											"value": {
+												Function: "TimeAdd",
+												NamedChildren: map[string]domainast.Node{
+													"timestampField": {Function: "Payload", Children: []domainast.Node{{Constant: "created_at"}}},
+													"duration":       {Constant: "PT24H"},
+													"sign":           {Constant: "-"},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{Constant: float64(2)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "marble database access path",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "DatabaseAccess",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "status"},
+							"path":      {Constant: []any{"account"}},
+						},
+					},
+					{Constant: "active"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "marble aggregator max with path based filter",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "Aggregator",
+						NamedChildren: map[string]domainast.Node{
+							"tableName":  {Constant: "transactions"},
+							"fieldName":  {Constant: "amount"},
+							"aggregator": {Constant: "MAX"},
+							"filters": {
+								Function: "List",
+								Children: []domainast.Node{
+									{
+										Function: "Filter",
+										NamedChildren: map[string]domainast.Node{
+											"tableName": {Constant: "transactions"},
+											"fieldName": {Constant: "owner_id"},
+											"operator":  {Constant: "="},
+											"value": {
+												Function: "DatabaseAccess",
+												NamedChildren: map[string]domainast.Node{
+													"tableName": {Constant: "transactions"},
+													"fieldName": {Constant: "owner_id"},
+													"path":      {Constant: []any{}},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{Constant: float64(120)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "contains any of",
+			formula: domainast.Node{
+				Function: "ContainsAnyOf",
+				Children: []domainast.Node{
+					{Constant: "sanction hit"},
+					{Function: "List", Children: []domainast.Node{{Constant: "pep"}, {Constant: "hit"}}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "contains none of",
+			formula: domainast.Node{
+				Function: "ContainsNoneOf",
+				Children: []domainast.Node{
+					{Constant: "approved"},
+					{Function: "List", Children: []domainast.Node{{Constant: "review"}, {Constant: "decline"}}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "string not contain",
+			formula: domainast.Node{
+				Function: "StringNotContain",
+				Children: []domainast.Node{
+					{Constant: "approved"},
+					{Constant: "review"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "is empty alias",
+			formula: domainast.Node{
+				Function: "IsEmpty",
+				Children: []domainast.Node{
+					{Constant: ""},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "timestamp extract hour",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "TimestampExtract",
+						NamedChildren: map[string]domainast.Node{
+							"timestamp": {Constant: now.Format(time.RFC3339)},
+							"part":      {Constant: "hour"},
+						},
+					},
+					{Constant: float64(now.Hour())},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "is multiple of",
+			formula: domainast.Node{
+				Function: "IsMultipleOf",
+				NamedChildren: map[string]domainast.Node{
+					"value":   {Constant: float64(120)},
+					"divider": {Constant: float64(5)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "string concat",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "StringConcat",
+						NamedChildren: map[string]domainast.Node{
+							"with_separator": {Constant: true},
+							"separator":      {Constant: "-"},
+						},
+						Children: []domainast.Node{{Constant: "risk"}, {Constant: "alert"}, {Constant: float64(7)}},
+					},
+					{Constant: "risk-alert-7"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "string template",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "StringTemplate",
+						Children: []domainast.Node{{Constant: "Hello %first_name% %score%"}},
+						NamedChildren: map[string]domainast.Node{
+							"first_name": {Constant: "Kwasi"},
+							"score":      {Constant: float64(12)},
+						},
+					},
+					{Constant: "Hello Kwasi 12.00"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "fuzzy match returns strong score",
+			formula: domainast.Node{
+				Function: "gt",
+				Children: []domainast.Node{
+					{
+						Function: "FuzzyMatch",
+						NamedChildren: map[string]domainast.Node{
+							"algorithm": {Constant: "ratio"},
+						},
+						Children: []domainast.Node{{Constant: "John Smith"}, {Constant: "Jon Smith"}},
+					},
+					{Constant: float64(70)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "fuzzy match any of returns strong score",
+			formula: domainast.Node{
+				Function: "gt",
+				Children: []domainast.Node{
+					{
+						Function: "FuzzyMatchAnyOf",
+						NamedChildren: map[string]domainast.Node{
+							"algorithm": {Constant: "ratio"},
+						},
+						Children: []domainast.Node{
+							{Constant: "John Smith"},
+							{Function: "List", Children: []domainast.Node{{Constant: "Alice Brown"}, {Constant: "Jon Smith"}}},
+						},
+					},
+					{Constant: float64(70)},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "score computation and switch",
+			formula: domainast.Node{
+				Function: "eq",
+				Children: []domainast.Node{
+					{
+						Function: "object_get",
+						NamedChildren: map[string]domainast.Node{
+							"object": {
+								Function: "Switch",
+								NamedChildren: map[string]domainast.Node{
+									"field": {Function: "Payload", Children: []domainast.Node{{Constant: "amount"}}},
+								},
+								Children: []domainast.Node{
+									{
+										Function: "ScoreComputation",
+										NamedChildren: map[string]domainast.Node{
+											"modifier": {Constant: float64(20)},
+										},
+										Children: []domainast.Node{
+											{
+												Function: "gt",
+												Children: []domainast.Node{
+													{Function: "Payload", Children: []domainast.Node{{Constant: "amount"}}},
+													{Constant: float64(100)},
+												},
+											},
+										},
+									},
+								},
+							},
+							"key": {Constant: "modifier"},
+						},
+					},
+					{Constant: float64(20)},
+				},
+			},
+			want: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -478,6 +1009,35 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 				t.Fatalf("evaluateNode() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestEvaluateFormulaMarbleNameJSON(t *testing.T) {
+	t.Parallel()
+
+	formula := json.RawMessage(`{
+		"name":"=",
+		"children":[
+			{
+				"name":"Payload",
+				"children":[{"constant":"owner_id"}]
+			},
+			{"constant":"record-1"}
+		]
+	}`)
+
+	got, err := asteval.EvaluateFormula(context.Background(), formula, asteval.Runtime{
+		TenantID:   "tenant-1",
+		ObjectID:   "record-1",
+		ObjectType: "transactions",
+		Fields:     map[string]any{"owner_id": "record-1"},
+		Now:        time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatalf("evaluateFormula() error = %v", err)
+	}
+	if !got {
+		t.Fatalf("evaluateFormula() = false, want true")
 	}
 }
 

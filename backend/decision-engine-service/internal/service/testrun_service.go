@@ -38,9 +38,16 @@ type TestRunService struct {
 	scenarioRepo        ports.ScenarioRepository
 	iterationRepo       ports.ScenarioIterationRepository
 	ruleRepo            ports.RuleRepository
+	dataModelReader     ports.DataModelReader
+	tenantDataReader    ports.TenantDataReader
+	decisionRepo        ports.DecisionRepository
 	testRunRepo         ports.TestRunRepository
 	phantomDecisionRepo ports.PhantomDecisionRepository
 	phantomRuleExecRepo ports.PhantomRuleExecutionRepository
+	customListRepo      ports.CustomListRepository
+	recordTagRepo       ports.RecordTagRepository
+	riskRepo            ports.RiskSnapshotRepository
+	ipFlagRepo          ports.IPFlagRepository
 }
 
 func NewTestRunService(
@@ -50,9 +57,16 @@ func NewTestRunService(
 	scenarioRepo ports.ScenarioRepository,
 	iterationRepo ports.ScenarioIterationRepository,
 	ruleRepo ports.RuleRepository,
+	dataModelReader ports.DataModelReader,
+	tenantDataReader ports.TenantDataReader,
+	decisionRepo ports.DecisionRepository,
 	testRunRepo ports.TestRunRepository,
 	phantomDecisionRepo ports.PhantomDecisionRepository,
 	phantomRuleExecRepo ports.PhantomRuleExecutionRepository,
+	customListRepo ports.CustomListRepository,
+	recordTagRepo ports.RecordTagRepository,
+	riskRepo ports.RiskSnapshotRepository,
+	ipFlagRepo ports.IPFlagRepository,
 ) TestRunService {
 	return TestRunService{
 		txManager:           txManager,
@@ -61,9 +75,16 @@ func NewTestRunService(
 		scenarioRepo:        scenarioRepo,
 		iterationRepo:       iterationRepo,
 		ruleRepo:            ruleRepo,
+		dataModelReader:     dataModelReader,
+		tenantDataReader:    tenantDataReader,
+		decisionRepo:        decisionRepo,
 		testRunRepo:         testRunRepo,
 		phantomDecisionRepo: phantomDecisionRepo,
 		phantomRuleExecRepo: phantomRuleExecRepo,
+		customListRepo:      customListRepo,
+		recordTagRepo:       recordTagRepo,
+		riskRepo:            riskRepo,
+		ipFlagRepo:          ipFlagRepo,
 	}
 }
 
@@ -127,11 +148,11 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		return TestRunEvaluationResult{}, fmt.Errorf("test run is expired")
 	}
 
-	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo)
+	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
-	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo)
+	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
@@ -265,16 +286,46 @@ func evaluateScenarioByIteration(
 	req DecisionEvaluationRequest,
 	iterationRepo ports.ScenarioIterationRepository,
 	ruleRepo ports.RuleRepository,
+	dataModelReader ports.DataModelReader,
+	tenantDataReader ports.TenantDataReader,
+	decisionRepo ports.DecisionRepository,
+	customListRepo ports.CustomListRepository,
+	recordTagRepo ports.RecordTagRepository,
+	riskRepo ports.RiskSnapshotRepository,
+	ipFlagRepo ports.IPFlagRepository,
 ) (DecisionEvaluationResult, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	if len(req.Fields) == 0 && tenantDataReader != nil {
+		record, err := tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
+		if err != nil {
+			return DecisionEvaluationResult{}, err
+		}
+		req.Fields = record.Fields
+	}
+	var model *ports.TenantModel
+	if dataModelReader != nil {
+		tenantModel, err := dataModelReader.GetTenantModel(ctx, tenantID)
+		if err != nil {
+			return DecisionEvaluationResult{}, err
+		}
+		model = &tenantModel
+	}
 	runtime := asteval.Runtime{
-		TenantID:   tenantID,
-		ObjectID:   req.ObjectID,
-		ObjectType: req.ObjectType,
-		Fields:     req.Fields,
+		TenantID:         tenantID,
+		ObjectID:         req.ObjectID,
+		ObjectType:       req.ObjectType,
+		Fields:           req.Fields,
+		Now:              clock.Now(),
+		Model:            model,
+		TenantDataReader: tenantDataReader,
+		DecisionRepo:     decisionRepo,
+		CustomListRepo:   customListRepo,
+		RecordTagRepo:    recordTagRepo,
+		RiskRepo:         riskRepo,
+		IPFlagRepo:       ipFlagRepo,
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -288,18 +339,18 @@ func evaluateScenarioByIteration(
 		return DecisionEvaluationResult{}, err
 	}
 	now := clock.Now()
-	score := 0
-	ruleExecs := make([]decision.RuleExecution, 0, len(rules))
 	decisionID := idGen.New().String()
-	for _, rule := range rules {
-		matched, err := asteval.EvaluateFormula(ctx, rule.Formula, runtime)
-		if err != nil {
-			return DecisionEvaluationResult{}, err
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, 0)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	score := 0
+	ruleExecs := make([]decision.RuleExecution, 0, len(evaluatedRules))
+	for _, evaluatedRule := range evaluatedRules {
+		if evaluatedRule.Matched {
+			score += evaluatedRule.Rule.ScoreModifier
 		}
-		if matched {
-			score += rule.ScoreModifier
-		}
-		exec := newRuleExecution(now, decisionID, rule, matched)
+		exec := newRuleExecution(now, decisionID, evaluatedRule.Rule, evaluatedRule.Matched)
 		exec.ID = idGen.New().String()
 		ruleExecs = append(ruleExecs, exec)
 	}
@@ -326,16 +377,46 @@ func evaluatePhantomByIteration(
 	req DecisionEvaluationRequest,
 	iterationRepo ports.ScenarioIterationRepository,
 	ruleRepo ports.RuleRepository,
+	dataModelReader ports.DataModelReader,
+	tenantDataReader ports.TenantDataReader,
+	decisionRepo ports.DecisionRepository,
+	customListRepo ports.CustomListRepository,
+	recordTagRepo ports.RecordTagRepository,
+	riskRepo ports.RiskSnapshotRepository,
+	ipFlagRepo ports.IPFlagRepository,
 ) (*decision.PhantomDecision, []decision.PhantomRuleExecution, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(req.Fields) == 0 && tenantDataReader != nil {
+		record, err := tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
+		if err != nil {
+			return nil, nil, err
+		}
+		req.Fields = record.Fields
+	}
+	var model *ports.TenantModel
+	if dataModelReader != nil {
+		tenantModel, err := dataModelReader.GetTenantModel(ctx, tenantID)
+		if err != nil {
+			return nil, nil, err
+		}
+		model = &tenantModel
+	}
 	runtime := asteval.Runtime{
-		TenantID:   tenantID,
-		ObjectID:   req.ObjectID,
-		ObjectType: req.ObjectType,
-		Fields:     req.Fields,
+		TenantID:         tenantID,
+		ObjectID:         req.ObjectID,
+		ObjectType:       req.ObjectType,
+		Fields:           req.Fields,
+		Now:              clock.Now(),
+		Model:            model,
+		TenantDataReader: tenantDataReader,
+		DecisionRepo:     decisionRepo,
+		CustomListRepo:   customListRepo,
+		RecordTagRepo:    recordTagRepo,
+		RiskRepo:         riskRepo,
+		IPFlagRepo:       ipFlagRepo,
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -349,28 +430,28 @@ func evaluatePhantomByIteration(
 		return nil, nil, err
 	}
 	now := clock.Now()
-	score := 0
 	phantomID := idGen.New().String()
-	ruleExecs := make([]decision.PhantomRuleExecution, 0, len(rules))
-	for _, rule := range rules {
-		matched, err := asteval.EvaluateFormula(ctx, rule.Formula, runtime)
-		if err != nil {
-			return nil, nil, err
-		}
-		if matched {
-			score += rule.ScoreModifier
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	score := 0
+	ruleExecs := make([]decision.PhantomRuleExecution, 0, len(evaluatedRules))
+	for _, evaluatedRule := range evaluatedRules {
+		if evaluatedRule.Matched {
+			score += evaluatedRule.Rule.ScoreModifier
 		}
 		outcome := "no_hit"
-		if matched {
+		if evaluatedRule.Matched {
 			outcome = "hit"
 		}
 		ruleExecs = append(ruleExecs, decision.PhantomRuleExecution{
 			ID:                idGen.New().String(),
 			PhantomDecisionID: phantomID,
-			RuleID:            rule.ID,
-			RuleName:          rule.Name,
+			RuleID:            evaluatedRule.Rule.ID,
+			RuleName:          evaluatedRule.Rule.Name,
 			Outcome:           outcome,
-			ScoreModifier:     rule.ScoreModifier,
+			ScoreModifier:     evaluatedRule.Rule.ScoreModifier,
 			CreatedAt:         now,
 		})
 	}

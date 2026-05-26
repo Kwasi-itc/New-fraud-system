@@ -150,6 +150,7 @@ func (s DecisionService) EvaluateScenario(
 		ObjectID:         req.ObjectID,
 		ObjectType:       req.ObjectType,
 		Fields:           req.Fields,
+		Now:              s.clock.Now(),
 		Model:            &model,
 		TenantDataReader: s.tenantDataReader,
 		CustomListRepo:   s.customListRepo,
@@ -179,28 +180,25 @@ func (s DecisionService) EvaluateScenario(
 	for _, item := range activeSnoozes {
 		activeSnoozeGroups[item.SnoozeGroupID] = struct{}{}
 	}
-	score := 0
-	ruleExecs := make([]decision.RuleExecution, 0, len(rules))
 	decisionID := s.idGen.New().String()
-	for _, rule := range rules {
-		if rule.SnoozeGroupID != nil {
-			if _, ok := activeSnoozeGroups[*rule.SnoozeGroupID]; ok {
-				exec := newRuleExecution(now, decisionID, rule, false)
-				exec.ID = s.idGen.New().String()
-				exec.Outcome = "snoozed"
-				ruleExecs = append(ruleExecs, exec)
-				continue
-			}
-		}
-		matched, err := asteval.EvaluateFormula(ctx, rule.Formula, runtime)
-		if err != nil {
-			return DecisionEvaluationResult{}, err
-		}
-		if matched {
-			score += rule.ScoreModifier
-		}
-		exec := newRuleExecution(now, decisionID, rule, matched)
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, activeSnoozeGroups, 0)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+
+	score := 0
+	ruleExecs := make([]decision.RuleExecution, 0, len(evaluatedRules))
+	for _, evaluatedRule := range evaluatedRules {
+		exec := newRuleExecution(now, decisionID, evaluatedRule.Rule, evaluatedRule.Matched)
 		exec.ID = s.idGen.New().String()
+		if evaluatedRule.Snoozed {
+			exec.Outcome = "snoozed"
+			ruleExecs = append(ruleExecs, exec)
+			continue
+		}
+		if evaluatedRule.Matched {
+			score += evaluatedRule.Rule.ScoreModifier
+		}
 		ruleExecs = append(ruleExecs, exec)
 	}
 

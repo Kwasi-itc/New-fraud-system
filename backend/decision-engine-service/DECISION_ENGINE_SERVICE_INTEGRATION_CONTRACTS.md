@@ -2,261 +2,231 @@
 
 ## Overview
 
-This document defines the intended integration surface between:
+This document describes the current integration surface used by the implemented standalone `decision-engine-service`, plus the main contract decisions that are still open.
 
-- `decision-engine-service`
-- `data-model-service`
-- `ingestion-service`
+The current runtime depends directly on:
 
-## Contract with `data-model-service`
+- `data-model-service` for the tenant model
+- `ingestion-service` for tenant record reads
+- internal persistence for decision history, workflows, outbox, screening, scoring, and helper data
 
-The decision engine requires a tenant-scoped assembled model contract.
+## Current contract with `data-model-service`
 
-### Required capabilities
+The implemented code uses a single tenant-model read through `ports.DataModelReader`:
 
-- read tenant existence and status
-- read assembled model for one tenant
-- read fields and data types
-- read links
-- read pivots
-- read navigation options
-- read model revision identifier
+- `GetTenantModel(ctx, tenantID) (TenantModel, error)`
 
-### Minimum contract shape
+The current HTTP client calls:
 
-Likely endpoint:
+- `GET /v1/tenants/{tenantId}/data-model`
 
-- `GET /v1/tenants/:tenantId/data-model`
+### Required response shape
 
-Required response concepts:
+The current decision engine expects:
 
-- `revision_id`
-- tenant status / writability indicators
-- tables
-- fields
-- field types
-- enum values
-- links
+- `data_model.revision_id`
+- `data_model.ingestion_contract.record_lookup_field`
+- `data_model.tables`
+- per table:
+  - `name`
+  - `fields`
+  - `links_to_single`
+- per field:
+  - `name`
+  - `data_type`
+- per single-link:
+  - `name`
+  - `parent_table_name`
+  - `parent_field_name`
+  - `child_table_name`
+  - `child_field_name`
+
+### What the current runtime uses this for
+
+- iteration and rule validation
+- field existence checks
+- field type checks
+- trigger-object compatibility checks
+- `related_field` path traversal validation
+- `related_count` and `related_field` object-type and field validation
+
+### What is not currently required
+
+The implemented service does not currently require the broader future-state contract once discussed in planning docs, such as:
+
 - pivots
-- navigation options
-- managed system fields
+- navigation options beyond `links_to_single`
+- tenant writability flags
+- feature-access metadata
 
-### Why the decision engine needs this
+Those may still be needed later, but they are not part of the current runtime dependency.
 
-It is required for:
+## Current contract with tenant data reads
 
-- AST dry-run validation
-- trigger object validation
-- type-aware AST evaluation
-- pivot resolution
-- workflow AST validation
-- scheduled execution filtering
-- test-run preparation checks
+The implemented runtime hides tenant-record access behind `ports.TenantDataReader`:
 
-## Contract with tenant data reads
+- `GetRecord(ctx, tenantID, objectType, objectID)`
+- `ListRecords(ctx, tenantID, objectType, limit)`
+- `QueryRecords(ctx, tenantID, objectType, fieldName, value, limit)`
 
-The decision engine needs a tenant data read abstraction.
+The current HTTP-backed implementation uses `ingestion-service` as the source for those reads.
 
-### Required capabilities
+## Current contract with `ingestion-service`
 
-- get one record by tenant, type, object id
-- read a field through navigation/path traversal
-- run aggregate reads
-- list object ids for scheduled execution
-- read decision-related historic context required by evaluator functions
+The current HTTP client calls:
 
-### Suggested abstraction
+- `GET /v1/tenants/{tenantId}/records/{objectType}/{objectId}`
+- `GET /v1/tenants/{tenantId}/records/{objectType}?limit={n}`
+- `GET /v1/tenants/{tenantId}/records/{objectType}/search?field={fieldName}&value={value}&limit={n}`
 
-`TenantDataReader`
+### Required response shape
 
-Suggested methods:
+For one-record reads:
 
-- `GetRecord`
-- `GetField`
-- `Aggregate`
-- `ListObjectIDs`
-- `QueryRelated`
-- `HasPastAlerts` or equivalent historical-risk lookup
+- `record.object_id`
+- `record.object_type`
+- `record.fields`
 
-### V1 implementation options
+For list/search reads:
 
-- direct PostgreSQL tenant-schema reads
-- or an internal read API exposed elsewhere
+- `records[]`
+- per record:
+  - `object_id`
+  - `object_type`
+  - `fields`
 
-V1 may use direct reads if this is the fastest route, but the service should still hide this behind an interface.
+### What the current runtime uses these for
 
-## Contract with `ingestion-service`
+- evaluating record payloads against published scenarios
+- `related_count`
+- `related_field`
+- relation traversal through `links_to_single`
+- batch and scheduled execution request processing
 
-The decision engine should be triggered after successful ingestion.
+### Current limits of this contract
 
-### Preferred pattern
+The standalone decision engine does not yet use a richer query abstraction for:
 
-Event-driven integration.
+- aggregates
+- server-side joins
+- historical alert lookups from ingestion-side data
+- paginated scans beyond a simple `limit`
 
-Suggested event:
+Current helper functions therefore operate on a deliberately narrow read contract.
 
-- `record.ingested`
+## Current ingestion-to-decision trigger contract
 
-Suggested payload concepts:
+The current trigger path is an explicit callback into the decision engine:
 
-- tenant id
-- object type
-- object id
-- operation
-- ingestion timestamp
-- model revision id
+- `POST /v1/tenants/{tenantId}/ingestion-events/record-ingested`
 
-### Alternate pattern
+Current request shape:
 
-Explicit callback from ingestion to decision engine.
+- `object_id`
+- `object_type`
+- `fields`
+- optional `source`
 
-Possible endpoint:
+The current behavior is:
 
-- `POST /v1/tenants/:tenantId/evaluate/:objectType/:objectId`
+- evaluate all live scenarios for the tenant
+- return a multi-scenario evaluation result synchronously
 
-### Recommendation
+### Important current behavior note
 
-Prefer events for looser coupling and lower ingestion latency risk.
+Despite the earlier design preference for an event-driven flow, the implemented baseline is currently an HTTP callback contract, not an event bus contract.
 
-### Additional ingestion-to-decision considerations
+That means the remaining architectural decision is not “what do we imagine,” but rather:
 
-The integration contract should also clarify:
+- keep the HTTP callback as the V1 production trigger
+- move to an event-driven trigger later
+- or support both with one canonical envelope
 
-- whether the decision engine receives only object references or also payload snapshots
-- whether replay or re-evaluation can be requested for backfills
-- whether ingestion-triggered evaluation is best-effort or guaranteed-delivery
+## Current internal contracts already owned by this service
 
-## Contract with payload parsing and enrichment
+These capabilities are no longer only external planning topics. They already exist inside the service boundary:
 
-Marble raw decision creation currently validates and enriches payloads before evaluation.
+- decision persistence and decision-history reads
+- rule execution persistence
+- workflow definition persistence
+- workflow execution persistence
+- rule snooze persistence
+- scheduled execution persistence
+- async decision execution persistence
+- outbox event persistence
+- screening config and execution persistence
+- scoring config and request persistence
+- helper repositories for:
+  - custom list entries
+  - record tags
+  - risk snapshots
+  - IP flags
 
-The extracted service should make explicit whether:
+This means the “integration contract” work left is mostly about external boundaries, not these already-owned persistence concerns.
 
-- raw payload parsing lives locally in the decision engine
-- enrichment data is fetched through a dedicated enrichment port
-- ingestion always sends already-normalized payloads for evaluation
+## Current workflow-side contract reality
 
-## Contract with custom list access
+The implemented service can create workflow execution records and advance dispatch status, but the actual downstream side effect contract is still provisional.
 
-Marble AST evaluation currently depends on custom list reads.
+What exists now:
 
-The extracted service should define a `CustomListReader` port or equivalent local ownership decision.
+- workflow definitions
+- workflow execution records
+- dispatch processing shell
 
-### Required capabilities
+What is still open:
 
-- read list metadata
-- read list values by list id
+- whether workflow actions call a case-management service directly
+- whether workflow actions publish commands/events for another service to execute
+- the exact payload for create-case or attach-decision style actions
+- retry, idempotency, and failure semantics for workflow side effects
 
-## Contract with feature access
+## Current screening and scoring contract reality
 
-Some Marble behaviors are guarded by feature-access checks, especially screening-sensitive flows.
+The standalone service already owns:
 
-The extracted service should define a `FeatureAccessReader` if feature gating remains external.
+- screening config authoring
+- screening execution records
+- scoring config authoring
+- scoring request records
+- dispatch/status progression shells
 
-## Contract with inbox and case-review settings
+What is still open:
 
-Workflow-driven case creation currently depends on inbox settings and may enqueue AI case-review work.
+- exact provider contracts
+- downstream response handling lifecycle
+- retry behavior and terminal-failure behavior
+- whether these integrations stay in this service boundary for V1 and beyond
 
-If case management remains external, the boundary must preserve:
+## Current OpenAPI and HTTP contract status
 
-- inbox selection and lookup behavior
-- case-review-on-create behavior
-- any downstream task-enqueue contract needed after case creation
+The service now has a maintained OpenAPI spec in:
 
-## Contract with case-management actions
+- `internal/httpapi/openapi.yaml`
 
-Marble decision workflows currently do more than emit generic automation signals.
+That spec mirrors the implemented request and response envelopes for:
 
-They can:
+- authoring endpoints
+- validation
+- decision evaluation
+- ingestion-triggered evaluation
+- workflows
+- screening and scoring
+- snoozes
+- scheduled and async execution APIs
+- platform helper APIs
+- outbox inspection
 
-- create a new case from a decision
-- add a decision to an existing case
-- add tags to the case
-- create case events
-- trigger AI case-review tasks depending on inbox settings
+## Still-open contract decisions
 
-The extracted service should either:
+The highest-value remaining contract decisions are:
 
-- own those workflow-side case effects directly through a case-management port
-
-or:
-
-- emit a richer command/event contract that a separate case service can execute losslessly
-
-This must be explicit in V1 planning because workflow semantics depend on it.
-
-## Contract with decision-history reads
-
-Some AST functions and runtime behaviors depend on historical decision state.
-
-Examples include:
-
-- past alert checks
-- test-run summarization
-- phantom/live comparison reporting
-
-These reads may be internal to the service once decision persistence is extracted, but they should still be treated as explicit domain capabilities.
-
-## Optional screening integration
-
-If screening remains in scope, define a `ScreeningProvider` port.
-
-Responsibilities:
-
-- accept screening query requests
-- return screening results
-- support refinement or enrichment paths as needed
-
-## Optional scoring integration
-
-If scoring is externalized later, define a `ScoringProvider` port.
-
-Responsibilities:
-
-- trigger score recomputation
-- optionally query referenced risk levels if AST functions depend on them
-
-## Event outputs from decision engine
-
-The decision engine should likely emit events for:
-
-- decision created
-- async decision execution failed
-- scheduled execution completed
-- test run status changed
-- phantom or test-run summary updated
-- workflow action triggered
-- case created from workflow
-- case decisions updated from workflow
-- webhook dispatch requests if webhooks remain event-driven
-
-## Contract with webhook or outbox delivery
-
-Marble currently creates webhook events as part of decision creation and workflow side effects.
-
-The extracted service should define whether it:
-
-- writes directly to a service-owned outbox
-- calls a dedicated webhook/event service
-- or publishes domain events that another delivery layer translates into webhooks
-
-At minimum, the contract must support:
-
-- `decision.created`
-- async-decision failure notifications
-- workflow-generated case events if that responsibility stays with this service
-
-## Contract with watermark-based maintenance
-
-Some Marble background behaviors are watermark-driven rather than simple queue jobs.
-
-Examples include:
-
-- test-run summary progress
-- offloaded evaluation read/write cutovers
-
-If retained, the extracted service should define who owns watermark state and how maintenance workers advance it safely.
+- whether the ingestion-trigger remains synchronous HTTP or moves to events
+- whether `TenantDataReader` continues to read through `ingestion-service` or moves to direct tenant-schema reads
+- whether workflow side effects execute in-process or through a downstream case-management contract
+- whether helper-data repositories remain local service-owned V1 storage or become external dependencies
+- whether screening and scoring stay as local orchestration plus provider contracts, or move behind other service boundaries
 
 ## Guiding rule
 
-The decision engine should depend on explicit contracts, not shared database knowledge from the monolith.
+The standalone decision engine should continue depending on explicit interfaces and documented HTTP contracts, not monolith-era shared database assumptions.

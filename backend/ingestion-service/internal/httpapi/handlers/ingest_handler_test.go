@@ -76,6 +76,7 @@ func (stubMutationStore) Idempotency() ports.IdempotencyRepository  { return stu
 func (stubMutationStore) OutboxEvents() ports.OutboxEventRepository { return stubOutboxRepo{} }
 func (stubMutationStore) UploadLogs() ports.UploadLogRepository     { return stubUploadLogRepo{} }
 func (stubMutationStore) TenantWriter() ports.TenantDataWriter      { return stubTenantWriter{} }
+func (stubMutationStore) TenantReader() ports.TenantDataReader      { return stubTenantReader{} }
 
 type stubAuditRepo struct{}
 
@@ -110,6 +111,20 @@ type stubTenantWriter struct{}
 
 func (stubTenantWriter) UpsertRecord(context.Context, ingestion.PublishedDataModel, string, map[string]any, ingestion.Mode, time.Time) (string, error) {
 	return "created", nil
+}
+
+type stubTenantReader struct{}
+
+func (stubTenantReader) GetRecord(context.Context, ingestion.PublishedDataModel, string, string) (map[string]any, error) {
+	return map[string]any{"object_id": "obj-1"}, nil
+}
+
+func (stubTenantReader) ListRecords(context.Context, ingestion.PublishedDataModel, string, int) ([]map[string]any, error) {
+	return []map[string]any{{"object_id": "obj-1"}}, nil
+}
+
+func (stubTenantReader) QueryRecords(context.Context, ingestion.PublishedDataModel, string, string, string, int) ([]map[string]any, error) {
+	return []map[string]any{{"object_id": "obj-1"}}, nil
 }
 
 type stubIDGenerator struct{}

@@ -83,6 +83,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceInfo'
+  /v1/rule-functions:
+    get:
+      tags: [Validation]
+      summary: List supported rule functions for AST authoring
+      responses:
+        '200':
+          description: Rule function catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleFunctionListEnvelope'
   /v1/tenants/{tenantId}/scenarios:
     get:
       tags: [Scenario Authoring]
@@ -1668,6 +1679,47 @@ components:
           items:
             type: string
       required: [valid, model_revision, trigger_errors, rule_results, errors]
+    RuleFunctionArgumentResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+        required:
+          type: boolean
+        description:
+          type: string
+      required: [name, kind, required, description]
+    RuleFunctionResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        return_type:
+          type: string
+        positional_arity:
+          type: integer
+          nullable: true
+        supports_named_args:
+          type: boolean
+        arguments:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleFunctionArgumentResponse'
+        requires_model:
+          type: boolean
+        requires_data_read:
+          type: boolean
+        requires_platform:
+          type: boolean
+        example:
+          type: string
+      required: [name, category, description, return_type, supports_named_args, arguments, requires_model, requires_data_read, requires_platform, example]
     EvaluateDecisionRequest:
       type: object
       properties:
@@ -2462,6 +2514,14 @@ components:
         validation:
           $ref: '#/components/schemas/IterationValidationResponse'
       required: [validation]
+    RuleFunctionListEnvelope:
+      type: object
+      properties:
+        rule_functions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleFunctionResponse'
+      required: [rule_functions]
     DecisionEnvelope:
       type: object
       properties:

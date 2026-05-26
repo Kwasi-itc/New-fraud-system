@@ -113,7 +113,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
 	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo)
-	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo)
+	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	snoozeService := service.NewSnoozeService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, ruleSnoozeRepo)
@@ -149,6 +149,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			"ingestion_service_url":  cfg.IngestionServiceURL,
 		})
 	})
+	v1.GET("/rule-functions", validationHandler.ListRuleFunctions)
 	v1.GET("/tenants/:tenantId/scenarios", scenarioHandler.ListScenarios)
 	v1.POST("/tenants/:tenantId/scenarios", scenarioHandler.CreateScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.GetScenario)

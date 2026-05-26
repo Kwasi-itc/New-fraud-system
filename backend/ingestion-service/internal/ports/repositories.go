@@ -34,6 +34,12 @@ type TenantDataWriter interface {
 	UpsertRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType string, record map[string]any, mode ingestion.Mode, now time.Time) (string, error)
 }
 
+type TenantDataReader interface {
+	GetRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType, objectID string) (map[string]any, error)
+	ListRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType string, limit int) ([]map[string]any, error)
+	QueryRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType, fieldName, value string, limit int) ([]map[string]any, error)
+}
+
 const (
 	IdempotencyResponseKindSingle = "single"
 	IdempotencyResponseKindBatch  = "batch"
@@ -45,6 +51,7 @@ type MutationStore interface {
 	OutboxEvents() OutboxEventRepository
 	UploadLogs() UploadLogRepository
 	TenantWriter() TenantDataWriter
+	TenantReader() TenantDataReader
 }
 
 type TransactionManager interface {

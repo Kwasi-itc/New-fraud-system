@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
 
@@ -33,4 +34,10 @@ func (h ValidationHandler) ValidateIteration(c *gin.Context) {
 		status = http.StatusUnprocessableEntity
 	}
 	c.JSON(status, gin.H{"validation": dto.AdaptIterationValidation(result)})
+}
+
+func (h ValidationHandler) ListRuleFunctions(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"rule_functions": dto.AdaptRuleFunctionCatalog(ast_eval.SupportedFunctionCatalog()),
+	})
 }

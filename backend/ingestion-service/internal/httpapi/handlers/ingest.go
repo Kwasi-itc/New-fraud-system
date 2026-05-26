@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -35,6 +36,76 @@ func (h IngestHandler) PostBatchIngest(c *gin.Context) {
 
 func (h IngestHandler) PatchBatchIngest(c *gin.Context) {
 	h.batchIngest(c, ingestion.ModePatch)
+}
+
+func (h IngestHandler) GetRecord(c *gin.Context) {
+	tenantID, err := uuid.Parse(c.Param("tenantId"))
+	if err != nil {
+		writeBadRequest(c, "invalid tenantId")
+		return
+	}
+
+	result, err := h.ingestService.GetRecord(c.Request.Context(), tenantID, c.Param("objectType"), c.Param("objectId"))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"record": result})
+}
+
+func (h IngestHandler) ListRecords(c *gin.Context) {
+	tenantID, err := uuid.Parse(c.Param("tenantId"))
+	if err != nil {
+		writeBadRequest(c, "invalid tenantId")
+		return
+	}
+	limit := 100
+	if raw := c.Query("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeBadRequest(c, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+
+	result, err := h.ingestService.ListRecords(c.Request.Context(), tenantID, c.Param("objectType"), limit)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"records": result.Records})
+}
+
+func (h IngestHandler) QueryRecords(c *gin.Context) {
+	tenantID, err := uuid.Parse(c.Param("tenantId"))
+	if err != nil {
+		writeBadRequest(c, "invalid tenantId")
+		return
+	}
+	fieldName := c.Query("field")
+	if fieldName == "" {
+		writeBadRequest(c, "field is required")
+		return
+	}
+	value := c.Query("value")
+	limit := 100
+	if raw := c.Query("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeBadRequest(c, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	result, err := h.ingestService.QueryRecords(c.Request.Context(), tenantID, c.Param("objectType"), fieldName, value, limit)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"records": result.Records})
 }
 
 func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
