@@ -1,0 +1,12 @@
+# Python and pytest artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local OS/editor files
+.DS_Store
+
+# Generated integration-test reports
+endpoint-summary*.txt
+pytest-report*.xml
+*.junit.xml
