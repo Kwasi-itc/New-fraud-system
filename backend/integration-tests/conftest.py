@@ -377,6 +377,7 @@ def tenant_model(data_model: ApiClient) -> dict[str, Any]:
         {"name": "email", "data_type": "string", "nullable": False},
         {"name": "country", "data_type": "string", "nullable": False},
         {"name": "owner_id", "data_type": "string", "nullable": True},
+        {"name": "event_time", "data_type": "timestamp", "nullable": True},
         {"name": "note", "data_type": "string", "nullable": True},
     ]:
         created = require_key(

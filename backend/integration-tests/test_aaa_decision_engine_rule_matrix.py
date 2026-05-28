@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from conftest import assert_status, record_payload, require_key, true_node, unique_name
@@ -62,6 +64,64 @@ def eq(left, right):
 
 def gte(left, right):
     return fn("gte", left, right)
+
+
+def gt(left, right):
+    return fn("gt", left, right)
+
+
+def lt(left, right):
+    return fn("lt", left, right)
+
+
+def payload(name):
+    return fn("Payload", constant(name))
+
+
+def list_node(*children):
+    return fn("List", *children)
+
+
+def related_records(object_type, owner_id, **named_children):
+    children = {
+        "object_type": constant(object_type),
+        "match_field": constant("owner_id"),
+        "equals": constant(owner_id),
+    }
+    children.update(named_children)
+    return fn("related_records", **children)
+
+
+def map_field(items, name):
+    return fn("map_field", items=items, field=constant(name))
+
+
+def filter_eq(items, name, value):
+    return fn("filter_eq", items=items, field=constant(name), value=constant(value))
+
+
+def marble_filter(field_name, operator, value=None, table_name=None):
+    children = {
+        "tableName": constant(table_name or "transactions"),
+        "fieldName": constant(field_name),
+        "operator": constant(operator),
+    }
+    if value is not None:
+        children["value"] = value
+    return fn("Filter", **children)
+
+
+def marble_aggregator(table_name, field_name, aggregator, *filters, percentile=None):
+    children = {
+        "tableName": constant(table_name),
+        "fieldName": constant(field_name),
+        "aggregator": constant(aggregator),
+    }
+    if filters:
+        children["filters"] = list_node(*filters)
+    if percentile is not None:
+        children["percentile"] = constant(percentile)
+    return fn("Aggregator", **children)
 
 
 def account_payload(object_id, account_key, owner_id, account_status="active"):
@@ -357,6 +417,264 @@ def test_decision_engine_rule_function_matrix_and_related_count_ingests(decision
             decision_engine.post(
                 f"/v1/tenants/{tenant_id}/scenarios/{matrix['scenario']['id']}/evaluate",
                 json={"object_id": object_id, "object_type": transaction_type, "fields": transaction},
+            ),
+            200,
+        ),
+        "result",
+    )
+
+    executions_by_name = {execution["rule_name"]: execution for execution in result["rule_executions"]}
+    assert result["triggered"] is True
+    assert result["decision"]["score"] == len(rules)
+    assert result["decision"]["outcome"] == "review"
+    assert set(executions_by_name) == {rule["name"] for rule in rules}
+    assert all(execution["outcome"] == "hit" for execution in executions_by_name.values())
+
+
+def test_decision_engine_aggregation_rules_with_filters_and_many_ingests(decision_engine, ingestion, tenant_model):
+    """Seed a large transaction history, then verify list-style and Marble-style aggregation rules for count, distinct count, sum, avg, min, max, median, percentile, stddev, windows, and filter operators."""
+    tenant_id = tenant_model["tenant_id"]
+    transaction_type = tenant_model["transactions"]["name"]
+    owner_id = unique_name("agg_owner")
+    other_owner_id = unique_name("agg_other_owner")
+    target_object_id = unique_name("agg_target")
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    recent_time = (now - timedelta(hours=1)).isoformat().replace("+00:00", "Z")
+    old_time = (now - timedelta(hours=48)).isoformat().replace("+00:00", "Z")
+    account_ids = [unique_name("agg_acct_a"), unique_name("agg_acct_b"), unique_name("agg_acct_c")]
+
+    def transaction_row(index, amount, country, merchant, owner, event_time, note=None):
+        return {
+            **record_payload(object_id=unique_name(f"agg_txn_{index}"), amount=amount),
+            "status": "pending",
+            "account_id": account_ids[index % len(account_ids)] if owner == owner_id else unique_name("distractor_acct"),
+            "merchant": merchant,
+            "email": f"agg{index}@example.com",
+            "country": country,
+            "owner_id": owner,
+            "note": note,
+            "event_time": event_time,
+        }
+
+    rows = []
+    for index in range(12):
+        rows.append(transaction_row(index, 100, "gh", "ITC Market", owner_id, recent_time, note=None))
+    for index in range(12, 20):
+        rows.append(transaction_row(index, 200, "us", "Other Shop", owner_id, recent_time, note="reviewed"))
+    for index in range(20, 25):
+        rows.append(transaction_row(index, 300, "gh", "Legacy Market", owner_id, old_time, note="legacy"))
+    for index in range(25, 30):
+        rows.append(transaction_row(index, 400, "us", "Archive Shop", owner_id, old_time, note="archive"))
+    for index in range(30, 40):
+        rows.append(transaction_row(index, 9000, "gh", "ITC Distractor", other_owner_id, recent_time, note=None))
+
+    batch = require_key(
+        assert_status(ingestion.post(f"/v1/tenants/{tenant_id}/ingest/{transaction_type}/batch", json=rows), 200),
+        "results",
+    )
+    assert len(batch) == len(rows)
+
+    target = {
+        **record_payload(object_id=target_object_id, amount=50),
+        "account_id": account_ids[0],
+        "owner_id": owner_id,
+        "merchant": "Target Evaluation",
+        "email": "target@example.com",
+        "country": "gh",
+        "event_time": now.isoformat().replace("+00:00", "Z"),
+        "note": "target",
+    }
+
+    all_owner_records = related_records(transaction_type, owner_id)
+    recent_owner_records = related_records(
+        transaction_type,
+        owner_id,
+        timestamp_field=constant("event_time"),
+        within_hours=constant(24),
+    )
+    itc_records = filter_eq(all_owner_records, "merchant", "ITC Market")
+    owner_filter = marble_filter("owner_id", "=", payload("owner_id"), table_name=transaction_type)
+
+    rules = [
+        {"name": "related_records_count_all", "description": "Counts all seeded target-owner records.", "formula": eq(fn("list_count", all_owner_records), constant(30))},
+        {"name": "related_records_count_recent_window", "description": "Counts only target-owner records inside the last 24 hours.", "formula": eq(fn("list_count", recent_owner_records), constant(20))},
+        {"name": "related_records_sum_amount", "description": "Sums all target-owner amounts.", "formula": eq(fn("sum", map_field(all_owner_records, "amount")), constant(6300))},
+        {"name": "related_records_avg_amount", "description": "Averages all target-owner amounts.", "formula": eq(fn("avg", map_field(all_owner_records, "amount")), constant(210))},
+        {"name": "related_records_min_amount", "description": "Finds the minimum target-owner amount.", "formula": eq(fn("min", map_field(all_owner_records, "amount")), constant(100))},
+        {"name": "related_records_max_amount", "description": "Finds the maximum target-owner amount.", "formula": eq(fn("max", map_field(all_owner_records, "amount")), constant(400))},
+        {"name": "filtered_list_count_itc_market", "description": "Filters related records by merchant before counting.", "formula": eq(fn("list_count", itc_records), constant(12))},
+        {"name": "filtered_list_sum_itc_market", "description": "Filters related records by merchant before summing.", "formula": eq(fn("sum", map_field(itc_records, "amount")), constant(1200))},
+        {"name": "filtered_list_avg_itc_market", "description": "Filters related records by merchant before averaging.", "formula": eq(fn("avg", map_field(itc_records, "amount")), constant(100))},
+        {"name": "marble_count_owner", "description": "Marble Aggregator COUNT with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter), constant(30))},
+        {"name": "marble_count_distinct_accounts", "description": "Marble Aggregator COUNT_DISTINCT with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "account_id", "COUNT_DISTINCT", owner_filter), constant(3))},
+        {"name": "marble_sum_owner", "description": "Marble Aggregator SUM with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "SUM", owner_filter), constant(6300))},
+        {"name": "marble_avg_owner", "description": "Marble Aggregator AVG with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "AVG", owner_filter), constant(210))},
+        {"name": "marble_min_owner", "description": "Marble Aggregator MIN with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "MIN", owner_filter), constant(100))},
+        {"name": "marble_max_owner", "description": "Marble Aggregator MAX with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "MAX", owner_filter), constant(400))},
+        {"name": "marble_median_owner", "description": "Marble Aggregator MEDIAN with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "MEDIAN", owner_filter), constant(200))},
+        {"name": "marble_percentile_owner", "description": "Marble Aggregator PCTILE with owner equality filter.", "formula": eq(marble_aggregator(transaction_type, "amount", "PCTILE", owner_filter, percentile=90), constant(400))},
+        {
+            "name": "marble_stddev_owner_lower_bound",
+            "description": "Marble Aggregator STDDEV lower bound with owner equality filter.",
+            "formula": gt(marble_aggregator(transaction_type, "amount", "STDDEV", owner_filter), constant(110)),
+        },
+        {
+            "name": "marble_stddev_owner_upper_bound",
+            "description": "Marble Aggregator STDDEV upper bound with owner equality filter.",
+            "formula": lt(marble_aggregator(transaction_type, "amount", "STDDEV", owner_filter), constant(111)),
+        },
+        {
+            "name": "marble_filter_not_equal_country",
+            "description": "Marble Aggregator COUNT with != filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("country", "!=", constant("gh"), table_name=transaction_type)),
+                constant(13),
+            ),
+        },
+        {
+            "name": "marble_filter_amount_gt",
+            "description": "Marble Aggregator COUNT with > filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("amount", ">", constant(250), table_name=transaction_type)),
+                constant(10),
+            ),
+        },
+        {
+            "name": "marble_filter_amount_gte",
+            "description": "Marble Aggregator COUNT with >= filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("amount", ">=", constant(300), table_name=transaction_type)),
+                constant(10),
+            ),
+        },
+        {
+            "name": "marble_filter_amount_lte",
+            "description": "Marble Aggregator COUNT with <= filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("amount", "<=", constant(200), table_name=transaction_type)),
+                constant(20),
+            ),
+        },
+        {
+            "name": "marble_filter_country_in_list",
+            "description": "Marble Aggregator SUM with IsInList filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "amount", "SUM", owner_filter, marble_filter("country", "IsInList", list_node(constant("gh")), table_name=transaction_type)),
+                constant(2700),
+            ),
+        },
+        {
+            "name": "marble_filter_country_not_in_list",
+            "description": "Marble Aggregator SUM with IsNotInList filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "amount", "SUM", owner_filter, marble_filter("country", "IsNotInList", list_node(constant("gh")), table_name=transaction_type)),
+                constant(3600),
+            ),
+        },
+        {
+            "name": "marble_filter_note_empty",
+            "description": "Marble Aggregator COUNT with IsEmpty filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("note", "IsEmpty", table_name=transaction_type)),
+                constant(12),
+            ),
+        },
+        {
+            "name": "marble_filter_note_not_empty",
+            "description": "Marble Aggregator COUNT with IsNotEmpty filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("note", "IsNotEmpty", table_name=transaction_type)),
+                constant(18),
+            ),
+        },
+        {
+            "name": "marble_filter_merchant_starts_with",
+            "description": "Marble Aggregator SUM with StringStartsWith filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "amount", "SUM", owner_filter, marble_filter("merchant", "StringStartsWith", constant("ITC"), table_name=transaction_type)),
+                constant(1200),
+            ),
+        },
+        {
+            "name": "marble_filter_email_ends_with",
+            "description": "Marble Aggregator COUNT with StringEndsWith filter.",
+            "formula": eq(
+                marble_aggregator(transaction_type, "object_id", "COUNT", owner_filter, marble_filter("email", "StringEndsWith", constant("@example.com"), table_name=transaction_type)),
+                constant(30),
+            ),
+        },
+        {
+            "name": "marble_filter_recent_time_window_count",
+            "description": "Marble Aggregator COUNT with dynamic 24-hour timestamp filter.",
+            "formula": eq(
+                marble_aggregator(
+                    transaction_type,
+                    "object_id",
+                    "COUNT",
+                    owner_filter,
+                    marble_filter(
+                        "event_time",
+                        ">=",
+                        fn("TimeAdd", timestampField=payload("event_time"), duration=constant("PT24H"), sign=constant("-")),
+                        table_name=transaction_type,
+                    ),
+                ),
+                constant(20),
+            ),
+        },
+        {
+            "name": "marble_filter_recent_time_window_sum",
+            "description": "Marble Aggregator SUM with dynamic 24-hour timestamp filter.",
+            "formula": eq(
+                marble_aggregator(
+                    transaction_type,
+                    "amount",
+                    "SUM",
+                    owner_filter,
+                    marble_filter(
+                        "event_time",
+                        ">=",
+                        fn("TimeAdd", timestampField=payload("event_time"), duration=constant("PT24H"), sign=constant("-")),
+                        table_name=transaction_type,
+                    ),
+                ),
+                constant(2800),
+            ),
+        },
+        {
+            "name": "marble_filter_recent_time_window_avg",
+            "description": "Marble Aggregator AVG with dynamic 24-hour timestamp filter.",
+            "formula": eq(
+                marble_aggregator(
+                    transaction_type,
+                    "amount",
+                    "AVG",
+                    owner_filter,
+                    marble_filter(
+                        "event_time",
+                        ">=",
+                        fn("TimeAdd", timestampField=payload("event_time"), duration=constant("PT24H"), sign=constant("-")),
+                        table_name=transaction_type,
+                    ),
+                ),
+                constant(140),
+            ),
+        },
+    ]
+
+    bundle = create_published_scenario(
+        decision_engine,
+        tenant_id,
+        transaction_type,
+        "aggregation matrix",
+        rules,
+        trigger_formula=eq(field("owner_id"), constant(owner_id)),
+    )
+    result = require_key(
+        assert_status(
+            decision_engine.post(
+                f"/v1/tenants/{tenant_id}/scenarios/{bundle['scenario']['id']}/evaluate",
+                json={"object_id": target_object_id, "object_type": transaction_type, "fields": target},
             ),
             200,
         ),
