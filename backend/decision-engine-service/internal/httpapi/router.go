@@ -108,6 +108,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	tenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
+	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)
 	validationService := service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
@@ -123,6 +124,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo)
 	platformService := service.NewPlatformService(txManager, uuidGenerator{}, systemClock{}, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
 	scenarioHandler := handlers.NewScenarioHandler(scenarioService, iterationService)
+	accessorHandler := handlers.NewAccessorHandler(accessorService)
 	publicationHandler := handlers.NewPublicationHandler(iterationService, publicationService)
 	ruleHandler := handlers.NewRuleHandler(ruleService)
 	validationHandler := handlers.NewValidationHandler(validationService)
@@ -153,6 +155,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/scenarios", scenarioHandler.ListScenarios)
 	v1.POST("/tenants/:tenantId/scenarios", scenarioHandler.CreateScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.GetScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers", accessorHandler.ListByScenario)
 	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.UpdateScenario)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/copy", scenarioHandler.CopyScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rules/latest", scenarioHandler.ListLatestRules)

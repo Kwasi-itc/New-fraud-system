@@ -129,6 +129,22 @@ paths:
                 $ref: '#/components/schemas/ScenarioEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers:
+    get:
+      tags: [Scenario Authoring]
+      summary: List payload and database accessor AST nodes for one scenario builder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Builder accessor nodes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorIdentifiersEnvelope'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations:
     get:
       tags: [Scenario Authoring]
@@ -1484,6 +1500,21 @@ components:
         - type: string
         - type: number
         - type: boolean
+    ASTNodeDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        constant: {}
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/ASTNodeDTO'
+        named_children:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ASTNodeDTO'
+      additionalProperties: false
     CreateScenarioRequest:
       type: object
       properties:
@@ -2522,6 +2553,18 @@ components:
           items:
             $ref: '#/components/schemas/RuleFunctionResponse'
       required: [rule_functions]
+    EditorIdentifiersEnvelope:
+      type: object
+      properties:
+        payload_accessors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ASTNodeDTO'
+        database_accessors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ASTNodeDTO'
+      required: [payload_accessors, database_accessors]
     DecisionEnvelope:
       type: object
       properties:
