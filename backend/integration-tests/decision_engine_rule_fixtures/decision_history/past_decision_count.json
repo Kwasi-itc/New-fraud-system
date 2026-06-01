@@ -1,0 +1,119 @@
+{
+  "name": "past decision count",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "variables": {
+    "object_id": "history_txn"
+  },
+  "seed_decisions": [
+    {
+      "name": "seed prior review decision",
+      "object_type": "$transactions",
+      "trigger": {
+        "function": "constant",
+        "constant": true
+      },
+      "rules": [
+        {
+          "name": "seed_review",
+          "description": "Creates a prior review decision",
+          "score_modifier": 1,
+          "formula": {
+            "function": "constant",
+            "constant": true
+          }
+        }
+      ],
+      "input": {
+        "object_id": "$object_id",
+        "object_type": "$transactions",
+        "fields": {
+          "object_id": "$object_id",
+          "amount": 99,
+          "status": "pending",
+          "account_id": "acct-history",
+          "ip": "1.2.3.4",
+          "merchant": "History",
+          "email": "history@example.com",
+          "country": "gh",
+          "owner_id": "owner-history",
+          "event_time": "2026-05-01T12:00:00Z",
+          "note": "history"
+        }
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 100,
+      "status": "pending",
+      "account_id": "acct-history",
+      "ip": "1.2.3.4",
+      "merchant": "History",
+      "email": "history@example.com",
+      "country": "gh",
+      "owner_id": "owner-history",
+      "event_time": "2026-05-01T12:00:00Z",
+      "note": "history"
+    }
+  },
+  "rules": [
+    {
+      "name": "past_decision_count_all",
+      "description": "Counts previous decisions for the same object",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "past_decision_count"
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "past_decision_count_review",
+      "description": "Counts previous review decisions for the same object",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "past_decision_count",
+            "named_children": {
+              "outcome": {
+                "constant": "review"
+              }
+            }
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 2,
+    "outcome": "review",
+    "rules": {
+      "past_decision_count_all": "hit",
+      "past_decision_count_review": "hit"
+    }
+  }
+}

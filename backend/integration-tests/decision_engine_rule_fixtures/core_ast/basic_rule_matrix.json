@@ -1,0 +1,315 @@
+{
+  "name": "core ast basic rule matrix",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "eq",
+    "children": [
+      {
+        "function": "field_ref",
+        "named_children": {
+          "field": {
+            "constant": "owner_id"
+          }
+        }
+      },
+      {
+        "constant": "$owner_id"
+      }
+    ]
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "variables": {
+    "object_id": "core_txn",
+    "owner_id": "core_owner"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 1500,
+      "status": "pending",
+      "account_id": "acct-core",
+      "ip": "1.2.3.4",
+      "merchant": "ITC Market",
+      "email": "Risk@Example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "2026-05-01T12:00:00Z",
+      "note": null
+    }
+  },
+  "rules": [
+    {
+      "name": "core_eq_field",
+      "description": "field_ref plus eq",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "field_ref",
+            "named_children": {
+              "field": {
+                "constant": "status"
+              }
+            }
+          },
+          {
+            "constant": "pending"
+          }
+        ]
+      }
+    },
+    {
+      "name": "core_boolean_and",
+      "description": "and with two true children",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gt",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "amount"
+                  }
+                }
+              },
+              {
+                "constant": 1000
+              }
+            ]
+          },
+          {
+            "function": "neq",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "country"
+                  }
+                }
+              },
+              {
+                "constant": "us"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "core_arithmetic",
+      "description": "arithmetic expression with comparison",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "divide",
+            "children": [
+              {
+                "function": "multiply",
+                "children": [
+                  {
+                    "function": "subtract",
+                    "children": [
+                      {
+                        "function": "add",
+                        "children": [
+                          {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "amount"
+                              }
+                            }
+                          },
+                          {
+                            "constant": 500
+                          }
+                        ]
+                      },
+                      {
+                        "constant": 500
+                      }
+                    ]
+                  },
+                  {
+                    "constant": 2
+                  }
+                ]
+              },
+              {
+                "constant": 2
+              }
+            ]
+          },
+          {
+            "constant": 1500
+          }
+        ]
+      }
+    },
+    {
+      "name": "core_string_list_null",
+      "description": "string, list, and null helpers",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "contains",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "merchant"
+                  }
+                }
+              },
+              {
+                "constant": "Market"
+              }
+            ]
+          },
+          {
+            "function": "in",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "country"
+                  }
+                }
+              },
+              {
+                "constant": [
+                  "gh",
+                  "ng"
+                ]
+              }
+            ]
+          },
+          {
+            "function": "starts_with",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "merchant"
+                  }
+                }
+              },
+              {
+                "constant": "ITC"
+              }
+            ]
+          },
+          {
+            "function": "ends_with",
+            "children": [
+              {
+                "function": "lower",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "email"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": ".com"
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "function": "upper",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "country"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": "GH"
+              }
+            ]
+          },
+          {
+            "function": "is_null",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "note"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "function": "coalesce",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "note"
+                      }
+                    }
+                  },
+                  {
+                    "constant": "fallback"
+                  }
+                ]
+              },
+              {
+                "constant": "fallback"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "review",
+    "rules": {
+      "core_eq_field": "hit",
+      "core_boolean_and": "hit",
+      "core_arithmetic": "hit",
+      "core_string_list_null": "hit"
+    }
+  }
+}

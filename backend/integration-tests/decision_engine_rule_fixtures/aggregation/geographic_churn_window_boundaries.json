@@ -1,0 +1,354 @@
+{
+  "name": "geographic churn window boundaries",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 6
+  },
+  "variables": {
+    "object_id": "geo_churn_target",
+    "owner_id": "geo_churn_owner"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 2,
+      "template": {
+        "object_id": "$owner_id_gh_$index",
+        "amount": 120,
+        "status": "pending",
+        "account_id": "acct-geo-gh-$index",
+        "ip": "60.60.60.$index",
+        "merchant": "Geo GH",
+        "email": "geo-gh@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "geo-gh"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 2,
+      "template": {
+        "object_id": "$owner_id_ng_$index",
+        "amount": 120,
+        "status": "pending",
+        "account_id": "acct-geo-ng-$index",
+        "ip": "61.61.61.$index",
+        "merchant": "Geo NG",
+        "email": "geo-ng@example.com",
+        "country": "ng",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "geo-ng"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 2,
+      "template": {
+        "object_id": "$owner_id_ke_$index",
+        "amount": 120,
+        "status": "pending",
+        "account_id": "acct-geo-ke-$index",
+        "ip": "62.62.62.$index",
+        "merchant": "Geo KE",
+        "email": "geo-ke@example.com",
+        "country": "ke",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "geo-ke"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_old_us_$index",
+        "amount": 120,
+        "status": "pending",
+        "account_id": "acct-geo-us-$index",
+        "ip": "63.63.63.$index",
+        "merchant": "Geo Old US",
+        "email": "geo-us@example.com",
+        "country": "us",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_10m",
+        "note": "geo-us-old"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 120,
+      "status": "pending",
+      "account_id": "acct-geo-target",
+      "ip": "64.64.64.64",
+      "merchant": "Geo Target",
+      "email": "geo-target@example.com",
+      "country": "za",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "geo-target"
+    }
+  },
+  "rules": [
+    {
+      "name": "three_recent_country_churn_plus_new_country",
+      "description": "Hits when the owner has recent activity in GH, NG, and KE and the current country is outside that set.",
+      "score_modifier": 3,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "country"
+                      },
+                      "value": {
+                        "constant": "gh"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 1
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "country"
+                      },
+                      "value": {
+                        "constant": "ng"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 1
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "country"
+                      },
+                      "value": {
+                        "constant": "ke"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 1
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "function": "in",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "country"
+                      }
+                    }
+                  },
+                  {
+                    "constant": [
+                      "gh",
+                      "ng",
+                      "ke"
+                    ]
+                  }
+                ]
+              },
+              {
+                "constant": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "old_us_country_outside_one_minute_no_hit",
+      "description": "No-hit control proving old country activity does not leak into the one-minute window.",
+      "score_modifier": 3,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "country"
+                  },
+                  "value": {
+                    "constant": "us"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 3,
+    "outcome": "block_and_review",
+    "rules": {
+      "three_recent_country_churn_plus_new_country": "hit",
+      "old_us_country_outside_one_minute_no_hit": "no_hit"
+    }
+  }
+}

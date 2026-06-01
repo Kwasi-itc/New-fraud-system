@@ -1,0 +1,242 @@
+{
+  "name": "list null numeric edge cases",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 4,
+    "decline": 8
+  },
+  "variables": {
+    "object_id": "edge_case_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 600,
+      "status": "pending",
+      "account_id": "acct-edge",
+      "ip": "1.2.3.4",
+      "merchant": "Edge Case Merchant",
+      "email": "edge@example.com",
+      "country": "gh",
+      "owner_id": "owner-edge",
+      "event_time": "$now",
+      "note": ""
+    }
+  },
+  "rules": [
+    {
+      "name": "list_contains_payload_country_hit",
+      "description": "contains works when the left operand is a list and the right operand comes from payload.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "contains",
+        "children": [
+          {
+            "constant": [
+              "gh",
+              "ke",
+              "ng"
+            ]
+          },
+          {
+            "function": "field_ref",
+            "named_children": {
+              "field": {
+                "constant": "country"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "list_contains_missing_country_no_hit",
+      "description": "No-hit control for list contains.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "contains",
+        "children": [
+          {
+            "constant": [
+              "us",
+              "ca"
+            ]
+          },
+          {
+            "function": "field_ref",
+            "named_children": {
+              "field": {
+                "constant": "country"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "is_empty_note_hit",
+      "description": "IsEmpty treats an empty string as empty.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "IsEmpty",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "note"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "is_not_empty_email_hit",
+      "description": "IsNotEmpty treats a populated string as non-empty.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "IsNotEmpty",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "email"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "is_not_empty_note_no_hit",
+      "description": "No-hit control for IsNotEmpty on an empty note.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "IsNotEmpty",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "note"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "amount_is_multiple_of_fifty_hit",
+      "description": "IsMultipleOf catches round-number amount patterns.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "IsMultipleOf",
+        "named_children": {
+          "value": {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "amount"
+              }
+            ]
+          },
+          "divider": {
+            "constant": 50
+          }
+        }
+      }
+    },
+    {
+      "name": "amount_is_multiple_of_seventy_no_hit",
+      "description": "No-hit control for IsMultipleOf with a non-divisor.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "IsMultipleOf",
+        "named_children": {
+          "value": {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "amount"
+              }
+            ]
+          },
+          "divider": {
+            "constant": 70
+          }
+        }
+      }
+    },
+    {
+      "name": "boolean_or_and_not_hit",
+      "description": "Nested or/not boolean expression with one false and one true branch.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "or",
+        "children": [
+          {
+            "function": "eq",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "country"
+                  }
+                }
+              },
+              {
+                "constant": "us"
+              }
+            ]
+          },
+          {
+            "function": "not",
+            "children": [
+              {
+                "function": "eq",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "status"
+                      }
+                    }
+                  },
+                  {
+                    "constant": "blocked"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 5,
+    "outcome": "block_and_review",
+    "rules": {
+      "list_contains_payload_country_hit": "hit",
+      "list_contains_missing_country_no_hit": "no_hit",
+      "is_empty_note_hit": "hit",
+      "is_not_empty_email_hit": "hit",
+      "is_not_empty_note_no_hit": "no_hit",
+      "amount_is_multiple_of_fifty_hit": "hit",
+      "amount_is_multiple_of_seventy_no_hit": "no_hit",
+      "boolean_or_and_not_hit": "hit"
+    }
+  }
+}

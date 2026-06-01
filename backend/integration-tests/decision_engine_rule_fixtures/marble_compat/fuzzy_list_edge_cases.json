@@ -1,0 +1,281 @@
+{
+  "name": "fuzzy list edge cases",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 4,
+    "decline": 8
+  },
+  "variables": {
+    "object_id": "fuzzy_list_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 625,
+      "status": "pending",
+      "account_id": "acct-fuzzy-list",
+      "ip": "1.2.3.4",
+      "merchant": "Kwasi International Trade Market",
+      "email": "risk.alias@example.com",
+      "country": "gh",
+      "owner_id": "owner-fuzzy-list",
+      "event_time": "$now",
+      "note": "manual review requested"
+    }
+  },
+  "rules": [
+    {
+      "name": "fuzzy_ratio_near_merchant_hit",
+      "description": "FuzzyMatch ratio catches a near merchant spelling.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "name": "FuzzyMatch",
+            "named_children": {
+              "algorithm": {
+                "constant": "ratio"
+              }
+            },
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "constant": "Kwasi Intl Trade Market"
+              }
+            ]
+          },
+          {
+            "constant": 70
+          }
+        ]
+      }
+    },
+    {
+      "name": "fuzzy_ratio_unrelated_merchant_no_hit",
+      "description": "No-hit control for unrelated merchant text.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "name": "FuzzyMatch",
+            "named_children": {
+              "algorithm": {
+                "constant": "ratio"
+              }
+            },
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "constant": "Completely Different Store"
+              }
+            ]
+          },
+          {
+            "constant": 90
+          }
+        ]
+      }
+    },
+    {
+      "name": "fuzzy_any_of_watchlist_hit",
+      "description": "FuzzyMatchAnyOf finds the nearest watchlist candidate.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "name": "FuzzyMatchAnyOf",
+            "named_children": {
+              "algorithm": {
+                "constant": "bag_of_words_similarity"
+              }
+            },
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "name": "List",
+                "children": [
+                  {
+                    "constant": "International Kwasi Trade Market"
+                  },
+                  {
+                    "constant": "Low Risk Grocer"
+                  },
+                  {
+                    "constant": "Airport Cafe"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "constant": 80
+          }
+        ]
+      }
+    },
+    {
+      "name": "contains_any_review_terms_hit",
+      "description": "ContainsAnyOf catches one keyword from a list.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "ContainsAnyOf",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "note"
+              }
+            ]
+          },
+          {
+            "name": "List",
+            "children": [
+              {
+                "constant": "chargeback"
+              },
+              {
+                "constant": "review"
+              },
+              {
+                "constant": "stolen"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "contains_any_absent_terms_no_hit",
+      "description": "No-hit control for ContainsAnyOf when all terms are absent.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "ContainsAnyOf",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "note"
+              }
+            ]
+          },
+          {
+            "name": "List",
+            "children": [
+              {
+                "constant": "stolen"
+              },
+              {
+                "constant": "compromised"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "contains_none_of_absent_terms_hit",
+      "description": "ContainsNoneOf is true when none of the blocked words appear.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "ContainsNoneOf",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "merchant"
+              }
+            ]
+          },
+          {
+            "name": "List",
+            "children": [
+              {
+                "constant": "Sanction"
+              },
+              {
+                "constant": "Blocked"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "contains_none_of_present_term_no_hit",
+      "description": "No-hit control proving ContainsNoneOf fails when a term is present.",
+      "score_modifier": 1,
+      "formula": {
+        "name": "ContainsNoneOf",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "merchant"
+              }
+            ]
+          },
+          {
+            "name": "List",
+            "children": [
+              {
+                "constant": "Trade"
+              },
+              {
+                "constant": "Blocked"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "block_and_review",
+    "rules": {
+      "fuzzy_ratio_near_merchant_hit": "hit",
+      "fuzzy_ratio_unrelated_merchant_no_hit": "no_hit",
+      "fuzzy_any_of_watchlist_hit": "hit",
+      "contains_any_review_terms_hit": "hit",
+      "contains_any_absent_terms_no_hit": "no_hit",
+      "contains_none_of_absent_terms_hit": "hit",
+      "contains_none_of_present_term_no_hit": "no_hit"
+    }
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "name": "velocity 500 transactions in one minute",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 5
+  },
+  "variables": {
+    "object_id": "velocity_target",
+    "owner_id": "velocity_owner",
+    "other_owner_id": "velocity_other"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 501,
+      "template": {
+        "object_id": "$owner_id_txn_$index",
+        "amount": 25,
+        "status": "pending",
+        "account_id": "acct-velocity-$index_mod_3",
+        "ip": "1.2.3.4",
+        "merchant": "Velocity Merchant",
+        "email": "velocity@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "recent"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 25,
+      "template": {
+        "object_id": "$other_owner_id_txn_$index",
+        "amount": 25,
+        "status": "pending",
+        "account_id": "acct-other-$index_mod_2",
+        "ip": "1.2.3.4",
+        "merchant": "Other Velocity Merchant",
+        "email": "other-velocity@example.com",
+        "country": "gh",
+        "owner_id": "$other_owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "distractor"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 25,
+      "status": "pending",
+      "account_id": "acct-target",
+      "ip": "1.2.3.4",
+      "merchant": "Target Velocity Merchant",
+      "email": "target-velocity@example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "target"
+    }
+  },
+  "rules": [
+    {
+      "name": "velocity_more_than_500_same_owner_one_minute",
+      "description": "Hits when more than 500 same-owner transactions exist inside one minute.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "owner_id"
+                      }
+                    }
+                  },
+                  "timestamp_field": {
+                    "constant": "event_time"
+                  },
+                  "within_hours": {
+                    "constant": 0.0167
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 500
+          }
+        ]
+      }
+    },
+    {
+      "name": "velocity_more_than_600_same_owner_one_minute_no_hit",
+      "description": "No-hit control for an unreachable threshold.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "owner_id"
+                      }
+                    }
+                  },
+                  "timestamp_field": {
+                    "constant": "event_time"
+                  },
+                  "within_hours": {
+                    "constant": 0.0167
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 600
+          }
+        ]
+      }
+    },
+    {
+      "name": "velocity_wrong_owner_no_hit",
+      "description": "No-hit control proving other-owner transactions are not counted.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "constant": "$other_owner_id"
+                  },
+                  "timestamp_field": {
+                    "constant": "event_time"
+                  },
+                  "within_hours": {
+                    "constant": 0.0167
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 500
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 2,
+    "outcome": "review",
+    "rules": {
+      "velocity_more_than_500_same_owner_one_minute": "hit",
+      "velocity_more_than_600_same_owner_one_minute_no_hit": "no_hit",
+      "velocity_wrong_owner_no_hit": "no_hit"
+    }
+  }
+}

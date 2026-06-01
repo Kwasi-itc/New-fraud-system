@@ -1,0 +1,303 @@
+{
+  "name": "decline rate ratio velocity",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 6
+  },
+  "variables": {
+    "object_id": "decline_ratio_target",
+    "owner_id": "decline_ratio_owner"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 16,
+      "template": {
+        "object_id": "$owner_id_declined_$index",
+        "amount": 90,
+        "status": "pending",
+        "account_id": "acct-decline-ratio-$index_mod_4",
+        "ip": "30.30.30.30",
+        "merchant": "Ratio Merchant",
+        "email": "decline-ratio@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "ratio-declined"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 4,
+      "template": {
+        "object_id": "$owner_id_approved_$index",
+        "amount": 90,
+        "status": "pending",
+        "account_id": "acct-decline-ratio-approved-$index_mod_2",
+        "ip": "40.40.40.40",
+        "merchant": "Ratio Merchant",
+        "email": "decline-ratio-approved@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "ratio-approved"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 90,
+      "status": "pending",
+      "account_id": "acct-decline-ratio-target",
+      "ip": "50.50.50.50",
+      "merchant": "Ratio Merchant",
+      "email": "decline-ratio-target@example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "ratio-target"
+    }
+  },
+  "rules": [
+    {
+      "name": "twenty_recent_same_owner_transactions",
+      "description": "Hits when the denominator for the decline-rate rule is large enough to be meaningful.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "owner_id"
+                      }
+                    }
+                  },
+                  "timestamp_field": {
+                    "constant": "event_time"
+                  },
+                  "within_hours": {
+                    "constant": 0.0167
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "decline_rate_at_least_eighty_percent",
+      "description": "Hits when recent same-owner declined transactions are at least 80 percent of all recent transactions.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "divide",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "note"
+                      },
+                      "value": {
+                        "constant": "ratio-declined"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "constant": 0.8
+          }
+        ]
+      }
+    },
+    {
+      "name": "decline_rate_above_ninety_percent_no_hit",
+      "description": "No-hit control proving the ratio is calculated rather than treated as any-decline.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "divide",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "note"
+                      },
+                      "value": {
+                        "constant": "ratio-declined"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "constant": 0.9
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 3,
+    "outcome": "block_and_review",
+    "rules": {
+      "twenty_recent_same_owner_transactions": "hit",
+      "decline_rate_at_least_eighty_percent": "hit",
+      "decline_rate_above_ninety_percent_no_hit": "no_hit"
+    }
+  }
+}

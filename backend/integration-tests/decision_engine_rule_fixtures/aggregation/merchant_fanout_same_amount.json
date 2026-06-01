@@ -1,0 +1,556 @@
+{
+  "name": "merchant fanout same amount",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 6
+  },
+  "variables": {
+    "object_id": "merchant_fanout_target",
+    "owner_id": "merchant_fanout_owner"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_m0_$index",
+        "amount": 333,
+        "status": "pending",
+        "account_id": "acct-fanout-0-$index",
+        "ip": "70.70.70.$index",
+        "merchant": "Merchant Fanout 0",
+        "email": "fanout0@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "fanout"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_m1_$index",
+        "amount": 333,
+        "status": "pending",
+        "account_id": "acct-fanout-1-$index",
+        "ip": "71.71.71.$index",
+        "merchant": "Merchant Fanout 1",
+        "email": "fanout1@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "fanout"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_m2_$index",
+        "amount": 333,
+        "status": "pending",
+        "account_id": "acct-fanout-2-$index",
+        "ip": "72.72.72.$index",
+        "merchant": "Merchant Fanout 2",
+        "email": "fanout2@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "fanout"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_m3_$index",
+        "amount": 333,
+        "status": "pending",
+        "account_id": "acct-fanout-3-$index",
+        "ip": "73.73.73.$index",
+        "merchant": "Merchant Fanout 3",
+        "email": "fanout3@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "fanout"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 3,
+      "template": {
+        "object_id": "$owner_id_m4_$index",
+        "amount": 333,
+        "status": "pending",
+        "account_id": "acct-fanout-4-$index",
+        "ip": "74.74.74.$index",
+        "merchant": "Merchant Fanout 4",
+        "email": "fanout4@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "fanout"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 333,
+      "status": "pending",
+      "account_id": "acct-fanout-target",
+      "ip": "75.75.75.75",
+      "merchant": "Merchant Fanout Target",
+      "email": "fanout-target@example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "fanout-target"
+    }
+  },
+  "rules": [
+    {
+      "name": "same_amount_fifteen_transactions_across_many_merchants",
+      "description": "Hits when the same owner has many same-amount transactions distributed across merchants.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  },
+                  "value": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "amount"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "five_named_merchants_each_have_three_transactions",
+      "description": "Hits only when all five expected merchant buckets are present with at least three events each.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "merchant"
+                      },
+                      "value": {
+                        "constant": "Merchant Fanout 0"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 3
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "merchant"
+                      },
+                      "value": {
+                        "constant": "Merchant Fanout 1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 3
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "merchant"
+                      },
+                      "value": {
+                        "constant": "Merchant Fanout 2"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 3
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "merchant"
+                      },
+                      "value": {
+                        "constant": "Merchant Fanout 3"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 3
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 0.0167
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "merchant"
+                      },
+                      "value": {
+                        "constant": "Merchant Fanout 4"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "wrong_amount_fanout_no_hit",
+      "description": "No-hit control proving same-owner fanout does not ignore amount.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  },
+                  "value": {
+                    "constant": 444
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing_sixth_merchant_no_hit",
+      "description": "No-hit control proving fanout does not fabricate missing merchant buckets.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "merchant"
+                  },
+                  "value": {
+                    "constant": "Merchant Fanout 5"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "block_and_review",
+    "rules": {
+      "same_amount_fifteen_transactions_across_many_merchants": "hit",
+      "five_named_merchants_each_have_three_transactions": "hit",
+      "wrong_amount_fanout_no_hit": "no_hit",
+      "missing_sixth_merchant_no_hit": "no_hit"
+    }
+  }
+}

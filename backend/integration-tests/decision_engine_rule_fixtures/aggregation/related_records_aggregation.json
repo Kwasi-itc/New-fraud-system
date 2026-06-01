@@ -1,0 +1,229 @@
+{
+  "name": "related records aggregation",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "variables": {
+    "object_id": "agg_target",
+    "owner_id": "agg_owner"
+  },
+  "records": [
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$object_id",
+        "amount": 50,
+        "status": "pending",
+        "account_id": "acct-target",
+        "ip": "1.2.3.4",
+        "merchant": "Target",
+        "email": "target@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "2026-05-01T12:00:00Z",
+        "note": "target"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-a",
+        "amount": 100,
+        "status": "pending",
+        "account_id": "acct-a",
+        "ip": "1.2.3.4",
+        "merchant": "History A",
+        "email": "a@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "2026-05-01T11:00:00Z",
+        "note": "a"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-b",
+        "amount": 200,
+        "status": "pending",
+        "account_id": "acct-b",
+        "ip": "1.2.3.4",
+        "merchant": "History B",
+        "email": "b@example.com",
+        "country": "us",
+        "owner_id": "$owner_id",
+        "event_time": "2026-05-01T10:00:00Z",
+        "note": "b"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-c",
+        "amount": 300,
+        "status": "pending",
+        "account_id": "acct-c",
+        "ip": "1.2.3.4",
+        "merchant": "History C",
+        "email": "c@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "2026-05-01T09:00:00Z",
+        "note": "c"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions"
+  },
+  "rules": [
+    {
+      "name": "related_records_count",
+      "description": "Counts related records by owner",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "owner_id"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "related_records_sum",
+      "description": "Sums related record amounts",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "sum",
+            "children": [
+              {
+                "function": "map_field",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 650
+          }
+        ]
+      }
+    },
+    {
+      "name": "related_records_filter_count",
+      "description": "Filters related records by country and counts the filtered list",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "country"
+                  },
+                  "value": {
+                    "constant": "gh"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 3
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 3,
+    "outcome": "review",
+    "rules": {
+      "related_records_count": "hit",
+      "related_records_sum": "hit",
+      "related_records_filter_count": "hit"
+    }
+  }
+}

@@ -1,0 +1,314 @@
+{
+  "name": "marble payload time fuzzy helpers",
+  "object_type": "$transactions",
+  "trigger": {
+    "name": "Payload",
+    "children": [
+      {
+        "constant": "status"
+      }
+    ]
+  },
+  "trigger_override": {
+    "function": "eq",
+    "children": [
+      {
+        "name": "Payload",
+        "children": [
+          {
+            "constant": "status"
+          }
+        ]
+      },
+      {
+        "constant": "pending"
+      }
+    ]
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "variables": {
+    "object_id": "marble_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 125,
+      "status": "pending",
+      "account_id": "acct-marble",
+      "ip": "1.2.3.4",
+      "merchant": "International Trade Consortium Market",
+      "email": "customer@example.com",
+      "country": "gh",
+      "owner_id": "owner-marble",
+      "event_time": "2026-05-01T12:00:00Z",
+      "note": ""
+    }
+  },
+  "rules": [
+    {
+      "name": "marble_payload_amount",
+      "description": "Payload alias reads amount",
+      "score_modifier": 1,
+      "formula": {
+        "name": ">",
+        "children": [
+          {
+            "name": "Payload",
+            "children": [
+              {
+                "constant": "amount"
+              }
+            ]
+          },
+          {
+            "constant": 100
+          }
+        ]
+      }
+    },
+    {
+      "name": "marble_string_helpers",
+      "description": "Marble string/list compatibility helpers",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "name": "ContainsAnyOf",
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "name": "List",
+                "children": [
+                  {
+                    "constant": "Trade"
+                  },
+                  {
+                    "constant": "Risk"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "ContainsNoneOf",
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "name": "List",
+                "children": [
+                  {
+                    "constant": "Blocked"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "StringNotContain",
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "merchant"
+                  }
+                ]
+              },
+              {
+                "constant": "Sanction"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "marble_time_helpers",
+      "description": "ParseTime, TimeAdd, and TimestampExtract compatibility",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "TimestampExtract",
+                "named_children": {
+                  "timestamp": {
+                    "name": "ParseTime",
+                    "children": [
+                      {
+                        "constant": "2026-05-01T12:00:00Z"
+                      }
+                    ]
+                  },
+                  "part": {
+                    "constant": "hour"
+                  }
+                }
+              },
+              {
+                "constant": 12
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "TimestampExtract",
+                "named_children": {
+                  "timestamp": {
+                    "name": "TimeAdd",
+                    "named_children": {
+                      "timestampField": {
+                        "name": "ParseTime",
+                        "children": [
+                          {
+                            "constant": "2026-05-01T12:00:00Z"
+                          }
+                        ]
+                      },
+                      "duration": {
+                        "constant": "PT1H"
+                      },
+                      "sign": {
+                        "constant": "+"
+                      }
+                    }
+                  },
+                  "part": {
+                    "constant": "hour"
+                  }
+                }
+              },
+              {
+                "constant": 13
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "marble_fuzzy_and_template",
+      "description": "Fuzzy matching and string template helpers",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gte",
+            "children": [
+              {
+                "name": "FuzzyMatch",
+                "named_children": {
+                  "algorithm": {
+                    "constant": "ratio"
+                  }
+                },
+                "children": [
+                  {
+                    "constant": "John Smith"
+                  },
+                  {
+                    "constant": "Jon Smith"
+                  }
+                ]
+              },
+              {
+                "constant": 85
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "StringTemplate",
+                "children": [
+                  {
+                    "constant": "Case %status%"
+                  }
+                ],
+                "named_children": {
+                  "status": {
+                    "name": "Payload",
+                    "children": [
+                      {
+                        "constant": "status"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "constant": "Case pending"
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "StringConcat",
+                "named_children": {
+                  "with_separator": {
+                    "constant": true
+                  },
+                  "separator": {
+                    "constant": "-"
+                  }
+                },
+                "children": [
+                  {
+                    "constant": "risk"
+                  },
+                  {
+                    "constant": "case"
+                  }
+                ]
+              },
+              {
+                "constant": "risk-case"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "review",
+    "rules": {
+      "marble_payload_amount": "hit",
+      "marble_string_helpers": "hit",
+      "marble_time_helpers": "hit",
+      "marble_fuzzy_and_template": "hit"
+    }
+  }
+}

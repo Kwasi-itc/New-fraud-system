@@ -1,0 +1,266 @@
+{
+  "name": "time and template edge cases",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 4,
+    "decline": 8
+  },
+  "variables": {
+    "object_id": "time_template_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 450,
+      "status": "pending",
+      "account_id": "acct-time-template",
+      "ip": "1.2.3.4",
+      "merchant": "Time Template Merchant",
+      "email": "time-template@example.com",
+      "country": "gh",
+      "owner_id": "owner-time-template",
+      "event_time": "2026-05-01T23:30:00Z",
+      "note": "template"
+    }
+  },
+  "rules": [
+    {
+      "name": "timestamp_extract_day_and_hour_hit",
+      "description": "TimestampExtract reads day_of_month and hour from a payload timestamp.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "TimestampExtract",
+                "named_children": {
+                  "timestamp": {
+                    "name": "Payload",
+                    "children": [
+                      {
+                        "constant": "event_time"
+                      }
+                    ]
+                  },
+                  "part": {
+                    "constant": "day_of_month"
+                  }
+                }
+              },
+              {
+                "constant": 1
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "name": "TimestampExtract",
+                "named_children": {
+                  "timestamp": {
+                    "name": "Payload",
+                    "children": [
+                      {
+                        "constant": "event_time"
+                      }
+                    ]
+                  },
+                  "part": {
+                    "constant": "hour"
+                  }
+                }
+              },
+              {
+                "constant": 23
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "time_add_crosses_midnight_hit",
+      "description": "TimeAdd can move the payload timestamp across midnight.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "TimestampExtract",
+            "named_children": {
+              "timestamp": {
+                "name": "TimeAdd",
+                "named_children": {
+                  "timestampField": {
+                    "name": "Payload",
+                    "children": [
+                      {
+                        "constant": "event_time"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "constant": "PT1H"
+                  },
+                  "sign": {
+                    "constant": "+"
+                  }
+                }
+              },
+              "part": {
+                "constant": "day_of_month"
+              }
+            }
+          },
+          {
+            "constant": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "wrong_hour_after_time_add_no_hit",
+      "description": "No-hit control for a wrong TimeAdd extraction expectation.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "TimestampExtract",
+            "named_children": {
+              "timestamp": {
+                "name": "TimeAdd",
+                "named_children": {
+                  "timestampField": {
+                    "name": "Payload",
+                    "children": [
+                      {
+                        "constant": "event_time"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "constant": "PT1H"
+                  },
+                  "sign": {
+                    "constant": "+"
+                  }
+                }
+              },
+              "part": {
+                "constant": "hour"
+              }
+            }
+          },
+          {
+            "constant": 23
+          }
+        ]
+      }
+    },
+    {
+      "name": "string_template_multiple_values_hit",
+      "description": "StringTemplate interpolates multiple named payload values.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "StringTemplate",
+            "children": [
+              {
+                "constant": "%country%:%status%"
+              }
+            ],
+            "named_children": {
+              "country": {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "country"
+                  }
+                ]
+              },
+              "status": {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "status"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "constant": "gh:pending"
+          }
+        ]
+      }
+    },
+    {
+      "name": "string_concat_without_separator_hit",
+      "description": "StringConcat concatenates values without a separator.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "StringConcat",
+            "named_children": {
+              "with_separator": {
+                "constant": false
+              }
+            },
+            "children": [
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "country"
+                  }
+                ]
+              },
+              {
+                "constant": "-"
+              },
+              {
+                "name": "Payload",
+                "children": [
+                  {
+                    "constant": "status"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "constant": "gh-pending"
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "block_and_review",
+    "rules": {
+      "timestamp_extract_day_and_hour_hit": "hit",
+      "time_add_crosses_midnight_hit": "hit",
+      "wrong_hour_after_time_add_no_hit": "no_hit",
+      "string_template_multiple_values_hit": "hit",
+      "string_concat_without_separator_hit": "hit"
+    }
+  }
+}

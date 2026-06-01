@@ -1,0 +1,113 @@
+{
+  "name": "related field and database access",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "variables": {
+    "object_id": "rel_txn",
+    "account_key": "rel_acct",
+    "owner_id": "rel_owner"
+  },
+  "records": [
+    {
+      "object_type": "$accounts",
+      "body": {
+        "object_id": "$account_key",
+        "account_key": "$account_key",
+        "owner_id": "$owner_id",
+        "account_status": "active"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$object_id",
+        "amount": 700,
+        "status": "pending",
+        "account_id": "$account_key",
+        "ip": "1.2.3.4",
+        "merchant": "Related Merchant",
+        "email": "related@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "2026-05-01T12:00:00Z",
+        "note": "related"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions"
+  },
+  "rules": [
+    {
+      "name": "related_field_status",
+      "description": "related_field traverses the account link",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "function": "related_field",
+            "named_children": {
+              "path": {
+                "constant": "account"
+              },
+              "field": {
+                "constant": "account_status"
+              }
+            }
+          },
+          {
+            "constant": "active"
+          }
+        ]
+      }
+    },
+    {
+      "name": "database_access_status",
+      "description": "DatabaseAccess traverses the account path",
+      "score_modifier": 1,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "DatabaseAccess",
+            "named_children": {
+              "tableName": {
+                "constant": "$transactions"
+              },
+              "fieldName": {
+                "constant": "account_status"
+              },
+              "path": {
+                "constant": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "constant": "active"
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 2,
+    "outcome": "review",
+    "rules": {
+      "related_field_status": "hit",
+      "database_access_status": "hit"
+    }
+  }
+}

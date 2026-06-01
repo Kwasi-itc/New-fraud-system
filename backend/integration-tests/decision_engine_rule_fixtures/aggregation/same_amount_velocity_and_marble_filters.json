@@ -1,0 +1,381 @@
+{
+  "name": "same amount velocity and marble filters",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 6
+  },
+  "variables": {
+    "object_id": "same_amount_target",
+    "owner_id": "same_amount_owner"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 10,
+      "template": {
+        "object_id": "$owner_id_same_amount_$index",
+        "amount": 777,
+        "status": "pending",
+        "account_id": "acct-same-$index_mod_2",
+        "ip": "1.2.3.4",
+        "merchant": "Same Amount Merchant",
+        "email": "same@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "same-amount"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 4,
+      "template": {
+        "object_id": "$owner_id_other_amount_$index",
+        "amount": 778,
+        "status": "pending",
+        "account_id": "acct-other-amount-$index_mod_2",
+        "ip": "1.2.3.4",
+        "merchant": "Different Amount Merchant",
+        "email": "different@example.com",
+        "country": "us",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "different-amount"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 777,
+      "status": "pending",
+      "account_id": "acct-target",
+      "ip": "1.2.3.4",
+      "merchant": "Same Amount Target",
+      "email": "target-same@example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "target"
+    }
+  },
+  "rules": [
+    {
+      "name": "ten_same_amount_transactions_one_minute",
+      "description": "Hits when at least 10 same-owner transactions with the current amount exist in a one-minute window.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  },
+                  "value": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "amount"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 10
+          }
+        ]
+      }
+    },
+    {
+      "name": "fifteen_same_amount_transactions_one_minute_no_hit",
+      "description": "No-hit control for same amount threshold above the seeded count.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "owner_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "owner_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  },
+                  "value": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "amount"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "marble_sum_same_owner_recent_window",
+      "description": "Marble Aggregator SUM with owner, amount, and dynamic recent-time filters.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "Aggregator",
+            "named_children": {
+              "tableName": {
+                "constant": "$transactions"
+              },
+              "fieldName": {
+                "constant": "amount"
+              },
+              "aggregator": {
+                "constant": "SUM"
+              },
+              "filters": {
+                "name": "List",
+                "children": [
+                  {
+                    "name": "Filter",
+                    "named_children": {
+                      "tableName": {
+                        "constant": "$transactions"
+                      },
+                      "fieldName": {
+                        "constant": "owner_id"
+                      },
+                      "operator": {
+                        "constant": "="
+                      },
+                      "value": {
+                        "name": "Payload",
+                        "children": [
+                          {
+                            "constant": "owner_id"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Filter",
+                    "named_children": {
+                      "tableName": {
+                        "constant": "$transactions"
+                      },
+                      "fieldName": {
+                        "constant": "amount"
+                      },
+                      "operator": {
+                        "constant": "="
+                      },
+                      "value": {
+                        "name": "Payload",
+                        "children": [
+                          {
+                            "constant": "amount"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Filter",
+                    "named_children": {
+                      "tableName": {
+                        "constant": "$transactions"
+                      },
+                      "fieldName": {
+                        "constant": "event_time"
+                      },
+                      "operator": {
+                        "constant": ">="
+                      },
+                      "value": {
+                        "name": "TimeAdd",
+                        "named_children": {
+                          "timestampField": {
+                            "name": "Payload",
+                            "children": [
+                              {
+                                "constant": "event_time"
+                              }
+                            ]
+                          },
+                          "duration": {
+                            "constant": "PT1M"
+                          },
+                          "sign": {
+                            "constant": "-"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "constant": 7770
+          }
+        ]
+      }
+    },
+    {
+      "name": "marble_sum_wrong_amount_no_hit",
+      "description": "No-hit control proving amount filter isolates same amount records.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "eq",
+        "children": [
+          {
+            "name": "Aggregator",
+            "named_children": {
+              "tableName": {
+                "constant": "$transactions"
+              },
+              "fieldName": {
+                "constant": "amount"
+              },
+              "aggregator": {
+                "constant": "SUM"
+              },
+              "filters": {
+                "name": "List",
+                "children": [
+                  {
+                    "name": "Filter",
+                    "named_children": {
+                      "tableName": {
+                        "constant": "$transactions"
+                      },
+                      "fieldName": {
+                        "constant": "owner_id"
+                      },
+                      "operator": {
+                        "constant": "="
+                      },
+                      "value": {
+                        "name": "Payload",
+                        "children": [
+                          {
+                            "constant": "owner_id"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Filter",
+                    "named_children": {
+                      "tableName": {
+                        "constant": "$transactions"
+                      },
+                      "fieldName": {
+                        "constant": "amount"
+                      },
+                      "operator": {
+                        "constant": "="
+                      },
+                      "value": {
+                        "constant": 778
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "constant": 7770
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 4,
+    "outcome": "block_and_review",
+    "rules": {
+      "ten_same_amount_transactions_one_minute": "hit",
+      "fifteen_same_amount_transactions_one_minute_no_hit": "no_hit",
+      "marble_sum_same_owner_recent_window": "hit",
+      "marble_sum_wrong_amount_no_hit": "no_hit"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "trigger not matched no decision",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "eq",
+    "children": [
+      {
+        "function": "field_ref",
+        "named_children": {
+          "field": {
+            "constant": "country"
+          }
+        }
+      },
+      {
+        "constant": "us"
+      }
+    ]
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 4,
+    "decline": 8
+  },
+  "variables": {
+    "object_id": "trigger_miss_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 9999,
+      "status": "pending",
+      "account_id": "acct-trigger-miss",
+      "ip": "1.2.3.4",
+      "merchant": "Trigger Miss Merchant",
+      "email": "trigger-miss@example.com",
+      "country": "gh",
+      "owner_id": "owner-trigger-miss",
+      "event_time": "$now",
+      "note": "rule would hit but trigger should not"
+    }
+  },
+  "rules": [
+    {
+      "name": "high_amount_would_hit_if_triggered",
+      "description": "This rule would hit, but the scenario trigger should prevent decision creation.",
+      "score_modifier": 10,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "field_ref",
+            "named_children": {
+              "field": {
+                "constant": "amount"
+              }
+            }
+          },
+          {
+            "constant": 1000
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": false
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "non boolean rule validation failure",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 50,
+    "decline": 100
+  },
+  "rules": [
+    {
+      "name": "returns_number",
+      "description": "Invalid rule because it returns a number instead of a boolean",
+      "score_modifier": 1,
+      "formula": {
+        "function": "field_ref",
+        "named_children": {
+          "field": {
+            "constant": "amount"
+          }
+        }
+      }
+    }
+  ],
+  "expected": {
+    "validation_valid": false,
+    "validation_error_contains": "rule formula must return a boolean"
+  }
+}

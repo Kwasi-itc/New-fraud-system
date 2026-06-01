@@ -180,19 +180,20 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
 
 def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pytest.Config) -> None:
-    output_path = config.getoption("--endpoint-summary-file")
-    if not config.getoption("--endpoint-summary") and not output_path:
+    endpoint_summary = config.getoption("--endpoint-summary", default=False)
+    output_path = config.getoption("--endpoint-summary-file", default=None)
+    if not endpoint_summary and not output_path:
         return
     if exitstatus != 0:
-        if config.getoption("--endpoint-summary"):
+        if endpoint_summary:
             terminalreporter.section("endpoint summary skipped")
             terminalreporter.write_line("Endpoint summary is printed only when the full run passes.")
         return
 
-    limit = config.getoption("--endpoint-output-limit")
+    limit = config.getoption("--endpoint-output-limit", default=0)
     passed = terminalreporter.stats.get("passed", [])
     summary = build_endpoint_summary(passed, limit)
-    if config.getoption("--endpoint-summary"):
+    if endpoint_summary:
         terminalreporter.section("integration endpoint summary")
         terminalreporter.write_line(summary)
     if output_path:
@@ -323,8 +324,7 @@ def decision_engine() -> ApiClient:
     client.close()
 
 
-@pytest.fixture(scope="session")
-def tenant_model(data_model: ApiClient) -> dict[str, Any]:
+def create_tenant_model(data_model: ApiClient) -> dict[str, Any]:
     tenant_payload = {"name": unique_name("itc tenant"), "external_key": unique_name("ext")}
     tenant = require_key(assert_status(data_model.post("/v1/tenants", json=tenant_payload), 201), "tenant")
     tenant_id = tenant["id"]
@@ -444,6 +444,11 @@ def tenant_model(data_model: ApiClient) -> dict[str, Any]:
         "account_owner_id": account_owner_id,
         "account_link": account_link,
     }
+
+
+@pytest.fixture(scope="session")
+def tenant_model(data_model: ApiClient) -> dict[str, Any]:
+    return create_tenant_model(data_model)
 
 
 @pytest.fixture(scope="session")

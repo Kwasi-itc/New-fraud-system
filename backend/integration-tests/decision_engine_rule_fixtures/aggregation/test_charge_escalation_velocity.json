@@ -1,0 +1,282 @@
+{
+  "name": "test charge escalation velocity",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 3,
+    "decline": 6
+  },
+  "variables": {
+    "object_id": "test_charge_target",
+    "account_id": "test_charge_account",
+    "owner_id": "test_charge_owner"
+  },
+  "generated_records": [
+    {
+      "object_type": "$transactions",
+      "count": 12,
+      "template": {
+        "object_id": "$account_id_declined_test_$index",
+        "amount": 1,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.10.10.1",
+        "merchant": "Card Test Merchant",
+        "email": "test-charge@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_4m",
+        "note": "small-test-decline"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "count": 20,
+      "template": {
+        "object_id": "$account_id_old_declined_$index",
+        "amount": 2,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.10.10.2",
+        "merchant": "Old Test Merchant",
+        "email": "old-test-charge@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_10m",
+        "note": "old-decline-outside-window"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 2500,
+      "status": "pending",
+      "account_id": "$account_id",
+      "ip": "20.20.20.20",
+      "merchant": "High Value Merchant",
+      "email": "target-test-charge@example.com",
+      "country": "gh",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "large-follow-up"
+    }
+  },
+  "rules": [
+    {
+      "name": "small_decline_burst_then_large_charge",
+      "description": "Hits when many tiny declined card-test attempts are followed by a large transaction on the same account.",
+      "score_modifier": 3,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gt",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "amount"
+                  }
+                }
+              },
+              {
+                "constant": 1000
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "filter_eq",
+                    "named_children": {
+                      "items": {
+                        "function": "filter_eq",
+                        "named_children": {
+                          "items": {
+                            "function": "related_records",
+                            "named_children": {
+                              "object_type": {
+                                "constant": "$transactions"
+                              },
+                              "match_field": {
+                                "constant": "account_id"
+                              },
+                              "equals": {
+                                "function": "field_ref",
+                                "named_children": {
+                                  "field": {
+                                    "constant": "account_id"
+                                  }
+                                }
+                              },
+                              "timestamp_field": {
+                                "constant": "event_time"
+                              },
+                              "within_hours": {
+                                "constant": 0.0834
+                              }
+                            }
+                          },
+                          "field": {
+                            "constant": "note"
+                          },
+                          "value": {
+                            "constant": "small-test-decline"
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "amount"
+                      },
+                      "value": {
+                        "constant": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 10
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "old_declines_do_not_leak_into_one_minute_no_hit",
+      "description": "No-hit control proving older same-account declines do not satisfy a short one-minute window.",
+      "score_modifier": 3,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "account_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "account_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0167
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "amount"
+                  },
+                  "value": {
+                    "constant": 2
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "current_ip_not_seen_in_test_burst_no_hit",
+      "description": "No-hit control proving the current IP does not match the prior card-test IP cluster.",
+      "score_modifier": 3,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "filter_eq",
+                "named_children": {
+                  "items": {
+                    "function": "related_records",
+                    "named_children": {
+                      "object_type": {
+                        "constant": "$transactions"
+                      },
+                      "match_field": {
+                        "constant": "account_id"
+                      },
+                      "equals": {
+                        "function": "field_ref",
+                        "named_children": {
+                          "field": {
+                            "constant": "account_id"
+                          }
+                        }
+                      },
+                      "timestamp_field": {
+                        "constant": "event_time"
+                      },
+                      "within_hours": {
+                        "constant": 0.0834
+                      }
+                    }
+                  },
+                  "field": {
+                    "constant": "ip"
+                  },
+                  "value": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "ip"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 1
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 3,
+    "outcome": "block_and_review",
+    "rules": {
+      "small_decline_burst_then_large_charge": "hit",
+      "old_declines_do_not_leak_into_one_minute_no_hit": "no_hit",
+      "current_ip_not_seen_in_test_burst_no_hit": "no_hit"
+    }
+  }
+}
