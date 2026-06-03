@@ -32,22 +32,24 @@ type TestRunRuleStat struct {
 }
 
 type TestRunService struct {
-	txManager           ports.TransactionManager
-	idGen               ports.IDGenerator
-	clock               ports.Clock
-	scenarioRepo        ports.ScenarioRepository
-	iterationRepo       ports.ScenarioIterationRepository
-	ruleRepo            ports.RuleRepository
-	dataModelReader     ports.DataModelReader
-	tenantDataReader    ports.TenantDataReader
-	decisionRepo        ports.DecisionRepository
-	testRunRepo         ports.TestRunRepository
-	phantomDecisionRepo ports.PhantomDecisionRepository
-	phantomRuleExecRepo ports.PhantomRuleExecutionRepository
-	customListRepo      ports.CustomListRepository
-	recordTagRepo       ports.RecordTagRepository
-	riskRepo            ports.RiskSnapshotRepository
-	ipFlagRepo          ports.IPFlagRepository
+	txManager                   ports.TransactionManager
+	idGen                       ports.IDGenerator
+	clock                       ports.Clock
+	scenarioRepo                ports.ScenarioRepository
+	iterationRepo               ports.ScenarioIterationRepository
+	ruleRepo                    ports.RuleRepository
+	dataModelReader             ports.DataModelReader
+	tenantDataReader            ports.TenantDataReader
+	decisionRepo                ports.DecisionRepository
+	testRunRepo                 ports.TestRunRepository
+	phantomDecisionRepo         ports.PhantomDecisionRepository
+	phantomRuleExecRepo         ports.PhantomRuleExecutionRepository
+	customListRepo              ports.CustomListRepository
+	recordTagRepo               ports.RecordTagRepository
+	riskRepo                    ports.RiskSnapshotRepository
+	ipFlagRepo                  ports.IPFlagRepository
+	aggregatePushdownMode       string
+	aggregatePushdownAggregates []string
 }
 
 func NewTestRunService(
@@ -67,24 +69,28 @@ func NewTestRunService(
 	recordTagRepo ports.RecordTagRepository,
 	riskRepo ports.RiskSnapshotRepository,
 	ipFlagRepo ports.IPFlagRepository,
+	aggregatePushdownMode string,
+	aggregatePushdownAggregates []string,
 ) TestRunService {
 	return TestRunService{
-		txManager:           txManager,
-		idGen:               idGen,
-		clock:               clock,
-		scenarioRepo:        scenarioRepo,
-		iterationRepo:       iterationRepo,
-		ruleRepo:            ruleRepo,
-		dataModelReader:     dataModelReader,
-		tenantDataReader:    tenantDataReader,
-		decisionRepo:        decisionRepo,
-		testRunRepo:         testRunRepo,
-		phantomDecisionRepo: phantomDecisionRepo,
-		phantomRuleExecRepo: phantomRuleExecRepo,
-		customListRepo:      customListRepo,
-		recordTagRepo:       recordTagRepo,
-		riskRepo:            riskRepo,
-		ipFlagRepo:          ipFlagRepo,
+		txManager:                   txManager,
+		idGen:                       idGen,
+		clock:                       clock,
+		scenarioRepo:                scenarioRepo,
+		iterationRepo:               iterationRepo,
+		ruleRepo:                    ruleRepo,
+		dataModelReader:             dataModelReader,
+		tenantDataReader:            tenantDataReader,
+		decisionRepo:                decisionRepo,
+		testRunRepo:                 testRunRepo,
+		phantomDecisionRepo:         phantomDecisionRepo,
+		phantomRuleExecRepo:         phantomRuleExecRepo,
+		customListRepo:              customListRepo,
+		recordTagRepo:               recordTagRepo,
+		riskRepo:                    riskRepo,
+		ipFlagRepo:                  ipFlagRepo,
+		aggregatePushdownMode:       aggregatePushdownMode,
+		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
 	}
 }
 
@@ -148,11 +154,11 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		return TestRunEvaluationResult{}, fmt.Errorf("test run is expired")
 	}
 
-	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo)
+	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
-	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo)
+	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
@@ -293,6 +299,8 @@ func evaluateScenarioByIteration(
 	recordTagRepo ports.RecordTagRepository,
 	riskRepo ports.RiskSnapshotRepository,
 	ipFlagRepo ports.IPFlagRepository,
+	aggregatePushdownMode string,
+	aggregatePushdownAggregates []string,
 ) (DecisionEvaluationResult, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -314,18 +322,20 @@ func evaluateScenarioByIteration(
 		model = &tenantModel
 	}
 	runtime := asteval.Runtime{
-		TenantID:         tenantID,
-		ObjectID:         req.ObjectID,
-		ObjectType:       req.ObjectType,
-		Fields:           req.Fields,
-		Now:              clock.Now(),
-		Model:            model,
-		TenantDataReader: tenantDataReader,
-		DecisionRepo:     decisionRepo,
-		CustomListRepo:   customListRepo,
-		RecordTagRepo:    recordTagRepo,
-		RiskRepo:         riskRepo,
-		IPFlagRepo:       ipFlagRepo,
+		TenantID:                    tenantID,
+		ObjectID:                    req.ObjectID,
+		ObjectType:                  req.ObjectType,
+		Fields:                      req.Fields,
+		Now:                         clock.Now(),
+		Model:                       model,
+		TenantDataReader:            tenantDataReader,
+		DecisionRepo:                decisionRepo,
+		CustomListRepo:              customListRepo,
+		RecordTagRepo:               recordTagRepo,
+		RiskRepo:                    riskRepo,
+		IPFlagRepo:                  ipFlagRepo,
+		AggregatePushdownMode:       aggregatePushdownMode,
+		AggregatePushdownAggregates: aggregatePushdownAggregates,
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -384,6 +394,8 @@ func evaluatePhantomByIteration(
 	recordTagRepo ports.RecordTagRepository,
 	riskRepo ports.RiskSnapshotRepository,
 	ipFlagRepo ports.IPFlagRepository,
+	aggregatePushdownMode string,
+	aggregatePushdownAggregates []string,
 ) (*decision.PhantomDecision, []decision.PhantomRuleExecution, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -405,18 +417,20 @@ func evaluatePhantomByIteration(
 		model = &tenantModel
 	}
 	runtime := asteval.Runtime{
-		TenantID:         tenantID,
-		ObjectID:         req.ObjectID,
-		ObjectType:       req.ObjectType,
-		Fields:           req.Fields,
-		Now:              clock.Now(),
-		Model:            model,
-		TenantDataReader: tenantDataReader,
-		DecisionRepo:     decisionRepo,
-		CustomListRepo:   customListRepo,
-		RecordTagRepo:    recordTagRepo,
-		RiskRepo:         riskRepo,
-		IPFlagRepo:       ipFlagRepo,
+		TenantID:                    tenantID,
+		ObjectID:                    req.ObjectID,
+		ObjectType:                  req.ObjectType,
+		Fields:                      req.Fields,
+		Now:                         clock.Now(),
+		Model:                       model,
+		TenantDataReader:            tenantDataReader,
+		DecisionRepo:                decisionRepo,
+		CustomListRepo:              customListRepo,
+		RecordTagRepo:               recordTagRepo,
+		RiskRepo:                    riskRepo,
+		IPFlagRepo:                  ipFlagRepo,
+		AggregatePushdownMode:       aggregatePushdownMode,
+		AggregatePushdownAggregates: aggregatePushdownAggregates,
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {

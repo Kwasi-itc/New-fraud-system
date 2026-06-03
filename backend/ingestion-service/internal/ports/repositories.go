@@ -38,6 +38,7 @@ type TenantDataReader interface {
 	GetRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType, objectID string) (map[string]any, error)
 	ListRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType string, limit int) ([]map[string]any, error)
 	QueryRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType, fieldName, value string, limit int) ([]map[string]any, error)
+	AggregateRecords(ctx context.Context, model ingestion.PublishedDataModel, query ingestion.AggregateQuery) (any, error)
 }
 
 const (

@@ -219,6 +219,44 @@ Current idempotency behavior:
 - duplicate key with different payload is rejected as key reuse
 - replayed results include `replayed: true`
 
+## Aggregate Query Support
+
+`ingestion-service` now exposes a tenant-scoped aggregate endpoint used by `decision-engine-service` aggregate pushdown:
+
+- `POST /v1/tenants/:tenantId/query/aggregate`
+
+Current behavior:
+
+- validates object type and field names against the published tenant model
+- accepts grouped filter trees with `and`, `or`, and `not`
+- translates supported predicates into parameterized SQL
+- executes the aggregate inside the tenant schema and returns only the aggregate result
+
+Current supported aggregates:
+
+- `count`
+- `count_distinct`
+- `sum`
+- `avg`
+- `min`
+- `max`
+
+Current supported predicate operators:
+
+- `eq`
+- `neq`
+- `gt`
+- `gte`
+- `lt`
+- `lte`
+- `in`
+- `is_null`
+- `is_not_null`
+- `starts_with`
+- `ends_with`
+
+This endpoint is intended for decision-time aggregate execution, not for exposing raw SQL or arbitrary query semantics.
+
 ## Key docs
 
 - [INGESTION_SERVICE_EXTRACTION_DESIGN.md](./INGESTION_SERVICE_EXTRACTION_DESIGN.md)

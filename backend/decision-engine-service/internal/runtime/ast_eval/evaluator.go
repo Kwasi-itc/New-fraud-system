@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"regexp"
 	"sort"
@@ -1204,19 +1205,90 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 	if runtime.TenantDataReader == nil {
 		return nil, fmt.Errorf("tenant data reader is not configured")
 	}
+	if runtime.aggregatePushdownEnabled() {
+		if compileResult, err := CompileAggregateQuery(ctx, node, runtime); err != nil {
+			return nil, err
+		} else if compileResult.Supported {
+			recordAggregatePushdownCompile(true)
+			if !runtime.aggregatePushdownSupportsAggregate(compileResult.Query.Aggregate) {
+				reason := fmt.Sprintf("aggregate %q is not enabled for remote pushdown", compileResult.Query.Aggregate)
+				slog.Default().Warn("aggregate pushdown skipped by aggregate allow-list",
+					"tenant_id", runtime.TenantID,
+					"object_type", runtime.ObjectType,
+					"table_name", tableName,
+					"aggregate", compileResult.Query.Aggregate,
+					"mode", runtime.aggregatePushdownMode(),
+				)
+				if runtime.aggregatePushdownStrict() {
+					return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
+				}
+				recordAggregatePushdownFallback()
+			} else {
+				startedAt := time.Now()
+				value, err := runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
+				recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
+				if err == nil {
+					return value, nil
+				}
+				slog.Default().Warn("aggregate pushdown remote call failed",
+					"tenant_id", runtime.TenantID,
+					"object_type", runtime.ObjectType,
+					"table_name", tableName,
+					"aggregate", compileResult.Query.Aggregate,
+					"field", compileResult.Query.Field,
+					"mode", runtime.aggregatePushdownMode(),
+					"error", err,
+				)
+				if runtime.aggregatePushdownStrict() {
+					return nil, fmt.Errorf("aggregate pushdown failed: %w", err)
+				}
+				recordAggregatePushdownFallback()
+			}
+		} else if runtime.aggregatePushdownStrict() {
+			recordAggregatePushdownCompile(false)
+			slog.Default().Warn("aggregate pushdown unsupported",
+				"tenant_id", runtime.TenantID,
+				"object_type", runtime.ObjectType,
+				"table_name", tableName,
+				"aggregate", aggregatorName,
+				"reason", compileResult.UnsupportedReason,
+			)
+			return nil, fmt.Errorf("aggregate pushdown unsupported: %s", compileResult.UnsupportedReason)
+		} else {
+			recordAggregatePushdownCompile(false)
+			recordAggregatePushdownFallback()
+			slog.Default().Warn("aggregate pushdown unsupported, using local fallback",
+				"tenant_id", runtime.TenantID,
+				"object_type", runtime.ObjectType,
+				"table_name", tableName,
+				"aggregate", aggregatorName,
+				"reason", compileResult.UnsupportedReason,
+			)
+		}
+	}
 	records, err := runtime.TenantDataReader.ListRecords(ctx, runtime.TenantID, tableName, 5000)
 	if err != nil {
 		return nil, err
 	}
-	filters, err := evalNamedFilters(ctx, node, runtime)
-	if err != nil {
-		return nil, err
-	}
 	filtered := make([]ports.TenantRecord, 0, len(records))
-	for _, record := range records {
-		matches, err := recordMatchesFilters(record, filters)
+	var filterExpr *aggregateFilterExpr
+	if filterNode, ok := node.NamedChildren["filters"]; ok {
+		expr, supported, _, err := parseAggregateFilterExpr(ctx, filterNode, runtime)
 		if err != nil {
 			return nil, err
+		}
+		if supported {
+			filterExpr = &expr
+		}
+	}
+	for _, record := range records {
+		matches := true
+		if filterExpr != nil {
+			var err error
+			matches, err = recordMatchesFilterExpr(record, *filterExpr)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if matches {
 			filtered = append(filtered, record)
@@ -1262,21 +1334,70 @@ func recordMatchesFilters(record ports.TenantRecord, filters []marbleFilter) (bo
 	return true, nil
 }
 
+func recordMatchesFilterExpr(record ports.TenantRecord, filter aggregateFilterExpr) (bool, error) {
+	switch filter.Kind {
+	case "", "group":
+		op := strings.ToLower(strings.TrimSpace(filter.Operator))
+		if op == "" {
+			op = "and"
+		}
+		switch op {
+		case "and":
+			for _, child := range filter.Children {
+				match, err := recordMatchesFilterExpr(record, child)
+				if err != nil {
+					return false, err
+				}
+				if !match {
+					return false, nil
+				}
+			}
+			return true, nil
+		case "or":
+			for _, child := range filter.Children {
+				match, err := recordMatchesFilterExpr(record, child)
+				if err != nil {
+					return false, err
+				}
+				if match {
+					return true, nil
+				}
+			}
+			return false, nil
+		case "not":
+			if len(filter.Children) != 1 {
+				return false, fmt.Errorf("not filter expects exactly one child")
+			}
+			match, err := recordMatchesFilterExpr(record, filter.Children[0])
+			if err != nil {
+				return false, err
+			}
+			return !match, nil
+		default:
+			return false, fmt.Errorf("unsupported filter group operator %q", filter.Operator)
+		}
+	case "predicate":
+		return applyFilter(record.Fields[filter.Field], filter.Op, filter.Value)
+	default:
+		return false, fmt.Errorf("unsupported filter kind %q", filter.Kind)
+	}
+}
+
 func applyFilter(left any, operator string, right any) (bool, error) {
 	switch strings.TrimSpace(strings.ToLower(operator)) {
 	case "=", "eq":
 		return compareValues("eq", left, right)
 	case "!=", "≠", "neq":
 		return compareValues("neq", left, right)
-	case ">":
+	case ">", "gt":
 		return compareValues("gt", left, right)
-	case ">=":
+	case ">=", "gte":
 		return compareValues("gte", left, right)
-	case "<":
+	case "<", "lt":
 		return compareValues("lt", left, right)
-	case "<=":
+	case "<=", "lte":
 		return compareValues("lte", left, right)
-	case "isinlist":
+	case "isinlist", "in":
 		return inValue(left, right)
 	case "isnotinlist":
 		inList, err := inValue(left, right)

@@ -127,6 +127,10 @@ func (stubTenantReader) QueryRecords(context.Context, ingestion.PublishedDataMod
 	return []map[string]any{{"object_id": "obj-1"}}, nil
 }
 
+func (stubTenantReader) AggregateRecords(context.Context, ingestion.PublishedDataModel, ingestion.AggregateQuery) (any, error) {
+	return float64(1), nil
+}
+
 type stubIDGenerator struct{}
 
 func (stubIDGenerator) New() uuid.UUID { return uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") }

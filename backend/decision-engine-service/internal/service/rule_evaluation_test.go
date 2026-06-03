@@ -176,6 +176,8 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 		nil,
 		nil,
 		nil,
+		asteval.AggregatePushdownModeEnabled,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("evaluateScenarioByIteration() error = %v", err)

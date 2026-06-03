@@ -9,22 +9,25 @@ import (
 )
 
 type Config struct {
-	Port                 string
-	DatabaseURL          string
-	DataModelServiceURL  string
-	IngestionServiceURL  string
-	ServiceAuthMode      string
-	ServiceAuthToken     string
-	WorkflowActionURL    string
-	ScreeningProviderURL string
-	ScoringProviderURL   string
-	OutboxPublisherURL   string
-	LogLevel             string
-	GinMode              string
-	HTTPClientTimeout    time.Duration
-	WorkerMode           string
-	WorkerPollInterval   time.Duration
-	WorkerBatchLimit     int
+	Port                        string
+	DatabaseURL                 string
+	DataModelServiceURL         string
+	IngestionServiceURL         string
+	ServiceAuthMode             string
+	ServiceAuthToken            string
+	WorkflowActionURL           string
+	ScreeningServiceURL         string
+	ScreeningProviderURL        string
+	ScoringProviderURL          string
+	OutboxPublisherURL          string
+	LogLevel                    string
+	GinMode                     string
+	HTTPClientTimeout           time.Duration
+	AggregatePushdownMode       string
+	AggregatePushdownAggregates []string
+	WorkerMode                  string
+	WorkerPollInterval          time.Duration
+	WorkerBatchLimit            int
 }
 
 func LoadConfig() (Config, error) {
@@ -44,22 +47,25 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:                 getEnv("PORT", "8082"),
-		DatabaseURL:          os.Getenv("DATABASE_URL"),
-		DataModelServiceURL:  strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
-		IngestionServiceURL:  strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
-		ServiceAuthMode:      getEnv("SERVICE_AUTH_MODE", "disabled"),
-		ServiceAuthToken:     os.Getenv("SERVICE_AUTH_TOKEN"),
-		WorkflowActionURL:    strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
-		ScreeningProviderURL: strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
-		ScoringProviderURL:   strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
-		OutboxPublisherURL:   strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
-		LogLevel:             getEnv("LOG_LEVEL", "info"),
-		GinMode:              getEnv("GIN_MODE", "debug"),
-		HTTPClientTimeout:    httpClientTimeout,
-		WorkerMode:           strings.ToLower(getEnv("WORKER_MODE", "batch")),
-		WorkerPollInterval:   workerPollInterval,
-		WorkerBatchLimit:     workerBatchLimit,
+		Port:                        getEnv("PORT", "8082"),
+		DatabaseURL:                 os.Getenv("DATABASE_URL"),
+		DataModelServiceURL:         strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
+		IngestionServiceURL:         strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
+		ServiceAuthMode:             getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthToken:            os.Getenv("SERVICE_AUTH_TOKEN"),
+		WorkflowActionURL:           strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
+		ScreeningServiceURL:         strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
+		ScreeningProviderURL:        strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
+		ScoringProviderURL:          strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
+		OutboxPublisherURL:          strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
+		LogLevel:                    getEnv("LOG_LEVEL", "info"),
+		GinMode:                     getEnv("GIN_MODE", "debug"),
+		HTTPClientTimeout:           httpClientTimeout,
+		AggregatePushdownMode:       strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
+		AggregatePushdownAggregates: parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		WorkerMode:                  strings.ToLower(getEnv("WORKER_MODE", "batch")),
+		WorkerPollInterval:          workerPollInterval,
+		WorkerBatchLimit:            workerBatchLimit,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -76,6 +82,9 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.WorkerMode != "batch" && cfg.WorkerMode != "poll" {
 		return Config{}, fmt.Errorf("WORKER_MODE must be either batch or poll")
+	}
+	if cfg.AggregatePushdownMode != "enabled" && cfg.AggregatePushdownMode != "disabled" && cfg.AggregatePushdownMode != "strict" {
+		return Config{}, fmt.Errorf("AGGREGATE_PUSHDOWN_MODE must be one of enabled, disabled, or strict")
 	}
 	if cfg.WorkerPollInterval <= 0 {
 		return Config{}, fmt.Errorf("WORKER_POLL_INTERVAL must be greater than zero")
@@ -117,6 +126,25 @@ func getEnvInt(key string, fallback int) (int, error) {
 		return 0, fmt.Errorf("%s must be a valid integer: %w", key, err)
 	}
 	return parsed, nil
+}
+
+func parseCSVEnv(key string, fallback []string) []string {
+	value := os.Getenv(key)
+	if strings.TrimSpace(value) == "" {
+		return append([]string(nil), fallback...)
+	}
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.ToLower(strings.TrimSpace(part))
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	if len(out) == 0 {
+		return append([]string(nil), fallback...)
+	}
+	return out
 }
 
 func loadDotEnvIfPresent() {

@@ -1,9 +1,11 @@
 package ingestion
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -123,6 +125,57 @@ func (c HTTPClient) QueryRecords(ctx context.Context, tenantID, objectType, fiel
 	return records, nil
 }
 
+func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error) {
+	body, err := json.Marshal(query)
+	if err != nil {
+		return nil, fmt.Errorf("encode request: %w", err)
+	}
+	urlValue := fmt.Sprintf("%s/v1/tenants/%s/query/aggregate", c.baseURL, tenantID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, urlValue, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	startedAt := time.Now()
+	resp, err := c.client.Do(req)
+	if err != nil {
+		slog.Default().Warn("ingestion aggregate request failed",
+			"tenant_id", tenantID,
+			"object_type", query.ObjectType,
+			"aggregate", query.Aggregate,
+			"field", query.Field,
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+			"error", err,
+		)
+		return nil, fmt.Errorf("perform request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		slog.Default().Warn("ingestion aggregate request returned non-200",
+			"tenant_id", tenantID,
+			"object_type", query.ObjectType,
+			"aggregate", query.Aggregate,
+			"field", query.Field,
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+			"status_code", resp.StatusCode,
+		)
+		return nil, fmt.Errorf("unexpected status from ingestion-service: %d", resp.StatusCode)
+	}
+
+	var payload aggregateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	slog.Default().Info("ingestion aggregate request completed",
+		"tenant_id", tenantID,
+		"object_type", query.ObjectType,
+		"aggregate", query.Aggregate,
+		"field", query.Field,
+		"duration_ms", time.Since(startedAt).Milliseconds(),
+	)
+	return payload.Value, nil
+}
+
 type getRecordResponse struct {
 	Record recordEnvelope `json:"record"`
 }
@@ -135,4 +188,8 @@ type recordEnvelope struct {
 
 type listRecordsResponse struct {
 	Records []recordEnvelope `json:"records"`
+}
+
+type aggregateResponse struct {
+	Value any `json:"value"`
 }

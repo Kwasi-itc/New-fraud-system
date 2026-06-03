@@ -104,6 +104,8 @@ func main() {
 		screeningExecutionRepo,
 		scoringConfigRepo,
 		scoringRequestRepo,
+		cfg.AggregatePushdownMode,
+		cfg.AggregatePushdownAggregates,
 	)
 
 	executionService := service.NewExecutionService(
@@ -118,8 +120,10 @@ func main() {
 	)
 	dispatchClient := dispatchclient.NewHTTPClient(
 		cfg.HTTPClientTimeout,
+		cfg.ServiceAuthMode,
+		cfg.ServiceAuthToken,
 		cfg.WorkflowActionURL,
-		cfg.ScreeningProviderURL,
+		firstNonEmpty(cfg.ScreeningServiceURL, cfg.ScreeningProviderURL),
 		cfg.ScoringProviderURL,
 		cfg.OutboxPublisherURL,
 	)
@@ -206,4 +210,13 @@ func (w workerRunner) runOnce(ctx context.Context) error {
 
 	w.logger.Info("worker cycle completed")
 	return nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }

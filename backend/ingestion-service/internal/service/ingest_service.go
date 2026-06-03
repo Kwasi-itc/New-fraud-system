@@ -35,6 +35,10 @@ type RecordQueryResult struct {
 	Records []RecordLookupResult `json:"records"`
 }
 
+type AggregateResult struct {
+	Value any `json:"value"`
+}
+
 type IngestInput struct {
 	TenantID       uuid.UUID
 	ObjectType     string
@@ -525,6 +529,27 @@ func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, obj
 	})
 	if err != nil {
 		return RecordQueryResult{}, err
+	}
+	return result, nil
+}
+
+func (s IngestService) AggregateRecords(ctx context.Context, tenantID uuid.UUID, query ingestion.AggregateQuery) (AggregateResult, error) {
+	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	if err != nil {
+		return AggregateResult{}, err
+	}
+
+	var result AggregateResult
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		value, err := store.TenantReader().AggregateRecords(ctx, model, query)
+		if err != nil {
+			return err
+		}
+		result.Value = value
+		return nil
+	})
+	if err != nil {
+		return AggregateResult{}, err
 	}
 	return result, nil
 }

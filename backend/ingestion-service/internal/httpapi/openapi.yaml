@@ -29,6 +29,8 @@ tags:
     description: Liveness and readiness endpoints for service monitoring.
   - name: Tenant Ingestion
     description: Tenant-scoped record ingestion endpoints.
+  - name: Tenant Queries
+    description: Tenant-scoped record lookup and aggregate query endpoints.
   - name: Upload Logs
     description: CSV upload and upload-log inspection endpoints.
 paths:
@@ -207,6 +209,27 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/UploadLog'
+  /v1/tenants/{tenantId}/query/aggregate:
+    post:
+      tags: [Tenant Queries]
+      summary: Execute a tenant-scoped aggregate query
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AggregateQueryRequest'
+      responses:
+        '200':
+          description: Aggregate result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregateQueryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/upload-logs/{uploadLogId}:
     get:
       tags: [Upload Logs]
@@ -362,3 +385,40 @@ components:
         error_message:
           type: string
       required: [id, tenant_id, object_type, mode, filename, content_type, status, total_rows, successful_rows, failed_rows, attempt_count]
+    AggregateQueryRequest:
+      type: object
+      properties:
+        object_type:
+          type: string
+        aggregate:
+          type: string
+          enum: [count, count_distinct, sum, avg, min, max]
+        field:
+          type: string
+        filter:
+          $ref: '#/components/schemas/AggregateFilter'
+      required: [object_type, aggregate, field]
+    AggregateFilter:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [group, predicate]
+        operator:
+          type: string
+          enum: [and, or, not]
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregateFilter'
+        field:
+          type: string
+        op:
+          type: string
+          enum: [eq, neq, gt, gte, lt, lte, in, is_null, is_not_null, starts_with, ends_with]
+        value: {}
+    AggregateQueryResponse:
+      type: object
+      properties:
+        value: {}
+      required: [value]

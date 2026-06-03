@@ -108,6 +108,35 @@ func (h IngestHandler) QueryRecords(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"records": result.Records})
 }
 
+func (h IngestHandler) AggregateRecords(c *gin.Context) {
+	tenantID, err := uuid.Parse(c.Param("tenantId"))
+	if err != nil {
+		writeBadRequest(c, "invalid tenantId")
+		return
+	}
+
+	var query ingestion.AggregateQuery
+	if err := c.ShouldBindJSON(&query); err != nil {
+		writeBadRequest(c, "request body must be a JSON object")
+		return
+	}
+	if query.ObjectType == "" {
+		writeBadRequest(c, "object_type is required")
+		return
+	}
+	if query.Aggregate == "" {
+		writeBadRequest(c, "aggregate is required")
+		return
+	}
+
+	result, err := h.ingestService.AggregateRecords(c.Request.Context(), tenantID, query)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"value": result.Value})
+}
+
 func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {

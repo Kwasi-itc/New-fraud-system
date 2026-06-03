@@ -156,3 +156,67 @@ The standalone rule engine currently treats the following as the baseline semant
 These semantics are the current contract of the standalone runtime unless an explicit compatibility change is made.
 
 Future Marble-alignment work should be treated as a conscious contract change, not as an implicit refactor.
+
+## 6. Aggregate pushdown rollout and scope
+
+The standalone service now supports aggregate pushdown for Marble `Aggregator(...)` functions through `ingestion-service`.
+
+### V1 decision
+
+Aggregate pushdown is staged rather than forced as an unconditional replacement for local aggregation.
+
+Current control knobs:
+
+- `AGGREGATE_PUSHDOWN_MODE`
+  - `enabled`
+  - `disabled`
+  - `strict`
+- `AGGREGATE_PUSHDOWN_AGGREGATES`
+  - comma-separated remote aggregate allow-list
+  - current default: `count`
+
+This means:
+
+- V1 can keep `count` as the first remote aggregate in production
+- wider remote aggregate rollout can be enabled explicitly without changing rule authoring
+- unsupported or disabled aggregate shapes still have a compatibility path when mode is not `strict`
+
+### Current supported remote scope
+
+- aggregates:
+  - `count`
+  - `count_distinct`
+  - `sum`
+  - `avg`
+  - `min`
+  - `max`
+- filter grouping:
+  - `List` as AND
+  - nested `and`
+  - nested `or`
+  - nested `not`
+- filter operators:
+  - `eq`
+  - `neq`
+  - `gt`
+  - `gte`
+  - `lt`
+  - `lte`
+  - `in`
+- runtime value resolution before dispatch:
+  - payload-derived values
+  - resolved time expressions
+
+### Explicit V1 deferrals
+
+The following are explicitly deferred from remote pushdown in V1:
+
+- `is_empty`
+- fuzzy matching
+- decision-history joins
+- custom-list joins
+- tag and risk helper joins
+- broad relationship join traversal
+- arbitrary SQL-like expression pushdown
+
+These are deferred by contract, not by accident. A later change to support them should be treated as an explicit capability expansion.

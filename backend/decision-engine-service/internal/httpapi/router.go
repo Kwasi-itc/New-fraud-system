@@ -17,11 +17,13 @@ import (
 )
 
 type RouterConfig struct {
-	AuthMode            string
-	AuthToken           string
-	DataModelServiceURL string
-	IngestionServiceURL string
-	HTTPClientTimeout   time.Duration
+	AuthMode                    string
+	AuthToken                   string
+	DataModelServiceURL         string
+	IngestionServiceURL         string
+	HTTPClientTimeout           time.Duration
+	AggregatePushdownMode       string
+	AggregatePushdownAggregates []string
 }
 
 type uuidGenerator struct{}
@@ -107,14 +109,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 
-	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
+	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)
 	validationService := service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo)
-	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
+	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	snoozeService := service.NewSnoozeService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, ruleSnoozeRepo)
@@ -136,6 +138,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	outboxHandler := handlers.NewOutboxHandler(outboxService)
 	executionHandler := handlers.NewExecutionHandler(executionService)
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
+	internalScreeningHandler := handlers.NewInternalScreeningHandler(screeningService)
 	scoringHandler := handlers.NewScoringHandler(scoringService)
 	platformHandler := handlers.NewPlatformHandler(platformService)
 
@@ -157,6 +160,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.GetScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers", accessorHandler.ListByScenario)
 	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.UpdateScenario)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.DeleteScenario)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/copy", scenarioHandler.CopyScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rules/latest", scenarioHandler.ListLatestRules)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/ast-ai-description", scenarioHandler.DescribeASTWithAI)
@@ -243,6 +247,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/async-decision-executions", executionHandler.CreateAsyncDecisionExecution)
 	v1.POST("/tenants/:tenantId/test-runs/:testRunId/evaluate", testRunHandler.Evaluate)
 	v1.POST("/tenants/:tenantId/ingestion-events/record-ingested", decisionHandler.HandleRecordIngested)
+
+	internal := router.Group("/internal")
+	internal.Use(authMiddleware(AuthConfig{
+		Mode:  cfg.AuthMode,
+		Token: cfg.AuthToken,
+	}))
+	internal.POST("/screening-status-updates", internalScreeningHandler.UpdateStatus)
 
 	return router
 }

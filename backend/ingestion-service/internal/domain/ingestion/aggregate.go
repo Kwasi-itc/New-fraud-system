@@ -1,12 +1,4 @@
-package ports
-
-import "context"
-
-type TenantRecord struct {
-	ObjectID   string
-	ObjectType string
-	Fields     map[string]any
-}
+package ingestion
 
 type AggregateQuery struct {
 	ObjectType string           `json:"object_type"`
@@ -24,9 +16,7 @@ type AggregateFilter struct {
 	Value    any               `json:"value,omitempty"`
 }
 
-type TenantDataReader interface {
-	GetRecord(ctx context.Context, tenantID, objectType, objectID string) (TenantRecord, error)
-	ListRecords(ctx context.Context, tenantID, objectType string, limit int) ([]TenantRecord, error)
-	QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]TenantRecord, error)
-	AggregateRecords(ctx context.Context, tenantID string, query AggregateQuery) (any, error)
-}
+const (
+	AggregateFilterKindGroup     = "group"
+	AggregateFilterKindPredicate = "predicate"
+)

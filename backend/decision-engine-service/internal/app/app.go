@@ -30,11 +30,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		AuthMode:            cfg.ServiceAuthMode,
-		AuthToken:           cfg.ServiceAuthToken,
-		DataModelServiceURL: cfg.DataModelServiceURL,
-		IngestionServiceURL: cfg.IngestionServiceURL,
-		HTTPClientTimeout:   cfg.HTTPClientTimeout,
+		AuthMode:                    cfg.ServiceAuthMode,
+		AuthToken:                   cfg.ServiceAuthToken,
+		DataModelServiceURL:         cfg.DataModelServiceURL,
+		IngestionServiceURL:         cfg.IngestionServiceURL,
+		HTTPClientTimeout:           cfg.HTTPClientTimeout,
+		AggregatePushdownMode:       cfg.AggregatePushdownMode,
+		AggregatePushdownAggregates: cfg.AggregatePushdownAggregates,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

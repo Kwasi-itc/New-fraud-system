@@ -81,6 +81,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/records/:objectType", ingestHandler.ListRecords)
 	v1.GET("/tenants/:tenantId/records/:objectType/search", ingestHandler.QueryRecords)
 	v1.GET("/tenants/:tenantId/records/:objectType/:objectId", ingestHandler.GetRecord)
+	v1.POST("/tenants/:tenantId/query/aggregate", ingestHandler.AggregateRecords)
 	v1.POST("/tenants/:tenantId/ingest/:objectType/csv", uploadLogHandler.CreateCSV)
 	v1.GET("/tenants/:tenantId/ingest/:objectType/upload-logs", uploadLogHandler.List)
 	v1.GET("/upload-logs/:uploadLogId", uploadLogHandler.Get)

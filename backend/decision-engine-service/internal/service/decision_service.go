@@ -32,31 +32,33 @@ type MultiScenarioEvaluationResult struct {
 }
 
 type DecisionService struct {
-	txManager           ports.TransactionManager
-	idGen               ports.IDGenerator
-	clock               ports.Clock
-	dataModelReader     ports.DataModelReader
-	scenarioRepo        ports.ScenarioRepository
-	iterationRepo       ports.ScenarioIterationRepository
-	ruleRepo            ports.RuleRepository
-	tenantDataReader    ports.TenantDataReader
-	decisionRepo        ports.DecisionRepository
-	ruleExecRepo        ports.RuleExecutionRepository
-	workflowRepo        ports.WorkflowRepository
-	workflowRuleRepo    ports.WorkflowRuleRepository
-	workflowCondRepo    ports.WorkflowConditionRepository
-	workflowActionRepo  ports.WorkflowActionRepository
-	workflowExecRepo    ports.WorkflowExecutionRepository
-	snoozeRepo          ports.RuleSnoozeRepository
-	outboxRepo          ports.OutboxEventRepository
-	customListRepo      ports.CustomListRepository
-	recordTagRepo       ports.RecordTagRepository
-	riskRepo            ports.RiskSnapshotRepository
-	ipFlagRepo          ports.IPFlagRepository
-	screeningConfigRepo ports.ScreeningConfigRepository
-	screeningExecRepo   ports.ScreeningExecutionRepository
-	scoringConfigRepo   ports.ScoringConfigRepository
-	scoringRequestRepo  ports.ScoringRequestRepository
+	txManager                   ports.TransactionManager
+	idGen                       ports.IDGenerator
+	clock                       ports.Clock
+	dataModelReader             ports.DataModelReader
+	scenarioRepo                ports.ScenarioRepository
+	iterationRepo               ports.ScenarioIterationRepository
+	ruleRepo                    ports.RuleRepository
+	tenantDataReader            ports.TenantDataReader
+	decisionRepo                ports.DecisionRepository
+	ruleExecRepo                ports.RuleExecutionRepository
+	workflowRepo                ports.WorkflowRepository
+	workflowRuleRepo            ports.WorkflowRuleRepository
+	workflowCondRepo            ports.WorkflowConditionRepository
+	workflowActionRepo          ports.WorkflowActionRepository
+	workflowExecRepo            ports.WorkflowExecutionRepository
+	snoozeRepo                  ports.RuleSnoozeRepository
+	outboxRepo                  ports.OutboxEventRepository
+	customListRepo              ports.CustomListRepository
+	recordTagRepo               ports.RecordTagRepository
+	riskRepo                    ports.RiskSnapshotRepository
+	ipFlagRepo                  ports.IPFlagRepository
+	screeningConfigRepo         ports.ScreeningConfigRepository
+	screeningExecRepo           ports.ScreeningExecutionRepository
+	scoringConfigRepo           ports.ScoringConfigRepository
+	scoringRequestRepo          ports.ScoringRequestRepository
+	aggregatePushdownMode       string
+	aggregatePushdownAggregates []string
 }
 
 func NewDecisionService(
@@ -85,33 +87,37 @@ func NewDecisionService(
 	screeningExecRepo ports.ScreeningExecutionRepository,
 	scoringConfigRepo ports.ScoringConfigRepository,
 	scoringRequestRepo ports.ScoringRequestRepository,
+	aggregatePushdownMode string,
+	aggregatePushdownAggregates []string,
 ) DecisionService {
 	return DecisionService{
-		txManager:           txManager,
-		idGen:               idGen,
-		clock:               clock,
-		dataModelReader:     dataModelReader,
-		scenarioRepo:        scenarioRepo,
-		iterationRepo:       iterationRepo,
-		ruleRepo:            ruleRepo,
-		tenantDataReader:    tenantDataReader,
-		decisionRepo:        decisionRepo,
-		ruleExecRepo:        ruleExecRepo,
-		workflowRepo:        workflowRepo,
-		workflowRuleRepo:    workflowRuleRepo,
-		workflowCondRepo:    workflowCondRepo,
-		workflowActionRepo:  workflowActionRepo,
-		workflowExecRepo:    workflowExecRepo,
-		snoozeRepo:          snoozeRepo,
-		outboxRepo:          outboxRepo,
-		customListRepo:      customListRepo,
-		recordTagRepo:       recordTagRepo,
-		riskRepo:            riskRepo,
-		ipFlagRepo:          ipFlagRepo,
-		screeningConfigRepo: screeningConfigRepo,
-		screeningExecRepo:   screeningExecRepo,
-		scoringConfigRepo:   scoringConfigRepo,
-		scoringRequestRepo:  scoringRequestRepo,
+		txManager:                   txManager,
+		idGen:                       idGen,
+		clock:                       clock,
+		dataModelReader:             dataModelReader,
+		scenarioRepo:                scenarioRepo,
+		iterationRepo:               iterationRepo,
+		ruleRepo:                    ruleRepo,
+		tenantDataReader:            tenantDataReader,
+		decisionRepo:                decisionRepo,
+		ruleExecRepo:                ruleExecRepo,
+		workflowRepo:                workflowRepo,
+		workflowRuleRepo:            workflowRuleRepo,
+		workflowCondRepo:            workflowCondRepo,
+		workflowActionRepo:          workflowActionRepo,
+		workflowExecRepo:            workflowExecRepo,
+		snoozeRepo:                  snoozeRepo,
+		outboxRepo:                  outboxRepo,
+		customListRepo:              customListRepo,
+		recordTagRepo:               recordTagRepo,
+		riskRepo:                    riskRepo,
+		ipFlagRepo:                  ipFlagRepo,
+		screeningConfigRepo:         screeningConfigRepo,
+		screeningExecRepo:           screeningExecRepo,
+		scoringConfigRepo:           scoringConfigRepo,
+		scoringRequestRepo:          scoringRequestRepo,
+		aggregatePushdownMode:       aggregatePushdownMode,
+		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
 	}
 }
 
@@ -146,18 +152,20 @@ func (s DecisionService) EvaluateScenario(
 		return DecisionEvaluationResult{}, err
 	}
 	runtime := asteval.Runtime{
-		TenantID:         tenantID,
-		ObjectID:         req.ObjectID,
-		ObjectType:       req.ObjectType,
-		Fields:           req.Fields,
-		Now:              s.clock.Now(),
-		Model:            &model,
-		TenantDataReader: s.tenantDataReader,
-		CustomListRepo:   s.customListRepo,
-		RecordTagRepo:    s.recordTagRepo,
-		RiskRepo:         s.riskRepo,
-		IPFlagRepo:       s.ipFlagRepo,
-		DecisionRepo:     s.decisionRepo,
+		TenantID:                    tenantID,
+		ObjectID:                    req.ObjectID,
+		ObjectType:                  req.ObjectType,
+		Fields:                      req.Fields,
+		Now:                         s.clock.Now(),
+		Model:                       &model,
+		TenantDataReader:            s.tenantDataReader,
+		CustomListRepo:              s.customListRepo,
+		RecordTagRepo:               s.recordTagRepo,
+		RiskRepo:                    s.riskRepo,
+		IPFlagRepo:                  s.ipFlagRepo,
+		DecisionRepo:                s.decisionRepo,
+		AggregatePushdownMode:       s.aggregatePushdownMode,
+		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -235,7 +243,7 @@ func (s DecisionService) EvaluateScenario(
 		if err != nil {
 			return err
 		}
-		screeningExecs, err := s.buildScreeningExecutions(ctx, stored)
+		screeningExecs, err := s.buildScreeningExecutions(ctx, stored, req.Fields)
 		if err != nil {
 			return err
 		}
@@ -457,7 +465,7 @@ func stringPtr(value string) *string {
 	return &value
 }
 
-func (s DecisionService) buildScreeningExecutions(ctx context.Context, item decision.Decision) ([]screening.Execution, error) {
+func (s DecisionService) buildScreeningExecutions(ctx context.Context, item decision.Decision, objectFields map[string]any) ([]screening.Execution, error) {
 	configs, err := s.screeningConfigRepo.ListActiveByScenario(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
@@ -468,27 +476,22 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 		if !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
 			continue
 		}
-		req, err := json.Marshal(map[string]any{
-			"decision_id": item.ID,
-			"provider":    cfg.Provider,
-			"object_id":   item.ObjectID,
-			"object_type": item.ObjectType,
-			"config_id":   cfg.ID,
-		})
+		exec := screening.Execution{
+			ID:         s.idGen.New().String(),
+			TenantID:   item.TenantID,
+			ConfigID:   cfg.ID,
+			DecisionID: item.ID,
+			ScenarioID: item.ScenarioID,
+			Status:     screening.ExecutionStatusPending,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}
+		req, err := buildScreeningDispatchRequest(exec.ID, cfg, exec, item.ObjectType, item.ObjectID, objectFields)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, screening.Execution{
-			ID:          s.idGen.New().String(),
-			TenantID:    item.TenantID,
-			ConfigID:    cfg.ID,
-			DecisionID:  item.ID,
-			ScenarioID:  item.ScenarioID,
-			Status:      screening.ExecutionStatusPending,
-			RequestJSON: req,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		})
+		exec.RequestJSON = req
+		out = append(out, exec)
 	}
 	return out, nil
 }
