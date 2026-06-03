@@ -36,6 +36,7 @@ type workerRunner struct {
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	cfg, err := app.LoadConfig()
 	if err != nil {
