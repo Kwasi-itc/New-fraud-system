@@ -1,18 +1,19 @@
 # Integration Tests
 
-Python integration tests for the data-model, ingestion, and decision-engine services.
+Python integration tests for the data-model, ingestion, decision-engine, and screening services.
 
 ## Prerequisites
 
 - Python 3.12+
 - The dependencies from `requirements.txt`
-- The three services running and migrated
+- The services running and migrated
 
 Default service URLs:
 
 - `DATA_MODEL_URL=http://localhost:8080`
 - `INGESTION_URL=http://localhost:8081`
 - `DECISION_ENGINE_URL=http://localhost:8082`
+- `SCREENING_URL=http://localhost:8085`
 
 Override those environment variables when testing a different deployment.
 
@@ -30,6 +31,18 @@ Or from this folder:
 ```bash
 python -m pip install -r requirements.txt
 python -m pytest
+```
+
+If you need to migrate the local services first:
+
+```bash
+cd ../data-model-service && go run ./cmd/migrate up
+cd ../ingestion-service && go run ./cmd/migrate up
+cd ../decision-engine-service && go run ./cmd/migrate up
+cd ../screening-service && go run ./cmd/migrate up
+cd ../integration-tests
+python3 -m pip install -r requirements.txt
+python3 -m pytest
 ```
 
 Restart services after code changes and migrations. The suite waits for each service `/readyz` endpoint before running API tests.

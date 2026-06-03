@@ -129,6 +129,58 @@ paths:
                 $ref: '#/components/schemas/ScenarioEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}:
+    get:
+      tags: [Scenario Authoring]
+      summary: Get one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Scenario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Scenario Authoring]
+      summary: Update one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScenarioRequest'
+      responses:
+        '200':
+          description: Scenario updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+    delete:
+      tags: [Scenario Authoring]
+      summary: Delete one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '204':
+          description: Scenario deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers:
     get:
       tags: [Scenario Authoring]
@@ -514,6 +566,40 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateWorkflowRequest'
+            examples:
+              createCase:
+                summary: Create-case workflow for review outcomes
+                value:
+                  name: High amount review case
+                  description: Create a case when the scenario outcome is review
+                  allowed_outcomes: [review]
+                  action_type: create_case
+                  action_config:
+                    title: High amount transaction
+                    reason: Transaction amount exceeded threshold
+                    source: decision-engine
+                  active: true
+              addTag:
+                summary: Add-tag workflow for review outcomes
+                value:
+                  name: Tag high amount decisions
+                  description: Add a tag when the scenario outcome is review
+                  allowed_outcomes: [review]
+                  action_type: add_tag
+                  action_config:
+                    tag: high_amount
+                  active: true
+              emitEvent:
+                summary: Emit-event workflow for review outcomes
+                value:
+                  name: Emit high amount event
+                  description: Emit an event for reviewed high amount transactions
+                  allowed_outcomes: [review]
+                  action_type: emit_event
+                  action_config:
+                    event_name: transaction.high_amount.review
+                    severity: medium
+                  active: true
       responses:
         '201':
           description: Workflow created
@@ -571,6 +657,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateWorkflowRuleRequest'
+            examples:
+              highAmountEscalation:
+                summary: Structured workflow-rule shell for a high-amount flow
+                value:
+                  name: High amount escalation
+                  fallthrough: false
       responses:
         '201':
           description: Workflow rule created
@@ -681,6 +773,32 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowConditionRequest'
+            examples:
+              outcomeIn:
+                summary: Require the final decision outcome to be review
+                value:
+                  function: outcome_in
+                  params:
+                    - review
+              ruleHit:
+                summary: Require a specific scenario rule to have hit
+                value:
+                  function: rule_hit
+                  params:
+                    rule_ids:
+                      - high_amount_rule_id
+              payloadEvaluates:
+                summary: Require a payload expression to evaluate to true
+                value:
+                  function: payload_evaluates
+                  params:
+                    expression:
+                      name: gt
+                      children:
+                        - name: Payload
+                          children:
+                            - constant: amount
+                        - constant: 20000
       responses:
         '201':
           description: Workflow condition created
@@ -761,6 +879,28 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowActionRequest'
+            examples:
+              createCase:
+                summary: Create-case action for a matched workflow-rule
+                value:
+                  action_type: create_case
+                  action_config:
+                    title: High amount transaction
+                    reason: Amount rule hit and outcome is review
+                    source: decision-engine
+              addTag:
+                summary: Add-tag action for a matched workflow-rule
+                value:
+                  action_type: add_tag
+                  action_config:
+                    tag: high_amount
+              emitEvent:
+                summary: Emit-event action for a matched workflow-rule
+                value:
+                  action_type: emit_event
+                  action_config:
+                    event_name: transaction.high_amount.review
+                    severity: medium
       responses:
         '201':
           description: Workflow action created
@@ -1887,6 +2027,7 @@ components:
       required: [live, phantom]
     CreateWorkflowRequest:
       type: object
+      description: Legacy outcome-driven workflow definition. This model triggers from final decision outcomes. Use structured workflow-rules when execution should depend on specific rule hits or payload expressions.
       properties:
         name:
           type: string
@@ -1896,8 +2037,10 @@ components:
           type: array
           items:
             type: string
+          description: Decision outcomes that should trigger the workflow, such as approve, review, block_and_review, or decline.
         action_type:
           type: string
+          description: Supported legacy workflow actions are create_case, add_tag, and emit_event.
         action_config:
           $ref: '#/components/schemas/JSONValue'
         active:
@@ -1905,11 +2048,14 @@ components:
       required: [name, description, allowed_outcomes, action_type, action_config, active]
     CreateWorkflowRuleRequest:
       type: object
+      description: Structured workflow-rule definition. Add conditions and actions after creating the rule. Structured workflow-rules are preferred over legacy workflows when a scenario has them.
       properties:
         name:
           type: string
+          description: Human-readable name for the structured workflow rule.
         fallthrough:
           type: boolean
+          description: When false, stop after this matching rule. When true, continue evaluating lower-priority workflow rules.
       required: [name, fallthrough]
     UpdateWorkflowRuleRequest:
       type: object
@@ -1921,17 +2067,21 @@ components:
       required: [name, fallthrough]
     WorkflowConditionRequest:
       type: object
+      description: Condition attached to a structured workflow-rule. Supported functions are always, never, outcome_in, rule_hit, and payload_evaluates.
       properties:
         function:
           type: string
+          description: Condition function name.
         params:
           $ref: '#/components/schemas/JSONValue'
       required: [function, params]
     WorkflowActionRequest:
       type: object
+      description: Action attached to a structured workflow-rule. Supported action types are create_case, add_tag, and emit_event.
       properties:
         action_type:
           type: string
+          description: Action type to dispatch when the workflow-rule matches.
         action_config:
           $ref: '#/components/schemas/JSONValue'
       required: [action_type, action_config]

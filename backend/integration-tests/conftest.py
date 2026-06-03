@@ -325,6 +325,25 @@ def decision_engine() -> ApiClient:
 
 
 def create_tenant_model(data_model: ApiClient) -> dict[str, Any]:
+
+@pytest.fixture(scope="session")
+def screening_service() -> ApiClient:
+    headers = {}
+    token = os.getenv("SERVICE_AUTH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    client = httpx.Client(
+        base_url=os.getenv("SCREENING_URL", "http://localhost:8085"),
+        timeout=httpx.Timeout(30.0),
+        headers=headers,
+    )
+    api = ApiClient("screening-service", str(client.base_url).rstrip("/"), client)
+    wait_until_ready(api)
+    yield api
+    client.close()
+
+
+def create_tenant_model(data_model: ApiClient) -> dict[str, Any]:
     tenant_payload = {"name": unique_name("itc tenant"), "external_key": unique_name("ext")}
     tenant = require_key(assert_status(data_model.post("/v1/tenants", json=tenant_payload), 201), "tenant")
     tenant_id = tenant["id"]

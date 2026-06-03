@@ -2,13 +2,11 @@
 
 ## Overview
 
-This document describes the target integration surface for the future standalone `screening-service`.
-
-Because the service does not exist yet, this document defines intended contracts rather than implemented ones.
+This document describes the current integration surface for the implemented standalone `screening-service`, plus the major live-rollout questions that still need proof.
 
 ## External relationships
 
-The service will depend on:
+The service currently depends on:
 
 - `decision-engine-service`
 - `data-model-service`
@@ -20,71 +18,30 @@ The service will depend on:
 
 ## Contract with decision-engine-service
 
-There are two plausible models for V1.
+The implemented V1 path is an internal HTTP intake.
 
-### Model A: command or event driven
+Current endpoint:
 
-The decision engine emits a screening request command or outbox event after a decision is created.
+- `POST /internal/v1/tenants/{tenantId}/decision-screenings`
 
-Suggested envelope:
+Current request shape includes:
 
-- `tenant_id`
 - `decision_id`
 - `scenario_id`
 - `screening_config_id`
 - `object_id`
 - `object_type`
-- `outcome`
-- `request_payload`
-- `requested_at`
-
-Advantages:
-
-- explicit ownership boundary
-- decoupled lifecycle
-- easy worker-based processing
-
-Tradeoffs:
-
-- requires event or command infrastructure
-- callback semantics must be defined separately if the decision engine needs status updates
-
-### Model B: HTTP request from decision engine to screening service
-
-The decision engine calls the screening service to create a screening request.
-
-Suggested endpoint:
-
-- `POST /v1/tenants/{tenantId}/screening-requests`
-
-Suggested request fields:
-
-- `decision_id`
-- `scenario_id`
-- `config_id`
-- `object_id`
-- `object_type`
 - `provider`
-- `config_json`
-- `request_context`
+- `queries`
+- `provider_config`
+- `limit_override`
+- `idempotency_key`
 
-Advantages:
-
-- simpler initial rollout
-- easy to reason about synchronously
-
-Tradeoffs:
-
-- tighter runtime coupling
-- less flexible for eventual background execution
-
-### Recommended V1 direction
-
-Prefer an explicit asynchronous command boundary, but allow HTTP if that materially reduces early extraction risk.
+The worker-backed lifecycle remains asynchronous after intake even though the initial command boundary is HTTP.
 
 ## Contract back to decision-engine-service
 
-The screening service may need to communicate result state back.
+The screening service communicates result state back through an explicit HTTP callback.
 
 Possible needs:
 
@@ -100,15 +57,27 @@ Recommended feedback contract:
 - decision engine keeps high-level screening execution lifecycle if needed for audit
 - screening service remains source of truth for full screening details and matches
 
-Possible callback fields:
+Current callback endpoint expected on the decision engine:
 
-- `screening_request_id`
+- `POST /internal/screening-status-updates`
+
+Current callback fields include:
+
+- `tenant_id`
+- `screening_id`
 - `decision_id`
+- `scenario_id`
+- `screening_config_id`
 - `status`
+- `provider`
+- `object_type`
+- `object_id`
 - `provider_reference`
-- `result_reference`
-- `completed_at`
 - `last_error`
+- `partial`
+- `idempotency_key`
+- `completed_at`
+- `match_count`
 
 ## Contract with data-model-service
 
@@ -144,7 +113,7 @@ The screening service should not require authoring endpoints from the data model
 
 This is a cross-cutting but important integration boundary.
 
-The future service will likely need checks for:
+The current service boundary still needs checks for:
 
 - sanctions screening availability
 - continuous-screening availability
@@ -154,7 +123,7 @@ The future service will likely need checks for:
 
 ## Contract with ingestion-service
 
-The screening service will likely need tenant record reads and event notifications.
+The screening service needs tenant record reads and event notifications.
 
 ### Read needs
 
@@ -177,7 +146,7 @@ Continuous or list screening may need notification of:
 - object updated
 - object deleted if modeled explicitly
 
-Possible V1 integration:
+Current baseline integration:
 
 - explicit HTTP callback from ingestion service
 
@@ -189,7 +158,7 @@ Possible later integration:
 
 Legacy Marble behavior includes organization-level screening defaults such as threshold and limit values used when screening configs do not override them.
 
-The future architecture must decide whether those defaults come from:
+The broader platform still needs to decide whether those defaults come from:
 
 - the screening service itself
 - a separate organization or settings owner
@@ -197,7 +166,7 @@ The future architecture must decide whether those defaults come from:
 
 ## Contract with provider integrations
 
-This service should hide provider-specific behavior behind one provider port.
+This service hides provider-specific behavior behind one provider port.
 
 Capabilities likely required:
 
@@ -238,7 +207,7 @@ Important concrete behaviors to preserve in planning:
 - algorithm selection
 - dataset catalog and freshness inspection
 
-The future service should model these behind adapters, but it should explicitly plan for them because they are part of the existing Marble behavior.
+The service now models these behind adapters, but rollout still needs to validate them against the real provider deployment.
 
 ## Contract with preprocessing and name-recognition dependencies
 
@@ -265,7 +234,7 @@ Likely external:
 
 This is one of the highest-risk boundaries because legacy screening review flows cause case-side effects.
 
-The future contract should support:
+The current contract supports:
 
 - create case for a continuous or list-screening result
 - attach screening review event to case
@@ -289,7 +258,7 @@ Likely read-side validations also needed:
 
 This is a critical distinction.
 
-The future `screening-service` is not currently intended to own Marble's general company custom-list CRUD.
+`screening-service` is not currently intended to own Marble's general company custom-list CRUD.
 
 However, screening preprocessing currently depends on custom-list reads for ignore-list behavior.
 
@@ -324,7 +293,7 @@ This should remain an infrastructure port rather than a service-to-service depen
 
 ## Internal ownership contracts
 
-The screening service should become the source of truth for:
+The screening service is now the source of truth for:
 
 - screenings
 - screening matches
@@ -343,15 +312,13 @@ The decision engine should not remain source of truth for match-level screening 
 
 ## Open contract questions
 
-The following decisions still need finalization:
+The following decisions or rollout proofs still need finalization:
 
-- whether decision-engine integration is HTTP or event-based in V1
 - whether case-management side effects remain synchronous or become command-driven
-- whether continuous-screening configs are fully owned by screening service in V1 or partially transitional
 - whether tenant record reads stay HTTP-based through ingestion service or move to direct tenant-store reads behind a port
-- whether provider result payloads are normalized fully or stored raw with light indexing
-- whether provider catalog and dataset-freshness inspection should live directly in screening-service APIs or through an internal-only adapter
+- whether provider catalog and dataset-freshness inspection are sufficient for production operations as currently exposed
 - whether general custom-list reads should come through a dedicated platform service or another existing owner
+- whether the current provider dataset delta handling matches the real provider behavior in production
 
 ## Guiding rule
 

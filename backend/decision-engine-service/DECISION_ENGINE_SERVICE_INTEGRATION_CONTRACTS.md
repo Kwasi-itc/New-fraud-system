@@ -193,10 +193,10 @@ The standalone service already owns:
 
 What is still open:
 
-- exact provider contracts
-- downstream response handling lifecycle
-- retry behavior and terminal-failure behavior
-- whether these integrations stay in this service boundary for V1 and beyond
+- exact scoring provider contracts
+- workflow and scoring downstream response handling lifecycle
+- retry behavior and terminal-failure behavior for non-screening side effects
+- whether scoring stays in this service boundary for V1 and beyond
 
 ## Current OpenAPI and HTTP contract status
 

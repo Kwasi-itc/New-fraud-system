@@ -12,6 +12,7 @@ This folder now contains:
 - initial Go service scaffold
 - V1 screening runtime and worker slice
 - migrations for the first screening-owned schema
+- rollout and operational runbooks
 
 ## Purpose
 
@@ -21,7 +22,7 @@ The target service is intended to own the screening-related domains that do not 
 - `ingestion-service`
 - `decision-engine-service`
 
-In practical terms, this means the future service should cover:
+In practical terms, this means the service covers:
 
 - decision-time screening provider execution
 - screening result persistence
@@ -56,7 +57,7 @@ It combines:
 
 That makes it a bounded context and operational service, not only a decision-engine submodule.
 
-## Planning documents
+## Design and planning documents
 
 - [SCREENING_SERVICE_EXTRACTION_DESIGN.md](./SCREENING_SERVICE_EXTRACTION_DESIGN.md)
 - [SCREENING_SERVICE_DOMAIN_BREAKDOWN.md](./SCREENING_SERVICE_DOMAIN_BREAKDOWN.md)
@@ -64,6 +65,11 @@ That makes it a bounded context and operational service, not only a decision-eng
 - [SCREENING_SERVICE_INTEGRATION_CONTRACTS.md](./SCREENING_SERVICE_INTEGRATION_CONTRACTS.md)
 - [SCREENING_SERVICE_V1_OPERATING_DECISIONS.md](./SCREENING_SERVICE_V1_OPERATING_DECISIONS.md)
 - [IMPLEMENTATION_TODO.md](./IMPLEMENTATION_TODO.md)
+
+Operational follow-up documents:
+
+- [SCREENING_SERVICE_ROLLOUT_CHECKLIST.md](./SCREENING_SERVICE_ROLLOUT_CHECKLIST.md)
+- [SCREENING_SERVICE_OPERATIONS_RUNBOOK.md](./SCREENING_SERVICE_OPERATIONS_RUNBOOK.md)
 
 ## Current implementation position
 
@@ -109,7 +115,7 @@ Current integration ports include:
 - decision-engine status callback publishing
 - provider routing from `SCREENING_PROVIDER_URLS`
 
-The planning pack in this folder still documents the broader target boundary in detail. The main remaining work is downstream cutover and operational adoption, not missing core module boundaries inside `screening-service`.
+The planning pack in this folder still documents the broader target boundary in detail. The main remaining work is live rollout confirmation, downstream environment wiring, and operational adoption, not missing core module boundaries inside `screening-service`.
 
 ## Operating notes
 
@@ -120,6 +126,7 @@ HTTP surfaces:
 - `GET /metrics`: JSON request metrics snapshot
 - `GET /v1/service-info`: active downstream URL wiring
 - `POST /internal/v1/tenants/:tenantId/decision-screenings`: decision-engine intake contract
+- `POST /internal/screening-status-updates`: expected callback receiver on `decision-engine-service`
 
 Server logging:
 
@@ -141,8 +148,34 @@ Operational expectations:
 - run `cmd/worker` for background processing
 - run `cmd/migrate` before first startup against a fresh database
 - `screening-service` expects reachable downstreams for provider, ingestion, inbox, case, and blob integrations when those flows are exercised
+- `.env.example` includes `BLOB_SERVICE_URL` alongside the provider, ingestion, inbox, case, and decision-engine URLs expected by the current runtime
 - `DECISION_ENGINE_URL` is optional, but when configured the worker and review flows publish screening status updates back to the decision engine
+- when `SERVICE_AUTH_MODE=token`, internal intake and callback requests use `SERVICE_AUTH_TOKEN` bearer auth
 - `SCREENING_PROVIDER_URLS` can be JSON or comma-separated `provider=url` pairs for provider-key routing; `SCREENING_PROVIDER_URL` remains the fallback default
+- for direct OpenSanctions ownership inside `screening-service`, configure `OPENSANCTIONS_API_HOST`, `OPENSANCTIONS_AUTH_METHOD`, `OPENSANCTIONS_API_KEY`, `OPENSANCTIONS_SCOPE`, and `OPENSANCTIONS_ALGORITHM`
+
+Rollout and validation references:
+
+- use [SCREENING_SERVICE_ROLLOUT_CHECKLIST.md](./SCREENING_SERVICE_ROLLOUT_CHECKLIST.md) to confirm migration `000003_decision_engine_and_idempotency`, env wiring, and end-to-end flow coverage
+- use [SCREENING_SERVICE_OPERATIONS_RUNBOOK.md](./SCREENING_SERVICE_OPERATIONS_RUNBOOK.md) for retry, backlog, provider outage, and callback verification procedures
+
+Decision-engine callback payload fields currently include:
+
+- `tenant_id`
+- `screening_id`
+- `decision_id`
+- `scenario_id`
+- `screening_config_id`
+- `status`
+- `provider`
+- `object_type`
+- `object_id`
+- `provider_reference`
+- `last_error`
+- `partial`
+- `idempotency_key`
+- `completed_at`
+- `match_count`
 
 Minimum verification routine after changes:
 

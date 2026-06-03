@@ -84,6 +84,16 @@ func (h ScenarioHandler) UpdateScenario(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"scenario": dto.AdaptScenario(item)})
 }
 
+func (h ScenarioHandler) DeleteScenario(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+	if err := h.scenarioService.Delete(c.Request.Context(), tenantID, scenarioID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "delete_scenario_failed", "details": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h ScenarioHandler) CopyScenario(c *gin.Context) {
 	var req dto.CopyScenarioRequest
 	if err := c.ShouldBindJSON(&req); err != nil && err.Error() != "EOF" {

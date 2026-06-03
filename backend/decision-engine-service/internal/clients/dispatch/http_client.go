@@ -17,15 +17,19 @@ import (
 
 type HTTPClient struct {
 	client             *http.Client
+	authMode           string
+	authToken          string
 	workflowURL        string
 	screeningURL       string
 	scoringURL         string
 	outboxPublisherURL string
 }
 
-func NewHTTPClient(timeout time.Duration, workflowURL, screeningURL, scoringURL, outboxPublisherURL string) HTTPClient {
+func NewHTTPClient(timeout time.Duration, authMode, authToken, workflowURL, screeningURL, scoringURL, outboxPublisherURL string) HTTPClient {
 	return HTTPClient{
 		client:             &http.Client{Timeout: timeout},
+		authMode:           strings.ToLower(strings.TrimSpace(authMode)),
+		authToken:          authToken,
 		workflowURL:        strings.TrimRight(workflowURL, "/"),
 		screeningURL:       strings.TrimRight(screeningURL, "/"),
 		scoringURL:         strings.TrimRight(scoringURL, "/"),
@@ -57,9 +61,9 @@ func (c HTTPClient) DispatchWorkflowExecution(ctx context.Context, item workflow
 
 func (c HTTPClient) SendScreeningExecution(ctx context.Context, item screening.Execution) error {
 	if c.screeningURL == "" {
-		return fmt.Errorf("screening provider URL is not configured")
+		return fmt.Errorf("screening service URL is not configured")
 	}
-	return c.postRawJSON(ctx, c.screeningURL, item.RequestJSON)
+	return c.postRawJSON(ctx, c.screeningURL+"/internal/v1/tenants/"+item.TenantID+"/decision-screenings", item.RequestJSON)
 }
 
 func (c HTTPClient) SendScoringRequest(ctx context.Context, item scoring.Request) error {
@@ -99,6 +103,9 @@ func (c HTTPClient) postRawJSON(ctx context.Context, url string, payload []byte)
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.authMode == "token" && c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err

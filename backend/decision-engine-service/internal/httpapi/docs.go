@@ -44,8 +44,9 @@ const docsHTML = `<!doctype html>
       <span style="margin-left:16px;">Raw spec: <a href="/openapi.yaml">/openapi.yaml</a></span>
       <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
         Marble-inspired standalone decisioning service. Current baseline includes scenario authoring, validation,
-        decision evaluation, test runs, rule snoozes, workflow and execution records, and helper data endpoints.
-        Worker execution and several downstream side effects are still provisional.
+        decision evaluation, test runs, rule snoozes, workflow and execution records, helper data endpoints,
+        screening dispatch to screening-service, and screening status callbacks. Workflow side effects remain the
+        main provisional downstream area.
       </div>
     </header>
     <div id="swagger-ui"></div>

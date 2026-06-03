@@ -19,12 +19,15 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 
 	hits := make(chan string, 4)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/internal/v1/tenants/tenant-1/decision-screenings" && r.Header.Get("Authorization") != "Bearer token-1" {
+			t.Fatalf("authorization header = %q, want Bearer token-1", r.Header.Get("Authorization"))
+		}
 		hits <- r.URL.Path
 		w.WriteHeader(http.StatusAccepted)
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(time.Second, server.URL+"/workflow", server.URL+"/screening", server.URL+"/scoring", server.URL+"/outbox")
+	client := NewHTTPClient(time.Second, "token", "token-1", server.URL+"/workflow", server.URL, server.URL+"/scoring", server.URL+"/outbox")
 	ctx := context.Background()
 
 	if err := client.DispatchWorkflowExecution(ctx, workflow.Execution{
@@ -39,7 +42,7 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 	}
 
 	screeningPayload, _ := json.Marshal(map[string]any{"screening": true})
-	if err := client.SendScreeningExecution(ctx, screening.Execution{RequestJSON: screeningPayload}); err != nil {
+	if err := client.SendScreeningExecution(ctx, screening.Execution{TenantID: "tenant-1", RequestJSON: screeningPayload}); err != nil {
 		t.Fatalf("SendScreeningExecution() error = %v", err)
 	}
 
@@ -57,10 +60,10 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 	}
 
 	want := map[string]bool{
-		"/workflow":  false,
-		"/screening": false,
-		"/scoring":   false,
-		"/outbox":    false,
+		"/workflow": false,
+		"/internal/v1/tenants/tenant-1/decision-screenings": false,
+		"/scoring": false,
+		"/outbox":  false,
 	}
 	for i := 0; i < 4; i++ {
 		path := <-hits

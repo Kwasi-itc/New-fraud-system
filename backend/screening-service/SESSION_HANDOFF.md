@@ -214,10 +214,6 @@ The remaining work is mostly outside the core service implementation.
 ### Operational / integration follow-up
 
 - run migration `000003_decision_engine_and_idempotency`
-- wire `decision-engine-service` to call:
-  - `POST /internal/v1/tenants/:tenantId/decision-screenings`
-- implement or confirm the receiving endpoint on the decision engine side for:
-  - `POST /internal/screening-status-updates`
 - set production env wiring for:
   - `SCREENING_PROVIDER_URLS`
   - `DECISION_ENGINE_URL`
@@ -245,11 +241,11 @@ The remaining work is mostly outside the core service implementation.
 
 For the next session, start here:
 
-1. apply the latest migration
-2. inspect `decision-engine-service` for the outbound call path to screening
-3. wire decision-engine intake to `/internal/v1/tenants/:tenantId/decision-screenings`
-4. add or confirm the decision-engine callback receiver for `/internal/screening-status-updates`
-5. run an end-to-end screening execution through both services
+1. apply the latest migration in the target environment
+2. configure real service URLs and auth tokens
+3. run an end-to-end screening execution through both services
+4. run one provider dataset update job and confirm monitored-object re-screening
+5. capture rollout evidence using `SCREENING_SERVICE_ROLLOUT_CHECKLIST.md`
 
 ## Reference Docs
 
@@ -257,3 +253,5 @@ For the next session, start here:
 - [IMPLEMENTATION_TODO.md](/C:/Users/Kwasi%20Addo/Dev/Work/IT%20Consortium/Marble/marble/new/backend/screening-service/IMPLEMENTATION_TODO.md)
 - [SCREENING_SERVICE_IMPLEMENTATION_BLUEPRINT.md](/C:/Users/Kwasi%20Addo/Dev/Work/IT%20Consortium/Marble/marble/new/backend/screening-service/SCREENING_SERVICE_IMPLEMENTATION_BLUEPRINT.md)
 - [SCREENING_SERVICE_SOURCE_INVENTORY.md](/C:/Users/Kwasi%20Addo/Dev/Work/IT%20Consortium/Marble/marble/new/backend/screening-service/SCREENING_SERVICE_SOURCE_INVENTORY.md)
+- [SCREENING_SERVICE_ROLLOUT_CHECKLIST.md](/C:/Users/Kwasi%20Addo/Dev/Work/IT%20Consortium/Marble/marble/new/backend/screening-service/SCREENING_SERVICE_ROLLOUT_CHECKLIST.md)
+- [SCREENING_SERVICE_OPERATIONS_RUNBOOK.md](/C:/Users/Kwasi%20Addo/Dev/Work/IT%20Consortium/Marble/marble/new/backend/screening-service/SCREENING_SERVICE_OPERATIONS_RUNBOOK.md)

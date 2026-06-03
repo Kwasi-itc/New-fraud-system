@@ -20,16 +20,21 @@ import (
 )
 
 type RouterConfig struct {
-	AuthMode              string
-	AuthToken             string
-	ScreeningProviderURL  string
-	ScreeningProviderURLs string
-	IngestionServiceURL   string
-	InboxServiceURL       string
-	CaseServiceURL        string
-	BlobServiceURL        string
-	DecisionEngineURL     string
-	HTTPClientTimeout     time.Duration
+	AuthMode               string
+	AuthToken              string
+	ScreeningProviderURL   string
+	ScreeningProviderURLs  string
+	OpenSanctionsAPIHost   string
+	OpenSanctionsAuthMode  string
+	OpenSanctionsAPIKey    string
+	OpenSanctionsScope     string
+	OpenSanctionsAlgorithm string
+	IngestionServiceURL    string
+	InboxServiceURL        string
+	CaseServiceURL         string
+	BlobServiceURL         string
+	DecisionEngineURL      string
+	HTTPClientTimeout      time.Duration
 }
 
 type uuidGenerator struct{}
@@ -73,11 +78,17 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		monitoredObjRepo = storepostgres.NewMonitoredObjectRepository(db)
 	}
 
-	providerClient := provider.NewHTTPClient(cfg.ScreeningProviderURL, provider.ParseProviderURLs(cfg.ScreeningProviderURLs), cfg.HTTPClientTimeout)
+	providerClient := provider.NewHTTPClient(cfg.ScreeningProviderURL, provider.ParseProviderURLs(cfg.ScreeningProviderURLs), cfg.HTTPClientTimeout, provider.OpenSanctionsConfig{
+		APIHost:   cfg.OpenSanctionsAPIHost,
+		AuthMode:  cfg.OpenSanctionsAuthMode,
+		APIKey:    cfg.OpenSanctionsAPIKey,
+		Scope:     cfg.OpenSanctionsScope,
+		Algorithm: cfg.OpenSanctionsAlgorithm,
+	})
 	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
-	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.HTTPClientTimeout)
+	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.AuthMode, cfg.AuthToken, cfg.HTTPClientTimeout)
 	var datasetJobRepo ports.DatasetUpdateJobRepository
 	if db != nil {
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
@@ -100,6 +111,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			"service":                 "screening-service",
 			"screening_provider_url":  cfg.ScreeningProviderURL,
 			"screening_provider_urls": cfg.ScreeningProviderURLs,
+			"opensanctions_api_host":  cfg.OpenSanctionsAPIHost,
+			"opensanctions_auth_mode": cfg.OpenSanctionsAuthMode,
+			"opensanctions_scope":     cfg.OpenSanctionsScope,
+			"opensanctions_algorithm": cfg.OpenSanctionsAlgorithm,
 			"ingestion_service_url":   cfg.IngestionServiceURL,
 			"inbox_service_url":       cfg.InboxServiceURL,
 			"case_service_url":        cfg.CaseServiceURL,

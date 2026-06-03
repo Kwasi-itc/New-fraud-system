@@ -23,7 +23,7 @@ It is the standalone extraction of Marble's decisioning domain, with an implemen
 - screening and scoring integration shells plus request/execution lifecycle control
 - outbox/event creation tied to decisions and workflows
 
-It does not yet implement the full future-state scope described in the design docs. In particular, payload parsing/enrichment, evaluation offloading, and settled workflow-to-case semantics remain open design areas.
+It does not yet implement the full future-state scope described in the design docs. In particular, payload parsing/enrichment, evaluation offloading, and settled workflow-to-case semantics remain open design areas. Screening dispatch to `screening-service` and the internal screening status callback path are now implemented.
 
 ## Current code shape
 

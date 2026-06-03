@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document records the intended operating decisions for V1 of the future `screening-service`.
+This document records the main operating decisions that shaped V1 of `screening-service`.
 
-These are planning decisions, not implemented behavior.
+The service is now implemented. This document should be read as architectural intent and guardrails for rollout, not as a claim that every operational decision has already been proven live.
 
 ## Decision 1: The service boundary is broad enough to include both screening and continuous or list screening
 
@@ -221,9 +221,9 @@ Rationale:
 - dataset processing is a long-running operational flow
 - resumability is necessary for reliability
 
-## Decision 15: No code scaffolding should be created until the planning pack is accepted
+## Decision 15: Major boundary changes should not be made without revisiting the planning pack
 
-Before implementation begins, we should first agree on:
+Before major boundary changes, we should first agree on:
 
 - service boundary
 - migration order
@@ -233,4 +233,4 @@ Before implementation begins, we should first agree on:
 Rationale:
 
 - this extraction is broad
-- incorrect early scaffolding would lock in the wrong assumptions
+- incorrect follow-on changes could still lock in the wrong assumptions

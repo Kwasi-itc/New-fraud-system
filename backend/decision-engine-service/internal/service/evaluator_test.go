@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -47,6 +48,10 @@ func (s stubTenantDataReader) QueryRecords(ctx context.Context, tenantID, object
 		}
 	}
 	return out, nil
+}
+
+func (s stubTenantDataReader) AggregateRecords(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error) {
+	return nil, fmt.Errorf("aggregate pushdown not supported in stub")
 }
 
 type stubCustomListRepo struct {

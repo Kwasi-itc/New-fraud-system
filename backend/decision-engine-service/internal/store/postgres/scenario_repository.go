@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type queryable interface {
@@ -169,6 +169,15 @@ func (r ScenarioRepository) Update(ctx context.Context, item scenario.Scenario) 
 		&out.UpdatedAt,
 	)
 	return out, err
+}
+
+func (r ScenarioRepository) Delete(ctx context.Context, tenantID, scenarioID string) error {
+	const stmt = `
+		delete from core.scenarios
+		where tenant_id = $1 and id = $2
+	`
+	_, err := r.q.Exec(ctx, stmt, tenantID, scenarioID)
+	return err
 }
 
 func (r ScenarioRepository) SetLiveIterationID(ctx context.Context, tenantID, scenarioID string, iterationID *string) error {

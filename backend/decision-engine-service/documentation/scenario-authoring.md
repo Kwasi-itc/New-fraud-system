@@ -8,6 +8,7 @@ This document explains the scenario, iteration, publication, and rule authoring 
 - `POST /v1/tenants/:tenantId/scenarios`
 - `GET /v1/tenants/:tenantId/scenarios/:scenarioId`
 - `PUT /v1/tenants/:tenantId/scenarios/:scenarioId`
+- `DELETE /v1/tenants/:tenantId/scenarios/:scenarioId`
 - `POST /v1/tenants/:tenantId/scenarios/:scenarioId/copy`
 - `GET /v1/tenants/:tenantId/scenarios/:scenarioId/rules/latest`
 - `GET /v1/tenants/:tenantId/scenarios/:scenarioId/iterations`
@@ -109,15 +110,25 @@ Request body fields:
   - human-readable scenario name
 - `trigger_object_type`
   - object type this scenario is allowed to evaluate
+  - in practice, this should match the tenant data-model table/object type name, such as `business`, `transaction`, or `user`
+  - this is the same object type value that will appear in ingestion-triggered evaluation requests
+  - field validation and runtime evaluation both use this object type as the scenario's base record type
+
+Example:
+
+- if the tenant data model contains a table or object type named `business`, then `trigger_object_type: "business"` means this scenario is authored against business records
+- if the tenant data model contains a table or object type named `transaction`, then `trigger_object_type: "transaction"` means this scenario only evaluates transaction records
 
 How it works:
 
 - creates the scenario record
 - does not automatically create a live iteration
+- validates that the object type already exists in the tenant data model
 
 How it should be used:
 
 - first step when authoring a new decision flow
+- choose the exact base record type the scenario should run against
 
 ### `GET /v1/tenants/:tenantId/scenarios/:scenarioId`
 
@@ -139,6 +150,27 @@ How it should be used:
 
 - rename a scenario
 - change the trigger object type when the scenario boundary itself needs to move
+
+Important validation note:
+
+- create and update both validate `trigger_object_type` against the current tenant model
+- if the object type does not exist in `data-model-service`, the request fails instead of storing an invalid scenario shell
+
+### `DELETE /v1/tenants/:tenantId/scenarios/:scenarioId`
+
+What it does:
+
+- deletes one scenario
+
+How it works:
+
+- removes the scenario record
+- dependent rows linked by foreign keys are deleted by cascade, including scenario iterations, rules, publications, decisions, test runs, workflow rows, screening configs, and scoring configs
+
+How it should be used:
+
+- remove a scenario that should no longer exist at all
+- not for temporary disablement; use publication/live-version controls when you want to stop execution without removing authoring history
 
 ### `POST /v1/tenants/:tenantId/scenarios/:scenarioId/copy`
 
@@ -203,6 +235,28 @@ How it works:
 
 - increments versioning
 - starts a new authoring draft under the scenario
+- seeds the new draft with valid default values so it can be edited immediately:
+  - `trigger_formula = {"constant": true}`
+  - `score_review_threshold = 1`
+  - `score_block_and_review_threshold = 10`
+  - `score_decline_threshold = 20`
+
+What those defaults mean:
+
+- `trigger_formula = {"constant": true}`
+  - a literal boolean `true` AST node
+  - means "always run this scenario" until the author replaces it with a real trigger condition
+- `score_review_threshold = 1`
+  - the scenario enters the review band when total scenario score is `>= 1`
+- `score_block_and_review_threshold = 10`
+  - the scenario enters the stronger block-and-review band when total score is `>= 10`
+- `score_decline_threshold = 20`
+  - the scenario enters the decline band when total score is `>= 20`
+
+Important note:
+
+- these are bootstrap authoring defaults, not system-derived risk values
+- authors are expected to replace them with scenario-specific logic and thresholds
 
 How it should be used:
 
@@ -244,14 +298,31 @@ Request body fields:
 
 - `trigger_formula`
   - the trigger AST/formula that decides whether evaluation should proceed
+  - this is evaluated before the scenario's rules are scored
+  - if it resolves to `false`, the scenario does not run for that record
+  - `{"constant": true}` means "always run"
 - `score_review_threshold`
   - score at or above which a review outcome may begin
+  - this is the lowest review threshold
 - `score_block_and_review_threshold`
   - score threshold for block-and-review behavior
+  - this should be greater than or equal to `score_review_threshold`
 - `score_decline_threshold`
   - score threshold for decline behavior
+  - this should be greater than or equal to `score_block_and_review_threshold`
 - `schedule`
   - optional schedule string for scheduled execution use cases
+
+Threshold ordering rule:
+
+- the service validates `score_review_threshold <= score_block_and_review_threshold <= score_decline_threshold`
+- requests fail if the thresholds are out of order
+
+How scenario score works:
+
+- each rule has its own `score_modifier`
+- when a rule hits, its `score_modifier` contributes to the scenario's total score
+- the final total score is compared against the three thresholds above to determine which outcome band the scenario falls into
 
 How it should be used:
 
@@ -352,6 +423,8 @@ Request body fields:
   - AST or formula payload for the rule logic
 - `score_modifier`
   - score contribution applied when the rule hits
+  - positive values increase risk score
+  - the accumulated score across matching rules is what gets compared to the iteration thresholds
 - `rule_group`
   - grouping/category identifier
 - `snooze_group_id`

@@ -54,6 +54,7 @@ type ScenarioRepository interface {
 	ListLiveByTriggerObject(ctx context.Context, tenantID, objectType string) ([]scenario.Scenario, error)
 	GetByID(ctx context.Context, tenantID, scenarioID string) (scenario.Scenario, error)
 	Update(ctx context.Context, scenario scenario.Scenario) (scenario.Scenario, error)
+	Delete(ctx context.Context, tenantID, scenarioID string) error
 	SetLiveIterationID(ctx context.Context, tenantID, scenarioID string, iterationID *string) error
 }
 

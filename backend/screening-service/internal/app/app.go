@@ -30,16 +30,21 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		AuthMode:              cfg.ServiceAuthMode,
-		AuthToken:             cfg.ServiceAuthToken,
-		ScreeningProviderURL:  cfg.ScreeningProviderURL,
-		ScreeningProviderURLs: cfg.ScreeningProviderURLs,
-		IngestionServiceURL:   cfg.IngestionServiceURL,
-		InboxServiceURL:       cfg.InboxServiceURL,
-		CaseServiceURL:        cfg.CaseServiceURL,
-		BlobServiceURL:        cfg.BlobServiceURL,
-		DecisionEngineURL:     cfg.DecisionEngineURL,
-		HTTPClientTimeout:     cfg.HTTPClientTimeout,
+		AuthMode:               cfg.ServiceAuthMode,
+		AuthToken:              cfg.ServiceAuthToken,
+		ScreeningProviderURL:   cfg.ScreeningProviderURL,
+		ScreeningProviderURLs:  cfg.ScreeningProviderURLs,
+		OpenSanctionsAPIHost:   cfg.OpenSanctionsAPIHost,
+		OpenSanctionsAuthMode:  cfg.OpenSanctionsAuthMode,
+		OpenSanctionsAPIKey:    cfg.OpenSanctionsAPIKey,
+		OpenSanctionsScope:     cfg.OpenSanctionsScope,
+		OpenSanctionsAlgorithm: cfg.OpenSanctionsAlgorithm,
+		IngestionServiceURL:    cfg.IngestionServiceURL,
+		InboxServiceURL:        cfg.InboxServiceURL,
+		CaseServiceURL:         cfg.CaseServiceURL,
+		BlobServiceURL:         cfg.BlobServiceURL,
+		DecisionEngineURL:      cfg.DecisionEngineURL,
+		HTTPClientTimeout:      cfg.HTTPClientTimeout,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

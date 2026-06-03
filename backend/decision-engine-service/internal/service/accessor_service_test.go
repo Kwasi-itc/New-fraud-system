@@ -252,6 +252,9 @@ func (s accessorScenarioRepoStub) GetByID(context.Context, string, string) (scen
 func (s accessorScenarioRepoStub) Update(context.Context, scenario.Scenario) (scenario.Scenario, error) {
 	return s.scenario, nil
 }
+func (s accessorScenarioRepoStub) Delete(context.Context, string, string) error {
+	return nil
+}
 func (s accessorScenarioRepoStub) SetLiveIterationID(context.Context, string, string, *string) error {
 	return nil
 }

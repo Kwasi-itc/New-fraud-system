@@ -9,23 +9,28 @@ import (
 )
 
 type Config struct {
-	Port                  string
-	DatabaseURL           string
-	ServiceAuthMode       string
-	ServiceAuthToken      string
-	ScreeningProviderURL  string
-	ScreeningProviderURLs string
-	IngestionServiceURL   string
-	InboxServiceURL       string
-	CaseServiceURL        string
-	BlobServiceURL        string
-	DecisionEngineURL     string
-	LogLevel              string
-	GinMode               string
-	HTTPClientTimeout     time.Duration
-	WorkerMode            string
-	WorkerPollInterval    time.Duration
-	WorkerBatchLimit      int
+	Port                   string
+	DatabaseURL            string
+	ServiceAuthMode        string
+	ServiceAuthToken       string
+	ScreeningProviderURL   string
+	ScreeningProviderURLs  string
+	OpenSanctionsAPIHost   string
+	OpenSanctionsAuthMode  string
+	OpenSanctionsAPIKey    string
+	OpenSanctionsScope     string
+	OpenSanctionsAlgorithm string
+	IngestionServiceURL    string
+	InboxServiceURL        string
+	CaseServiceURL         string
+	BlobServiceURL         string
+	DecisionEngineURL      string
+	LogLevel               string
+	GinMode                string
+	HTTPClientTimeout      time.Duration
+	WorkerMode             string
+	WorkerPollInterval     time.Duration
+	WorkerBatchLimit       int
 }
 
 func LoadConfig() (Config, error) {
@@ -45,23 +50,28 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:                  getEnv("PORT", "8085"),
-		DatabaseURL:           os.Getenv("DATABASE_URL"),
-		ServiceAuthMode:       getEnv("SERVICE_AUTH_MODE", "disabled"),
-		ServiceAuthToken:      os.Getenv("SERVICE_AUTH_TOKEN"),
-		ScreeningProviderURL:  strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
-		ScreeningProviderURLs: os.Getenv("SCREENING_PROVIDER_URLS"),
-		IngestionServiceURL:   strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
-		InboxServiceURL:       strings.TrimRight(os.Getenv("INBOX_SERVICE_URL"), "/"),
-		CaseServiceURL:        strings.TrimRight(os.Getenv("CASE_SERVICE_URL"), "/"),
-		BlobServiceURL:        strings.TrimRight(os.Getenv("BLOB_SERVICE_URL"), "/"),
-		DecisionEngineURL:     strings.TrimRight(os.Getenv("DECISION_ENGINE_URL"), "/"),
-		LogLevel:              getEnv("LOG_LEVEL", "info"),
-		GinMode:               getEnv("GIN_MODE", "debug"),
-		HTTPClientTimeout:     httpClientTimeout,
-		WorkerMode:            strings.ToLower(getEnv("WORKER_MODE", "batch")),
-		WorkerPollInterval:    workerPollInterval,
-		WorkerBatchLimit:      workerBatchLimit,
+		Port:                   getEnv("PORT", "8085"),
+		DatabaseURL:            os.Getenv("DATABASE_URL"),
+		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthToken:       os.Getenv("SERVICE_AUTH_TOKEN"),
+		ScreeningProviderURL:   strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
+		ScreeningProviderURLs:  os.Getenv("SCREENING_PROVIDER_URLS"),
+		OpenSanctionsAPIHost:   strings.TrimRight(os.Getenv("OPENSANCTIONS_API_HOST"), "/"),
+		OpenSanctionsAuthMode:  strings.ToLower(strings.TrimSpace(getEnv("OPENSANCTIONS_AUTH_METHOD", ""))),
+		OpenSanctionsAPIKey:    os.Getenv("OPENSANCTIONS_API_KEY"),
+		OpenSanctionsScope:     strings.TrimSpace(getEnv("OPENSANCTIONS_SCOPE", "default")),
+		OpenSanctionsAlgorithm: strings.TrimSpace(getEnv("OPENSANCTIONS_ALGORITHM", "logic-v1")),
+		IngestionServiceURL:    strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
+		InboxServiceURL:        strings.TrimRight(os.Getenv("INBOX_SERVICE_URL"), "/"),
+		CaseServiceURL:         strings.TrimRight(os.Getenv("CASE_SERVICE_URL"), "/"),
+		BlobServiceURL:         strings.TrimRight(os.Getenv("BLOB_SERVICE_URL"), "/"),
+		DecisionEngineURL:      strings.TrimRight(os.Getenv("DECISION_ENGINE_URL"), "/"),
+		LogLevel:               getEnv("LOG_LEVEL", "info"),
+		GinMode:                getEnv("GIN_MODE", "debug"),
+		HTTPClientTimeout:      httpClientTimeout,
+		WorkerMode:             strings.ToLower(getEnv("WORKER_MODE", "batch")),
+		WorkerPollInterval:     workerPollInterval,
+		WorkerBatchLimit:       workerBatchLimit,
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -11,6 +12,7 @@ type ScenarioService struct {
 	txManager          ports.TransactionManager
 	idGen              ports.IDGenerator
 	clock              ports.Clock
+	dataModelReader    ports.DataModelReader
 	readRepo           ports.ScenarioRepository
 	iterRepo           ports.ScenarioIterationRepository
 	ruleRepo           ports.RuleRepository
@@ -23,6 +25,7 @@ func NewScenarioService(
 	txManager ports.TransactionManager,
 	idGen ports.IDGenerator,
 	clock ports.Clock,
+	dataModelReader ports.DataModelReader,
 	readRepo ports.ScenarioRepository,
 	iterRepo ports.ScenarioIterationRepository,
 	ruleRepo ports.RuleRepository,
@@ -34,6 +37,7 @@ func NewScenarioService(
 		txManager:          txManager,
 		idGen:              idGen,
 		clock:              clock,
+		dataModelReader:    dataModelReader,
 		readRepo:           readRepo,
 		iterRepo:           iterRepo,
 		ruleRepo:           ruleRepo,
@@ -54,6 +58,9 @@ func (s ScenarioService) Create(ctx context.Context, tenantID, name, triggerObje
 		UpdatedAt:         now,
 	}
 	if err := item.Validate(); err != nil {
+		return scenario.Scenario{}, err
+	}
+	if err := s.validateTriggerObjectType(ctx, tenantID, triggerObjectType); err != nil {
 		return scenario.Scenario{}, err
 	}
 
@@ -83,6 +90,9 @@ func (s ScenarioService) Update(ctx context.Context, tenantID, scenarioID, name,
 	current.TriggerObjectType = triggerObjectType
 	current.UpdatedAt = s.clock.Now()
 	if err := current.Validate(); err != nil {
+		return scenario.Scenario{}, err
+	}
+	if err := s.validateTriggerObjectType(ctx, tenantID, triggerObjectType); err != nil {
 		return scenario.Scenario{}, err
 	}
 
@@ -229,6 +239,15 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 	return created, err
 }
 
+func (s ScenarioService) Delete(ctx context.Context, tenantID, scenarioID string) error {
+	if _, err := s.readRepo.GetByID(ctx, tenantID, scenarioID); err != nil {
+		return err
+	}
+	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		return store.Scenarios().Delete(ctx, tenantID, scenarioID)
+	})
+}
+
 func (s ScenarioService) ListLatestRules(ctx context.Context, tenantID, scenarioID string) ([]scenario.Rule, error) {
 	scn, err := s.readRepo.GetByID(ctx, tenantID, scenarioID)
 	if err != nil {
@@ -254,4 +273,15 @@ func (s ScenarioService) ListLatestRules(ctx context.Context, tenantID, scenario
 	}
 
 	return s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, target.ID)
+}
+
+func (s ScenarioService) validateTriggerObjectType(ctx context.Context, tenantID, triggerObjectType string) error {
+	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	if err != nil {
+		return fmt.Errorf("load tenant model: %w", err)
+	}
+	if _, ok := model.Tables[triggerObjectType]; !ok {
+		return fmt.Errorf("trigger object type %q not found in tenant model", triggerObjectType)
+	}
+	return nil
 }

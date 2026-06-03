@@ -192,6 +192,10 @@ func (s scenarioRepoStub) Update(ctx context.Context, item scenario.Scenario) (s
 	return item, nil
 }
 
+func (s scenarioRepoStub) Delete(ctx context.Context, tenantID, scenarioID string) error {
+	return nil
+}
+
 func (s scenarioRepoStub) SetLiveIterationID(ctx context.Context, tenantID, scenarioID string, iterationID *string) error {
 	return nil
 }
@@ -205,7 +209,8 @@ func (s txManagerStub) Run(ctx context.Context, fn func(store ports.MutationStor
 }
 
 type mutationStoreStub struct {
-	workflowRepo ports.WorkflowRepository
+	workflowRepo           ports.WorkflowRepository
+	screeningExecutionRepo ports.ScreeningExecutionRepository
 }
 
 func (s mutationStoreStub) Scenarios() ports.ScenarioRepository                         { return nil }
@@ -228,14 +233,16 @@ func (s mutationStoreStub) ScheduledExecutions() ports.ScheduledExecutionReposit
 func (s mutationStoreStub) AsyncDecisionExecutions() ports.AsyncDecisionExecutionRepository {
 	return nil
 }
-func (s mutationStoreStub) ScreeningConfigs() ports.ScreeningConfigRepository       { return nil }
-func (s mutationStoreStub) ScreeningExecutions() ports.ScreeningExecutionRepository { return nil }
-func (s mutationStoreStub) ScoringConfigs() ports.ScoringConfigRepository           { return nil }
-func (s mutationStoreStub) ScoringRequests() ports.ScoringRequestRepository         { return nil }
-func (s mutationStoreStub) CustomLists() ports.CustomListRepository                 { return nil }
-func (s mutationStoreStub) RecordTags() ports.RecordTagRepository                   { return nil }
-func (s mutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository             { return nil }
-func (s mutationStoreStub) IPFlags() ports.IPFlagRepository                         { return nil }
+func (s mutationStoreStub) ScreeningConfigs() ports.ScreeningConfigRepository { return nil }
+func (s mutationStoreStub) ScreeningExecutions() ports.ScreeningExecutionRepository {
+	return s.screeningExecutionRepo
+}
+func (s mutationStoreStub) ScoringConfigs() ports.ScoringConfigRepository   { return nil }
+func (s mutationStoreStub) ScoringRequests() ports.ScoringRequestRepository { return nil }
+func (s mutationStoreStub) CustomLists() ports.CustomListRepository         { return nil }
+func (s mutationStoreStub) RecordTags() ports.RecordTagRepository           { return nil }
+func (s mutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository     { return nil }
+func (s mutationStoreStub) IPFlags() ports.IPFlagRepository                 { return nil }
 
 type fixedIDGenerator struct {
 	id uuid.UUID

@@ -14,14 +14,18 @@ import (
 )
 
 type HTTPClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL   string
+	authMode  string
+	authToken string
+	client    *http.Client
 }
 
-func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
+func NewHTTPClient(baseURL, authMode, authToken string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: timeout},
+		baseURL:   strings.TrimRight(baseURL, "/"),
+		authMode:  strings.ToLower(strings.TrimSpace(authMode)),
+		authToken: authToken,
+		client:    &http.Client{Timeout: timeout},
 	}
 }
 
@@ -40,6 +44,9 @@ func (c HTTPClient) PublishScreeningStatusChanged(ctx context.Context, command p
 		return fmt.Errorf("create decision engine callback: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.authMode == "token" && c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {

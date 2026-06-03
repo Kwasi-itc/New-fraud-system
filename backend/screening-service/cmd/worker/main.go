@@ -64,12 +64,18 @@ func main() {
 	var datasetJobRepo ports.DatasetUpdateJobRepository = storepostgres.NewDatasetUpdateJobRepository(db)
 	var txManager ports.TransactionManager = storepostgres.NewTransactionManager(db)
 
-	providerClient := provider.NewHTTPClient(cfg.ScreeningProviderURL, provider.ParseProviderURLs(cfg.ScreeningProviderURLs), cfg.HTTPClientTimeout)
+	providerClient := provider.NewHTTPClient(cfg.ScreeningProviderURL, provider.ParseProviderURLs(cfg.ScreeningProviderURLs), cfg.HTTPClientTimeout, provider.OpenSanctionsConfig{
+		APIHost:   cfg.OpenSanctionsAPIHost,
+		AuthMode:  cfg.OpenSanctionsAuthMode,
+		APIKey:    cfg.OpenSanctionsAPIKey,
+		Scope:     cfg.OpenSanctionsScope,
+		Algorithm: cfg.OpenSanctionsAlgorithm,
+	})
 	ingestionReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
-	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.HTTPClientTimeout)
+	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.ServiceAuthMode, cfg.ServiceAuthToken, cfg.HTTPClientTimeout)
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher)
 	dispatchService := service.NewDispatchService(txManager, systemClock{}, screeningRepo, matchRepo, providerClient, decisionPublisher)
 	continuousWorker := service.NewContinuousWorkerService(txManager, systemClock{}, continuousRepo, monitoredObjRepo, ingestionReader, screeningService)
