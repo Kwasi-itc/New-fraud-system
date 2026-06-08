@@ -1,8 +1,24 @@
 # Frontend
 
-This directory is reserved for the frontend application for the extracted system.
+This directory now contains a minimal Next.js App Router scaffold with:
 
-Current status:
+- Zustand for local client state
+- TanStack Query for server-state fetching and caching
+- a sample API route at `app/api/health/route.ts`
+- a shared provider at `components/providers.tsx`
 
-- no frontend app has been scaffolded yet
-- the backend service currently lives in `../backend/data-model-service`
+## Run
+
+1. `npm install`
+2. `npm run dev`
+
+## Structure
+
+- `app/`
+  App Router entrypoints and API routes
+- `components/providers.tsx`
+  Shared client-side providers
+- `lib/query-client.ts`
+  TanStack Query client factory
+- `stores/ui-store.ts`
+  Sample Zustand store
