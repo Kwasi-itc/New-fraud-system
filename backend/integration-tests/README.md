@@ -81,7 +81,7 @@ export SERVICE_AUTH_TOKEN=<token>
 
 ## Coverage Guard
 
-`test_openapi_coverage.py` parses `data-model.yaml`, `ingestion.yaml`, and `decision-engine.yaml`.
+`test_openapi_coverage.py` parses `data-model.yaml`, `ingestion.yaml`, `decision-engine.yaml`, and `screening.yaml`.
 It fails when a documented HTTP endpoint is not represented in the integration-test coverage registry.
 
 ## Decision Rule Fixtures

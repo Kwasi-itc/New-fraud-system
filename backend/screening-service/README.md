@@ -124,6 +124,8 @@ HTTP surfaces:
 - `GET /healthz`: process health
 - `GET /readyz`: database readiness
 - `GET /metrics`: JSON request metrics snapshot
+- `GET /openapi.yaml`: baseline screening-service OpenAPI spec
+- `GET /docs`: Swagger UI for the embedded screening-service spec
 - `GET /v1/service-info`: active downstream URL wiring
 - `POST /internal/v1/tenants/:tenantId/decision-screenings`: decision-engine intake contract
 - `POST /internal/screening-status-updates`: expected callback receiver on `decision-engine-service`

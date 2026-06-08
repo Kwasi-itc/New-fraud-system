@@ -9,6 +9,7 @@ SPEC_FILES = {
     "data-model": "data-model.yaml",
     "ingestion": "ingestion.yaml",
     "decision-engine": "decision-engine.yaml",
+    "screening": "screening.yaml",
 }
 
 

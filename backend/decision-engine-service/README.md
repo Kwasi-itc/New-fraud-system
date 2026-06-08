@@ -655,6 +655,8 @@ Endpoints:
 
 Rule snoozing is a temporary suppression mechanism for scenario rules. It is used when a rule would normally hit for a specific object, but you want to mute that rule for that object until an expiry time.
 
+The scope is exact, not broad. A snooze only applies when the evaluation uses the same `tenantId`, `scenarioId`, `object_type`, `object_id`, and a rule with the same `snooze_group_id`.
+
 Practical example:
 
 - a high-amount rule normally hits for transaction `txn_10001`
@@ -662,6 +664,20 @@ Practical example:
 - you create a rule snooze for the relevant `snooze_group_id`, `object_type`, and `object_id`
 
 During decision evaluation, active snoozes are checked before rule scoring is finalized. A snoozed rule is recorded as snoozed instead of behaving like a normal hit.
+
+In practical terms:
+
+- the rule still appears in execution results
+- its outcome becomes `snoozed`
+- it no longer contributes score while the snooze is active
+- the behavior ends automatically after `expires_at`
+
+Testing pattern:
+
+- evaluate once without a snooze and note the score
+- create a rule snooze for the same object and rule group
+- evaluate the same object again
+- confirm the rule is now `snoozed` and the score impact is removed
 
 ### Scheduled executions
 

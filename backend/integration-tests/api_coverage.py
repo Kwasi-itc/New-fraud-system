@@ -117,4 +117,12 @@ COVERED_ENDPOINTS = {
         ("POST", "/v1/tenants/{tenantId}/platform/ip-flags"),
         ("GET", "/v1/tenants/{tenantId}/outbox-events"),
     },
+    "screening": {
+        ("GET", "/healthz"),
+        ("GET", "/readyz"),
+        ("GET", "/v1/service-info"),
+        ("POST", "/internal/v1/tenants/{tenantId}/decision-screenings"),
+        ("GET", "/v1/tenants/{tenantId}/decisions/{decisionId}/screenings"),
+        ("GET", "/v1/tenants/{tenantId}/screenings/{screeningId}"),
+    },
 }

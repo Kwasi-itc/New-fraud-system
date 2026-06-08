@@ -1,0 +1,318 @@
+openapi: 3.0.3
+info:
+  title: Screening Service API
+  version: 0.1.0
+  description: >
+    Baseline OpenAPI contract for the screening-service endpoints currently used in
+    live integration flows and endpoint testing.
+servers:
+  - url: http://localhost:8085
+tags:
+  - name: Health
+  - name: Service
+  - name: Screenings
+  - name: Internal
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/service-info:
+    get:
+      tags: [Service]
+      summary: Get screening-service downstream configuration summary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Service configuration summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfoResponse'
+  /v1/tenants/{tenantId}/decisions/{decisionId}/screenings:
+    get:
+      tags: [Screenings]
+      summary: List screenings created for a decision
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/DecisionId'
+      responses:
+        '200':
+          description: Screenings for the decision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScreeningSummary'
+  /v1/tenants/{tenantId}/screenings/{screeningId}:
+    get:
+      tags: [Screenings]
+      summary: Get screening detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+      responses:
+        '200':
+          description: Screening detail payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningDetailResponse'
+        '404':
+          description: Screening was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /internal/v1/tenants/{tenantId}/decision-screenings:
+    post:
+      tags: [Internal]
+      summary: Create or reuse a decision-linked screening
+      description: >
+        Internal decision-engine intake endpoint. Calls are idempotent on
+        `idempotency_key`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDecisionScreeningRequest'
+      responses:
+        '201':
+          description: Screening created or existing screening returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningSummary'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: string
+    DecisionId:
+      name: decisionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ScreeningId:
+      name: screeningId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: screening-service
+    ReadyResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ready
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ServiceInfoResponse:
+      type: object
+      required:
+        - service
+        - screening_provider_url
+        - screening_provider_urls
+        - opensanctions_api_host
+        - opensanctions_auth_mode
+        - opensanctions_scope
+        - opensanctions_algorithm
+        - ingestion_service_url
+        - inbox_service_url
+        - case_service_url
+        - blob_service_url
+        - decision_engine_url
+      properties:
+        service:
+          type: string
+          example: screening-service
+        screening_provider_url:
+          type: string
+        screening_provider_urls:
+          type: string
+        opensanctions_api_host:
+          type: string
+        opensanctions_auth_mode:
+          type: string
+        opensanctions_scope:
+          type: string
+        opensanctions_algorithm:
+          type: string
+        ingestion_service_url:
+          type: string
+        inbox_service_url:
+          type: string
+        case_service_url:
+          type: string
+        blob_service_url:
+          type: string
+        decision_engine_url:
+          type: string
+    SearchQuery:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          example: Acme Ltd
+        type:
+          type: string
+          example: Organization
+        filters:
+          type: object
+          additionalProperties: true
+    CreateDecisionScreeningRequest:
+      type: object
+      required:
+        - provider
+        - decision_id
+        - screening_config_id
+        - idempotency_key
+        - object_type
+        - object_id
+        - queries
+      properties:
+        provider:
+          type: string
+          example: opensanctions
+        decision_id:
+          type: string
+          format: uuid
+        scenario_id:
+          type: string
+          format: uuid
+        screening_config_id:
+          type: string
+          format: uuid
+        idempotency_key:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
+        provider_config:
+          type: object
+          additionalProperties: true
+        limit_override:
+          type: integer
+        unique_counterparty_identifier:
+          type: string
+    ScreeningSummary:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+        decision_id:
+          type: string
+          format: uuid
+        scenario_id:
+          type: string
+          format: uuid
+        screening_config_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        status:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ScreeningDetailResponse:
+      type: object
+      properties:
+        screening:
+          $ref: '#/components/schemas/ScreeningSummary'
+        matches:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        comments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

@@ -51,6 +51,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	router.Use(requestContextMiddleware(logger))
 	router.Use(requestLoggingMiddleware(logger, metrics))
 	router.Use(gin.Recovery())
+	registerDocsRoutes(router)
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
 	router.GET("/healthz", healthHandler.Healthz)

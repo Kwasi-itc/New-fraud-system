@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: Screening Service API
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      responses:
+        '200':
+          description: OK
+  /readyz:
+    get:
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Not ready
+  /v1/service-info:
+    get:
+      responses:
+        '200':
+          description: OK
+  /v1/tenants/{tenantId}/decisions/{decisionId}/screenings:
+    get:
+      responses:
+        '200':
+          description: OK
+  /v1/tenants/{tenantId}/screenings/{screeningId}:
+    get:
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not found
+  /internal/v1/tenants/{tenantId}/decision-screenings:
+    post:
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad request

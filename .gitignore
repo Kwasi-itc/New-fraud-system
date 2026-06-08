@@ -11,6 +11,7 @@ coverage.out
 
 # Local Go cache
 .gocache/
+.gocache-test/
 
 # Logs
 server.log
