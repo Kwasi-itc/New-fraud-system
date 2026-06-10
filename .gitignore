@@ -28,3 +28,6 @@ server.err.log
 Thumbs.db
 .idea/
 .vscode/
+
+# Local design/dev references
+ui_inspo/
