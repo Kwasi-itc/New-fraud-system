@@ -71,3 +71,76 @@ func TestRequestContextMiddlewarePreservesIncomingRequestID(t *testing.T) {
 		t.Fatalf("expected echoed request id header, got %s", rec.Header().Get(requestIDHeader))
 	}
 }
+
+func TestCORSMiddlewareAllowsConfiguredOrigin(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.Use(corsMiddleware([]string{"http://localhost:3000"}))
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Fatalf("expected allow origin header, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestCORSMiddlewareHandlesPreflight(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.Use(corsMiddleware([]string{"http://localhost:3000"}))
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodOptions, "/healthz", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", rec.Code)
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Fatalf("expected allow origin header, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+	}
+	if !strings.Contains(rec.Header().Get("Access-Control-Allow-Methods"), http.MethodGet) {
+		t.Fatalf("expected allow methods header to include GET, got %q", rec.Header().Get("Access-Control-Allow-Methods"))
+	}
+}
+
+func TestCORSMiddlewareRejectsUnknownPreflightOrigin(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.Use(corsMiddleware([]string{"http://localhost:3000"}))
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodOptions, "/healthz", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rec.Code)
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("expected no allow origin header, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+	}
+}

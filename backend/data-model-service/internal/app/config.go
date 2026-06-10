@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	Port             string
-	DatabaseURL      string
-	ServiceAuthMode  string
-	ServiceAuthToken string
-	LogLevel         string
-	GinMode          string
-	IndexWorkerPollInterval time.Duration
-	IndexWorkerMaxAttempts  int
+	Port                      string
+	DatabaseURL               string
+	ServiceAuthMode           string
+	ServiceAuthToken          string
+	ServiceAllowedOrigins     []string
+	LogLevel                  string
+	GinMode                   string
+	IndexWorkerPollInterval   time.Duration
+	IndexWorkerMaxAttempts    int
 	IndexWorkerRetryBaseDelay time.Duration
 	IndexWorkerRetryMaxDelay  time.Duration
 }
@@ -25,12 +26,13 @@ func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
 
 	cfg := Config{
-		Port:             getEnv("PORT", "8080"),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		ServiceAuthMode:  getEnv("SERVICE_AUTH_MODE", "disabled"),
-		ServiceAuthToken: os.Getenv("SERVICE_AUTH_TOKEN"),
-		LogLevel:         getEnv("LOG_LEVEL", "info"),
-		GinMode:          getEnv("GIN_MODE", "debug"),
+		Port:                   getEnv("PORT", "8080"),
+		DatabaseURL:            os.Getenv("DATABASE_URL"),
+		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthToken:       os.Getenv("SERVICE_AUTH_TOKEN"),
+		ServiceAllowedOrigins:  getEnvCSV("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		LogLevel:               getEnv("LOG_LEVEL", "info"),
+		GinMode:                getEnv("GIN_MODE", "debug"),
 		IndexWorkerMaxAttempts: getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5),
 	}
 	pollInterval, err := getEnvDuration("INDEX_WORKER_POLL_INTERVAL", 2*time.Second)
@@ -89,6 +91,27 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func getEnvCSV(key string, fallback []string) []string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return append([]string(nil), fallback...)
+	}
+
+	parts := strings.Split(value, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		values = append(values, part)
+	}
+	if len(values) == 0 {
+		return append([]string(nil), fallback...)
+	}
+	return values
 }
 
 func loadDotEnvIfPresent() {

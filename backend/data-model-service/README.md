@@ -212,6 +212,16 @@ Authorization: Bearer <SERVICE_AUTH_TOKEN>
 
 Health routes remain unauthenticated.
 
+## CORS
+
+Allowed browser origins are configured with `SERVICE_ALLOWED_ORIGINS` as a comma-separated list.
+
+Default local value:
+
+```env
+SERVICE_ALLOWED_ORIGINS=http://localhost:3000
+```
+
 ## OpenAPI and Swagger
 
 The service now exposes:

@@ -28,13 +28,15 @@ func (systemClock) Now() time.Time {
 }
 
 type RouterConfig struct {
-	AuthMode  string
-	AuthToken string
+	AuthMode       string
+	AuthToken      string
+	AllowedOrigins []string
 }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
+	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(gin.Recovery())
 	registerDocsRoutes(router)
 
