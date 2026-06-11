@@ -1,0 +1,327 @@
+x-backend-common: &backend-common
+  SERVICE_AUTH_MODE: disabled
+  SERVICE_AUTH_TOKEN: ""
+  LOG_LEVEL: info
+  GIN_MODE: debug
+  HTTP_CLIENT_TIMEOUT: 10s
+
+x-depends-on-migrations: &depends-on-migrations
+  data-model-migrate:
+    condition: service_completed_successfully
+  ingestion-migrate:
+    condition: service_completed_successfully
+  decision-engine-migrate:
+    condition: service_completed_successfully
+  screening-migrate:
+    condition: service_completed_successfully
+  case-manager-migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: datamodel
+      POSTGRES_USER: fraud
+      POSTGRES_PASSWORD: fraud
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fraud -d datamodel"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  data-model-migrate:
+    build:
+      context: ./backend/data-model-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  ingestion-migrate:
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  decision-engine-migrate:
+    build:
+      context: ./backend/decision-engine-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  screening-migrate:
+    build:
+      context: ./backend/screening-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  case-manager-migrate:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  data-model-service:
+    build:
+      context: ./backend/data-model-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8080
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      SERVICE_ALLOWED_ORIGINS: http://localhost:3000
+      INDEX_WORKER_POLL_INTERVAL: 2s
+      INDEX_WORKER_MAX_ATTEMPTS: 5
+      INDEX_WORKER_RETRY_BASE_DELAY: 5s
+      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+    depends_on: *depends-on-migrations
+    ports:
+      - "8080:8080"
+
+  ingestion-service:
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8081
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      WORKER_POLL_INTERVAL: 5s
+      WORKER_MAX_ATTEMPTS: 3
+    depends_on: *depends-on-migrations
+    ports:
+      - "8081:8081"
+
+  decision-engine-service:
+    build:
+      context: ./backend/decision-engine-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8082
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      AGGREGATE_PUSHDOWN_MODE: enabled
+      AGGREGATE_PUSHDOWN_AGGREGATES: count
+    depends_on: *depends-on-migrations
+    ports:
+      - "8082:8082"
+
+  screening-service:
+    build:
+      context: ./backend/screening-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8085
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    depends_on: *depends-on-migrations
+    ports:
+      - "8085:8085"
+
+  case-manager-service:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8086
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    depends_on: *depends-on-migrations
+    ports:
+      - "8086:8086"
+
+  data-model-worker:
+    build:
+      context: ./backend/data-model-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      INDEX_WORKER_POLL_INTERVAL: 2s
+      INDEX_WORKER_MAX_ATTEMPTS: 5
+      INDEX_WORKER_RETRY_BASE_DELAY: 5s
+      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+    depends_on: *depends-on-migrations
+
+  ingestion-worker:
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      WORKER_POLL_INTERVAL: 5s
+      WORKER_MAX_ATTEMPTS: 3
+    depends_on:
+      <<: *depends-on-migrations
+      data-model-service:
+        condition: service_started
+
+  decision-engine-worker:
+    build:
+      context: ./backend/decision-engine-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      AGGREGATE_PUSHDOWN_MODE: enabled
+      AGGREGATE_PUSHDOWN_AGGREGATES: count
+    depends_on:
+      <<: *depends-on-migrations
+      data-model-service:
+        condition: service_started
+      ingestion-service:
+        condition: service_started
+      screening-service:
+        condition: service_started
+      case-manager-service:
+        condition: service_started
+
+  screening-worker:
+    profiles:
+      - screening-worker
+    build:
+      context: ./backend/screening-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    depends_on:
+      <<: *depends-on-migrations
+      ingestion-service:
+        condition: service_started
+      decision-engine-service:
+        condition: service_started
+      case-manager-service:
+        condition: service_started
+
+  case-manager-worker:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    depends_on:
+      <<: *depends-on-migrations
+      case-manager-service:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
+        NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
+        NEXT_PUBLIC_DATA_MODEL_TENANT_ID: 32331957-9736-4e0a-8769-f239c81a6f4b
+    environment:
+      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
+      NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
+      NEXT_PUBLIC_DATA_MODEL_TENANT_ID: 32331957-9736-4e0a-8769-f239c81a6f4b
+    depends_on:
+      data-model-service:
+        condition: service_started
+      ingestion-service:
+        condition: service_started
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

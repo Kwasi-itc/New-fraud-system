@@ -1,0 +1,176 @@
+{
+  "name": "boolean logical operations",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 5,
+    "decline": 10
+  },
+  "variables": {
+    "object_id": "logical_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 750,
+      "status": "pending",
+      "account_id": "acct-logic",
+      "ip": "1.2.3.4",
+      "merchant": "ITC Market",
+      "email": "logic@example.com",
+      "country": "gh",
+      "owner_id": "owner-logic",
+      "event_time": "$now",
+      "note": "trusted checkout"
+    }
+  },
+  "rules": [
+    {
+      "name": "high_amount_pending_payment",
+      "description": "AND example: amount is high enough and the transaction is still pending.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gt",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "amount"
+                  }
+                }
+              },
+              {
+                "constant": 500
+              }
+            ]
+          },
+          {
+            "function": "eq",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "status"
+                  }
+                }
+              },
+              {
+                "constant": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "known_market_or_non_us_purchase",
+      "description": "OR example: either the merchant is an ITC market or the country is outside the US.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "or",
+        "children": [
+          {
+            "function": "contains",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "merchant"
+                  }
+                }
+              },
+              {
+                "constant": "Market"
+              }
+            ]
+          },
+          {
+            "function": "neq",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "country"
+                  }
+                }
+              },
+              {
+                "constant": "us"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "not_declined_and_not_us",
+      "description": "NOT example: transaction is not declined and is not from the US.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "not",
+            "children": [
+              {
+                "function": "eq",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "status"
+                      }
+                    }
+                  },
+                  {
+                    "constant": "declined"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "function": "neq",
+            "children": [
+              {
+                "function": "field_ref",
+                "named_children": {
+                  "field": {
+                    "constant": "country"
+                  }
+                }
+              },
+              {
+                "constant": "us"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 3,
+    "outcome": "review",
+    "rules": {
+      "high_amount_pending_payment": "hit",
+      "known_market_or_non_us_purchase": "hit",
+      "not_declined_and_not_us": "hit"
+    }
+  }
+}

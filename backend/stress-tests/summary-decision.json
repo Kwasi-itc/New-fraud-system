@@ -1,0 +1,266 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "decision evaluation": {
+                "name": "decision evaluation",
+                "path": "::decision evaluation",
+                "id": "fe16ec8f83f301bf554f4bd79fe53c90",
+                "groups": {},
+                "checks": {
+                        "scenario evaluated": {
+                            "passes": 2400,
+                            "fails": 0,
+                            "name": "scenario evaluated",
+                            "path": "::decision evaluation::scenario evaluated",
+                            "id": "284cdd93fee232b1dd7e55415823102c"
+                        }
+                    }
+            }
+        },
+        "checks": {},
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 2431,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "stress_setup_scenarios_created": {
+            "count": 1,
+            "rate": 0.008321118416895904
+        },
+        "iterations": {
+            "count": 2400,
+            "rate": 19.97068420055017
+        },
+        "stress_failures": {
+            "passes": 0,
+            "fails": 2400,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "iteration_duration": {
+            "avg": 17.000112235416633,
+            "min": 11.567136,
+            "med": 14.558824000000001,
+            "p(90)": 18.116820699999998,
+            "p(95)": 23.69710785,
+            "p(99)": 79.13724893999984,
+            "max": 241.118768
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 0.898,
+            "med": 14.228,
+            "p(90)": 17.772,
+            "p(95)": 23.4205,
+            "p(99)": 78.33089999999967,
+            "max": 240.876,
+            "avg": 16.560933772110253
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0
+        },
+        "stress_direct_evaluations": {
+            "count": 2400,
+            "rate": 19.97068420055017
+        },
+        "data_received": {
+            "count": 2060491,
+            "rate": 17145.58960794826
+        },
+        "vus_max": {
+            "value": 40,
+            "min": 40,
+            "max": 40
+        },
+        "checks": {
+            "fails": 0,
+            "passes": 2400,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "http_req_blocked": {
+            "min": 0.002,
+            "med": 0.006,
+            "p(90)": 0.007,
+            "p(95)": 0.007,
+            "p(99)": 0.215,
+            "max": 1.288,
+            "avg": 0.010888111888112116
+        },
+        "group_duration": {
+            "p(95)": 23.637548899999995,
+            "p(99)": 79.09754588999984,
+            "max": 241.077499,
+            "avg": 16.948767805833334,
+            "min": 11.532703,
+            "med": 14.510198500000001,
+            "p(90)": 18.022496399999994
+        },
+        "http_req_sending": {
+            "med": 0.027,
+            "p(90)": 0.031,
+            "p(95)": 0.034,
+            "p(99)": 0.061,
+            "max": 0.148,
+            "avg": 0.026103249691485062,
+            "min": 0.012
+        },
+        "data_sent": {
+            "count": 1663300,
+            "rate": 13840.516262822957
+        },
+        "stress_decision_latency": {
+            "min": 11.316,
+            "med": 14.261,
+            "p(90)": 17.7766,
+            "p(95)": 23.38764999999998,
+            "p(99)": 78.87300999999987,
+            "max": 240.876,
+            "avg": 16.703435416666675,
+            "thresholds": {
+                "p(95)<2500": false
+            }
+        },
+        "http_reqs": {
+            "count": 2431,
+            "rate": 20.228638871473944
+        },
+        "http_req_waiting": {
+            "max": 240.777,
+            "avg": 16.49247511312216,
+            "min": 0.841,
+            "med": 14.162,
+            "p(90)": 17.702,
+            "p(95)": 23.3475,
+            "p(99)": 78.24929999999968
+        },
+        "http_req_receiving": {
+            "avg": 0.042355409296586106,
+            "min": 0.021,
+            "med": 0.041,
+            "p(90)": 0.048,
+            "p(95)": 0.053,
+            "p(99)": 0.067,
+            "max": 0.209
+        },
+        "stress_setup_rules_created": {
+            "rate": 0.008321118416895904,
+            "count": 1
+        },
+        "http_req_duration": {
+            "p(99)": 78.33089999999967,
+            "max": 240.876,
+            "avg": 16.560933772110253,
+            "min": 0.898,
+            "med": 14.228,
+            "p(90)": 17.772,
+            "p(95)": 23.4205,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0.16139999999999963,
+            "max": 1.218,
+            "avg": 0.003833813245577952
+        },
+        "vus": {
+            "value": 1,
+            "min": 0,
+            "max": 3
+        }
+    },
+    "setup_data": {
+        "heavyScenario": null,
+        "model": {
+            "transactions": {
+                "archived": false,
+                "description": "Stress transaction table",
+                "id": "e10472d4-3da6-4407-97e8-1395b42a000b",
+                "name": "transactions_1781001505925_364640365",
+                "semantic_type": "entity",
+                "updated_at": "2026-06-09T10:38:25.927344Z",
+                "caption_field": "",
+                "created_at": "2026-06-09T10:38:25.927344Z",
+                "alias": "Transactions"
+            },
+            "accounts": {
+                "archived": false,
+                "caption_field": "",
+                "created_at": "2026-06-09T10:38:25.951186Z",
+                "description": "Stress account table",
+                "id": "53c2cf8b-b125-4eb9-860e-9663af3006a0",
+                "alias": "Accounts",
+                "name": "accounts_1781001505950_705985132",
+                "semantic_type": "entity",
+                "updated_at": "2026-06-09T10:38:25.951186Z"
+            },
+            "tenant": {
+                "created_at": "2026-06-09T10:38:25.916413Z",
+                "external_key": "stress_ext_1781001505916_953922309",
+                "id": "b5dcb95e-065b-4f21-ad1b-58bf940ea3bf",
+                "name": "stress_tenant_1781001505916_64122570",
+                "schema_name": "tenant_b5dcb95e065b4f21ad1b58bf940ea3bf",
+                "status": "pending",
+                "updated_at": "2026-06-09T10:38:25.916413Z"
+            },
+            "tenant_id": "b5dcb95e-065b-4f21-ad1b-58bf940ea3bf"
+        },
+        "profile": "decision_evaluation",
+        "simpleScenario": {
+            "iteration": {
+                "tenant_id": "b5dcb95e-065b-4f21-ad1b-58bf940ea3bf",
+                "version": 1,
+                "created_at": "2026-06-09T10:38:26.046586Z",
+                "score_block_and_review_threshold": 10,
+                "score_review_threshold": 1,
+                "status": "draft",
+                "trigger_formula": {
+                    "constant": true
+                },
+                "id": "aa141568-a9c4-45b3-935f-1b1d461d42e8",
+                "scenario_id": "9f641704-1fd2-4537-adb3-d506b149da8d",
+                "score_decline_threshold": 20
+            },
+            "scenario": {
+                "tenant_id": "b5dcb95e-065b-4f21-ad1b-58bf940ea3bf",
+                "trigger_object_type": "transactions_1781001505925_364640365",
+                "updated_at": "2026-06-09T10:38:26.043831Z",
+                "created_at": "2026-06-09T10:38:26.043831Z",
+                "id": "9f641704-1fd2-4537-adb3-d506b149da8d",
+                "name": "simple_decision_1781001506043_729059255"
+            }
+        },
+        "counts": {
+            "workflows_created": 1,
+            "rules_created": 1,
+            "scenarios_created": 1,
+            "scoring_configs_created": 1,
+            "screening_configs_created": 1,
+            "setup_ingested_records": 0
+        },
+        "heavyOwner": "heavy_owner_1781001506087_258742391"
+    }
+}

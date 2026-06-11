@@ -1,0 +1,64 @@
+{
+  "name": "simple amount threshold",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 5,
+    "decline": 10
+  },
+  "variables": {
+    "object_id": "simple_threshold_txn"
+  },
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 250,
+      "status": "pending",
+      "account_id": "acct-simple",
+      "ip": "1.2.3.4",
+      "merchant": "Simple Market",
+      "email": "simple@example.com",
+      "country": "gh",
+      "owner_id": "owner-simple",
+      "event_time": "$now",
+      "note": "single threshold demo"
+    }
+  },
+  "rules": [
+    {
+      "name": "amount_over_100",
+      "description": "Review transactions where amount is over 100.",
+      "score_modifier": 1,
+      "formula": {
+        "function": "gt",
+        "children": [
+          {
+            "function": "field_ref",
+            "named_children": {
+              "field": {
+                "constant": "amount"
+              }
+            }
+          },
+          {
+            "constant": 100
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 1,
+    "outcome": "review",
+    "rules": {
+      "amount_over_100": "hit"
+    }
+  }
+}

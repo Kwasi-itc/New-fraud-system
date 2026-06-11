@@ -1,15 +1,19 @@
-FROM golang:1.24 AS builder
+FROM golang:1.24.2 AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/ingestion-server ./cmd/server
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/ingestion-worker ./cmd/worker
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/worker ./cmd/worker
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/migrate ./cmd/migrate
 
 FROM gcr.io/distroless/base-debian12
-COPY --from=builder /bin/ingestion-server /ingestion-server
-COPY --from=builder /bin/ingestion-worker /ingestion-worker
+WORKDIR /app
+COPY --from=builder /bin/server /app/server
+COPY --from=builder /bin/worker /app/worker
+COPY --from=builder /bin/migrate /app/migrate
+COPY --from=builder /app/internal/migrations /app/internal/migrations
 EXPOSE 8081
-ENTRYPOINT ["/ingestion-server"]
+ENTRYPOINT ["/app/server"]

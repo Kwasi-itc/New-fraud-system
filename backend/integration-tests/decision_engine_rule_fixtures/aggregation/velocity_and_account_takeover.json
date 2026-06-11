@@ -1,0 +1,289 @@
+{
+  "name": "velocity and account takeover aggregation",
+  "object_type": "$transactions",
+  "trigger": {
+    "function": "constant",
+    "constant": true
+  },
+  "thresholds": {
+    "review": 1,
+    "block_and_review": 5,
+    "decline": 10
+  },
+  "variables": {
+    "object_id": "ato_target",
+    "owner_id": "ato_owner",
+    "account_id": "ato_account"
+  },
+  "records": [
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-history-1",
+        "amount": 900,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.0.0.1",
+        "merchant": "Electronics Hub",
+        "email": "ato@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "recent-high-value"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-history-2",
+        "amount": 850,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.0.0.2",
+        "merchant": "Gift Card Store",
+        "email": "ato@example.com",
+        "country": "ng",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_30s",
+        "note": "recent-high-value"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-history-3",
+        "amount": 700,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.0.0.3",
+        "merchant": "Travel Portal",
+        "email": "ato@example.com",
+        "country": "ke",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_2m",
+        "note": "recent-high-value"
+      }
+    },
+    {
+      "object_type": "$transactions",
+      "body": {
+        "object_id": "$owner_id-history-4",
+        "amount": 50,
+        "status": "pending",
+        "account_id": "$account_id",
+        "ip": "10.0.0.4",
+        "merchant": "Coffee Shop",
+        "email": "ato@example.com",
+        "country": "gh",
+        "owner_id": "$owner_id",
+        "event_time": "$now_minus_4m",
+        "note": "small-control"
+      }
+    }
+  ],
+  "input": {
+    "object_id": "$object_id",
+    "object_type": "$transactions",
+    "fields": {
+      "object_id": "$object_id",
+      "amount": 1000,
+      "status": "pending",
+      "account_id": "$account_id",
+      "ip": "10.0.0.5",
+      "merchant": "Luxury Goods",
+      "email": "ato@example.com",
+      "country": "za",
+      "owner_id": "$owner_id",
+      "event_time": "$now",
+      "note": "current-high-value"
+    }
+  },
+  "rules": [
+    {
+      "name": "four_owner_transactions_in_last_hour",
+      "description": "Simple velocity: the owner has at least four transactions in the last hour.",
+      "score_modifier": 2,
+      "formula": {
+        "function": "gte",
+        "children": [
+          {
+            "function": "list_count",
+            "children": [
+              {
+                "function": "related_records",
+                "named_children": {
+                  "object_type": {
+                    "constant": "$transactions"
+                  },
+                  "match_field": {
+                    "constant": "owner_id"
+                  },
+                  "equals": {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "owner_id"
+                      }
+                    }
+                  },
+                  "timestamp_field": {
+                    "constant": "event_time"
+                  },
+                  "within_hours": {
+                    "constant": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "constant": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "account_takeover_high_value_country_spread",
+      "description": "Real-world pattern: high value burst across multiple countries on the same owner.",
+      "score_modifier": 4,
+      "formula": {
+        "function": "and",
+        "children": [
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "sum",
+                "children": [
+                  {
+                    "function": "map_field",
+                    "named_children": {
+                      "items": {
+                        "function": "filter_eq",
+                        "named_children": {
+                          "items": {
+                            "function": "related_records",
+                            "named_children": {
+                              "object_type": {
+                                "constant": "$transactions"
+                              },
+                              "match_field": {
+                                "constant": "owner_id"
+                              },
+                              "equals": {
+                                "function": "field_ref",
+                                "named_children": {
+                                  "field": {
+                                    "constant": "owner_id"
+                                  }
+                                }
+                              },
+                              "timestamp_field": {
+                                "constant": "event_time"
+                              },
+                              "within_hours": {
+                                "constant": 1
+                              }
+                            }
+                          },
+                          "field": {
+                            "constant": "note"
+                          },
+                          "value": {
+                            "constant": "recent-high-value"
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "amount"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 2400
+              }
+            ]
+          },
+          {
+            "function": "gte",
+            "children": [
+              {
+                "function": "list_count",
+                "children": [
+                  {
+                    "function": "map_field",
+                    "named_children": {
+                      "items": {
+                        "function": "related_records",
+                        "named_children": {
+                          "object_type": {
+                            "constant": "$transactions"
+                          },
+                          "match_field": {
+                            "constant": "owner_id"
+                          },
+                          "equals": {
+                            "function": "field_ref",
+                            "named_children": {
+                              "field": {
+                                "constant": "owner_id"
+                              }
+                            }
+                          },
+                          "timestamp_field": {
+                            "constant": "event_time"
+                          },
+                          "within_hours": {
+                            "constant": 1
+                          }
+                        }
+                      },
+                      "field": {
+                        "constant": "country"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "constant": 4
+              }
+            ]
+          },
+          {
+            "function": "not",
+            "children": [
+              {
+                "function": "eq",
+                "children": [
+                  {
+                    "function": "field_ref",
+                    "named_children": {
+                      "field": {
+                        "constant": "country"
+                      }
+                    }
+                  },
+                  {
+                    "constant": "gh"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "triggered": true,
+    "score": 6,
+    "outcome": "block_and_review",
+    "rules": {
+      "four_owner_transactions_in_last_hour": "hit",
+      "account_takeover_high_value_country_spread": "hit"
+    }
+  }
+}

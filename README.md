@@ -2,6 +2,60 @@
 
 This directory is now the workspace root for the extracted system.
 
+## Local Docker stack
+
+The root `docker-compose.yml` runs the local/dev stack with one shared
+Postgres container, one-shot migration jobs, backend APIs, default workers, and
+the Next frontend.
+
+Start the default stack:
+
+```sh
+docker compose up --build
+```
+
+The default stack starts:
+
+- Postgres on `localhost:5432`
+- data-model-service on `http://localhost:8080`
+- ingestion-service on `http://localhost:8081`
+- decision-engine-service on `http://localhost:8082`
+- screening-service on `http://localhost:8085`
+- frontend on `http://localhost:3000`
+- data-model, ingestion, and decision-engine workers
+
+The screening worker is profile-gated because it needs provider configuration
+before it can process real screening jobs safely:
+
+```sh
+docker compose --profile screening-worker up --build
+```
+
+Health checks:
+
+```sh
+curl http://localhost:8080/healthz
+curl http://localhost:8081/healthz
+curl http://localhost:8082/healthz
+curl http://localhost:8085/healthz
+```
+
+Stop the stack:
+
+```sh
+docker compose down
+```
+
+Reset the local database volume:
+
+```sh
+docker compose down -v
+```
+
+Compose injects local/dev environment values directly. The checked-in service
+`.env.example` files remain useful for non-Docker local runs, but they are not
+the source of truth for the Docker stack.
+
 ## Layout
 
 ```text
