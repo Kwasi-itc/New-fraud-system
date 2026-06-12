@@ -33,9 +33,45 @@ func TestScenarioServiceCreateValidatesTriggerObjectType(t *testing.T) {
 		nilWorkflowActionRepository{},
 	)
 
-	_, err := svc.Create(context.Background(), "tenant-1", "Scenario A", "missing_table")
+	_, err := svc.Create(context.Background(), "tenant-1", "Scenario A", "", "missing_table")
 	if err == nil || err.Error() != `trigger object type "missing_table" not found in tenant model` {
 		t.Fatalf("Create() error = %v", err)
+	}
+}
+
+func TestScenarioServiceCreatePersistsDescription(t *testing.T) {
+	now := time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC)
+	repo := &scenarioServiceRepoStub{items: map[string]scenario.Scenario{}}
+	store := scenarioMutationStore{scenarios: repo}
+	svc := NewScenarioService(
+		scenarioTxManager{store: store},
+		fixedIDGenerator{id: uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")},
+		fixedClock{now: now},
+		scenarioDataModelReaderStub{model: ports.TenantModel{
+			Tables: map[string]ports.TenantModelTable{
+				"business": {Name: "business"},
+			},
+		}},
+		repo,
+		nilIterationRepository{},
+		nilRuleRepository{},
+		nilWorkflowRuleRepository{},
+		nilWorkflowConditionRepository{},
+		nilWorkflowActionRepository{},
+	)
+
+	created, err := svc.Create(
+		context.Background(),
+		"tenant-1",
+		"Scenario A",
+		"Checks high-value business records",
+		"business",
+	)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if created.Description != "Checks high-value business records" {
+		t.Fatalf("Create() description = %q", created.Description)
 	}
 }
 
@@ -46,6 +82,7 @@ func TestScenarioServiceDeleteRemovesScenario(t *testing.T) {
 			ID:                "scenario-1",
 			TenantID:          "tenant-1",
 			Name:              "Scenario A",
+			Description:       "Scenario description",
 			TriggerObjectType: "business",
 			CreatedAt:         now,
 			UpdatedAt:         now,

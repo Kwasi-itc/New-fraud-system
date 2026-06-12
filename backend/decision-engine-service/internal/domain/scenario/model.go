@@ -18,6 +18,7 @@ type Scenario struct {
 	ID                string
 	TenantID          string
 	Name              string
+	Description       string
 	TriggerObjectType string
 	LiveIterationID   *string
 	CreatedAt         time.Time

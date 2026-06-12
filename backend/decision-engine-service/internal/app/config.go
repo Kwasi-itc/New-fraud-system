@@ -15,6 +15,7 @@ type Config struct {
 	IngestionServiceURL         string
 	ServiceAuthMode             string
 	ServiceAuthToken            string
+	ServiceAllowedOrigins       []string
 	WorkflowActionURL           string
 	ScreeningServiceURL         string
 	ScreeningProviderURL        string
@@ -53,6 +54,7 @@ func LoadConfig() (Config, error) {
 		IngestionServiceURL:         strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
 		ServiceAuthMode:             getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:            os.Getenv("SERVICE_AUTH_TOKEN"),
+		ServiceAllowedOrigins:       parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		WorkflowActionURL:           strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
 		ScreeningServiceURL:         strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
 		ScreeningProviderURL:        strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),

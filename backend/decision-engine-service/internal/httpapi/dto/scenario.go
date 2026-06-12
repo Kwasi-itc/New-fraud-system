@@ -9,11 +9,13 @@ import (
 
 type CreateScenarioRequest struct {
 	Name              string `json:"name"`
+	Description       string `json:"description"`
 	TriggerObjectType string `json:"trigger_object_type"`
 }
 
 type UpdateScenarioRequest struct {
 	Name              string `json:"name"`
+	Description       string `json:"description"`
 	TriggerObjectType string `json:"trigger_object_type"`
 }
 
@@ -25,6 +27,7 @@ type ScenarioResponse struct {
 	ID                string     `json:"id"`
 	TenantID          string     `json:"tenant_id"`
 	Name              string     `json:"name"`
+	Description       string     `json:"description"`
 	TriggerObjectType string     `json:"trigger_object_type"`
 	LiveIterationID   *string    `json:"live_iteration_id,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
@@ -36,6 +39,7 @@ func AdaptScenario(s scenario.Scenario) ScenarioResponse {
 		ID:                s.ID,
 		TenantID:          s.TenantID,
 		Name:              s.Name,
+		Description:       s.Description,
 		TriggerObjectType: s.TriggerObjectType,
 		LiveIterationID:   s.LiveIterationID,
 		CreatedAt:         s.CreatedAt,

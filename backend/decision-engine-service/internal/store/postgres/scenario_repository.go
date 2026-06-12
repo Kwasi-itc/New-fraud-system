@@ -26,9 +26,9 @@ func NewScenarioRepository(q queryable) ScenarioRepository {
 func (r ScenarioRepository) Create(ctx context.Context, item scenario.Scenario) (scenario.Scenario, error) {
 	const stmt = `
 		insert into core.scenarios (
-			id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
-		) values ($1, $2, $3, $4, $5, $6, $7)
-		returning id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
+			id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
+		) values ($1, $2, $3, $4, $5, $6, $7, $8)
+		returning id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
 	`
 	var out scenario.Scenario
 	err := r.q.QueryRow(
@@ -37,6 +37,7 @@ func (r ScenarioRepository) Create(ctx context.Context, item scenario.Scenario) 
 		item.ID,
 		item.TenantID,
 		item.Name,
+		item.Description,
 		item.TriggerObjectType,
 		item.LiveIterationID,
 		item.CreatedAt,
@@ -45,6 +46,7 @@ func (r ScenarioRepository) Create(ctx context.Context, item scenario.Scenario) 
 		&out.ID,
 		&out.TenantID,
 		&out.Name,
+		&out.Description,
 		&out.TriggerObjectType,
 		&out.LiveIterationID,
 		&out.CreatedAt,
@@ -55,7 +57,7 @@ func (r ScenarioRepository) Create(ctx context.Context, item scenario.Scenario) 
 
 func (r ScenarioRepository) ListByTenant(ctx context.Context, tenantID string) ([]scenario.Scenario, error) {
 	const stmt = `
-		select id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
+		select id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
 		from core.scenarios
 		where tenant_id = $1
 		order by created_at desc
@@ -73,6 +75,7 @@ func (r ScenarioRepository) ListByTenant(ctx context.Context, tenantID string) (
 			&item.ID,
 			&item.TenantID,
 			&item.Name,
+			&item.Description,
 			&item.TriggerObjectType,
 			&item.LiveIterationID,
 			&item.CreatedAt,
@@ -87,7 +90,7 @@ func (r ScenarioRepository) ListByTenant(ctx context.Context, tenantID string) (
 
 func (r ScenarioRepository) ListLiveByTriggerObject(ctx context.Context, tenantID, objectType string) ([]scenario.Scenario, error) {
 	const stmt = `
-		select id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
+		select id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
 		from core.scenarios
 		where tenant_id = $1 and trigger_object_type = $2 and live_iteration_id is not null
 		order by created_at desc
@@ -105,6 +108,7 @@ func (r ScenarioRepository) ListLiveByTriggerObject(ctx context.Context, tenantI
 			&item.ID,
 			&item.TenantID,
 			&item.Name,
+			&item.Description,
 			&item.TriggerObjectType,
 			&item.LiveIterationID,
 			&item.CreatedAt,
@@ -119,7 +123,7 @@ func (r ScenarioRepository) ListLiveByTriggerObject(ctx context.Context, tenantI
 
 func (r ScenarioRepository) GetByID(ctx context.Context, tenantID, scenarioID string) (scenario.Scenario, error) {
 	const stmt = `
-		select id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
+		select id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
 		from core.scenarios
 		where tenant_id = $1 and id = $2
 	`
@@ -128,6 +132,7 @@ func (r ScenarioRepository) GetByID(ctx context.Context, tenantID, scenarioID st
 		&item.ID,
 		&item.TenantID,
 		&item.Name,
+		&item.Description,
 		&item.TriggerObjectType,
 		&item.LiveIterationID,
 		&item.CreatedAt,
@@ -143,17 +148,19 @@ func (r ScenarioRepository) Update(ctx context.Context, item scenario.Scenario) 
 	const stmt = `
 		update core.scenarios
 		set name = $1,
-			trigger_object_type = $2,
-			live_iteration_id = $3,
-			updated_at = $4
-		where tenant_id = $5 and id = $6
-		returning id, tenant_id, name, trigger_object_type, live_iteration_id, created_at, updated_at
+			description = $2,
+			trigger_object_type = $3,
+			live_iteration_id = $4,
+			updated_at = $5
+		where tenant_id = $6 and id = $7
+		returning id, tenant_id, name, description, trigger_object_type, live_iteration_id, created_at, updated_at
 	`
 	var out scenario.Scenario
 	err := r.q.QueryRow(
 		ctx,
 		stmt,
 		item.Name,
+		item.Description,
 		item.TriggerObjectType,
 		item.LiveIterationID,
 		item.UpdatedAt,
@@ -163,6 +170,7 @@ func (r ScenarioRepository) Update(ctx context.Context, item scenario.Scenario) 
 		&out.ID,
 		&out.TenantID,
 		&out.Name,
+		&out.Description,
 		&out.TriggerObjectType,
 		&out.LiveIterationID,
 		&out.CreatedAt,

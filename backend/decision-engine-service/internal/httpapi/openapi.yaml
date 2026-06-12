@@ -1660,6 +1660,8 @@ components:
       properties:
         name:
           type: string
+        description:
+          type: string
         trigger_object_type:
           type: string
       required: [name, trigger_object_type]
@@ -1672,6 +1674,8 @@ components:
           type: string
         name:
           type: string
+        description:
+          type: string
         trigger_object_type:
           type: string
         live_iteration_id:
@@ -1683,7 +1687,7 @@ components:
         updated_at:
           type: string
           format: date-time
-      required: [id, tenant_id, name, trigger_object_type, created_at, updated_at]
+      required: [id, tenant_id, name, description, trigger_object_type, created_at, updated_at]
     IterationResponse:
       type: object
       properties:

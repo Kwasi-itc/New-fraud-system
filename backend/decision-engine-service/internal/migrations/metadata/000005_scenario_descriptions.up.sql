@@ -1,0 +1,2 @@
+ALTER TABLE core.scenarios
+  ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';

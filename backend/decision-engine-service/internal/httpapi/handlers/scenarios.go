@@ -33,7 +33,7 @@ func (h ScenarioHandler) CreateScenario(c *gin.Context) {
 	}
 
 	tenantID := c.Param("tenantId")
-	item, err := h.scenarioService.Create(c.Request.Context(), tenantID, req.Name, req.TriggerObjectType)
+	item, err := h.scenarioService.Create(c.Request.Context(), tenantID, req.Name, req.Description, req.TriggerObjectType)
 	if err != nil {
 		logHandlerFailure(c, "create scenario failed", err, "tenant_id", tenantID, "trigger_object_type", req.TriggerObjectType, "scenario_name", req.Name)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "create_scenario_failed", "details": err.Error()})
@@ -84,7 +84,7 @@ func (h ScenarioHandler) UpdateScenario(c *gin.Context) {
 
 	tenantID := c.Param("tenantId")
 	scenarioID := c.Param("scenarioId")
-	item, err := h.scenarioService.Update(c.Request.Context(), tenantID, scenarioID, req.Name, req.TriggerObjectType)
+	item, err := h.scenarioService.Update(c.Request.Context(), tenantID, scenarioID, req.Name, req.Description, req.TriggerObjectType)
 	if err != nil {
 		logHandlerFailure(c, "update scenario failed", err, "tenant_id", tenantID, "scenario_id", scenarioID, "trigger_object_type", req.TriggerObjectType, "scenario_name", req.Name)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "update_scenario_failed", "details": err.Error()})

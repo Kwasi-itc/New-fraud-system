@@ -47,12 +47,13 @@ func NewScenarioService(
 	}
 }
 
-func (s ScenarioService) Create(ctx context.Context, tenantID, name, triggerObjectType string) (scenario.Scenario, error) {
+func (s ScenarioService) Create(ctx context.Context, tenantID, name, description, triggerObjectType string) (scenario.Scenario, error) {
 	now := s.clock.Now()
 	item := scenario.Scenario{
 		ID:                s.idGen.New().String(),
 		TenantID:          tenantID,
 		Name:              name,
+		Description:       description,
 		TriggerObjectType: triggerObjectType,
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -81,12 +82,13 @@ func (s ScenarioService) GetByID(ctx context.Context, tenantID, scenarioID strin
 	return s.readRepo.GetByID(ctx, tenantID, scenarioID)
 }
 
-func (s ScenarioService) Update(ctx context.Context, tenantID, scenarioID, name, triggerObjectType string) (scenario.Scenario, error) {
+func (s ScenarioService) Update(ctx context.Context, tenantID, scenarioID, name, description, triggerObjectType string) (scenario.Scenario, error) {
 	current, err := s.readRepo.GetByID(ctx, tenantID, scenarioID)
 	if err != nil {
 		return scenario.Scenario{}, err
 	}
 	current.Name = name
+	current.Description = description
 	current.TriggerObjectType = triggerObjectType
 	current.UpdatedAt = s.clock.Now()
 	if err := current.Validate(); err != nil {
@@ -125,6 +127,7 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 		ID:                s.idGen.New().String(),
 		TenantID:          tenantID,
 		Name:              name,
+		Description:       source.Description,
 		TriggerObjectType: source.TriggerObjectType,
 		CreatedAt:         now,
 		UpdatedAt:         now,
