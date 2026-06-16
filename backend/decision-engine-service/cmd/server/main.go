@@ -8,14 +8,15 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	cfg, err := app.LoadConfig()
 	if err != nil {
+		logger := app.NewLogger(os.Stdout, "info")
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+
+	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
+	slog.SetDefault(logger)
 
 	application, err := app.New(cfg, logger)
 	if err != nil {

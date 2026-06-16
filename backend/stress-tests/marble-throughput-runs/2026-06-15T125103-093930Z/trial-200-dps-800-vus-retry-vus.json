@@ -1,0 +1,87 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "marble_decision_throughput_limit",
+    "objective": "Find maximum sustainable public API decision creations per second.",
+    "system_under_test": "POST /v1/decisions",
+    "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+  },
+  "environment": {
+    "captured_at": "2026-06-15T13:00:20.767823Z",
+    "command": [
+      "stress-tests/marble_decision_throughput_orchestrator.py"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+    "api_url": "http://172.23.146.73:8080"
+  },
+  "setup": {
+    "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+    "scenario_name": "Validate SEPA Payouts",
+    "trigger_object_type": "transactions",
+    "seeded_company_id": "company_793783caaa524853a0aa15c2",
+    "seeded_account_id": "account_eca2acde03a24ed38db6e920"
+  },
+  "run": {
+    "rate": 200,
+    "vus": 800,
+    "duration_seconds": 60.0,
+    "warmup_duration_seconds": 30.0,
+    "transaction_value": 10000.0,
+    "account_past_balance": 200000.0,
+    "timeout_seconds": 30.0,
+    "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-200-dps-800-vus-retry-vus.json",
+    "api_url": "http://172.23.146.73:8080",
+    "api_key": "set",
+    "org_export": "org-export.json",
+    "scenario_name": "Validate SEPA Payouts",
+    "scenario_id": null,
+    "seed_parent_records": true
+  },
+  "workload_counts": {
+    "attempted_decisions": 12000,
+    "completed_decisions": 3556,
+    "successful_decisions": 3556,
+    "failed_decisions": 0,
+    "timeouts": 0,
+    "dropped_requests": 8444,
+    "skipped_decisions": 0
+  },
+  "rates": {
+    "target_decisions_per_second": 200,
+    "achieved_successful_decisions_per_second": 59.266666666666666,
+    "success_rate": 0.29633333333333334,
+    "error_rate": 0.7036666666666667,
+    "timeout_rate": 0.0
+  },
+  "latency_ms": {
+    "avg": 14420.912480258528,
+    "p50": 11043.868950015167,
+    "p95": 40628.87865000812,
+    "p99": 54581.712525011804,
+    "max": 71600.1571000088
+  },
+  "result": {
+    "sustainable": false,
+    "target_met": false,
+    "throughput_limit_candidate": null,
+    "elapsed_seconds": 73.4612916999613
+  },
+  "sample_errors": [],
+  "orchestration": {
+    "db_diagnostics_before": {
+      "available": true,
+      "captured_at": "2026-06-15T12:58:23.269004Z"
+    },
+    "db_diagnostics_after": {
+      "available": true,
+      "captured_at": "2026-06-15T13:00:20.947829Z"
+    },
+    "cooldown_duration_seconds": 15.0,
+    "health_timeout_seconds": 60.0
+  }
+}

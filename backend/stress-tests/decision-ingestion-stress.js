@@ -3,9 +3,9 @@ import { check, fail, group, sleep } from 'k6';
 import exec from 'k6/execution';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-const DATA_MODEL_URL = (__ENV.DATA_MODEL_URL || 'http://localhost:8080').replace(/\/$/, '');
-const INGESTION_URL = (__ENV.INGESTION_URL || 'http://localhost:8081').replace(/\/$/, '');
-const DECISION_ENGINE_URL = (__ENV.DECISION_ENGINE_URL || 'http://localhost:8082').replace(/\/$/, '');
+const DATA_MODEL_URL = (__ENV.DATA_MODEL_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
+const INGESTION_URL = (__ENV.INGESTION_URL || 'http://127.0.0.1:8081').replace(/\/$/, '');
+const DECISION_ENGINE_URL = (__ENV.DECISION_ENGINE_URL || 'http://127.0.0.1:8082').replace(/\/$/, '');
 const PROFILE = __ENV.STRESS_PROFILE || 'mixed';
 const EXECUTOR_MODE = __ENV.STRESS_EXECUTOR || 'auto';
 const RATE = Number(__ENV.STRESS_RATE || '20');

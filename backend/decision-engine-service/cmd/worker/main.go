@@ -35,14 +35,15 @@ type workerRunner struct {
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	cfg, err := app.LoadConfig()
 	if err != nil {
+		logger := app.NewLogger(os.Stdout, "info")
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+
+	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
+	slog.SetDefault(logger)
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {

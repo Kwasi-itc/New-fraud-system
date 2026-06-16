@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -39,8 +38,8 @@ func TestRequestContextMiddlewareSetsRequestIDHeader(t *testing.T) {
 	if rec.Header().Get(requestIDHeader) == "" {
 		t.Fatal("expected request id header")
 	}
-	if !strings.Contains(logs.String(), "request_id=") {
-		t.Fatalf("expected request id in logs, got %s", logs.String())
+	if logs.String() != "" {
+		t.Fatalf("expected default info logger to suppress request debug log, got %s", logs.String())
 	}
 }
 

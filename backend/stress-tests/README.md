@@ -22,9 +22,9 @@ This suite uses k6 instead of Locust because it has stronger repeatable reportin
 Default service URLs:
 
 ```bash
-DATA_MODEL_URL=http://localhost:8080
-INGESTION_URL=http://localhost:8081
-DECISION_ENGINE_URL=http://localhost:8082
+DATA_MODEL_URL=http://127.0.0.1:8080
+INGESTION_URL=http://127.0.0.1:8081
+DECISION_ENGINE_URL=http://127.0.0.1:8082
 ```
 
 If service auth is enabled:
@@ -51,6 +51,48 @@ From the backend root:
 
 ```bash
 k6 run stress-tests/decision-ingestion-stress.js
+```
+
+## Decision Throughput Limit
+
+The first protocol-driven decision-engine stress test is a Python orchestrator. It targets direct scenario evaluation only and automatically finds the highest sustainable evaluations-per-second rate with zero errors.
+
+Run a small smoke test:
+
+```bash
+python stress-tests/decision_throughput_orchestrator.py --target-eps 5 --start-eps 2 --trial-duration 3 --warmup-duration 0 --rate-floor 1 --cooldown-duration 1
+```
+
+Run the default throughput search:
+
+```bash
+python stress-tests/decision_throughput_orchestrator.py
+```
+
+The orchestrator writes:
+
+```text
+stress-tests/throughput-runs/<timestamp>/orchestration-summary.json
+```
+
+It runs increasing EPS trials, binary-searches after the first failure, confirms the final passing rate, and marks a trial as sustainable only when it has zero failures, zero timeouts, and zero dropped requests. The default measured duration is 60 seconds, with a 30 second warmup and a 30 second cooldown between trial attempts.
+
+Between attempts the orchestrator waits for cooldown, checks `/readyz` on data-model, ingestion, and decision-engine, and captures database/outbox diagnostics through the local Postgres container. If the highest candidate fails confirmation, the orchestrator confirms the next lower candidate before reporting `highest_sustainable_eps`.
+
+Useful throughput options:
+
+```bash
+python stress-tests/decision_throughput_orchestrator.py \
+  --target-eps 1000 \
+  --trial-duration 60 \
+  --cooldown-duration 30 \
+  --health-timeout 60
+```
+
+Run one manual trial when investigating a specific rate:
+
+```bash
+python stress-tests/decision_throughput_limit.py --rate 500 --vus 1000 --duration 60
 ```
 
 Run a specific profile:

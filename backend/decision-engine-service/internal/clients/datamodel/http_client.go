@@ -6,26 +6,86 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"golang.org/x/sync/singleflight"
 )
+
+const tenantModelCacheTTL = 30 * time.Second
 
 type HTTPClient struct {
 	baseURL string
 	client  *http.Client
+	now     func() time.Time
+
+	mu               sync.RWMutex
+	tenantModelCache map[string]cachedTenantModel
+	tenantModelGroup singleflight.Group
 }
 
-func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
-	return HTTPClient{
+type cachedTenantModel struct {
+	model     ports.TenantModel
+	expiresAt time.Time
+}
+
+func NewHTTPClient(baseURL string, timeout time.Duration) *HTTPClient {
+	return &HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		client: &http.Client{
 			Timeout: timeout,
 		},
+		now:              time.Now,
+		tenantModelCache: make(map[string]cachedTenantModel),
 	}
 }
 
-func (c HTTPClient) GetTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
+func (c *HTTPClient) GetTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
+	if model, ok := c.cachedTenantModel(tenantID); ok {
+		return model, nil
+	}
+
+	value, err, _ := c.tenantModelGroup.Do(tenantID, func() (any, error) {
+		if model, ok := c.cachedTenantModel(tenantID); ok {
+			return model, nil
+		}
+
+		model, err := c.fetchTenantModel(ctx, tenantID)
+		if err != nil {
+			return ports.TenantModel{}, err
+		}
+		c.storeTenantModel(tenantID, model)
+		return model, nil
+	})
+	if err != nil {
+		return ports.TenantModel{}, err
+	}
+	return value.(ports.TenantModel), nil
+}
+
+func (c *HTTPClient) cachedTenantModel(tenantID string) (ports.TenantModel, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	item, ok := c.tenantModelCache[tenantID]
+	if !ok || !c.now().Before(item.expiresAt) {
+		return ports.TenantModel{}, false
+	}
+	return item.model, true
+}
+
+func (c *HTTPClient) storeTenantModel(tenantID string, model ports.TenantModel) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.tenantModelCache[tenantID] = cachedTenantModel{
+		model:     model,
+		expiresAt: c.now().Add(tenantModelCacheTTL),
+	}
+}
+
+func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
 	url := fmt.Sprintf("%s/v1/tenants/%s/data-model", c.baseURL, tenantID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -83,7 +143,7 @@ func (c HTTPClient) GetTenantModel(ctx context.Context, tenantID string) (ports.
 	return model, nil
 }
 
-func (c HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]ports.ManagedIndexJob, error) {
+func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]ports.ManagedIndexJob, error) {
 	url := fmt.Sprintf("%s/v1/tenants/%s/index-jobs", c.baseURL, tenantID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -118,7 +178,7 @@ func (c HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]ports
 	return items, nil
 }
 
-func (c HTTPClient) RetryIndexJob(ctx context.Context, jobID string) error {
+func (c *HTTPClient) RetryIndexJob(ctx context.Context, jobID string) error {
 	url := fmt.Sprintf("%s/v1/index-jobs/%s/retry", c.baseURL, jobID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {

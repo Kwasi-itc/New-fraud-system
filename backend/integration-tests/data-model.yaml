@@ -20,7 +20,7 @@ info:
     Delete operations support `dry_run=true`.
     In V1, destructive operations are hard deletes. When a delete is blocked by internal dependencies, the API returns `409` with a delete report that lists the conflicts.
 servers:
-  - url: http://localhost:8080
+  - url: http://127.0.0.1:8080
     description: Local development server
 tags:
   - name: health

@@ -1,0 +1,95 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_throughput_limit",
+    "objective": "Find maximum sustainable direct decision evaluations per second.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+    "sustainability_definition": "0% errors, 0% timeouts, and 0 dropped requests during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-12T15:14:43.738609Z",
+    "command": [
+      "stress-tests\\decision_throughput_orchestrator.py"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "3cf680646d4d3df50672ced466cbafb08fa71047",
+    "git_status_short": "M integration-tests/conftest.py\n M stress-tests/README.md\n?? scripts/__pycache__/\n?? scripts/stress_test.py\n?? stress-tests/STRESS_TEST_PROTOCOL.md\n?? stress-tests/__pycache__/\n?? stress-tests/decision_throughput_limit.py\n?? stress-tests/decision_throughput_orchestrator.py\n?? stress-tests/throughput-runs-worker-off-services-in-docker/\n?? stress-tests/throughput-runs/",
+    "docker_version": "Docker version 29.2.0, build 0b9d198",
+    "docker_compose_version": "Docker Compose version v5.0.2",
+    "service_urls": {
+      "data_model": "http://localhost:8080",
+      "ingestion": "http://localhost:8081",
+      "decision_engine": "http://localhost:8082"
+    }
+  },
+  "setup": {
+    "tenant_id": "40f38559-b16f-41a7-96e5-49623b3bbab7",
+    "object_type": "transactions_2e3cb61b9c03",
+    "scenario_id": "3fcaa9ce-e695-4b67-9e2a-9882810795b1",
+    "rule_id": "48744797-d8d2-49a7-b8f6-a32241dda890",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "rule_shape": "amount > scenario_threshold",
+    "scenario_threshold": 1000
+  },
+  "run": {
+    "rate": 200,
+    "vus": 400,
+    "duration_seconds": 60.0,
+    "warmup_duration_seconds": 30.0,
+    "amount": 1800,
+    "timeout_seconds": 30.0,
+    "output": "stress-tests\\throughput-runs\\2026-06-12T151031-959507Z\\trial-200-eps-400-vus.json",
+    "data_model_url": "http://localhost:8080",
+    "ingestion_url": "http://localhost:8081",
+    "decision_engine_url": "http://localhost:8082",
+    "auth_token": null,
+    "scenario_threshold": 1000
+  },
+  "workload_counts": {
+    "attempted_evaluations": 12000,
+    "completed_evaluations": 4335,
+    "successful_evaluations": 4335,
+    "failed_evaluations": 0,
+    "timeouts": 0,
+    "dropped_requests": 7665
+  },
+  "rates": {
+    "target_evaluations_per_second": 200,
+    "achieved_successful_evaluations_per_second": 72.25,
+    "success_rate": 0.36125,
+    "error_rate": 0.63875,
+    "timeout_rate": 0.0
+  },
+  "latency_ms": {
+    "avg": 5596.727520576605,
+    "p50": 4055.9161999990465,
+    "p95": 15690.30384999642,
+    "p99": 25195.317693997345,
+    "max": 48819.916200009175
+  },
+  "result": {
+    "sustainable": false,
+    "target_met": false,
+    "throughput_limit_candidate": null,
+    "elapsed_seconds": 64.86276689999795
+  },
+  "sample_errors": [],
+  "orchestration": {
+    "db_diagnostics_before": {
+      "available": true,
+      "captured_at": "2026-06-12T15:13:03.699456Z"
+    },
+    "db_diagnostics_after": {
+      "available": true,
+      "captured_at": "2026-06-12T15:14:44.116309Z"
+    },
+    "diagnostic_warnings_before": [],
+    "diagnostic_warnings_after": [],
+    "cooldown_duration_seconds": 30.0,
+    "health_timeout_seconds": 60.0
+  }
+}
