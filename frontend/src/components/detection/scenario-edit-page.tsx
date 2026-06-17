@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -26,45 +27,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { decisionEngineApi } from "@/lib/decision-engine-api";
+import {
+  type Iteration,
+  type Rule,
+  decisionEngineApi,
+} from "@/lib/decision-engine-api";
+import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
 type EditorTab = "Trigger" | "Rules" | "Decision";
-
-const sampleRules = [
-  {
-    id: "check-transaction-value",
-    name: "Check transaction value",
-    description: "check if the value of the transaction is over 1000EUR",
-    ruleGroup: "Amount",
-    scoreModifier: "+10",
-    outcome: "",
-  },
-  {
-    id: "large-amount",
-    name: "Large amount",
-    description: "Check if the transaction has a large amount compared to th...",
-    ruleGroup: "Amount",
-    scoreModifier: "+10",
-    outcome: "",
-  },
-  {
-    id: "merchant-risk-mcc-codes",
-    name: "Merchant risk : MCC codes",
-    description: "Check if the Merchant code provided by the transaction is a...",
-    ruleGroup: "",
-    scoreModifier: "+20",
-    outcome: "",
-  },
-  {
-    id: "quick-transactions",
-    name: "Quick transactions in less than 5 mn",
-    description: "Check if there's a important nb of transactions in less than 5...",
-    ruleGroup: "",
-    scoreModifier: "+10",
-    outcome: "",
-  },
-];
 
 const sampleTriggerConditions = [
   ["where", "payment_method", "=", '"CARD"'],
@@ -92,6 +63,8 @@ const triggerOperatorOptions = [
   "is in",
   "contains",
 ] as const;
+
+const EMPTY_ITERATIONS: Iteration[] = [];
 
 function scenarioStatusLabel(version?: number, live = false) {
   if (live && version) {
@@ -231,60 +204,23 @@ function DecisionThresholdRow({
   );
 }
 
-function NewDraftModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  if (!isOpen) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-500/30 p-6 backdrop-blur-sm">
-      <div className="w-full max-w-[640px] overflow-hidden rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
-        <div className="border-b border-slate-200 px-5 py-5 text-center">
-          <h2 className="text-[17px] font-semibold text-slate-950">New draft</h2>
-        </div>
-        <div className="space-y-4 px-6 py-6 text-center text-[14px] leading-8 text-slate-950">
-          <p>There is already a draft for this scenario</p>
-          <p>
-            You can keep the existing draft and edit it or you can replace the
-            existing draft, creating a new one based on this version
-          </p>
-        </div>
-        <div className="flex gap-3 border-t border-slate-200 px-5 py-4">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="h-10 flex-1 rounded-xl border-slate-200 px-4 text-[14px] shadow-none"
-          >
-            Keep existing draft
-          </Button>
-          <Button className="h-10 flex-1 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]">
-            Replace existing draft
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
 export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const pushToast = useToastStore((state) => state.pushToast);
   const [activeTab, setActiveTab] = useState<EditorTab>("Trigger");
   const [deactivateOpen, setDeactivateOpen] = useState(false);
-  const [newDraftOpen, setNewDraftOpen] = useState(false);
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmImmediate, setConfirmImmediate] = useState(false);
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleEnabledDraft, setScheduleEnabledDraft] = useState<boolean | null>(null);
+  const [scheduleTimeDraft, setScheduleTimeDraft] = useState<string | null>(null);
+  const [scheduleMessage, setScheduleMessage] = useState<string | null>(null);
   const [triggerBuilderOpen, setTriggerBuilderOpen] = useState(false);
   const [ruleFiltersOpen, setRuleFiltersOpen] = useState(false);
   const [ruleGroupFilterOpen, setRuleGroupFilterOpen] = useState(false);
-  const [ruleAddOpen, setRuleAddOpen] = useState(false);
+  const [iterationMenuOpen, setIterationMenuOpen] = useState(false);
+  const [selectedIterationId, setSelectedIterationId] = useState<string | null>(null);
   const [ruleGroupFilter, setRuleGroupFilter] = useState("");
   const [ruleSearch, setRuleSearch] = useState("");
   const [triggerRows, setTriggerRows] = useState([
@@ -304,6 +240,187 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
     queryFn: () => decisionEngineApi.listIterations(tenantId, scenarioId),
     enabled: Boolean(tenantId && scenarioId),
   });
+
+  const recurringScheduleQuery = useQuery({
+    queryKey: ["decision-engine", "recurring-schedule", tenantId, scenarioId],
+    queryFn: () => decisionEngineApi.getRecurringSchedule(tenantId, scenarioId),
+    enabled: Boolean(tenantId && scenarioId && scenarioQuery.data?.scenario?.live_iteration_id),
+  });
+
+  const updateRecurringScheduleMutation = useMutation({
+    mutationFn: (payload: {
+      enabled: boolean;
+      frequency: string;
+      time_of_day: string;
+      timezone: string;
+      candidate_limit: number;
+    }) => decisionEngineApi.updateRecurringSchedule(tenantId, scenarioId, payload),
+    onSuccess: ({ recurring_schedule }) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "recurring-schedule", tenantId, scenarioId],
+      });
+      setScheduleEnabledDraft(null);
+      setScheduleTimeDraft(null);
+      setScheduleMessage(
+        recurring_schedule.enabled
+          ? `Recurring schedule saved: daily at ${recurring_schedule.time_of_day} UTC`
+          : "Recurring schedule disabled."
+      );
+    },
+    onError: (error) => {
+      setScheduleMessage(error instanceof Error ? error.message : "Failed to save schedule.");
+    },
+  });
+
+  const scenario = scenarioQuery.data?.scenario;
+  const hasLiveIteration = Boolean(scenario?.live_iteration_id);
+  const iterations = iterationsQuery.data?.iterations ?? EMPTY_ITERATIONS;
+  const sortedIterations = [...iterations].sort((a, b) => b.version - a.version);
+  const draftIteration =
+    [...sortedIterations]
+      .filter((iteration) => iteration.status === "draft")
+      [0] ?? null;
+  const liveIteration = scenario?.live_iteration_id
+    ? iterations.find((iteration) => iteration.id === scenario.live_iteration_id) ?? null
+    : null;
+  const preferredIteration =
+    draftIteration ??
+    liveIteration ??
+    sortedIterations[0] ??
+    null;
+  const currentIteration =
+    iterations.find((iteration) => iteration.id === selectedIterationId) ??
+    preferredIteration;
+  const rulesQuery = useQuery({
+    queryKey: ["decision-engine", "rules", tenantId, scenarioId, currentIteration?.id],
+    queryFn: () =>
+      decisionEngineApi.listRules(tenantId, scenarioId, currentIteration!.id),
+    enabled: Boolean(tenantId && scenarioId && currentIteration?.id),
+  });
+  const validationQuery = useQuery({
+    queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
+    queryFn: () =>
+      decisionEngineApi.validateIteration(tenantId, scenarioId, currentIteration!.id),
+    enabled: Boolean(activeTab === "Rules" && tenantId && scenarioId && currentIteration?.id),
+  });
+  const createDraftMutation = useMutation({
+    mutationFn: async () => {
+      if (currentIteration) {
+        const response = await decisionEngineApi.createDraftIteration(
+          tenantId,
+          scenarioId,
+          currentIteration.id
+        );
+        return response.iteration;
+      }
+
+      const response = await decisionEngineApi.createIteration(tenantId, scenarioId);
+      return response.iteration;
+    },
+    onSuccess: async (iteration) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "iterations", tenantId, scenarioId],
+      });
+      setSelectedIterationId(iteration.id);
+      setIterationMenuOpen(false);
+      pushToast({
+        title: "Draft created",
+        description: currentIteration
+          ? `Draft v${iteration.version} was created from ${scenarioStatusLabel(
+              currentIteration.version,
+              currentIteration.id === scenario?.live_iteration_id
+            )}.`
+          : `Draft v${iteration.version} is ready for editing.`,
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to create draft",
+        description:
+          error instanceof Error ? error.message : "The draft iteration could not be created.",
+        variant: "error",
+      });
+    },
+  });
+  const createRuleMutation = useMutation({
+    mutationFn: async () => {
+      if (!draftIteration) {
+        throw new Error("Create a draft iteration before adding rules.");
+      }
+
+      const nextDisplayOrder =
+        rulesQuery.data?.rules?.reduce(
+          (maxDisplayOrder, rule) => Math.max(maxDisplayOrder, rule.display_order),
+          0
+        ) ?? 0;
+
+      return decisionEngineApi.createRule(tenantId, scenarioId, draftIteration.id, {
+        display_order: nextDisplayOrder + 1,
+        name: "New rule",
+        description: "",
+        formula: { constant: true },
+        score_modifier: 0,
+        rule_group: "",
+        stable_rule_id: `new-rule-${nextDisplayOrder + 1}`,
+      });
+    },
+    onSuccess: async ({ rule }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "rules", tenantId, scenarioId, draftIteration?.id],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIteration?.id],
+      });
+      router.push(`/detection/${scenarioId}/edit/rules/${rule.id}`);
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to create rule",
+        description: error instanceof Error ? error.message : "The rule could not be created.",
+        variant: "error",
+      });
+    },
+  });
+  const deleteRuleMutation = useMutation({
+    mutationFn: (rule: Rule) =>
+      decisionEngineApi.deleteRule(tenantId, scenarioId, currentIteration!.id, rule.id),
+    onSuccess: async (_, rule) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "rules", tenantId, scenarioId, currentIteration?.id],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
+      });
+      pushToast({
+        title: "Rule deleted",
+        description: `${rule.name} was removed.`,
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to delete rule",
+        description: error instanceof Error ? error.message : "The rule could not be deleted.",
+        variant: "error",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!rulesQuery.isError) {
+      return;
+    }
+
+    pushToast({
+      title: "Failed to load rules",
+      description:
+        rulesQuery.error instanceof Error
+          ? rulesQuery.error.message
+          : "The decision engine rules could not be loaded.",
+      variant: "error",
+    });
+  }, [pushToast, rulesQuery.error, rulesQuery.isError]);
 
   if (!tenantId) {
     return (
@@ -337,28 +454,47 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
     );
   }
 
-  const scenario = scenarioQuery.data.scenario;
   const description = scenario.description || "No description provided";
-  const hasLiveIteration = Boolean(scenario.live_iteration_id);
-  const currentIteration = !iterationsQuery.data?.iterations?.length
-    ? null
-    : scenario.live_iteration_id
-      ? iterationsQuery.data.iterations.find(
-          (iteration) => iteration.id === scenario.live_iteration_id
-        ) ?? null
-      : [...iterationsQuery.data.iterations].sort((a, b) => b.version - a.version)[0] ?? null;
-  const statusLabel = scenarioStatusLabel(currentIteration?.version, hasLiveIteration);
-  const distinctRuleGroups = Array.from(
-    new Set(sampleRules.map((rule) => rule.ruleGroup).filter(Boolean))
+  const statusLabel = scenarioStatusLabel(
+    currentIteration?.version,
+    currentIteration?.id === scenario.live_iteration_id
   );
-  const filteredRules = sampleRules.filter((rule) => {
+  const rules = rulesQuery.data?.rules ?? [];
+  const isDraftIteration = currentIteration?.status === "draft";
+  const distinctRuleGroups = Array.from(
+    new Set(rules.map((rule) => rule.rule_group).filter(Boolean))
+  );
+  const filteredRules = rules.filter((rule) => {
     const matchesSearch =
       !ruleSearch ||
       rule.name.toLowerCase().includes(ruleSearch.toLowerCase()) ||
       rule.description.toLowerCase().includes(ruleSearch.toLowerCase());
-    const matchesGroup = !ruleGroupFilter || rule.ruleGroup === ruleGroupFilter;
+    const matchesGroup = !ruleGroupFilter || rule.rule_group === ruleGroupFilter;
     return matchesSearch && matchesGroup;
   });
+
+  const recurringSchedule = recurringScheduleQuery.data?.recurring_schedule;
+  const effectiveScheduleEnabled = scheduleEnabledDraft ?? recurringSchedule?.enabled ?? false;
+  const effectiveScheduleTime = scheduleTimeDraft ?? recurringSchedule?.time_of_day ?? "00:00";
+  const validation = validationQuery.data?.validation;
+  const validationTriggerErrors = validation?.trigger_errors ?? [];
+  const validationErrors = validation?.errors ?? [];
+  const ruleErrorsById = new Map(
+    (validation?.rule_results ?? [])
+      .filter((result) => !result.valid)
+      .map((result) => [result.rule_id, result.errors] as const)
+  );
+
+  function handleSaveRecurringSchedule() {
+    setScheduleMessage(null);
+    void updateRecurringScheduleMutation.mutate({
+      enabled: effectiveScheduleEnabled,
+      frequency: "daily",
+      time_of_day: effectiveScheduleTime,
+      timezone: "UTC",
+      candidate_limit: recurringSchedule?.candidate_limit ?? 100,
+    });
+  }
 
   return (
     <>
@@ -386,13 +522,56 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                   {scenario.trigger_object_type}
                   <Info className="ml-1 inline size-3.5" />
                 </Badge>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-400 px-3.5 py-1 text-[14px] text-[#1f4f96]"
-                >
-                  {statusLabel}
-                  <ChevronDown className="size-4" />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIterationMenuOpen((current) => !current)}
+                    disabled={sortedIterations.length === 0}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-400 px-3.5 py-1 text-[14px] text-[#1f4f96] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {statusLabel}
+                    <ChevronDown className="size-4" />
+                  </button>
+                  {iterationMenuOpen && sortedIterations.length > 0 ? (
+                    <div className="absolute left-0 top-full z-20 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+                      <div className="border-b border-slate-100 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-slate-500">
+                        Iterations
+                      </div>
+                      <div className="p-1.5">
+                        {sortedIterations.map((iteration) => {
+                          const isSelected = iteration.id === currentIteration?.id;
+                          const isLive = iteration.id === scenario.live_iteration_id;
+                          const iterationLabel = scenarioStatusLabel(iteration.version, isLive);
+
+                          return (
+                            <button
+                              key={iteration.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedIterationId(iteration.id);
+                                setIterationMenuOpen(false);
+                              }}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px]",
+                                isSelected
+                                  ? "bg-[#edf4ff] text-[#1f4f96]"
+                                  : "text-slate-950 hover:bg-slate-50"
+                              )}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">{iterationLabel}</span>
+                                <span className="text-[12px] text-slate-500">
+                                  Version {iteration.version}
+                                </span>
+                              </div>
+                              {isSelected ? <CheckCircle2 className="size-4" /> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -400,11 +579,12 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
               {hasLiveIteration ? (
                 <>
                   <Button
-                    onClick={() => setNewDraftOpen(true)}
+                    onClick={() => createDraftMutation.mutate()}
+                    disabled={createDraftMutation.isPending}
                     className="h-10 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]"
                   >
                     <Plus className="size-4" />
-                    New draft
+                    {createDraftMutation.isPending ? "Creating..." : "New draft"}
                   </Button>
                   <Button
                     onClick={() => setDeactivateOpen(true)}
@@ -415,9 +595,13 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                   </Button>
                 </>
               ) : (
-                <Button className="h-10 rounded-xl bg-[#1f4f96] px-5 text-[14px] shadow-none hover:bg-[#163f79]">
+                <Button
+                  onClick={() => createDraftMutation.mutate()}
+                  disabled={createDraftMutation.isPending}
+                  className="h-10 rounded-xl bg-[#1f4f96] px-5 text-[14px] shadow-none hover:bg-[#163f79]"
+                >
                   <CircleDot className="size-4" />
-                  Commit
+                  {createDraftMutation.isPending ? "Creating..." : "New draft"}
                 </Button>
               )}
             </div>
@@ -490,33 +674,49 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                       2. <span className="font-semibold">Batch Execution</span>: Run
                       automatically or manually on ingested data.
                     </p>
-                    {hasLiveIteration ? (
-                      <p className="pl-6">This scenario is not scheduled.</p>
+                    {!hasLiveIteration ? (
+                      <p className="pl-6">
+                        Publish a live iteration before you can enable a recurring schedule.
+                      </p>
                     ) : (
                       <div className="mt-2 space-y-3 pl-6">
                         <label className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={scheduleEnabled}
-                            onChange={(event) => setScheduleEnabled(event.target.checked)}
+                            checked={effectiveScheduleEnabled}
+                            onChange={(event) => setScheduleEnabledDraft(event.target.checked)}
                             className="size-5 rounded-md border border-[#2d63b8]"
                           />
                           <span>Run this scenario on a schedule</span>
                         </label>
-                        {scheduleEnabled ? (
+                        {effectiveScheduleEnabled ? (
                           <div className="flex flex-wrap items-center gap-3">
                             <span>Run</span>
                             <div className="inline-flex min-w-[104px] items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
                               daily
-                              <ChevronDown className="size-4 text-slate-500" />
                             </div>
                             <span>at</span>
-                            <div className="inline-flex min-w-[96px] items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
-                              00:00
-                              <ChevronDown className="size-4 text-slate-500" />
-                            </div>
+                            <Input
+                              type="time"
+                              value={effectiveScheduleTime}
+                              onChange={(event) => setScheduleTimeDraft(event.target.value)}
+                              className="h-10 w-[120px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                            />
                           </div>
                         ) : null}
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            onClick={handleSaveRecurringSchedule}
+                            disabled={updateRecurringScheduleMutation.isPending || recurringScheduleQuery.isLoading}
+                            className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
+                          >
+                            {updateRecurringScheduleMutation.isPending ? "Saving..." : "Save schedule"}
+                          </Button>
+                          {scheduleMessage ? (
+                            <p className="text-[13px] text-slate-600">{scheduleMessage}</p>
+                          ) : null}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -747,7 +947,6 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                   onClick={() => {
                     setRuleFiltersOpen((current) => !current);
                     setRuleGroupFilterOpen(false);
-                    setRuleAddOpen(false);
                   }}
                   className="h-9 rounded-xl border-slate-200 bg-white px-3.5 text-[13px] shadow-none"
                 >
@@ -761,39 +960,19 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                 ) : null}
                 <div className="relative">
                   <Button
-                    onClick={() => {
-                      setRuleAddOpen((current) => !current);
-                      setRuleFiltersOpen(false);
-                      setRuleGroupFilterOpen(false);
-                    }}
+                    disabled={!draftIteration || createRuleMutation.isPending}
+                    onClick={() => createRuleMutation.mutate()}
                     className="h-9 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
                   >
                     <Plus className="size-4" />
-                    Add
+                    {createRuleMutation.isPending ? "Creating..." : "Add"}
                   </Button>
-                  {ruleAddOpen ? (
-                    <div className="absolute right-0 top-11 z-10 w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
-                      <Link
-                        href={`/detection/${scenarioId}/edit/rules/new`}
-                        className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"
-                      >
-                        <div className="text-[14px] font-medium text-slate-950">Normal rule</div>
-                        <div className="text-[13px] text-slate-500">
-                          Score-based rule using trigger logic and thresholds.
-                        </div>
-                      </Link>
-                      <Link
-                        href={`/detection/${scenarioId}/edit/rules/new-screening`}
-                        className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"
-                      >
-                        <div className="text-[14px] font-medium text-slate-950">Screening rule</div>
-                        <div className="text-[13px] text-slate-500">
-                          Configure screening outcomes, counterpart fields, and sanction lists.
-                        </div>
-                      </Link>
-                    </div>
-                  ) : null}
                 </div>
+                {!draftIteration ? (
+                  <div className="absolute right-0 top-11 w-[280px] rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
+                    Create a draft iteration first. Use the <span className="font-medium">New draft</span> button above.
+                  </div>
+                ) : null}
                 {ruleFiltersOpen ? (
                   <div className="absolute right-[126px] top-11 z-10 w-[250px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
                     {ruleGroupFilterOpen ? (
@@ -836,8 +1015,40 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
 
             <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
               <CardContent className="p-0">
+                {validation ? (
+                  <div
+                    className={cn(
+                      "border-b px-4 py-3 text-[13px]",
+                      validation.valid
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : "border-amber-200 bg-amber-50 text-amber-800"
+                    )}
+                  >
+                    {validation.valid
+                      ? "This iteration is valid against the current data model."
+                      : "This iteration has validation issues. Review trigger and rule errors below."}
+                    {validationTriggerErrors.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {validationTriggerErrors.map((error, index) => (
+                          <p key={`${error}-${index}`}>Trigger: {error}</p>
+                        ))}
+                      </div>
+                    ) : null}
+                    {validationErrors.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {validationErrors.map((error, index) => (
+                          <p key={`${error}-${index}`}>{error}</p>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="overflow-x-auto">
-                  {filteredRules.length > 0 ? (
+                  {rulesQuery.isLoading ? (
+                    <div className="flex min-h-[140px] items-center justify-center text-[16px] text-slate-600">
+                      Loading rules...
+                    </div>
+                  ) : filteredRules.length > 0 ? (
                     <table className="min-w-full text-left">
                       <thead>
                         <tr
@@ -848,6 +1059,7 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                           <th className="px-4 py-3">Rule group</th>
                           <th className="px-4 py-3 text-center">Score Modifier</th>
                           <th className="px-4 py-3">Outcome</th>
+                          <th className="px-4 py-3 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -857,25 +1069,65 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                             className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0"
                           >
                             <td className="px-4 py-3 text-[14px] font-medium">
-                              <Link
-                                href={`/detection/${scenarioId}/edit/rules/${rule.id}`}
-                                className="hover:text-[#1f4f96]"
-                              >
-                                {rule.name}
-                              </Link>
+                              {isDraftIteration ? (
+                                <Link
+                                  href={`/detection/${scenarioId}/edit/rules/${rule.id}`}
+                                  className="text-left hover:text-[#1f4f96]"
+                                >
+                                  {rule.name}
+                                </Link>
+                              ) : (
+                                <span>{rule.name}</span>
+                              )}
+                              {ruleErrorsById.has(rule.id) ? (
+                                <div className="mt-1 text-[12px] text-amber-700">
+                                  {ruleErrorsById.get(rule.id)?.[0]}
+                                </div>
+                              ) : null}
                             </td>
                             <td className="max-w-[440px] px-4 py-3 text-[13px]">{rule.description}</td>
                             <td className="px-4 py-3">
-                              {rule.ruleGroup ? (
+                              {rule.rule_group ? (
                                 <Badge className="rounded-full border-[#2d63b8] bg-white px-2 py-0.5 text-[12px] font-medium tracking-normal normal-case text-[#2d63b8]">
-                                  {rule.ruleGroup}
+                                  {rule.rule_group}
                                 </Badge>
                               ) : null}
                             </td>
                             <td className="px-4 py-3 text-center text-[14px] text-[#dd3719]">
-                              {rule.scoreModifier}
+                              {rule.score_modifier >= 0
+                                ? `+${rule.score_modifier}`
+                                : `${rule.score_modifier}`}
                             </td>
-                            <td className="px-4 py-3 text-[13px]">{rule.outcome}</td>
+                            <td className="px-4 py-3 text-[13px]">Score based</td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  asChild
+                                  disabled={!isDraftIteration}
+                                  className="h-8 rounded-lg border-slate-200 px-3 text-[12px] shadow-none"
+                                >
+                                  <Link href={`/detection/${scenarioId}/edit/rules/${rule.id}`}>
+                                    Edit
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  disabled={!isDraftIteration || deleteRuleMutation.isPending}
+                                  onClick={() => {
+                                    if (
+                                      typeof window !== "undefined" &&
+                                      window.confirm(`Delete rule "${rule.name}"?`)
+                                    ) {
+                                      deleteRuleMutation.mutate(rule);
+                                    }
+                                  }}
+                                  className="h-8 rounded-lg border-red-200 px-3 text-[12px] text-red-700 shadow-none"
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -968,7 +1220,6 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
           setConfirmImmediate(false);
         }}
       />
-      <NewDraftModal isOpen={newDraftOpen} onClose={() => setNewDraftOpen(false)} />
     </>
   );
 }

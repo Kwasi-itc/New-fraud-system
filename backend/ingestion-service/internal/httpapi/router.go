@@ -18,6 +18,7 @@ import (
 type RouterConfig struct {
 	AuthMode            string
 	AuthToken           string
+	AllowedOrigins      []string
 	DataModelServiceURL string
 	HTTPClientTimeout   time.Duration
 }
@@ -36,6 +37,7 @@ func (systemClock) Now() time.Time {
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
 	router := gin.New()
+	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(requestContextMiddleware(logger))
 	router.Use(gin.Recovery())
 	registerDocsRoutes(router)

@@ -18,6 +18,7 @@ func TestDataModelHandlerCreateFieldRejectsUnsupportedDataType(t *testing.T) {
 
 	handler := NewDataModelHandler(
 		service.DataModelReadService{},
+		service.PortableDataModelService{},
 		service.TableService{},
 		service.FieldService{},
 		service.FieldEnumValueService{},

@@ -35,6 +35,7 @@ import {
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import { useAssembledDataModelQuery } from "@/lib/data-model-query";
+import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
 const tabs = ["Scenarios", "Lists", "Analytics", "Decisions"] as const;
@@ -202,6 +203,16 @@ function ScenariosTable({
   onDuplicate: (scenario: DetectionScenario) => void;
   onArchive: (scenario: DetectionScenario) => void;
 }) {
+  if (scenarios.length === 0) {
+    return (
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="p-6 text-sm text-slate-600">
+          No scenarios created yet. Create a scenario before decisions can be generated.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
       <CardContent className="p-0">
@@ -545,7 +556,7 @@ function AnalyticsView() {
   );
 }
 
-function DecisionsView() {
+function DecisionsView({ hasScenarios }: { hasScenarios: boolean }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [newFilterOpen, setNewFilterOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
@@ -603,6 +614,16 @@ function DecisionsView() {
     }
 
     return value;
+  }
+
+  if (!hasScenarios) {
+    return (
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="p-6 text-sm text-slate-600">
+          No decisions created yet because there are no scenarios configured.
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -1109,6 +1130,7 @@ export default function DetectionPage() {
   const router = useRouter();
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const queryClient = useQueryClient();
+  const pushToast = useToastStore((state) => state.pushToast);
   const [activeTab, setActiveTab] = useState<DetectionTab>("Scenarios");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createListModalOpen, setCreateListModalOpen] = useState(false);
@@ -1139,13 +1161,25 @@ export default function DetectionPage() {
   });
 
   const createScenarioMutation = useMutation({
-    mutationFn: () =>
-      decisionEngineApi.createScenario(tenantId, {
+    mutationFn: async () => {
+      const { scenario } = await decisionEngineApi.createScenario(tenantId, {
         name: scenarioName.trim(),
         description: scenarioDescription.trim(),
         trigger_object_type: scenarioTrigger,
-      }),
-    onSuccess: ({ scenario }) => {
+      });
+
+      try {
+        await decisionEngineApi.createIteration(tenantId, scenario.id);
+        return { scenario, iterationCreated: true as const };
+      } catch (iterationError) {
+        return {
+          scenario,
+          iterationCreated: false as const,
+          iterationError,
+        };
+      }
+    },
+    onSuccess: ({ scenario, iterationCreated, iterationError }) => {
       void queryClient.invalidateQueries({
         queryKey: scenarioQueryKey(tenantId),
       });
@@ -1153,7 +1187,19 @@ export default function DetectionPage() {
       setScenarioName("");
       setScenarioDescription("");
       setScenarioTrigger(triggerOptions[0] ?? "");
-      router.push(`/detection/${scenario.id}`);
+
+      if (!iterationCreated) {
+        pushToast({
+          title: "Scenario created without a draft",
+          description:
+            iterationError instanceof Error
+              ? iterationError.message
+              : "The initial draft iteration could not be created automatically.",
+          variant: "error",
+        });
+      }
+
+      router.push(`/detection/${scenario.id}/edit`);
     },
   });
 
@@ -1179,25 +1225,48 @@ export default function DetectionPage() {
   });
 
   const duplicateScenarioMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!selectedScenario) {
         throw new Error("No scenario selected.");
       }
 
-      return decisionEngineApi.createScenario(tenantId, {
+      const { scenario } = await decisionEngineApi.createScenario(tenantId, {
         name: duplicateName.trim() || `Copy of ${selectedScenario.name}`,
         description: selectedScenario.description,
         trigger_object_type: selectedScenario.trigger,
       });
+
+      try {
+        await decisionEngineApi.createIteration(tenantId, scenario.id);
+        return { scenario, iterationCreated: true as const };
+      } catch (iterationError) {
+        return {
+          scenario,
+          iterationCreated: false as const,
+          iterationError,
+        };
+      }
     },
-    onSuccess: ({ scenario }) => {
+    onSuccess: ({ scenario, iterationCreated, iterationError }) => {
       void queryClient.invalidateQueries({
         queryKey: scenarioQueryKey(tenantId),
       });
       setDuplicateModalOpen(false);
       setSelectedScenario(null);
       setDuplicateName("");
-      router.push(`/detection/${scenario.id}`);
+
+      if (!iterationCreated) {
+        pushToast({
+          title: "Scenario duplicated without a draft",
+          description:
+            iterationError instanceof Error
+              ? iterationError.message
+              : "The initial draft iteration could not be created automatically.",
+          variant: "error",
+        });
+      }
+
+      router.push(`/detection/${scenario.id}/edit`);
     },
   });
 
@@ -1332,7 +1401,7 @@ export default function DetectionPage() {
 
         {activeTab === "Lists" ? <ListsTable lists={lists} /> : null}
         {activeTab === "Analytics" ? <AnalyticsView /> : null}
-        {activeTab === "Decisions" ? <DecisionsView /> : null}
+        {activeTab === "Decisions" ? <DecisionsView hasScenarios={scenarios.length > 0} /> : null}
       </div>
 
       <ScenarioModal

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronDown,
@@ -40,11 +40,14 @@ import {
   useCreateFieldMutation,
   useCreateFieldEnumValueMutation,
   useCreateLinkMutation,
+  useCreatePivotMutation,
   useCreateTableMutation,
   useDeleteFieldEnumValueMutation,
   useDeleteFieldMutation,
   useDeleteTableMutation,
+  useImportPortableDataModelMutation,
   useIndexJobsQuery,
+  usePivotsQuery,
   useSchemaChangesQuery,
   useTablesQuery,
   useTenantQuery,
@@ -53,16 +56,26 @@ import {
   useUpdateTableMutation,
 } from "@/lib/data-model-query";
 import { cn } from "@/lib/utils";
-import type {
-  AssembledField,
-  AssembledLink,
-  AssembledTable,
-  Table,
+import {
+  dataModelApi,
+  type AssembledField,
+  type AssembledLink,
+  type AssembledPivot,
+  type AssembledTable,
+  type PortableDataModelDocument,
+  type PortableImportSummary,
+  type Table,
 } from "@/lib/data-model-api";
+import { ingestionApi, type IngestedRecord } from "@/lib/ingestion-api";
+import {
+  dataModelTemplates,
+  type DataModelTemplate,
+} from "@/lib/data-model-templates";
 import {
   type DataModelView,
   useDataModelWorkspaceStore,
 } from "@/stores/data-model-store";
+import { useToastStore } from "@/stores/toast-store";
 
 const views: Array<{
   id: DataModelView;
@@ -80,7 +93,7 @@ type ActionCard = {
   icon: typeof Database;
   accent?: boolean;
   stat?: string;
-  action?: "create-table";
+  action?: "select-archetype" | "create-table" | "import-model" | "export-model";
 };
 
 function buildActionCards(
@@ -149,6 +162,7 @@ function buildActionCards(
       icon: Shapes,
       accent: true,
       stat: `${metrics.tableCount} tables available`,
+      action: "select-archetype",
     },
     {
       title: "Create a new table",
@@ -159,9 +173,10 @@ function buildActionCards(
     },
     {
       title: "Import from file",
-      description: "Upload a previously exported organization file",
+      description: "Upload a previously exported data model JSON file",
       icon: Upload,
       stat: metrics.revisionId ? "Revision published" : "Not published",
+      action: "import-model",
     },
   ];
 }
@@ -431,10 +446,14 @@ export default function YourDataPage() {
   const tenantId = useDataModelWorkspaceStore((state) => state.tenantId);
   const activeView = useDataModelWorkspaceStore((state) => state.activeView);
   const setActiveView = useDataModelWorkspaceStore((state) => state.setActiveView);
+  const pushToast = useToastStore((state) => state.pushToast);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCreateFieldModalOpen, setIsCreateFieldModalOpen] = useState(false);
   const [isCreateLinkModalOpen, setIsCreateLinkModalOpen] = useState(false);
+  const [isCreatePivotModalOpen, setIsCreatePivotModalOpen] = useState(false);
   const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleteFieldModalOpen, setIsDeleteFieldModalOpen] = useState(false);
@@ -466,14 +485,30 @@ export default function YourDataPage() {
   const [linkParentTableId, setLinkParentTableId] = useState("");
   const [linkParentFieldId, setLinkParentFieldId] = useState("");
   const [linkFormError, setLinkFormError] = useState<string | null>(null);
+  const [pivotBaseTableId, setPivotBaseTableId] = useState("");
+  const [pivotMode, setPivotMode] = useState<"field" | "path">("field");
+  const [pivotFieldId, setPivotFieldId] = useState("");
+  const [pivotPathLinkIds, setPivotPathLinkIds] = useState<string[]>([]);
+  const [pivotFormError, setPivotFormError] = useState<string | null>(null);
   const [viewerTableId, setViewerTableId] = useState("");
   const [viewerObjectId, setViewerObjectId] = useState("");
+  const [viewerFieldName, setViewerFieldName] = useState("");
+  const [viewerFieldValue, setViewerFieldValue] = useState("");
   const [viewerSearchMessage, setViewerSearchMessage] = useState<string | null>(null);
+  const [viewerRecord, setViewerRecord] = useState<IngestedRecord | null>(null);
+  const [viewerRecords, setViewerRecords] = useState<IngestedRecord[]>([]);
+  const [viewerResultLabel, setViewerResultLabel] = useState<string | null>(null);
+  const [isViewerSearching, setIsViewerSearching] = useState(false);
   const [schemaCollapsedTableIds, setSchemaCollapsedTableIds] = useState<string[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(dataModelTemplates[0]?.id ?? "");
+  const [expandedTemplateTableName, setExpandedTemplateTableName] = useState<string | null>(
+    dataModelTemplates[0]?.document.tables[0]?.name ?? null
+  );
 
   const tenantQuery = useTenantQuery(tenantId);
   const assembledModelQuery = useAssembledDataModelQuery(tenantId);
   const tablesQuery = useTablesQuery(tenantId);
+  const pivotsQuery = usePivotsQuery(tenantId);
   const schemaChangesQuery = useSchemaChangesQuery(tenantId);
   const indexJobsQuery = useIndexJobsQuery(tenantId);
   const createTableMutation = useCreateTableMutation(tenantId);
@@ -486,6 +521,8 @@ export default function YourDataPage() {
   const updateFieldEnumValueMutation = useUpdateFieldEnumValueMutation(tenantId);
   const deleteFieldEnumValueMutation = useDeleteFieldEnumValueMutation(tenantId);
   const createLinkMutation = useCreateLinkMutation(tenantId);
+  const createPivotMutation = useCreatePivotMutation(tenantId);
+  const importPortableDataModelMutation = useImportPortableDataModelMutation(tenantId);
 
   const assembledModelTables = assembledModelQuery.data?.data_model.tables;
   const assembledTables = Object.values(assembledModelTables ?? {});
@@ -512,6 +549,7 @@ export default function YourDataPage() {
     tenantQuery.isLoading ||
     assembledModelQuery.isLoading ||
     tablesQuery.isLoading ||
+    pivotsQuery.isLoading ||
     schemaChangesQuery.isLoading ||
     indexJobsQuery.isLoading;
 
@@ -519,6 +557,7 @@ export default function YourDataPage() {
     tenantQuery.error ??
     assembledModelQuery.error ??
     tablesQuery.error ??
+    pivotsQuery.error ??
     schemaChangesQuery.error ??
     indexJobsQuery.error;
 
@@ -529,16 +568,36 @@ export default function YourDataPage() {
       ),
     [tablesQuery.data?.tables]
   );
+  const hasExistingModel = sortedTables.length > 0;
+  const selectedTemplate =
+    dataModelTemplates.find((template) => template.id === selectedTemplateId) ??
+    dataModelTemplates[0] ??
+    null;
+  const activeExpandedTemplateTableName =
+    selectedTemplate?.document.tables.some((table) => table.name === expandedTemplateTableName)
+      ? expandedTemplateTableName
+      : null;
   const showTableListMode = activeView === "data-model" && sortedTables.length > 0;
   const getAssembledTableById = (tableId: string) =>
     assembledTables.find((table) => table.id === tableId);
+  const pivots = pivotsQuery.data?.pivots ?? [];
   const childTable = linkChildTableId ? getAssembledTableById(linkChildTableId) : undefined;
   const parentTable = linkParentTableId ? getAssembledTableById(linkParentTableId) : undefined;
+  const pivotBaseTable = pivotBaseTableId ? getAssembledTableById(pivotBaseTableId) : undefined;
+  const viewerTable = viewerTableId ? getAssembledTableById(viewerTableId) : undefined;
   const childFieldOptions = childTable
     ? Object.values(childTable.fields).sort((a, b) => a.name.localeCompare(b.name))
     : [];
   const parentFieldOptions = parentTable
     ? Object.values(parentTable.fields).sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+  const pivotFieldOptions = pivotBaseTable
+    ? Object.values(pivotBaseTable.fields)
+        .filter((field) => field.data_type === "string")
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+  const viewerFieldOptions = viewerTable
+    ? Object.values(viewerTable.fields).sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
   function toggleExpandedTable(tableId: string) {
@@ -551,6 +610,10 @@ export default function YourDataPage() {
 
   function toggleTableMenu(tableId: string) {
     setOpenTableMenuId((current) => (current === tableId ? null : tableId));
+  }
+
+  function toggleTemplateTable(tableName: string) {
+    setExpandedTemplateTableName((current) => (current === tableName ? null : tableName));
   }
 
   function formatFieldType(dataType: string) {
@@ -584,6 +647,224 @@ export default function YourDataPage() {
 
     const field = Object.values(assembledTable.fields).find((item) => item.id === fieldId);
     return field?.name ?? fieldId;
+  }
+
+  function getLinkById(linkId: string) {
+    for (const table of assembledTables) {
+      const link = Object.values(table.links_to_single).find((item) => item.id === linkId);
+      if (link) {
+        return link;
+      }
+    }
+    return undefined;
+  }
+
+  function formatPivotDescription(pivot: AssembledPivot) {
+    if (pivot.field_id) {
+      return `${getTableNameById(pivot.base_table_id)}.${getFieldNameById(
+        pivot.base_table_id,
+        pivot.field_id
+      )}`;
+    }
+
+    const segments = pivot.path_link_ids
+      .map((linkId) => {
+        const link = getLinkById(linkId);
+        if (!link) {
+          return null;
+        }
+
+        return `${getTableNameById(link.child_table_id)}.${getFieldNameById(
+          link.child_table_id,
+          link.child_field_id
+        )} -> ${getTableNameById(link.parent_table_id)}.${getFieldNameById(
+          link.parent_table_id,
+          link.parent_field_id
+        )}`;
+      })
+      .filter((segment): segment is string => Boolean(segment));
+
+    return segments.join(" -> ");
+  }
+
+  function getPivotPathLinkOptions(pathLinkIds: string[]) {
+    const startingTableId =
+      pathLinkIds.length > 0
+        ? getLinkById(pathLinkIds[pathLinkIds.length - 1])?.parent_table_id ?? pivotBaseTableId
+        : pivotBaseTableId;
+    const currentTable = startingTableId ? getAssembledTableById(startingTableId) : undefined;
+
+    if (!currentTable) {
+      return [];
+    }
+
+    return Object.values(currentTable.links_to_single).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function formatViewerValue(value: unknown) {
+    if (value === null || value === undefined) {
+      return "null";
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+
+  function mapPortableDataModelTransferError(error: unknown, action: "export" | "import") {
+    const message = (error as Error).message;
+    if (message.includes("status 404")) {
+      return `${action === "export" ? "Export" : "Import"} endpoint returned 404. The frontend is probably pointing at an older data-model-service instance on ${process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_URL ?? "http://localhost:8080"}. Restart the backend service so the new import/export routes are loaded.`;
+    }
+    return message;
+  }
+
+  function buildPortableExportFileName(document: PortableDataModelDocument) {
+    const revision = document.revision_id ? document.revision_id.slice(0, 12) : "draft";
+    return `data-model-${tenantId || "tenant"}-${revision}.json`;
+  }
+
+  async function handleExportDataModel() {
+    if (!tenantId) {
+      pushToast({
+        title: "Export failed",
+        description: "Select a tenant before exporting a data model.",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const response = await dataModelApi.exportPortableDataModel(tenantId);
+      const blob = new Blob([JSON.stringify(response.data_model, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = buildPortableExportFileName(response.data_model);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      pushToast({
+        title: "Export complete",
+        description: `Exported ${response.data_model.tables.length} table${response.data_model.tables.length === 1 ? "" : "s"} to portable JSON.`,
+        variant: "success",
+      });
+    } catch (error) {
+      pushToast({
+        title: "Export failed",
+        description: mapPortableDataModelTransferError(error, "export"),
+        variant: "error",
+      });
+    }
+  }
+
+  function openImportDataModelPicker() {
+    importInputRef.current?.click();
+  }
+
+  async function handleImportDataModelFile(file: File) {
+    if (!tenantId) {
+      pushToast({
+        title: "Import failed",
+        description: "Select a tenant before importing a data model.",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      pushToast({
+        title: "Import failed",
+        description: "Only .json files are supported for data model import.",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(await file.text()) as PortableDataModelDocument;
+      const summary = (await importPortableDataModelMutation.mutateAsync(parsed)).summary;
+      pushToast({
+        title: "Import complete",
+        description: formatImportSummary(summary),
+        variant: "success",
+      });
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        pushToast({
+          title: "Import failed",
+          description: "The selected file is not valid JSON.",
+          variant: "error",
+        });
+        return;
+      }
+      pushToast({
+        title: "Import failed",
+        description: mapPortableDataModelTransferError(error, "import"),
+        variant: "error",
+      });
+    }
+  }
+
+  function formatImportSummary(summary: PortableImportSummary) {
+    return `Imported ${summary.tables_created} table${summary.tables_created === 1 ? "" : "s"}, ${summary.fields_created} field${summary.fields_created === 1 ? "" : "s"}, ${summary.links_created} link${summary.links_created === 1 ? "" : "s"}, and ${summary.pivots_created} pivot${summary.pivots_created === 1 ? "" : "s"}.`;
+  }
+
+  function handleActionCardClick(action?: ActionCard["action"]) {
+    switch (action) {
+      case "select-archetype":
+        setIsTemplateModalOpen(true);
+        break;
+      case "create-table":
+        openCreateModal();
+        break;
+      case "import-model":
+        openImportDataModelPicker();
+        break;
+      case "export-model":
+        void handleExportDataModel();
+        break;
+      default:
+        break;
+    }
+  }
+
+  function closeTemplateModal() {
+    if (importPortableDataModelMutation.isPending) {
+      return;
+    }
+    setIsTemplateModalOpen(false);
+  }
+
+  async function handleApplyTemplate(template: DataModelTemplate) {
+    if (!tenantId) {
+      pushToast({
+        title: "Template import failed",
+        description: "Select a tenant before applying a template.",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const summary = (await importPortableDataModelMutation.mutateAsync(template.document)).summary;
+      pushToast({
+        title: `${template.name} applied`,
+        description: formatImportSummary(summary),
+        variant: "success",
+      });
+      setIsTemplateModalOpen(false);
+    } catch (error) {
+      pushToast({
+        title: "Template import failed",
+        description: mapPortableDataModelTransferError(error, "import"),
+        variant: "error",
+      });
+    }
   }
 
   function resetCreateTableForm() {
@@ -753,6 +1034,74 @@ export default function YourDataPage() {
     }
     setIsCreateLinkModalOpen(false);
     resetCreateLinkForm();
+  }
+
+  function resetCreatePivotForm() {
+    setPivotBaseTableId("");
+    setPivotMode("field");
+    setPivotFieldId("");
+    setPivotPathLinkIds([]);
+    setPivotFormError(null);
+  }
+
+  function openCreatePivotModal(table: Table) {
+    const assembledTable = getAssembledTableById(table.id);
+    const stringFields = assembledTable
+      ? Object.values(assembledTable.fields)
+          .filter((field) => field.data_type === "string")
+          .sort((a, b) => a.name.localeCompare(b.name))
+      : [];
+    const defaultMode: "field" | "path" =
+      stringFields.length > 0 ? "field" : "path";
+
+    setPivotBaseTableId(table.id);
+    setPivotMode(defaultMode);
+    setPivotFieldId(defaultMode === "field" ? stringFields[0]?.id ?? "" : "");
+    setPivotPathLinkIds([]);
+    setPivotFormError(null);
+    setIsCreatePivotModalOpen(true);
+  }
+
+  function closeCreatePivotModal() {
+    if (createPivotMutation.isPending) {
+      return;
+    }
+    setIsCreatePivotModalOpen(false);
+    resetCreatePivotForm();
+  }
+
+  function handlePivotModeChange(nextMode: "field" | "path") {
+    setPivotMode(nextMode);
+    setPivotFormError(null);
+    if (nextMode === "field") {
+      setPivotPathLinkIds([]);
+      setPivotFieldId(pivotFieldOptions[0]?.id ?? "");
+      return;
+    }
+
+    setPivotFieldId("");
+    setPivotPathLinkIds([]);
+  }
+
+  function handlePivotPathStepChange(index: number, nextLinkId: string) {
+    setPivotPathLinkIds((current) => {
+      const nextPath = current.slice(0, index);
+      if (nextLinkId) {
+        nextPath[index] = nextLinkId;
+      }
+      return nextPath;
+    });
+    setPivotFormError(null);
+  }
+
+  function addPivotPathStep() {
+    setPivotPathLinkIds((current) => [...current, ""]);
+    setPivotFormError(null);
+  }
+
+  function removePivotPathStep(index: number) {
+    setPivotPathLinkIds((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setPivotFormError(null);
   }
 
   function handleSchemaToggleCollapse(tableId: string) {
@@ -1166,6 +1515,187 @@ export default function YourDataPage() {
     }
   }
 
+  async function handleCreatePivotSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPivotFormError(null);
+
+    if (!tenantId || !pivotBaseTableId) {
+      setPivotFormError("Select a tenant and base table before creating a pivot.");
+      return;
+    }
+
+    if (pivotMode === "field" && !pivotFieldId) {
+      setPivotFormError("Choose a string field for the pivot.");
+      return;
+    }
+
+    if (pivotMode === "path") {
+      if (pivotPathLinkIds.length === 0) {
+        setPivotFormError("Add at least one link to define a pivot path.");
+        return;
+      }
+
+      if (pivotPathLinkIds.some((linkId) => !linkId)) {
+        setPivotFormError("Select a link for each path step.");
+        return;
+      }
+    }
+
+    try {
+      await createPivotMutation.mutateAsync({
+        base_table_id: pivotBaseTableId,
+        field_id: pivotMode === "field" ? pivotFieldId : null,
+        path_link_ids: pivotMode === "path" ? pivotPathLinkIds : [],
+      });
+      pushToast({
+        title: "Pivot created",
+        description: "The pivot is now available in the tenant data model.",
+        variant: "success",
+      });
+      closeCreatePivotModal();
+    } catch (mutationError) {
+      const message =
+        mutationError instanceof Error ? mutationError.message : "Failed to create pivot.";
+      setPivotFormError(message);
+      pushToast({
+        title: "Pivot creation failed",
+        description: message,
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleViewerSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setViewerSearchMessage(null);
+    setViewerRecord(null);
+    setViewerRecords([]);
+    setViewerResultLabel(null);
+
+    if (!viewerTableId) {
+      setViewerSearchMessage("Select an object type before searching.");
+      return;
+    }
+
+    if (!viewerObjectId.trim()) {
+      setViewerSearchMessage("Enter an object id before searching.");
+      return;
+    }
+
+    if (!tenantId) {
+      setViewerSearchMessage("Select a tenant before searching.");
+      return;
+    }
+
+    if (!viewerTable) {
+      setViewerSearchMessage("The selected object type is no longer available.");
+      return;
+    }
+
+    setIsViewerSearching(true);
+    try {
+      const response = await ingestionApi.getRecord({
+        tenantId,
+        objectType: viewerTable.name,
+        objectId: viewerObjectId.trim(),
+      });
+      setViewerRecord(response.record);
+      setViewerResultLabel(`Exact match for ${viewerObjectId.trim()}`);
+    } catch (error) {
+      setViewerSearchMessage(
+        error instanceof Error ? error.message : "Failed to load the ingested record."
+      );
+    } finally {
+      setIsViewerSearching(false);
+    }
+  }
+
+  async function handleViewerFieldSearch() {
+    setViewerSearchMessage(null);
+    setViewerRecord(null);
+    setViewerRecords([]);
+    setViewerResultLabel(null);
+
+    if (!viewerTableId) {
+      setViewerSearchMessage("Select an object type before searching.");
+      return;
+    }
+
+    if (!viewerFieldName) {
+      setViewerSearchMessage("Select a field before searching.");
+      return;
+    }
+
+    if (!viewerFieldValue.trim()) {
+      setViewerSearchMessage("Enter a field value before searching.");
+      return;
+    }
+
+    if (!tenantId || !viewerTable) {
+      setViewerSearchMessage("The selected object type is no longer available.");
+      return;
+    }
+
+    setIsViewerSearching(true);
+    try {
+      const response = await ingestionApi.queryRecords({
+        tenantId,
+        objectType: viewerTable.name,
+        field: viewerFieldName,
+        value: viewerFieldValue.trim(),
+      });
+      setViewerRecords(response.records);
+      setViewerResultLabel(
+        `Matches for ${viewerFieldName} = ${viewerFieldValue.trim()}`
+      );
+      if (response.records.length === 0) {
+        setViewerSearchMessage("No ingested records matched that field/value search.");
+      }
+    } catch (error) {
+      setViewerSearchMessage(
+        error instanceof Error ? error.message : "Failed to search ingested records."
+      );
+    } finally {
+      setIsViewerSearching(false);
+    }
+  }
+
+  async function handleViewerLoadRecent() {
+    setViewerSearchMessage(null);
+    setViewerRecord(null);
+    setViewerRecords([]);
+    setViewerResultLabel(null);
+
+    if (!viewerTableId) {
+      setViewerSearchMessage("Select an object type before loading recent records.");
+      return;
+    }
+
+    if (!tenantId || !viewerTable) {
+      setViewerSearchMessage("The selected object type is no longer available.");
+      return;
+    }
+
+    setIsViewerSearching(true);
+    try {
+      const response = await ingestionApi.listRecords({
+        tenantId,
+        objectType: viewerTable.name,
+      });
+      setViewerRecords(response.records);
+      setViewerResultLabel(`Recent ${viewerTable.name} records`);
+      if (response.records.length === 0) {
+        setViewerSearchMessage("No ingested records were found for this object type yet.");
+      }
+    } catch (error) {
+      setViewerSearchMessage(
+        error instanceof Error ? error.message : "Failed to load recent ingested records."
+      );
+    } finally {
+      setIsViewerSearching(false);
+    }
+  }
+
   if (!tenantId) {
     return (
       <div className="space-y-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
@@ -1184,6 +1714,20 @@ export default function YourDataPage() {
 
   return (
     <>
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) {
+            void handleImportDataModelFile(file);
+          }
+        }}
+      />
+
       <div className="space-y-9">
         <section className="space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -1229,6 +1773,44 @@ export default function YourDataPage() {
               );
             })}
           </div>
+
+          {activeView === "data-model" ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              {!hasExistingModel ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={openImportDataModelPicker}
+                  disabled={importPortableDataModelMutation.isPending}
+                  className="h-10 rounded-lg border-slate-200 px-4 text-sm shadow-none hover:translate-y-0"
+                >
+                  <Upload className="size-4" />
+                  {importPortableDataModelMutation.isPending ? "Importing..." : "Import JSON"}
+                </Button>
+              ) : null}
+              {hasExistingModel ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => void handleExportDataModel()}
+                  disabled={importPortableDataModelMutation.isPending}
+                  className="h-10 rounded-lg border-slate-200 px-4 text-sm shadow-none hover:translate-y-0"
+                >
+                  <Download className="size-4" />
+                  Export JSON
+                </Button>
+              ) : null}
+              <Button
+                variant="default"
+                onClick={openCreateModal}
+                type="button"
+                className="h-10 rounded-lg bg-[#2563eb] px-4 text-sm text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
+              >
+                <Plus className="size-4" />
+                Create a new table
+              </Button>
+            </div>
+          ) : null}
         </section>
 
         {error ? (
@@ -1263,7 +1845,7 @@ export default function YourDataPage() {
                   <button
                     key={action.title}
                     type="button"
-                    onClick={action.action === "create-table" ? openCreateModal : undefined}
+                    onClick={() => handleActionCardClick(action.action)}
                     className={cn(
                       "flex min-h-[190px] flex-col items-center justify-center rounded-xl border border-dashed bg-white px-8 py-10 text-center transition-colors",
                       action.accent
@@ -1336,28 +1918,12 @@ export default function YourDataPage() {
 
         {activeView === "viewer" ? (
           <section className="space-y-6">
-            <div className="max-w-4xl rounded-xl bg-white/0">
+            <div className="max-w-5xl rounded-xl bg-white/0">
               <form
                 className="flex flex-col gap-4 lg:flex-row lg:items-end"
-                onSubmit={(event) => {
-                  event.preventDefault();
-
-                  if (!viewerTableId) {
-                    setViewerSearchMessage("Select an object type before searching.");
-                    return;
-                  }
-
-                  if (!viewerObjectId.trim()) {
-                    setViewerSearchMessage("Enter an object id before searching.");
-                    return;
-                  }
-
-                  setViewerSearchMessage(
-                    "The data-model service exposes model metadata, but it does not yet provide row-level ingested record lookup for this viewer."
-                  );
-                }}
+                onSubmit={handleViewerSearch}
               >
-                <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,480px)_auto]">
+                <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,320px)_auto]">
                   <div className="space-y-2">
                     <label
                       className="text-[15px] font-medium text-slate-900"
@@ -1391,24 +1957,188 @@ export default function YourDataPage() {
                       id="viewer-object-id"
                       value={viewerObjectId}
                       onChange={(event) => setViewerObjectId(event.target.value)}
-                      placeholder=""
+                      placeholder="Exact object_id"
                       className="h-12 rounded-lg border-slate-200 text-base focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
                     />
                   </div>
 
                   <Button
                     type="submit"
+                    disabled={isViewerSearching}
                     className="h-12 rounded-lg bg-slate-600 px-5 text-base text-white shadow-none hover:translate-y-0 hover:bg-slate-700"
                   >
-                    Search
+                    {isViewerSearching ? "Searching..." : "Search"}
                   </Button>
                 </div>
               </form>
             </div>
 
+            {viewerTable ? (
+              <div className="max-w-5xl rounded-xl border border-slate-200 bg-white p-5">
+                <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,320px)_auto_auto]">
+                  <div className="space-y-2">
+                    <label
+                      className="text-[15px] font-medium text-slate-900"
+                      htmlFor="viewer-field-name"
+                    >
+                      Search field
+                    </label>
+                    <select
+                      id="viewer-field-name"
+                      value={viewerFieldName}
+                      onChange={(event) => setViewerFieldName(event.target.value)}
+                      className="flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-base text-slate-900 outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                    >
+                      <option value="">select a field</option>
+                      {viewerFieldOptions.map((field) => (
+                        <option key={field.id} value={field.name}>
+                          {field.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      className="text-[15px] font-medium text-slate-900"
+                      htmlFor="viewer-field-value"
+                    >
+                      Field value
+                    </label>
+                    <Input
+                      id="viewer-field-value"
+                      value={viewerFieldValue}
+                      onChange={(event) => setViewerFieldValue(event.target.value)}
+                      placeholder="Exact field value"
+                      className="h-12 rounded-lg border-slate-200 text-base focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => void handleViewerFieldSearch()}
+                    disabled={isViewerSearching}
+                    className="h-12 rounded-lg bg-[#2563eb] px-5 text-base text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
+                  >
+                    Search field
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleViewerLoadRecent()}
+                    disabled={isViewerSearching}
+                    className="h-12 rounded-lg border-slate-200 px-5 text-base shadow-none hover:translate-y-0"
+                  >
+                    Load recent
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {viewerSearchMessage ? (
-              <div className="max-w-4xl rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
+              <div className="max-w-5xl rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
                 {viewerSearchMessage}
+              </div>
+            ) : null}
+
+            {viewerRecord ? (
+              <div className="max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-5 py-4">
+                  <h3 className="text-lg font-semibold tracking-tight text-slate-950">
+                    Ingested record
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {viewerResultLabel ?? "Retrieved from the ingestion service record lookup endpoint."}
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left">
+                    <thead className="bg-slate-50">
+                      <tr className="border-b border-slate-200 text-sm text-slate-900">
+                        <th className="px-4 py-3 font-semibold">Field</th>
+                        <th className="px-4 py-3 font-semibold">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(viewerRecord).map(([key, value], index) => (
+                        <tr
+                          key={key}
+                          className={cn(
+                            "border-b border-slate-100 text-sm text-slate-900 last:border-b-0",
+                            index % 2 === 1 && "bg-slate-50/50"
+                          )}
+                        >
+                          <td className="px-4 py-3 font-medium">{key}</td>
+                          <td className="px-4 py-3 text-slate-600">{formatViewerValue(value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
+            {viewerTable && viewerRecords.length > 0 ? (
+              <div className="max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-5 py-4">
+                  <h3 className="text-lg font-semibold tracking-tight text-slate-950">
+                    Ingested records
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {viewerResultLabel ?? `${viewerRecords.length} records returned`}
+                  </p>
+                </div>
+                <div className="divide-y divide-slate-200">
+                  {viewerRecords.map((record, index) => (
+                    <div key={`${record.object_id ?? "record"}-${index}`} className="px-5 py-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-slate-950">
+                          {formatViewerValue(record.object_id ?? `Record ${index + 1}`)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewerRecord(record);
+                            setViewerRecords([]);
+                            setViewerResultLabel(
+                              `Exact view for ${formatViewerValue(record.object_id ?? `record ${index + 1}`)}`
+                            );
+                          }}
+                          className="text-sm text-[#2563eb] transition-colors hover:text-[#1d4ed8]"
+                        >
+                          Open record
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left">
+                          <thead className="bg-slate-50">
+                            <tr className="border-b border-slate-200 text-sm text-slate-900">
+                              <th className="px-4 py-2.5 font-semibold">Field</th>
+                              <th className="px-4 py-2.5 font-semibold">Value</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(record).map(([key, value], recordIndex) => (
+                              <tr
+                                key={`${index}-${key}`}
+                                className={cn(
+                                  "border-b border-slate-100 text-sm text-slate-900 last:border-b-0",
+                                  recordIndex % 2 === 1 && "bg-slate-50/50"
+                                )}
+                              >
+                                <td className="px-4 py-2.5 font-medium">{key}</td>
+                                <td className="px-4 py-2.5 text-slate-600">
+                                  {formatViewerValue(value)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
           </section>
@@ -1416,26 +2146,6 @@ export default function YourDataPage() {
 
         {activeView === "data-model" ? (
           <section className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <Button
-                variant="outline"
-                type="button"
-                className="h-10 rounded-lg border-slate-200 px-4 text-sm shadow-none hover:translate-y-0"
-              >
-                <Download className="size-4" />
-                Export data
-              </Button>
-              <Button
-                variant="default"
-                onClick={openCreateModal}
-                type="button"
-                className="h-10 rounded-lg bg-[#2563eb] px-4 text-sm text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
-              >
-                <Plus className="size-4" />
-                Create a new table
-              </Button>
-            </div>
-
             <div className="space-y-4">
               {sortedTables.length > 0 ? (
                 sortedTables.map((table) => {
@@ -1448,6 +2158,7 @@ export default function YourDataPage() {
                   const links = assembledTable
                     ? Object.values(assembledTable.links_to_single)
                     : [];
+                  const tablePivots = pivots.filter((pivot) => pivot.base_table_id === table.id);
                   const isExpanded = expandedTableIds.includes(table.id);
                   const isMenuOpen = openTableMenuId === table.id;
 
@@ -1502,16 +2213,14 @@ export default function YourDataPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  disabled
-                                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-slate-900"
+                                  onClick={() => {
+                                    setOpenTableMenuId(null);
+                                    openCreatePivotModal(table);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-900 transition-colors hover:bg-slate-50"
                                 >
-                                  <span className="flex items-center gap-3">
-                                    <Plus className="size-4 text-[#2563eb]" />
-                                    Create a pivot
-                                  </span>
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">
-                                    Soon
-                                  </span>
+                                  <Plus className="size-4 text-[#2563eb]" />
+                                  Create a pivot
                                 </button>
                               </div>
                             ) : null}
@@ -1701,6 +2410,62 @@ export default function YourDataPage() {
                                         colSpan={5}
                                       >
                                         No links configured for this table yet.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          <div className="mt-6">
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                              <p className="text-sm text-slate-700">
+                                Pivots rooted at <span className="font-semibold">{table.name}</span>
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => openCreatePivotModal(table)}
+                                className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-[#2563eb] transition-colors hover:bg-slate-50"
+                              >
+                                <Plus className="size-4" />
+                                Add pivot
+                              </button>
+                            </div>
+                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                              <table className="w-full border-collapse text-left">
+                                <thead className="bg-white">
+                                  <tr className="border-b border-slate-200 text-sm text-slate-900">
+                                    <th className="px-4 py-3 font-semibold">Mode</th>
+                                    <th className="px-4 py-3 font-semibold">Definition</th>
+                                    <th className="px-4 py-3 font-semibold">Created</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {tablePivots.length > 0 ? (
+                                    tablePivots.map((pivot) => (
+                                      <tr
+                                        key={pivot.id}
+                                        className="border-b border-slate-100 text-sm text-slate-900 last:border-b-0"
+                                      >
+                                        <td className="px-4 py-3">
+                                          {pivot.field_id ? "Field" : "Path"}
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-600">
+                                          {formatPivotDescription(pivot)}
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-600">
+                                          {new Date(pivot.created_at).toLocaleDateString()}
+                                        </td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td
+                                        className="px-4 py-4 text-sm text-slate-500"
+                                        colSpan={3}
+                                      >
+                                        No pivots configured for this table yet.
                                       </td>
                                     </tr>
                                   )}
@@ -2225,6 +2990,198 @@ export default function YourDataPage() {
       )
         : null}
 
+      {typeof document !== "undefined" && isCreatePivotModalOpen && pivotBaseTable
+        ? createPortal(
+        <div className="fixed inset-0 z-[106] flex items-center justify-center bg-slate-950/38 p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-[620px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+            <div className="relative border-b border-slate-200 px-6 py-5 text-center">
+              <h3 className="text-[1.65rem] font-semibold tracking-tight text-slate-950">
+                Create pivot
+              </h3>
+              <button
+                type="button"
+                onClick={closeCreatePivotModal}
+                className="absolute top-4 right-4 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close create pivot modal"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleCreatePivotSubmit}>
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
+                <div className="space-y-2">
+                  <label className="text-[15px] font-medium text-slate-900" htmlFor="pivot-base-table">
+                    Base table
+                  </label>
+                  <Input
+                    id="pivot-base-table"
+                    value={pivotBaseTable.name}
+                    disabled
+                    className="h-11 rounded-md border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-[15px] font-medium text-slate-900">Pivot mode</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePivotModeChange("field")}
+                      className={cn(
+                        "rounded-lg border px-4 py-3 text-left transition-colors",
+                        pivotMode === "field"
+                          ? "border-[#2563eb] bg-[#f8fbff]"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      )}
+                    >
+                      <p className="text-sm font-medium text-slate-950">Use a string field</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Best for ids or reference keys already stored on this table.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePivotModeChange("path")}
+                      className={cn(
+                        "rounded-lg border px-4 py-3 text-left transition-colors",
+                        pivotMode === "path"
+                          ? "border-[#2563eb] bg-[#f8fbff]"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      )}
+                    >
+                      <p className="text-sm font-medium text-slate-950">Use a link path</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Walk reverse links from this table until you reach a string parent field.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {pivotMode === "field" ? (
+                  <div className="space-y-2">
+                    <label className="text-[15px] font-medium text-slate-900" htmlFor="pivot-field">
+                      String field
+                    </label>
+                    <select
+                      id="pivot-field"
+                      value={pivotFieldId}
+                      onChange={(event) => setPivotFieldId(event.target.value)}
+                      className="flex h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                    >
+                      <option value="">Select field</option>
+                      {pivotFieldOptions.map((field) => (
+                        <option key={field.id} value={field.id}>
+                          {field.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-sm leading-6 text-slate-500">
+                      The backend only accepts string fields for direct pivots.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">Path steps</p>
+                        <p className="text-sm text-slate-500">
+                          Each step must continue from the parent table reached by the previous link.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addPivotPathStep}
+                        className="h-8 rounded-lg border-slate-200 px-3 text-sm shadow-none hover:translate-y-0"
+                      >
+                        <Plus className="size-4" />
+                        Add step
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {pivotPathLinkIds.length > 0 ? (
+                        pivotPathLinkIds.map((linkId, index) => {
+                          const options = getPivotPathLinkOptions(pivotPathLinkIds.slice(0, index));
+
+                          return (
+                            <div
+                              key={`pivot-path-step-${index}`}
+                              className="grid gap-3 md:grid-cols-[1fr_auto]"
+                            >
+                              <select
+                                value={linkId}
+                                onChange={(event) =>
+                                  handlePivotPathStepChange(index, event.target.value)
+                                }
+                                className="flex h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                              >
+                                <option value="">Select link</option>
+                                {options.map((link) => (
+                                  <option key={link.id} value={link.id}>
+                                    {`${getTableNameById(link.child_table_id)}.${getFieldNameById(
+                                      link.child_table_id,
+                                      link.child_field_id
+                                    )} -> ${getTableNameById(link.parent_table_id)}.${getFieldNameById(
+                                      link.parent_table_id,
+                                      link.parent_field_id
+                                    )}`}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => removePivotPathStep(index)}
+                                className="inline-flex size-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                aria-label={`Remove path step ${index + 1}`}
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500">
+                          No path steps yet. Add a step to start from {pivotBaseTable.name}.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {pivotFormError ? (
+                <div className="mx-6 mt-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {pivotFormError}
+                </div>
+              ) : null}
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={closeCreatePivotModal}
+                  className="h-9 rounded-lg border-slate-200 px-4 text-sm shadow-none hover:translate-y-0"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  type="submit"
+                  disabled={createPivotMutation.isPending}
+                  className="h-9 rounded-lg bg-[#2563eb] px-4 text-sm text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
+                >
+                  {createPivotMutation.isPending ? "Creating..." : "Create pivot"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )
+        : null}
+
       {typeof document !== "undefined" && isEditFieldModalOpen && fieldTable && editingField
         ? createPortal(
         <div className="fixed inset-0 z-[106] flex items-center justify-center bg-slate-950/38 p-4">
@@ -2521,6 +3478,147 @@ export default function YourDataPage() {
               >
                 {deleteFieldMutation.isPending ? "Deleting..." : "Delete field"}
               </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )
+        : null}
+
+      {typeof document !== "undefined" && isTemplateModalOpen && selectedTemplate
+        ? createPortal(
+        <div className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="relative border-b border-slate-200 px-6 py-5">
+              <h3 className="text-[1.45rem] font-semibold tracking-tight text-slate-950">
+                Choose an archetype
+              </h3>
+              <button
+                type="button"
+                onClick={closeTemplateModal}
+                className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close archetype modal"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[300px_minmax(0,1fr)]">
+              <div className="min-h-0 overflow-y-auto border-r border-slate-200 p-4">
+                <div className="space-y-3">
+                  {dataModelTemplates.map((template) => {
+                    const isSelected = template.id === selectedTemplate.id;
+
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplateId(template.id);
+                          setExpandedTemplateTableName(template.document.tables[0]?.name ?? null);
+                        }}
+                        className={cn(
+                          "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                          isSelected
+                            ? "border-slate-900 bg-slate-50"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-base font-semibold tracking-tight text-slate-950">
+                              {template.name}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {template.sector}
+                            </p>
+                          </div>
+                          <span className="text-xs text-slate-500">
+                            {template.document.tables.length} tables
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="min-h-0 overflow-y-auto px-6 py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">
+                      {selectedTemplate.sector}
+                    </p>
+                    <h4 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
+                      {selectedTemplate.name}
+                    </h4>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {selectedTemplate.document.tables.length} starter tables
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => void handleApplyTemplate(selectedTemplate)}
+                    disabled={importPortableDataModelMutation.isPending}
+                    className="h-10 rounded-lg bg-[#2563eb] px-4 text-sm text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
+                  >
+                    <Shapes className="size-4" />
+                    {importPortableDataModelMutation.isPending ? "Applying..." : "Use this template"}
+                  </Button>
+                </div>
+
+                <div className="mt-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-950">Tables</p>
+                    <span className="text-sm text-slate-500">
+                      {selectedTemplate.document.tables.length} tables
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {selectedTemplate.document.tables.map((table) => (
+                      <div key={table.name} className="overflow-hidden rounded-lg border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => toggleTemplateTable(table.name)}
+                          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-950">{table.name}</p>
+                            <p className="mt-1 text-xs text-slate-500">{table.fields.length} fields</p>
+                          </div>
+                          {activeExpandedTemplateTableName === table.name ? (
+                            <ChevronUp className="size-4 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-slate-400" />
+                          )}
+                        </button>
+                        {activeExpandedTemplateTableName === table.name ? (
+                          <div className="border-t border-slate-200 bg-slate-50/50 px-4 py-3">
+                            <div className="space-y-2">
+                              {table.fields.map((field) => (
+                                <div
+                                  key={field.name}
+                                  className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm text-slate-950">{field.name}</p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      {formatFieldType(field.data_type)}
+                                      {field.is_enum ? " • Enum" : ""}
+                                      {field.nullable ? " • Optional" : " • Required"}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>,

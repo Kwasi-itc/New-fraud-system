@@ -20,6 +20,8 @@ export type UploadLog = {
   error_message?: string | null;
 };
 
+export type IngestedRecord = Record<string, unknown>;
+
 const ingestionServiceBaseUrl =
   process.env.NEXT_PUBLIC_INGESTION_SERVICE_URL ?? "http://localhost:8081";
 const ingestionServiceToken = process.env.NEXT_PUBLIC_INGESTION_SERVICE_TOKEN;
@@ -99,4 +101,44 @@ export const ingestionApi = {
     ),
   getUploadLog: async (uploadLogId: string) =>
     ingestionFetch<{ upload_log: UploadLog }>(`/v1/upload-logs/${uploadLogId}`),
+  getRecord: async ({
+    tenantId,
+    objectType,
+    objectId,
+  }: {
+    tenantId: string;
+    objectType: string;
+    objectId: string;
+    }) =>
+    ingestionFetch<{ record: IngestedRecord }>(
+      `/v1/tenants/${tenantId}/records/${encodeURIComponent(objectType)}/${encodeURIComponent(objectId)}`
+    ),
+  listRecords: async ({
+    tenantId,
+    objectType,
+    limit = 25,
+  }: {
+    tenantId: string;
+    objectType: string;
+    limit?: number;
+  }) =>
+    ingestionFetch<{ records: IngestedRecord[] }>(
+      `/v1/tenants/${tenantId}/records/${encodeURIComponent(objectType)}?limit=${limit}`
+    ),
+  queryRecords: async ({
+    tenantId,
+    objectType,
+    field,
+    value,
+    limit = 25,
+  }: {
+    tenantId: string;
+    objectType: string;
+    field: string;
+    value: string;
+    limit?: number;
+  }) =>
+    ingestionFetch<{ records: IngestedRecord[] }>(
+      `/v1/tenants/${tenantId}/records/${encodeURIComponent(objectType)}/search?field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}&limit=${limit}`
+    ),
 };

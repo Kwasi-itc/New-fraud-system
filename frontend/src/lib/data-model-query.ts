@@ -4,8 +4,10 @@ import {
   type CreateFieldRequest,
   type CreateTableRequest,
   type CreateLinkRequest,
+  type CreatePivotRequest,
   dataModelApi,
   type CreateFieldEnumValueRequest,
+  type PortableDataModelDocument,
   type UpdateFieldEnumValueRequest,
   type UpdateFieldRequest,
   type UpdateTableRequest,
@@ -16,6 +18,7 @@ export const dataModelQueryKeys = {
   assembledModel: (tenantId: string) =>
     ["data-model", "assembled-model", tenantId] as const,
   tables: (tenantId: string) => ["data-model", "tables", tenantId] as const,
+  pivots: (tenantId: string) => ["data-model", "pivots", tenantId] as const,
   schemaChanges: (tenantId: string) =>
     ["data-model", "schema-changes", tenantId] as const,
   indexJobs: (tenantId: string) => ["data-model", "index-jobs", tenantId] as const,
@@ -53,6 +56,14 @@ export function useSchemaChangesQuery(tenantId: string) {
   });
 }
 
+export function usePivotsQuery(tenantId: string) {
+  return useQuery({
+    queryKey: dataModelQueryKeys.pivots(tenantId),
+    queryFn: () => dataModelApi.listPivots(tenantId),
+    enabled: Boolean(tenantId),
+  });
+}
+
 export function useIndexJobsQuery(tenantId: string) {
   return useQuery({
     queryKey: dataModelQueryKeys.indexJobs(tenantId),
@@ -78,7 +89,16 @@ function invalidateTableQueries(queryClient: ReturnType<typeof useQueryClient>, 
     queryKey: dataModelQueryKeys.tables(tenantId),
   });
   void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.pivots(tenantId),
+  });
+  void queryClient.invalidateQueries({
     queryKey: dataModelQueryKeys.assembledModel(tenantId),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.schemaChanges(tenantId),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.indexJobs(tenantId),
   });
 }
 
@@ -190,6 +210,29 @@ export function useCreateLinkMutation(tenantId: string) {
 
   return useMutation({
     mutationFn: (payload: CreateLinkRequest) => dataModelApi.createLink(tenantId, payload),
+    onSuccess: () => {
+      invalidateTableQueries(queryClient, tenantId);
+    },
+  });
+}
+
+export function useCreatePivotMutation(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreatePivotRequest) => dataModelApi.createPivot(tenantId, payload),
+    onSuccess: () => {
+      invalidateTableQueries(queryClient, tenantId);
+    },
+  });
+}
+
+export function useImportPortableDataModelMutation(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dataModel: PortableDataModelDocument) =>
+      dataModelApi.importPortableDataModel(tenantId, dataModel),
     onSuccess: () => {
       invalidateTableQueries(queryClient, tenantId);
     },

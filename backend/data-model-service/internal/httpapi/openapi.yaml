@@ -191,6 +191,57 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/data-model/export:
+    get:
+      tags: [data-model]
+      operationId: exportPortableDataModel
+      summary: Export portable data model JSON
+      description: Returns a portable JSON document for the tenant data model using stable table, field, and link names instead of internal UUIDs. Managed system fields are omitted from the exported field list because they are recreated automatically during import.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Portable data model export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_model:
+                    $ref: '#/components/schemas/PortableDataModelDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/data-model/import:
+    post:
+      tags: [data-model]
+      operationId: importPortableDataModel
+      summary: Import portable data model JSON
+      description: Imports a portable JSON document into an existing tenant by replaying table, field, link, pivot, table-option, and navigation-option creation through the standard service flows. Import is best-effort across multiple operations and is not wrapped in one global transaction for the whole document.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortableImportRequest'
+      responses:
+        '200':
+          description: Portable data model imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortableImportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /v1/tenants/{tenantId}/tables:
     get:
       tags: [data-model]
@@ -1614,6 +1665,155 @@ components:
           items:
             $ref: '#/components/schemas/AssembledPivot'
       required: [revision_id, ingestion_contract, tables, pivots]
+    PortableImportRequest:
+      type: object
+      required: [data_model]
+      properties:
+        data_model:
+          $ref: '#/components/schemas/PortableDataModelDocument'
+    PortableImportResponse:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/PortableImportSummary'
+      required: [summary]
+    PortableImportSummary:
+      type: object
+      properties:
+        tables_created:
+          type: integer
+        fields_created:
+          type: integer
+        links_created:
+          type: integer
+        pivots_created:
+          type: integer
+        table_options_upserted:
+          type: integer
+        navigation_options_created:
+          type: integer
+        revision_id:
+          type: string
+      required: [tables_created, fields_created, links_created, pivots_created, table_options_upserted, navigation_options_created, revision_id]
+    PortableDataModelDocument:
+      type: object
+      description: Portable import/export representation that uses stable names for references so a model can be moved between tenants without reusing source UUIDs.
+      properties:
+        version:
+          type: string
+          example: v1
+        revision_id:
+          type: string
+          description: Source revision id at export time. Import currently ignores this value.
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortableTableDocument'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortableLinkDocument'
+        pivots:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortablePivotDocument'
+      required: [version, tables, links, pivots]
+    PortableTableDocument:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        alias:
+          type: string
+        semantic_type:
+          type: string
+        caption_field:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortableFieldDocument'
+        options:
+          $ref: '#/components/schemas/PortableTableOptionsDocument'
+          nullable: true
+        navigation_options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortableNavigationOptionDocument'
+      required: [name, description, alias, semantic_type, caption_field, fields, navigation_options]
+    PortableFieldDocument:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        data_type:
+          type: string
+          enum: [bool, int, float, string, timestamp, ip_address]
+        nullable:
+          type: boolean
+        is_enum:
+          type: boolean
+        is_unique:
+          type: boolean
+        enum_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateFieldEnumValueRequest'
+      required: [name, description, data_type, nullable, is_enum, is_unique, enum_values]
+    PortableTableOptionsDocument:
+      type: object
+      properties:
+        displayed_fields:
+          type: array
+          items:
+            type: string
+        field_order:
+          type: array
+          items:
+            type: string
+      required: [displayed_fields, field_order]
+    PortableNavigationOptionDocument:
+      type: object
+      properties:
+        source_field:
+          type: string
+        target_table:
+          type: string
+        filter_field:
+          type: string
+        ordering_field:
+          type: string
+      required: [source_field, target_table, filter_field, ordering_field]
+    PortableLinkDocument:
+      type: object
+      properties:
+        name:
+          type: string
+        parent_table:
+          type: string
+        parent_field:
+          type: string
+        child_table:
+          type: string
+        child_field:
+          type: string
+      required: [name, parent_table, parent_field, child_table, child_field]
+    PortablePivotDocument:
+      type: object
+      properties:
+        base_table:
+          type: string
+        field:
+          type: string
+        path_links:
+          type: array
+          items:
+            type: string
+      required: [base_table]
     IngestionContract:
       type: object
       description: Downstream write contract that tells ingestion consumers whether the tenant is writable and which physical/system fields are managed by the data-model service.

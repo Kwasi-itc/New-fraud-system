@@ -15,6 +15,7 @@ import (
 
 type DataModelHandler struct {
 	readService             service.DataModelReadService
+	portableService         service.PortableDataModelService
 	tableService            service.TableService
 	fieldService            service.FieldService
 	enumValueService        service.FieldEnumValueService
@@ -26,6 +27,7 @@ type DataModelHandler struct {
 
 func NewDataModelHandler(
 	readService service.DataModelReadService,
+	portableService service.PortableDataModelService,
 	tableService service.TableService,
 	fieldService service.FieldService,
 	enumValueService service.FieldEnumValueService,
@@ -36,6 +38,7 @@ func NewDataModelHandler(
 ) DataModelHandler {
 	return DataModelHandler{
 		readService:             readService,
+		portableService:         portableService,
 		tableService:            tableService,
 		fieldService:            fieldService,
 		enumValueService:        enumValueService,
@@ -44,6 +47,49 @@ func NewDataModelHandler(
 		optionsService:          optionsService,
 		navigationOptionService: navigationOptionService,
 	}
+}
+
+func (h DataModelHandler) ExportDataModel(c *gin.Context) {
+	tenantID, ok := parseUUIDParam(c, "tenantId")
+	if !ok {
+		return
+	}
+	document, err := h.portableService.Export(c.Request.Context(), tenantID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.PortableDataModelExportResponse{
+		DataModel: adaptPortableDocument(document),
+	})
+}
+
+func (h DataModelHandler) ImportDataModel(c *gin.Context) {
+	tenantID, ok := parseUUIDParam(c, "tenantId")
+	if !ok {
+		return
+	}
+	var request dto.PortableImportRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	result, err := h.portableService.Import(c.Request.Context(), tenantID, adaptPortableDocumentRequest(request.DataModel))
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.PortableDataModelImportResponse{
+		Summary: dto.PortableImportSummary{
+			TablesCreated:            result.TablesCreated,
+			FieldsCreated:            result.FieldsCreated,
+			LinksCreated:             result.LinksCreated,
+			PivotsCreated:            result.PivotsCreated,
+			TableOptionsUpserted:     result.TableOptionsUpserted,
+			NavigationOptionsCreated: result.NavigationOptionsCreated,
+			RevisionID:               result.RevisionID,
+		},
+	})
 }
 
 func (h DataModelHandler) GetDataModel(c *gin.Context) {
@@ -561,4 +607,154 @@ func writeDeleteConflictAware(c *gin.Context, err error, report datamodel.Delete
 		return
 	}
 	writeError(c, err)
+}
+
+func adaptPortableDocument(document service.PortableDataModelDocument) dto.PortableDataModelDocument {
+	response := dto.PortableDataModelDocument{
+		Version:    document.Version,
+		RevisionID: document.RevisionID,
+		Tables:     make([]dto.PortableTableDocument, len(document.Tables)),
+		Links:      make([]dto.PortableLinkDocument, len(document.Links)),
+		Pivots:     make([]dto.PortablePivotDocument, len(document.Pivots)),
+	}
+	for i, table := range document.Tables {
+		fields := make([]dto.PortableFieldDocument, len(table.Fields))
+		for j, field := range table.Fields {
+			enumValues := make([]dto.CreateFieldEnumValueRequest, len(field.EnumValues))
+			for k, value := range field.EnumValues {
+				enumValues[k] = dto.CreateFieldEnumValueRequest{
+					Value:     value.Value,
+					Label:     value.Label,
+					SortOrder: value.SortOrder,
+				}
+			}
+			fields[j] = dto.PortableFieldDocument{
+				Name:        field.Name,
+				Description: field.Description,
+				DataType:    field.DataType,
+				Nullable:    field.Nullable,
+				IsEnum:      field.IsEnum,
+				IsUnique:    field.IsUnique,
+				EnumValues:  enumValues,
+			}
+		}
+		navigationOptions := make([]dto.PortableNavigationOptionDocument, len(table.NavigationOptions))
+		for j, option := range table.NavigationOptions {
+			navigationOptions[j] = dto.PortableNavigationOptionDocument{
+				SourceField:   option.SourceField,
+				TargetTable:   option.TargetTable,
+				FilterField:   option.FilterField,
+				OrderingField: option.OrderingField,
+			}
+		}
+		var options *dto.PortableTableOptionsDocument
+		if table.Options != nil {
+			options = &dto.PortableTableOptionsDocument{
+				DisplayedFields: table.Options.DisplayedFields,
+				FieldOrder:      table.Options.FieldOrder,
+			}
+		}
+		response.Tables[i] = dto.PortableTableDocument{
+			Name:              table.Name,
+			Description:       table.Description,
+			Alias:             table.Alias,
+			SemanticType:      table.SemanticType,
+			CaptionField:      table.CaptionField,
+			Fields:            fields,
+			Options:           options,
+			NavigationOptions: navigationOptions,
+		}
+	}
+	for i, link := range document.Links {
+		response.Links[i] = dto.PortableLinkDocument{
+			Name:        link.Name,
+			ParentTable: link.ParentTable,
+			ParentField: link.ParentField,
+			ChildTable:  link.ChildTable,
+			ChildField:  link.ChildField,
+		}
+	}
+	for i, pivot := range document.Pivots {
+		response.Pivots[i] = dto.PortablePivotDocument{
+			BaseTable: pivot.BaseTable,
+			Field:     pivot.Field,
+			PathLinks: pivot.PathLinks,
+		}
+	}
+	return response
+}
+
+func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) service.PortableDataModelDocument {
+	request := service.PortableDataModelDocument{
+		Version:    document.Version,
+		RevisionID: document.RevisionID,
+		Tables:     make([]service.PortableTable, len(document.Tables)),
+		Links:      make([]service.PortableLink, len(document.Links)),
+		Pivots:     make([]service.PortablePivot, len(document.Pivots)),
+	}
+	for i, table := range document.Tables {
+		fields := make([]service.PortableField, len(table.Fields))
+		for j, field := range table.Fields {
+			enumValues := make([]service.CreateFieldEnumValueSeed, len(field.EnumValues))
+			for k, value := range field.EnumValues {
+				enumValues[k] = service.CreateFieldEnumValueSeed{
+					Value:     value.Value,
+					Label:     value.Label,
+					SortOrder: value.SortOrder,
+				}
+			}
+			fields[j] = service.PortableField{
+				Name:        field.Name,
+				Description: field.Description,
+				DataType:    field.DataType,
+				Nullable:    field.Nullable,
+				IsEnum:      field.IsEnum,
+				IsUnique:    field.IsUnique,
+				EnumValues:  enumValues,
+			}
+		}
+		navigationOptions := make([]service.PortableNavigationOption, len(table.NavigationOptions))
+		for j, option := range table.NavigationOptions {
+			navigationOptions[j] = service.PortableNavigationOption{
+				SourceField:   option.SourceField,
+				TargetTable:   option.TargetTable,
+				FilterField:   option.FilterField,
+				OrderingField: option.OrderingField,
+			}
+		}
+		var options *service.PortableTableOptions
+		if table.Options != nil {
+			options = &service.PortableTableOptions{
+				DisplayedFields: table.Options.DisplayedFields,
+				FieldOrder:      table.Options.FieldOrder,
+			}
+		}
+		request.Tables[i] = service.PortableTable{
+			Name:              table.Name,
+			Description:       table.Description,
+			Alias:             table.Alias,
+			SemanticType:      table.SemanticType,
+			CaptionField:      table.CaptionField,
+			Fields:            fields,
+			Options:           options,
+			NavigationOptions: navigationOptions,
+		}
+	}
+	for i, link := range document.Links {
+		request.Links[i] = service.PortableLink{
+			Name:        link.Name,
+			ParentTable: link.ParentTable,
+			ParentField: link.ParentField,
+			ChildTable:  link.ChildTable,
+			ChildField:  link.ChildField,
+		}
+	}
+	for i, pivot := range document.Pivots {
+		request.Pivots[i] = service.PortablePivot{
+			BaseTable: pivot.BaseTable,
+			Field:     pivot.Field,
+			PathLinks: pivot.PathLinks,
+		}
+	}
+	return request
 }

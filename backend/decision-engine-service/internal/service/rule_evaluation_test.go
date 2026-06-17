@@ -239,6 +239,9 @@ func (s scenarioIterationRepoStub) Create(context.Context, scenario.Iteration) (
 func (s scenarioIterationRepoStub) ListByScenario(context.Context, string, string) ([]scenario.Iteration, error) {
 	return nil, nil
 }
+func (s scenarioIterationRepoStub) ListLiveScheduled(context.Context, int) ([]scenario.Iteration, error) {
+	return nil, nil
+}
 func (s scenarioIterationRepoStub) NextVersion(context.Context, string, string) (int, error) {
 	return 0, nil
 }

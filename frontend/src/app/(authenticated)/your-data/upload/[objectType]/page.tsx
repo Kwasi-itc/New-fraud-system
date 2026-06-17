@@ -40,7 +40,10 @@ export default function UploadObjectTypePage() {
       return;
     }
 
-    const headers = fields.map((field) => field.name);
+    const fieldHeaders = fields.map((field) => field.name);
+    const headers = fieldHeaders.includes("object_id")
+      ? fieldHeaders
+      : ["object_id", ...fieldHeaders];
     const csvContent = `${headers.join(",")}\n`;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -91,7 +94,8 @@ export default function UploadObjectTypePage() {
             You can manually add {objectType} to your Marble instance from this page by
             uploading a <span className="font-medium text-slate-900">.csv</span> file
             here. The <span className="font-medium text-slate-900">.csv</span> file must
-            follow the schema defined in your data model.
+            follow the schema defined in your data model and include a unique{" "}
+            <span className="font-medium text-slate-900">object_id</span> column.
           </p>
         </div>
       </div>
@@ -170,6 +174,12 @@ export default function UploadObjectTypePage() {
         </div>
       ) : null}
 
+      {uploadLogs[0]?.status === "failed" && uploadLogs[0]?.error_message ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          {uploadLogs[0].error_message}
+        </div>
+      ) : null}
+
       {uploadCsvMutation.isPending ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
           Upload accepted. The ingestion worker will process the CSV asynchronously.
@@ -195,6 +205,7 @@ export default function UploadObjectTypePage() {
                   <th className="px-4 py-2.5 font-semibold">Success</th>
                   <th className="px-4 py-2.5 font-semibold">Failed</th>
                   <th className="px-4 py-2.5 font-semibold">Attempts</th>
+                  <th className="px-4 py-2.5 font-semibold">Error</th>
                 </tr>
               </thead>
               <tbody>
@@ -217,6 +228,9 @@ export default function UploadObjectTypePage() {
                     <td className="px-4 py-2.5">{log.successful_rows}</td>
                     <td className="px-4 py-2.5">{log.failed_rows}</td>
                     <td className="px-4 py-2.5">{log.attempt_count}</td>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {log.error_message || "None"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

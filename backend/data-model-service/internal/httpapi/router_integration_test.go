@@ -352,6 +352,272 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	}
 }
 
+func TestRouterIntegrationPortableDataModelExportImportRoundTrip(t *testing.T) {
+	databaseURL := routerIntegrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := routerIntegrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+
+	sourceTenantID := createAndProvisionRouterTenant(t, router, "Source Tenant")
+	targetTenantID := createAndProvisionRouterTenant(t, router, "Target Tenant")
+
+	accountsTableID := createRouterTable(t, router, sourceTenantID, "accounts", "Customer accounts")
+	transactionsTableID := createRouterTable(t, router, sourceTenantID, "transactions", "Transaction records")
+
+	accountFields := listRouterTableFields(t, router, accountsTableID)
+	transactionsFields := listRouterTableFields(t, router, transactionsTableID)
+
+	accountsObjectID := accountFields["object_id"]
+	transactionsUpdatedAt := transactionsFields["updated_at"]
+
+	accountLookupFieldID := createRouterField(t, router, transactionsTableID, map[string]any{
+		"name":      "account_id",
+		"data_type": "string",
+		"nullable":  false,
+	})
+	statusFieldID := createRouterField(t, router, transactionsTableID, map[string]any{
+		"name":        "status",
+		"data_type":   "string",
+		"is_enum":     true,
+		"enum_values": []map[string]any{{"value": "pending", "label": "Pending", "sort_order": 10}},
+	})
+
+	linkID := createRouterLink(t, router, sourceTenantID, map[string]any{
+		"name":            "account_lookup",
+		"parent_table_id": accountsTableID,
+		"parent_field_id": accountsObjectID,
+		"child_table_id":  transactionsTableID,
+		"child_field_id":  accountLookupFieldID,
+	})
+
+	createPivotRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+sourceTenantID+"/pivots", map[string]any{
+		"base_table_id": transactionsTableID,
+		"path_link_ids": []string{linkID},
+	})
+	if createPivotRec.Code != http.StatusCreated {
+		t.Fatalf("expected create pivot 201, got %d: %s", createPivotRec.Code, createPivotRec.Body.String())
+	}
+
+	upsertOptionsRec := doJSONRequest(t, router, http.MethodPut, "/v1/tables/"+transactionsTableID+"/options", map[string]any{
+		"displayed_fields": []string{accountLookupFieldID, statusFieldID},
+		"field_order":      []string{statusFieldID, accountLookupFieldID},
+	})
+	if upsertOptionsRec.Code != http.StatusOK {
+		t.Fatalf("expected upsert options 200, got %d: %s", upsertOptionsRec.Code, upsertOptionsRec.Body.String())
+	}
+
+	createNavigationRec := doJSONRequest(t, router, http.MethodPost, "/v1/tables/"+accountsTableID+"/navigation-options", map[string]any{
+		"source_field_id":   accountsObjectID,
+		"target_table_id":   transactionsTableID,
+		"filter_field_id":   accountLookupFieldID,
+		"ordering_field_id": transactionsUpdatedAt,
+	})
+	if createNavigationRec.Code != http.StatusCreated {
+		t.Fatalf("expected create navigation option 201, got %d: %s", createNavigationRec.Code, createNavigationRec.Body.String())
+	}
+
+	exportRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+sourceTenantID+"/data-model/export", nil, "")
+	if exportRec.Code != http.StatusOK {
+		t.Fatalf("expected export 200, got %d: %s", exportRec.Code, exportRec.Body.String())
+	}
+	var exportBody struct {
+		DataModel struct {
+			Version    string `json:"version"`
+			RevisionID string `json:"revision_id"`
+			Tables     []struct {
+				Name              string `json:"name"`
+				CaptionField      string `json:"caption_field"`
+				Fields            []struct {
+					Name       string `json:"name"`
+					EnumValues []struct {
+						Value string `json:"value"`
+					} `json:"enum_values"`
+				} `json:"fields"`
+				Options *struct {
+					DisplayedFields []string `json:"displayed_fields"`
+				} `json:"options"`
+				NavigationOptions []struct {
+					SourceField   string `json:"source_field"`
+					TargetTable   string `json:"target_table"`
+					FilterField   string `json:"filter_field"`
+					OrderingField string `json:"ordering_field"`
+				} `json:"navigation_options"`
+			} `json:"tables"`
+			Links []struct {
+				Name string `json:"name"`
+			} `json:"links"`
+			Pivots []struct {
+				BaseTable string   `json:"base_table"`
+				PathLinks []string `json:"path_links"`
+			} `json:"pivots"`
+		} `json:"data_model"`
+	}
+	mustUnmarshal(t, exportRec.Body.Bytes(), &exportBody)
+	if exportBody.DataModel.Version != "v1" {
+		t.Fatalf("expected portable export version v1, got %s", exportBody.DataModel.Version)
+	}
+	if len(exportBody.DataModel.Tables) != 2 {
+		t.Fatalf("expected 2 exported tables, got %d", len(exportBody.DataModel.Tables))
+	}
+
+	importRec := doRequest(
+		t,
+		router,
+		http.MethodPost,
+		"/v1/tenants/"+targetTenantID+"/data-model/import",
+		exportRec.Body.Bytes(),
+		"application/json",
+	)
+	if importRec.Code != http.StatusOK {
+		t.Fatalf("expected import 200, got %d: %s", importRec.Code, importRec.Body.String())
+	}
+	var importBody struct {
+		Summary struct {
+			TablesCreated            int    `json:"tables_created"`
+			FieldsCreated            int    `json:"fields_created"`
+			LinksCreated             int    `json:"links_created"`
+			PivotsCreated            int    `json:"pivots_created"`
+			TableOptionsUpserted     int    `json:"table_options_upserted"`
+			NavigationOptionsCreated int    `json:"navigation_options_created"`
+			RevisionID               string `json:"revision_id"`
+		} `json:"summary"`
+	}
+	mustUnmarshal(t, importRec.Body.Bytes(), &importBody)
+	if importBody.Summary.TablesCreated != 2 || importBody.Summary.FieldsCreated != 2 {
+		t.Fatalf("unexpected import summary: %+v", importBody.Summary)
+	}
+	if importBody.Summary.LinksCreated != 1 || importBody.Summary.PivotsCreated != 1 {
+		t.Fatalf("unexpected import graph summary: %+v", importBody.Summary)
+	}
+	if importBody.Summary.TableOptionsUpserted != 1 || importBody.Summary.NavigationOptionsCreated != 1 {
+		t.Fatalf("unexpected import UI summary: %+v", importBody.Summary)
+	}
+	if importBody.Summary.RevisionID == "" {
+		t.Fatal("expected revision id after import")
+	}
+
+	targetExportRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+targetTenantID+"/data-model/export", nil, "")
+	if targetExportRec.Code != http.StatusOK {
+		t.Fatalf("expected target export 200, got %d: %s", targetExportRec.Code, targetExportRec.Body.String())
+	}
+
+	var sourceDocument map[string]any
+	var targetDocument map[string]any
+	mustUnmarshal(t, exportRec.Body.Bytes(), &sourceDocument)
+	mustUnmarshal(t, targetExportRec.Body.Bytes(), &targetDocument)
+
+	sourceModel := sourceDocument["data_model"].(map[string]any)
+	targetModel := targetDocument["data_model"].(map[string]any)
+	delete(sourceModel, "revision_id")
+	delete(targetModel, "revision_id")
+
+	sourceCanonical, err := json.Marshal(sourceModel)
+	if err != nil {
+		t.Fatalf("marshal source export: %v", err)
+	}
+	targetCanonical, err := json.Marshal(targetModel)
+	if err != nil {
+		t.Fatalf("marshal target export: %v", err)
+	}
+	if string(sourceCanonical) != string(targetCanonical) {
+		t.Fatalf("expected round-tripped export to match\nsource: %s\ntarget: %s", string(sourceCanonical), string(targetCanonical))
+	}
+}
+
+func createAndProvisionRouterTenant(t *testing.T, router http.Handler, name string) string {
+	t.Helper()
+	createTenantRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants", map[string]any{
+		"name": name,
+	})
+	if createTenantRec.Code != http.StatusCreated {
+		t.Fatalf("expected create tenant 201, got %d: %s", createTenantRec.Code, createTenantRec.Body.String())
+	}
+	var body struct {
+		Tenant struct {
+			ID string `json:"id"`
+		} `json:"tenant"`
+	}
+	mustUnmarshal(t, createTenantRec.Body.Bytes(), &body)
+
+	provisionRec := doRequest(t, router, http.MethodPost, "/v1/tenants/"+body.Tenant.ID+"/provision", nil, "")
+	if provisionRec.Code != http.StatusOK {
+		t.Fatalf("expected provision 200, got %d: %s", provisionRec.Code, provisionRec.Body.String())
+	}
+	return body.Tenant.ID
+}
+
+func createRouterTable(t *testing.T, router http.Handler, tenantID, name, description string) string {
+	t.Helper()
+	rec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantID+"/tables", map[string]any{
+		"name":        name,
+		"description": description,
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected create table 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Table struct {
+			ID string `json:"id"`
+		} `json:"table"`
+	}
+	mustUnmarshal(t, rec.Body.Bytes(), &body)
+	return body.Table.ID
+}
+
+func createRouterField(t *testing.T, router http.Handler, tableID string, payload map[string]any) string {
+	t.Helper()
+	rec := doJSONRequest(t, router, http.MethodPost, "/v1/tables/"+tableID+"/fields", payload)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected create field 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Field struct {
+			ID string `json:"id"`
+		} `json:"field"`
+	}
+	mustUnmarshal(t, rec.Body.Bytes(), &body)
+	return body.Field.ID
+}
+
+func createRouterLink(t *testing.T, router http.Handler, tenantID string, payload map[string]any) string {
+	t.Helper()
+	rec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantID+"/links", payload)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected create link 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Link struct {
+			ID string `json:"id"`
+		} `json:"link"`
+	}
+	mustUnmarshal(t, rec.Body.Bytes(), &body)
+	return body.Link.ID
+}
+
+func listRouterTableFields(t *testing.T, router http.Handler, tableID string) map[string]string {
+	t.Helper()
+	rec := doRequest(t, router, http.MethodGet, "/v1/tables/"+tableID+"/fields", nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected list fields 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Fields []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"fields"`
+	}
+	mustUnmarshal(t, rec.Body.Bytes(), &body)
+	fields := make(map[string]string, len(body.Fields))
+	for _, field := range body.Fields {
+		fields[field.Name] = field.ID
+	}
+	return fields
+}
+
 func doJSONRequest(t *testing.T, router http.Handler, method, path string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	payload, err := json.Marshal(body)

@@ -85,31 +85,65 @@ export type Rule = {
 };
 
 export type CreateRuleRequest = {
-  display_order?: number;
+  display_order: number;
   name: string;
   description: string;
   formula: JSONValue;
-  score_modifier?: number;
-  rule_group?: string;
+  score_modifier: number;
+  rule_group: string;
   snooze_group_id?: string | null;
-  stable_rule_id?: string;
+  stable_rule_id: string;
 };
 
 export type UpdateRuleRequest = CreateRuleRequest;
 
+export type RuleValidationResult = {
+  rule_id: string;
+  name: string;
+  valid: boolean;
+  errors: string[];
+};
+
 export type ValidationResult = {
   valid: boolean;
-  trigger_errors?: string[];
-  rule_errors?: Array<{
-    rule_id: string;
-    errors: string[];
-  }>;
+  model_revision: string;
+  trigger_errors: string[];
+  rule_results: RuleValidationResult[];
+  errors: string[];
+};
+
+export type RuleFunctionArgument = {
+  name: string;
+  kind: string;
+  required: boolean;
+  description: string;
+};
+
+export type RuleFunction = {
+  name: string;
+  category: string;
+  description: string;
+  return_type: string;
+  positional_arity?: number | null;
+  supports_named_args: boolean;
+  arguments: RuleFunctionArgument[];
+  requires_model: boolean;
+  requires_data_read: boolean;
+  requires_platform: boolean;
+  example: string;
+};
+
+export type ASTNodeDTO = {
+  name?: string;
+  constant?: JSONValue;
+  children?: ASTNodeDTO[];
+  named_children?: Record<string, ASTNodeDTO>;
 };
 
 export type EvaluateDecisionRequest = {
   object_id: string;
   object_type: string;
-  payload: JSONValue;
+  fields: JSONValue;
 };
 
 export type Decision = {
@@ -143,7 +177,7 @@ export type DecisionEvaluationResult = {
 export type IngestionTriggerRequest = {
   object_type: string;
   object_id: string;
-  payload: JSONValue;
+  fields: JSONValue;
 };
 
 export type MultiDecisionEvaluationResult = {
@@ -379,6 +413,14 @@ export type ScheduledExecution = {
   created_at: string;
 };
 
+export type RecurringSchedule = {
+  enabled: boolean;
+  frequency: string;
+  time_of_day: string;
+  timezone: string;
+  candidate_limit: number;
+};
+
 export type CreateScheduledExecutionRequest = {
   scenario_iteration_id: string;
   scheduled_for: string;
@@ -522,6 +564,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations`,
   iteration: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}`,
+  draftIteration: (tenantId: string, scenarioId: string, iterationId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/draft`,
   commitIteration: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/commit`,
   publications: (tenantId: string, scenarioId: string) =>
@@ -611,6 +655,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/rule-snoozes/${snoozeId}`,
   scheduledExecutions: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/scheduled-executions`,
+  recurringSchedule: (tenantId: string, scenarioId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/recurring-schedule`,
   asyncDecisionExecutions: (tenantId: string) =>
     `/v1/tenants/${tenantId}/async-decision-executions`,
   customListEntries: (tenantId: string) =>
@@ -624,7 +670,7 @@ export const decisionEnginePaths = {
 
 export const decisionEngineApi = {
   listRuleFunctions: async () =>
-    decisionEngineFetch<{ rule_functions: JSONValue[] }>(
+    decisionEngineFetch<{ rule_functions: RuleFunction[] }>(
       decisionEnginePaths.ruleFunctions()
     ),
   listScenarios: async (tenantId: string) =>
@@ -661,8 +707,8 @@ export const decisionEngineApi = {
     }),
   listEditorIdentifiers: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{
-      payload_accessors: JSONValue[];
-      database_accessors: JSONValue[];
+      payload_accessors: ASTNodeDTO[];
+      database_accessors: ASTNodeDTO[];
     }>(decisionEnginePaths.editorIdentifiers(tenantId, scenarioId)),
   listIterations: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ iterations: Iteration[] }>(
@@ -671,6 +717,15 @@ export const decisionEngineApi = {
   createIteration: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ iteration: Iteration }>(
       decisionEnginePaths.iterations(tenantId, scenarioId),
+      { method: "POST" }
+    ),
+  createDraftIteration: async (
+    tenantId: string,
+    scenarioId: string,
+    iterationId: string
+  ) =>
+    decisionEngineFetch<{ iteration: Iteration }>(
+      decisionEnginePaths.draftIteration(tenantId, scenarioId, iterationId),
       { method: "POST" }
     ),
   getIteration: async (tenantId: string, scenarioId: string, iterationId: string) =>
@@ -1159,6 +1214,22 @@ export const decisionEngineApi = {
   listScheduledExecutions: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ scheduled_executions: ScheduledExecution[] }>(
       decisionEnginePaths.scheduledExecutions(tenantId, scenarioId)
+    ),
+  getRecurringSchedule: async (tenantId: string, scenarioId: string) =>
+    decisionEngineFetch<{ recurring_schedule: RecurringSchedule }>(
+      decisionEnginePaths.recurringSchedule(tenantId, scenarioId)
+    ),
+  updateRecurringSchedule: async (
+    tenantId: string,
+    scenarioId: string,
+    payload: RecurringSchedule
+  ) =>
+    decisionEngineFetch<{ recurring_schedule: RecurringSchedule }>(
+      decisionEnginePaths.recurringSchedule(tenantId, scenarioId),
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
     ),
   createScheduledExecution: async (
     tenantId: string,

@@ -76,3 +76,30 @@ func (h ExecutionHandler) ListAsyncDecisionExecutionsByTenant(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"async_decision_executions": out})
 }
+
+func (h ExecutionHandler) GetRecurringSchedule(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+	item, err := h.executionService.GetRecurringSchedule(c.Request.Context(), tenantID, scenarioID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "get_recurring_schedule_failed", "details": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"recurring_schedule": dto.AdaptRecurringSchedule(item)})
+}
+
+func (h ExecutionHandler) UpdateRecurringSchedule(c *gin.Context) {
+	var req dto.RecurringScheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+		return
+	}
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+	item, err := h.executionService.UpdateRecurringSchedule(c.Request.Context(), tenantID, scenarioID, dto.AdaptRecurringScheduleRequest(req))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "update_recurring_schedule_failed", "details": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"recurring_schedule": dto.AdaptRecurringSchedule(item)})
+}

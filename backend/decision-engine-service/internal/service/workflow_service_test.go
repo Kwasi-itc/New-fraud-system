@@ -542,6 +542,9 @@ func (nilIterationRepository) Create(context.Context, scenario.Iteration) (scena
 func (nilIterationRepository) ListByScenario(context.Context, string, string) ([]scenario.Iteration, error) {
 	return nil, nil
 }
+func (nilIterationRepository) ListLiveScheduled(context.Context, int) ([]scenario.Iteration, error) {
+	return nil, nil
+}
 func (nilIterationRepository) NextVersion(context.Context, string, string) (int, error) {
 	return 0, nil
 }

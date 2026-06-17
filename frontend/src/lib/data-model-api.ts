@@ -78,6 +78,12 @@ export type CreateLinkRequest = {
   child_field_id: string;
 };
 
+export type CreatePivotRequest = {
+  base_table_id: string;
+  field_id?: string | null;
+  path_link_ids?: string[];
+};
+
 export type TableOptionsFieldDetail = {
   id: string;
   name: string;
@@ -170,6 +176,14 @@ export type Link = {
   created_at: string;
 };
 
+export type Pivot = {
+  id: string;
+  base_table_id: string;
+  field_id?: string | null;
+  path_link_ids: string[];
+  created_at: string;
+};
+
 export type AssembledTable = {
   id: string;
   name: string;
@@ -205,6 +219,71 @@ export type AssembledDataModel = {
   ingestion_contract: IngestionContract;
   tables: Record<string, AssembledTable>;
   pivots: AssembledPivot[];
+};
+
+export type PortableFieldDocument = {
+  name: string;
+  description: string;
+  data_type: "bool" | "int" | "float" | "string" | "timestamp" | "ip_address";
+  nullable: boolean;
+  is_enum: boolean;
+  is_unique: boolean;
+  enum_values: CreateFieldEnumValueRequest[];
+};
+
+export type PortableTableOptionsDocument = {
+  displayed_fields: string[];
+  field_order: string[];
+};
+
+export type PortableNavigationOptionDocument = {
+  source_field: string;
+  target_table: string;
+  filter_field: string;
+  ordering_field: string;
+};
+
+export type PortableTableDocument = {
+  name: string;
+  description: string;
+  alias: string;
+  semantic_type: string;
+  caption_field: string;
+  fields: PortableFieldDocument[];
+  options?: PortableTableOptionsDocument | null;
+  navigation_options: PortableNavigationOptionDocument[];
+};
+
+export type PortableLinkDocument = {
+  name: string;
+  parent_table: string;
+  parent_field: string;
+  child_table: string;
+  child_field: string;
+};
+
+export type PortablePivotDocument = {
+  base_table: string;
+  field?: string;
+  path_links?: string[];
+};
+
+export type PortableDataModelDocument = {
+  version: string;
+  revision_id?: string;
+  tables: PortableTableDocument[];
+  links: PortableLinkDocument[];
+  pivots: PortablePivotDocument[];
+};
+
+export type PortableImportSummary = {
+  tables_created: number;
+  fields_created: number;
+  links_created: number;
+  pivots_created: number;
+  table_options_upserted: number;
+  navigation_options_created: number;
+  revision_id: string;
 };
 
 export type SchemaChange = {
@@ -269,6 +348,18 @@ export const dataModelApi = {
     apiFetch<{ tenant: Tenant }>(`/v1/tenants/${tenantId}`),
   getAssembledDataModel: async (tenantId: string) =>
     apiFetch<{ data_model: AssembledDataModel }>(`/v1/tenants/${tenantId}/data-model`),
+  exportPortableDataModel: async (tenantId: string) =>
+    apiFetch<{ data_model: PortableDataModelDocument }>(
+      `/v1/tenants/${tenantId}/data-model/export`
+    ),
+  importPortableDataModel: async (tenantId: string, dataModel: PortableDataModelDocument) =>
+    apiFetch<{ summary: PortableImportSummary }>(
+      `/v1/tenants/${tenantId}/data-model/import`,
+      {
+        method: "POST",
+        body: JSON.stringify({ data_model: dataModel }),
+      }
+    ),
   listTables: async (tenantId: string) =>
     apiFetch<{ tables: Table[] }>(`/v1/tenants/${tenantId}/tables`),
   createTable: async (tenantId: string, payload: CreateTableRequest) =>
@@ -318,6 +409,13 @@ export const dataModelApi = {
     }),
   createLink: async (tenantId: string, payload: CreateLinkRequest) =>
     apiFetch<{ link: Link }>(`/v1/tenants/${tenantId}/links`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  listPivots: async (tenantId: string) =>
+    apiFetch<{ pivots: Pivot[] }>(`/v1/tenants/${tenantId}/pivots`),
+  createPivot: async (tenantId: string, payload: CreatePivotRequest) =>
+    apiFetch<{ pivot: Pivot }>(`/v1/tenants/${tenantId}/pivots`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),

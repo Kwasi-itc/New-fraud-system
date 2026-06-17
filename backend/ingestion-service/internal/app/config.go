@@ -14,6 +14,7 @@ type Config struct {
 	DataModelServiceURL string
 	ServiceAuthMode     string
 	ServiceAuthToken    string
+	AllowedOrigins      []string
 	LogLevel            string
 	GinMode             string
 	HTTPClientTimeout   time.Duration
@@ -35,6 +36,7 @@ func LoadConfig() (Config, error) {
 		DataModelServiceURL: strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
 		ServiceAuthMode:     getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:    os.Getenv("SERVICE_AUTH_TOKEN"),
+		AllowedOrigins:      splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		LogLevel:            getEnv("LOG_LEVEL", "info"),
 		GinMode:             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:   httpClientTimeout,
@@ -57,6 +59,24 @@ func LoadConfig() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func splitCSVEnv(key, fallback string) []string {
+	value := os.Getenv(key)
+	if value == "" {
+		value = fallback
+	}
+
+	parts := strings.Split(value, ",")
+	origins := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		origins = append(origins, part)
+	}
+	return origins
 }
 
 func getEnv(key, fallback string) string {

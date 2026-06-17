@@ -13,6 +13,22 @@ type CreateScheduledExecutionRequest struct {
 	CandidateLimit int                       `json:"candidate_limit"`
 }
 
+type RecurringScheduleRequest struct {
+	Enabled        bool   `json:"enabled"`
+	Frequency      string `json:"frequency"`
+	TimeOfDay      string `json:"time_of_day"`
+	Timezone       string `json:"timezone"`
+	CandidateLimit int    `json:"candidate_limit"`
+}
+
+type RecurringScheduleResponse struct {
+	Enabled        bool   `json:"enabled"`
+	Frequency      string `json:"frequency"`
+	TimeOfDay      string `json:"time_of_day"`
+	Timezone       string `json:"timezone"`
+	CandidateLimit int    `json:"candidate_limit"`
+}
+
 type ScheduledExecutionResponse struct {
 	ID                  string    `json:"id"`
 	TenantID            string    `json:"tenant_id"`
@@ -91,4 +107,24 @@ func AdaptScheduledExecutionRequest(req CreateScheduledExecutionRequest) service
 		}
 	}
 	return service.ScheduledExecutionRequest{Items: items, CandidateLimit: req.CandidateLimit}
+}
+
+func AdaptRecurringScheduleRequest(req RecurringScheduleRequest) service.RecurringScheduleConfig {
+	return service.RecurringScheduleConfig{
+		Enabled:        req.Enabled,
+		Frequency:      req.Frequency,
+		TimeOfDay:      req.TimeOfDay,
+		Timezone:       req.Timezone,
+		CandidateLimit: req.CandidateLimit,
+	}
+}
+
+func AdaptRecurringSchedule(item service.RecurringScheduleConfig) RecurringScheduleResponse {
+	return RecurringScheduleResponse{
+		Enabled:        item.Enabled,
+		Frequency:      item.Frequency,
+		TimeOfDay:      item.TimeOfDay,
+		Timezone:       item.Timezone,
+		CandidateLimit: item.CandidateLimit,
+	}
 }

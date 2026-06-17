@@ -1315,6 +1315,43 @@ paths:
                 $ref: '#/components/schemas/ScheduledExecutionEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule:
+    get:
+      tags: [Execution]
+      summary: Get recurring schedule for a scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Recurring schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringScheduleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    put:
+      tags: [Execution]
+      summary: Update recurring schedule for a scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringScheduleRequest'
+      responses:
+        '200':
+          description: Recurring schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringScheduleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/async-decision-executions:
     get:
       tags: [Execution]
@@ -2234,6 +2271,34 @@ components:
         candidate_limit:
           type: integer
       required: [scheduled_for, items, candidate_limit]
+    RecurringScheduleRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+        time_of_day:
+          type: string
+        timezone:
+          type: string
+        candidate_limit:
+          type: integer
+      required: [enabled, frequency, time_of_day, timezone, candidate_limit]
+    RecurringScheduleResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+        time_of_day:
+          type: string
+        timezone:
+          type: string
+        candidate_limit:
+          type: integer
+      required: [enabled, frequency, time_of_day, timezone, candidate_limit]
     ScheduledExecutionResponse:
       type: object
       properties:
@@ -2907,6 +2972,12 @@ components:
           items:
             $ref: '#/components/schemas/ScheduledExecutionResponse'
       required: [scheduled_executions]
+    RecurringScheduleEnvelope:
+      type: object
+      properties:
+        recurring_schedule:
+          $ref: '#/components/schemas/RecurringScheduleResponse'
+      required: [recurring_schedule]
     AsyncDecisionExecutionEnvelope:
       type: object
       properties:

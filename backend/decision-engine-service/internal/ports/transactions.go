@@ -61,6 +61,7 @@ type ScenarioRepository interface {
 type ScenarioIterationRepository interface {
 	Create(ctx context.Context, iteration scenario.Iteration) (scenario.Iteration, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]scenario.Iteration, error)
+	ListLiveScheduled(ctx context.Context, limit int) ([]scenario.Iteration, error)
 	NextVersion(ctx context.Context, tenantID, scenarioID string) (int, error)
 	GetByID(ctx context.Context, tenantID, scenarioID, iterationID string) (scenario.Iteration, error)
 	Commit(ctx context.Context, tenantID, scenarioID, iterationID string, committedAt time.Time) (scenario.Iteration, error)

@@ -145,6 +145,15 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		tenantRepository,
 		tenantSchemaMigrationRepository,
 	)
+	portableService := service.NewPortableDataModelService(
+		readService,
+		tableService,
+		fieldService,
+		linkService,
+		pivotService,
+		optionsService,
+		navigationOptionService,
+	)
 	indexJobService := service.NewIndexJobService(
 		tenantRepository,
 		tableRepository,
@@ -157,6 +166,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	)
 	dataModelHandler := handlers.NewDataModelHandler(
 		readService,
+		portableService,
 		tableService,
 		fieldService,
 		enumValueService,
@@ -180,6 +190,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId", tenantHandler.Get)
 	v1.POST("/tenants/:tenantId/provision", tenantHandler.Provision)
 	v1.GET("/tenants/:tenantId/data-model", dataModelHandler.GetDataModel)
+	v1.GET("/tenants/:tenantId/data-model/export", dataModelHandler.ExportDataModel)
+	v1.POST("/tenants/:tenantId/data-model/import", dataModelHandler.ImportDataModel)
 	v1.GET("/tenants/:tenantId/tables", dataModelHandler.ListTables)
 	v1.POST("/tenants/:tenantId/tables", dataModelHandler.CreateTable)
 	v1.GET("/tables/:tableId/fields", dataModelHandler.ListFields)

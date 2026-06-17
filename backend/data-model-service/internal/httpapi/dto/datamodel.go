@@ -291,6 +291,83 @@ type AssembledDataModelResponse struct {
 	Pivots            []AssembledPivotResponse          `json:"pivots"`
 }
 
+type PortableImportRequest struct {
+	DataModel PortableDataModelDocument `json:"data_model" binding:"required"`
+}
+
+type PortableDataModelExportResponse struct {
+	DataModel PortableDataModelDocument `json:"data_model"`
+}
+
+type PortableDataModelImportResponse struct {
+	Summary PortableImportSummary `json:"summary"`
+}
+
+type PortableImportSummary struct {
+	TablesCreated            int    `json:"tables_created"`
+	FieldsCreated            int    `json:"fields_created"`
+	LinksCreated             int    `json:"links_created"`
+	PivotsCreated            int    `json:"pivots_created"`
+	TableOptionsUpserted     int    `json:"table_options_upserted"`
+	NavigationOptionsCreated int    `json:"navigation_options_created"`
+	RevisionID               string `json:"revision_id"`
+}
+
+type PortableDataModelDocument struct {
+	Version    string                 `json:"version"`
+	RevisionID string                 `json:"revision_id,omitempty"`
+	Tables     []PortableTableDocument `json:"tables"`
+	Links      []PortableLinkDocument  `json:"links"`
+	Pivots     []PortablePivotDocument `json:"pivots"`
+}
+
+type PortableTableDocument struct {
+	Name              string                             `json:"name"`
+	Description       string                             `json:"description"`
+	Alias             string                             `json:"alias"`
+	SemanticType      string                             `json:"semantic_type"`
+	CaptionField      string                             `json:"caption_field"`
+	Fields            []PortableFieldDocument            `json:"fields"`
+	Options           *PortableTableOptionsDocument      `json:"options,omitempty"`
+	NavigationOptions []PortableNavigationOptionDocument `json:"navigation_options"`
+}
+
+type PortableFieldDocument struct {
+	Name        string                        `json:"name"`
+	Description string                        `json:"description"`
+	DataType    string                        `json:"data_type"`
+	Nullable    bool                          `json:"nullable"`
+	IsEnum      bool                          `json:"is_enum"`
+	IsUnique    bool                          `json:"is_unique"`
+	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
+}
+
+type PortableTableOptionsDocument struct {
+	DisplayedFields []string `json:"displayed_fields"`
+	FieldOrder      []string `json:"field_order"`
+}
+
+type PortableNavigationOptionDocument struct {
+	SourceField   string `json:"source_field"`
+	TargetTable   string `json:"target_table"`
+	FilterField   string `json:"filter_field"`
+	OrderingField string `json:"ordering_field"`
+}
+
+type PortableLinkDocument struct {
+	Name        string `json:"name"`
+	ParentTable string `json:"parent_table"`
+	ParentField string `json:"parent_field"`
+	ChildTable  string `json:"child_table"`
+	ChildField  string `json:"child_field"`
+}
+
+type PortablePivotDocument struct {
+	BaseTable string   `json:"base_table"`
+	Field     string   `json:"field,omitempty"`
+	PathLinks []string `json:"path_links,omitempty"`
+}
+
 type IngestionContractResponse struct {
 	TenantStatus        string   `json:"tenant_status"`
 	Writable            bool     `json:"writable"`

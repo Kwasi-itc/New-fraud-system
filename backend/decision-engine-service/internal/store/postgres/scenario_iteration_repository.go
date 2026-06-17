@@ -99,6 +99,52 @@ func (r ScenarioIterationRepository) ListByScenario(ctx context.Context, tenantI
 	return items, rows.Err()
 }
 
+func (r ScenarioIterationRepository) ListLiveScheduled(ctx context.Context, limit int) ([]scenario.Iteration, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	const stmt = `
+		select i.id, i.scenario_id, i.tenant_id, i.version, i.status, i.trigger_formula, i.score_review_threshold,
+			i.score_block_and_review_threshold, i.score_decline_threshold, i.schedule, i.created_at, i.committed_at
+		from core.scenarios s
+		join core.scenario_iterations i on i.id = s.live_iteration_id
+		where s.live_iteration_id is not null and i.schedule <> ''
+		order by i.created_at asc
+		limit $1
+	`
+	rows, err := r.q.Query(ctx, stmt, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []scenario.Iteration
+	for rows.Next() {
+		var item scenario.Iteration
+		var status string
+		if err := rows.Scan(
+			&item.ID,
+			&item.ScenarioID,
+			&item.TenantID,
+			&item.Version,
+			&status,
+			&item.TriggerFormula,
+			&item.ScoreReviewThreshold,
+			&item.ScoreBlockAndReviewThreshold,
+			&item.ScoreDeclineThreshold,
+			&item.Schedule,
+			&item.CreatedAt,
+			&item.CommittedAt,
+		); err != nil {
+			return nil, err
+		}
+		item.Status = scenario.IterationStatus(status)
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func (r ScenarioIterationRepository) NextVersion(ctx context.Context, tenantID, scenarioID string) (int, error) {
 	const stmt = `
 		select coalesce(max(version), 0) + 1

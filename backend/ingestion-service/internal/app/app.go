@@ -32,6 +32,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
 		AuthMode:            cfg.ServiceAuthMode,
 		AuthToken:           cfg.ServiceAuthToken,
+		AllowedOrigins:      cfg.AllowedOrigins,
 		DataModelServiceURL: cfg.DataModelServiceURL,
 		HTTPClientTimeout:   cfg.HTTPClientTimeout,
 	})

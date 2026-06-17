@@ -114,6 +114,7 @@ func main() {
 		uuidGenerator{},
 		systemClock{},
 		scenarioRepo,
+		iterationRepo,
 		tenantDataReader,
 		scheduledRepo,
 		asyncRepo,

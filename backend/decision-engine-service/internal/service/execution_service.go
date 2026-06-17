@@ -26,6 +26,7 @@ type ExecutionService struct {
 	idGen            ports.IDGenerator
 	clock            ports.Clock
 	scenarioRepo     ports.ScenarioRepository
+	iterationRepo    ports.ScenarioIterationRepository
 	tenantDataReader ports.TenantDataReader
 	scheduledRepo    ports.ScheduledExecutionRepository
 	asyncRepo        ports.AsyncDecisionExecutionRepository
@@ -37,6 +38,7 @@ func NewExecutionService(
 	idGen ports.IDGenerator,
 	clock ports.Clock,
 	scenarioRepo ports.ScenarioRepository,
+	iterationRepo ports.ScenarioIterationRepository,
 	tenantDataReader ports.TenantDataReader,
 	scheduledRepo ports.ScheduledExecutionRepository,
 	asyncRepo ports.AsyncDecisionExecutionRepository,
@@ -47,11 +49,61 @@ func NewExecutionService(
 		idGen:            idGen,
 		clock:            clock,
 		scenarioRepo:     scenarioRepo,
+		iterationRepo:    iterationRepo,
 		tenantDataReader: tenantDataReader,
 		scheduledRepo:    scheduledRepo,
 		asyncRepo:        asyncRepo,
 		decisionSvc:      decisionSvc,
 	}
+}
+
+func (s ExecutionService) GetRecurringSchedule(ctx context.Context, tenantID, scenarioID string) (RecurringScheduleConfig, error) {
+	scn, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	if scn.LiveIterationID == nil {
+		return RecurringScheduleConfig{}, fmt.Errorf("scenario has no live iteration")
+	}
+
+	iteration, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, *scn.LiveIterationID)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	return DecodeRecurringScheduleConfig(iteration.Schedule)
+}
+
+func (s ExecutionService) UpdateRecurringSchedule(ctx context.Context, tenantID, scenarioID string, cfg RecurringScheduleConfig) (RecurringScheduleConfig, error) {
+	scn, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	if scn.LiveIterationID == nil {
+		return RecurringScheduleConfig{}, fmt.Errorf("scenario has no live iteration")
+	}
+
+	normalized, err := NormalizeRecurringScheduleConfig(cfg)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	encoded, err := EncodeRecurringScheduleConfig(normalized)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		iteration, err := store.Iterations().GetByID(ctx, tenantID, scenarioID, *scn.LiveIterationID)
+		if err != nil {
+			return err
+		}
+		iteration.Schedule = encoded
+		_, err = store.Iterations().Update(ctx, iteration)
+		return err
+	})
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	return normalized, nil
 }
 
 func (s ExecutionService) CreateScheduledExecution(ctx context.Context, tenantID, scenarioID string, scheduledFor time.Time, req ScheduledExecutionRequest) (execution.ScheduledExecution, error) {
@@ -119,6 +171,10 @@ func (s ExecutionService) ListAsyncDecisionExecutionsByTenant(ctx context.Contex
 }
 
 func (s ExecutionService) ProcessDueScheduledExecutions(ctx context.Context, limit int) error {
+	if err := s.materializeRecurringSchedules(ctx, limit); err != nil {
+		return err
+	}
+
 	items, err := s.scheduledRepo.ListDue(ctx, s.clock.Now(), limit)
 	if err != nil {
 		return err
@@ -135,6 +191,74 @@ func (s ExecutionService) ProcessDueScheduledExecutions(ctx context.Context, lim
 			return err
 		}
 	}
+	return nil
+}
+
+func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, limit int) error {
+	iterations, err := s.iterationRepo.ListLiveScheduled(ctx, limit)
+	if err != nil {
+		return err
+	}
+
+	now := s.clock.Now().UTC()
+	for _, iteration := range iterations {
+		cfg, err := DecodeRecurringScheduleConfig(iteration.Schedule)
+		if err != nil {
+			return err
+		}
+		if !cfg.Enabled {
+			continue
+		}
+
+		scheduledFor, err := nextScheduledTimeForDay(now, cfg)
+		if err != nil {
+			return err
+		}
+		if scheduledFor.After(now) {
+			continue
+		}
+
+		existing, err := s.scheduledRepo.ListByScenario(ctx, iteration.TenantID, iteration.ScenarioID)
+		if err != nil {
+			return err
+		}
+		alreadyCreated := false
+		for _, item := range existing {
+			if item.ScheduledFor.Equal(scheduledFor) {
+				alreadyCreated = true
+				break
+			}
+		}
+		if alreadyCreated {
+			continue
+		}
+
+		body, err := json.Marshal(ScheduledExecutionRequest{
+			Items:          nil,
+			CandidateLimit: cfg.CandidateLimit,
+		})
+		if err != nil {
+			return err
+		}
+
+		item := execution.ScheduledExecution{
+			ID:                  s.idGen.New().String(),
+			TenantID:            iteration.TenantID,
+			ScenarioID:          iteration.ScenarioID,
+			ScenarioIterationID: iteration.ID,
+			Status:              execution.StatusPending,
+			ScheduledFor:        scheduledFor,
+			RequestBody:         body,
+			CreatedAt:           now,
+		}
+		if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			_, err := store.ScheduledExecutions().Create(ctx, item)
+			return err
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
