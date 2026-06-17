@@ -8,7 +8,7 @@
     "sustainability_definition": "0% errors and 0% timeouts during measured run."
   },
   "environment": {
-    "captured_at": "2026-06-17T15:16:57.349487Z",
+    "captured_at": "2026-06-17T16:10:57.118601Z",
     "command": [
       "stress-tests/decision_closed_loop_vus.py",
       "--vus=6",
@@ -18,8 +18,8 @@
     "platform": "macOS-15.7.7-x86_64-i386-64bit",
     "processor": "i386",
     "cpu_count": 6,
-    "git_sha": "4f937ebcd06f0949dd47094a919ed435722eed8f",
-    "git_status_short": "M decision-engine-service/internal/app/config.go\n M decision-engine-service/internal/ports/transactions.go\n M decision-engine-service/internal/service/decision_service.go\n M decision-engine-service/internal/store/postgres/transaction_manager.go\n M stress-tests/closed-loop-vus-summary.json\n M stress-tests/decision_closed_loop_vus.py\n M stress-tests/marble_decision_closed_loop_vus.py\n M ../docker-compose.yml\n?? stress-tests/__pycache__/decision_closed_loop_vus.cpython-312.pyc\n?? stress-tests/__pycache__/decision_throughput_limit.cpython-312.pyc\n?? stress-tests/__pycache__/marble_decision_closed_loop_vus.cpython-312.pyc\n?? stress-tests/__pycache__/marble_decision_throughput_limit.cpython-312.pyc\n?? stress-tests/closed-loop-vus-summary-5-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-6-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-7-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-1-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-100-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-50-vus-60s.json",
+    "git_sha": "9eca63d424bd1ff078a348c03d9a7e8c2cea3b86",
+    "git_status_short": "M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M ../docker-compose.yml",
     "docker_version": "Docker version 29.4.2, build 055a478",
     "docker_compose_version": "Docker Compose version v5.1.3",
     "service_urls": {
@@ -29,10 +29,10 @@
     }
   },
   "setup": {
-    "tenant_id": "82931041-9965-4570-8c17-005b26303b16",
-    "object_type": "transactions_4c8f213c1247",
-    "scenario_id": "3728cd69-dc88-4f4f-baf8-9aa238a99ba0",
-    "rule_id": "15a0c27d-86e9-4a07-ad83-3d37db29e3cd",
+    "tenant_id": "7b33d3c1-4825-47bd-8331-c44b141c2eeb",
+    "object_type": "transactions_2c32cae38e10",
+    "scenario_id": "dce3add3-40c3-43f5-9906-e8b386996ed3",
+    "rule_id": "b0561836-8884-4729-a13c-e2e09ba8f218",
     "scenario_count": 1,
     "rules_per_scenario": 1,
     "rule_shape": "amount > scenario_threshold",
@@ -52,33 +52,33 @@
   },
   "workload_counts": {
     "configured_vus": 6,
-    "completed_evaluations": 24951,
-    "successful_evaluations": 24951,
+    "completed_evaluations": 27747,
+    "successful_evaluations": 27747,
     "failed_evaluations": 0,
     "timeouts": 0,
     "dropped_requests": 0
   },
   "rates": {
-    "achieved_successful_evaluations_per_second": 415.75915207278047,
+    "achieved_successful_evaluations_per_second": 462.3753607030254,
     "success_rate": 1.0,
     "error_rate": 0.0,
     "timeout_rate": 0.0
   },
   "per_vu_successes": {
-    "min": 4111,
-    "max": 4304,
-    "avg": 4158.5
+    "min": 4537,
+    "max": 4962,
+    "avg": 4624.5
   },
   "latency_ms": {
-    "avg": 14.42644605818067,
-    "p50": 12.939646025188267,
-    "p95": 20.586025988450274,
-    "p99": 52.586714999051765,
-    "max": 163.99464500136673
+    "avg": 12.97229000397399,
+    "p50": 11.384574987459928,
+    "p95": 19.906177703524,
+    "p99": 40.739594047190714,
+    "max": 205.67789603956044
   },
   "result": {
     "sustainable": true,
-    "elapsed_seconds": 60.01311065698974,
+    "elapsed_seconds": 60.00968554598512,
     "requested_duration_seconds": 60.0
   },
   "sample_errors": []

@@ -8,7 +8,7 @@
     "sustainability_definition": "0% errors and 0% timeouts during measured run."
   },
   "environment": {
-    "captured_at": "2026-06-17T15:50:13.274008Z",
+    "captured_at": "2026-06-17T16:18:18.732312Z",
     "command": [
       "stress-tests/decision_closed_loop_vus.py",
       "--vus=100",
@@ -18,8 +18,8 @@
     "platform": "macOS-15.7.7-x86_64-i386-64bit",
     "processor": "i386",
     "cpu_count": 6,
-    "git_sha": "4f937ebcd06f0949dd47094a919ed435722eed8f",
-    "git_status_short": "M decision-engine-service/internal/app/config.go\n M decision-engine-service/internal/ports/transactions.go\n M decision-engine-service/internal/service/decision_service.go\n M decision-engine-service/internal/store/postgres/transaction_manager.go\n M stress-tests/closed-loop-vus-summary.json\n M stress-tests/decision_closed_loop_vus.py\n M stress-tests/marble_decision_closed_loop_vus.py\n M ../docker-compose.yml\n?? stress-tests/__pycache__/decision_closed_loop_vus.cpython-312.pyc\n?? stress-tests/__pycache__/decision_throughput_limit.cpython-312.pyc\n?? stress-tests/__pycache__/marble_decision_closed_loop_vus.cpython-312.pyc\n?? stress-tests/__pycache__/marble_decision_throughput_limit.cpython-312.pyc\n?? stress-tests/closed-loop-vus-summary-10-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-5-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-6-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-7-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-8-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-1-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-100-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-50-vus-60s.json",
+    "git_sha": "9eca63d424bd1ff078a348c03d9a7e8c2cea3b86",
+    "git_status_short": "M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-10-vus-60s.json\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-30-vus-60s.json",
     "docker_version": "Docker version 29.4.2, build 055a478",
     "docker_compose_version": "Docker Compose version v5.1.3",
     "service_urls": {
@@ -29,10 +29,10 @@
     }
   },
   "setup": {
-    "tenant_id": "094c9802-0e11-40f2-8c12-65cb637c6284",
-    "object_type": "transactions_95407f43e9ae",
-    "scenario_id": "378e2414-790d-4987-8d7c-7c5b66c9e83b",
-    "rule_id": "b11a4963-ebe2-47e6-8eef-0b20ff8a3ace",
+    "tenant_id": "2a203680-30b0-407e-8863-bc19fc1456e3",
+    "object_type": "transactions_46599649161b",
+    "scenario_id": "93f4da2e-88dd-45e0-9d81-ba8280ca1cf6",
+    "rule_id": "8e342995-9581-451b-a51f-15cfd044b23b",
     "scenario_count": 1,
     "rules_per_scenario": 1,
     "rule_shape": "amount > scenario_threshold",
@@ -52,33 +52,33 @@
   },
   "workload_counts": {
     "configured_vus": 100,
-    "completed_evaluations": 4183,
-    "successful_evaluations": 4183,
+    "completed_evaluations": 5501,
+    "successful_evaluations": 5501,
     "failed_evaluations": 0,
     "timeouts": 0,
     "dropped_requests": 0
   },
   "rates": {
-    "achieved_successful_evaluations_per_second": 68.74057384290718,
+    "achieved_successful_evaluations_per_second": 89.54803335386688,
     "success_rate": 1.0,
     "error_rate": 0.0,
     "timeout_rate": 0.0
   },
   "per_vu_successes": {
-    "min": 28,
-    "max": 54,
-    "avg": 41.83
+    "min": 42,
+    "max": 68,
+    "avg": 55.01
   },
   "latency_ms": {
-    "avg": 1448.5335464744396,
-    "p50": 816.0014459863305,
-    "p95": 5076.122226391452,
-    "p99": 5922.615655381239,
-    "max": 9715.058975038119
+    "avg": 1100.2585426580793,
+    "p50": 551.7695840098895,
+    "p95": 4517.651789996307,
+    "p99": 5686.261347960681,
+    "max": 9072.603670996614
   },
   "result": {
     "sustainable": true,
-    "elapsed_seconds": 60.851979641010985,
+    "elapsed_seconds": 61.43071817402961,
     "requested_duration_seconds": 60.0
   },
   "sample_errors": []
