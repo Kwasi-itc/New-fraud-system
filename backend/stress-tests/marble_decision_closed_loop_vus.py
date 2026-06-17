@@ -219,7 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--transaction-value", type=float, default=10000.0, help="Value used in generated transactions.")
     parser.add_argument("--account-past-balance", type=float, default=200000.0, help="Seeded account past balance.")
     parser.add_argument("--timeout", type=float, default=30.0, help="Per-request timeout in seconds.")
-    parser.add_argument("--output", default="stress-tests/marble-closed-loop-vus-summary.json")
+    parser.add_argument("--output", help="Summary JSON output path.")
     parser.add_argument("--api-url", default=os.getenv("MARBLE_API_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--api-key", default=os.getenv("MARBLE_API_KEY"))
     parser.add_argument("--scenario-id", default=os.getenv("SCENARIO_ID"))
@@ -229,6 +229,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ingest linked company/account records before the run.",
     )
     return parser
+
+
+def default_output_path(vus: int, duration_seconds: float) -> str:
+    duration_label = f"{duration_seconds:g}s"
+    return f"stress-tests/marble-closed-loop-vus-summary-{vus}-vus-{duration_label}.json"
 
 
 def parse_config() -> Config:
@@ -249,7 +254,7 @@ def parse_config() -> Config:
         transaction_value=args.transaction_value,
         account_past_balance=args.account_past_balance,
         timeout_seconds=args.timeout,
-        output=args.output,
+        output=args.output or default_output_path(args.vus, args.duration),
         api_url=args.api_url.rstrip("/"),
         api_key=args.api_key,
         scenario_id=args.scenario_id,

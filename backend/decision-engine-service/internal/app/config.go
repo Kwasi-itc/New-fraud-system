@@ -58,7 +58,7 @@ func LoadConfig() (Config, error) {
 		ScreeningProviderURL:        strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
 		ScoringProviderURL:          strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
 		OutboxPublisherURL:          strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
-		LogLevel:                    getEnv("LOG_LEVEL", "info"),
+		LogLevel:                    getEnv("LOG_LEVEL", "debug"),
 		GinMode:                     getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:           httpClientTimeout,
 		AggregatePushdownMode:       strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),

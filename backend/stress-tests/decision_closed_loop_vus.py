@@ -212,12 +212,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--amount", type=int, default=1800, help="Amount value used in generated payloads.")
     parser.add_argument("--timeout", type=float, default=30.0, help="Per-request timeout in seconds.")
     parser.add_argument("--scenario-threshold", type=int, default=1000, help="Simple amount rule threshold.")
-    parser.add_argument("--output", default="stress-tests/closed-loop-vus-summary.json", help="Summary JSON output path.")
+    parser.add_argument("--output", help="Summary JSON output path.")
     parser.add_argument("--data-model-url", default=os.getenv("DATA_MODEL_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
     parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
     return parser
+
+
+def default_output_path(vus: int, duration_seconds: float) -> str:
+    duration_label = f"{duration_seconds:g}s"
+    return f"stress-tests/closed-loop-vus-summary-{vus}-vus-{duration_label}.json"
 
 
 def parse_config() -> Config:
@@ -233,7 +238,7 @@ def parse_config() -> Config:
         duration_seconds=args.duration,
         amount=args.amount,
         timeout_seconds=args.timeout,
-        output=args.output,
+        output=args.output or default_output_path(args.vus, args.duration),
         data_model_url=args.data_model_url.rstrip("/"),
         ingestion_url=args.ingestion_url.rstrip("/"),
         decision_engine_url=args.decision_engine_url.rstrip("/"),

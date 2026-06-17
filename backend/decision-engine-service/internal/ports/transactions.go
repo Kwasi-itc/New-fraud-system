@@ -48,6 +48,23 @@ type TransactionManager interface {
 	Run(ctx context.Context, fn func(store MutationStore) error) error
 }
 
+type TransactionTimings struct {
+	BeginMicros  int64
+	BodyMicros   int64
+	CommitMicros int64
+}
+
+type transactionTimingsContextKey struct{}
+
+func WithTransactionTimings(ctx context.Context, timings *TransactionTimings) context.Context {
+	return context.WithValue(ctx, transactionTimingsContextKey{}, timings)
+}
+
+func TransactionTimingsFromContext(ctx context.Context) (*TransactionTimings, bool) {
+	timings, ok := ctx.Value(transactionTimingsContextKey{}).(*TransactionTimings)
+	return timings, ok && timings != nil
+}
+
 type ScenarioRepository interface {
 	Create(ctx context.Context, scenario scenario.Scenario) (scenario.Scenario, error)
 	ListByTenant(ctx context.Context, tenantID string) ([]scenario.Scenario, error)
