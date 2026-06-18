@@ -221,7 +221,7 @@ services:
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       WORKER_POLL_INTERVAL: 5s
       WORKER_MAX_ATTEMPTS: 3

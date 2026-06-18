@@ -37,6 +37,21 @@ type MultiScenarioEvaluationResult struct {
 
 const decisionEvaluationCacheTTL = 30 * time.Second
 
+type DBPoolStats struct {
+	AcquireCount           int64
+	AcquireDurationMicros  int64
+	EmptyAcquireCount      int64
+	EmptyAcquireWaitMicros int64
+	CanceledAcquireCount   int64
+	MaxConns               int32
+	TotalConns             int32
+	AcquiredConns          int32
+	IdleConns              int32
+	ConstructingConns      int32
+}
+
+type DBPoolStatsProvider func() DBPoolStats
+
 type DecisionService struct {
 	txManager                   ports.TransactionManager
 	idGen                       ports.IDGenerator
@@ -66,6 +81,7 @@ type DecisionService struct {
 	aggregatePushdownMode       string
 	aggregatePushdownAggregates []string
 	evaluationCache             *decisionEvaluationCache
+	dbPoolStatsProvider         DBPoolStatsProvider
 }
 
 func NewDecisionService(
@@ -96,6 +112,7 @@ func NewDecisionService(
 	scoringRequestRepo ports.ScoringRequestRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
 	return DecisionService{
 		txManager:                   txManager,
@@ -126,6 +143,7 @@ func NewDecisionService(
 		aggregatePushdownMode:       aggregatePushdownMode,
 		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
 		evaluationCache:             newDecisionEvaluationCache(decisionEvaluationCacheTTL),
+		dbPoolStatsProvider:         dbPoolStatsProvider,
 	}
 }
 
@@ -138,6 +156,7 @@ func (s DecisionService) EvaluateScenario(
 	stageStartedAt := timingStartedAt
 	timings := make(map[string]int64, 20)
 	currentStage := "scenario_get"
+	poolStatsBefore, hasPoolStats := s.snapshotDBPoolStats()
 	markTiming := func(stage string) {
 		now := time.Now()
 		timings[stage+"_us"] = now.Sub(stageStartedAt).Microseconds()
@@ -161,8 +180,13 @@ func (s DecisionService) EvaluateScenario(
 			0,
 			0,
 			0,
-			"failed_stage", currentStage,
-			"error", err.Error(),
+			append(
+				[]any{
+					"failed_stage", currentStage,
+					"error", err.Error(),
+				},
+				s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+			)...,
 		)
 	}()
 
@@ -221,7 +245,21 @@ func (s DecisionService) EvaluateScenario(
 	}
 	markTiming("trigger_eval")
 	if !triggered {
-		logDecisionEvaluationTimings(tenantID, scenarioID, req, timings, timingStartedAt, false, 0, 0, 0, 0, 0, 0)
+		logDecisionEvaluationTimings(
+			tenantID,
+			scenarioID,
+			req,
+			timings,
+			timingStartedAt,
+			false,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+		)
 		return DecisionEvaluationResult{Triggered: false}, nil
 	}
 
@@ -391,6 +429,7 @@ func (s DecisionService) EvaluateScenario(
 		len(storedScreeningExecs),
 		len(storedScoringReqs),
 		outboxEventCount,
+		s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
 	)
 
 	return DecisionEvaluationResult{
@@ -435,6 +474,32 @@ func logDecisionEvaluationTimings(
 		attrs = append(attrs, stage, duration)
 	}
 	slog.Default().Debug("decision evaluation timings", attrs...)
+}
+
+func (s DecisionService) snapshotDBPoolStats() (DBPoolStats, bool) {
+	if s.dbPoolStatsProvider == nil {
+		return DBPoolStats{}, false
+	}
+	return s.dbPoolStatsProvider(), true
+}
+
+func (s DecisionService) dbPoolStatsAttrs(before DBPoolStats, ok bool) []any {
+	if !ok || s.dbPoolStatsProvider == nil {
+		return nil
+	}
+	after := s.dbPoolStatsProvider()
+	return []any{
+		"db_pool_max_conns", after.MaxConns,
+		"db_pool_total_conns", after.TotalConns,
+		"db_pool_acquired_conns", after.AcquiredConns,
+		"db_pool_idle_conns", after.IdleConns,
+		"db_pool_constructing_conns", after.ConstructingConns,
+		"db_pool_acquire_count_delta", after.AcquireCount - before.AcquireCount,
+		"db_pool_acquire_duration_delta_us", after.AcquireDurationMicros - before.AcquireDurationMicros,
+		"db_pool_empty_acquire_count_delta", after.EmptyAcquireCount - before.EmptyAcquireCount,
+		"db_pool_empty_acquire_wait_delta_us", after.EmptyAcquireWaitMicros - before.EmptyAcquireWaitMicros,
+		"db_pool_canceled_acquire_count_delta", after.CanceledAcquireCount - before.CanceledAcquireCount,
+	}
 }
 
 func (s DecisionService) getScenario(ctx context.Context, tenantID, scenarioID string) (scenarioDomain.Scenario, error) {

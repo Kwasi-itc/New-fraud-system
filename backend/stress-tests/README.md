@@ -1,18 +1,25 @@
 # Stress Tests
 
-k6 stress tests for the ingestion service and decision-engine runtime paths.
+Stress tests for the ingestion service and decision-engine runtime paths.
 
 These tests are intentionally separate from `integration-tests` because they create load, depend on timing thresholds, and should not run as part of normal functional CI.
 
 ## Tool Choice
 
-This suite uses k6 instead of Locust because it has stronger repeatable reporting for service stress tests:
+This suite has two styles of tests:
+
+- k6 profiles for broad ingestion and mixed-workload service stress.
+- Python harnesses for protocol-driven decision-engine throughput, rule complexity, and scenario-scaling tests.
+
+The k6 tests are useful for:
 
 - built-in pass/fail thresholds for CI
 - compact terminal summaries with percentile latency stats
 - JSON export for later analysis
 - optional local web dashboard and Grafana Cloud k6 reporting
 - single-file JavaScript workloads that are easy to run without a Python harness
+
+The Python tests are useful when setup needs to generate many tenants, scenarios, rules, seeded records, and per-trial JSON summaries.
 
 ## Prerequisites
 
@@ -32,6 +39,14 @@ If service auth is enabled:
 ```bash
 export SERVICE_AUTH_TOKEN=<token>
 ```
+
+If the active Docker stack runs data-model and ingestion against separate Postgres databases, pass the ingestion database URL to Python tests that seed tenant data:
+
+```bash
+--ingestion-database-url 'postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable'
+```
+
+Without that option, related-record and related-field variants can fail with `SQLSTATE 42P01` because data-model creates tenant tables in its own database while ingestion writes to a separate database.
 
 ## Profiles
 
@@ -93,6 +108,121 @@ Run one manual trial when investigating a specific rate:
 
 ```bash
 python stress-tests/decision_throughput_limit.py --rate 500 --vus 1000 --duration 60
+```
+
+## Closed-Loop VU Baseline
+
+Use closed-loop VU tests to measure how much throughput the system gets from a fixed number of concurrent workers. Each VU sends the next request immediately after its previous request completes.
+
+```bash
+python3 stress-tests/decision_closed_loop_vus.py --vus=5 --duration=60
+```
+
+The summary is written with the VU count and duration in the filename:
+
+```text
+stress-tests/closed-loop-vus-summary-5-vus-60s.json
+```
+
+## Rule Complexity Scaling
+
+Use `decision_rule_complexity_scaling.py` to compare direct scenario evaluation performance across rule types.
+
+Default variants:
+
+- `baseline_payload`: amount threshold only.
+- `nested_payload`: payload-only nested conditions and string functions.
+- `custom_list`: custom-list membership lookup.
+- `related_field`: related account lookup.
+- `decision_history`: prior decision lookup.
+- `related_records_count`: fetch related records and count them in the decision engine.
+- `aggregate_count_pushdown`: count matching records through aggregate pushdown.
+- `mixed_heavy`: nested payload, custom list, related field, aggregate, and decision history.
+
+Run the default rule-complexity matrix:
+
+```bash
+python3 stress-tests/decision_rule_complexity_scaling.py \
+  --vus=5 \
+  --duration=60 \
+  --ingestion-database-url 'postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable'
+```
+
+Run selected variants:
+
+```bash
+python3 stress-tests/decision_rule_complexity_scaling.py \
+  --variants=baseline_payload,decision_history,mixed_heavy \
+  --vus=5,10 \
+  --duration=60 \
+  --history-object-pool-size=1000 \
+  --ingestion-database-url 'postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable'
+```
+
+Important options:
+
+- `--variants`: comma-separated rule complexity variants.
+- `--vus`: comma-separated closed-loop VU levels.
+- `--related-seed-count`: number of related transaction records seeded for related-record and aggregate variants. Default: `100`.
+- `--history-object-pool-size`: number of preseeded objects used by decision-history variants. Default: `100`.
+- `--ingestion-database-url`: optional Postgres URL used to materialize tenant tables in ingestion's database when ingestion uses a separate DB.
+
+Decision-history variants seed one prior review decision per object in the history object pool, then measured requests cycle through that pool. This avoids concentrating all measured decisions on a single object and turning the test into an unbounded history-growth benchmark.
+
+Outputs:
+
+```text
+stress-tests/rule-complexity-runs/<timestamp>/summary.json
+stress-tests/rule-complexity-runs/<timestamp>/trial-<variant>-<vus>-vus-<duration>s.json
+```
+
+## Scenario Scaling
+
+Use `decision_scenario_scaling.py` to test live-scenario fanout, rules-per-scenario scaling, and rule complexity in one matrix.
+
+The workload uses:
+
+```text
+POST /v1/tenants/{tenantId}/decisions/all
+```
+
+This evaluates all live scenarios for the object type on each request.
+
+Recommended first run:
+
+```bash
+python3 stress-tests/decision_scenario_scaling.py \
+  --scenario-counts=1,5,10 \
+  --rules-per-scenario=1,5,10 \
+  --complexities=baseline_payload,mixed_heavy \
+  --vus=5 \
+  --duration=60 \
+  --ingestion-database-url 'postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable'
+```
+
+Important options:
+
+- `--scenario-counts`: comma-separated live scenario counts.
+- `--rules-per-scenario`: comma-separated rule counts created in each scenario.
+- `--complexities`: comma-separated rule complexity variants. `baseline_payload` is auto-added when omitted so ratios can be calculated.
+- `--vus`: comma-separated closed-loop VU levels.
+- `--related-seed-count`: number of related records seeded for related-record and aggregate complexity variants. Default: `100`.
+- `--ingestion-database-url`: optional Postgres URL used for split data-model/ingestion DB setups.
+
+Each trial records:
+
+- request RPS
+- expected decision writes per second
+- expected rule execution writes per second
+- total rules per request: `scenario_count * rules_per_scenario`
+- p50, p95, p99, max latency
+- success, error, and timeout rates
+
+Outputs:
+
+```text
+stress-tests/scenario-scaling-runs/<timestamp>/summary.json
+stress-tests/scenario-scaling-runs/<timestamp>/trial-<complexity>-<scenario_count>-scenarios-<rules_per_scenario>-rules-<vus>-vus-<duration>s.json
 ```
 
 Run a specific profile:

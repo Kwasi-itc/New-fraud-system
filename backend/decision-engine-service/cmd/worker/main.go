@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
@@ -26,6 +27,27 @@ func (uuidGenerator) New() uuid.UUID { return uuid.New() }
 type systemClock struct{}
 
 func (systemClock) Now() time.Time { return time.Now().UTC() }
+
+func dbPoolStatsProvider(db *pgxpool.Pool) service.DBPoolStatsProvider {
+	if db == nil {
+		return nil
+	}
+	return func() service.DBPoolStats {
+		stats := db.Stat()
+		return service.DBPoolStats{
+			AcquireCount:           stats.AcquireCount(),
+			AcquireDurationMicros:  stats.AcquireDuration().Microseconds(),
+			EmptyAcquireCount:      stats.EmptyAcquireCount(),
+			EmptyAcquireWaitMicros: stats.EmptyAcquireWaitTime().Microseconds(),
+			CanceledAcquireCount:   stats.CanceledAcquireCount(),
+			MaxConns:               stats.MaxConns(),
+			TotalConns:             stats.TotalConns(),
+			AcquiredConns:          stats.AcquiredConns(),
+			IdleConns:              stats.IdleConns(),
+			ConstructingConns:      stats.ConstructingConns(),
+		}
+	}
+}
 
 type workerRunner struct {
 	logger           *slog.Logger
@@ -108,6 +130,7 @@ func main() {
 		scoringRequestRepo,
 		cfg.AggregatePushdownMode,
 		cfg.AggregatePushdownAggregates,
+		dbPoolStatsProvider(db),
 	)
 
 	executionService := service.NewExecutionService(

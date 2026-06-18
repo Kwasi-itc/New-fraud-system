@@ -1,0 +1,86 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_rule_complexity_scaling",
+    "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-18T13:41:13.583244Z",
+    "command": [
+      "stress-tests/decision_rule_complexity_scaling.py",
+      "--vus=5",
+      "--duration=60"
+    ],
+    "python_version": "3.12.10",
+    "platform": "macOS-15.7.7-x86_64-i386-64bit",
+    "processor": "i386",
+    "cpu_count": 6,
+    "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+    "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+    "docker_version": "Docker version 29.4.2, build 055a478",
+    "docker_compose_version": "Docker Compose version v5.1.3",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "variant": "nested_payload",
+    "variant_description": "Nested payload-only logical rule.",
+    "tenant_id": "e32d4771-dab6-4397-ba23-b5b578a11a69",
+    "object_type": "transactions_bd7f21d42949",
+    "account_object_type": "accounts_a0fbe725a3f1",
+    "scenario_id": "c91dd0c9-45fe-4c87-ae2e-35cf6266ab8d",
+    "rule_id": "2c6422a0-7a37-4ed9-a67e-fb14e6f07e6e",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "seeded_counts": {},
+    "related_seed_count": 100,
+    "stable_object_id": false
+  },
+  "run": {
+    "variant": "nested_payload",
+    "configured_vus": 5,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "amount": 1800,
+    "output": "stress-tests/rule-complexity-runs/2026-06-18T133911-997169Z/trial-nested_payload-5-vus-60s.json",
+    "auth_token": null
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_evaluations": 25519,
+    "successful_evaluations": 25519,
+    "failed_evaluations": 0,
+    "timeouts": 0,
+    "dropped_requests": 0
+  },
+  "rates": {
+    "achieved_successful_evaluations_per_second": 425.25262727121424,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 5050,
+    "max": 5239,
+    "avg": 5103.8
+  },
+  "latency_ms": {
+    "avg": 11.75314037386912,
+    "p50": 10.456356045324355,
+    "p95": 16.286805464187633,
+    "p99": 32.77424757718107,
+    "max": 210.68355801980942
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.00903548498172,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": []
+}

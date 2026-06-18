@@ -1,0 +1,122 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_scenario_scaling",
+    "objective": "Measure decision evaluation performance as live scenarios, rules per scenario, and rule complexity scale.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/decisions/all",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-18T16:07:15.251505Z",
+    "command": [
+      "stress-tests/decision_scenario_scaling.py",
+      "--scenario-counts=1,5,10",
+      "--rules-per-scenario=1,5,10",
+      "--complexities=baseline_payload,mixed_heavy",
+      "--vus=5",
+      "--duration=60",
+      "--ingestion-database-url",
+      "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+    ],
+    "python_version": "3.12.10",
+    "platform": "macOS-15.7.7-x86_64-i386-64bit",
+    "processor": "i386",
+    "cpu_count": 6,
+    "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+    "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/__pycache__/decision_rule_complexity_scaling.cpython-312.pyc\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/decision_scenario_scaling.py\n?? stress-tests/rule-complexity-runs/\n?? stress-tests/scenario-scaling-runs/",
+    "docker_version": "Docker version 29.4.2, build 055a478",
+    "docker_compose_version": "Docker Compose version v5.1.3",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "complexity": "mixed_heavy",
+    "variant_description": "Nested payload, custom list, related field, aggregate, and decision history.",
+    "tenant_id": "00566f1d-1697-4c5e-866d-aca6a450ac2c",
+    "object_type": "transactions_e87356414894",
+    "account_object_type": "accounts_656ffbecc7ba",
+    "scenario_count": 1,
+    "rules_per_scenario": 10,
+    "total_rules_per_request": 10,
+    "scenario_ids": [
+      "32216c3d-3f95-4186-a96f-7c74a9ceb4c2"
+    ],
+    "rule_count": 10,
+    "seeded_counts": {
+      "accounts": 1,
+      "custom_list_entries": 1,
+      "related_records": 100,
+      "prior_decisions": 1,
+      "seed_scenarios": 1
+    },
+    "related_seed_count": 100,
+    "stable_object_id": true
+  },
+  "run": {
+    "complexity": "mixed_heavy",
+    "configured_vus": 5,
+    "scenario_count": 1,
+    "rules_per_scenario": 10,
+    "total_rules_per_request": 10,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "amount": 1800,
+    "output": "stress-tests/scenario-scaling-runs/2026-06-18T160109-218322Z/trial-mixed_heavy-1-scenarios-10-rules-5-vus-60s.json",
+    "auth_token": null
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_requests": 1248,
+    "successful_requests": 1248,
+    "failed_requests": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "expected_decision_writes": 1248,
+    "expected_rule_execution_writes": 12480
+  },
+  "rates": {
+    "achieved_successful_requests_per_second": 20.75729168244448,
+    "expected_decision_writes_per_second": 20.75729168244448,
+    "expected_rule_execution_writes_per_second": 207.5729168244448,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 248,
+    "max": 251,
+    "avg": 249.6
+  },
+  "latency_ms": {
+    "avg": 240.73966417073768,
+    "p50": 238.92765550408512,
+    "p95": 364.59063677757507,
+    "p99": 474.6165665343869,
+    "max": 691.1455290392041
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.12345054897014,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": [],
+  "baseline_comparison": {
+    "baseline_complexity": "baseline_payload",
+    "baseline_available": true,
+    "baseline_key": {
+      "scenario_count": 1,
+      "rules_per_scenario": 10,
+      "configured_vus": 5
+    },
+    "latency_p50_ratio": 15.656619570114088,
+    "latency_p95_ratio": 14.579516443268707,
+    "latency_p99_ratio": 6.814449430764894,
+    "latency_max_ratio": 2.5059512480540067,
+    "latency_avg_ratio": 13.972950233749545,
+    "achieved_eps_ratio": 0.07154638859769226
+  }
+}
