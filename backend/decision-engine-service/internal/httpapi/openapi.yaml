@@ -344,6 +344,22 @@ paths:
                 $ref: '#/components/schemas/RuleEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-groups:
+    get:
+      tags: [Scenario Authoring]
+      summary: List distinct rule groups used by one scenario
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Rule group list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleGroupListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}:
     put:
       tags: [Scenario Authoring]
@@ -1385,6 +1401,228 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-lists:
+    get:
+      tags: [Platform Helpers]
+      summary: List custom lists by tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Custom-list definition list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Platform Helpers]
+      summary: Create a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomListRequest'
+      responses:
+        '201':
+          description: Custom list created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-lists/{listId}:
+    get:
+      tags: [Platform Helpers]
+      summary: Get one custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Custom list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEnvelope'
+        '404':
+          $ref: '#/components/responses/BadRequest'
+    put:
+      tags: [Platform Helpers]
+      summary: Update a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomListRequest'
+      responses:
+        '200':
+          description: Custom list updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Platform Helpers]
+      summary: Delete a custom list and its entries
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Custom list deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries:
+    get:
+      tags: [Platform Helpers]
+      summary: List entries for a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Custom-list entry list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEntryListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Platform Helpers]
+      summary: Create an entry for a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomListEntryRequest'
+      responses:
+        '201':
+          description: Custom-list entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEntryEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/import:
+    post:
+      tags: [Platform Helpers]
+      summary: Import custom-list entries from a CSV file
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '200':
+          description: Custom-list entries imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportCustomListEntriesEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}:
+    put:
+      tags: [Platform Helpers]
+      summary: Update an entry in a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomListEntryRequest'
+      responses:
+        '200':
+          description: Custom-list entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomListEntryEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Platform Helpers]
+      summary: Delete an entry from a custom list
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Custom-list entry deleted
         '400':
           $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/platform/custom-list-entries:
@@ -2590,11 +2828,49 @@ components:
     CreateCustomListEntryRequest:
       type: object
       properties:
-        list_name:
-          type: string
         value:
           type: string
-      required: [list_name, value]
+      required: [value]
+    CreateCustomListRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+      required: [name, description, kind]
+    UpdateCustomListRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+      required: [name, description, kind]
+    CustomListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, name, description, kind, created_at, updated_at]
     CreateRecordTagRequest:
       type: object
       properties:
@@ -2630,6 +2906,9 @@ components:
           type: string
         tenant_id:
           type: string
+        list_id:
+          type: string
+          nullable: true
         list_name:
           type: string
         value:
@@ -2638,6 +2917,12 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, list_name, value, created_at]
+    ImportCustomListEntriesResponse:
+      type: object
+      properties:
+        imported_count:
+          type: integer
+      required: [imported_count]
     RecordTagResponse:
       type: object
       properties:
@@ -2758,6 +3043,14 @@ components:
           items:
             $ref: '#/components/schemas/RuleResponse'
       required: [rules]
+    RuleGroupListEnvelope:
+      type: object
+      properties:
+        rule_groups:
+          type: array
+          items:
+            type: string
+      required: [rule_groups]
     ValidationEnvelope:
       type: object
       properties:
@@ -2998,6 +3291,26 @@ components:
         custom_list_entry:
           $ref: '#/components/schemas/CustomListEntryResponse'
       required: [custom_list_entry]
+    ImportCustomListEntriesEnvelope:
+      type: object
+      properties:
+        imported_count:
+          type: integer
+      required: [imported_count]
+    CustomListEnvelope:
+      type: object
+      properties:
+        custom_list:
+          $ref: '#/components/schemas/CustomListResponse'
+      required: [custom_list]
+    CustomListListEnvelope:
+      type: object
+      properties:
+        custom_lists:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomListResponse'
+      required: [custom_lists]
     CustomListEntryListEnvelope:
       type: object
       properties:

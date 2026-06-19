@@ -8,12 +8,14 @@ import {
   AlertTriangle,
   ArrowLeft,
   Copy,
+  Info,
   MoreHorizontal,
   Save,
   Sparkles,
   Trash2,
 } from "lucide-react";
 
+import { RuleBuilderAdvanced } from "@/components/detection/rule-builder-advanced";
 import { RuleBuilderSimple } from "@/components/detection/rule-builder-simple";
 import { RuleGroupPicker } from "@/components/detection/rule-group-picker";
 import { RuleValidationPanel } from "@/components/detection/rule-validation-panel";
@@ -28,11 +30,19 @@ import {
   type ValidationResult,
 } from "@/lib/decision-engine-api";
 import {
+  compileAdvancedConditionGroupsToAst,
   compileConditionGroupsToAst,
+  createAdvancedRuleGroup,
   createSimpleRuleGroup,
+  extractAccessorOptions,
+  extractPayloadFieldNames,
+  isUnaryRuleOperator,
   simpleRuleOperatorOptions,
   slugifyStableRuleId,
+  tryParseAstToAdvancedConditionGroups,
   tryParseAstToConditionGroups,
+  type AdvancedRuleConditionGroup,
+  type RuleAccessorOption,
   type SimpleRuleConditionGroup,
 } from "@/lib/rule-builder";
 
@@ -54,7 +64,9 @@ function RuleEditorContent({
   draftIterationVersion,
   currentRule,
   fieldOptions,
+  accessorOptions,
   operatorOptions,
+  customListOptions,
   ruleGroups,
   validation,
   isValidating,
@@ -68,7 +80,9 @@ function RuleEditorContent({
   draftIterationVersion: number;
   currentRule: Rule;
   fieldOptions: string[];
+  accessorOptions: RuleAccessorOption[];
   operatorOptions: typeof simpleRuleOperatorOptions;
+  customListOptions: Array<{ id: string; name: string }>;
   ruleGroups: string[];
   validation?: ValidationResult;
   isValidating: boolean;
@@ -85,10 +99,20 @@ function RuleEditorContent({
   const [actionsOpen, setActionsOpen] = useState(false);
 
   const parsedGroups = tryParseAstToConditionGroups(currentRule.formula);
+  const parsedAdvancedGroups = tryParseAstToAdvancedConditionGroups(
+    currentRule.formula,
+    accessorOptions
+  );
+  const [editorMode] = useState<"simple" | "advanced">(() =>
+    parsedGroups ? "simple" : parsedAdvancedGroups ? "advanced" : "simple"
+  );
   const [conditionGroups, setConditionGroups] = useState<SimpleRuleConditionGroup[]>(
     parsedGroups ?? [createSimpleRuleGroup()]
   );
-  const hasUnsupportedFormula = parsedGroups === null;
+  const [advancedConditionGroups, setAdvancedConditionGroups] = useState<AdvancedRuleConditionGroup[]>(
+    parsedAdvancedGroups ?? [createAdvancedRuleGroup(accessorOptions[0]?.id ?? "")]
+  );
+  const hasUnsupportedFormula = parsedAdvancedGroups === null;
 
   const updateRuleMutation = useMutation({
     mutationFn: async () =>
@@ -98,7 +122,9 @@ function RuleEditorContent({
         description: description.trim(),
         formula: hasUnsupportedFormula
           ? currentRule.formula
-          : compileConditionGroupsToAst(conditionGroups),
+          : editorMode === "advanced"
+            ? compileAdvancedConditionGroupsToAst(advancedConditionGroups, accessorOptions)
+            : compileConditionGroupsToAst(conditionGroups),
         score_modifier: coerceScoreModifier(scoreModifier),
         rule_group: ruleGroup.trim(),
         snooze_group_id: snoozeGroupId.trim() || null,
@@ -133,9 +159,31 @@ function RuleEditorContent({
     !name.trim() ||
     !stableRuleId.trim() ||
     (!hasUnsupportedFormula &&
-      !conditionGroups.some((group) =>
-        group.conditions.some((condition) => condition.left.trim() && condition.right.trim())
-      ));
+      (editorMode === "advanced"
+        ? !advancedConditionGroups.some((group) =>
+            group.conditions.some((condition) => {
+              if (!condition.leftAccessorId.trim()) {
+                return false;
+              }
+
+              if (isUnaryRuleOperator(condition.operator)) {
+                return true;
+              }
+
+              if (condition.rightOperand.mode === "accessor") {
+                return Boolean(condition.rightOperand.accessorId.trim());
+              }
+
+              return condition.rightOperand.value.trim().length > 0;
+            })
+          )
+        : !conditionGroups.some((group) =>
+            group.conditions.some(
+              (condition) =>
+                condition.left.trim() &&
+                (isUnaryRuleOperator(condition.operator) || condition.right.trim())
+            )
+          )));
 
   return (
     <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-8">
@@ -161,6 +209,13 @@ function RuleEditorContent({
                   }}
                   className="h-11 border-none bg-transparent px-0 text-[1.4rem] font-medium tracking-tight text-slate-950 shadow-none focus-visible:ring-0"
                 />
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+                  <span>{scenarioName}</span>
+                  <span className="text-slate-300">/</span>
+                  <span>{formatIterationLabel(draftIterationVersion)}</span>
+                  <span className="text-slate-300">/</span>
+                  <span>{currentRule.id}</span>
+                </div>
               </div>
             </div>
 
@@ -220,61 +275,63 @@ function RuleEditorContent({
         </div>
 
         <div className="space-y-6">
-          <div className="max-w-3xl space-y-4 border-b border-slate-200 pb-6">
+          <div className="max-w-4xl space-y-4 border-b border-slate-200 pb-6">
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Add a description..."
               rows={3}
-              className="w-full resize-none border-none bg-transparent px-0 text-[15px] font-medium text-slate-700 outline-none placeholder:text-slate-400"
+              className="w-full resize-none border-none bg-transparent px-0 text-[15px] font-normal text-slate-900 outline-none placeholder:text-slate-400"
             />
 
-            <RuleGroupPicker
-              selectedRuleGroup={ruleGroup}
-              ruleGroups={ruleGroups}
-              onChange={setRuleGroup}
-            />
+            <div className="w-fit">
+              <RuleGroupPicker
+                selectedRuleGroup={ruleGroup}
+                ruleGroups={ruleGroups}
+                onChange={setRuleGroup}
+              />
+            </div>
           </div>
 
           <div className="space-y-3">
-            <span className="text-[14px] font-medium text-slate-950">Formula</span>
+            <span className="text-[15px] font-medium text-slate-950">Settings</span>
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-5">
                 <Card className="rounded-xl border border-slate-200 shadow-none">
                   <CardContent className="space-y-4 p-6">
-                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] leading-6 text-slate-700">
-                      <Sparkles className="mt-0.5 size-4 shrink-0 text-slate-500" />
-                      <p>
-                        The layout now mirrors the legacy rule workspace. The next parity step is replacing this simplified builder with the richer AST canvas used in `front`.
-                      </p>
-                    </div>
-
-                    {hasUnsupportedFormula ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-                        This rule uses a formula shape the visual editor does not support yet. Metadata can still be updated and the existing formula will be preserved on save.
-                      </div>
-                    ) : null}
-
-                    <RuleBuilderSimple
-                      groups={conditionGroups}
-                      onChange={setConditionGroups}
-                      fieldOptions={fieldOptions}
-                      operatorOptions={operatorOptions}
-                      disabled={hasUnsupportedFormula}
-                    />
+                    {editorMode === "advanced" && !hasUnsupportedFormula ? (
+                      <RuleBuilderAdvanced
+                        groups={advancedConditionGroups}
+                        onChange={setAdvancedConditionGroups}
+                        accessorOptions={accessorOptions}
+                        operatorOptions={operatorOptions}
+                        triggerObjectType={triggerObjectType}
+                        disabled={hasUnsupportedFormula}
+                      />
+                    ) : (
+                      <RuleBuilderSimple
+                        groups={conditionGroups}
+                        onChange={setConditionGroups}
+                        fieldOptions={fieldOptions}
+                        operatorOptions={operatorOptions}
+                        customListOptions={customListOptions}
+                        triggerObjectType={triggerObjectType}
+                        disabled={hasUnsupportedFormula || (!parsedGroups && Boolean(parsedAdvancedGroups))}
+                      />
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card className="max-w-3xl rounded-xl border border-slate-200 shadow-none">
                   <CardContent className="flex flex-wrap items-center gap-3 p-5">
-                    <span className="inline-flex rounded-lg bg-slate-100 px-3 py-2 text-[13px] font-medium text-slate-700">
-                      Score
+                    <span className="inline-flex rounded-sm bg-slate-100 px-3 py-2 text-[13px] font-medium text-slate-700">
+                      then, change the alert score by
                     </span>
                     <Input
                       value={scoreModifier}
                       onChange={(event) => setScoreModifier(event.target.value)}
                       inputMode="numeric"
-                      className="h-10 w-[140px] rounded-xl border-slate-200 shadow-none"
+                      className="h-10 w-[140px] rounded-sm border-slate-200 bg-slate-50 shadow-none"
                     />
                   </CardContent>
                 </Card>
@@ -320,6 +377,10 @@ function RuleEditorContent({
                         {fieldOptions.length}
                       </p>
                       <p>
+                        <span className="font-medium text-slate-900">Accessors:</span>{" "}
+                        {accessorOptions.length}
+                      </p>
+                      <p>
                         <span className="font-medium text-slate-900">Operators:</span>{" "}
                         {operatorOptions.length}
                       </p>
@@ -329,7 +390,10 @@ function RuleEditorContent({
 
                 <Card className="rounded-xl border border-slate-200 shadow-none">
                   <CardContent className="space-y-3 p-5">
-                    <div className="text-[13px] font-medium text-slate-900">Metadata</div>
+                    <div className="flex items-center gap-2 text-[13px] font-medium text-slate-900">
+                      <Info className="size-4 text-slate-500" />
+                      Metadata
+                    </div>
                     <div className="space-y-3">
                       <label className="space-y-1.5 text-[13px] text-slate-700">
                         <span>Stable rule ID</span>
@@ -358,7 +422,7 @@ function RuleEditorContent({
                     <div className="flex items-start gap-2 text-[13px] text-slate-700">
                       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-slate-500" />
                       <p>
-                        The legacy UI also included AI description/generation and a richer formula editor. Those backend-compatible pieces still need to be rebuilt on top of the standalone service.
+                        AI description and AI-generated formulas are still separate follow-up work. This page now mirrors the old dedicated fraud-rule workspace, but the standalone service still needs those assistive endpoints rebuilt before we can wire them back in.
                       </p>
                     </div>
                     <Button
@@ -424,11 +488,21 @@ export function RuleDetailPage({
     queryFn: () => decisionEngineApi.listRules(tenantId, scenarioId, draftIteration!.id),
     enabled: Boolean(tenantId && scenarioId && draftIteration?.id),
   });
+  const ruleGroupsQuery = useQuery({
+    queryKey: ["decision-engine", "rule-groups", tenantId, scenarioId],
+    queryFn: () => decisionEngineApi.listRuleGroups(tenantId, scenarioId),
+    enabled: Boolean(tenantId && scenarioId),
+  });
   const validationQuery = useQuery({
     queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIteration?.id],
     queryFn: () =>
       decisionEngineApi.validateIteration(tenantId, scenarioId, draftIteration!.id),
     enabled: Boolean(tenantId && scenarioId && draftIteration?.id),
+  });
+  const customListsQuery = useQuery({
+    queryKey: ["decision-engine", "custom-lists", tenantId],
+    queryFn: () => decisionEngineApi.listCustomLists(tenantId),
+    enabled: Boolean(tenantId),
   });
 
   const currentRule = useMemo(
@@ -437,14 +511,13 @@ export function RuleDetailPage({
   );
 
   const ruleGroups = useMemo(() => {
-    return [...new Set((rulesQuery.data?.rules ?? []).map((rule) => rule.rule_group).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b));
-  }, [rulesQuery.data?.rules]);
+    return [...(ruleGroupsQuery.data?.rule_groups ?? [])].sort((a, b) => a.localeCompare(b));
+  }, [ruleGroupsQuery.data?.rule_groups]);
 
   const fieldOptions = useMemo(() => {
-    const payloadFields = (editorIdentifiersQuery.data?.payload_accessors ?? [])
-      .map((node) => node.children?.[0]?.constant)
-      .filter((value): value is string => typeof value === "string");
+    const payloadFields = extractPayloadFieldNames(
+      editorIdentifiersQuery.data?.payload_accessors ?? []
+    );
 
     if (payloadFields.length > 0) {
       return [...new Set(payloadFields)].sort((a, b) => a.localeCompare(b));
@@ -464,6 +537,18 @@ export function RuleDetailPage({
     scenarioQuery.data?.scenario,
   ]);
 
+  const accessorOptions = useMemo(
+    () =>
+      extractAccessorOptions(
+        editorIdentifiersQuery.data?.payload_accessors ?? [],
+        editorIdentifiersQuery.data?.database_accessors ?? []
+      ),
+    [
+      editorIdentifiersQuery.data?.database_accessors,
+      editorIdentifiersQuery.data?.payload_accessors,
+    ]
+  );
+
   const operatorOptions = useMemo(() => {
     const availableFunctions = new Set(
       (ruleFunctionsQuery.data?.rule_functions ?? []).map((ruleFunction) => ruleFunction.name)
@@ -475,6 +560,13 @@ export function RuleDetailPage({
 
     return simpleRuleOperatorOptions.filter((option) => availableFunctions.has(option.value));
   }, [ruleFunctionsQuery.data?.rule_functions]);
+  const customListOptions = useMemo(
+    () =>
+      (customListsQuery.data?.custom_lists ?? [])
+        .map((item) => ({ id: item.id, name: item.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [customListsQuery.data?.custom_lists]
+  );
 
   if (!tenantId) {
     return (
@@ -549,7 +641,9 @@ export function RuleDetailPage({
       draftIterationVersion={draftIteration.version}
       currentRule={currentRule}
       fieldOptions={fieldOptions}
+      accessorOptions={accessorOptions}
       operatorOptions={operatorOptions}
+      customListOptions={customListOptions}
       ruleGroups={ruleGroups}
       validation={validationQuery.data?.validation}
       isValidating={validationQuery.isLoading || validationQuery.isFetching}

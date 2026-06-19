@@ -1,3 +1,5 @@
+import type { ASTNodeDTO, JSONValue } from "@/lib/decision-engine-api";
+
 export type SimpleValueType = "string" | "number" | "boolean";
 
 export type SupportedRuleOperator =
@@ -7,63 +9,186 @@ export type SupportedRuleOperator =
   | "gte"
   | "lt"
   | "lte"
+  | "add"
+  | "subtract"
+  | "multiply"
+  | "divide"
   | "contains"
   | "starts_with"
   | "ends_with"
-  | "in";
+  | "in"
+  | "IsNotInList"
+  | "StringNotContain"
+  | "ContainsAnyOf"
+  | "ContainsNoneOf"
+  | "IsEmpty"
+  | "IsNotEmpty";
 
 export type RuleOperatorOption = {
   label: string;
   value: SupportedRuleOperator;
   usesList?: boolean;
+  unary?: boolean;
+  keywords?: string[];
+  aliases?: string[];
 };
 
 export const simpleRuleOperatorOptions: RuleOperatorOption[] = [
-  { label: "Equals", value: "eq" },
-  { label: "Not equal", value: "neq" },
-  { label: "Greater than", value: "gt" },
-  { label: "Greater or equal", value: "gte" },
-  { label: "Less than", value: "lt" },
-  { label: "Less or equal", value: "lte" },
-  { label: "Contains", value: "contains" },
-  { label: "Starts with", value: "starts_with" },
-  { label: "Ends with", value: "ends_with" },
-  { label: "In list", value: "in", usesList: true },
+  { label: "=", value: "eq", keywords: ["="], aliases: ["="] },
+  { label: "!=", value: "neq", keywords: ["!=", "≠"], aliases: ["!=", "≠"] },
+  { label: "<", value: "lt", keywords: ["<"], aliases: ["<"] },
+  { label: "<=", value: "lte", keywords: ["<=", "≤"], aliases: ["<=", "≤"] },
+  { label: ">", value: "gt", keywords: [">"], aliases: [">"] },
+  { label: ">=", value: "gte", keywords: [">=", "≥"], aliases: [">=", "≥"] },
+  { label: "+", value: "add", keywords: ["add", "+"], aliases: ["+"] },
+  { label: "-", value: "subtract", keywords: ["subtract", "-"], aliases: ["-"] },
+  { label: "*", value: "multiply", keywords: ["multiply", "*"], aliases: ["*"] },
+  { label: "/", value: "divide", keywords: ["divide", "/"], aliases: ["/"] },
+  { label: "Is in list", value: "in", usesList: true, keywords: ["IsInList", "in list"], aliases: ["IsInList"] },
+  { label: "Is not in list", value: "IsNotInList", usesList: true },
+  { label: "Contains", value: "contains", keywords: ["StringContains"], aliases: ["StringContains"] },
+  { label: "Does not contain", value: "StringNotContain" },
+  { label: "Starts with", value: "starts_with", keywords: ["StringStartsWith"], aliases: ["StringStartsWith"] },
+  { label: "Ends with", value: "ends_with", keywords: ["StringEndsWith"], aliases: ["StringEndsWith"] },
+  { label: "Contains any of", value: "ContainsAnyOf", usesList: true },
+  { label: "Contains none of", value: "ContainsNoneOf", usesList: true },
+  { label: "Is empty", value: "IsEmpty", unary: true },
+  { label: "Is not empty", value: "IsNotEmpty", unary: true },
 ];
+
+export function getRuleOperatorOption(operator: string | null | undefined) {
+  if (!operator) {
+    return null;
+  }
+
+  return (
+    simpleRuleOperatorOptions.find(
+      (option) =>
+        option.value === operator ||
+        option.aliases?.some((alias) => alias.toLowerCase() === operator.toLowerCase())
+    ) ?? null
+  );
+}
+
+export function isUnaryRuleOperator(
+  operator: SupportedRuleOperator | string | null | undefined
+) {
+  return Boolean(getRuleOperatorOption(operator)?.unary);
+}
+
+function parseOperatorNodeName(
+  operatorName: string | undefined
+): SupportedRuleOperator | null {
+  return getRuleOperatorOption(operatorName)?.value ?? null;
+}
 
 export type SimpleRuleCondition = {
   id: string;
   left: string;
-  operator: SupportedRuleOperator;
+  operator: SupportedRuleOperator | "";
   right: string;
+  rightMode?: "constant" | "custom_list";
   valueType: SimpleValueType;
 };
 
 export type SimpleRuleConditionGroup = {
   id: string;
   conditions: SimpleRuleCondition[];
+  openBefore?: number;
+  closeAfter?: number;
 };
 
-type ASTNodeLike = {
+export type RuleAccessorKind = "payload" | "database";
+
+export type RuleAccessorOption = {
+  id: string;
+  kind: RuleAccessorKind;
+  label: string;
+  meta: string;
+  astNode: RuleAstNode;
+};
+
+export type AdvancedRuleOperand =
+  | {
+      mode: "constant";
+      value: string;
+      valueType: SimpleValueType;
+    }
+  | {
+      mode: "accessor";
+      accessorId: string;
+    };
+
+export type AdvancedRuleCondition = {
+  id: string;
+  leftAccessorId: string;
+  operator: SupportedRuleOperator | "";
+  rightOperand: AdvancedRuleOperand;
+};
+
+export type AdvancedRuleConditionGroup = {
+  id: string;
+  conditions: AdvancedRuleCondition[];
+};
+
+export type ExpressionLeafMode = "accessor" | "constant" | "custom_list";
+
+export type ExpressionRuleNode =
+  | {
+      id: string;
+      kind: "operator";
+      operator: SupportedRuleOperator | "";
+      children: ExpressionRuleNode[];
+    }
+  | {
+      id: string;
+      kind: "leaf";
+      mode: ExpressionLeafMode;
+      accessorId: string;
+      value: string;
+      valueType: SimpleValueType;
+    };
+
+export type RuleAstNode = {
   function?: string;
   name?: string;
-  constant?: unknown;
-  children?: ASTNodeLike[];
-  named_children?: Record<string, ASTNodeLike>;
+  constant?: JSONValue;
+  children?: RuleAstNode[];
+  named_children?: Record<string, RuleAstNode>;
 };
 
+type RuleConstantScalar = string | number | boolean;
+type RuleConstantValue = RuleConstantScalar | RuleConstantScalar[];
+
+type ASTNodeLike = RuleAstNode;
+
 function getNodeFunction(node: ASTNodeLike | null | undefined) {
-  return node?.function ?? node?.name;
+	return node?.function ?? node?.name;
+}
+
+function isEmptyRuleFormulaNode(node: ASTNodeLike | null | undefined) {
+	return (
+		Boolean(node) &&
+		getNodeFunction(node) === undefined &&
+		node?.constant === true &&
+		(node.children?.length ?? 0) === 0 &&
+		Object.keys(node.named_children ?? {}).length === 0
+	);
+}
+
+function randomId(prefix: string) {
+  return globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now()}-${Math.random()}`;
 }
 
 export function createSimpleRuleCondition(
   overrides: Partial<SimpleRuleCondition> = {}
 ): SimpleRuleCondition {
   return {
-    id: globalThis.crypto?.randomUUID?.() ?? `condition-${Date.now()}-${Math.random()}`,
+    id: randomId("condition"),
     left: "",
-    operator: "eq",
+    operator: "",
     right: "",
+    rightMode: "constant",
     valueType: "string",
     ...overrides,
   };
@@ -73,8 +198,64 @@ export function createSimpleRuleGroup(
   overrides: Partial<SimpleRuleConditionGroup> = {}
 ): SimpleRuleConditionGroup {
   return {
-    id: globalThis.crypto?.randomUUID?.() ?? `group-${Date.now()}-${Math.random()}`,
+    id: randomId("group"),
     conditions: [createSimpleRuleCondition()],
+    openBefore: 0,
+    closeAfter: 0,
+    ...overrides,
+  };
+}
+
+export function createAdvancedRuleCondition(
+  accessorId = "",
+  overrides: Partial<AdvancedRuleCondition> = {}
+): AdvancedRuleCondition {
+  return {
+    id: randomId("advanced-condition"),
+    leftAccessorId: accessorId,
+    operator: "",
+    rightOperand: {
+      mode: "constant",
+      value: "",
+      valueType: "string",
+    },
+    ...overrides,
+  };
+}
+
+export function createAdvancedRuleGroup(
+  accessorId = "",
+  overrides: Partial<AdvancedRuleConditionGroup> = {}
+): AdvancedRuleConditionGroup {
+  return {
+    id: randomId("advanced-group"),
+    conditions: [createAdvancedRuleCondition(accessorId)],
+    ...overrides,
+  };
+}
+
+export function createExpressionLeaf(
+  overrides: Partial<Extract<ExpressionRuleNode, { kind: "leaf" }>> = {}
+): Extract<ExpressionRuleNode, { kind: "leaf" }> {
+  return {
+    id: randomId("expression-leaf"),
+    kind: "leaf",
+    mode: "accessor",
+    accessorId: "",
+    value: "",
+    valueType: "string",
+    ...overrides,
+  };
+}
+
+export function createExpressionOperator(
+  overrides: Partial<Extract<ExpressionRuleNode, { kind: "operator" }>> = {}
+): Extract<ExpressionRuleNode, { kind: "operator" }> {
+  return {
+    id: randomId("expression-operator"),
+    kind: "operator",
+    operator: "",
+    children: [createExpressionLeaf(), createExpressionLeaf()],
     ...overrides,
   };
 }
@@ -98,56 +279,347 @@ export function buildFieldRef(fieldName: string) {
   };
 }
 
+export function buildCustomListAccess(listName: string): RuleAstNode {
+  return {
+    function: "CustomListAccess",
+    named_children: {
+      customListId: { constant: listName },
+    },
+  };
+}
+
+function buildAccessorLookupId(node: ASTNodeLike, kind: RuleAccessorKind) {
+  const nodeName = getNodeFunction(node);
+
+  if (kind === "payload") {
+    const fieldName =
+      typeof node.children?.[0]?.constant === "string"
+        ? node.children[0].constant
+        : typeof node.named_children?.field?.constant === "string"
+          ? node.named_children.field.constant
+          : "";
+    return `${kind}:${nodeName ?? "payload"}:${fieldName}`;
+  }
+
+  const fieldName =
+    typeof node.named_children?.fieldName?.constant === "string"
+      ? node.named_children.fieldName.constant
+      : "";
+  const path =
+    Array.isArray(node.named_children?.path?.constant)
+      ? node.named_children?.path?.constant.join(".")
+      : "";
+  const tableName =
+    typeof node.named_children?.tableName?.constant === "string"
+      ? node.named_children.tableName.constant
+      : "";
+
+  return `${kind}:${nodeName ?? "database"}:${tableName}:${path}:${fieldName}`;
+}
+
+function normalizeAstNode(node: ASTNodeLike): RuleAstNode {
+  return {
+    ...(getNodeFunction(node) ? { function: getNodeFunction(node) } : {}),
+    ...(node.constant !== undefined ? { constant: node.constant } : {}),
+    ...(node.children?.length
+      ? { children: node.children.map((child) => normalizeAstNode(child)) }
+      : {}),
+    ...(node.named_children
+      ? {
+          named_children: Object.fromEntries(
+            Object.entries(node.named_children).map(([key, child]) => [key, normalizeAstNode(child)])
+          ),
+        }
+      : {}),
+  };
+}
+
+function formatPayloadAccessorLabel(node: ASTNodeLike) {
+  const fieldName =
+    typeof node.children?.[0]?.constant === "string"
+      ? node.children[0].constant
+      : typeof node.named_children?.field?.constant === "string"
+        ? node.named_children.field.constant
+        : "Unknown payload field";
+
+  return {
+    label: fieldName,
+    meta: "Payload field",
+  };
+}
+
+function formatDatabaseAccessorLabel(node: ASTNodeLike) {
+  const fieldName =
+    typeof node.named_children?.fieldName?.constant === "string"
+      ? node.named_children.fieldName.constant
+      : "field";
+  const tableName =
+    typeof node.named_children?.tableName?.constant === "string"
+      ? node.named_children.tableName.constant
+      : "record";
+  const pathItems = Array.isArray(node.named_children?.path?.constant)
+    ? node.named_children.path.constant.filter(
+        (item): item is string => typeof item === "string"
+      )
+    : [];
+
+  return {
+    label: pathItems.length > 0 ? `${pathItems.join(" -> ")} -> ${fieldName}` : fieldName,
+    meta: pathItems.length > 0 ? `Related field from ${tableName}` : `Field on ${tableName}`,
+  };
+}
+
+export function extractAccessorOptions(
+  payloadAccessors: ASTNodeDTO[],
+  databaseAccessors: ASTNodeDTO[]
+): RuleAccessorOption[] {
+  const payloadOptions = payloadAccessors.map((node) => {
+    const normalized = normalizeAstNode(node);
+    const formatted = formatPayloadAccessorLabel(normalized);
+
+    return {
+      id: buildAccessorLookupId(normalized, "payload"),
+      kind: "payload" as const,
+      label: formatted.label,
+      meta: formatted.meta,
+      astNode: normalized,
+    };
+  });
+
+  const databaseOptions = databaseAccessors.map((node) => {
+    const normalized = normalizeAstNode(node);
+    const formatted = formatDatabaseAccessorLabel(normalized);
+
+    return {
+      id: buildAccessorLookupId(normalized, "database"),
+      kind: "database" as const,
+      label: formatted.label,
+      meta: formatted.meta,
+      astNode: normalized,
+    };
+  });
+
+  return [...payloadOptions, ...databaseOptions].sort((left, right) =>
+    left.label.localeCompare(right.label)
+  );
+}
+
+export function extractPayloadFieldNames(nodes: ASTNodeDTO[]) {
+  return nodes
+    .map((node) => {
+      const normalized = normalizeAstNode(node);
+      const formatted = formatPayloadAccessorLabel(normalized);
+      return formatted.label;
+    })
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => left.localeCompare(right));
+}
+
 function normalizeConstantValue(
   rawValue: string,
   valueType: SimpleValueType,
   usesList: boolean
-) {
+): RuleConstantValue {
+  const normalizeScalarValue = (value: string): RuleConstantScalar => {
+    if (valueType === "number") {
+      return Number(value);
+    }
+
+    if (valueType === "boolean") {
+      return value === "true";
+    }
+
+    return value;
+  };
+
   if (usesList) {
     return rawValue
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean)
-      .map((item) => normalizeConstantValue(item, valueType, false));
+      .map((item) => normalizeScalarValue(item));
   }
 
-  if (valueType === "number") {
-    return Number(rawValue);
-  }
-
-  if (valueType === "boolean") {
-    return rawValue === "true";
-  }
-
-  return rawValue;
+  return normalizeScalarValue(rawValue);
 }
 
-export function compileConditionToAst(condition: SimpleRuleCondition) {
-  const operator = simpleRuleOperatorOptions.find(
-    (option) => option.value === condition.operator
-  );
+function buildListNode(rawValue: string, valueType: SimpleValueType): RuleAstNode {
+  const items = rawValue
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => ({
+      constant: normalizeConstantValue(item, valueType, false),
+    }));
+
+  return {
+    function: "List",
+    children: items,
+  };
+}
+
+function parseListNode(constantNode: ASTNodeLike | null | undefined) {
+  if (!constantNode) {
+    return null;
+  }
+
+  const nodeFunction = getNodeFunction(constantNode);
+  if (nodeFunction === "List" && Array.isArray(constantNode.children)) {
+    const values = constantNode.children.map((child) => child.constant);
+    const first = values[0];
+    const valueType =
+      typeof first === "number"
+        ? "number"
+        : typeof first === "boolean"
+          ? "boolean"
+          : "string";
+
+    return {
+      value: values.map((item) => String(item)).join(", "),
+      valueType,
+    } satisfies {
+      value: string;
+      valueType: SimpleValueType;
+    };
+  }
+
+  if (Array.isArray(constantNode.constant)) {
+    const first = constantNode.constant[0];
+    const valueType =
+      typeof first === "number"
+        ? "number"
+        : typeof first === "boolean"
+          ? "boolean"
+          : "string";
+
+    return {
+      value: constantNode.constant.map((item) => String(item)).join(", "),
+      valueType,
+    } satisfies {
+      value: string;
+      valueType: SimpleValueType;
+    };
+  }
+
+  return null;
+}
+
+export function compileConditionToAst(condition: SimpleRuleCondition): RuleAstNode {
+  if (!condition.operator) {
+    return { constant: true };
+  }
+
+  const operator = getRuleOperatorOption(condition.operator);
+  if (!operator) {
+    return { constant: true };
+  }
+
+  if (operator.unary) {
+    return {
+      function: condition.operator,
+      children: [buildFieldRef(condition.left)],
+    };
+  }
+
+  const rightOperand = operator.value === "ContainsAnyOf" || operator.value === "ContainsNoneOf"
+    ? buildListNode(condition.right, condition.valueType)
+    : condition.rightMode === "custom_list" &&
+        (operator.value === "in" || operator.value === "IsNotInList")
+      ? buildCustomListAccess(condition.right)
+    : {
+        constant: normalizeConstantValue(
+          condition.right,
+          condition.valueType,
+          Boolean(operator.usesList)
+        ),
+      };
 
   return {
     function: condition.operator,
     children: [
       buildFieldRef(condition.left),
-      {
-        constant: normalizeConstantValue(
-          condition.right,
-          condition.valueType,
-          Boolean(operator?.usesList)
-        ),
-      },
+      rightOperand,
     ],
   };
 }
 
-export function compileConditionGroupsToAst(groups: SimpleRuleConditionGroup[]) {
+function buildOperandAst(
+  operand: AdvancedRuleOperand,
+  accessorLookup: Map<string, RuleAccessorOption>,
+  operator: RuleOperatorOption | null
+): RuleAstNode {
+  if (operand.mode === "accessor") {
+    return normalizeAstNode(accessorLookup.get(operand.accessorId)?.astNode ?? {});
+  }
+
+  if (operator?.value === "ContainsAnyOf" || operator?.value === "ContainsNoneOf") {
+    return buildListNode(operand.value, operand.valueType);
+  }
+
+  return {
+    constant: normalizeConstantValue(
+      operand.value,
+      operand.valueType,
+      Boolean(operator?.usesList)
+    ) as RuleAstNode["constant"],
+  };
+}
+
+export function compileAdvancedConditionGroupsToAst(
+  groups: AdvancedRuleConditionGroup[],
+  accessorOptions: RuleAccessorOption[]
+): RuleAstNode {
+  const accessorLookup = new Map(
+    accessorOptions.map((option) => [option.id, option])
+  );
+
   const compiledGroups = groups
     .map((group) => {
       const compiledConditions = group.conditions
-        .filter((condition) => condition.left.trim() && condition.right.trim())
-        .map((condition) => compileConditionToAst(condition));
+        .filter((condition) => {
+          if (!condition.leftAccessorId.trim()) {
+            return false;
+          }
+          if (!condition.operator) {
+            return false;
+          }
+          if (isUnaryRuleOperator(condition.operator)) {
+            return true;
+          }
+
+          if (condition.rightOperand.mode === "accessor") {
+            return Boolean(condition.rightOperand.accessorId.trim());
+          }
+
+          return condition.rightOperand.value.trim().length > 0;
+        })
+        .map((condition): RuleAstNode | null => {
+          const leftOption = accessorLookup.get(condition.leftAccessorId);
+          const operator = getRuleOperatorOption(condition.operator);
+          if (!leftOption) {
+            return null;
+          }
+
+          if (operator?.unary) {
+            return {
+              function: condition.operator,
+              children: [normalizeAstNode(leftOption.astNode)],
+            };
+          }
+
+          return {
+            function: condition.operator,
+            children: [
+              normalizeAstNode(leftOption.astNode),
+              buildOperandAst(
+                condition.rightOperand,
+                accessorLookup,
+                condition.rightOperand.mode === "constant" ? operator ?? null : null
+              ),
+            ],
+          };
+        })
+        .filter((item): item is RuleAstNode => item !== null);
 
       if (compiledConditions.length === 0) {
         return null;
@@ -162,7 +634,7 @@ export function compileConditionGroupsToAst(groups: SimpleRuleConditionGroup[]) 
         children: compiledConditions,
       };
     })
-    .filter((group): group is NonNullable<typeof group> => Boolean(group));
+    .filter((group): group is RuleAstNode => group !== null);
 
   if (compiledGroups.length === 0) {
     return { constant: true };
@@ -176,6 +648,108 @@ export function compileConditionGroupsToAst(groups: SimpleRuleConditionGroup[]) 
     function: "or",
     children: compiledGroups,
   };
+}
+
+export function compileConditionGroupsToAst(groups: SimpleRuleConditionGroup[]): RuleAstNode {
+  const compiledGroups = groups
+    .map((group) => {
+      const compiledConditions = group.conditions
+        .filter(
+          (condition) =>
+            condition.left.trim() &&
+            condition.operator &&
+            (isUnaryRuleOperator(condition.operator) || condition.right.trim())
+        )
+        .map((condition) => compileConditionToAst(condition));
+
+      if (compiledConditions.length === 0) {
+        return null;
+      }
+
+      return {
+        node:
+          compiledConditions.length === 1
+            ? compiledConditions[0]
+            : {
+                function: "and",
+                children: compiledConditions,
+              },
+        openBefore: group.openBefore ?? 0,
+        closeAfter: group.closeAfter ?? 0,
+      };
+    })
+    .filter(
+      (
+        group
+      ): group is {
+        node: RuleAstNode;
+        openBefore: number;
+        closeAfter: number;
+      } => Boolean(group)
+    );
+
+  if (compiledGroups.length === 0) {
+    return { constant: true };
+  }
+
+  const nodeStack: RuleAstNode[] = [];
+  const operatorStack: Array<"or" | "("> = [];
+
+  function reduceOr() {
+    if (nodeStack.length < 2) {
+      return;
+    }
+
+    const right = nodeStack.pop();
+    const left = nodeStack.pop();
+    if (!left || !right) {
+      return;
+    }
+
+    nodeStack.push({
+      function: "or",
+      children: [left, right],
+    });
+  }
+
+  function pushOrOperator() {
+    while (operatorStack[operatorStack.length - 1] === "or") {
+      operatorStack.pop();
+      reduceOr();
+    }
+    operatorStack.push("or");
+  }
+
+  compiledGroups.forEach((group, index) => {
+    if (index > 0) {
+      pushOrOperator();
+    }
+
+    for (let openIndex = 0; openIndex < group.openBefore; openIndex += 1) {
+      operatorStack.push("(");
+    }
+
+    nodeStack.push(group.node);
+
+    for (let closeIndex = 0; closeIndex < group.closeAfter; closeIndex += 1) {
+      while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] === "or") {
+        operatorStack.pop();
+        reduceOr();
+      }
+      if (operatorStack[operatorStack.length - 1] === "(") {
+        operatorStack.pop();
+      }
+    }
+  });
+
+  while (operatorStack.length > 0) {
+    const operator = operatorStack.pop();
+    if (operator === "or") {
+      reduceOr();
+    }
+  }
+
+  return nodeStack[0] ?? { constant: true };
 }
 
 function parsePrimitiveValue(constant: unknown): {
@@ -197,17 +771,68 @@ function parsePrimitiveValue(constant: unknown): {
   return null;
 }
 
+function parseRightOperand(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+): AdvancedRuleOperand | null {
+  const nodeName = getNodeFunction(node);
+
+  if (nodeName) {
+    const payloadId = buildAccessorLookupId(node, "payload");
+    const databaseId = buildAccessorLookupId(node, "database");
+    const accessorId = accessorLookup.has(payloadId)
+      ? payloadId
+      : accessorLookup.has(databaseId)
+        ? databaseId
+        : null;
+
+    if (accessorId) {
+      return {
+        mode: "accessor",
+        accessorId,
+      };
+    }
+  }
+
+  const parsedConstant = parsePrimitiveValue(node.constant);
+  if (!parsedConstant) {
+    return null;
+  }
+
+  return {
+    mode: "constant",
+    value: parsedConstant.value,
+    valueType: parsedConstant.valueType,
+  };
+}
+
 function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
-  const nodeFunction = getNodeFunction(node);
-  const operator = simpleRuleOperatorOptions.find(
-    (option) => option.value === nodeFunction
-  );
+  const operator = getRuleOperatorOption(getNodeFunction(node));
 
   if (!operator) {
     return null;
   }
 
   const children = node.children ?? [];
+  if (operator.unary) {
+    if (children.length !== 1) {
+      return null;
+    }
+
+    const fieldRef = children[0];
+    const fieldName = fieldRef?.named_children?.field?.constant;
+    if (getNodeFunction(fieldRef) !== "field_ref" || typeof fieldName !== "string") {
+      return null;
+    }
+
+    return createSimpleRuleCondition({
+      left: fieldName,
+      operator: operator.value,
+      right: "",
+      valueType: "string",
+    });
+  }
+
   if (children.length !== 2) {
     return null;
   }
@@ -220,23 +845,32 @@ function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
 
   const constant = children[1]?.constant;
   if (operator.usesList) {
-    if (!Array.isArray(constant)) {
-      return null;
+    if (getNodeFunction(children[1]) === "CustomListAccess") {
+      const listName = children[1]?.named_children?.customListId?.constant;
+      if (typeof listName !== "string") {
+        return null;
+      }
+
+      return createSimpleRuleCondition({
+        left: fieldName,
+        operator: operator.value,
+        right: listName,
+        rightMode: "custom_list",
+        valueType: "string",
+      });
     }
 
-    const first = constant[0];
-    const valueType =
-      typeof first === "number"
-        ? "number"
-        : typeof first === "boolean"
-          ? "boolean"
-          : "string";
+    const parsedList = parseListNode(children[1]);
+    if (!parsedList) {
+      return null;
+    }
 
     return createSimpleRuleCondition({
       left: fieldName,
       operator: operator.value,
-      right: constant.map((item) => String(item)).join(", "),
-      valueType,
+      right: parsedList.value,
+      rightMode: "constant",
+      valueType: parsedList.valueType,
     });
   }
 
@@ -280,20 +914,66 @@ function parseGroupNode(node: ASTNodeLike): SimpleRuleConditionGroup | null {
   });
 }
 
-export function tryParseAstToConditionGroups(ast: unknown) {
-  if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
+function flattenConditionGroupsFromOrNode(
+  node: ASTNodeLike,
+  wrapped = false
+): SimpleRuleConditionGroup[] | null {
+  const nodeFunction = getNodeFunction(node);
+
+  if (nodeFunction !== "or") {
+    const parsedGroup = parseGroupNode(node);
+    if (!parsedGroup) {
+      return null;
+    }
+
+    if (wrapped) {
+      parsedGroup.openBefore = (parsedGroup.openBefore ?? 0) + 1;
+      parsedGroup.closeAfter = (parsedGroup.closeAfter ?? 0) + 1;
+    }
+
+    return [parsedGroup];
+  }
+
+  const flattenedChildren = (node.children ?? []).map((child) => {
+    const normalizedChild = normalizeAstNode(child);
+    return flattenConditionGroupsFromOrNode(
+      normalizedChild,
+      getNodeFunction(normalizedChild) === "or"
+    );
+  });
+
+  if (flattenedChildren.some((child) => child === null)) {
     return null;
   }
 
-  const node = ast as ASTNodeLike;
-  const nodeFunction = getNodeFunction(node);
+  const groups = flattenedChildren.flatMap((child) => child ?? []);
+  if (groups.length === 0) {
+    return null;
+  }
+
+  if (wrapped) {
+    groups[0]!.openBefore = (groups[0]!.openBefore ?? 0) + 1;
+    groups[groups.length - 1]!.closeAfter =
+      (groups[groups.length - 1]!.closeAfter ?? 0) + 1;
+  }
+
+  return groups;
+}
+
+export function tryParseAstToConditionGroups(ast: unknown) {
+	if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
+		return null;
+	}
+
+	const node = ast as ASTNodeLike;
+	if (isEmptyRuleFormulaNode(node)) {
+		return [createSimpleRuleGroup()];
+	}
+	const nodeFunction = getNodeFunction(node);
 
   if (nodeFunction === "or") {
-    const groups = (node.children ?? [])
-      .map((child) => parseGroupNode(child))
-      .filter((group): group is SimpleRuleConditionGroup => Boolean(group));
-
-    if (groups.length !== (node.children ?? []).length || groups.length === 0) {
+    const groups = flattenConditionGroupsFromOrNode(node, false);
+    if (!groups || groups.length === 0) {
       return null;
     }
 
@@ -306,4 +986,308 @@ export function tryParseAstToConditionGroups(ast: unknown) {
   }
 
   return [singleGroup];
+}
+
+function parseAdvancedConditionNode(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+): AdvancedRuleCondition | null {
+  const operator = getRuleOperatorOption(getNodeFunction(node));
+  if (!operator) {
+    return null;
+  }
+
+  const children = node.children ?? [];
+  if (operator.unary) {
+    if (children.length !== 1) {
+      return null;
+    }
+
+    const leftNode = normalizeAstNode(children[0]!);
+    const payloadId = buildAccessorLookupId(leftNode, "payload");
+    const databaseId = buildAccessorLookupId(leftNode, "database");
+    const leftAccessorId = accessorLookup.has(payloadId)
+      ? payloadId
+      : accessorLookup.has(databaseId)
+        ? databaseId
+        : null;
+
+    if (!leftAccessorId) {
+      return null;
+    }
+
+    return createAdvancedRuleCondition(leftAccessorId, {
+      operator: operator.value,
+      rightOperand: {
+        mode: "constant",
+        value: "",
+        valueType: "string",
+      },
+    });
+  }
+
+  if (children.length !== 2) {
+    return null;
+  }
+
+  const leftNode = normalizeAstNode(children[0]!);
+  const payloadId = buildAccessorLookupId(leftNode, "payload");
+  const databaseId = buildAccessorLookupId(leftNode, "database");
+  const leftAccessorId = accessorLookup.has(payloadId)
+    ? payloadId
+    : accessorLookup.has(databaseId)
+      ? databaseId
+      : null;
+
+  if (!leftAccessorId) {
+    return null;
+  }
+
+  if (operator.usesList) {
+    const parsedList = parseListNode(children[1]);
+    if (parsedList) {
+      return createAdvancedRuleCondition(leftAccessorId, {
+        operator: operator.value,
+        rightOperand: {
+          mode: "constant",
+          value: parsedList.value,
+          valueType: parsedList.valueType,
+        },
+      });
+    }
+  }
+
+  const rightOperand = parseRightOperand(normalizeAstNode(children[1]!), accessorLookup);
+  if (!rightOperand) {
+    return null;
+  }
+
+  return createAdvancedRuleCondition(leftAccessorId, {
+    operator: operator.value,
+    rightOperand,
+  });
+}
+
+function parseAdvancedGroupNode(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+): AdvancedRuleConditionGroup | null {
+  const nodeFunction = getNodeFunction(node);
+
+  if (nodeFunction === "and") {
+    const parsedConditions = (node.children ?? [])
+      .map((child) => parseAdvancedConditionNode(normalizeAstNode(child), accessorLookup))
+      .filter((condition): condition is AdvancedRuleCondition => Boolean(condition));
+
+    if (parsedConditions.length !== (node.children ?? []).length || parsedConditions.length === 0) {
+      return null;
+    }
+
+    return createAdvancedRuleGroup(parsedConditions[0]?.leftAccessorId ?? "", {
+      conditions: parsedConditions,
+    });
+  }
+
+  const singleCondition = parseAdvancedConditionNode(node, accessorLookup);
+  if (!singleCondition) {
+    return null;
+  }
+
+  return createAdvancedRuleGroup(singleCondition.leftAccessorId, {
+    conditions: [singleCondition],
+  });
+}
+
+export function tryParseAstToAdvancedConditionGroups(
+	ast: unknown,
+	accessorOptions: RuleAccessorOption[]
+) {
+	if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
+    return null;
+  }
+
+	const accessorLookup = new Map(accessorOptions.map((option) => [option.id, option]));
+	const node = normalizeAstNode(ast as ASTNodeLike);
+	if (isEmptyRuleFormulaNode(node)) {
+		return [createAdvancedRuleGroup(accessorOptions[0]?.id ?? "")];
+	}
+	const nodeFunction = getNodeFunction(node);
+
+  if (nodeFunction === "or") {
+    const groups = (node.children ?? [])
+      .map((child) => parseAdvancedGroupNode(normalizeAstNode(child), accessorLookup))
+      .filter((group): group is AdvancedRuleConditionGroup => Boolean(group));
+
+    if (groups.length !== (node.children ?? []).length || groups.length === 0) {
+      return null;
+    }
+
+    return groups;
+  }
+
+  const singleGroup = parseAdvancedGroupNode(node, accessorLookup);
+  if (!singleGroup) {
+    return null;
+  }
+
+  return [singleGroup];
+}
+
+function getExpressionOperatorArity(operator: SupportedRuleOperator | "") {
+  return isUnaryRuleOperator(operator) ? 1 : 2;
+}
+
+function normalizeAccessorLeaf(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+): Extract<ExpressionRuleNode, { kind: "leaf" }> | null {
+  const normalized = normalizeAstNode(node);
+  const payloadId = buildAccessorLookupId(normalized, "payload");
+  const databaseId = buildAccessorLookupId(normalized, "database");
+  const accessorId = accessorLookup.has(payloadId)
+    ? payloadId
+    : accessorLookup.has(databaseId)
+      ? databaseId
+      : null;
+
+  if (!accessorId) {
+    return null;
+  }
+
+  return createExpressionLeaf({
+    mode: "accessor",
+    accessorId,
+  });
+}
+
+function parseExpressionLeafNode(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+): Extract<ExpressionRuleNode, { kind: "leaf" }> | null {
+  const nodeName = getNodeFunction(node);
+
+  if (nodeName === "CustomListAccess") {
+    const listId = node.named_children?.customListId?.constant;
+    if (typeof listId !== "string") {
+      return null;
+    }
+
+    return createExpressionLeaf({
+      mode: "custom_list",
+      value: listId,
+      valueType: "string",
+    });
+  }
+
+  const accessorLeaf = nodeName ? normalizeAccessorLeaf(node, accessorLookup) : null;
+  if (accessorLeaf) {
+    return accessorLeaf;
+  }
+
+  const parsedValue = parsePrimitiveValue(node.constant);
+  if (!parsedValue) {
+    return null;
+  }
+
+  return createExpressionLeaf({
+    mode: "constant",
+    value: parsedValue.value,
+    valueType: parsedValue.valueType,
+  });
+}
+
+export function tryParseAstToExpressionRuleNode(
+  ast: unknown,
+  accessorOptions: RuleAccessorOption[]
+): ExpressionRuleNode | null {
+  if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
+    return null;
+  }
+
+  const accessorLookup = new Map(accessorOptions.map((option) => [option.id, option]));
+  const node = normalizeAstNode(ast as ASTNodeLike);
+  if (isEmptyRuleFormulaNode(node)) {
+    return createExpressionOperator();
+  }
+
+  const operator = parseOperatorNodeName(getNodeFunction(node));
+  if (!operator) {
+    return parseExpressionLeafNode(node, accessorLookup);
+  }
+
+  const children = (node.children ?? [])
+    .map((child) => tryParseAstToExpressionRuleNode(normalizeAstNode(child), accessorOptions))
+    .filter((child): child is ExpressionRuleNode => Boolean(child));
+
+  if (children.length !== (node.children ?? []).length) {
+    return null;
+  }
+
+  const expectedArity = getExpressionOperatorArity(operator);
+  if (children.length !== expectedArity) {
+    return null;
+  }
+
+  return createExpressionOperator({
+    operator,
+    children,
+  });
+}
+
+export function isExpressionRuleNodeComplete(node: ExpressionRuleNode): boolean {
+  if (node.kind === "leaf") {
+    if (node.mode === "accessor") {
+      return Boolean(node.accessorId.trim());
+    }
+
+    return Boolean(node.value.trim());
+  }
+
+  if (!node.operator) {
+    return false;
+  }
+
+  const expectedArity = getExpressionOperatorArity(node.operator);
+  if (node.children.length !== expectedArity) {
+    return false;
+  }
+
+  return node.children.every((child) => isExpressionRuleNodeComplete(child));
+}
+
+function buildExpressionLeafAst(
+  node: Extract<ExpressionRuleNode, { kind: "leaf" }>,
+  accessorLookup: Map<string, RuleAccessorOption>
+): RuleAstNode {
+  if (node.mode === "accessor") {
+    return normalizeAstNode(accessorLookup.get(node.accessorId)?.astNode ?? {});
+  }
+
+  if (node.mode === "custom_list") {
+    return buildCustomListAccess(node.value);
+  }
+
+  return {
+    constant: normalizeConstantValue(node.value, node.valueType, false) as RuleAstNode["constant"],
+  };
+}
+
+export function compileExpressionRuleNodeToAst(
+  node: ExpressionRuleNode,
+  accessorOptions: RuleAccessorOption[]
+): RuleAstNode {
+  const accessorLookup = new Map(accessorOptions.map((option) => [option.id, option]));
+
+  function compile(current: ExpressionRuleNode): RuleAstNode {
+    if (current.kind === "leaf") {
+      return buildExpressionLeafAst(current, accessorLookup);
+    }
+
+    return {
+      function: current.operator || "eq",
+      children: current.children.map((child) => compile(child)),
+    };
+  }
+
+  return compile(node);
 }

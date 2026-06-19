@@ -22,10 +22,23 @@ export function RuleGroupPicker({
   const [draftValue, setDraftValue] = useState("");
 
   const finalRuleGroups = useMemo(() => {
-    return [...new Set([selectedRuleGroup, ...ruleGroups].filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b)
-    ) as string[];
+    const groups = [selectedRuleGroup, ...ruleGroups].filter(
+      (group): group is string => Boolean(group)
+    );
+
+    return [...new Set(groups)].sort((a, b) => a.localeCompare(b));
   }, [ruleGroups, selectedRuleGroup]);
+
+  const filteredRuleGroups = useMemo(() => {
+    const normalizedDraft = draftValue.trim().toLowerCase();
+    if (!normalizedDraft) {
+      return finalRuleGroups;
+    }
+
+    return finalRuleGroups.filter((group) =>
+      group.toLowerCase().includes(normalizedDraft)
+    );
+  }, [draftValue, finalRuleGroups]);
 
   return (
     <div className="relative">
@@ -65,7 +78,7 @@ export function RuleGroupPicker({
             <Input
               value={draftValue}
               onChange={(event) => setDraftValue(event.target.value)}
-              placeholder="Create or search a rule group"
+              placeholder="Add or search a rule group"
               className="h-10 rounded-xl border-slate-200 shadow-none"
             />
 
@@ -85,8 +98,8 @@ export function RuleGroupPicker({
             ) : null}
 
             <div className="space-y-1">
-              {finalRuleGroups.length > 0 ? (
-                finalRuleGroups.map((group) => {
+              {filteredRuleGroups.length > 0 ? (
+                filteredRuleGroups.map((group) => {
                   const isSelected = selectedRuleGroup === group;
 
                   return (
@@ -114,7 +127,9 @@ export function RuleGroupPicker({
                 })
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-[13px] text-slate-500">
-                  No rule groups yet.
+                  {finalRuleGroups.length > 0
+                    ? "No matching rule groups."
+                    : "No rule groups yet."}
                 </div>
               )}
             </div>

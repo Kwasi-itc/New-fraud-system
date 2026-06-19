@@ -34,6 +34,19 @@ func (h RuleHandler) ListRules(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"rules": out})
 }
 
+func (h RuleHandler) ListRuleGroups(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+
+	items, err := h.ruleService.ListRuleGroupsByScenario(c.Request.Context(), tenantID, scenarioID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "list_rule_groups_failed", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"rule_groups": items})
+}
+
 func (h RuleHandler) CreateRule(c *gin.Context) {
 	var req dto.CreateRuleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -58,8 +58,40 @@ type stubCustomListRepo struct {
 	values map[string]map[string]bool
 }
 
+func (s stubCustomListRepo) CreateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	return item, nil
+}
+
+func (s stubCustomListRepo) ListLists(ctx context.Context, tenantID string) ([]platform.CustomList, error) {
+	return nil, nil
+}
+
+func (s stubCustomListRepo) GetListByID(ctx context.Context, tenantID, listID string) (platform.CustomList, error) {
+	return platform.CustomList{}, nil
+}
+
+func (s stubCustomListRepo) UpdateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	return item, nil
+}
+
+func (s stubCustomListRepo) DeleteList(ctx context.Context, tenantID, listID string) error {
+	return nil
+}
+
 func (s stubCustomListRepo) Create(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
 	return item, nil
+}
+
+func (s stubCustomListRepo) ListEntriesByListID(ctx context.Context, tenantID, listID string) ([]platform.CustomListEntry, error) {
+	return nil, nil
+}
+
+func (s stubCustomListRepo) RenameEntriesByListID(ctx context.Context, tenantID, listID, listName string) error {
+	return nil
+}
+
+func (s stubCustomListRepo) DeleteEntry(ctx context.Context, tenantID, listID, entryID string) error {
+	return nil
 }
 
 func (s stubCustomListRepo) ListByName(ctx context.Context, tenantID, listName string) ([]platform.CustomListEntry, error) {

@@ -18,16 +18,70 @@ func NewRiskSnapshotRepository(q queryable) RiskSnapshotRepository {
 }
 func NewIPFlagRepository(q queryable) IPFlagRepository { return IPFlagRepository{q: q} }
 
+func (r CustomListRepository) CreateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	const stmt = `insert into core.custom_lists (id, tenant_id, name, description, kind, created_at, updated_at) values ($1,$2,$3,$4,$5,$6,$7) returning id, tenant_id, name, description, kind, created_at, updated_at`
+	var out platform.CustomList
+	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.Name, item.Description, item.Kind, item.CreatedAt, item.UpdatedAt).Scan(&out.ID, &out.TenantID, &out.Name, &out.Description, &out.Kind, &out.CreatedAt, &out.UpdatedAt)
+	return out, err
+}
+
+func (r CustomListRepository) ListLists(ctx context.Context, tenantID string) ([]platform.CustomList, error) {
+	const stmt = `select id, tenant_id, name, description, kind, created_at, updated_at from core.custom_lists where tenant_id = $1 order by updated_at desc, created_at desc`
+	rows, err := r.q.Query(ctx, stmt, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []platform.CustomList
+	for rows.Next() {
+		var item platform.CustomList
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.Name, &item.Description, &item.Kind, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r CustomListRepository) GetListByID(ctx context.Context, tenantID, listID string) (platform.CustomList, error) {
+	const stmt = `select id, tenant_id, name, description, kind, created_at, updated_at from core.custom_lists where tenant_id = $1 and id = $2`
+	var out platform.CustomList
+	err := r.q.QueryRow(ctx, stmt, tenantID, listID).Scan(&out.ID, &out.TenantID, &out.Name, &out.Description, &out.Kind, &out.CreatedAt, &out.UpdatedAt)
+	return out, err
+}
+
+func (r CustomListRepository) UpdateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	const stmt = `update core.custom_lists set name = $3, description = $4, kind = $5, updated_at = $6 where tenant_id = $1 and id = $2 returning id, tenant_id, name, description, kind, created_at, updated_at`
+	var out platform.CustomList
+	err := r.q.QueryRow(ctx, stmt, item.TenantID, item.ID, item.Name, item.Description, item.Kind, item.UpdatedAt).Scan(&out.ID, &out.TenantID, &out.Name, &out.Description, &out.Kind, &out.CreatedAt, &out.UpdatedAt)
+	return out, err
+}
+
+func (r CustomListRepository) DeleteList(ctx context.Context, tenantID, listID string) error {
+	const deleteEntries = `delete from core.custom_list_entries where tenant_id = $1 and list_id = $2`
+	if _, err := r.q.Exec(ctx, deleteEntries, tenantID, listID); err != nil {
+		return err
+	}
+	const deleteList = `delete from core.custom_lists where tenant_id = $1 and id = $2`
+	_, err := r.q.Exec(ctx, deleteList, tenantID, listID)
+	return err
+}
+
 func (r CustomListRepository) Create(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
-	const stmt = `insert into core.custom_list_entries (id, tenant_id, list_name, value, created_at) values ($1,$2,$3,$4,$5) returning id, tenant_id, list_name, value, created_at`
+	const stmt = `insert into core.custom_list_entries (id, tenant_id, list_id, list_name, value, created_at) values ($1,$2,$3,$4,$5,$6) returning id, tenant_id, list_id, list_name, value, created_at`
 	var out platform.CustomListEntry
-	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ListName, item.Value, item.CreatedAt).Scan(&out.ID, &out.TenantID, &out.ListName, &out.Value, &out.CreatedAt)
+	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ListID, item.ListName, item.Value, item.CreatedAt).Scan(&out.ID, &out.TenantID, &out.ListID, &out.ListName, &out.Value, &out.CreatedAt)
 	return out, err
 }
 
 func (r CustomListRepository) ListByName(ctx context.Context, tenantID, listName string) ([]platform.CustomListEntry, error) {
-	const stmt = `select id, tenant_id, list_name, value, created_at from core.custom_list_entries where tenant_id = $1 and list_name = $2 order by created_at desc`
-	rows, err := r.q.Query(ctx, stmt, tenantID, listName)
+	stmt := `select id, tenant_id, list_id, list_name, value, created_at from core.custom_list_entries where tenant_id = $1 and list_name = $2 order by created_at desc`
+	args := []any{tenantID, listName}
+	if listName == "" {
+		stmt = `select id, tenant_id, list_id, list_name, value, created_at from core.custom_list_entries where tenant_id = $1 order by list_name asc, created_at desc`
+		args = []any{tenantID}
+	}
+	rows, err := r.q.Query(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -35,12 +89,49 @@ func (r CustomListRepository) ListByName(ctx context.Context, tenantID, listName
 	var items []platform.CustomListEntry
 	for rows.Next() {
 		var item platform.CustomListEntry
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ListName, &item.Value, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.ListID, &item.ListName, &item.Value, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (r CustomListRepository) ListEntriesByListID(ctx context.Context, tenantID, listID string) ([]platform.CustomListEntry, error) {
+	const stmt = `select id, tenant_id, list_id, list_name, value, created_at from core.custom_list_entries where tenant_id = $1 and list_id = $2 order by created_at desc`
+	rows, err := r.q.Query(ctx, stmt, tenantID, listID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []platform.CustomListEntry
+	for rows.Next() {
+		var item platform.CustomListEntry
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.ListID, &item.ListName, &item.Value, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r CustomListRepository) UpdateEntry(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
+	const stmt = `update core.custom_list_entries set value = $4 where tenant_id = $1 and list_id = $2 and id = $3 returning id, tenant_id, list_id, list_name, value, created_at`
+	var out platform.CustomListEntry
+	err := r.q.QueryRow(ctx, stmt, item.TenantID, item.ListID, item.ID, item.Value).Scan(&out.ID, &out.TenantID, &out.ListID, &out.ListName, &out.Value, &out.CreatedAt)
+	return out, err
+}
+
+func (r CustomListRepository) RenameEntriesByListID(ctx context.Context, tenantID, listID, listName string) error {
+	const stmt = `update core.custom_list_entries set list_name = $3 where tenant_id = $1 and list_id = $2`
+	_, err := r.q.Exec(ctx, stmt, tenantID, listID, listName)
+	return err
+}
+
+func (r CustomListRepository) DeleteEntry(ctx context.Context, tenantID, listID, entryID string) error {
+	const stmt = `delete from core.custom_list_entries where tenant_id = $1 and list_id = $2 and id = $3`
+	_, err := r.q.Exec(ctx, stmt, tenantID, listID, entryID)
+	return err
 }
 
 func (r CustomListRepository) Contains(ctx context.Context, tenantID, listName, value string) (bool, error) {

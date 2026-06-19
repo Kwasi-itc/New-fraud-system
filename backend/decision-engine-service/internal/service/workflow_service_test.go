@@ -398,8 +398,32 @@ func (nilAsyncDecisionExecutionRepository) UpdateStatus(context.Context, string,
 
 type nilCustomListRepository []struct{}
 
+func (nilCustomListRepository) CreateList(context.Context, platform.CustomList) (platform.CustomList, error) {
+	return platform.CustomList{}, nil
+}
+func (nilCustomListRepository) ListLists(context.Context, string) ([]platform.CustomList, error) {
+	return nil, nil
+}
+func (nilCustomListRepository) GetListByID(context.Context, string, string) (platform.CustomList, error) {
+	return platform.CustomList{}, nil
+}
+func (nilCustomListRepository) UpdateList(context.Context, platform.CustomList) (platform.CustomList, error) {
+	return platform.CustomList{}, nil
+}
+func (nilCustomListRepository) DeleteList(context.Context, string, string) error {
+	return nil
+}
 func (nilCustomListRepository) Create(context.Context, platform.CustomListEntry) (platform.CustomListEntry, error) {
 	return platform.CustomListEntry{}, nil
+}
+func (nilCustomListRepository) ListEntriesByListID(context.Context, string, string) ([]platform.CustomListEntry, error) {
+	return nil, nil
+}
+func (nilCustomListRepository) RenameEntriesByListID(context.Context, string, string, string) error {
+	return nil
+}
+func (nilCustomListRepository) DeleteEntry(context.Context, string, string, string) error {
+	return nil
 }
 func (nilCustomListRepository) ListByName(context.Context, string, string) ([]platform.CustomListEntry, error) {
 	return nil, nil

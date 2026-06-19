@@ -64,6 +64,31 @@ func (r RuleRepository) ListByIteration(ctx context.Context, tenantID, scenarioI
 	return items, rows.Err()
 }
 
+func (r RuleRepository) ListRuleGroupsByScenario(ctx context.Context, tenantID, scenarioID string) ([]string, error) {
+	const stmt = `
+		select distinct r.rule_group
+		from core.rules r
+		join core.scenario_iterations si on si.id = r.iteration_id
+		where r.tenant_id = $1 and si.scenario_id = $2 and trim(r.rule_group) <> ''
+		order by r.rule_group asc
+	`
+	rows, err := r.q.Query(ctx, stmt, tenantID, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []string
+	for rows.Next() {
+		var group string
+		if err := rows.Scan(&group); err != nil {
+			return nil, err
+		}
+		groups = append(groups, group)
+	}
+	return groups, rows.Err()
+}
+
 func (r RuleRepository) GetByID(ctx context.Context, tenantID, scenarioID, iterationID, ruleID string) (scenario.Rule, error) {
 	const stmt = `
 		select r.id, r.iteration_id, r.tenant_id, r.display_order, r.name, r.description, r.formula, r.score_modifier,

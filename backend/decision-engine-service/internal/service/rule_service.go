@@ -36,6 +36,10 @@ func (s RuleService) ListByIteration(ctx context.Context, tenantID, scenarioID, 
 	return s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
 }
 
+func (s RuleService) ListRuleGroupsByScenario(ctx context.Context, tenantID, scenarioID string) ([]string, error) {
+	return s.ruleRepo.ListRuleGroupsByScenario(ctx, tenantID, scenarioID)
+}
+
 func (s RuleService) Create(
 	ctx context.Context,
 	tenantID, scenarioID, iterationID string,

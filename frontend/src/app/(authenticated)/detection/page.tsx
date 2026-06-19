@@ -24,13 +24,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  type DetectionList,
-  formatListCount,
-  initialDetectionLists,
-} from "@/components/detection/mock-lists";
 import { Input } from "@/components/ui/input";
 import {
+  type CustomList,
   type Scenario as DecisionEngineScenario,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
@@ -49,6 +45,14 @@ type DetectionScenario = {
   description: string;
   trigger: string;
   created: string;
+};
+
+type DetectionList = {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  count: string;
 };
 
 const scenarioQueryKey = (tenantId: string) =>
@@ -75,6 +79,31 @@ function adaptScenario(item: DecisionEngineScenario): DetectionScenario {
     trigger: item.trigger_object_type,
     created: formatScenarioDate(item.created_at),
   };
+}
+
+function formatListCount(count: number) {
+  return `${count} value${count === 1 ? "" : "s"}`;
+}
+
+function formatListKind(kind: string) {
+  switch (kind) {
+    case "ip_subnet":
+      return "IP addresses and subnets";
+    case "uuid":
+      return "UUID values";
+    default:
+      return "Generic text";
+  }
+}
+
+function adaptCustomLists(items: CustomList[], entryCounts: Map<string, number>): DetectionList[] {
+  return items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description || "No description provided",
+    type: formatListKind(item.kind),
+    count: formatListCount(entryCounts.get(item.id) ?? 0),
+  }));
 }
 
 const decisionOutcomes = [
@@ -287,6 +316,16 @@ function ScenariosTable({
 }
 
 function ListsTable({ lists }: { lists: DetectionList[] }) {
+  if (lists.length === 0) {
+    return (
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="p-6 text-sm text-slate-600">
+          No list items yet. Create a list to get started.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
       <CardContent className="p-0">
@@ -1096,9 +1135,9 @@ function NewListModal({
                 onChange={(event) => setType(event.target.value)}
                 className="h-12 w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 text-[14px] text-slate-950 outline-none"
               >
-                <option>IP addresses and subnets</option>
-                <option>Generic text</option>
-                <option>UUID values</option>
+                <option value="ip_subnet">IP addresses and subnets</option>
+                <option value="generic_text">Generic text</option>
+                <option value="uuid">UUID values</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-slate-950" />
             </div>
@@ -1146,8 +1185,7 @@ export default function DetectionPage() {
   const [duplicateName, setDuplicateName] = useState("");
   const [listName, setListName] = useState("");
   const [listDescription, setListDescription] = useState("");
-  const [listType, setListType] = useState("IP addresses and subnets");
-  const [lists, setLists] = useState<DetectionList[]>(initialDetectionLists);
+  const [listType, setListType] = useState("generic_text");
 
   const assembledModelQuery = useAssembledDataModelQuery(tenantId);
   const triggerOptions = useMemo(() => {
@@ -1157,6 +1195,16 @@ export default function DetectionPage() {
   const scenariosQuery = useQuery({
     queryKey: scenarioQueryKey(tenantId),
     queryFn: () => decisionEngineApi.listScenarios(tenantId),
+    enabled: Boolean(tenantId),
+  });
+  const customListsQuery = useQuery({
+    queryKey: ["decision-engine", "custom-lists", tenantId],
+    queryFn: () => decisionEngineApi.listCustomLists(tenantId),
+    enabled: Boolean(tenantId),
+  });
+  const customListEntriesQuery = useQuery({
+    queryKey: ["decision-engine", "custom-list-entries", tenantId],
+    queryFn: () => decisionEngineApi.listCustomListEntries(tenantId),
     enabled: Boolean(tenantId),
   });
 
@@ -1269,10 +1317,42 @@ export default function DetectionPage() {
       router.push(`/detection/${scenario.id}/edit`);
     },
   });
+  const createCustomListMutation = useMutation({
+    mutationFn: () =>
+      decisionEngineApi.createCustomList(tenantId, {
+        name: listName.trim(),
+        description: listDescription.trim(),
+        kind: listType,
+      }),
+    onSuccess: async ({ custom_list }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "custom-lists", tenantId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "custom-list-entries", tenantId],
+      });
+      setCreateListModalOpen(false);
+      router.push(`/detection/lists/${custom_list.id}`);
+    },
+  });
 
   const scenarios = useMemo(
     () => (scenariosQuery.data?.scenarios ?? []).map(adaptScenario),
     [scenariosQuery.data]
+  );
+  const listEntryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of customListEntriesQuery.data?.custom_list_entries ?? []) {
+      if (!item.list_id) {
+        continue;
+      }
+      counts.set(item.list_id, (counts.get(item.list_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [customListEntriesQuery.data?.custom_list_entries]);
+  const lists = useMemo(
+    () => adaptCustomLists(customListsQuery.data?.custom_lists ?? [], listEntryCounts),
+    [customListsQuery.data?.custom_lists, listEntryCounts]
   );
 
   const createActionLabel = useMemo(() => {
@@ -1290,7 +1370,7 @@ export default function DetectionPage() {
   function openListModal() {
     setListName("");
     setListDescription("");
-    setListType("IP addresses and subnets");
+    setListType("generic_text");
     setCreateListModalOpen(true);
   }
 
@@ -1322,22 +1402,10 @@ export default function DetectionPage() {
   }
 
   function handleSaveList() {
-    const trimmedName = listName.trim();
-    if (!trimmedName) {
+    if (!tenantId || !listName.trim()) {
       return;
     }
-
-    const newList: DetectionList = {
-      id: trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      name: trimmedName,
-      description: listDescription.trim() || "No description provided",
-      type: listType,
-      values: [],
-      count: formatListCount([]),
-    };
-
-    setLists((current) => [newList, ...current]);
-    setCreateListModalOpen(false);
+    createCustomListMutation.mutate();
   }
 
   return (
@@ -1399,7 +1467,31 @@ export default function DetectionPage() {
           </>
         ) : null}
 
-        {activeTab === "Lists" ? <ListsTable lists={lists} /> : null}
+        {activeTab === "Lists" ? (
+          !tenantId ? (
+            <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
+              <CardContent className="p-4 text-sm text-amber-800">
+                Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load lists for a tenant.
+              </CardContent>
+            </Card>
+          ) : customListsQuery.isLoading || customListEntriesQuery.isLoading ? (
+            <Card className="rounded-xl border border-slate-200 shadow-none">
+              <CardContent className="p-4 text-sm text-slate-600">Loading lists...</CardContent>
+            </Card>
+          ) : customListsQuery.isError || customListEntriesQuery.isError ? (
+            <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
+              <CardContent className="p-4 text-sm text-red-700">
+                {customListsQuery.error instanceof Error
+                  ? customListsQuery.error.message
+                  : customListEntriesQuery.error instanceof Error
+                    ? customListEntriesQuery.error.message
+                    : "Failed to load lists."}
+              </CardContent>
+            </Card>
+          ) : (
+            <ListsTable lists={lists} />
+          )
+        ) : null}
         {activeTab === "Analytics" ? <AnalyticsView /> : null}
         {activeTab === "Decisions" ? <DecisionsView hasScenarios={scenarios.length > 0} /> : null}
       </div>

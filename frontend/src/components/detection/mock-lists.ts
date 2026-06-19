@@ -37,7 +37,6 @@ export const initialDetectionLists: DetectionList[] = [
     name: "blacklist_users",
     description: "Blacklisted users",
     type: "Generic text",
-    count: "6 values",
     values: [
       "e345cdd3-eed9-4362-99b7-d63accebe112",
       "8a852da6-52ae-409e-a83c-5a3a7aa3de62",

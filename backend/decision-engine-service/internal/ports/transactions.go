@@ -76,6 +76,7 @@ type ScenarioPublicationRepository interface {
 type RuleRepository interface {
 	Create(ctx context.Context, rule scenario.Rule) (scenario.Rule, error)
 	ListByIteration(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Rule, error)
+	ListRuleGroupsByScenario(ctx context.Context, tenantID, scenarioID string) ([]string, error)
 	GetByID(ctx context.Context, tenantID, scenarioID, iterationID, ruleID string) (scenario.Rule, error)
 	Update(ctx context.Context, rule scenario.Rule) (scenario.Rule, error)
 	Delete(ctx context.Context, tenantID, scenarioID, iterationID, ruleID string) error
@@ -216,7 +217,16 @@ type ScoringRequestRepository interface {
 }
 
 type CustomListRepository interface {
+	CreateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error)
+	ListLists(ctx context.Context, tenantID string) ([]platform.CustomList, error)
+	GetListByID(ctx context.Context, tenantID, listID string) (platform.CustomList, error)
+	UpdateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error)
+	DeleteList(ctx context.Context, tenantID, listID string) error
 	Create(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error)
+	ListEntriesByListID(ctx context.Context, tenantID, listID string) ([]platform.CustomListEntry, error)
+	UpdateEntry(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error)
+	RenameEntriesByListID(ctx context.Context, tenantID, listID, listName string) error
+	DeleteEntry(ctx context.Context, tenantID, listID, entryID string) error
 	ListByName(ctx context.Context, tenantID, listName string) ([]platform.CustomListEntry, error)
 	Contains(ctx context.Context, tenantID, listName, value string) (bool, error)
 }

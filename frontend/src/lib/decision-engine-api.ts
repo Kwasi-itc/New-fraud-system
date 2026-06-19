@@ -84,6 +84,10 @@ export type Rule = {
   updated_at: string;
 };
 
+export type RuleGroupListResponse = {
+  rule_groups: string[];
+};
+
 export type CreateRuleRequest = {
   display_order: number;
   name: string;
@@ -446,15 +450,35 @@ export type CreateAsyncDecisionExecutionRequest = {
 export type CustomListEntry = {
   id: string;
   tenant_id: string;
+  list_id?: string | null;
   list_name: string;
   value: string;
   created_at: string;
 };
 
+export type CustomList = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string;
+  kind: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateCustomListRequest = {
+  name: string;
+  description: string;
+  kind: string;
+};
+
+export type UpdateCustomListRequest = CreateCustomListRequest;
+
 export type CreateCustomListEntryRequest = {
-  list_name: string;
   value: string;
 };
+
+export type UpdateCustomListEntryRequest = CreateCustomListEntryRequest;
 
 export type RecordTag = {
   id: string;
@@ -572,6 +596,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications`,
   rules: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/rules`,
+  ruleGroups: (tenantId: string, scenarioId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/rule-groups`,
   rule: (
     tenantId: string,
     scenarioId: string,
@@ -659,6 +685,16 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/recurring-schedule`,
   asyncDecisionExecutions: (tenantId: string) =>
     `/v1/tenants/${tenantId}/async-decision-executions`,
+  customLists: (tenantId: string) =>
+    `/v1/tenants/${tenantId}/platform/custom-lists`,
+  customList: (tenantId: string, listId: string) =>
+    `/v1/tenants/${tenantId}/platform/custom-lists/${listId}`,
+  customListEntriesByList: (tenantId: string, listId: string) =>
+    `/v1/tenants/${tenantId}/platform/custom-lists/${listId}/entries`,
+  customListEntriesImport: (tenantId: string, listId: string) =>
+    `/v1/tenants/${tenantId}/platform/custom-lists/${listId}/entries/import`,
+  customListEntry: (tenantId: string, listId: string, entryId: string) =>
+    `/v1/tenants/${tenantId}/platform/custom-lists/${listId}/entries/${entryId}`,
   customListEntries: (tenantId: string) =>
     `/v1/tenants/${tenantId}/platform/custom-list-entries`,
   recordTags: (tenantId: string) => `/v1/tenants/${tenantId}/platform/record-tags`,
@@ -769,6 +805,10 @@ export const decisionEngineApi = {
   listRules: async (tenantId: string, scenarioId: string, iterationId: string) =>
     decisionEngineFetch<{ rules: Rule[] }>(
       decisionEnginePaths.rules(tenantId, scenarioId, iterationId)
+    ),
+  listRuleGroups: async (tenantId: string, scenarioId: string) =>
+    decisionEngineFetch<RuleGroupListResponse>(
+      decisionEnginePaths.ruleGroups(tenantId, scenarioId)
     ),
   createRule: async (
     tenantId: string,
@@ -1258,19 +1298,93 @@ export const decisionEngineApi = {
         body: JSON.stringify(payload),
       }
     ),
-  listCustomListEntries: async (tenantId: string) =>
-    decisionEngineFetch<{ custom_list_entries: CustomListEntry[] }>(
-      decisionEnginePaths.customListEntries(tenantId)
+  listCustomLists: async (tenantId: string) =>
+    decisionEngineFetch<{ custom_lists: CustomList[] }>(
+      decisionEnginePaths.customLists(tenantId)
     ),
-  createCustomListEntry: async (
+  getCustomList: async (tenantId: string, listId: string) =>
+    decisionEngineFetch<{ custom_list: CustomList }>(
+      decisionEnginePaths.customList(tenantId, listId)
+    ),
+  createCustomList: async (
     tenantId: string,
-    payload: CreateCustomListEntryRequest
+    payload: CreateCustomListRequest
   ) =>
-    decisionEngineFetch<{ custom_list_entry: CustomListEntry }>(
-      decisionEnginePaths.customListEntries(tenantId),
+    decisionEngineFetch<{ custom_list: CustomList }>(
+      decisionEnginePaths.customLists(tenantId),
       {
         method: "POST",
         body: JSON.stringify(payload),
+      }
+    ),
+  updateCustomList: async (
+    tenantId: string,
+    listId: string,
+    payload: UpdateCustomListRequest
+  ) =>
+    decisionEngineFetch<{ custom_list: CustomList }>(
+      decisionEnginePaths.customList(tenantId, listId),
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    ),
+  deleteCustomList: async (tenantId: string, listId: string) =>
+    decisionEngineFetch<void>(decisionEnginePaths.customList(tenantId, listId), {
+      method: "DELETE",
+    }),
+  listCustomListEntries: async (tenantId: string, listName?: string) =>
+    decisionEngineFetch<{ custom_list_entries: CustomListEntry[] }>(
+      `${decisionEnginePaths.customListEntries(tenantId)}${
+        listName ? `?list_name=${encodeURIComponent(listName)}` : ""
+      }`
+    ),
+  listCustomListEntriesByList: async (tenantId: string, listId: string) =>
+    decisionEngineFetch<{ custom_list_entries: CustomListEntry[] }>(
+      decisionEnginePaths.customListEntriesByList(tenantId, listId)
+    ),
+  createCustomListEntry: async (
+    tenantId: string,
+    listId: string,
+    payload: CreateCustomListEntryRequest
+  ) =>
+    decisionEngineFetch<{ custom_list_entry: CustomListEntry }>(
+      decisionEnginePaths.customListEntriesByList(tenantId, listId),
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
+  updateCustomListEntry: async (
+    tenantId: string,
+    listId: string,
+    entryId: string,
+    payload: UpdateCustomListEntryRequest
+  ) =>
+    decisionEngineFetch<{ custom_list_entry: CustomListEntry }>(
+      decisionEnginePaths.customListEntry(tenantId, listId, entryId),
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    ),
+  importCustomListEntries: async (tenantId: string, listId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return decisionEngineFetch<{ imported_count: number }>(
+      decisionEnginePaths.customListEntriesImport(tenantId, listId),
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+  },
+  deleteCustomListEntry: async (tenantId: string, listId: string, entryId: string) =>
+    decisionEngineFetch<void>(
+      decisionEnginePaths.customListEntry(tenantId, listId, entryId),
+      {
+        method: "DELETE",
       }
     ),
   listRecordTags: async (tenantId: string) =>

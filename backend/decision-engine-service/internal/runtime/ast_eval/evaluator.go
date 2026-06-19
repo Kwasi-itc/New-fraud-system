@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/jackc/pgx/v5"
 )
@@ -495,14 +496,19 @@ func EvaluateNode(ctx context.Context, node domainast.Node, runtime Runtime) (an
 			return nil, fmt.Errorf("time_add sign must be + or -")
 		}
 	case "custom_list_access":
-		listName, err := evalNamedString(ctx, node, "customListId", runtime)
+		listRef, err := evalNamedString(ctx, node, "customListId", runtime)
 		if err != nil {
 			return nil, err
 		}
 		if runtime.CustomListRepo == nil {
 			return nil, fmt.Errorf("custom list repository is not configured")
 		}
-		items, err := runtime.CustomListRepo.ListByName(ctx, runtime.TenantID, listName)
+		var items []platform.CustomListEntry
+		if customList, getErr := runtime.CustomListRepo.GetListByID(ctx, runtime.TenantID, listRef); getErr == nil {
+			items, err = runtime.CustomListRepo.ListEntriesByListID(ctx, runtime.TenantID, customList.ID)
+		} else {
+			items, err = runtime.CustomListRepo.ListByName(ctx, runtime.TenantID, listRef)
+		}
 		if err != nil {
 			return nil, err
 		}

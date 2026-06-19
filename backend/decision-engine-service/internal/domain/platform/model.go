@@ -2,9 +2,20 @@ package platform
 
 import "time"
 
+type CustomList struct {
+	ID          string
+	TenantID    string
+	Name        string
+	Description string
+	Kind        string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type CustomListEntry struct {
 	ID        string
 	TenantID  string
+	ListID    *string
 	ListName  string
 	Value     string
 	CreatedAt time.Time

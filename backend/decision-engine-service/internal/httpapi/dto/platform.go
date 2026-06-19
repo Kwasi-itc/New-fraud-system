@@ -7,8 +7,23 @@ import (
 )
 
 type CreateCustomListEntryRequest struct {
-	ListName string `json:"list_name"`
-	Value    string `json:"value"`
+	Value string `json:"value"`
+}
+
+type ImportCustomListEntriesResponse struct {
+	ImportedCount int `json:"imported_count"`
+}
+
+type CreateCustomListRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Kind        string `json:"kind"`
+}
+
+type UpdateCustomListRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Kind        string `json:"kind"`
 }
 
 type CreateRecordTagRequest struct {
@@ -31,9 +46,20 @@ type CreateIPFlagRequest struct {
 type CustomListEntryResponse struct {
 	ID        string    `json:"id"`
 	TenantID  string    `json:"tenant_id"`
+	ListID    *string   `json:"list_id,omitempty"`
 	ListName  string    `json:"list_name"`
 	Value     string    `json:"value"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type CustomListResponse struct {
+	ID          string    `json:"id"`
+	TenantID    string    `json:"tenant_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Kind        string    `json:"kind"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type RecordTagResponse struct {
@@ -63,7 +89,11 @@ type IPFlagResponse struct {
 }
 
 func AdaptCustomListEntry(item platform.CustomListEntry) CustomListEntryResponse {
-	return CustomListEntryResponse{ID: item.ID, TenantID: item.TenantID, ListName: item.ListName, Value: item.Value, CreatedAt: item.CreatedAt}
+	return CustomListEntryResponse{ID: item.ID, TenantID: item.TenantID, ListID: item.ListID, ListName: item.ListName, Value: item.Value, CreatedAt: item.CreatedAt}
+}
+
+func AdaptCustomList(item platform.CustomList) CustomListResponse {
+	return CustomListResponse{ID: item.ID, TenantID: item.TenantID, Name: item.Name, Description: item.Description, Kind: item.Kind, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt}
 }
 
 func AdaptRecordTag(item platform.RecordTag) RecordTagResponse {
