@@ -1,0 +1,88 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "marble_decision_rule_complexity_scaling",
+    "objective": "Measure how Marble decision performance changes as rule complexity changes.",
+    "system_under_test": "POST /v1/decisions",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors, 0% timeouts, and 0 skipped decisions during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-19T11:30:57.037471Z",
+    "command": [
+      ".\\stress-tests\\marble_decision_rule_complexity_scaling.py",
+      "--variants",
+      "baseline_payload,nested_payload,custom_list,related_field,aggregate_count_pushdown,mixed_heavy",
+      "--vus",
+      "5,10",
+      "--duration",
+      "30"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+    "api_url": "http://172.23.146.73:8080"
+  },
+  "setup": {
+    "variant": "related_field",
+    "variant_description": "Related account traversal and field read.",
+    "transaction_table": "stress_tx_8be295bc",
+    "account_table": "stress_acct_8be295bc",
+    "link_name": "stress_link_8be295bc",
+    "scenario_ids": [
+      "019edfa5-83ee-7b77-a990-5d7a4704d856"
+    ],
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "seeded_counts": {
+      "accounts": 1
+    },
+    "related_seed_count": 100
+  },
+  "run": {
+    "variant": "related_field",
+    "configured_vus": 5,
+    "duration_seconds": 30.0,
+    "timeout_seconds": 30.0,
+    "transaction_value": 10000.0,
+    "output": "stress-tests\\marble-rule-complexity-runs\\2026-06-19T112850-880919Z\\trial-related_field-5-vus-30s.json",
+    "api_key": "set",
+    "admin_token": "set"
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_decisions": 3328,
+    "successful_decisions": 3328,
+    "failed_decisions": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "skipped_decisions": 0
+  },
+  "rates": {
+    "achieved_successful_decisions_per_second": 110.80610170441608,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 662,
+    "max": 672,
+    "avg": 665.6
+  },
+  "latency_ms": {
+    "avg": 45.091661327800324,
+    "p50": 43.052249995525926,
+    "p95": 63.02929501398461,
+    "p99": 90.26272503193469,
+    "max": 133.68580001406372
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 30.034447100013494,
+    "requested_duration_seconds": 30.0
+  },
+  "sample_errors": []
+}

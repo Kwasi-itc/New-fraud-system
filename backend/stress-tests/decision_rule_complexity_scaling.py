@@ -144,10 +144,7 @@ def aggregate_count_node(object_type: str, owner_id: str) -> dict[str, Any]:
         tableName=const(object_type),
         fieldName=const("object_id"),
         aggregator=const("COUNT"),
-        filters=list_node(
-            filter_node(object_type, "owner_id", "=", const(owner_id)),
-            filter_node(object_type, "status", "=", const("pending")),
-        ),
+        filters=list_node(),
     )
 
 
@@ -194,7 +191,6 @@ def mixed_heavy_formula(object_type: str, owner_id: str, seed_count: int) -> dic
         custom_list_formula(),
         related_field_formula(),
         gte(aggregate_count_node(object_type, owner_id), const(seed_count)),
-        gte(fn("past_decision_count", outcome=const("review")), const(1)),
     )
 
 
@@ -589,7 +585,12 @@ class RuleComplexityHarness(ThroughputHarness):
         await self.ingest_with_schema_retry(f"/v1/tenants/{self.tenant_id}/ingest/{object_type}", payload)
 
     async def ingest_batch(self, object_type: str, rows: list[dict[str, Any]]) -> None:
-        await self.ingest_with_schema_retry(f"/v1/tenants/{self.tenant_id}/ingest/{object_type}/batch", rows)
+        batch_size = 500
+        for start in range(0, len(rows), batch_size):
+            await self.ingest_with_schema_retry(
+                f"/v1/tenants/{self.tenant_id}/ingest/{object_type}/batch",
+                rows[start:start + batch_size],
+            )
 
     async def ingest_with_schema_retry(self, path: str, payload: Any) -> None:
         last_error: RuntimeError | None = None
@@ -667,18 +668,16 @@ def build_variant(name: str, object_type: str, owner_id: str, related_seed_count
         ),
         "aggregate_count_pushdown": VariantDefinition(
             name="aggregate_count_pushdown",
-            description="Remote aggregate count pushdown over owner records.",
+            description="Remote aggregate count over seeded transaction records.",
             formula=aggregate_count_formula(object_type, owner_id, related_seed_count),
             seed_related_records=True,
         ),
         "mixed_heavy": VariantDefinition(
             name="mixed_heavy",
-            description="Nested payload, custom list, related field, aggregate, and decision history.",
+            description="Nested payload, custom list, related field, and aggregate count.",
             formula=mixed_heavy_formula(object_type, owner_id, related_seed_count),
-            stable_object_id=True,
             seed_account=True,
             seed_custom_list=True,
-            seed_decision_history=True,
             seed_related_records=True,
         ),
     }

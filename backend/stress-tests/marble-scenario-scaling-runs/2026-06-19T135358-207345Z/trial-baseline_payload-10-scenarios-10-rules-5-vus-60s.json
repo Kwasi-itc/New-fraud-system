@@ -1,0 +1,112 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "marble_decision_scenario_scaling",
+    "objective": "Measure Marble performance as live scenarios and rules per scenario scale.",
+    "system_under_test": "POST /v1/decisions/all",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors, 0% timeouts, and 0 skipped decisions during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-19T14:12:11.855910Z",
+    "command": [
+      ".\\stress-tests\\marble_decision_scenario_scaling.py",
+      "--scenario-counts",
+      "1,5,10",
+      "--rules-per-scenario",
+      "1,5,10",
+      "--complexities",
+      "baseline_payload,mixed_heavy"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+    "api_url": "http://172.23.146.73:8080"
+  },
+  "setup": {
+    "complexity": "baseline_payload",
+    "transaction_table": "stress_tx_bb2559ca",
+    "account_table": "stress_acct_bb2559ca",
+    "link_name": "stress_link_bb2559ca",
+    "scenario_count": 10,
+    "rules_per_scenario": 10,
+    "total_rules_per_request": 100,
+    "scenario_ids": [
+      "019ee038-a183-74bd-8a2f-de0c340d7942",
+      "019ee038-a322-7216-85e6-3236d0e26cba",
+      "019ee038-a4c2-7083-9f01-6de691eac7dd",
+      "019ee038-a64c-7a82-8a81-d2ad1e8e3633",
+      "019ee038-a72a-72de-a14e-13f1bcec4809",
+      "019ee038-a7ff-7498-b854-184537385e68",
+      "019ee038-a8e0-75cc-bfe9-9338732f2419",
+      "019ee038-a9d7-70f5-b780-5131e063125e",
+      "019ee038-aad0-7c5f-a175-9576cba23253",
+      "019ee038-abc5-704b-b3b4-122c756bdfd6"
+    ],
+    "seeded_counts": {},
+    "related_seed_count": 100
+  },
+  "run": {
+    "complexity": "baseline_payload",
+    "configured_vus": 5,
+    "scenario_count": 10,
+    "rules_per_scenario": 10,
+    "total_rules_per_request": 100,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "transaction_value": 10000.0,
+    "output": "stress-tests\\marble-scenario-scaling-runs\\2026-06-19T135358-207345Z\\trial-baseline_payload-10-scenarios-10-rules-5-vus-60s.json",
+    "api_key": "set",
+    "admin_token": "set"
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_requests": 572,
+    "successful_requests": 572,
+    "failed_requests": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "skipped_decisions": 0,
+    "expected_decision_writes": 5720,
+    "expected_rule_execution_writes": 57200
+  },
+  "rates": {
+    "achieved_successful_requests_per_second": 9.43992933889383,
+    "expected_decision_writes_per_second": 94.3992933889383,
+    "expected_rule_execution_writes_per_second": 943.992933889383,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 114,
+    "max": 116,
+    "avg": 114.4
+  },
+  "latency_ms": {
+    "avg": 528.7416667848015,
+    "p50": 488.6901999707334,
+    "p95": 891.7772899847475,
+    "p99": 1040.633694976568,
+    "max": 1125.3563000354916
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.593673900002614,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": [],
+  "baseline_comparison": {
+    "baseline_complexity": "baseline_payload",
+    "baseline_available": true,
+    "latency_p50_ratio": 1.0,
+    "latency_p95_ratio": 1.0,
+    "latency_p99_ratio": 1.0,
+    "latency_max_ratio": 1.0,
+    "latency_avg_ratio": 1.0,
+    "achieved_rps_ratio": 1.0
+  }
+}

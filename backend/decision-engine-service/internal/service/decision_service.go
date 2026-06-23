@@ -152,6 +152,16 @@ func (s DecisionService) EvaluateScenario(
 	tenantID, scenarioID string,
 	req DecisionEvaluationRequest,
 ) (result DecisionEvaluationResult, err error) {
+	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), s.clock.Now())
+}
+
+func (s DecisionService) evaluateScenario(
+	ctx context.Context,
+	tenantID, scenarioID string,
+	req DecisionEvaluationRequest,
+	evalCache *asteval.EvaluationCache,
+	evaluationNow time.Time,
+) (result DecisionEvaluationResult, err error) {
 	timingStartedAt := time.Now()
 	stageStartedAt := timingStartedAt
 	timings := make(map[string]int64, 20)
@@ -227,7 +237,7 @@ func (s DecisionService) EvaluateScenario(
 		ObjectID:                    req.ObjectID,
 		ObjectType:                  req.ObjectType,
 		Fields:                      req.Fields,
-		Now:                         s.clock.Now(),
+		Now:                         evaluationNow,
 		Model:                       &model,
 		TenantDataReader:            s.tenantDataReader,
 		CustomListRepo:              s.customListRepo,
@@ -237,6 +247,7 @@ func (s DecisionService) EvaluateScenario(
 		DecisionRepo:                s.decisionRepo,
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
+		EvalCache:                   evalCache,
 	}
 	currentStage = "trigger_eval"
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
@@ -920,8 +931,10 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		ObjectID: req.ObjectID,
 		Results:  make([]DecisionEvaluationResult, 0, len(scenarios)),
 	}
+	evalCache := asteval.NewEvaluationCache()
+	evaluationNow := s.clock.Now()
 	for _, scn := range scenarios {
-		result, err := s.EvaluateScenario(ctx, tenantID, scn.ID, req)
+		result, err := s.evaluateScenario(ctx, tenantID, scn.ID, req, evalCache, evaluationNow)
 		if err != nil {
 			return MultiScenarioEvaluationResult{}, err
 		}

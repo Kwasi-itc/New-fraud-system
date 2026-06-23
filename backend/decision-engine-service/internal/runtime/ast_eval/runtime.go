@@ -22,6 +22,7 @@ type Runtime struct {
 	DecisionRepo                ports.DecisionRepository
 	AggregatePushdownMode       string
 	AggregatePushdownAggregates []string
+	EvalCache                   *EvaluationCache
 }
 
 const (
