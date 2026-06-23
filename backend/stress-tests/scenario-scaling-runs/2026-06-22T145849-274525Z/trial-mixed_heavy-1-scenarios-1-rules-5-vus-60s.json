@@ -1,0 +1,125 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_scenario_scaling",
+    "objective": "Measure decision evaluation performance as live scenarios, rules per scenario, and rule complexity scale.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/decisions/all",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-22T15:00:51.826027Z",
+    "command": [
+      ".\\stress-tests\\decision_scenario_scaling.py",
+      "--scenario-counts",
+      "1,5,10",
+      "--rules-per-scenario",
+      "1,5,10",
+      "--complexities",
+      "baseline_payload,mixed_heavy",
+      "--vus",
+      "5",
+      "--duration",
+      "60",
+      "--ingestion-database-url",
+      "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? New-fraud-system/\n?? org-export.json\n?? stress-tests/",
+    "docker_version": "Docker version 29.2.0, build 0b9d198",
+    "docker_compose_version": "Docker Compose version v5.0.2",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "complexity": "mixed_heavy",
+    "variant_description": "Nested payload, custom list, related field, and aggregate count.",
+    "tenant_id": "3629e4d3-0688-47fe-b473-28b4b2027c47",
+    "object_type": "transactions_335b78ba2a36",
+    "account_object_type": "accounts_c8104a5b8b32",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "total_rules_per_request": 1,
+    "scenario_ids": [
+      "a87b0c53-be87-4d03-9cb2-3f3a3a4da86a"
+    ],
+    "rule_count": 1,
+    "seeded_counts": {
+      "accounts": 1,
+      "custom_list_entries": 1,
+      "related_records": 100
+    },
+    "related_seed_count": 100,
+    "stable_object_id": false
+  },
+  "run": {
+    "complexity": "mixed_heavy",
+    "configured_vus": 5,
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "total_rules_per_request": 1,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "amount": 1800,
+    "output": "stress-tests\\scenario-scaling-runs\\2026-06-22T145849-274525Z\\trial-mixed_heavy-1-scenarios-1-rules-5-vus-60s.json",
+    "auth_token": null
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_requests": 9661,
+    "successful_requests": 9661,
+    "failed_requests": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "expected_decision_writes": 9661,
+    "expected_rule_execution_writes": 9661
+  },
+  "rates": {
+    "achieved_successful_requests_per_second": 160.9454767269115,
+    "expected_decision_writes_per_second": 160.9454767269115,
+    "expected_rule_execution_writes_per_second": 160.9454767269115,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 1923,
+    "max": 1947,
+    "avg": 1932.2
+  },
+  "latency_ms": {
+    "avg": 31.05916560395968,
+    "p50": 30.152499999530846,
+    "p95": 40.28620000099181,
+    "p99": 49.30931999915627,
+    "max": 72.5510000011127
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.02653940000164,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": [],
+  "baseline_comparison": {
+    "baseline_complexity": "baseline_payload",
+    "baseline_available": true,
+    "baseline_key": {
+      "scenario_count": 1,
+      "rules_per_scenario": 1,
+      "configured_vus": 5
+    },
+    "latency_p50_ratio": 2.504318865237778,
+    "latency_p95_ratio": 2.1392121817130847,
+    "latency_p99_ratio": 1.8166117155990278,
+    "latency_max_ratio": 1.0423544962314957,
+    "latency_avg_ratio": 2.4542640293330558,
+    "achieved_eps_ratio": 0.40745641940250865
+  }
+}

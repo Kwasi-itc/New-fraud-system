@@ -1,0 +1,1042 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_rule_complexity_scaling",
+    "objective": "Compare direct decision evaluation performance across rule complexity variants."
+  },
+  "environment": {
+    "captured_at": "2026-06-18T15:06:51.369683Z",
+    "command": [
+      "stress-tests/decision_rule_complexity_scaling.py",
+      "--vus=6",
+      "--duration=60",
+      "--ingestion-database-url",
+      "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+    ],
+    "python_version": "3.12.10",
+    "platform": "macOS-15.7.7-x86_64-i386-64bit",
+    "processor": "i386",
+    "cpu_count": 6,
+    "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+    "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+    "docker_version": "Docker version 29.4.2, build 055a478",
+    "docker_compose_version": "Docker Compose version v5.1.3",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "run": {
+    "variants": [
+      "baseline_payload",
+      "nested_payload",
+      "custom_list",
+      "related_field",
+      "decision_history",
+      "related_records_count",
+      "aggregate_count_pushdown",
+      "mixed_heavy"
+    ],
+    "vus": [
+      6
+    ],
+    "duration_seconds": 60.0,
+    "amount": 1800,
+    "timeout_seconds": 30.0,
+    "output_dir": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z",
+    "related_seed_count": 100,
+    "data_model_url": "http://127.0.0.1:8080",
+    "ingestion_url": "http://127.0.0.1:8081",
+    "decision_engine_url": "http://127.0.0.1:8082",
+    "auth_token": null,
+    "scenario_threshold": 1000,
+    "ingestion_database_url": "set"
+  },
+  "trial_count": 8,
+  "trials": [
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T14:59:43.954248Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "baseline_payload",
+        "variant_description": "Simple amount threshold payload rule.",
+        "tenant_id": "f7fae7c1-047b-444f-b376-36625303f81e",
+        "object_type": "transactions_4b3361a6c69d",
+        "account_object_type": "accounts_ad569fb7b443",
+        "scenario_id": "4581cdb0-533b-4221-9dd8-dbd37d20e7f4",
+        "rule_id": "ff0d0096-c3fa-44a6-80c7-48e24c9df66e",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {},
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "baseline_payload",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-baseline_payload-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 26676,
+        "successful_evaluations": 26676,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 444.5594101699636,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 4347,
+        "max": 4768,
+        "avg": 4446.0
+      },
+      "latency_ms": {
+        "avg": 13.492774530068736,
+        "p50": 11.851540009956807,
+        "p95": 20.47884951753076,
+        "p99": 41.05568176601082,
+        "max": 362.1766900178045
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.00547820999054,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 1.0,
+        "latency_p95_ratio": 1.0,
+        "latency_p99_ratio": 1.0,
+        "latency_max_ratio": 1.0,
+        "latency_avg_ratio": 1.0,
+        "achieved_eps_ratio": 1.0
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:00:44.775831Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "nested_payload",
+        "variant_description": "Nested payload-only logical rule.",
+        "tenant_id": "efb24ec1-082d-4876-a4a4-71e03e14ec65",
+        "object_type": "transactions_42ba09190265",
+        "account_object_type": "accounts_f24201b508ce",
+        "scenario_id": "8a828a25-4dda-47a1-8c20-49a31943b9d9",
+        "rule_id": "b28d230e-84be-4164-b1ac-83430e055677",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {},
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "nested_payload",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-nested_payload-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 25197,
+        "successful_evaluations": 25197,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 419.9177027368086,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 4091,
+        "max": 4497,
+        "avg": 4199.5
+      },
+      "latency_ms": {
+        "avg": 14.284477742277332,
+        "p50": 12.408101989421993,
+        "p95": 22.37008619122207,
+        "p99": 48.442230971995755,
+        "max": 329.24543402623385
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.00461479899241,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 1.0469611526432516,
+        "latency_p95_ratio": 1.0923507285930458,
+        "latency_p99_ratio": 1.1799153950988608,
+        "latency_max_ratio": 0.9090740599845016,
+        "latency_avg_ratio": 1.0586760870008076,
+        "achieved_eps_ratio": 0.9445704963848724
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:01:45.533641Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "custom_list",
+        "variant_description": "Custom list membership lookup against email.",
+        "tenant_id": "62cd6270-0e55-4b23-b446-65004a0b98ad",
+        "object_type": "transactions_8e44cd9d0102",
+        "account_object_type": "accounts_f5ca074e48e1",
+        "scenario_id": "6df3a4d2-80b8-46f3-a32f-701fd1199429",
+        "rule_id": "2bf6a428-9caf-4deb-9adb-12f46f03fee5",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "custom_list_entries": 1
+        },
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "custom_list",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-custom_list-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 25379,
+        "successful_evaluations": 25379,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 422.93233408728196,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 4153,
+        "max": 4496,
+        "avg": 4229.833333333333
+      },
+      "latency_ms": {
+        "avg": 14.182180565916164,
+        "p50": 12.406160996761173,
+        "p95": 21.50771982851438,
+        "p99": 43.59373264713239,
+        "max": 163.85157499462366
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.00723509298405,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 1.0467973770782881,
+        "latency_p95_ratio": 1.0502406304662213,
+        "latency_p99_ratio": 1.0618197231649134,
+        "latency_max_ratio": 0.4524078426653266,
+        "latency_avg_ratio": 1.051094460543388,
+        "achieved_eps_ratio": 0.9513516628195696
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:02:47.555509Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "related_field",
+        "variant_description": "Related account traversal and field read.",
+        "tenant_id": "7fb5e93f-7dc4-4b4f-b1ac-c2e271a0548a",
+        "object_type": "transactions_56ef7a898ac0",
+        "account_object_type": "accounts_184e7bbe1d3f",
+        "scenario_id": "0656a957-46a5-4c54-aab8-0bb049fffd26",
+        "rule_id": "fd80b442-0b07-4169-8235-51707c15815f",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "accounts": 1
+        },
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "related_field",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-related_field-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 18536,
+        "successful_evaluations": 18536,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 308.8557599367281,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 3075,
+        "max": 3115,
+        "avg": 3089.3333333333335
+      },
+      "latency_ms": {
+        "avg": 19.42145714136769,
+        "p50": 17.7033425134141,
+        "p95": 27.264842501608655,
+        "p99": 68.40708866657226,
+        "max": 175.8134129922837
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.01506982999854,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 1.4937588278435572,
+        "latency_p95_ratio": 1.3313659284555412,
+        "latency_p99_ratio": 1.666202720891244,
+        "latency_max_ratio": 0.4854354734525868,
+        "latency_avg_ratio": 1.4393968488902593,
+        "achieved_eps_ratio": 0.6947457479724625
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:03:48.464577Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "decision_history",
+        "variant_description": "Decision history lookup for the evaluated object.",
+        "tenant_id": "e5cc4986-8538-421c-8114-c5668a1f243b",
+        "object_type": "transactions_27f34750675f",
+        "account_object_type": "accounts_5c207325959e",
+        "scenario_id": "e530f027-e491-41a8-8b07-37e80671aa20",
+        "rule_id": "42cbe0eb-72d3-49e3-b546-fb849b6c95a8",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "prior_decisions": 1,
+          "seed_scenarios": 1
+        },
+        "related_seed_count": 100,
+        "stable_object_id": true
+      },
+      "run": {
+        "variant": "decision_history",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-decision_history-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 9492,
+        "successful_evaluations": 9492,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 158.07407696263465,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 1575,
+        "max": 1588,
+        "avg": 1582.0
+      },
+      "latency_ms": {
+        "avg": 37.94741313727791,
+        "p50": 35.64641549019143,
+        "p95": 67.35937814810308,
+        "p99": 98.44863049394921,
+        "max": 217.65615604817867
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.047796465980355,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 3.00774544576012,
+        "latency_p95_ratio": 3.289216910864089,
+        "latency_p99_ratio": 2.397929501086811,
+        "latency_max_ratio": 0.6009667713222482,
+        "latency_avg_ratio": 2.8124247576146666,
+        "achieved_eps_ratio": 0.35557469563449323
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:04:49.335637Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "related_records_count",
+        "variant_description": "List related records and count owner matches.",
+        "tenant_id": "0d74a87c-0f93-4922-bf4b-be61e12722f2",
+        "object_type": "transactions_81c823095a0e",
+        "account_object_type": "accounts_099718a2c771",
+        "scenario_id": "8a2e10c2-f0b8-4941-a331-cd19113e49eb",
+        "rule_id": "73849020-4105-478f-bf34-4f3be81d139a",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "related_records": 100
+        },
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "related_records_count",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-related_records_count-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 11727,
+        "successful_evaluations": 11727,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 195.37277271500932,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 1943,
+        "max": 1963,
+        "avg": 1954.5
+      },
+      "latency_ms": {
+        "avg": 30.701395396165317,
+        "p50": 28.614713985007256,
+        "p95": 43.98618967388753,
+        "p99": 85.57233991217798,
+        "max": 234.71589997643605
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.023716903000604,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 2.4144300201465163,
+        "latency_p95_ratio": 2.1478838269812712,
+        "latency_p99_ratio": 2.084299571491262,
+        "latency_max_ratio": 0.6480701448922555,
+        "latency_avg_ratio": 2.275395273799844,
+        "achieved_eps_ratio": 0.4394750583286822
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:05:50.152180Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "aggregate_count_pushdown",
+        "variant_description": "Remote aggregate count pushdown over owner records.",
+        "tenant_id": "439f5dad-b5b4-46ed-8d46-bb4db34d95ec",
+        "object_type": "transactions_996c8509974e",
+        "account_object_type": "accounts_dcd4efab004d",
+        "scenario_id": "4bb7629b-1078-4ed1-a1fa-6e9feb0a6a11",
+        "rule_id": "d5c81e51-a655-4771-8449-8a2e39c72c17",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "related_records": 100
+        },
+        "related_seed_count": 100,
+        "stable_object_id": false
+      },
+      "run": {
+        "variant": "aggregate_count_pushdown",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-aggregate_count_pushdown-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 17774,
+        "successful_evaluations": 17774,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 296.19273785758014,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 2945,
+        "max": 2979,
+        "avg": 2962.3333333333335
+      },
+      "latency_ms": {
+        "avg": 20.252778162413616,
+        "p50": 18.37079750839621,
+        "p95": 28.72837325267028,
+        "p99": 75.73377846681981,
+        "max": 269.70265299314633
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.00822345801862,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 1.5500768248651562,
+        "latency_p95_ratio": 1.4028314055473468,
+        "latency_p99_ratio": 1.8446601105895724,
+        "latency_max_ratio": 0.7446714833577164,
+        "latency_avg_ratio": 1.5010091599233477,
+        "achieved_eps_ratio": 0.666261316444387
+      }
+    },
+    {
+      "summary_version": 1,
+      "test": {
+        "name": "decision_engine_rule_complexity_scaling",
+        "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+        "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+        "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+        "sustainability_definition": "0% errors and 0% timeouts during measured run."
+      },
+      "environment": {
+        "captured_at": "2026-06-18T15:06:51.084787Z",
+        "command": [
+          "stress-tests/decision_rule_complexity_scaling.py",
+          "--vus=6",
+          "--duration=60",
+          "--ingestion-database-url",
+          "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+        ],
+        "python_version": "3.12.10",
+        "platform": "macOS-15.7.7-x86_64-i386-64bit",
+        "processor": "i386",
+        "cpu_count": 6,
+        "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+        "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n M ../docker-compose.yml\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+        "docker_version": "Docker version 29.4.2, build 055a478",
+        "docker_compose_version": "Docker Compose version v5.1.3",
+        "service_urls": {
+          "data_model": "http://127.0.0.1:8080",
+          "ingestion": "http://127.0.0.1:8081",
+          "decision_engine": "http://127.0.0.1:8082"
+        }
+      },
+      "setup": {
+        "variant": "mixed_heavy",
+        "variant_description": "Nested payload, custom list, related field, aggregate, and decision history.",
+        "tenant_id": "87ef725d-838e-460c-a466-3f5292f3bfd1",
+        "object_type": "transactions_884c68cf2a65",
+        "account_object_type": "accounts_8f223285fc86",
+        "scenario_id": "36781000-b097-4f15-bf76-43b3d08015dc",
+        "rule_id": "eda73b9b-5ada-44f3-bfd1-a556cbafd4f1",
+        "scenario_count": 1,
+        "rules_per_scenario": 1,
+        "seeded_counts": {
+          "accounts": 1,
+          "custom_list_entries": 1,
+          "related_records": 100,
+          "prior_decisions": 1,
+          "seed_scenarios": 1
+        },
+        "related_seed_count": 100,
+        "stable_object_id": true
+      },
+      "run": {
+        "variant": "mixed_heavy",
+        "configured_vus": 6,
+        "duration_seconds": 60.0,
+        "timeout_seconds": 30.0,
+        "amount": 1800,
+        "output": "stress-tests/rule-complexity-runs/2026-06-18T145843-559026Z/trial-mixed_heavy-6-vus-60s.json",
+        "auth_token": null
+      },
+      "workload_counts": {
+        "configured_vus": 6,
+        "completed_evaluations": 6817,
+        "successful_evaluations": 6817,
+        "failed_evaluations": 0,
+        "timeouts": 0,
+        "dropped_requests": 0
+      },
+      "rates": {
+        "achieved_successful_evaluations_per_second": 113.54357767783303,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "per_vu_successes": {
+        "min": 1120,
+        "max": 1145,
+        "avg": 1136.1666666666667
+      },
+      "latency_ms": {
+        "avg": 52.82160339571191,
+        "p50": 50.89587898692116,
+        "p95": 80.03363760653882,
+        "p99": 113.73224638868125,
+        "max": 249.463117972482
+      },
+      "result": {
+        "sustainable": true,
+        "elapsed_seconds": 60.03862252202816,
+        "requested_duration_seconds": 60.0
+      },
+      "sample_errors": [],
+      "baseline_comparison": {
+        "baseline_variant": "baseline_payload",
+        "baseline_available": true,
+        "latency_p50_ratio": 4.294452783702551,
+        "latency_p95_ratio": 3.908112002972952,
+        "latency_p99_ratio": 2.770195049661504,
+        "latency_max_ratio": 0.6887884417967883,
+        "latency_avg_ratio": 3.9148066454381656,
+        "achieved_eps_ratio": 0.25540698291466407
+      }
+    }
+  ],
+  "rankings": {
+    "highest_p95_latency_ratio": [
+      {
+        "variant": "mixed_heavy",
+        "vus": 6,
+        "latency_p95_ratio": 3.908112002972952,
+        "achieved_eps": 113.54357767783303,
+        "p95_ms": 80.03363760653882,
+        "p99_ms": 113.73224638868125,
+        "max_ms": 249.463117972482,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "decision_history",
+        "vus": 6,
+        "latency_p95_ratio": 3.289216910864089,
+        "achieved_eps": 158.07407696263465,
+        "p95_ms": 67.35937814810308,
+        "p99_ms": 98.44863049394921,
+        "max_ms": 217.65615604817867,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "related_records_count",
+        "vus": 6,
+        "latency_p95_ratio": 2.1478838269812712,
+        "achieved_eps": 195.37277271500932,
+        "p95_ms": 43.98618967388753,
+        "p99_ms": 85.57233991217798,
+        "max_ms": 234.71589997643605,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "aggregate_count_pushdown",
+        "vus": 6,
+        "latency_p95_ratio": 1.4028314055473468,
+        "achieved_eps": 296.19273785758014,
+        "p95_ms": 28.72837325267028,
+        "p99_ms": 75.73377846681981,
+        "max_ms": 269.70265299314633,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "related_field",
+        "vus": 6,
+        "latency_p95_ratio": 1.3313659284555412,
+        "achieved_eps": 308.8557599367281,
+        "p95_ms": 27.264842501608655,
+        "p99_ms": 68.40708866657226,
+        "max_ms": 175.8134129922837,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "nested_payload",
+        "vus": 6,
+        "latency_p95_ratio": 1.0923507285930458,
+        "achieved_eps": 419.9177027368086,
+        "p95_ms": 22.37008619122207,
+        "p99_ms": 48.442230971995755,
+        "max_ms": 329.24543402623385,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "custom_list",
+        "vus": 6,
+        "latency_p95_ratio": 1.0502406304662213,
+        "achieved_eps": 422.93233408728196,
+        "p95_ms": 21.50771982851438,
+        "p99_ms": 43.59373264713239,
+        "max_ms": 163.85157499462366,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "baseline_payload",
+        "vus": 6,
+        "latency_p95_ratio": 1.0,
+        "achieved_eps": 444.5594101699636,
+        "p95_ms": 20.47884951753076,
+        "p99_ms": 41.05568176601082,
+        "max_ms": 362.1766900178045,
+        "failures": 0,
+        "timeouts": 0
+      }
+    ],
+    "lowest_achieved_eps_ratio": [
+      {
+        "variant": "mixed_heavy",
+        "vus": 6,
+        "achieved_eps_ratio": 0.25540698291466407,
+        "achieved_eps": 113.54357767783303,
+        "p95_ms": 80.03363760653882,
+        "p99_ms": 113.73224638868125,
+        "max_ms": 249.463117972482,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "decision_history",
+        "vus": 6,
+        "achieved_eps_ratio": 0.35557469563449323,
+        "achieved_eps": 158.07407696263465,
+        "p95_ms": 67.35937814810308,
+        "p99_ms": 98.44863049394921,
+        "max_ms": 217.65615604817867,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "related_records_count",
+        "vus": 6,
+        "achieved_eps_ratio": 0.4394750583286822,
+        "achieved_eps": 195.37277271500932,
+        "p95_ms": 43.98618967388753,
+        "p99_ms": 85.57233991217798,
+        "max_ms": 234.71589997643605,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "aggregate_count_pushdown",
+        "vus": 6,
+        "achieved_eps_ratio": 0.666261316444387,
+        "achieved_eps": 296.19273785758014,
+        "p95_ms": 28.72837325267028,
+        "p99_ms": 75.73377846681981,
+        "max_ms": 269.70265299314633,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "related_field",
+        "vus": 6,
+        "achieved_eps_ratio": 0.6947457479724625,
+        "achieved_eps": 308.8557599367281,
+        "p95_ms": 27.264842501608655,
+        "p99_ms": 68.40708866657226,
+        "max_ms": 175.8134129922837,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "nested_payload",
+        "vus": 6,
+        "achieved_eps_ratio": 0.9445704963848724,
+        "achieved_eps": 419.9177027368086,
+        "p95_ms": 22.37008619122207,
+        "p99_ms": 48.442230971995755,
+        "max_ms": 329.24543402623385,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "custom_list",
+        "vus": 6,
+        "achieved_eps_ratio": 0.9513516628195696,
+        "achieved_eps": 422.93233408728196,
+        "p95_ms": 21.50771982851438,
+        "p99_ms": 43.59373264713239,
+        "max_ms": 163.85157499462366,
+        "failures": 0,
+        "timeouts": 0
+      },
+      {
+        "variant": "baseline_payload",
+        "vus": 6,
+        "achieved_eps_ratio": 1.0,
+        "achieved_eps": 444.5594101699636,
+        "p95_ms": 20.47884951753076,
+        "p99_ms": 41.05568176601082,
+        "max_ms": 362.1766900178045,
+        "failures": 0,
+        "timeouts": 0
+      }
+    ]
+  }
+}

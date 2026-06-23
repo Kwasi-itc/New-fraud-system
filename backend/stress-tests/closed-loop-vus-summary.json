@@ -1,0 +1,108 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_closed_loop_vus",
+    "objective": "Measure achieved direct decision evaluations per second with fixed always-active VUs.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-16T10:05:56.076052Z",
+    "command": [
+      "stress-tests/decision_closed_loop_vus.py",
+      "--vus",
+      "10",
+      "--duration",
+      "60"
+    ],
+    "python_version": "3.12.10",
+    "platform": "macOS-15.7.7-x86_64-i386-64bit",
+    "processor": "i386",
+    "cpu_count": 6,
+    "git_sha": "4f937ebcd06f0949dd47094a919ed435722eed8f",
+    "git_status_short": "M stress-tests/closed-loop-vus-summary.json\n M ../docker-compose.yml\n?? stress-tests/__pycache__/decision_throughput_limit.cpython-312.pyc\n?? stress-tests/closed-loop-vus-summary-bar-optimization-1-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-100-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-bar-optimization-50-vus-60s.json",
+    "docker_version": "Docker version 29.4.2, build 055a478",
+    "docker_compose_version": "Docker Compose version v5.1.3",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "tenant_id": "172162ae-a5d5-47e0-b915-46a78615869b",
+    "object_type": "transactions_9ae3fa9f06fc",
+    "scenario_id": "a0335399-a9b9-46cd-8301-2100319ed33a",
+    "rule_id": "ece94ced-10c3-4b46-8ecf-bb31f8e122c2",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "rule_shape": "amount > scenario_threshold",
+    "scenario_threshold": 1000
+  },
+  "run": {
+    "vus": 10,
+    "duration_seconds": 60.0,
+    "amount": 1800,
+    "timeout_seconds": 30.0,
+    "output": "stress-tests/closed-loop-vus-summary.json",
+    "data_model_url": "http://127.0.0.1:8080",
+    "ingestion_url": "http://127.0.0.1:8081",
+    "decision_engine_url": "http://127.0.0.1:8082",
+    "auth_token": null,
+    "scenario_threshold": 1000
+  },
+  "workload_counts": {
+    "configured_vus": 10,
+    "completed_evaluations": 22,
+    "successful_evaluations": 2,
+    "failed_evaluations": 20,
+    "timeouts": 20,
+    "dropped_requests": 0
+  },
+  "rates": {
+    "achieved_successful_evaluations_per_second": 0.03331835258238387,
+    "success_rate": 0.09090909090909091,
+    "error_rate": 0.9090909090909091,
+    "timeout_rate": 0.9090909090909091
+  },
+  "per_vu_successes": {
+    "min": 1,
+    "max": 1,
+    "avg": 1.0
+  },
+  "latency_ms": {
+    "avg": 12.086863498552702,
+    "p50": 12.086863498552702,
+    "p95": 13.151349734107498,
+    "p99": 13.24597073282348,
+    "max": 13.269625982502475
+  },
+  "result": {
+    "sustainable": false,
+    "elapsed_seconds": 60.0269774759945,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": [
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: ",
+    "timeout: "
+  ]
+}

@@ -1,0 +1,266 @@
+{
+    "metrics": {
+        "iteration_duration": {
+            "p(95)": 74.0651884999999,
+            "p(99)": 118.93703197999989,
+            "max": 549.71258,
+            "avg": 54.056132791282764,
+            "min": 22.748506,
+            "med": 51.274905,
+            "p(90)": 62.872372999999996
+        },
+        "http_req_duration": {
+            "min": 0.931,
+            "med": 51.089,
+            "p(90)": 62.688,
+            "p(95)": 73.864,
+            "p(99)": 118.77675,
+            "max": 549.478,
+            "avg": 53.84054711205172,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "stress_failures": {
+            "passes": 0,
+            "fails": 44395,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "data_sent": {
+            "count": 24805518,
+            "rate": 206387.68742645488
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 53.84054711205172,
+            "min": 0.931,
+            "med": 51.089,
+            "p(90)": 62.688,
+            "p(95)": 73.864,
+            "p(99)": 118.77675,
+            "max": 549.478
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0.82,
+            "avg": 0.0001991626525007878
+        },
+        "iterations": {
+            "count": 44395,
+            "rate": 369.3767404211218
+        },
+        "http_req_receiving": {
+            "min": 0.013,
+            "med": 0.044,
+            "p(90)": 0.051,
+            "p(95)": 0.055,
+            "p(99)": 0.07,
+            "max": 0.773,
+            "avg": 0.043472336019450226
+        },
+        "stress_setup_rules_created": {
+            "count": 1,
+            "rate": 0.00832023291859718
+        },
+        "data_received": {
+            "count": 14481896,
+            "rate": 120492.74782290081
+        },
+        "http_reqs": {
+            "rate": 369.6346676415983,
+            "count": 44426
+        },
+        "stress_setup_scenarios_created": {
+            "count": 1,
+            "rate": 0.00832023291859718
+        },
+        "stress_runtime_ingests": {
+            "count": 44395,
+            "rate": 369.3767404211218
+        },
+        "group_duration": {
+            "p(90)": 62.8587692,
+            "p(95)": 74.0516931999999,
+            "p(99)": 118.92386459999989,
+            "max": 549.684914,
+            "avg": 54.04120736305933,
+            "min": 22.734655,
+            "med": 51.260057
+        },
+        "stress_ingest_latency": {
+            "max": 549.478,
+            "avg": 53.87454609753372,
+            "min": 22.59,
+            "med": 51.093,
+            "p(90)": 62.6994,
+            "p(95)": 73.88709999999993,
+            "p(99)": 118.77901999999996,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "http_req_sending": {
+            "med": 0.015,
+            "p(90)": 0.016,
+            "p(95)": 0.017,
+            "p(99)": 0.028,
+            "max": 1.441,
+            "avg": 0.0148630981857444,
+            "min": 0.004
+        },
+        "http_req_failed": {
+            "fails": 44426,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "vus_max": {
+            "min": 20,
+            "max": 20,
+            "value": 20
+        },
+        "http_req_waiting": {
+            "avg": 53.78221167784598,
+            "min": 0.842,
+            "med": 51.032,
+            "p(90)": 62.63,
+            "p(95)": 73.80624999999999,
+            "p(99)": 118.70599999999999,
+            "max": 549.383
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0
+        },
+        "checks": {
+            "passes": 44395,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "http_req_blocked": {
+            "avg": 0.0036077522171680775,
+            "min": 0.001,
+            "med": 0.003,
+            "p(90)": 0.004,
+            "p(95)": 0.004,
+            "p(99)": 0.005,
+            "max": 1.158
+        },
+        "vus": {
+            "value": 20,
+            "min": 20,
+            "max": 20
+        }
+    },
+    "setup_data": {
+        "profile": "concurrent_single_ingest",
+        "simpleScenario": {
+            "scenario": {
+                "tenant_id": "48347bc7-1c0f-43b3-ba9f-4b559943553a",
+                "trigger_object_type": "transactions_1781001373727_932728225",
+                "updated_at": "2026-06-09T10:36:13.837262Z",
+                "created_at": "2026-06-09T10:36:13.837262Z",
+                "id": "a3c5191d-f2f1-4577-a5d9-1d5ae64efe42",
+                "name": "simple_decision_1781001373837_126136252"
+            },
+            "iteration": {
+                "created_at": "2026-06-09T10:36:13.839831Z",
+                "score_block_and_review_threshold": 10,
+                "score_review_threshold": 1,
+                "status": "draft",
+                "tenant_id": "48347bc7-1c0f-43b3-ba9f-4b559943553a",
+                "trigger_formula": {
+                    "constant": true
+                },
+                "version": 1,
+                "id": "bf9703f0-a351-4f6a-a340-7592c4f5ac27",
+                "scenario_id": "a3c5191d-f2f1-4577-a5d9-1d5ae64efe42",
+                "score_decline_threshold": 20
+            }
+        },
+        "counts": {
+            "scenarios_created": 1,
+            "scoring_configs_created": 1,
+            "screening_configs_created": 1,
+            "setup_ingested_records": 0,
+            "workflows_created": 1,
+            "rules_created": 1
+        },
+        "heavyOwner": "heavy_owner_1781001373880_755817262",
+        "heavyScenario": null,
+        "model": {
+            "tenant_id": "48347bc7-1c0f-43b3-ba9f-4b559943553a",
+            "transactions": {
+                "created_at": "2026-06-09T10:36:13.727612Z",
+                "name": "transactions_1781001373727_932728225",
+                "semantic_type": "entity",
+                "caption_field": "",
+                "description": "Stress transaction table",
+                "id": "0a01a389-736e-4c3e-bb5f-4a3674c0a21c",
+                "updated_at": "2026-06-09T10:36:13.727612Z",
+                "alias": "Transactions",
+                "archived": false
+            },
+            "accounts": {
+                "alias": "Accounts",
+                "description": "Stress account table",
+                "id": "a2f18341-541f-4029-8e37-536ea0cf0155",
+                "archived": false,
+                "caption_field": "",
+                "created_at": "2026-06-09T10:36:13.736132Z",
+                "name": "accounts_1781001373735_486349190",
+                "semantic_type": "entity",
+                "updated_at": "2026-06-09T10:36:13.736132Z"
+            },
+            "tenant": {
+                "name": "stress_tenant_1781001373720_863473383",
+                "schema_name": "tenant_48347bc71c0f43b3ba9f4b559943553a",
+                "status": "pending",
+                "updated_at": "2026-06-09T10:36:13.720833Z",
+                "created_at": "2026-06-09T10:36:13.720833Z",
+                "external_key": "stress_ext_1781001373720_175633100",
+                "id": "48347bc7-1c0f-43b3-ba9f-4b559943553a"
+            }
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "concurrent single ingest": {
+                "name": "concurrent single ingest",
+                "path": "::concurrent single ingest",
+                "id": "4656c1a6c64924e8549860c5d5b8c48f",
+                "groups": {},
+                "checks": {
+                        "single ingest accepted": {
+                            "fails": 0,
+                            "name": "single ingest accepted",
+                            "path": "::concurrent single ingest::single ingest accepted",
+                            "id": "d75d04695a2b12a510eff8019d5d1dec",
+                            "passes": 44395
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    }
+}

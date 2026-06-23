@@ -1,0 +1,89 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "marble_decision_throughput_limit",
+    "objective": "Find maximum sustainable public API decision creations per second.",
+    "system_under_test": "POST /v1/decisions",
+    "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+  },
+  "environment": {
+    "captured_at": "2026-06-15T14:33:11.073279Z",
+    "command": [
+      "stress-tests/marble_decision_throughput_orchestrator.py"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+    "api_url": "http://172.23.146.73:8080"
+  },
+  "setup": {
+    "scenario_id": "019ecba0-19d9-74c2-897c-f9e3ff7ca554",
+    "scenario_name": "Stress - Single Value Threshold",
+    "trigger_object_type": "transactions",
+    "seeded_company_id": "company_6c1ecbcbaa524ed0b17df6ea",
+    "seeded_account_id": "account_89c42f492dee4fa4ac65344f"
+  },
+  "run": {
+    "rate": 68,
+    "vus": 136,
+    "duration_seconds": 60.0,
+    "warmup_duration_seconds": 30.0,
+    "transaction_value": 10000.0,
+    "account_past_balance": 200000.0,
+    "timeout_seconds": 30.0,
+    "output": "stress-tests\\marble-throughput-runs\\2026-06-15T141657-705848Z\\trial-68-dps-136-vus-binary.json",
+    "api_url": "http://172.23.146.73:8080",
+    "api_key": "set",
+    "org_export": "org-export.json",
+    "scenario_name": "Stress - Single Value Threshold",
+    "scenario_id": "019ecba0-19d9-74c2-897c-f9e3ff7ca554",
+    "scenario_threshold": 1000.0,
+    "seed_parent_records": true,
+    "create_stress_scenario": false
+  },
+  "workload_counts": {
+    "attempted_decisions": 4080,
+    "completed_decisions": 3882,
+    "successful_decisions": 3882,
+    "failed_decisions": 0,
+    "timeouts": 0,
+    "dropped_requests": 198,
+    "skipped_decisions": 0
+  },
+  "rates": {
+    "target_decisions_per_second": 68,
+    "achieved_successful_decisions_per_second": 64.7,
+    "success_rate": 0.9514705882352941,
+    "error_rate": 0.04852941176470588,
+    "timeout_rate": 0.0
+  },
+  "latency_ms": {
+    "avg": 176.44088323054908,
+    "p50": 42.387450026581064,
+    "p95": 451.8697500316182,
+    "p99": 4622.016813968076,
+    "max": 7399.3840999901295
+  },
+  "result": {
+    "sustainable": false,
+    "target_met": false,
+    "throughput_limit_candidate": null,
+    "elapsed_seconds": 62.32263970002532
+  },
+  "sample_errors": [],
+  "orchestration": {
+    "db_diagnostics_before": {
+      "available": true,
+      "captured_at": "2026-06-15T14:31:38.369430Z"
+    },
+    "db_diagnostics_after": {
+      "available": true,
+      "captured_at": "2026-06-15T14:33:11.348079Z"
+    },
+    "cooldown_duration_seconds": 15.0,
+    "health_timeout_seconds": 60.0
+  }
+}

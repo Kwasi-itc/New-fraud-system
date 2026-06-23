@@ -1,0 +1,266 @@
+{
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "ingestion callback evaluation": {
+                "name": "ingestion callback evaluation",
+                "path": "::ingestion callback evaluation",
+                "id": "231d928e2584b686d202d18217c4b953",
+                "groups": {},
+                "checks": {
+                        "ingestion callback evaluated": {
+                            "passes": 2401,
+                            "fails": 0,
+                            "name": "ingestion callback evaluated",
+                            "path": "::ingestion callback evaluation::ingestion callback evaluated",
+                            "id": "ddb8c4450cdb9bc6b6eeaf2df5717dbb"
+                        }
+                    }
+            }
+        },
+        "checks": {},
+        "name": ""
+    },
+    "metrics": {
+        "vus": {
+            "max": 7,
+            "value": 1,
+            "min": 1
+        },
+        "stress_callback_latency": {
+            "avg": 19.777971678467335,
+            "min": 12.412,
+            "med": 15.201,
+            "p(90)": 20.529,
+            "p(95)": 42.523,
+            "p(99)": 124.249,
+            "max": 359.671,
+            "thresholds": {
+                "p(95)<3000": false
+            }
+        },
+        "stress_setup_scenarios_created": {
+            "count": 1,
+            "rate": 0.008322619417291968
+        },
+        "http_req_connecting": {
+            "p(95)": 0,
+            "p(99)": 0.20369000000000004,
+            "max": 0.337,
+            "avg": 0.003873766447368421,
+            "min": 0,
+            "med": 0,
+            "p(90)": 0
+        },
+        "iterations": {
+            "rate": 19.982609220918015,
+            "count": 2401
+        },
+        "http_reqs": {
+            "count": 2432,
+            "rate": 20.24061042285407
+        },
+        "http_req_receiving": {
+            "med": 0.044,
+            "p(90)": 0.05,
+            "p(95)": 0.054,
+            "p(99)": 0.06869000000000006,
+            "max": 0.136,
+            "avg": 0.04507565789473737,
+            "min": 0.015
+        },
+        "checks": {
+            "passes": 2401,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 1.25,
+            "med": 15.189499999999999,
+            "p(90)": 20.408700000000003,
+            "p(95)": 42.051449999999896,
+            "p(99)": 124.18979000000002,
+            "max": 359.671,
+            "avg": 19.58087582236845
+        },
+        "stress_callback_evaluations": {
+            "count": 2401,
+            "rate": 19.982609220918015
+        },
+        "http_req_duration": {
+            "max": 359.671,
+            "avg": 19.58087582236845,
+            "min": 1.25,
+            "med": 15.189499999999999,
+            "p(90)": 20.408700000000003,
+            "p(95)": 42.051449999999896,
+            "p(99)": 124.18979000000002,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<2000": false
+            }
+        },
+        "vus_max": {
+            "value": 40,
+            "min": 40,
+            "max": 40
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 2432,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "stress_failures": {
+            "fails": 2401,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "group_duration": {
+            "avg": 20.02382727780089,
+            "min": 12.590742,
+            "med": 15.444039,
+            "p(90)": 20.784594,
+            "p(95)": 42.835084,
+            "p(99)": 124.456451,
+            "max": 359.894756
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "p(90)": 0
+        },
+        "data_sent": {
+            "rate": 13808.515619297055,
+            "count": 1659155
+        },
+        "iteration_duration": {
+            "p(95)": 42.87322,
+            "p(99)": 124.505839,
+            "max": 359.964973,
+            "avg": 20.074139854643892,
+            "min": 12.624536,
+            "med": 15.50022,
+            "p(90)": 20.826647
+        },
+        "http_req_sending": {
+            "avg": 0.026085937500000444,
+            "min": 0.012,
+            "med": 0.026,
+            "p(90)": 0.029,
+            "p(95)": 0.031,
+            "p(99)": 0.07769000000000005,
+            "max": 0.406
+        },
+        "http_req_waiting": {
+            "med": 15.119499999999999,
+            "p(90)": 20.324900000000003,
+            "p(95)": 41.97249999999989,
+            "p(99)": 124.13465000000001,
+            "max": 359.6,
+            "avg": 19.50971422697372,
+            "min": 1.183
+        },
+        "stress_setup_rules_created": {
+            "count": 1,
+            "rate": 0.008322619417291968
+        },
+        "data_received": {
+            "rate": 18372.498623209878,
+            "count": 2207538
+        },
+        "http_req_blocked": {
+            "p(90)": 0.007,
+            "p(95)": 0.007,
+            "p(99)": 0.265,
+            "max": 1.321,
+            "avg": 0.011022615131579127,
+            "min": 0.002,
+            "med": 0.006
+        }
+    },
+    "setup_data": {
+        "simpleScenario": {
+            "iteration": {
+                "created_at": "2026-06-09T10:45:27.024629Z",
+                "id": "0f3ca9d1-b8ca-4a6e-a65d-56129ed8eb4f",
+                "scenario_id": "3c7c36f9-94c3-4c55-a12a-af41bae416b9",
+                "trigger_formula": {
+                    "constant": true
+                },
+                "score_block_and_review_threshold": 10,
+                "score_decline_threshold": 20,
+                "score_review_threshold": 1,
+                "status": "draft",
+                "tenant_id": "9de356bb-4623-4da0-b3ce-ffa5b3b449b5",
+                "version": 1
+            },
+            "scenario": {
+                "created_at": "2026-06-09T10:45:27.020957Z",
+                "id": "3c7c36f9-94c3-4c55-a12a-af41bae416b9",
+                "name": "simple_decision_1781001927020_351072510",
+                "tenant_id": "9de356bb-4623-4da0-b3ce-ffa5b3b449b5",
+                "trigger_object_type": "transactions_1781001926942_815136539",
+                "updated_at": "2026-06-09T10:45:27.020957Z"
+            }
+        },
+        "counts": {
+            "scenarios_created": 1,
+            "scoring_configs_created": 1,
+            "screening_configs_created": 1,
+            "setup_ingested_records": 0,
+            "workflows_created": 1,
+            "rules_created": 1
+        },
+        "heavyOwner": "heavy_owner_1781001927069_560842826",
+        "heavyScenario": null,
+        "model": {
+            "accounts": {
+                "semantic_type": "entity",
+                "updated_at": "2026-06-09T10:45:26.952946Z",
+                "alias": "Accounts",
+                "archived": false,
+                "caption_field": "",
+                "created_at": "2026-06-09T10:45:26.952946Z",
+                "description": "Stress account table",
+                "id": "d5a63f35-7a5f-41a1-97a2-32ecda4d863b",
+                "name": "accounts_1781001926952_872974361"
+            },
+            "tenant": {
+                "created_at": "2026-06-09T10:45:26.936626Z",
+                "external_key": "stress_ext_1781001926936_966177122",
+                "id": "9de356bb-4623-4da0-b3ce-ffa5b3b449b5",
+                "name": "stress_tenant_1781001926936_960551570",
+                "schema_name": "tenant_9de356bb46234da0b3ceffa5b3b449b5",
+                "status": "pending",
+                "updated_at": "2026-06-09T10:45:26.936626Z"
+            },
+            "tenant_id": "9de356bb-4623-4da0-b3ce-ffa5b3b449b5",
+            "transactions": {
+                "alias": "Transactions",
+                "description": "Stress transaction table",
+                "name": "transactions_1781001926942_815136539",
+                "semantic_type": "entity",
+                "archived": false,
+                "caption_field": "",
+                "created_at": "2026-06-09T10:45:26.943589Z",
+                "id": "ca92f0e0-0a49-40bb-9ae7-95df99b7902d",
+                "updated_at": "2026-06-09T10:45:26.943589Z"
+            }
+        },
+        "profile": "ingestion_callback"
+    }
+}

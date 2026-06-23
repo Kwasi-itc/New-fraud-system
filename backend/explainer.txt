@@ -1,0 +1,472 @@
+Decision Engine Rule Fixture Explainer
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[core ast basic rule matrix]
+Result: PASSED
+Fixture: core_ast/basic_rule_matrix.json
+Case: core ast basic rule matrix
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: (owner_id = 'core_owner_8715148037c5')
+Rules:
+  - core_eq_field: (status = 'pending'); expected HIT
+  - core_boolean_and: ((amount > 1000) AND (country != 'us')); expected HIT
+  - core_arithmetic: (((((amount + 500) - 500) * 2) / 2) = 1500); expected HIT
+  - core_string_list_null: (contains(merchant, 'Market') AND in(country, ['gh', 'ng']) AND starts with(merchant, 'ITC') AND ends with(lower(email), '.com') AND (upper(country) = 'GH') AND is_null(note) AND (coalesce(note, 'fallback') = 'fallback')); expected HIT
+Created Rule: core_eq_field -> (status = 'pending')
+Created Rule: core_boolean_and -> ((amount > 1000) AND (country != 'us'))
+Created Rule: core_arithmetic -> (((((amount + 500) - 500) * 2) / 2) = 1500)
+Created Rule: core_string_list_null -> (contains(merchant, 'Market') AND in(country, ['gh', 'ng']) AND starts with(merchant, 'ITC') AND ends with(lower(email), '.com') AND (upper(country) = 'GH') AND is_null(note) AND (coalesce(note, 'fallback') = 'fallback'))
+Created Scenario: core ast basic rule matrix_f5c658562d14
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: review; Actual: review
+Rule Result: core_eq_field | (status = 'pending') | expected HIT got HIT
+Rule Result: core_boolean_and | ((amount > 1000) AND (country != 'us')) | expected HIT got HIT
+Rule Result: core_arithmetic | (((((amount + 500) - 500) * 2) / 2) = 1500) | expected HIT got HIT
+Rule Result: core_string_list_null | (contains(merchant, 'Market') AND in(country, ['gh', 'ng']) AND starts with(merchant, 'ITC') AND ends with(lower(email), '.com') AND (upper(country) = 'GH') AND is_null(note) AND (coalesce(note, 'fallback') = 'fallback')) | expected HIT got HIT
+Persisted Decision: 9ef0829b-bca8-4166-b798-6650a7d5f829
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[decline rate ratio velocity]
+Result: PASSED
+Fixture: aggregation/decline_rate_ratio_velocity.json
+Case: decline rate ratio velocity
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - twenty_recent_same_owner_transactions: (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) >= 20); expected HIT
+  - decline_rate_at_least_eighty_percent: ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) >= 0.8); expected HIT
+  - decline_rate_above_ninety_percent_no_hit: ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) > 0.9); expected NO HIT
+Ingested Generated Records: 16 into transactions_4187c9301c25
+Ingested Generated Records: 4 into transactions_4187c9301c25
+Created Rule: twenty_recent_same_owner_transactions -> (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) >= 20)
+Created Rule: decline_rate_at_least_eighty_percent -> ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) >= 0.8)
+Created Rule: decline_rate_above_ninety_percent_no_hit -> ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) > 0.9)
+Created Scenario: decline rate ratio velocity_6c7d66fd10b7
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 3; Actual Score: 3
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: twenty_recent_same_owner_transactions | (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) >= 20) | expected HIT got HIT
+Rule Result: decline_rate_at_least_eighty_percent | ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) >= 0.8) | expected HIT got HIT
+Rule Result: decline_rate_above_ninety_percent_no_hit | ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='note', value='ratio-declined')) / list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167))) > 0.9) | expected NO HIT got NO HIT
+Persisted Decision: b87d35a0-9fae-4956-9776-a45cb65aab5a
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[fuzzy list edge cases]
+Result: PASSED
+Fixture: marble_compat/fuzzy_list_edge_cases.json
+Case: fuzzy list edge cases
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - fuzzy_ratio_near_merchant_hit: ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Kwasi Intl Trade Market"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 70); expected HIT
+  - fuzzy_ratio_unrelated_merchant_no_hit: ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Completely Different Store"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 90); expected NO HIT
+  - fuzzy_any_of_watchlist_hit: ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "International Kwasi Trade Market"}, {"constant": "Low Risk Grocer"}, {"constant": "Airport Cafe"}], "name": "List"}], "name": "FuzzyMatchAnyOf", "named_children": {"algorithm": {"constant": "bag_of_words_similarity"}}} >= 80); expected HIT
+  - contains_any_review_terms_hit: {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "chargeback"}, {"constant": "review"}, {"constant": "stolen"}], "name": "List"}], "name": "ContainsAnyOf"}; expected HIT
+  - contains_any_absent_terms_no_hit: {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "stolen"}, {"constant": "compromised"}], "name": "List"}], "name": "ContainsAnyOf"}; expected NO HIT
+  - contains_none_of_absent_terms_hit: {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Sanction"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"}; expected HIT
+  - contains_none_of_present_term_no_hit: {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"}; expected NO HIT
+Created Rule: fuzzy_ratio_near_merchant_hit -> ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Kwasi Intl Trade Market"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 70)
+Created Rule: fuzzy_ratio_unrelated_merchant_no_hit -> ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Completely Different Store"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 90)
+Created Rule: fuzzy_any_of_watchlist_hit -> ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "International Kwasi Trade Market"}, {"constant": "Low Risk Grocer"}, {"constant": "Airport Cafe"}], "name": "List"}], "name": "FuzzyMatchAnyOf", "named_children": {"algorithm": {"constant": "bag_of_words_similarity"}}} >= 80)
+Created Rule: contains_any_review_terms_hit -> {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "chargeback"}, {"constant": "review"}, {"constant": "stolen"}], "name": "List"}], "name": "ContainsAnyOf"}
+Created Rule: contains_any_absent_terms_no_hit -> {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "stolen"}, {"constant": "compromised"}], "name": "List"}], "name": "ContainsAnyOf"}
+Created Rule: contains_none_of_absent_terms_hit -> {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Sanction"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"}
+Created Rule: contains_none_of_present_term_no_hit -> {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"}
+Created Scenario: fuzzy list edge cases_b09ca15fd93d
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: fuzzy_ratio_near_merchant_hit | ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Kwasi Intl Trade Market"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 70) | expected HIT got HIT
+Rule Result: fuzzy_ratio_unrelated_merchant_no_hit | ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Completely Different Store"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 90) | expected NO HIT got NO HIT
+Rule Result: fuzzy_any_of_watchlist_hit | ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "International Kwasi Trade Market"}, {"constant": "Low Risk Grocer"}, {"constant": "Airport Cafe"}], "name": "List"}], "name": "FuzzyMatchAnyOf", "named_children": {"algorithm": {"constant": "bag_of_words_similarity"}}} >= 80) | expected HIT got HIT
+Rule Result: contains_any_review_terms_hit | {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "chargeback"}, {"constant": "review"}, {"constant": "stolen"}], "name": "List"}], "name": "ContainsAnyOf"} | expected HIT got HIT
+Rule Result: contains_any_absent_terms_no_hit | {"children": [{"children": [{"constant": "note"}], "name": "Payload"}, {"children": [{"constant": "stolen"}, {"constant": "compromised"}], "name": "List"}], "name": "ContainsAnyOf"} | expected NO HIT got NO HIT
+Rule Result: contains_none_of_absent_terms_hit | {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Sanction"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"} | expected HIT got HIT
+Rule Result: contains_none_of_present_term_no_hit | {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"} | expected NO HIT got NO HIT
+Persisted Decision: b5c73bab-fcf4-46dc-9a1a-0abbab43171f
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[geographic churn window boundaries]
+Result: PASSED
+Fixture: aggregation/geographic_churn_window_boundaries.json
+Case: geographic churn window boundaries
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - three_recent_country_churn_plus_new_country: ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='gh')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ng')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ke')) >= 1) AND (in(country, ['gh', 'ng', 'ke']) = false)); expected HIT
+  - old_us_country_outside_one_minute_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='us')) >= 1); expected NO HIT
+Ingested Generated Records: 2 into transactions_4187c9301c25
+Ingested Generated Records: 2 into transactions_4187c9301c25
+Ingested Generated Records: 2 into transactions_4187c9301c25
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Created Rule: three_recent_country_churn_plus_new_country -> ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='gh')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ng')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ke')) >= 1) AND (in(country, ['gh', 'ng', 'ke']) = false))
+Created Rule: old_us_country_outside_one_minute_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='us')) >= 1)
+Created Scenario: geographic churn window boundaries_9048d2fdf4f7
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 3; Actual Score: 3
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: three_recent_country_churn_plus_new_country | ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='gh')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ng')) >= 1) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='ke')) >= 1) AND (in(country, ['gh', 'ng', 'ke']) = false)) | expected HIT got HIT
+Rule Result: old_us_country_outside_one_minute_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='country', value='us')) >= 1) | expected NO HIT got NO HIT
+Persisted Decision: 6c3cef6f-ee68-4a39-b0e1-1d96efb55c99
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[list null numeric edge cases]
+Result: PASSED
+Fixture: core_ast/list_null_numeric_edge_cases.json
+Case: list null numeric edge cases
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - list_contains_payload_country_hit: contains(['gh', 'ke', 'ng'], country); expected HIT
+  - list_contains_missing_country_no_hit: contains(['us', 'ca'], country); expected NO HIT
+  - is_empty_note_hit: {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsEmpty"}; expected HIT
+  - is_not_empty_email_hit: {"children": [{"children": [{"constant": "email"}], "name": "Payload"}], "name": "IsNotEmpty"}; expected HIT
+  - is_not_empty_note_no_hit: {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsNotEmpty"}; expected NO HIT
+  - amount_is_multiple_of_fifty_hit: {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 50}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}; expected HIT
+  - amount_is_multiple_of_seventy_no_hit: {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 70}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}; expected NO HIT
+  - boolean_or_and_not_hit: ((country = 'us') OR NOT (status = 'blocked')); expected HIT
+Created Rule: list_contains_payload_country_hit -> contains(['gh', 'ke', 'ng'], country)
+Created Rule: list_contains_missing_country_no_hit -> contains(['us', 'ca'], country)
+Created Rule: is_empty_note_hit -> {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsEmpty"}
+Created Rule: is_not_empty_email_hit -> {"children": [{"children": [{"constant": "email"}], "name": "Payload"}], "name": "IsNotEmpty"}
+Created Rule: is_not_empty_note_no_hit -> {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsNotEmpty"}
+Created Rule: amount_is_multiple_of_fifty_hit -> {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 50}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}
+Created Rule: amount_is_multiple_of_seventy_no_hit -> {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 70}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}
+Created Rule: boolean_or_and_not_hit -> ((country = 'us') OR NOT (status = 'blocked'))
+Created Scenario: list null numeric edge cases_71c34d4a5b0c
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 5; Actual Score: 5
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: list_contains_payload_country_hit | contains(['gh', 'ke', 'ng'], country) | expected HIT got HIT
+Rule Result: list_contains_missing_country_no_hit | contains(['us', 'ca'], country) | expected NO HIT got NO HIT
+Rule Result: is_empty_note_hit | {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsEmpty"} | expected HIT got HIT
+Rule Result: is_not_empty_email_hit | {"children": [{"children": [{"constant": "email"}], "name": "Payload"}], "name": "IsNotEmpty"} | expected HIT got HIT
+Rule Result: is_not_empty_note_no_hit | {"children": [{"children": [{"constant": "note"}], "name": "Payload"}], "name": "IsNotEmpty"} | expected NO HIT got NO HIT
+Rule Result: amount_is_multiple_of_fifty_hit | {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 50}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}} | expected HIT got HIT
+Rule Result: amount_is_multiple_of_seventy_no_hit | {"name": "IsMultipleOf", "named_children": {"divider": {"constant": 70}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}} | expected NO HIT got NO HIT
+Rule Result: boolean_or_and_not_hit | ((country = 'us') OR NOT (status = 'blocked')) | expected HIT got HIT
+Persisted Decision: cdb8dade-03eb-4ab6-b773-8d784452c234
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[marble payload time fuzzy helpers]
+Result: PASSED
+Fixture: marble_compat/payload_time_fuzzy.json
+Case: marble payload time fuzzy helpers
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: ({"children": [{"constant": "status"}], "name": "Payload"} = 'pending')
+Rules:
+  - marble_payload_amount: {"children": [{"children": [{"constant": "amount"}], "name": "Payload"}, {"constant": 100}], "name": ">"}; expected HIT
+  - marble_string_helpers: ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Risk"}], "name": "List"}], "name": "ContainsAnyOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Sanction"}], "name": "StringNotContain"}); expected HIT
+  - marble_time_helpers: (({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}} = 12) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}}}} = 13)); expected HIT
+  - marble_fuzzy_and_template: (({"children": [{"constant": "John Smith"}, {"constant": "Jon Smith"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 85) AND ({"children": [{"constant": "Case %status%"}], "name": "StringTemplate", "named_children": {"status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'Case pending') AND ({"children": [{"constant": "risk"}, {"constant": "case"}], "name": "StringConcat", "named_children": {"separator": {"constant": "-"}, "with_separator": {"constant": true}}} = 'risk-case')); expected HIT
+Created Rule: marble_payload_amount -> {"children": [{"children": [{"constant": "amount"}], "name": "Payload"}, {"constant": 100}], "name": ">"}
+Created Rule: marble_string_helpers -> ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Risk"}], "name": "List"}], "name": "ContainsAnyOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Sanction"}], "name": "StringNotContain"})
+Created Rule: marble_time_helpers -> (({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}} = 12) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}}}} = 13))
+Created Rule: marble_fuzzy_and_template -> (({"children": [{"constant": "John Smith"}, {"constant": "Jon Smith"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 85) AND ({"children": [{"constant": "Case %status%"}], "name": "StringTemplate", "named_children": {"status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'Case pending') AND ({"children": [{"constant": "risk"}, {"constant": "case"}], "name": "StringConcat", "named_children": {"separator": {"constant": "-"}, "with_separator": {"constant": true}}} = 'risk-case'))
+Created Scenario: marble payload time fuzzy helpers_74629351163c
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: review; Actual: review
+Rule Result: marble_payload_amount | {"children": [{"children": [{"constant": "amount"}], "name": "Payload"}, {"constant": 100}], "name": ">"} | expected HIT got HIT
+Rule Result: marble_string_helpers | ({"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Trade"}, {"constant": "Risk"}], "name": "List"}], "name": "ContainsAnyOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"children": [{"constant": "Blocked"}], "name": "List"}], "name": "ContainsNoneOf"} AND {"children": [{"children": [{"constant": "merchant"}], "name": "Payload"}, {"constant": "Sanction"}], "name": "StringNotContain"}) | expected HIT got HIT
+Rule Result: marble_time_helpers | (({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}} = 12) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "2026-05-01T12:00:00Z"}], "name": "ParseTime"}}}}} = 13)) | expected HIT got HIT
+Rule Result: marble_fuzzy_and_template | (({"children": [{"constant": "John Smith"}, {"constant": "Jon Smith"}], "name": "FuzzyMatch", "named_children": {"algorithm": {"constant": "ratio"}}} >= 85) AND ({"children": [{"constant": "Case %status%"}], "name": "StringTemplate", "named_children": {"status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'Case pending') AND ({"children": [{"constant": "risk"}, {"constant": "case"}], "name": "StringConcat", "named_children": {"separator": {"constant": "-"}, "with_separator": {"constant": true}}} = 'risk-case')) | expected HIT got HIT
+Persisted Decision: 2a4852da-3917-4b01-bbdd-540adcc70a38
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[merchant fanout same amount]
+Result: PASSED
+Fixture: aggregation/merchant_fanout_same_amount.json
+Case: merchant fanout same amount
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - same_amount_fifteen_transactions_across_many_merchants: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15); expected HIT
+  - five_named_merchants_each_have_three_transactions: ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 0')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 1')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 2')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 3')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 4')) >= 3)); expected HIT
+  - wrong_amount_fanout_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=444)) >= 1); expected NO HIT
+  - missing_sixth_merchant_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 5')) >= 1); expected NO HIT
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Ingested Generated Records: 3 into transactions_4187c9301c25
+Created Rule: same_amount_fifteen_transactions_across_many_merchants -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15)
+Created Rule: five_named_merchants_each_have_three_transactions -> ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 0')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 1')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 2')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 3')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 4')) >= 3))
+Created Rule: wrong_amount_fanout_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=444)) >= 1)
+Created Rule: missing_sixth_merchant_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 5')) >= 1)
+Created Scenario: merchant fanout same amount_04908ee8fd4b
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: same_amount_fifteen_transactions_across_many_merchants | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15) | expected HIT got HIT
+Rule Result: five_named_merchants_each_have_three_transactions | ((list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 0')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 1')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 2')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 3')) >= 3) AND (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 4')) >= 3)) | expected HIT got HIT
+Rule Result: wrong_amount_fanout_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=444)) >= 1) | expected NO HIT got NO HIT
+Rule Result: missing_sixth_merchant_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='merchant', value='Merchant Fanout 5')) >= 1) | expected NO HIT got NO HIT
+Persisted Decision: 5caef4ab-a11d-4b26-ad4f-a73365911776
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[non boolean rule validation failure]
+Result: PASSED
+Fixture: failure_modes/non_boolean_rule_validation.json
+Case: non boolean rule validation failure
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - returns_number: amount
+Created Rule: returns_number -> amount
+Created Scenario: non boolean rule validation failure_533c9387de42
+Expected Validation: INVALID; Actual: INVALID
+Validation Error Matched: rule formula must return a boolean
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[past decision count]
+Result: PASSED
+Fixture: decision_history/past_decision_count.json
+Case: past decision count
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - past_decision_count_all: (past_decision_count() >= 1); expected HIT
+  - past_decision_count_review: (past_decision_count(outcome='review') >= 1); expected HIT
+Seeded Prior Decision Scenario: seed prior review decision
+Created Rule: seed_review -> true
+Created Rule: past_decision_count_all -> (past_decision_count() >= 1)
+Created Rule: past_decision_count_review -> (past_decision_count(outcome='review') >= 1)
+Created Scenario: past decision count_702ec557a576
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 2; Actual Score: 2
+Expected Decision Outcome: review; Actual: review
+Rule Result: past_decision_count_all | (past_decision_count() >= 1) | expected HIT got HIT
+Rule Result: past_decision_count_review | (past_decision_count(outcome='review') >= 1) | expected HIT got HIT
+Persisted Decision: cc80adac-3f1f-4ffb-8db7-08af0688e073
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[related field and database access]
+Result: PASSED
+Fixture: related_data/related_and_database_access.json
+Case: related field and database access
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - related_field_status: (related_field(path='account', field='account_status') = 'active'); expected HIT
+  - database_access_status: ({"name": "DatabaseAccess", "named_children": {"fieldName": {"constant": "account_status"}, "path": {"constant": ["account"]}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 'active'); expected HIT
+Ingested Record: accounts_061f92c772cf object_id=rel_acct_c12d7f34f25d
+Ingested Record: transactions_4187c9301c25 object_id=rel_txn_597a109830ff
+Created Rule: related_field_status -> (related_field(path='account', field='account_status') = 'active')
+Created Rule: database_access_status -> ({"name": "DatabaseAccess", "named_children": {"fieldName": {"constant": "account_status"}, "path": {"constant": ["account"]}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 'active')
+Created Scenario: related field and database access_fc88660fec2c
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 2; Actual Score: 2
+Expected Decision Outcome: review; Actual: review
+Rule Result: related_field_status | (related_field(path='account', field='account_status') = 'active') | expected HIT got HIT
+Rule Result: database_access_status | ({"name": "DatabaseAccess", "named_children": {"fieldName": {"constant": "account_status"}, "path": {"constant": ["account"]}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 'active') | expected HIT got HIT
+Persisted Decision: bcbb0b18-d72c-4cfd-ac0d-26ac5c64930b
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[related records aggregation]
+Result: PASSED
+Fixture: aggregation/related_records_aggregation.json
+Case: related records aggregation
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - related_records_count: (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id)) = 4); expected HIT
+  - related_records_sum: (sum(map_field(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='amount')) = 650); expected HIT
+  - related_records_filter_count: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='country', value='gh')) = 3); expected HIT
+Ingested Record: transactions_4187c9301c25 object_id=agg_target_7db3e675b4a2
+Ingested Record: transactions_4187c9301c25 object_id=agg_owner_eac7987c51b5-a
+Ingested Record: transactions_4187c9301c25 object_id=agg_owner_eac7987c51b5-b
+Ingested Record: transactions_4187c9301c25 object_id=agg_owner_eac7987c51b5-c
+Created Rule: related_records_count -> (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id)) = 4)
+Created Rule: related_records_sum -> (sum(map_field(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='amount')) = 650)
+Created Rule: related_records_filter_count -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='country', value='gh')) = 3)
+Created Scenario: related records aggregation_e6c29bb941e3
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 3; Actual Score: 3
+Expected Decision Outcome: review; Actual: review
+Rule Result: related_records_count | (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id)) = 4) | expected HIT got HIT
+Rule Result: related_records_sum | (sum(map_field(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='amount')) = 650) | expected HIT got HIT
+Rule Result: related_records_filter_count | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id), field='country', value='gh')) = 3) | expected HIT got HIT
+Persisted Decision: 292e6a62-e895-4080-8cec-3e457208dba9
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[same amount velocity and marble filters]
+Result: PASSED
+Fixture: aggregation/same_amount_velocity_and_marble_filters.json
+Case: same amount velocity and marble filters
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - ten_same_amount_transactions_one_minute: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 10); expected HIT
+  - fifteen_same_amount_transactions_one_minute_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15); expected NO HIT
+  - marble_sum_same_owner_recent_window: ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "event_time"}, "operator": {"constant": ">="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1M"}, "sign": {"constant": "-"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770); expected HIT
+  - marble_sum_wrong_amount_no_hit: ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"constant": 778}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770); expected NO HIT
+Ingested Generated Records: 10 into transactions_4187c9301c25
+Ingested Generated Records: 4 into transactions_4187c9301c25
+Created Rule: ten_same_amount_transactions_one_minute -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 10)
+Created Rule: fifteen_same_amount_transactions_one_minute_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15)
+Created Rule: marble_sum_same_owner_recent_window -> ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "event_time"}, "operator": {"constant": ">="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1M"}, "sign": {"constant": "-"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770)
+Created Rule: marble_sum_wrong_amount_no_hit -> ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"constant": 778}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770)
+Created Scenario: same amount velocity and marble filters_74a0d8055a3e
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: ten_same_amount_transactions_one_minute | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 10) | expected HIT got HIT
+Rule Result: fifteen_same_amount_transactions_one_minute_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=amount)) >= 15) | expected NO HIT got NO HIT
+Rule Result: marble_sum_same_owner_recent_window | ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "amount"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "event_time"}, "operator": {"constant": ">="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1M"}, "sign": {"constant": "-"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770) | expected HIT got HIT
+Rule Result: marble_sum_wrong_amount_no_hit | ({"name": "Aggregator", "named_children": {"aggregator": {"constant": "SUM"}, "fieldName": {"constant": "amount"}, "filters": {"children": [{"name": "Filter", "named_children": {"fieldName": {"constant": "owner_id"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"children": [{"constant": "owner_id"}], "name": "Payload"}}}, {"name": "Filter", "named_children": {"fieldName": {"constant": "amount"}, "operator": {"constant": "="}, "tableName": {"constant": "transactions_4187c9301c25"}, "value": {"constant": 778}}}], "name": "List"}, "tableName": {"constant": "transactions_4187c9301c25"}}} = 7770) | expected NO HIT got NO HIT
+Persisted Decision: 8b4b0258-00b0-4317-9874-b4cae9bd4a5c
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[test charge escalation velocity]
+Result: PASSED
+Fixture: aggregation/test_charge_escalation_velocity.json
+Case: test charge escalation velocity
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - small_decline_burst_then_large_charge: ((amount > 1000) AND (list_count(filter_eq(items=filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='note', value='small-test-decline'), field='amount', value=1)) >= 10)); expected HIT
+  - old_declines_do_not_leak_into_one_minute_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=2)) >= 1); expected NO HIT
+  - current_ip_not_seen_in_test_burst_no_hit: (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='ip', value=ip)) >= 1); expected NO HIT
+Ingested Generated Records: 12 into transactions_4187c9301c25
+Ingested Generated Records: 20 into transactions_4187c9301c25
+Created Rule: small_decline_burst_then_large_charge -> ((amount > 1000) AND (list_count(filter_eq(items=filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='note', value='small-test-decline'), field='amount', value=1)) >= 10))
+Created Rule: old_declines_do_not_leak_into_one_minute_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=2)) >= 1)
+Created Rule: current_ip_not_seen_in_test_burst_no_hit -> (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='ip', value=ip)) >= 1)
+Created Scenario: test charge escalation velocity_5716b4eec398
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 3; Actual Score: 3
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: small_decline_burst_then_large_charge | ((amount > 1000) AND (list_count(filter_eq(items=filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='note', value='small-test-decline'), field='amount', value=1)) >= 10)) | expected HIT got HIT
+Rule Result: old_declines_do_not_leak_into_one_minute_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0167), field='amount', value=2)) >= 1) | expected NO HIT got NO HIT
+Rule Result: current_ip_not_seen_in_test_burst_no_hit | (list_count(filter_eq(items=related_records(object_type='transactions_4187c9301c25', match_field='account_id', equals=account_id, timestamp_field='event_time', within_hours=0.0834), field='ip', value=ip)) >= 1) | expected NO HIT got NO HIT
+Persisted Decision: 9e0a37da-a686-44ad-9509-573d095ee876
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[time and template edge cases]
+Result: PASSED
+Fixture: marble_compat/time_and_template_edge_cases.json
+Case: time and template edge cases
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - timestamp_extract_day_and_hour_hit: (({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 1) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 23)); expected HIT
+  - time_add_crosses_midnight_hit: ({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 2); expected HIT
+  - wrong_hour_after_time_add_no_hit: ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 23); expected NO HIT
+  - string_template_multiple_values_hit: ({"children": [{"constant": "%country%:%status%"}], "name": "StringTemplate", "named_children": {"country": {"children": [{"constant": "country"}], "name": "Payload"}, "status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'gh:pending'); expected HIT
+  - string_concat_without_separator_hit: ({"children": [{"children": [{"constant": "country"}], "name": "Payload"}, {"constant": "-"}, {"children": [{"constant": "status"}], "name": "Payload"}], "name": "StringConcat", "named_children": {"with_separator": {"constant": false}}} = 'gh-pending'); expected HIT
+Created Rule: timestamp_extract_day_and_hour_hit -> (({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 1) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 23))
+Created Rule: time_add_crosses_midnight_hit -> ({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 2)
+Created Rule: wrong_hour_after_time_add_no_hit -> ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 23)
+Created Rule: string_template_multiple_values_hit -> ({"children": [{"constant": "%country%:%status%"}], "name": "StringTemplate", "named_children": {"country": {"children": [{"constant": "country"}], "name": "Payload"}, "status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'gh:pending')
+Created Rule: string_concat_without_separator_hit -> ({"children": [{"children": [{"constant": "country"}], "name": "Payload"}, {"constant": "-"}, {"children": [{"constant": "status"}], "name": "Payload"}], "name": "StringConcat", "named_children": {"with_separator": {"constant": false}}} = 'gh-pending')
+Created Scenario: time and template edge cases_0939fc4b0051
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 4; Actual Score: 4
+Expected Decision Outcome: block_and_review; Actual: block_and_review
+Rule Result: timestamp_extract_day_and_hour_hit | (({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 1) AND ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"children": [{"constant": "event_time"}], "name": "Payload"}}} = 23)) | expected HIT got HIT
+Rule Result: time_add_crosses_midnight_hit | ({"name": "TimestampExtract", "named_children": {"part": {"constant": "day_of_month"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 2) | expected HIT got HIT
+Rule Result: wrong_hour_after_time_add_no_hit | ({"name": "TimestampExtract", "named_children": {"part": {"constant": "hour"}, "timestamp": {"name": "TimeAdd", "named_children": {"duration": {"constant": "PT1H"}, "sign": {"constant": "+"}, "timestampField": {"children": [{"constant": "event_time"}], "name": "Payload"}}}}} = 23) | expected NO HIT got NO HIT
+Rule Result: string_template_multiple_values_hit | ({"children": [{"constant": "%country%:%status%"}], "name": "StringTemplate", "named_children": {"country": {"children": [{"constant": "country"}], "name": "Payload"}, "status": {"children": [{"constant": "status"}], "name": "Payload"}}} = 'gh:pending') | expected HIT got HIT
+Rule Result: string_concat_without_separator_hit | ({"children": [{"children": [{"constant": "country"}], "name": "Payload"}, {"constant": "-"}, {"children": [{"constant": "status"}], "name": "Payload"}], "name": "StringConcat", "named_children": {"with_separator": {"constant": false}}} = 'gh-pending') | expected HIT got HIT
+Persisted Decision: 6286c0f1-ea17-47ec-aa5d-d049405bc264
+Scenario Decision Listing: contains evaluated decision
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[trigger not matched no decision]
+Result: PASSED
+Fixture: core_ast/trigger_not_matched_no_decision.json
+Case: trigger not matched no decision
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: (country = 'us')
+Rules:
+  - high_amount_would_hit_if_triggered: (amount > 1000)
+Created Rule: high_amount_would_hit_if_triggered -> (amount > 1000)
+Created Scenario: trigger not matched no decision_362084efd29a
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: NOT MATCHED; Actual: NOT MATCHED
+Decision: none because trigger did not match
+
+test_decision_engine_rule_fixtures.py::test_decision_engine_rule_fixture_contract[velocity 500 transactions in one minute]
+Result: PASSED
+Fixture: aggregation/velocity_500_transactions_one_minute.json
+Case: velocity 500 transactions in one minute
+Created Tenant: itc tenant_2d0eed7d238e (22412b7d-89bc-46ff-bac7-318ac4e80b0e)
+Created Table: Transactions (transactions_4187c9301c25)
+Created Table: Accounts (accounts_061f92c772cf)
+Trigger: true
+Rules:
+  - velocity_more_than_500_same_owner_one_minute: (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 500); expected HIT
+  - velocity_more_than_600_same_owner_one_minute_no_hit: (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 600); expected NO HIT
+  - velocity_wrong_owner_no_hit: (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals='velocity_other_fc4d54d96033', timestamp_field='event_time', within_hours=0.0167)) > 500); expected NO HIT
+Ingested Generated Records: 501 into transactions_4187c9301c25
+Ingested Generated Records: 25 into transactions_4187c9301c25
+Created Rule: velocity_more_than_500_same_owner_one_minute -> (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 500)
+Created Rule: velocity_more_than_600_same_owner_one_minute_no_hit -> (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 600)
+Created Rule: velocity_wrong_owner_no_hit -> (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals='velocity_other_fc4d54d96033', timestamp_field='event_time', within_hours=0.0167)) > 500)
+Created Scenario: velocity 500 transactions in one minute_7fdda5641e55
+Expected Validation: VALID; Actual: VALID
+Published Scenario: yes
+Expected Trigger: MATCHED; Actual: MATCHED
+Expected Score: 2; Actual Score: 2
+Expected Decision Outcome: review; Actual: review
+Rule Result: velocity_more_than_500_same_owner_one_minute | (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 500) | expected HIT got HIT
+Rule Result: velocity_more_than_600_same_owner_one_minute_no_hit | (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals=owner_id, timestamp_field='event_time', within_hours=0.0167)) > 600) | expected NO HIT got NO HIT
+Rule Result: velocity_wrong_owner_no_hit | (list_count(related_records(object_type='transactions_4187c9301c25', match_field='owner_id', equals='velocity_other_fc4d54d96033', timestamp_field='event_time', within_hours=0.0167)) > 500) | expected NO HIT got NO HIT
+Persisted Decision: c0d3133e-7747-4088-8736-436695cf2809
+Scenario Decision Listing: contains evaluated decision

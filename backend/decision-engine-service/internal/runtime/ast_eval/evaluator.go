@@ -31,7 +31,12 @@ func EvaluateNode(ctx context.Context, node domainast.Node, runtime Runtime) (an
 	if node.Function == "" || strings.EqualFold(node.Function, "constant") {
 		return node.Constant, nil
 	}
+	return runtime.EvalCache.evaluate(ctx, node, runtime, func() (any, error) {
+		return evaluateNodeUncached(ctx, node, runtime)
+	})
+}
 
+func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runtime) (any, error) {
 	switch canonicalFunctionName(node.Function) {
 	case "field_ref":
 		fieldNode, ok := node.NamedChildren["field"]

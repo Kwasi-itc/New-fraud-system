@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
@@ -27,6 +28,27 @@ type systemClock struct{}
 
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
+func dbPoolStatsProvider(db *pgxpool.Pool) service.DBPoolStatsProvider {
+	if db == nil {
+		return nil
+	}
+	return func() service.DBPoolStats {
+		stats := db.Stat()
+		return service.DBPoolStats{
+			AcquireCount:           stats.AcquireCount(),
+			AcquireDurationMicros:  stats.AcquireDuration().Microseconds(),
+			EmptyAcquireCount:      stats.EmptyAcquireCount(),
+			EmptyAcquireWaitMicros: stats.EmptyAcquireWaitTime().Microseconds(),
+			CanceledAcquireCount:   stats.CanceledAcquireCount(),
+			MaxConns:               stats.MaxConns(),
+			TotalConns:             stats.TotalConns(),
+			AcquiredConns:          stats.AcquiredConns(),
+			IdleConns:              stats.IdleConns(),
+			ConstructingConns:      stats.ConstructingConns(),
+		}
+	}
+}
+
 type workerRunner struct {
 	logger           *slog.Logger
 	executionService service.ExecutionService
@@ -35,14 +57,15 @@ type workerRunner struct {
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	cfg, err := app.LoadConfig()
 	if err != nil {
+		logger := app.NewLogger(os.Stdout, "info")
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+
+	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
+	slog.SetDefault(logger)
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
@@ -107,6 +130,7 @@ func main() {
 		scoringRequestRepo,
 		cfg.AggregatePushdownMode,
 		cfg.AggregatePushdownAggregates,
+		dbPoolStatsProvider(db),
 	)
 
 	executionService := service.NewExecutionService(

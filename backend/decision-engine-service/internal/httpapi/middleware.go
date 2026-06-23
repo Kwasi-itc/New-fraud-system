@@ -29,7 +29,7 @@ func requestContextMiddleware(logger *slog.Logger) gin.HandlerFunc {
 		c.Writer.Header().Set(requestIDHeader, requestID)
 		c.Next()
 
-		requestLogger.Info(
+		requestLogger.Debug(
 			"http request",
 			"method", c.Request.Method,
 			"path", c.FullPath(),

@@ -1,0 +1,98 @@
+{
+  "summary_version": 2,
+  "run": {
+    "profile": "mixed",
+    "executor": "constant-arrival-rate",
+    "executor_mode": "arrival-rate",
+    "configured_vus": 20,
+    "pre_allocated_vus": 40,
+    "max_vus": 80,
+    "rate": 20,
+    "duration": "2m",
+    "heavy_seed_records": 750,
+    "scenario_count": 2,
+    "rules_per_scenario": 2
+  },
+  "setup": {
+    "tenant_id": "430f414d-76e6-4bb9-a1f0-d280cfdb153a",
+    "object_type": "transactions_1781003854890_539605966",
+    "simple_scenario_id": "f80843e9-e81d-4bc6-8cd8-1a09afddf5e1",
+    "heavy_scenario_id": "67ef7e23-a741-41bb-8610-1f3fdf5faa4e",
+    "simple_scenario_ids": [
+      "f80843e9-e81d-4bc6-8cd8-1a09afddf5e1",
+      "0053d641-9ffe-42bb-8cd5-ccb8615ee87c"
+    ],
+    "heavy_scenario_ids": [
+      "67ef7e23-a741-41bb-8610-1f3fdf5faa4e",
+      "d2e70922-122f-4d2c-94b2-2a9ce20d943b"
+    ],
+    "heavy_owner": "heavy_owner_1781003854989_657605037",
+    "counts": {
+      "setup_ingested_records": 750,
+      "rules_per_scenario": 2,
+      "simple_scenarios_created": 2,
+      "workflows_created": 4,
+      "heavy_scenarios_created": 2,
+      "requested_scenario_count": 2,
+      "rules_created": 8,
+      "scenarios_created": 4,
+      "scoring_configs_created": 4,
+      "screening_configs_created": 4
+    }
+  },
+  "workload_counts": {
+    "runtime_ingests": 601,
+    "direct_evaluations": 600,
+    "heavy_evaluations": 600,
+    "callback_evaluations": 600,
+    "total_iterations": 2401,
+    "total_http_requests": 2468
+  },
+  "success": {
+    "checks_passed_rate": 1,
+    "http_failed_rate": 0,
+    "stress_failed_rate": 0
+  },
+  "latency_ms": {
+    "ingest": {
+      "avg": 23.33433277870215,
+      "med": 16.783,
+      "p90": 34.139,
+      "p95": 58.515,
+      "p99": 184.65,
+      "max": 459.643
+    },
+    "direct_decision": {
+      "avg": 36.58414666666669,
+      "med": 27.3005,
+      "p90": 48.11650000000003,
+      "p95": 80.70119999999996,
+      "p99": 216.00138999999967,
+      "max": 536.102
+    },
+    "heavy_decision": {
+      "avg": 76.145115,
+      "med": 68.6575,
+      "p90": 98.80030000000001,
+      "p95": 139.51444999999975,
+      "p99": 319.7003499999997,
+      "max": 562.808
+    },
+    "ingestion_callback": {
+      "avg": 202.7791733333333,
+      "med": 187.1205,
+      "p90": 291.9933000000001,
+      "p95": 344.72974999999997,
+      "p99": 619.72731,
+      "max": 1026.461
+    },
+    "overall_http": {
+      "avg": 83.05430915721246,
+      "med": 47.0065,
+      "p90": 200.88650000000004,
+      "p95": 244.3568000000001,
+      "p99": 398.5875299999993,
+      "max": 1026.461
+    }
+  }
+}

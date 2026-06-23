@@ -39,6 +39,27 @@ func (systemClock) Now() time.Time {
 	return time.Now().UTC()
 }
 
+func dbPoolStatsProvider(db *pgxpool.Pool) service.DBPoolStatsProvider {
+	if db == nil {
+		return nil
+	}
+	return func() service.DBPoolStats {
+		stats := db.Stat()
+		return service.DBPoolStats{
+			AcquireCount:           stats.AcquireCount(),
+			AcquireDurationMicros:  stats.AcquireDuration().Microseconds(),
+			EmptyAcquireCount:      stats.EmptyAcquireCount(),
+			EmptyAcquireWaitMicros: stats.EmptyAcquireWaitTime().Microseconds(),
+			CanceledAcquireCount:   stats.CanceledAcquireCount(),
+			MaxConns:               stats.MaxConns(),
+			TotalConns:             stats.TotalConns(),
+			AcquiredConns:          stats.AcquiredConns(),
+			IdleConns:              stats.IdleConns(),
+			ConstructingConns:      stats.ConstructingConns(),
+		}
+	}
+}
+
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
@@ -117,7 +138,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)

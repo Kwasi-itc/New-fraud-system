@@ -280,7 +280,7 @@ def data_model() -> ApiClient:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     client = httpx.Client(
-        base_url=os.getenv("DATA_MODEL_URL", "http://localhost:8080"),
+        base_url=os.getenv("DATA_MODEL_URL", "http://127.0.0.1:8080"),
         timeout=httpx.Timeout(20.0),
         headers=headers,
     )
@@ -297,7 +297,7 @@ def ingestion() -> ApiClient:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     client = httpx.Client(
-        base_url=os.getenv("INGESTION_URL", "http://localhost:8081"),
+        base_url=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"),
         timeout=httpx.Timeout(30.0),
         headers=headers,
     )
@@ -314,7 +314,7 @@ def decision_engine() -> ApiClient:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     client = httpx.Client(
-        base_url=os.getenv("DECISION_ENGINE_URL", "http://localhost:8082"),
+        base_url=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"),
         timeout=httpx.Timeout(30.0),
         headers=headers,
     )
@@ -325,6 +325,7 @@ def decision_engine() -> ApiClient:
 
 
 def create_tenant_model(data_model: ApiClient) -> dict[str, Any]:
+    pass
 
 @pytest.fixture(scope="session")
 def screening_service() -> ApiClient:
@@ -333,7 +334,7 @@ def screening_service() -> ApiClient:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     client = httpx.Client(
-        base_url=os.getenv("SCREENING_URL", "http://localhost:8085"),
+        base_url=os.getenv("SCREENING_URL", "http://127.0.0.1:8085"),
         timeout=httpx.Timeout(30.0),
         headers=headers,
     )

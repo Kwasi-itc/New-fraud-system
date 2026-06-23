@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interactive Demo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">ID</div>
+        <div>
+          <h1>Interactive Demo</h1>
+          <p>Guided service flow</p>
+        </div>
+      </div>
+      <div class="fixture-toolbar">
+        <input id="fixtureSearch" type="search" placeholder="Search fixtures" />
+      </div>
+      <nav id="fixtureList" class="fixture-list"></nav>
+    </aside>
+
+    <main class="workspace">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow" id="fixtureCategory">No fixture selected</p>
+          <h2 id="fixtureTitle">Choose a fixture to start</h2>
+          <p id="fixtureDescription">Create each system part, retrieve it, edit rules, then evaluate.</p>
+        </div>
+        <div class="actions">
+          <button id="createSessionBtn" class="primary" disabled>Create Session</button>
+          <button id="previousStageBtn" disabled>Previous</button>
+          <button id="runCurrentBtn" disabled>Run Current</button>
+          <button id="nextStageBtn" disabled>Next</button>
+          <button id="runAllBtn" disabled>Run All</button>
+          <button id="resetBtn" disabled>Reset</button>
+        </div>
+      </section>
+
+      <section id="stageFlow" class="stage-flow"></section>
+
+      <section class="stage-layout">
+        <section class="panel stage-main">
+          <div class="panel-header">
+            <div>
+              <h3 id="stageTitle">Fixture Setup</h3>
+              <p id="stageDescription" class="muted">Select a fixture and create a session.</p>
+            </div>
+            <span id="stageStatus" class="status pending">pending</span>
+          </div>
+          <div id="stageContent" class="stage-content empty">No stage selected.</div>
+        </section>
+      </section>
+
+      <section class="details-grid">
+        <details class="panel" open>
+          <summary>Service Timeline</summary>
+          <div id="serviceTimeline" class="trace empty">No service calls yet.</div>
+        </details>
+        <details class="panel">
+          <summary>Materialized Fixture</summary>
+          <pre id="materializedJson" class="json-block">{}</pre>
+        </details>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,117 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_data_volume_sensitivity",
+    "objective": "Measure how decision evaluation performance changes as seeded tenant data volume grows.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/decisions/all",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-22T12:36:59.302287Z",
+    "command": [
+      ".\\stress-tests\\decision_data_volume_sensitivity.py",
+      "--data-sizes",
+      "100,1000,10000,100000",
+      "--variants",
+      "aggregate_count_pushdown,mixed_heavy",
+      "--vus",
+      "5",
+      "--duration",
+      "60",
+      "--ingestion-database-url",
+      "postgres://fraud:fraud@localhost:5432/ingestion?sslmode=disable"
+    ],
+    "python_version": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12,
+    "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+    "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+    "docker_version": "Docker version 29.2.0, build 0b9d198",
+    "docker_compose_version": "Docker Compose version v5.0.2",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "variant": "aggregate_count_pushdown",
+    "variant_description": "Remote aggregate count pushdown over owner records.",
+    "tenant_id": "6220d049-a080-4e4c-9771-7919b1b31428",
+    "object_type": "transactions_a4736cac63ac",
+    "account_object_type": "accounts_a74acb41d171",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "total_rules_per_request": 1,
+    "scenario_ids": [
+      "a1463188-0f09-454b-a48d-b319d4a0d8e9"
+    ],
+    "rule_count": 1,
+    "seeded_counts": {
+      "related_records": 10000
+    },
+    "related_seed_count": 10000,
+    "data_size": 10000
+  },
+  "run": {
+    "variant": "aggregate_count_pushdown",
+    "data_size": 10000,
+    "configured_vus": 5,
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "total_rules_per_request": 1,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "amount": 1800,
+    "output": "stress-tests\\data-volume-runs\\2026-06-22T123141-165178Z\\trial-aggregate_count_pushdown-10000-records-1-scenarios-1-rules-5-vus-60s.json",
+    "auth_token": null
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_requests": 10474,
+    "successful_requests": 10474,
+    "failed_requests": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "expected_decision_writes": 10474,
+    "expected_rule_execution_writes": 10474
+  },
+  "rates": {
+    "achieved_successful_requests_per_second": 174.5060642006901,
+    "expected_decision_writes_per_second": 174.5060642006901,
+    "expected_rule_execution_writes_per_second": 174.5060642006901,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 2076,
+    "max": 2122,
+    "avg": 2094.8
+  },
+  "latency_ms": {
+    "avg": 28.644075424867395,
+    "p50": 25.60619999985647,
+    "p95": 46.49313000018084,
+    "p99": 65.79445800032781,
+    "max": 333.6072999991302
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.020836800000325,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": [],
+  "data_size_baseline_comparison": {
+    "baseline_data_size": 100,
+    "baseline_available": true,
+    "rps_slowdown_ratio": 1.4160302437233303,
+    "p50_latency_ratio": 1.2860974384083552,
+    "p95_latency_ratio": 1.6446770915942008,
+    "p99_latency_ratio": 1.7818823202679235,
+    "max_latency_ratio": 5.329752018572187,
+    "avg_latency_ratio": 1.416103639215273
+  }
+}

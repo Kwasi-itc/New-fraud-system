@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,20 +19,39 @@ func NewTransactionManager(db *pgxpool.Pool) TransactionManager {
 }
 
 func (m TransactionManager) Run(ctx context.Context, fn func(store ports.MutationStore) error) error {
+	timings, hasTimings := ports.TransactionTimingsFromContext(ctx)
+	beginStartedAt := time.Now()
 	tx, err := m.db.BeginTx(ctx, pgx.TxOptions{})
+	if hasTimings {
+		timings.BeginMicros = time.Since(beginStartedAt).Microseconds()
+	}
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_ = tx.Rollback(ctx)
+		rollbackCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = tx.Rollback(rollbackCtx)
 	}()
 
 	store := mutationStore{tx: tx}
+	bodyStartedAt := time.Now()
 	if err := fn(store); err != nil {
+		if hasTimings {
+			timings.BodyMicros = time.Since(bodyStartedAt).Microseconds()
+		}
 		return err
 	}
+	if hasTimings {
+		timings.BodyMicros = time.Since(bodyStartedAt).Microseconds()
+	}
 
-	return tx.Commit(ctx)
+	commitStartedAt := time.Now()
+	err = tx.Commit(ctx)
+	if hasTimings {
+		timings.CommitMicros = time.Since(commitStartedAt).Microseconds()
+	}
+	return err
 }
 
 type mutationStore struct {

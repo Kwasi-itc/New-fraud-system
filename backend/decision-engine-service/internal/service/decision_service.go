@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"sync"
+	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
+	scenarioDomain "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
@@ -30,6 +34,23 @@ type MultiScenarioEvaluationResult struct {
 	ObjectID string                     `json:"object_id"`
 	Results  []DecisionEvaluationResult `json:"results"`
 }
+
+const decisionEvaluationCacheTTL = 30 * time.Second
+
+type DBPoolStats struct {
+	AcquireCount           int64
+	AcquireDurationMicros  int64
+	EmptyAcquireCount      int64
+	EmptyAcquireWaitMicros int64
+	CanceledAcquireCount   int64
+	MaxConns               int32
+	TotalConns             int32
+	AcquiredConns          int32
+	IdleConns              int32
+	ConstructingConns      int32
+}
+
+type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
 	txManager                   ports.TransactionManager
@@ -59,6 +80,8 @@ type DecisionService struct {
 	scoringRequestRepo          ports.ScoringRequestRepository
 	aggregatePushdownMode       string
 	aggregatePushdownAggregates []string
+	evaluationCache             *decisionEvaluationCache
+	dbPoolStatsProvider         DBPoolStatsProvider
 }
 
 func NewDecisionService(
@@ -89,6 +112,7 @@ func NewDecisionService(
 	scoringRequestRepo ports.ScoringRequestRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
 	return DecisionService{
 		txManager:                   txManager,
@@ -118,6 +142,8 @@ func NewDecisionService(
 		scoringRequestRepo:          scoringRequestRepo,
 		aggregatePushdownMode:       aggregatePushdownMode,
 		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
+		evaluationCache:             newDecisionEvaluationCache(decisionEvaluationCacheTTL),
+		dbPoolStatsProvider:         dbPoolStatsProvider,
 	}
 }
 
@@ -125,38 +151,93 @@ func (s DecisionService) EvaluateScenario(
 	ctx context.Context,
 	tenantID, scenarioID string,
 	req DecisionEvaluationRequest,
-) (DecisionEvaluationResult, error) {
-	scn, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+) (result DecisionEvaluationResult, err error) {
+	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), s.clock.Now())
+}
+
+func (s DecisionService) evaluateScenario(
+	ctx context.Context,
+	tenantID, scenarioID string,
+	req DecisionEvaluationRequest,
+	evalCache *asteval.EvaluationCache,
+	evaluationNow time.Time,
+) (result DecisionEvaluationResult, err error) {
+	timingStartedAt := time.Now()
+	stageStartedAt := timingStartedAt
+	timings := make(map[string]int64, 20)
+	currentStage := "scenario_get"
+	poolStatsBefore, hasPoolStats := s.snapshotDBPoolStats()
+	markTiming := func(stage string) {
+		now := time.Now()
+		timings[stage+"_us"] = now.Sub(stageStartedAt).Microseconds()
+		stageStartedAt = now
+	}
+	defer func() {
+		if err == nil {
+			return
+		}
+		timings[currentStage+"_failed_us"] = time.Since(stageStartedAt).Microseconds()
+		logDecisionEvaluationTimings(
+			tenantID,
+			scenarioID,
+			req,
+			timings,
+			timingStartedAt,
+			false,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			append(
+				[]any{
+					"failed_stage", currentStage,
+					"error", err.Error(),
+				},
+				s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+			)...,
+		)
+	}()
+
+	scn, err := s.getScenario(ctx, tenantID, scenarioID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("scenario_get")
 	if scn.LiveIterationID == nil {
 		return DecisionEvaluationResult{}, fmt.Errorf("scenario has no live iteration")
 	}
-	iteration, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, *scn.LiveIterationID)
+	currentStage = "iteration_get"
+	iteration, err := s.getIteration(ctx, tenantID, scenarioID, *scn.LiveIterationID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("iteration_get")
 	if req.ObjectType != scn.TriggerObjectType {
 		return DecisionEvaluationResult{}, fmt.Errorf("object_type does not match scenario trigger object type")
 	}
 	if len(req.Fields) == 0 {
+		currentStage = "record_get"
 		record, err := s.tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
 		if err != nil {
 			return DecisionEvaluationResult{}, err
 		}
 		req.Fields = record.Fields
+		markTiming("record_get")
 	}
+	currentStage = "tenant_model_get"
 	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("tenant_model_get")
 	runtime := asteval.Runtime{
 		TenantID:                    tenantID,
 		ObjectID:                    req.ObjectID,
 		ObjectType:                  req.ObjectType,
 		Fields:                      req.Fields,
-		Now:                         s.clock.Now(),
+		Now:                         evaluationNow,
 		Model:                       &model,
 		TenantDataReader:            s.tenantDataReader,
 		CustomListRepo:              s.customListRepo,
@@ -166,33 +247,57 @@ func (s DecisionService) EvaluateScenario(
 		DecisionRepo:                s.decisionRepo,
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
+		EvalCache:                   evalCache,
 	}
+	currentStage = "trigger_eval"
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("trigger_eval")
 	if !triggered {
+		logDecisionEvaluationTimings(
+			tenantID,
+			scenarioID,
+			req,
+			timings,
+			timingStartedAt,
+			false,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+		)
 		return DecisionEvaluationResult{Triggered: false}, nil
 	}
 
-	rules, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iteration.ID)
+	currentStage = "rules_list"
+	rules, err := s.getRules(ctx, tenantID, scenarioID, iteration.ID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("rules_list")
 	now := s.clock.Now()
+	currentStage = "snoozes_list"
 	activeSnoozes, err := s.snoozeRepo.ListActive(ctx, tenantID, scenarioID, req.ObjectType, req.ObjectID, now)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("snoozes_list")
 	activeSnoozeGroups := make(map[string]struct{}, len(activeSnoozes))
 	for _, item := range activeSnoozes {
 		activeSnoozeGroups[item.SnoozeGroupID] = struct{}{}
 	}
 	decisionID := s.idGen.New().String()
+	currentStage = "rules_eval"
 	evaluatedRules, err := evaluateRules(ctx, rules, runtime, activeSnoozeGroups, 0)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	markTiming("rules_eval")
 
 	score := 0
 	ruleExecs := make([]decision.RuleExecution, 0, len(evaluatedRules))
@@ -209,6 +314,8 @@ func (s DecisionService) EvaluateScenario(
 		}
 		ruleExecs = append(ruleExecs, exec)
 	}
+	currentStage = "decision_build"
+	markTiming("decision_build")
 
 	item := decision.Decision{
 		ID:                  decisionID,
@@ -225,56 +332,565 @@ func (s DecisionService) EvaluateScenario(
 
 	var stored decision.Decision
 	var storedExecs []decision.RuleExecution
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	currentStage = "workflow_build"
+	workflowBuildStartedAt := time.Now()
+	workflowExecs, err := s.buildWorkflowExecutions(ctx, item, ruleExecs, runtime)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	workflowBuiltAt := time.Now()
+	timings["workflow_build_us"] = workflowBuiltAt.Sub(workflowBuildStartedAt).Microseconds()
+	stageStartedAt = workflowBuiltAt
+	currentStage = "screening_build"
+	screeningBuildStartedAt := time.Now()
+	screeningExecs, err := s.buildScreeningExecutions(ctx, item, req.Fields)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	screeningBuiltAt := time.Now()
+	timings["screening_build_us"] = screeningBuiltAt.Sub(screeningBuildStartedAt).Microseconds()
+	stageStartedAt = screeningBuiltAt
+	currentStage = "scoring_build"
+	scoringBuildStartedAt := time.Now()
+	scoringReqs, err := s.buildScoringRequests(ctx, item)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	scoringBuiltAt := time.Now()
+	timings["scoring_build_us"] = scoringBuiltAt.Sub(scoringBuildStartedAt).Microseconds()
+	stageStartedAt = scoringBuiltAt
+
+	var storedWorkflowExecs []workflow.Execution
+	var storedScreeningExecs []screening.Execution
+	var storedScoringReqs []scoring.Request
+	var outboxEventCount int
+	txTimings := &ports.TransactionTimings{}
+	currentStage = "tx_begin"
+	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+		txStartedAt := time.Now()
+		txStageStartedAt := txStartedAt
+		markTxTiming := func(stage string) {
+			txNow := time.Now()
+			timings["tx_"+stage+"_us"] = txNow.Sub(txStageStartedAt).Microseconds()
+			txStageStartedAt = txNow
+		}
+
 		var err error
+		currentStage = "tx_decision_insert"
 		stored, err = store.Decisions().Create(ctx, item)
 		if err != nil {
 			return err
 		}
+		markTxTiming("decision_insert")
+		currentStage = "tx_rule_exec_insert"
 		storedExecs, err = store.RuleExecutions().CreateMany(ctx, ruleExecs)
 		if err != nil {
 			return err
 		}
-		workflowExecs, err := s.buildWorkflowExecutions(ctx, stored, storedExecs, runtime)
+		markTxTiming("rule_exec_insert")
+		currentStage = "tx_workflow_insert"
+		storedWorkflowExecs, err = store.WorkflowExecutions().CreateMany(ctx, workflowExecs)
 		if err != nil {
 			return err
 		}
-		storedWorkflowExecs, err := store.WorkflowExecutions().CreateMany(ctx, workflowExecs)
+		markTxTiming("workflow_insert")
+		currentStage = "tx_screening_insert"
+		storedScreeningExecs, err = store.ScreeningExecutions().CreateMany(ctx, screeningExecs)
 		if err != nil {
 			return err
 		}
-		screeningExecs, err := s.buildScreeningExecutions(ctx, stored, req.Fields)
+		markTxTiming("screening_insert")
+		currentStage = "tx_scoring_insert"
+		storedScoringReqs, err = store.ScoringRequests().CreateMany(ctx, scoringReqs)
 		if err != nil {
 			return err
 		}
-		storedScreeningExecs, err := store.ScreeningExecutions().CreateMany(ctx, screeningExecs)
-		if err != nil {
-			return err
-		}
-		scoringReqs, err := s.buildScoringRequests(ctx, stored)
-		if err != nil {
-			return err
-		}
-		storedScoringReqs, err := store.ScoringRequests().CreateMany(ctx, scoringReqs)
-		if err != nil {
-			return err
-		}
+		markTxTiming("scoring_insert")
+		currentStage = "tx_outbox_build"
 		outboxEvents, err := s.buildOutboxEvents(stored, storedWorkflowExecs, storedScreeningExecs, storedScoringReqs)
 		if err != nil {
 			return err
 		}
+		outboxEventCount = len(outboxEvents)
+		markTxTiming("outbox_build")
+		currentStage = "tx_outbox_insert"
 		_, err = store.OutboxEvents().CreateMany(ctx, outboxEvents)
+		markTxTiming("outbox_insert")
+		timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
 		return err
 	})
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	timings["tx_begin_us"] = txTimings.BeginMicros
+	timings["tx_manager_body_us"] = txTimings.BodyMicros
+	timings["tx_commit_us"] = txTimings.CommitMicros
+	currentStage = "tx_total"
+	markTiming("tx_total")
+	logDecisionEvaluationTimings(
+		tenantID,
+		scenarioID,
+		req,
+		timings,
+		timingStartedAt,
+		true,
+		len(rules),
+		len(storedExecs),
+		len(storedWorkflowExecs),
+		len(storedScreeningExecs),
+		len(storedScoringReqs),
+		outboxEventCount,
+		s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+	)
 
 	return DecisionEvaluationResult{
 		Triggered:      true,
 		Decision:       &stored,
 		RuleExecutions: storedExecs,
 	}, nil
+}
+
+func logDecisionEvaluationTimings(
+	tenantID string,
+	scenarioID string,
+	req DecisionEvaluationRequest,
+	timings map[string]int64,
+	startedAt time.Time,
+	triggered bool,
+	ruleCount int,
+	ruleExecutionCount int,
+	workflowExecutionCount int,
+	screeningExecutionCount int,
+	scoringRequestCount int,
+	outboxEventCount int,
+	extraAttrs ...any,
+) {
+	attrs := []any{
+		"tenant_id", tenantID,
+		"scenario_id", scenarioID,
+		"object_id", req.ObjectID,
+		"object_type", req.ObjectType,
+		"triggered", triggered,
+		"field_count", len(req.Fields),
+		"rule_count", ruleCount,
+		"rule_execution_count", ruleExecutionCount,
+		"workflow_execution_count", workflowExecutionCount,
+		"screening_execution_count", screeningExecutionCount,
+		"scoring_request_count", scoringRequestCount,
+		"outbox_event_count", outboxEventCount,
+		"total_us", time.Since(startedAt).Microseconds(),
+	}
+	attrs = append(attrs, extraAttrs...)
+	for stage, duration := range timings {
+		attrs = append(attrs, stage, duration)
+	}
+	slog.Default().Debug("decision evaluation timings", attrs...)
+}
+
+func (s DecisionService) snapshotDBPoolStats() (DBPoolStats, bool) {
+	if s.dbPoolStatsProvider == nil {
+		return DBPoolStats{}, false
+	}
+	return s.dbPoolStatsProvider(), true
+}
+
+func (s DecisionService) dbPoolStatsAttrs(before DBPoolStats, ok bool) []any {
+	if !ok || s.dbPoolStatsProvider == nil {
+		return nil
+	}
+	after := s.dbPoolStatsProvider()
+	return []any{
+		"db_pool_max_conns", after.MaxConns,
+		"db_pool_total_conns", after.TotalConns,
+		"db_pool_acquired_conns", after.AcquiredConns,
+		"db_pool_idle_conns", after.IdleConns,
+		"db_pool_constructing_conns", after.ConstructingConns,
+		"db_pool_acquire_count_delta", after.AcquireCount - before.AcquireCount,
+		"db_pool_acquire_duration_delta_us", after.AcquireDurationMicros - before.AcquireDurationMicros,
+		"db_pool_empty_acquire_count_delta", after.EmptyAcquireCount - before.EmptyAcquireCount,
+		"db_pool_empty_acquire_wait_delta_us", after.EmptyAcquireWaitMicros - before.EmptyAcquireWaitMicros,
+		"db_pool_canceled_acquire_count_delta", after.CanceledAcquireCount - before.CanceledAcquireCount,
+	}
+}
+
+func (s DecisionService) getScenario(ctx context.Context, tenantID, scenarioID string) (scenarioDomain.Scenario, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if item, ok := s.evaluationCache.getScenario(tenantID, scenarioID, now); ok {
+			return item, nil
+		}
+	}
+	item, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+	if err != nil {
+		return scenarioDomain.Scenario{}, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setScenario(tenantID, scenarioID, item, now)
+	}
+	return item, nil
+}
+
+func (s DecisionService) getIteration(ctx context.Context, tenantID, scenarioID, iterationID string) (scenarioDomain.Iteration, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if item, ok := s.evaluationCache.getIteration(tenantID, scenarioID, iterationID, now); ok {
+			return item, nil
+		}
+	}
+	item, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
+	if err != nil {
+		return scenarioDomain.Iteration{}, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setIteration(tenantID, scenarioID, iterationID, item, now)
+	}
+	return item, nil
+}
+
+func (s DecisionService) getRules(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenarioDomain.Rule, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getRules(tenantID, scenarioID, iterationID, now); ok {
+			return items, nil
+		}
+	}
+	items, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setRules(tenantID, scenarioID, iterationID, items, now)
+	}
+	return items, nil
+}
+
+func (s DecisionService) getWorkflowRules(ctx context.Context, tenantID, scenarioID string) ([]workflow.Rule, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getWorkflowRules(tenantID, scenarioID, now); ok {
+			return items, nil
+		}
+	}
+	items, err := s.workflowRuleRepo.ListByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setWorkflowRules(tenantID, scenarioID, items, now)
+	}
+	return items, nil
+}
+
+func (s DecisionService) getActiveWorkflows(ctx context.Context, tenantID, scenarioID string) ([]workflow.Definition, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getActiveWorkflows(tenantID, scenarioID, now); ok {
+			return items, nil
+		}
+	}
+	items, err := s.workflowRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setActiveWorkflows(tenantID, scenarioID, items, now)
+	}
+	return items, nil
+}
+
+func (s DecisionService) getActiveScreeningConfigs(ctx context.Context, tenantID, scenarioID string) ([]screening.Config, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getActiveScreeningConfigs(tenantID, scenarioID, now); ok {
+			return items, nil
+		}
+	}
+	items, err := s.screeningConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setActiveScreeningConfigs(tenantID, scenarioID, items, now)
+	}
+	return items, nil
+}
+
+func (s DecisionService) getActiveScoringConfigs(ctx context.Context, tenantID, scenarioID string) ([]scoring.Config, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getActiveScoringConfigs(tenantID, scenarioID, now); ok {
+			return items, nil
+		}
+	}
+	items, err := s.scoringConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setActiveScoringConfigs(tenantID, scenarioID, items, now)
+	}
+	return items, nil
+}
+
+type decisionEvaluationCache struct {
+	mu                     sync.RWMutex
+	ttl                    time.Duration
+	scenarios              map[string]cachedScenario
+	iterations             map[string]cachedIteration
+	rules                  map[string]cachedRules
+	workflowRules          map[string]cachedWorkflowRules
+	activeWorkflows        map[string]cachedWorkflows
+	activeScreeningConfigs map[string]cachedScreeningConfigs
+	activeScoringConfigs   map[string]cachedScoringConfigs
+}
+
+type cachedScenario struct {
+	item      scenarioDomain.Scenario
+	expiresAt time.Time
+}
+
+type cachedIteration struct {
+	item      scenarioDomain.Iteration
+	expiresAt time.Time
+}
+
+type cachedRules struct {
+	items     []scenarioDomain.Rule
+	expiresAt time.Time
+}
+
+type cachedWorkflowRules struct {
+	items     []workflow.Rule
+	expiresAt time.Time
+}
+
+type cachedWorkflows struct {
+	items     []workflow.Definition
+	expiresAt time.Time
+}
+
+type cachedScreeningConfigs struct {
+	items     []screening.Config
+	expiresAt time.Time
+}
+
+type cachedScoringConfigs struct {
+	items     []scoring.Config
+	expiresAt time.Time
+}
+
+func newDecisionEvaluationCache(ttl time.Duration) *decisionEvaluationCache {
+	return &decisionEvaluationCache{
+		ttl:                    ttl,
+		scenarios:              map[string]cachedScenario{},
+		iterations:             map[string]cachedIteration{},
+		rules:                  map[string]cachedRules{},
+		workflowRules:          map[string]cachedWorkflowRules{},
+		activeWorkflows:        map[string]cachedWorkflows{},
+		activeScreeningConfigs: map[string]cachedScreeningConfigs{},
+		activeScoringConfigs:   map[string]cachedScoringConfigs{},
+	}
+}
+
+func (c *decisionEvaluationCache) getScenario(tenantID, scenarioID string, now time.Time) (scenarioDomain.Scenario, bool) {
+	c.mu.RLock()
+	entry, ok := c.scenarios[scenarioCacheKey(tenantID, scenarioID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return scenarioDomain.Scenario{}, false
+	}
+	return cloneScenario(entry.item), true
+}
+
+func (c *decisionEvaluationCache) setScenario(tenantID, scenarioID string, item scenarioDomain.Scenario, now time.Time) {
+	c.mu.Lock()
+	c.scenarios[scenarioCacheKey(tenantID, scenarioID)] = cachedScenario{
+		item:      cloneScenario(item),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getIteration(tenantID, scenarioID, iterationID string, now time.Time) (scenarioDomain.Iteration, bool) {
+	c.mu.RLock()
+	entry, ok := c.iterations[iterationCacheKey(tenantID, scenarioID, iterationID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return scenarioDomain.Iteration{}, false
+	}
+	return cloneIteration(entry.item), true
+}
+
+func (c *decisionEvaluationCache) setIteration(tenantID, scenarioID, iterationID string, item scenarioDomain.Iteration, now time.Time) {
+	c.mu.Lock()
+	c.iterations[iterationCacheKey(tenantID, scenarioID, iterationID)] = cachedIteration{
+		item:      cloneIteration(item),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getRules(tenantID, scenarioID, iterationID string, now time.Time) ([]scenarioDomain.Rule, bool) {
+	c.mu.RLock()
+	entry, ok := c.rules[iterationCacheKey(tenantID, scenarioID, iterationID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneScenarioRules(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setRules(tenantID, scenarioID, iterationID string, items []scenarioDomain.Rule, now time.Time) {
+	c.mu.Lock()
+	c.rules[iterationCacheKey(tenantID, scenarioID, iterationID)] = cachedRules{
+		items:     cloneScenarioRules(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getWorkflowRules(tenantID, scenarioID string, now time.Time) ([]workflow.Rule, bool) {
+	c.mu.RLock()
+	entry, ok := c.workflowRules[scenarioCacheKey(tenantID, scenarioID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneWorkflowRules(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setWorkflowRules(tenantID, scenarioID string, items []workflow.Rule, now time.Time) {
+	c.mu.Lock()
+	c.workflowRules[scenarioCacheKey(tenantID, scenarioID)] = cachedWorkflowRules{
+		items:     cloneWorkflowRules(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getActiveWorkflows(tenantID, scenarioID string, now time.Time) ([]workflow.Definition, bool) {
+	c.mu.RLock()
+	entry, ok := c.activeWorkflows[scenarioCacheKey(tenantID, scenarioID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneWorkflowDefinitions(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setActiveWorkflows(tenantID, scenarioID string, items []workflow.Definition, now time.Time) {
+	c.mu.Lock()
+	c.activeWorkflows[scenarioCacheKey(tenantID, scenarioID)] = cachedWorkflows{
+		items:     cloneWorkflowDefinitions(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getActiveScreeningConfigs(tenantID, scenarioID string, now time.Time) ([]screening.Config, bool) {
+	c.mu.RLock()
+	entry, ok := c.activeScreeningConfigs[scenarioCacheKey(tenantID, scenarioID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneScreeningConfigs(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setActiveScreeningConfigs(tenantID, scenarioID string, items []screening.Config, now time.Time) {
+	c.mu.Lock()
+	c.activeScreeningConfigs[scenarioCacheKey(tenantID, scenarioID)] = cachedScreeningConfigs{
+		items:     cloneScreeningConfigs(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getActiveScoringConfigs(tenantID, scenarioID string, now time.Time) ([]scoring.Config, bool) {
+	c.mu.RLock()
+	entry, ok := c.activeScoringConfigs[scenarioCacheKey(tenantID, scenarioID)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneScoringConfigs(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setActiveScoringConfigs(tenantID, scenarioID string, items []scoring.Config, now time.Time) {
+	c.mu.Lock()
+	c.activeScoringConfigs[scenarioCacheKey(tenantID, scenarioID)] = cachedScoringConfigs{
+		items:     cloneScoringConfigs(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func scenarioCacheKey(tenantID, scenarioID string) string {
+	return tenantID + "\x00" + scenarioID
+}
+
+func iterationCacheKey(tenantID, scenarioID, iterationID string) string {
+	return tenantID + "\x00" + scenarioID + "\x00" + iterationID
+}
+
+func cloneScenario(item scenarioDomain.Scenario) scenarioDomain.Scenario {
+	if item.LiveIterationID != nil {
+		liveIterationID := *item.LiveIterationID
+		item.LiveIterationID = &liveIterationID
+	}
+	return item
+}
+
+func cloneIteration(item scenarioDomain.Iteration) scenarioDomain.Iteration {
+	item.TriggerFormula = cloneRawMessage(item.TriggerFormula)
+	return item
+}
+
+func cloneScenarioRules(items []scenarioDomain.Rule) []scenarioDomain.Rule {
+	out := append([]scenarioDomain.Rule(nil), items...)
+	for i := range out {
+		out[i].Formula = cloneRawMessage(out[i].Formula)
+		if out[i].SnoozeGroupID != nil {
+			snoozeGroupID := *out[i].SnoozeGroupID
+			out[i].SnoozeGroupID = &snoozeGroupID
+		}
+	}
+	return out
+}
+
+func cloneWorkflowRules(items []workflow.Rule) []workflow.Rule {
+	return append([]workflow.Rule(nil), items...)
+}
+
+func cloneWorkflowDefinitions(items []workflow.Definition) []workflow.Definition {
+	out := append([]workflow.Definition(nil), items...)
+	for i := range out {
+		out[i].AllowedOutcomes = append([]string(nil), out[i].AllowedOutcomes...)
+		out[i].ActionConfig = cloneRawMessage(out[i].ActionConfig)
+	}
+	return out
+}
+
+func cloneScreeningConfigs(items []screening.Config) []screening.Config {
+	out := append([]screening.Config(nil), items...)
+	for i := range out {
+		out[i].AllowedOutcomes = append([]string(nil), out[i].AllowedOutcomes...)
+		out[i].ConfigJSON = cloneRawMessage(out[i].ConfigJSON)
+	}
+	return out
+}
+
+func cloneScoringConfigs(items []scoring.Config) []scoring.Config {
+	out := append([]scoring.Config(nil), items...)
+	for i := range out {
+		out[i].AllowedOutcomes = append([]string(nil), out[i].AllowedOutcomes...)
+		out[i].ConfigJSON = cloneRawMessage(out[i].ConfigJSON)
+	}
+	return out
+}
+
+func cloneRawMessage(value json.RawMessage) json.RawMessage {
+	return append(json.RawMessage(nil), value...)
 }
 
 func (s DecisionService) GetDecision(ctx context.Context, tenantID, decisionID string) (decision.Decision, []decision.RuleExecution, error) {
@@ -315,8 +931,10 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		ObjectID: req.ObjectID,
 		Results:  make([]DecisionEvaluationResult, 0, len(scenarios)),
 	}
+	evalCache := asteval.NewEvaluationCache()
+	evaluationNow := s.clock.Now()
 	for _, scn := range scenarios {
-		result, err := s.EvaluateScenario(ctx, tenantID, scn.ID, req)
+		result, err := s.evaluateScenario(ctx, tenantID, scn.ID, req, evalCache, evaluationNow)
 		if err != nil {
 			return MultiScenarioEvaluationResult{}, err
 		}
@@ -326,14 +944,14 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 }
 
 func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime) ([]workflow.Execution, error) {
-	structuredRules, err := s.workflowRuleRepo.ListByScenario(ctx, item.TenantID, item.ScenarioID)
+	structuredRules, err := s.getWorkflowRules(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
 	}
 	if len(structuredRules) > 0 {
 		return s.buildStructuredWorkflowExecutions(ctx, item, ruleExecs, runtime, structuredRules)
 	}
-	workflows, err := s.workflowRepo.ListActiveByScenario(ctx, item.TenantID, item.ScenarioID)
+	workflows, err := s.getActiveWorkflows(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +1084,7 @@ func stringPtr(value string) *string {
 }
 
 func (s DecisionService) buildScreeningExecutions(ctx context.Context, item decision.Decision, objectFields map[string]any) ([]screening.Execution, error) {
-	configs, err := s.screeningConfigRepo.ListActiveByScenario(ctx, item.TenantID, item.ScenarioID)
+	configs, err := s.getActiveScreeningConfigs(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +1115,7 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 }
 
 func (s DecisionService) buildScoringRequests(ctx context.Context, item decision.Decision) ([]scoring.Request, error) {
-	configs, err := s.scoringConfigRepo.ListActiveByScenario(ctx, item.TenantID, item.ScenarioID)
+	configs, err := s.getActiveScoringConfigs(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
 	}

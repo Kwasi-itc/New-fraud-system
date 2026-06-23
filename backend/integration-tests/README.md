@@ -10,10 +10,10 @@ Python integration tests for the data-model, ingestion, decision-engine, and scr
 
 Default service URLs:
 
-- `DATA_MODEL_URL=http://localhost:8080`
-- `INGESTION_URL=http://localhost:8081`
-- `DECISION_ENGINE_URL=http://localhost:8082`
-- `SCREENING_URL=http://localhost:8085`
+- `DATA_MODEL_URL=http://127.0.0.1:8080`
+- `INGESTION_URL=http://127.0.0.1:8081`
+- `DECISION_ENGINE_URL=http://127.0.0.1:8082`
+- `SCREENING_URL=http://127.0.0.1:8085`
 
 Override those environment variables when testing a different deployment.
 

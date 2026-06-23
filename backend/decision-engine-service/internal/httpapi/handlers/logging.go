@@ -19,7 +19,7 @@ func loggerFromContext(c *gin.Context) *slog.Logger {
 }
 
 func logHandlerSuccess(c *gin.Context, operation string, attrs ...any) {
-	loggerFromContext(c).Info(operation, attrs...)
+	loggerFromContext(c).Debug(operation, attrs...)
 }
 
 func logHandlerFailure(c *gin.Context, operation string, err error, attrs ...any) {

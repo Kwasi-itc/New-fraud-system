@@ -1,0 +1,86 @@
+{
+  "summary_version": 1,
+  "test": {
+    "name": "decision_engine_rule_complexity_scaling",
+    "objective": "Measure how direct decision evaluation performance changes as rule complexity changes.",
+    "system_under_test": "POST /v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+    "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
+    "sustainability_definition": "0% errors and 0% timeouts during measured run."
+  },
+  "environment": {
+    "captured_at": "2026-06-18T13:56:46.048081Z",
+    "command": [
+      "stress-tests/decision_rule_complexity_scaling.py",
+      "--vus=5",
+      "--duration=60"
+    ],
+    "python_version": "3.12.10",
+    "platform": "macOS-15.7.7-x86_64-i386-64bit",
+    "processor": "i386",
+    "cpu_count": 6,
+    "git_sha": "bdf74b5f0b3787c9e8bca82ccd2cda34ab571c4f",
+    "git_status_short": "M decision-engine-service/cmd/worker/main.go\n M decision-engine-service/internal/httpapi/router.go\n M decision-engine-service/internal/service/decision_service.go\n M stress-tests/closed-loop-vus-summary-5-vus-60s.json\n M stress-tests/closed-loop-vus-summary-6-vus-60s.json\n?? stress-tests/closed-loop-vus-summary-20-vus-60s.json\n?? stress-tests/decision_rule_complexity_scaling.py\n?? stress-tests/rule-complexity-runs/",
+    "docker_version": "Docker version 29.4.2, build 055a478",
+    "docker_compose_version": "Docker Compose version v5.1.3",
+    "service_urls": {
+      "data_model": "http://127.0.0.1:8080",
+      "ingestion": "http://127.0.0.1:8081",
+      "decision_engine": "http://127.0.0.1:8082"
+    }
+  },
+  "setup": {
+    "variant": "baseline_payload",
+    "variant_description": "Simple amount threshold payload rule.",
+    "tenant_id": "d88d1017-1962-4f9d-96cc-9c7a07b7fc95",
+    "object_type": "transactions_cfe0c1355019",
+    "account_object_type": "accounts_930561bb9dc9",
+    "scenario_id": "b5498d63-c59e-4427-81a6-4685606da222",
+    "rule_id": "6f7cb3be-0066-468a-a476-3124399ad437",
+    "scenario_count": 1,
+    "rules_per_scenario": 1,
+    "seeded_counts": {},
+    "related_seed_count": 100,
+    "stable_object_id": false
+  },
+  "run": {
+    "variant": "baseline_payload",
+    "configured_vus": 5,
+    "duration_seconds": 60.0,
+    "timeout_seconds": 30.0,
+    "amount": 1800,
+    "output": "stress-tests/rule-complexity-runs/2026-06-18T135545-702840Z/trial-baseline_payload-5-vus-60s.json",
+    "auth_token": null
+  },
+  "workload_counts": {
+    "configured_vus": 5,
+    "completed_evaluations": 27627,
+    "successful_evaluations": 27627,
+    "failed_evaluations": 0,
+    "timeouts": 0,
+    "dropped_requests": 0
+  },
+  "rates": {
+    "achieved_successful_evaluations_per_second": 460.3602608158584,
+    "success_rate": 1.0,
+    "error_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "per_vu_successes": {
+    "min": 5480,
+    "max": 5670,
+    "avg": 5525.4
+  },
+  "latency_ms": {
+    "avg": 10.857412918173237,
+    "p50": 9.647455997765064,
+    "p95": 15.039543388411401,
+    "p99": 27.520207376219314,
+    "max": 309.2878510360606
+  },
+  "result": {
+    "sustainable": true,
+    "elapsed_seconds": 60.01169595099054,
+    "requested_duration_seconds": 60.0
+  },
+  "sample_errors": []
+}

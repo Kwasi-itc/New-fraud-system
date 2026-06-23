@@ -1,0 +1,1345 @@
+{
+  "summary_version": 1,
+  "test": "marble_decision_throughput_limit_orchestration",
+  "created_at": "2026-06-15T13:42:56.520266Z",
+  "command": [
+    "stress-tests/marble_decision_throughput_orchestrator.py"
+  ],
+  "config": {
+    "target_dps": 1000,
+    "start_dps": 25,
+    "rate_floor": 10,
+    "trial_duration_seconds": 60.0,
+    "warmup_duration_seconds": 30.0,
+    "timeout_seconds": 30.0,
+    "cooldown_duration_seconds": 15.0,
+    "health_timeout_seconds": 60.0,
+    "transaction_value": 10000.0,
+    "account_past_balance": 200000.0,
+    "min_vus": 50,
+    "vus_multiplier": 2,
+    "max_vus": 2500,
+    "output_dir": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z",
+    "api_url": "http://172.23.146.73:8080",
+    "api_key": "set",
+    "org_export": "org-export.json",
+    "scenario_name": "Validate SEPA Payouts",
+    "scenario_id": null,
+    "skip_db_diagnostics": false,
+    "postgres_container": "new-fraud-system-postgres-1",
+    "postgres_user": "postgres",
+    "postgres_db": "marble"
+  },
+  "environment_diagnostics": {
+    "db_before": {
+      "available": true,
+      "captured_at": "2026-06-15T12:51:03.152992Z"
+    },
+    "db_after": {
+      "available": true,
+      "captured_at": "2026-06-15T13:42:56.519872Z"
+    }
+  },
+  "result": {
+    "highest_sustainable_dps": 50,
+    "highest_sustainable_vus": 100,
+    "candidate_highest_sustainable_dps": 100,
+    "candidate_highest_sustainable_vus": 200,
+    "first_failing_dps": 100,
+    "target_dps": 1000,
+    "target_met": false,
+    "recommendation": "bottleneck_investigation_needed"
+  },
+  "confirmation": {
+    "rate": 50,
+    "vus": 100,
+    "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+    "sustainable": true,
+    "target_met": true,
+    "failures": 0,
+    "timeouts": 0,
+    "dropped_requests": 0,
+    "achieved_dps": 50.0,
+    "summary": {
+      "summary_version": 1,
+      "test": {
+        "name": "marble_decision_throughput_limit",
+        "objective": "Find maximum sustainable public API decision creations per second.",
+        "system_under_test": "POST /v1/decisions",
+        "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+      },
+      "environment": {
+        "captured_at": "2026-06-15T13:42:41.012248Z",
+        "command": [
+          "stress-tests/marble_decision_throughput_orchestrator.py"
+        ],
+        "python_version": "3.14.3",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+        "cpu_count": 12,
+        "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+        "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+        "api_url": "http://172.23.146.73:8080"
+      },
+      "setup": {
+        "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+        "scenario_name": "Validate SEPA Payouts",
+        "trigger_object_type": "transactions",
+        "seeded_company_id": "company_ea54b74ff72741ce9af1a5c2",
+        "seeded_account_id": "account_41f7342ade294e2991197012"
+      },
+      "run": {
+        "rate": 50,
+        "vus": 100,
+        "duration_seconds": 60.0,
+        "warmup_duration_seconds": 30.0,
+        "transaction_value": 10000.0,
+        "account_past_balance": 200000.0,
+        "timeout_seconds": 30.0,
+        "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+        "api_url": "http://172.23.146.73:8080",
+        "api_key": "set",
+        "org_export": "org-export.json",
+        "scenario_name": "Validate SEPA Payouts",
+        "scenario_id": null,
+        "seed_parent_records": true
+      },
+      "workload_counts": {
+        "attempted_decisions": 3000,
+        "completed_decisions": 3000,
+        "successful_decisions": 3000,
+        "failed_decisions": 0,
+        "timeouts": 0,
+        "dropped_requests": 0,
+        "skipped_decisions": 0
+      },
+      "rates": {
+        "target_decisions_per_second": 50,
+        "achieved_successful_decisions_per_second": 50.0,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "timeout_rate": 0.0
+      },
+      "latency_ms": {
+        "avg": 22.3332093336309,
+        "p50": 20.324849989265203,
+        "p95": 33.66716001473829,
+        "p99": 48.88067501946352,
+        "max": 81.69210003688931
+      },
+      "result": {
+        "sustainable": true,
+        "target_met": true,
+        "throughput_limit_candidate": 50,
+        "elapsed_seconds": 60.00174380000681
+      },
+      "sample_errors": [],
+      "orchestration": {
+        "db_diagnostics_before": {
+          "available": true,
+          "captured_at": "2026-06-15T13:41:10.502692Z"
+        },
+        "db_diagnostics_after": {
+          "available": true,
+          "captured_at": "2026-06-15T13:42:41.148899Z"
+        },
+        "cooldown_duration_seconds": 15.0,
+        "health_timeout_seconds": 60.0
+      }
+    }
+  },
+  "confirmation_attempts": [
+    {
+      "rate": 100,
+      "vus": 400,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-400-vus-confirmationretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 2339,
+      "achieved_dps": 61.016666666666666,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:40:54.906049Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_23a9c19cbacd4ebf97841d3b",
+          "seeded_account_id": "account_ee7a1eff8dbe45a5880aa055"
+        },
+        "run": {
+          "rate": 100,
+          "vus": 400,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-400-vus-confirmationretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 6000,
+          "completed_decisions": 3661,
+          "successful_decisions": 3661,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 2339,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 100,
+          "achieved_successful_decisions_per_second": 61.016666666666666,
+          "success_rate": 0.6101666666666666,
+          "error_rate": 0.3898333333333333,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 6079.168695302861,
+          "p50": 4021.366599947214,
+          "p95": 19772.536400007084,
+          "p99": 29242.48049998425,
+          "max": 56381.01020001341
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 65.990233599965
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:39:12.574043Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:40:55.074541Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 50,
+      "vus": 100,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+      "sustainable": true,
+      "target_met": true,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 0,
+      "achieved_dps": 50.0,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:42:41.012248Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_ea54b74ff72741ce9af1a5c2",
+          "seeded_account_id": "account_41f7342ade294e2991197012"
+        },
+        "run": {
+          "rate": 50,
+          "vus": 100,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 3000,
+          "completed_decisions": 3000,
+          "successful_decisions": 3000,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 0,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 50,
+          "achieved_successful_decisions_per_second": 50.0,
+          "success_rate": 1.0,
+          "error_rate": 0.0,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 22.3332093336309,
+          "p50": 20.324849989265203,
+          "p95": 33.66716001473829,
+          "p99": 48.88067501946352,
+          "max": 81.69210003688931
+        },
+        "result": {
+          "sustainable": true,
+          "target_met": true,
+          "throughput_limit_candidate": 50,
+          "elapsed_seconds": 60.00174380000681
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:41:10.502692Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:42:41.148899Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    }
+  ],
+  "trials": [
+    {
+      "rate": 25,
+      "vus": 50,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-25-dps-50-vus.json",
+      "sustainable": true,
+      "target_met": true,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 0,
+      "achieved_dps": 25.0,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T12:52:33.520207Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_246366c6ff7b47e29994fad5",
+          "seeded_account_id": "account_5b5889fc37be48d0b8311b66"
+        },
+        "run": {
+          "rate": 25,
+          "vus": 50,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-25-dps-50-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 1500,
+          "completed_decisions": 1500,
+          "successful_decisions": 1500,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 0,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 25,
+          "achieved_successful_decisions_per_second": 25.0,
+          "success_rate": 1.0,
+          "error_rate": 0.0,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 22.981936799595132,
+          "p50": 20.79280000180006,
+          "p95": 35.876385038136505,
+          "p99": 46.96696004946716,
+          "max": 146.29319997038692
+        },
+        "result": {
+          "sustainable": true,
+          "target_met": true,
+          "throughput_limit_candidate": 25,
+          "elapsed_seconds": 60.00053540000226
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T12:51:03.210033Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T12:52:33.965230Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 50,
+      "vus": 100,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus.json",
+      "sustainable": true,
+      "target_met": true,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 0,
+      "achieved_dps": 50.0,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T12:54:19.444753Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_7a02ae8bda974f32a2f53040",
+          "seeded_account_id": "account_c6d9892839ae46b6b42d4cbf"
+        },
+        "run": {
+          "rate": 50,
+          "vus": 100,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 3000,
+          "completed_decisions": 3000,
+          "successful_decisions": 3000,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 0,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 50,
+          "achieved_successful_decisions_per_second": 50.0,
+          "success_rate": 1.0,
+          "error_rate": 0.0,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 24.14334556623362,
+          "p50": 22.217799996724352,
+          "p95": 36.45025500736664,
+          "p99": 44.22994699736591,
+          "max": 88.90530001372099
+        },
+        "result": {
+          "sustainable": true,
+          "target_met": true,
+          "throughput_limit_candidate": 50,
+          "elapsed_seconds": 60.008414099982474
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T12:52:49.217367Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T12:54:19.597575Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 100,
+      "vus": 200,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-200-vus.json",
+      "sustainable": true,
+      "target_met": true,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 0,
+      "achieved_dps": 100.0,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T12:56:07.646867Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_ba449fc2ba654a51966f1d7b",
+          "seeded_account_id": "account_5b90fdecba7242019239d22e"
+        },
+        "run": {
+          "rate": 100,
+          "vus": 200,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-200-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 6000,
+          "completed_decisions": 6000,
+          "successful_decisions": 6000,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 0,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 100,
+          "achieved_successful_decisions_per_second": 100.0,
+          "success_rate": 1.0,
+          "error_rate": 0.0,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 39.36385016663311,
+          "p50": 34.778500034008175,
+          "p95": 63.58210496837274,
+          "p99": 126.7661270307145,
+          "max": 228.35730004590005
+        },
+        "result": {
+          "sustainable": true,
+          "target_met": true,
+          "throughput_limit_candidate": 100,
+          "elapsed_seconds": 60.023408100008965
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T12:54:34.925122Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T12:56:07.812199Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 200,
+      "vus": 800,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-200-dps-800-vus-retry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 8444,
+      "achieved_dps": 59.266666666666666,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:00:20.767823Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_793783caaa524853a0aa15c2",
+          "seeded_account_id": "account_eca2acde03a24ed38db6e920"
+        },
+        "run": {
+          "rate": 200,
+          "vus": 800,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-200-dps-800-vus-retry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 12000,
+          "completed_decisions": 3556,
+          "successful_decisions": 3556,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 8444,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 200,
+          "achieved_successful_decisions_per_second": 59.266666666666666,
+          "success_rate": 0.29633333333333334,
+          "error_rate": 0.7036666666666667,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 14420.912480258528,
+          "p50": 11043.868950015167,
+          "p95": 40628.87865000812,
+          "p99": 54581.712525011804,
+          "max": 71600.1571000088
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 73.4612916999613
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T12:58:23.269004Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:00:20.947829Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 150,
+      "vus": 600,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-150-dps-600-vus-binaryretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 3787,
+      "achieved_dps": 86.88333333333334,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:04:13.369499Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_c8ecc3e57bf74fd9b7244db3",
+          "seeded_account_id": "account_cb47a84a79d44d37a6d83c1d"
+        },
+        "run": {
+          "rate": 150,
+          "vus": 600,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-150-dps-600-vus-binaryretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 9000,
+          "completed_decisions": 5213,
+          "successful_decisions": 5213,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 3787,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 150,
+          "achieved_successful_decisions_per_second": 86.88333333333334,
+          "success_rate": 0.5792222222222222,
+          "error_rate": 0.42077777777777775,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 6650.320000326526,
+          "p50": 4590.250200009905,
+          "p95": 19958.412920008403,
+          "p99": 31313.609808033812,
+          "max": 50052.7926000068
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 66.49078110000119
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:02:29.729062Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:04:13.522138Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 125,
+      "vus": 500,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-125-dps-500-vus-binaryretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 3956,
+      "achieved_dps": 59.06666666666667,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:08:10.873257Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_63cea10c5e2446d68163a332",
+          "seeded_account_id": "account_f5dca5a9c2ad4953a3766803"
+        },
+        "run": {
+          "rate": 125,
+          "vus": 500,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-125-dps-500-vus-binaryretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 7500,
+          "completed_decisions": 3544,
+          "successful_decisions": 3544,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 3956,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 125,
+          "achieved_successful_decisions_per_second": 59.06666666666667,
+          "success_rate": 0.47253333333333336,
+          "error_rate": 0.5274666666666666,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 8517.198078075895,
+          "p50": 6219.72769999411,
+          "p95": 25037.571054993896,
+          "p99": 36600.18521202729,
+          "max": 53965.57230001781
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 68.72478859999683
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:06:22.568543Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:08:11.118232Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 112,
+      "vus": 448,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-112-dps-448-vus-binaryretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 13,
+      "timeouts": 9,
+      "dropped_requests": 3898,
+      "achieved_dps": 46.81666666666667,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:33:13.028992Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_eafd143481c048cb973b9857",
+          "seeded_account_id": "account_5d6f9a41b0b1483c904ce4b1"
+        },
+        "run": {
+          "rate": 112,
+          "vus": 448,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-112-dps-448-vus-binaryretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 6720,
+          "completed_decisions": 2822,
+          "successful_decisions": 2809,
+          "failed_decisions": 13,
+          "timeouts": 9,
+          "dropped_requests": 3898,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 112,
+          "achieved_successful_decisions_per_second": 46.81666666666667,
+          "success_rate": 0.4180059523809524,
+          "error_rate": 0.5819940476190476,
+          "timeout_rate": 0.0013392857142857143
+        },
+        "latency_ms": {
+          "avg": 201682.02259387635,
+          "p50": 4764.965199981816,
+          "p95": 1297699.9378600158,
+          "p99": 1311151.9922039704,
+          "max": 1327819.5948000066
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 1336.61330680002
+        },
+        "sample_errors": [
+          "",
+          "",
+          "",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          "timeout: ",
+          ""
+        ],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:10:18.979156Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:33:13.285751Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 106,
+      "vus": 424,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-106-dps-424-vus-binaryretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 2479,
+      "achieved_dps": 64.68333333333334,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:37:04.874545Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_a2d55765571b4838b92d250e",
+          "seeded_account_id": "account_7411978816904fa4a4501220"
+        },
+        "run": {
+          "rate": 106,
+          "vus": 424,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-106-dps-424-vus-binaryretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 6360,
+          "completed_decisions": 3881,
+          "successful_decisions": 3881,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 2479,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 106,
+          "achieved_successful_decisions_per_second": 64.68333333333334,
+          "success_rate": 0.6102201257861635,
+          "error_rate": 0.3897798742138365,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 6105.256306493233,
+          "p50": 4126.466399990022,
+          "p95": 18272.979200002737,
+          "p99": 27860.37552002814,
+          "max": 51040.99860001588
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 66.3693695999682
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:35:22.064391Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:37:05.129189Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 100,
+      "vus": 400,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-400-vus-confirmationretry-vus.json",
+      "sustainable": false,
+      "target_met": false,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 2339,
+      "achieved_dps": 61.016666666666666,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:40:54.906049Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_23a9c19cbacd4ebf97841d3b",
+          "seeded_account_id": "account_ee7a1eff8dbe45a5880aa055"
+        },
+        "run": {
+          "rate": 100,
+          "vus": 400,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-100-dps-400-vus-confirmationretry-vus.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 6000,
+          "completed_decisions": 3661,
+          "successful_decisions": 3661,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 2339,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 100,
+          "achieved_successful_decisions_per_second": 61.016666666666666,
+          "success_rate": 0.6101666666666666,
+          "error_rate": 0.3898333333333333,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 6079.168695302861,
+          "p50": 4021.366599947214,
+          "p95": 19772.536400007084,
+          "p99": 29242.48049998425,
+          "max": 56381.01020001341
+        },
+        "result": {
+          "sustainable": false,
+          "target_met": false,
+          "throughput_limit_candidate": null,
+          "elapsed_seconds": 65.990233599965
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:39:12.574043Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:40:55.074541Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    },
+    {
+      "rate": 50,
+      "vus": 100,
+      "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+      "sustainable": true,
+      "target_met": true,
+      "failures": 0,
+      "timeouts": 0,
+      "dropped_requests": 0,
+      "achieved_dps": 50.0,
+      "summary": {
+        "summary_version": 1,
+        "test": {
+          "name": "marble_decision_throughput_limit",
+          "objective": "Find maximum sustainable public API decision creations per second.",
+          "system_under_test": "POST /v1/decisions",
+          "sustainability_definition": "0% errors, 0% timeouts, 0 skipped decisions, and 0 dropped local requests."
+        },
+        "environment": {
+          "captured_at": "2026-06-15T13:42:41.012248Z",
+          "command": [
+            "stress-tests/marble_decision_throughput_orchestrator.py"
+          ],
+          "python_version": "3.14.3",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+          "cpu_count": 12,
+          "git_sha": "05cc553c0d91ca91339df60ff8ae415e708b47d1",
+          "git_status_short": "M cmd/server.go\n?? .envrc\n?? org-export.json\n?? stress-tests/",
+          "api_url": "http://172.23.146.73:8080"
+        },
+        "setup": {
+          "scenario_id": "019ecb37-98c2-7ae1-b4ce-6b973644e7da",
+          "scenario_name": "Validate SEPA Payouts",
+          "trigger_object_type": "transactions",
+          "seeded_company_id": "company_ea54b74ff72741ce9af1a5c2",
+          "seeded_account_id": "account_41f7342ade294e2991197012"
+        },
+        "run": {
+          "rate": 50,
+          "vus": 100,
+          "duration_seconds": 60.0,
+          "warmup_duration_seconds": 30.0,
+          "transaction_value": 10000.0,
+          "account_past_balance": 200000.0,
+          "timeout_seconds": 30.0,
+          "output": "stress-tests\\marble-throughput-runs\\2026-06-15T125103-093930Z\\trial-50-dps-100-vus-confirmation.json",
+          "api_url": "http://172.23.146.73:8080",
+          "api_key": "set",
+          "org_export": "org-export.json",
+          "scenario_name": "Validate SEPA Payouts",
+          "scenario_id": null,
+          "seed_parent_records": true
+        },
+        "workload_counts": {
+          "attempted_decisions": 3000,
+          "completed_decisions": 3000,
+          "successful_decisions": 3000,
+          "failed_decisions": 0,
+          "timeouts": 0,
+          "dropped_requests": 0,
+          "skipped_decisions": 0
+        },
+        "rates": {
+          "target_decisions_per_second": 50,
+          "achieved_successful_decisions_per_second": 50.0,
+          "success_rate": 1.0,
+          "error_rate": 0.0,
+          "timeout_rate": 0.0
+        },
+        "latency_ms": {
+          "avg": 22.3332093336309,
+          "p50": 20.324849989265203,
+          "p95": 33.66716001473829,
+          "p99": 48.88067501946352,
+          "max": 81.69210003688931
+        },
+        "result": {
+          "sustainable": true,
+          "target_met": true,
+          "throughput_limit_candidate": 50,
+          "elapsed_seconds": 60.00174380000681
+        },
+        "sample_errors": [],
+        "orchestration": {
+          "db_diagnostics_before": {
+            "available": true,
+            "captured_at": "2026-06-15T13:41:10.502692Z"
+          },
+          "db_diagnostics_after": {
+            "available": true,
+            "captured_at": "2026-06-15T13:42:41.148899Z"
+          },
+          "cooldown_duration_seconds": 15.0,
+          "health_timeout_seconds": 60.0
+        }
+      }
+    }
+  ]
+}
