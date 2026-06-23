@@ -10,6 +10,7 @@ type OperandOption = {
   label: string;
   keywords?: string[];
   meta?: string;
+  sideLabel?: string;
   isAction?: boolean;
   onSelectAction?: () => void;
 };
@@ -95,8 +96,10 @@ export function RuleOperandSelector({
   className,
   prefix,
   invalid = false,
+  selectedMeta,
   groups,
   actions = [],
+  panelPosition = "bottom",
   searchOptionsBuilder,
   onChange,
 }: {
@@ -109,8 +112,10 @@ export function RuleOperandSelector({
   className?: string;
   prefix?: ReactNode;
   invalid?: boolean;
+  selectedMeta?: string;
   groups?: OperandOptionGroup[];
   actions?: OperandAction[];
+  panelPosition?: "bottom" | "top";
   searchOptionsBuilder?: (search: string) => OperandOption[];
   onChange: (value: string) => void;
 }) {
@@ -195,10 +200,14 @@ export function RuleOperandSelector({
 
   useEffect(() => {
     if (!open) {
-      setSearch("");
-      setActiveGroupPath([]);
+      if (search !== "") {
+        setSearch("");
+      }
+      if (activeGroupPath.length > 0) {
+        setActiveGroupPath([]);
+      }
     }
-  }, [open]);
+  }, [activeGroupPath.length, open, search]);
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
@@ -226,12 +235,14 @@ export function RuleOperandSelector({
               <span className="block truncate font-medium text-slate-900">
                 {selectedOption.label}
               </span>
+            ) : value ? (
+              <span className="block truncate font-medium text-slate-900">{value}</span>
             ) : (
               <span className="block truncate text-slate-400">{placeholder}</span>
             )}
-            {selectedOption?.meta ? (
+            {selectedOption?.meta || selectedMeta ? (
               <span className="block truncate text-[11px] text-slate-500">
-                {selectedOption.meta}
+                {selectedOption?.meta ?? selectedMeta}
               </span>
             ) : null}
           </span>
@@ -240,7 +251,12 @@ export function RuleOperandSelector({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full min-w-[260px] rounded-sm border border-slate-300 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+        <div
+          className={cn(
+            "absolute left-0 z-30 w-full min-w-[360px] rounded-sm border border-slate-300 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.12)]",
+            panelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
+          )}
+        >
           <div className="mb-2 flex items-center gap-2 border border-slate-200 bg-slate-50 px-3">
             <Search className="size-4 text-slate-400" />
             <input
@@ -273,7 +289,9 @@ export function RuleOperandSelector({
                     className="flex min-h-11 w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-slate-900 transition hover:bg-slate-50"
                   >
                     <span className="flex min-w-0 items-baseline gap-1">
-                      <span className="truncate text-[14px] font-semibold">{group.label}</span>
+                      <span className="whitespace-normal break-words text-[14px] font-semibold">
+                        {group.label}
+                      </span>
                       <span className="text-[11px] font-medium text-slate-400">
                         {group.count ?? 0}
                       </span>
@@ -306,21 +324,26 @@ export function RuleOperandSelector({
                       )}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium">
+                        <span className="block whitespace-normal break-words text-[13px] font-medium">
                           {option.label}
                         </span>
                         {option.meta ? (
-                          <span className="block truncate text-[11px] text-slate-500">
+                          <span className="block whitespace-normal break-words text-[11px] text-slate-500">
                             {option.meta}
                           </span>
                         ) : null}
                       </span>
+                      {option.sideLabel ? (
+                        <span className="mt-0.5 shrink-0 text-[12px] font-semibold text-[#1f4f96]">
+                          {option.sideLabel}
+                        </span>
+                      ) : null}
                       {isSelected ? <Check className="mt-0.5 size-4 shrink-0" /> : null}
                     </button>
                   );
                 })}
               </>
-            ) : filteredOptions.length > 0 ? (
+            ) : filteredOptions.length > 0 || searchOptions.length > 0 ? (
               <>
                 {search.trim().length > 0 ? (
                   <>
@@ -342,15 +365,20 @@ export function RuleOperandSelector({
                             className="flex w-full items-start justify-between gap-3 rounded-sm px-3 py-2 text-left text-slate-900 transition hover:bg-slate-50"
                           >
                             <span className="min-w-0">
-                              <span className="block truncate text-[13px] font-medium">
+                              <span className="block whitespace-normal break-words text-[13px] font-medium">
                                 {option.label}
                               </span>
                               {option.meta ? (
-                                <span className="block truncate text-[11px] text-slate-500">
+                                <span className="block whitespace-normal break-words text-[11px] text-slate-500">
                                   {option.meta}
                                 </span>
                               ) : null}
                             </span>
+                            {option.sideLabel ? (
+                              <span className="mt-0.5 shrink-0 text-[12px] font-semibold text-[#1f4f96]">
+                                {option.sideLabel}
+                              </span>
+                            ) : null}
                           </button>
                         ))}
                       </div>
@@ -389,15 +417,20 @@ export function RuleOperandSelector({
                       )}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium">
+                        <span className="block whitespace-normal break-words text-[13px] font-medium">
                           {option.label}
                         </span>
                         {option.meta ? (
-                          <span className="block truncate text-[11px] text-slate-500">
+                          <span className="block whitespace-normal break-words text-[11px] text-slate-500">
                             {option.meta}
                           </span>
                         ) : null}
                       </span>
+                      {option.sideLabel ? (
+                        <span className="mt-0.5 shrink-0 text-[12px] font-semibold text-[#1f4f96]">
+                          {option.sideLabel}
+                        </span>
+                      ) : null}
                       {isSelected ? <Check className="mt-0.5 size-4 shrink-0" /> : null}
                     </button>
                   );

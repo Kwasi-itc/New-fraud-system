@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,10 +19,10 @@ import {
   Search,
   ShieldAlert,
   ShieldX,
-  Trash2,
   Workflow,
 } from "lucide-react";
 
+import { ConditionSelectorRow } from "@/components/detection/condition-selector-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import {
   type Rule,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
+import { summarizeRuleFormula } from "@/lib/rule-builder";
 import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +64,78 @@ const triggerOperatorOptions = [
   "is in",
   "contains",
 ] as const;
+
+const triggerOperandSelectorOptions = triggerOperandOptions.map((option) => ({
+  value: option,
+  label: option,
+  keywords: option.split(/[._]/g),
+  meta: "Field",
+}));
+
+const triggerOperandGroups = [
+  {
+    id: "fields",
+    label: "Fields",
+    children: [
+      {
+        id: "fields-trigger",
+        label: "From trigger",
+        options: triggerOperandSelectorOptions,
+      },
+    ],
+  },
+];
+
+const triggerOperatorSelectorOptions = triggerOperatorOptions.map((option) => ({
+  value: option,
+  label: option,
+  keywords: [option],
+}));
+
+function isTriggerLiteralNumberValue(value: string) {
+  return value.trim().length > 0 && Number.isFinite(Number(value));
+}
+
+function buildTriggerLiteralSearchOptions(searchValue: string) {
+  const normalized = searchValue.toLowerCase();
+  const literalOptions: Array<{
+    value: string;
+    label: string;
+    meta: string;
+    sideLabel: string;
+  }> = [];
+
+  if (isTriggerLiteralNumberValue(searchValue)) {
+    literalOptions.push({
+      value: `literal:number:${searchValue}`,
+      label: searchValue,
+      meta: "Number",
+      sideLabel: "Use number",
+    });
+  }
+
+  literalOptions.push({
+    value: `literal:string:${searchValue}`,
+    label: `"${searchValue}"`,
+    meta: "String",
+    sideLabel: "Use string",
+  });
+
+  if ("true".includes(normalized) || "false".includes(normalized)) {
+    ["true", "false"]
+      .filter((candidate) => candidate.includes(normalized))
+      .forEach((candidate) => {
+        literalOptions.push({
+          value: `literal:boolean:${candidate}`,
+          label: candidate,
+          meta: "Boolean",
+          sideLabel: "Use boolean",
+        });
+      });
+  }
+
+  return literalOptions;
+}
 
 const EMPTY_ITERATIONS: Iteration[] = [];
 
@@ -181,12 +254,16 @@ function DecisionThresholdRow({
   colorClassName,
   text,
   inputValue,
+  onInputChange,
+  disabled = false,
 }: {
   label: string;
   icon: ReactNode;
   colorClassName: string;
   text: string;
   inputValue?: string;
+  onInputChange?: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 text-[14px] text-slate-950">
@@ -195,10 +272,20 @@ function DecisionThresholdRow({
         <span>{label}</span>
       </div>
       <span>{text}</span>
-      {inputValue ? (
-        <div className="inline-flex min-w-[120px] rounded-lg border border-slate-200 bg-white px-4 py-3">
-          {inputValue}
-        </div>
+      {inputValue !== undefined ? (
+        onInputChange ? (
+          <Input
+            value={inputValue}
+            disabled={disabled}
+            onChange={(event) => onInputChange(event.target.value)}
+            inputMode="numeric"
+            className="h-[50px] w-[120px] rounded-lg border-slate-200 bg-white px-4 py-3 text-[14px] shadow-none"
+          />
+        ) : (
+          <div className="inline-flex min-w-[120px] rounded-lg border border-slate-200 bg-white px-4 py-3">
+            {inputValue}
+          </div>
+        )
       ) : null}
     </div>
   );
@@ -216,6 +303,10 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
   const [scheduleEnabledDraft, setScheduleEnabledDraft] = useState<boolean | null>(null);
   const [scheduleTimeDraft, setScheduleTimeDraft] = useState<string | null>(null);
   const [scheduleMessage, setScheduleMessage] = useState<string | null>(null);
+  const [reviewThresholdDraft, setReviewThresholdDraft] = useState<string>("");
+  const [blockAndReviewThresholdDraft, setBlockAndReviewThresholdDraft] = useState<string>("");
+  const [declineThresholdDraft, setDeclineThresholdDraft] = useState<string>("");
+  const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
   const [triggerBuilderOpen, setTriggerBuilderOpen] = useState(false);
   const [ruleFiltersOpen, setRuleFiltersOpen] = useState(false);
   const [ruleGroupFilterOpen, setRuleGroupFilterOpen] = useState(false);
@@ -225,8 +316,6 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
   const [ruleSearch, setRuleSearch] = useState("");
   const [triggerRows, setTriggerRows] = useState([
     { id: "row-1", prefix: "where", left: "", operator: "", right: "" },
-    { id: "row-2", prefix: "and", left: "", operator: "", right: "" },
-    { id: "row-3", prefix: "and", left: "", operator: "", right: "" },
   ]);
 
   const scenarioQuery = useQuery({
@@ -272,6 +361,47 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
     },
   });
 
+  const updateDecisionThresholdsMutation = useMutation({
+    mutationFn: async (payload: {
+      score_review_threshold: number | null;
+      score_block_and_review_threshold: number | null;
+      score_decline_threshold: number | null;
+    }) => {
+      if (!currentIteration) {
+        throw new Error("No iteration selected.");
+      }
+
+      return decisionEngineApi.updateIteration(tenantId, scenarioId, currentIteration.id, {
+        trigger_formula: currentIteration.trigger_formula ?? { constant: true },
+        score_review_threshold: payload.score_review_threshold,
+        score_block_and_review_threshold: payload.score_block_and_review_threshold,
+        score_decline_threshold: payload.score_decline_threshold,
+        schedule: currentIteration.schedule,
+      });
+    },
+    onSuccess: async ({ iteration }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "iterations", tenantId, scenarioId],
+      });
+      setDecisionMessage(`Decision thresholds saved for V${iteration.version}.`);
+      pushToast({
+        title: "Decision thresholds saved",
+        description: `Version ${iteration.version} now uses the updated score bands.`,
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to save decision thresholds.";
+      setDecisionMessage(message);
+      pushToast({
+        title: "Failed to save decision thresholds",
+        description: message,
+        variant: "error",
+      });
+    },
+  });
+
   const scenario = scenarioQuery.data?.scenario;
   const hasLiveIteration = Boolean(scenario?.live_iteration_id);
   const iterations = iterationsQuery.data?.iterations ?? EMPTY_ITERATIONS;
@@ -296,6 +426,16 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
     queryFn: () =>
       decisionEngineApi.listRules(tenantId, scenarioId, currentIteration!.id),
     enabled: Boolean(tenantId && scenarioId && currentIteration?.id),
+  });
+  const ruleFunctionsQuery = useQuery({
+    queryKey: ["decision-engine", "rule-functions"],
+    queryFn: () => decisionEngineApi.listRuleFunctions(),
+    enabled: Boolean(tenantId),
+  });
+  const customListsQuery = useQuery({
+    queryKey: ["decision-engine", "custom-lists", tenantId],
+    queryFn: () => decisionEngineApi.listCustomLists(tenantId),
+    enabled: Boolean(tenantId),
   });
   const validationQuery = useQuery({
     queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
@@ -422,6 +562,30 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
     });
   }, [pushToast, rulesQuery.error, rulesQuery.isError]);
 
+  useEffect(() => {
+    setReviewThresholdDraft(
+      currentIteration?.score_review_threshold != null
+        ? String(currentIteration.score_review_threshold)
+        : "1"
+    );
+    setBlockAndReviewThresholdDraft(
+      currentIteration?.score_block_and_review_threshold != null
+        ? String(currentIteration.score_block_and_review_threshold)
+        : "10"
+    );
+    setDeclineThresholdDraft(
+      currentIteration?.score_decline_threshold != null
+        ? String(currentIteration.score_decline_threshold)
+        : "20"
+    );
+    setDecisionMessage(null);
+  }, [
+    currentIteration?.id,
+    currentIteration?.score_block_and_review_threshold,
+    currentIteration?.score_decline_threshold,
+    currentIteration?.score_review_threshold,
+  ]);
+
   if (!tenantId) {
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
@@ -461,6 +625,109 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
   );
   const rules = rulesQuery.data?.rules ?? [];
   const isDraftIteration = currentIteration?.status === "draft";
+  const triggerFunctionSelectorOptions = useMemo(
+    () =>
+      (ruleFunctionsQuery.data?.rule_functions ?? [])
+        .map((item) => ({
+          value: `function:${item.name}`,
+          label: item.name,
+          meta: item.category,
+          keywords: [item.name, item.category, item.description],
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
+    [ruleFunctionsQuery.data?.rule_functions]
+  );
+  const triggerCustomListSelectorOptions = useMemo(
+    () =>
+      (customListsQuery.data?.custom_lists ?? [])
+        .map((item) => ({
+          value: `custom-list:${item.id}`,
+          label: item.name,
+          meta: "Custom list",
+          keywords: ["list", item.name],
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
+    [customListsQuery.data?.custom_lists]
+  );
+  const triggerOperandDiscoveryGroups = useMemo(
+    () => [
+      {
+        id: "fields",
+        label: "Fields",
+        children: [
+          {
+            id: "fields-trigger",
+            label: "Fields",
+            options: triggerOperandSelectorOptions,
+          },
+        ],
+      },
+      ...(triggerCustomListSelectorOptions.length > 0
+        ? [
+            {
+              id: "lists",
+              label: "Lists",
+              children: [
+                {
+                  id: "lists-items",
+                  label: "Lists",
+                  options: triggerCustomListSelectorOptions,
+                },
+              ],
+            },
+          ]
+        : []),
+      ...(triggerFunctionSelectorOptions.length > 0
+        ? [
+            {
+              id: "functions",
+              label: "Functions",
+              children: [
+                {
+                  id: "functions-items",
+                  label: "Functions",
+                  options: triggerFunctionSelectorOptions,
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        id: "modeling",
+        label: "Modeling",
+        children: [
+          {
+            id: "modeling-items",
+            label: "Modeling",
+            options: [
+              {
+                value: "modeling:open-bracket",
+                label: "Open bracket",
+                meta: "Modeling",
+                isAction: true,
+                onSelectAction: () =>
+                  pushToast({
+                    title: "Modeling in triggers is next",
+                    description:
+                      "The trigger menu now matches the rule menu, but bracket modeling is not wired yet.",
+                    variant: "success",
+                  }),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    [pushToast, triggerCustomListSelectorOptions, triggerFunctionSelectorOptions]
+  );
+  const triggerOperandSelectorOptionsAll = useMemo(
+    () => [
+      ...triggerOperandSelectorOptions,
+      ...triggerCustomListSelectorOptions,
+      ...triggerFunctionSelectorOptions,
+    ],
+    [triggerCustomListSelectorOptions, triggerFunctionSelectorOptions]
+  );
   const distinctRuleGroups = Array.from(
     new Set(rules.map((rule) => rule.rule_group).filter(Boolean))
   );
@@ -493,6 +760,25 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
       time_of_day: effectiveScheduleTime,
       timezone: "UTC",
       candidate_limit: recurringSchedule?.candidate_limit ?? 100,
+    });
+  }
+
+  function parseThreshold(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function handleSaveDecisionThresholds() {
+    setDecisionMessage(null);
+    void updateDecisionThresholdsMutation.mutate({
+      score_review_threshold: parseThreshold(reviewThresholdDraft),
+      score_block_and_review_threshold: parseThreshold(blockAndReviewThresholdDraft),
+      score_decline_threshold: parseThreshold(declineThresholdDraft),
     });
   }
 
@@ -808,74 +1094,64 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                           <div className="space-y-3">
                             {triggerRows.map((row) => (
                               <div key={row.id} className="space-y-2">
-                                <div className="flex flex-wrap items-center gap-2.5 text-[14px]">
-                                  <span className="rounded-md bg-slate-50 px-3 py-2.5 text-slate-600">
-                                    {row.prefix}
-                                  </span>
-                                  <select
-                                    value={row.left}
-                                    onChange={(event) =>
+                                <ConditionSelectorRow
+                                  prefixLabel={row.prefix}
+                                  leftSelector={{
+                                    value: row.left,
+                                    options: triggerOperandSelectorOptionsAll,
+                                    groups: triggerOperandDiscoveryGroups,
+                                    placeholder: "Select an operand...",
+                                    searchPlaceholder: "Select or create an operand",
+                                    emptyLabel: "No operands matched your search.",
+                                    invalid: !row.left,
+                                    prefix: "Tt",
+                                    searchOptionsBuilder: (searchValue) =>
+                                      buildTriggerLiteralSearchOptions(searchValue),
+                                    onChange: (value) =>
                                       setTriggerRows((current) =>
                                         current.map((item) =>
-                                          item.id === row.id ? { ...item, left: event.target.value } : item
+                                          item.id === row.id ? { ...item, left: value } : item
                                         )
-                                      )
-                                    }
-                                    className="rounded-md border border-[#ff6b57] px-3 py-2.5 text-slate-700 outline-none"
-                                  >
-                                    <option value="">Select an operand...</option>
-                                    {triggerOperandOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={row.operator}
-                                    onChange={(event) =>
+                                      ),
+                                  }}
+                                  operatorSelector={{
+                                    value: row.operator,
+                                    options: triggerOperatorSelectorOptions,
+                                    placeholder: "...",
+                                    searchPlaceholder: "Search operators",
+                                    emptyLabel: "No operators matched your search.",
+                                    invalid: !row.operator,
+                                    onChange: (value) =>
                                       setTriggerRows((current) =>
                                         current.map((item) =>
-                                          item.id === row.id ? { ...item, operator: event.target.value } : item
+                                          item.id === row.id ? { ...item, operator: value } : item
                                         )
-                                      )
-                                    }
-                                    className="rounded-md border border-[#ff6b57] px-3 py-2.5 text-slate-700 outline-none"
-                                  >
-                                    <option value="">...</option>
-                                    {triggerOperatorOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={row.right}
-                                    onChange={(event) =>
+                                      ),
+                                  }}
+                                  rightSelector={{
+                                    value: row.right,
+                                    options: triggerOperandSelectorOptionsAll,
+                                    groups: triggerOperandDiscoveryGroups,
+                                    placeholder: "Select an operand...",
+                                    searchPlaceholder: "Select or create an operand",
+                                    emptyLabel: "No operands matched your search.",
+                                    invalid: !row.right,
+                                    prefix: "Tt",
+                                    searchOptionsBuilder: (searchValue) =>
+                                      buildTriggerLiteralSearchOptions(searchValue),
+                                    onChange: (value) =>
                                       setTriggerRows((current) =>
                                         current.map((item) =>
-                                          item.id === row.id ? { ...item, right: event.target.value } : item
+                                          item.id === row.id ? { ...item, right: value } : item
                                         )
-                                      )
-                                    }
-                                    className="rounded-md border border-[#ff6b57] px-3 py-2.5 text-slate-700 outline-none"
-                                  >
-                                    <option value="">Select an operand...</option>
-                                    {triggerOperandOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setTriggerRows((current) => current.filter((item) => item.id !== row.id))
-                                    }
-                                    className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 text-slate-400"
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </button>
-                                </div>
+                                      ),
+                                  }}
+                                  onRemove={() =>
+                                    setTriggerRows((current) =>
+                                      current.filter((item) => item.id !== row.id)
+                                    )
+                                  }
+                                />
                                 <div className="inline-flex rounded-md bg-[#ffd9d2] px-3 py-1 text-[13px] text-[#dd3719]">
                                   {[row.left, row.operator, row.right].filter(Boolean).length} / 3 filled
                                 </div>
@@ -1063,7 +1339,10 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRules.map((rule) => (
+                        {filteredRules.map((rule) => {
+                          const ruleSummary = summarizeRuleFormula(rule.formula);
+
+                          return (
                           <tr
                             key={rule.id}
                             className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0"
@@ -1085,7 +1364,15 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                                 </div>
                               ) : null}
                             </td>
-                            <td className="max-w-[440px] px-4 py-3 text-[13px]">{rule.description}</td>
+                            <td className="max-w-[440px] px-4 py-3 text-[13px]">
+                              {rule.description ? (
+                                <span>{rule.description}</span>
+                              ) : ruleSummary ? (
+                                <span className="text-slate-700">{ruleSummary}</span>
+                              ) : (
+                                <span className="text-slate-400">No description</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               {rule.rule_group ? (
                                 <Badge className="rounded-full border-[#2d63b8] bg-white px-2 py-0.5 text-[12px] font-medium tracking-normal normal-case text-[#2d63b8]">
@@ -1129,7 +1416,7 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        )})}
                       </tbody>
                     </table>
                   ) : (
@@ -1168,27 +1455,33 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="hidden space-y-3">
                   <DecisionThresholdRow
                     label="Approve"
                     icon={<CheckCircle2 className="size-4 text-[#16a34a]" />}
                     colorClassName="bg-[#e1f3ea] text-[#16a34a]"
                     text="When score <"
-                    inputValue="1"
+                    inputValue={reviewThresholdDraft}
+                    onInputChange={setReviewThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
                     label="Review"
                     icon={<CircleDot className="size-4 text-[#f59e0b]" />}
                     colorClassName="bg-[#fef0c7] text-[#f59e0b]"
                     text="When 1 ≤ score <"
-                    inputValue="10"
+                    inputValue={blockAndReviewThresholdDraft}
+                    onInputChange={setBlockAndReviewThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
                     label="Block and Review"
                     icon={<ShieldAlert className="size-4 text-[#f97316]" />}
                     colorClassName="bg-[#ffedd5] text-[#f97316]"
                     text="When 10 ≤ score <"
-                    inputValue="20"
+                    inputValue={declineThresholdDraft}
+                    onInputChange={setDeclineThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
                     label="Decline"
@@ -1197,9 +1490,56 @@ export function ScenarioEditPage({ scenarioId }: { scenarioId: string }) {
                     text="When score ≥ 20"
                   />
                 </div>
-                <div className="flex justify-end">
+                <div className="hidden justify-end">
                   <Button className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]">
                     Save
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  <DecisionThresholdRow
+                    label="Approve"
+                    icon={<CheckCircle2 className="size-4 text-[#16a34a]" />}
+                    colorClassName="bg-[#e1f3ea] text-[#16a34a]"
+                    text="When score <"
+                    inputValue={reviewThresholdDraft}
+                    onInputChange={setReviewThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
+                  />
+                  <DecisionThresholdRow
+                    label="Review"
+                    icon={<CircleDot className="size-4 text-[#f59e0b]" />}
+                    colorClassName="bg-[#fef0c7] text-[#f59e0b]"
+                    text={`When ${reviewThresholdDraft || "0"} <= score <`}
+                    inputValue={blockAndReviewThresholdDraft}
+                    onInputChange={setBlockAndReviewThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
+                  />
+                  <DecisionThresholdRow
+                    label="Block and Review"
+                    icon={<ShieldAlert className="size-4 text-[#f97316]" />}
+                    colorClassName="bg-[#ffedd5] text-[#f97316]"
+                    text={`When ${blockAndReviewThresholdDraft || "0"} <= score <`}
+                    inputValue={declineThresholdDraft}
+                    onInputChange={setDeclineThresholdDraft}
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
+                  />
+                  <DecisionThresholdRow
+                    label="Decline"
+                    icon={<ShieldX className="size-4 text-[#dd3719]" />}
+                    colorClassName="bg-[#f9d8d2] text-[#dd3719]"
+                    text={`When score >= ${declineThresholdDraft || "0"}`}
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  {decisionMessage ? (
+                    <p className="text-[13px] text-slate-600">{decisionMessage}</p>
+                  ) : null}
+                  <Button
+                    disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
+                    onClick={handleSaveDecisionThresholds}
+                    className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
+                  >
+                    {updateDecisionThresholdsMutation.isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
               </div>

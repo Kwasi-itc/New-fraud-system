@@ -2,6 +2,25 @@ import type { ASTNodeDTO, JSONValue } from "@/lib/decision-engine-api";
 
 export type SimpleValueType = "string" | "number" | "boolean";
 
+export type AggregatorOperator =
+  | "AVG"
+  | "COUNT"
+  | "COUNT_DISTINCT"
+  | "MAX"
+  | "MIN"
+  | "SUM"
+  | "STDDEV"
+  | "PCTILE"
+  | "MEDIAN";
+
+export type SimpleRuleFunctionOperand = {
+  id: string;
+  label: string;
+  meta: string;
+  valueType: SimpleValueType;
+  ast: RuleAstNode;
+};
+
 export type SupportedRuleOperator =
   | "eq"
   | "neq"
@@ -85,9 +104,12 @@ function parseOperatorNodeName(
 export type SimpleRuleCondition = {
   id: string;
   left: string;
+  leftMode?: "field" | "function" | "custom_list" | "constant";
+  leftFunction?: SimpleRuleFunctionOperand | null;
   operator: SupportedRuleOperator | "";
   right: string;
-  rightMode?: "constant" | "custom_list";
+  rightMode?: "constant" | "custom_list" | "function" | "field";
+  rightFunction?: SimpleRuleFunctionOperand | null;
   valueType: SimpleValueType;
 };
 
@@ -183,14 +205,21 @@ function randomId(prefix: string) {
 export function createSimpleRuleCondition(
   overrides: Partial<SimpleRuleCondition> = {}
 ): SimpleRuleCondition {
+  const { leftFunction: _leftFunction, rightFunction: _rightFunction, ...rest } = overrides;
+  const normalizedLeftFunction = normalizeFunctionOperand(overrides.leftFunction);
+  const normalizedRightFunction = normalizeFunctionOperand(overrides.rightFunction);
+
   return {
     id: randomId("condition"),
     left: "",
+    leftMode: "field",
+    leftFunction: normalizedLeftFunction,
     operator: "",
     right: "",
     rightMode: "constant",
+    rightFunction: normalizedRightFunction,
     valueType: "string",
-    ...overrides,
+    ...rest,
   };
 }
 
@@ -286,6 +315,145 @@ export function buildCustomListAccess(listName: string): RuleAstNode {
       customListId: { constant: listName },
     },
   };
+}
+
+export function buildAggregatorAst(params: {
+  aggregator: AggregatorOperator;
+  tableName: string;
+  fieldName: string;
+  label: string;
+  percentile?: number;
+}): RuleAstNode {
+  return {
+    function: "Aggregator",
+    named_children: {
+      tableName: { constant: params.tableName },
+      fieldName: { constant: params.fieldName },
+      aggregator: { constant: params.aggregator },
+      label: { constant: params.label },
+      ...(params.percentile !== undefined
+        ? {
+            percentile: {
+              constant: params.percentile,
+            },
+          }
+        : {}),
+    },
+  };
+}
+
+function getAggregatorDisplayLabel(aggregator: string) {
+  switch (aggregator) {
+    case "AVG":
+      return "Average";
+    case "COUNT":
+      return "Count";
+    case "COUNT_DISTINCT":
+      return "Count distinct";
+    case "MAX":
+      return "Max";
+    case "MIN":
+      return "Min";
+    case "SUM":
+      return "Sum";
+    case "STDDEV":
+      return "Standard deviation";
+    case "PCTILE":
+      return "Percentile";
+    case "MEDIAN":
+      return "Median";
+    default:
+      return aggregator;
+  }
+}
+
+function buildDefaultFunctionLabel(ast: RuleAstNode) {
+  const functionName = getNodeFunction(ast);
+  if (functionName === "Aggregator") {
+    const aggregator =
+      typeof ast.named_children?.aggregator?.constant === "string"
+        ? ast.named_children.aggregator.constant
+        : "COUNT";
+    const fieldName =
+      typeof ast.named_children?.fieldName?.constant === "string"
+        ? ast.named_children.fieldName.constant
+        : "field";
+
+    return `${getAggregatorDisplayLabel(aggregator)} ${fieldName}`;
+  }
+
+  if (functionName === "TimeNow") {
+    return "Current time";
+  }
+
+  if (functionName === "record_risk_level") {
+    return "Record risk level";
+  }
+
+  return functionName ?? "Function";
+}
+
+function buildFunctionMeta(ast: RuleAstNode) {
+  const functionName = getNodeFunction(ast);
+  if (functionName === "Aggregator") {
+    const tableName =
+      typeof ast.named_children?.tableName?.constant === "string"
+        ? ast.named_children.tableName.constant
+        : "records";
+    return `Aggregation on ${tableName}`;
+  }
+
+  if (functionName === "TimeNow") {
+    return "Function";
+  }
+
+  if (functionName === "record_risk_level") {
+    return "Platform function";
+  }
+
+  return "Function";
+}
+
+export function createFunctionOperand(params: {
+  ast: RuleAstNode;
+  label?: string;
+  meta?: string;
+}): SimpleRuleFunctionOperand {
+  const normalized = normalizeAstNode(params.ast);
+
+  return {
+    id: randomId("function"),
+    label: params.label?.trim() || buildDefaultFunctionLabel(normalized),
+    meta: params.meta?.trim() || buildFunctionMeta(normalized),
+    valueType: getFunctionValueType(normalized),
+    ast: normalized,
+  };
+}
+
+function normalizeFunctionOperand(
+  operand: SimpleRuleFunctionOperand | null | undefined
+): SimpleRuleFunctionOperand | null {
+  if (!operand) {
+    return null;
+  }
+
+  return {
+    ...operand,
+    ast: normalizeAstNode(operand.ast),
+  };
+}
+
+function getFunctionValueType(ast: RuleAstNode): SimpleValueType {
+  const functionName = getNodeFunction(ast);
+  if (functionName === "Aggregator") {
+    return "number";
+  }
+
+  if (functionName === "record_risk_level") {
+    return "string";
+  }
+
+  return "string";
 }
 
 function buildAccessorLookupId(node: ASTNodeLike, kind: RuleAccessorKind) {
@@ -504,7 +672,22 @@ function parseListNode(constantNode: ASTNodeLike | null | undefined) {
   return null;
 }
 
-export function compileConditionToAst(condition: SimpleRuleCondition): RuleAstNode {
+function buildSimpleFieldOperandAst(
+  operandIdOrField: string,
+  accessorLookup: Map<string, RuleAccessorOption>
+) {
+  const accessor = accessorLookup.get(operandIdOrField);
+  if (accessor) {
+    return normalizeAstNode(accessor.astNode);
+  }
+
+  return buildFieldRef(operandIdOrField);
+}
+
+export function compileConditionToAst(
+  condition: SimpleRuleCondition,
+  accessorLookup: Map<string, RuleAccessorOption> = new Map()
+): RuleAstNode {
   if (!condition.operator) {
     return { constant: true };
   }
@@ -517,12 +700,30 @@ export function compileConditionToAst(condition: SimpleRuleCondition): RuleAstNo
   if (operator.unary) {
     return {
       function: condition.operator,
-      children: [buildFieldRef(condition.left)],
+      children: [
+        condition.leftMode === "function" && condition.leftFunction
+          ? normalizeAstNode(condition.leftFunction.ast)
+          : condition.leftMode === "custom_list"
+            ? buildCustomListAccess(condition.left)
+            : condition.leftMode === "constant"
+              ? {
+                  constant: normalizeConstantValue(
+                    condition.left,
+                    condition.valueType,
+                    false
+                  ),
+                }
+          : buildSimpleFieldOperandAst(condition.left, accessorLookup),
+      ],
     };
   }
 
   const rightOperand = operator.value === "ContainsAnyOf" || operator.value === "ContainsNoneOf"
     ? buildListNode(condition.right, condition.valueType)
+    : condition.rightMode === "field"
+      ? buildSimpleFieldOperandAst(condition.right, accessorLookup)
+    : condition.rightMode === "function" && condition.rightFunction
+      ? normalizeAstNode(condition.rightFunction.ast)
     : condition.rightMode === "custom_list" &&
         (operator.value === "in" || operator.value === "IsNotInList")
       ? buildCustomListAccess(condition.right)
@@ -537,7 +738,19 @@ export function compileConditionToAst(condition: SimpleRuleCondition): RuleAstNo
   return {
     function: condition.operator,
     children: [
-      buildFieldRef(condition.left),
+      condition.leftMode === "function" && condition.leftFunction
+        ? normalizeAstNode(condition.leftFunction.ast)
+        : condition.leftMode === "custom_list"
+          ? buildCustomListAccess(condition.left)
+          : condition.leftMode === "constant"
+            ? {
+                constant: normalizeConstantValue(
+                  condition.left,
+                  condition.valueType,
+                  false
+                ),
+              }
+        : buildSimpleFieldOperandAst(condition.left, accessorLookup),
       rightOperand,
     ],
   };
@@ -650,17 +863,24 @@ export function compileAdvancedConditionGroupsToAst(
   };
 }
 
-export function compileConditionGroupsToAst(groups: SimpleRuleConditionGroup[]): RuleAstNode {
+export function compileConditionGroupsToAst(
+  groups: SimpleRuleConditionGroup[],
+  accessorOptions: RuleAccessorOption[] = []
+): RuleAstNode {
+  const accessorLookup = new Map(accessorOptions.map((option) => [option.id, option]));
   const compiledGroups = groups
     .map((group) => {
       const compiledConditions = group.conditions
         .filter(
           (condition) =>
-            condition.left.trim() &&
+            ((condition.leftMode === "function" && condition.leftFunction) ||
+              condition.left.trim()) &&
             condition.operator &&
-            (isUnaryRuleOperator(condition.operator) || condition.right.trim())
+            (isUnaryRuleOperator(condition.operator) ||
+              (condition.rightMode === "function" && condition.rightFunction) ||
+              condition.right.trim())
         )
-        .map((condition) => compileConditionToAst(condition));
+        .map((condition) => compileConditionToAst(condition, accessorLookup));
 
       if (compiledConditions.length === 0) {
         return null;
@@ -806,7 +1026,142 @@ function parseRightOperand(
   };
 }
 
-function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
+function parseSimpleFunctionOperand(node: ASTNodeLike): SimpleRuleFunctionOperand | null {
+  const functionName = getNodeFunction(node);
+  if (!functionName) {
+    return null;
+  }
+
+  if (functionName === "Aggregator") {
+    return createFunctionOperand({
+      ast: normalizeAstNode(node),
+    });
+  }
+
+  if (functionName === "TimeNow" || functionName === "record_risk_level") {
+    return createFunctionOperand({
+      ast: normalizeAstNode(node),
+    });
+  }
+
+  return null;
+}
+
+function parseSimpleOperandNode(
+  node: ASTNodeLike | null | undefined,
+  accessorLookup: Map<string, RuleAccessorOption> = new Map()
+) {
+  if (!node) {
+    return null;
+  }
+
+  const functionName = getNodeFunction(node);
+
+  const fieldName = node.named_children?.field?.constant;
+  if (functionName === "field_ref" && typeof fieldName === "string") {
+    const accessorId = buildAccessorLookupId(node, "payload");
+    return {
+      mode: "field" as const,
+      value: accessorLookup.has(accessorId) ? accessorId : fieldName,
+    };
+  }
+
+  const payloadFieldName = node.children?.[0]?.constant;
+  if (functionName === "Payload" && typeof payloadFieldName === "string") {
+    const accessorId = buildAccessorLookupId(node, "payload");
+    return {
+      mode: "field" as const,
+      value: accessorLookup.has(accessorId) ? accessorId : payloadFieldName,
+    };
+  }
+
+  if (functionName === "DatabaseAccess") {
+    const accessorId = buildAccessorLookupId(node, "database");
+    const fieldName =
+      typeof node.named_children?.fieldName?.constant === "string"
+        ? node.named_children.fieldName.constant
+        : "";
+
+    return {
+      mode: "field" as const,
+      value: accessorLookup.has(accessorId) ? accessorId : fieldName,
+    };
+  }
+
+  const functionOperand = parseSimpleFunctionOperand(node);
+  if (!functionOperand) {
+    const parsedConstant = parsePrimitiveValue(node.constant);
+    if (parsedConstant) {
+      return {
+        mode: "constant" as const,
+        value: parsedConstant.value,
+        valueType: parsedConstant.valueType,
+      };
+    }
+
+    if (functionName === "CustomListAccess") {
+      const listName = node.named_children?.customListId?.constant;
+      if (typeof listName !== "string") {
+        return null;
+      }
+
+      return {
+        mode: "custom_list" as const,
+        value: listName,
+      };
+    }
+
+    return null;
+  }
+
+  return {
+    mode: "function" as const,
+    functionOperand,
+  };
+}
+
+function parseSimpleRightOperandNode(
+  node: ASTNodeLike | null | undefined,
+  accessorLookup: Map<string, RuleAccessorOption> = new Map()
+) {
+  if (!node) {
+    return null;
+  }
+
+  const parsedFieldOperand = parseSimpleOperandNode(node, accessorLookup);
+  if (parsedFieldOperand?.mode === "field") {
+    return {
+      mode: "field" as const,
+      value: parsedFieldOperand.value,
+      valueType: "string" as SimpleValueType,
+    };
+  }
+
+  const functionOperand = parseSimpleFunctionOperand(node);
+  if (functionOperand) {
+    return {
+      mode: "function" as const,
+      functionOperand,
+      valueType: functionOperand.valueType,
+    };
+  }
+
+  const parsedValue = parsePrimitiveValue(node.constant);
+  if (!parsedValue) {
+    return null;
+  }
+
+  return {
+    mode: "constant" as const,
+    value: parsedValue.value,
+    valueType: parsedValue.valueType,
+  };
+}
+
+function parseConditionNode(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption> = new Map()
+): SimpleRuleCondition | null {
   const operator = getRuleOperatorOption(getNodeFunction(node));
 
   if (!operator) {
@@ -819,17 +1174,18 @@ function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
       return null;
     }
 
-    const fieldRef = children[0];
-    const fieldName = fieldRef?.named_children?.field?.constant;
-    if (getNodeFunction(fieldRef) !== "field_ref" || typeof fieldName !== "string") {
+    const leftOperand = parseSimpleOperandNode(children[0], accessorLookup);
+    if (!leftOperand) {
       return null;
     }
 
     return createSimpleRuleCondition({
-      left: fieldName,
+      left: leftOperand.mode === "function" ? "" : leftOperand.value,
+      leftMode: leftOperand.mode,
+      leftFunction: leftOperand.mode === "function" ? leftOperand.functionOperand : null,
       operator: operator.value,
       right: "",
-      valueType: "string",
+      valueType: leftOperand.mode === "constant" ? leftOperand.valueType : "string",
     });
   }
 
@@ -837,9 +1193,8 @@ function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
     return null;
   }
 
-  const fieldRef = children[0];
-  const fieldName = fieldRef?.named_children?.field?.constant;
-  if (getNodeFunction(fieldRef) !== "field_ref" || typeof fieldName !== "string") {
+  const leftOperand = parseSimpleOperandNode(children[0], accessorLookup);
+  if (!leftOperand) {
     return null;
   }
 
@@ -852,12 +1207,14 @@ function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
       }
 
       return createSimpleRuleCondition({
-        left: fieldName,
-        operator: operator.value,
-        right: listName,
-        rightMode: "custom_list",
-        valueType: "string",
-      });
+      left: leftOperand.mode === "function" ? "" : leftOperand.value,
+      leftMode: leftOperand.mode,
+      leftFunction: leftOperand.mode === "function" ? leftOperand.functionOperand : null,
+      operator: operator.value,
+      right: listName,
+      rightMode: "custom_list",
+      valueType: leftOperand.mode === "constant" ? leftOperand.valueType : "string",
+    });
     }
 
     const parsedList = parseListNode(children[1]);
@@ -866,33 +1223,47 @@ function parseConditionNode(node: ASTNodeLike): SimpleRuleCondition | null {
     }
 
     return createSimpleRuleCondition({
-      left: fieldName,
+      left: leftOperand.mode === "function" ? "" : leftOperand.value,
+      leftMode: leftOperand.mode,
+      leftFunction: leftOperand.mode === "function" ? leftOperand.functionOperand : null,
       operator: operator.value,
       right: parsedList.value,
       rightMode: "constant",
-      valueType: parsedList.valueType,
+      valueType:
+        leftOperand.mode === "constant" ? leftOperand.valueType : parsedList.valueType,
     });
   }
 
-  const parsedValue = parsePrimitiveValue(constant);
-  if (!parsedValue) {
+  const rightOperand = parseSimpleRightOperandNode(children[1], accessorLookup);
+  if (!rightOperand) {
     return null;
   }
 
   return createSimpleRuleCondition({
-    left: fieldName,
+    left: leftOperand.mode === "function" ? "" : leftOperand.value,
+    leftMode: leftOperand.mode,
+    leftFunction: leftOperand.mode === "function" ? leftOperand.functionOperand : null,
     operator: operator.value,
-    right: parsedValue.value,
-    valueType: parsedValue.valueType,
+    right:
+      rightOperand.mode === "constant" || rightOperand.mode === "field"
+        ? rightOperand.value
+        : "",
+    rightMode: rightOperand.mode,
+    rightFunction: rightOperand.mode === "function" ? rightOperand.functionOperand : null,
+    valueType:
+      leftOperand.mode === "constant" ? leftOperand.valueType : rightOperand.valueType,
   });
 }
 
-function parseGroupNode(node: ASTNodeLike): SimpleRuleConditionGroup | null {
+function parseGroupNode(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption> = new Map()
+): SimpleRuleConditionGroup | null {
   const nodeFunction = getNodeFunction(node);
 
   if (nodeFunction === "and") {
     const parsedConditions = (node.children ?? [])
-      .map((child) => parseConditionNode(child))
+      .map((child) => parseConditionNode(child, accessorLookup))
       .filter((condition): condition is SimpleRuleCondition => Boolean(condition));
 
     if (parsedConditions.length !== (node.children ?? []).length || parsedConditions.length === 0) {
@@ -904,7 +1275,7 @@ function parseGroupNode(node: ASTNodeLike): SimpleRuleConditionGroup | null {
     });
   }
 
-  const singleCondition = parseConditionNode(node);
+  const singleCondition = parseConditionNode(node, accessorLookup);
   if (!singleCondition) {
     return null;
   }
@@ -916,12 +1287,13 @@ function parseGroupNode(node: ASTNodeLike): SimpleRuleConditionGroup | null {
 
 function flattenConditionGroupsFromOrNode(
   node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>,
   wrapped = false
 ): SimpleRuleConditionGroup[] | null {
   const nodeFunction = getNodeFunction(node);
 
   if (nodeFunction !== "or") {
-    const parsedGroup = parseGroupNode(node);
+    const parsedGroup = parseGroupNode(node, accessorLookup);
     if (!parsedGroup) {
       return null;
     }
@@ -938,6 +1310,7 @@ function flattenConditionGroupsFromOrNode(
     const normalizedChild = normalizeAstNode(child);
     return flattenConditionGroupsFromOrNode(
       normalizedChild,
+      accessorLookup,
       getNodeFunction(normalizedChild) === "or"
     );
   });
@@ -960,7 +1333,11 @@ function flattenConditionGroupsFromOrNode(
   return groups;
 }
 
-export function tryParseAstToConditionGroups(ast: unknown) {
+export function tryParseAstToConditionGroups(
+  ast: unknown,
+  accessorOptions: RuleAccessorOption[] = []
+) {
+  const accessorLookup = new Map(accessorOptions.map((option) => [option.id, option]));
 	if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
 		return null;
 	}
@@ -972,7 +1349,7 @@ export function tryParseAstToConditionGroups(ast: unknown) {
 	const nodeFunction = getNodeFunction(node);
 
   if (nodeFunction === "or") {
-    const groups = flattenConditionGroupsFromOrNode(node, false);
+    const groups = flattenConditionGroupsFromOrNode(node, accessorLookup, false);
     if (!groups || groups.length === 0) {
       return null;
     }
@@ -980,12 +1357,81 @@ export function tryParseAstToConditionGroups(ast: unknown) {
     return groups;
   }
 
-  const singleGroup = parseGroupNode(node);
+  const singleGroup = parseGroupNode(node, accessorLookup);
   if (!singleGroup) {
     return null;
   }
 
   return [singleGroup];
+}
+
+export function summarizeRuleFormula(ast: unknown) {
+  const groups = tryParseAstToConditionGroups(ast);
+  if (!groups) {
+    return null;
+  }
+
+  const renderedGroups = groups
+    .map((group) => {
+      const renderedConditions = group.conditions
+        .map((condition) => {
+          const operator = getRuleOperatorOption(condition.operator);
+          if (!operator) {
+            return null;
+          }
+
+          const left =
+            condition.leftMode === "function" && condition.leftFunction
+              ? condition.leftFunction.label
+              : condition.leftMode === "custom_list"
+                ? `List: ${condition.left}`
+                : condition.leftMode === "constant"
+                  ? condition.valueType === "string"
+                    ? `"${condition.left}"`
+                    : condition.left
+                  : condition.left;
+
+          if (!left) {
+            return null;
+          }
+
+          if (operator.unary) {
+            return `${left} ${operator.label}`;
+          }
+
+          const right =
+            condition.rightMode === "function" && condition.rightFunction
+              ? condition.rightFunction.label
+              : condition.rightMode === "custom_list"
+                ? `List: ${condition.right}`
+                : condition.valueType === "string"
+                  ? `"${condition.right}"`
+                  : condition.right;
+
+          if (!right) {
+            return null;
+          }
+
+          return `${left} ${operator.label} ${right}`;
+        })
+        .filter((item): item is string => Boolean(item));
+
+      if (renderedConditions.length === 0) {
+        return null;
+      }
+
+      const groupSummary = renderedConditions.join(" and ");
+      const opens = "(".repeat(group.openBefore ?? 0);
+      const closes = ")".repeat(group.closeAfter ?? 0);
+      return `${opens}${groupSummary}${closes}`;
+    })
+    .filter((item): item is string => Boolean(item));
+
+  if (renderedGroups.length === 0) {
+    return null;
+  }
+
+  return renderedGroups.join(" or ");
 }
 
 function parseAdvancedConditionNode(

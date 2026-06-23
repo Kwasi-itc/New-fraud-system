@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -45,6 +45,7 @@ import {
   type RuleAccessorOption,
   type SimpleRuleConditionGroup,
 } from "@/lib/rule-builder";
+import { useToastStore } from "@/stores/toast-store";
 
 function coerceScoreModifier(value: string) {
   const parsed = Number(value);
@@ -62,11 +63,13 @@ function RuleEditorContent({
   triggerObjectType,
   draftIterationId,
   draftIterationVersion,
+  isEditable,
   currentRule,
   fieldOptions,
   accessorOptions,
   operatorOptions,
   customListOptions,
+  tableFieldOptions,
   ruleGroups,
   validation,
   isValidating,
@@ -78,11 +81,13 @@ function RuleEditorContent({
   triggerObjectType: string;
   draftIterationId: string;
   draftIterationVersion: number;
+  isEditable: boolean;
   currentRule: Rule;
   fieldOptions: string[];
   accessorOptions: RuleAccessorOption[];
   operatorOptions: typeof simpleRuleOperatorOptions;
   customListOptions: Array<{ id: string; name: string }>;
+  tableFieldOptions: Array<{ tableName: string; fieldName: string; label: string }>;
   ruleGroups: string[];
   validation?: ValidationResult;
   isValidating: boolean;
@@ -90,6 +95,7 @@ function RuleEditorContent({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const pushToast = useToastStore((state) => state.pushToast);
   const [name, setName] = useState(currentRule.name);
   const [description, setDescription] = useState(currentRule.description);
   const [ruleGroup, setRuleGroup] = useState(currentRule.rule_group);
@@ -98,10 +104,13 @@ function RuleEditorContent({
   const [snoozeGroupId, setSnoozeGroupId] = useState(currentRule.snooze_group_id ?? "");
   const [actionsOpen, setActionsOpen] = useState(false);
 
-  const parsedGroups = tryParseAstToConditionGroups(currentRule.formula);
-  const parsedAdvancedGroups = tryParseAstToAdvancedConditionGroups(
-    currentRule.formula,
-    accessorOptions
+  const parsedGroups = useMemo(
+    () => tryParseAstToConditionGroups(currentRule.formula, accessorOptions),
+    [accessorOptions, currentRule.formula]
+  );
+  const parsedAdvancedGroups = useMemo(
+    () => tryParseAstToAdvancedConditionGroups(currentRule.formula, accessorOptions),
+    [accessorOptions, currentRule.formula]
   );
   const [editorMode] = useState<"simple" | "advanced">(() =>
     parsedGroups ? "simple" : parsedAdvancedGroups ? "advanced" : "simple"
@@ -112,7 +121,23 @@ function RuleEditorContent({
   const [advancedConditionGroups, setAdvancedConditionGroups] = useState<AdvancedRuleConditionGroup[]>(
     parsedAdvancedGroups ?? [createAdvancedRuleGroup(accessorOptions[0]?.id ?? "")]
   );
-  const hasUnsupportedFormula = parsedAdvancedGroups === null;
+  const hasUnsupportedFormula =
+    parsedGroups === null && parsedAdvancedGroups === null;
+
+  useEffect(() => {
+    setConditionGroups((current) => {
+      const nextGroups = parsedGroups ?? [createSimpleRuleGroup()];
+      return JSON.stringify(current) === JSON.stringify(nextGroups) ? current : nextGroups;
+    });
+  }, [currentRule.id, parsedGroups]);
+
+  useEffect(() => {
+    setAdvancedConditionGroups((current) => {
+      const nextGroups =
+        parsedAdvancedGroups ?? [createAdvancedRuleGroup(accessorOptions[0]?.id ?? "")];
+      return JSON.stringify(current) === JSON.stringify(nextGroups) ? current : nextGroups;
+    });
+  }, [accessorOptions, currentRule.id, parsedAdvancedGroups]);
 
   const updateRuleMutation = useMutation({
     mutationFn: async () =>
@@ -124,7 +149,7 @@ function RuleEditorContent({
           ? currentRule.formula
           : editorMode === "advanced"
             ? compileAdvancedConditionGroupsToAst(advancedConditionGroups, accessorOptions)
-            : compileConditionGroupsToAst(conditionGroups),
+            : compileConditionGroupsToAst(conditionGroups, accessorOptions),
         score_modifier: coerceScoreModifier(scoreModifier),
         rule_group: ruleGroup.trim(),
         snooze_group_id: snoozeGroupId.trim() || null,
@@ -132,10 +157,22 @@ function RuleEditorContent({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "rules", tenantId, scenarioId, draftIterationId],
+        queryKey: ["decision-engine", "rules", tenantId, scenarioId],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIterationId],
+        queryKey: ["decision-engine", "validation", tenantId, scenarioId],
+      });
+      pushToast({
+        title: "Rule saved",
+        description: `${name.trim() || "Rule"} was updated.`,
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to save rule",
+        description: error instanceof Error ? error.message : "The rule could not be saved.",
+        variant: "error",
       });
     },
   });
@@ -145,16 +182,29 @@ function RuleEditorContent({
       decisionEngineApi.deleteRule(tenantId, scenarioId, draftIterationId, currentRule.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "rules", tenantId, scenarioId, draftIterationId],
+        queryKey: ["decision-engine", "rules", tenantId, scenarioId],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIterationId],
+        queryKey: ["decision-engine", "validation", tenantId, scenarioId],
+      });
+      pushToast({
+        title: "Rule deleted",
+        description: `${currentRule.name} was removed.`,
+        variant: "success",
       });
       router.push(`/detection/${scenarioId}/edit`);
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to delete rule",
+        description: error instanceof Error ? error.message : "The rule could not be deleted.",
+        variant: "error",
+      });
     },
   });
 
   const saveDisabled =
+    !isEditable ||
     updateRuleMutation.isPending ||
     !name.trim() ||
     !stableRuleId.trim() ||
@@ -180,8 +230,11 @@ function RuleEditorContent({
         : !conditionGroups.some((group) =>
             group.conditions.some(
               (condition) =>
-                condition.left.trim() &&
-                (isUnaryRuleOperator(condition.operator) || condition.right.trim())
+                ((condition.leftMode === "function" && condition.leftFunction) ||
+                  condition.left.trim()) &&
+                (isUnaryRuleOperator(condition.operator) ||
+                  (condition.rightMode === "function" && condition.rightFunction) ||
+                  condition.right.trim())
             )
           )));
 
@@ -200,6 +253,7 @@ function RuleEditorContent({
               <div className="min-w-0 flex-1">
                 <Input
                   value={name}
+                  disabled={!isEditable}
                   onChange={(event) => {
                     const nextName = event.target.value;
                     setName(nextName);
@@ -224,6 +278,7 @@ function RuleEditorContent({
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={!isEditable}
                   onClick={() => setActionsOpen((current) => !current)}
                   className="h-10 w-10 rounded-xl border-slate-200 p-0 shadow-none"
                 >
@@ -278,6 +333,7 @@ function RuleEditorContent({
           <div className="max-w-4xl space-y-4 border-b border-slate-200 pb-6">
             <textarea
               value={description}
+              disabled={!isEditable}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Add a description..."
               rows={3}
@@ -288,7 +344,7 @@ function RuleEditorContent({
               <RuleGroupPicker
                 selectedRuleGroup={ruleGroup}
                 ruleGroups={ruleGroups}
-                onChange={setRuleGroup}
+                onChange={isEditable ? setRuleGroup : () => {}}
               />
             </div>
           </div>
@@ -306,17 +362,18 @@ function RuleEditorContent({
                         accessorOptions={accessorOptions}
                         operatorOptions={operatorOptions}
                         triggerObjectType={triggerObjectType}
-                        disabled={hasUnsupportedFormula}
+                        disabled={!isEditable}
                       />
                     ) : (
                       <RuleBuilderSimple
                         groups={conditionGroups}
                         onChange={setConditionGroups}
-                        fieldOptions={fieldOptions}
+                        accessorOptions={accessorOptions}
                         operatorOptions={operatorOptions}
                         customListOptions={customListOptions}
                         triggerObjectType={triggerObjectType}
-                        disabled={hasUnsupportedFormula || (!parsedGroups && Boolean(parsedAdvancedGroups))}
+                        tableFieldOptions={tableFieldOptions}
+                        disabled={!isEditable}
                       />
                     )}
                   </CardContent>
@@ -329,6 +386,7 @@ function RuleEditorContent({
                     </span>
                     <Input
                       value={scoreModifier}
+                      disabled={!isEditable}
                       onChange={(event) => setScoreModifier(event.target.value)}
                       inputMode="numeric"
                       className="h-10 w-[140px] rounded-sm border-slate-200 bg-slate-50 shadow-none"
@@ -399,6 +457,7 @@ function RuleEditorContent({
                         <span>Stable rule ID</span>
                         <Input
                           value={stableRuleId}
+                          disabled={!isEditable}
                           onChange={(event) => setStableRuleId(event.target.value)}
                           placeholder="high-value-payment"
                           className="h-10 rounded-xl border-slate-200 shadow-none"
@@ -408,6 +467,7 @@ function RuleEditorContent({
                         <span>Snooze group ID</span>
                         <Input
                           value={snoozeGroupId}
+                          disabled={!isEditable}
                           onChange={(event) => setSnoozeGroupId(event.target.value)}
                           placeholder="Optional"
                           className="h-10 rounded-xl border-slate-200 shadow-none"
@@ -419,12 +479,6 @@ function RuleEditorContent({
 
                 <Card className="rounded-xl border border-slate-200 shadow-none">
                   <CardContent className="space-y-3 p-5">
-                    <div className="flex items-start gap-2 text-[13px] text-slate-700">
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-slate-500" />
-                      <p>
-                        AI description and AI-generated formulas are still separate follow-up work. This page now mirrors the old dedicated fraud-rule workspace, but the standalone service still needs those assistive endpoints rebuilt before we can wire them back in.
-                      </p>
-                    </div>
                     <Button
                       variant="outline"
                       onClick={onValidate}
@@ -567,6 +621,23 @@ export function RuleDetailPage({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [customListsQuery.data?.custom_lists]
   );
+  const tableFieldOptions = useMemo(
+    () =>
+      Object.values(assembledModelQuery.data?.data_model.tables ?? {})
+        .flatMap((table) =>
+          Object.values(table.fields ?? {}).map((field) => ({
+            tableName: table.name,
+            fieldName: field.name,
+            label: field.name,
+          }))
+        )
+        .sort((left, right) =>
+          left.tableName === right.tableName
+            ? left.fieldName.localeCompare(right.fieldName)
+            : left.tableName.localeCompare(right.tableName)
+        ),
+    [assembledModelQuery.data?.data_model.tables]
+  );
 
   if (!tenantId) {
     return (
@@ -639,11 +710,13 @@ export function RuleDetailPage({
       triggerObjectType={scenarioQuery.data?.scenario.trigger_object_type ?? ""}
       draftIterationId={draftIteration.id}
       draftIterationVersion={draftIteration.version}
+      isEditable={draftIteration.status === "draft"}
       currentRule={currentRule}
       fieldOptions={fieldOptions}
       accessorOptions={accessorOptions}
       operatorOptions={operatorOptions}
       customListOptions={customListOptions}
+      tableFieldOptions={tableFieldOptions}
       ruleGroups={ruleGroups}
       validation={validationQuery.data?.validation}
       isValidating={validationQuery.isLoading || validationQuery.isFetching}

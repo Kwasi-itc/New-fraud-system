@@ -163,6 +163,12 @@ export type Decision = {
   created_at: string;
 };
 
+export type ListDecisionsRequest = {
+  scenario_id?: string;
+  object_type?: string;
+  object_id?: string;
+};
+
 export type RuleExecution = {
   id: string;
   decision_id: string;
@@ -611,6 +617,7 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/evaluate`,
   scenarioDecisions: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/decisions`,
+  decisions: (tenantId: string) => `/v1/tenants/${tenantId}/decisions`,
   decision: (tenantId: string, decisionId: string) =>
     `/v1/tenants/${tenantId}/decisions/${decisionId}`,
   recordIngested: (tenantId: string) =>
@@ -868,6 +875,24 @@ export const decisionEngineApi = {
     decisionEngineFetch<{ decisions: Decision[] }>(
       decisionEnginePaths.scenarioDecisions(tenantId, scenarioId)
     ),
+  listDecisions: async (tenantId: string, filters?: ListDecisionsRequest) => {
+    const params = new URLSearchParams();
+
+    if (filters?.scenario_id) {
+      params.set("scenario_id", filters.scenario_id);
+    }
+    if (filters?.object_type) {
+      params.set("object_type", filters.object_type);
+    }
+    if (filters?.object_id) {
+      params.set("object_id", filters.object_id);
+    }
+
+    const query = params.toString();
+    return decisionEngineFetch<{ decisions: Decision[] }>(
+      `${decisionEnginePaths.decisions(tenantId)}${query ? `?${query}` : ""}`
+    );
+  },
   getDecision: async (tenantId: string, decisionId: string) =>
     decisionEngineFetch<{ decision: Decision; rule_executions: RuleExecution[] }>(
       decisionEnginePaths.decision(tenantId, decisionId)

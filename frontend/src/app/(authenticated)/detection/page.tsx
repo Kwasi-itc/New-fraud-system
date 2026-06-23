@@ -19,6 +19,7 @@ import {
   Plus,
   Search,
   SquarePen,
+  X,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   type CustomList,
+  type Decision,
   type Scenario as DecisionEngineScenario,
+  type RuleExecution,
+  type ScoringRequest,
+  type ScreeningExecution,
+  type WorkflowExecution,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import { useAssembledDataModelQuery } from "@/lib/data-model-query";
@@ -112,6 +118,46 @@ const decisionOutcomes = [
   { label: "Block and Review", color: "bg-orange-300" },
   { label: "Decline", color: "bg-rose-300" },
 ];
+
+function formatDecisionDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatDecisionOutcome(value: string) {
+  switch (value) {
+    case "approve":
+      return "Approve";
+    case "block_and_review":
+      return "Block and Review";
+    case "decline":
+      return "Decline";
+    case "review":
+      return "Review";
+    default:
+      return value;
+  }
+}
+
+function outcomeBadgeClass(value: string) {
+  switch (value) {
+    case "approve":
+      return "bg-emerald-100 text-emerald-700";
+    case "block_and_review":
+      return "bg-orange-100 text-orange-700";
+    case "decline":
+      return "bg-rose-100 text-rose-700";
+    default:
+      return "bg-amber-100 text-amber-700";
+  }
+}
 
 function TabButton({
   tab,
@@ -592,6 +638,649 @@ function AnalyticsView() {
         </Card>
       ))}
     </div>
+  );
+}
+
+function DecisionDetailModal({
+  tenantId,
+  decisionId,
+  scenarioName,
+  onClose,
+}: {
+  tenantId: string;
+  decisionId: string;
+  scenarioName: string;
+  onClose: () => void;
+}) {
+  const decisionQuery = useQuery({
+    queryKey: ["decision-engine", "decision", tenantId, decisionId],
+    queryFn: () => decisionEngineApi.getDecision(tenantId, decisionId),
+    enabled: Boolean(tenantId && decisionId),
+  });
+  const workflowExecutionsQuery = useQuery({
+    queryKey: ["decision-engine", "workflow-executions", tenantId, decisionId],
+    queryFn: () => decisionEngineApi.listWorkflowExecutions(tenantId, decisionId),
+    enabled: Boolean(tenantId && decisionId),
+  });
+  const screeningExecutionsQuery = useQuery({
+    queryKey: ["decision-engine", "screening-executions", tenantId, decisionId],
+    queryFn: () => decisionEngineApi.listScreeningExecutions(tenantId, decisionId),
+    enabled: Boolean(tenantId && decisionId),
+  });
+  const scoringRequestsQuery = useQuery({
+    queryKey: ["decision-engine", "scoring-requests", tenantId, decisionId],
+    queryFn: () => decisionEngineApi.listScoringRequests(tenantId, decisionId),
+    enabled: Boolean(tenantId && decisionId),
+  });
+
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const decision = decisionQuery.data?.decision;
+  const ruleExecutions = decisionQuery.data?.rule_executions ?? [];
+  const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
+  const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
+  const scoringRequests = scoringRequestsQuery.data?.scoring_requests ?? [];
+  const isLoading =
+    decisionQuery.isLoading ||
+    workflowExecutionsQuery.isLoading ||
+    screeningExecutionsQuery.isLoading ||
+    scoringRequestsQuery.isLoading;
+  const error =
+    decisionQuery.error ??
+    workflowExecutionsQuery.error ??
+    screeningExecutionsQuery.error ??
+    scoringRequestsQuery.error;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-6 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-[1080px] overflow-y-auto rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-6 py-5">
+          <div>
+            <h2 className="text-[22px] font-semibold tracking-tight text-slate-950">
+              Decision Details
+            </h2>
+            <div className="mt-1 text-[13px] text-slate-500">
+              {decisionId} {scenarioName ? `• ${scenarioName}` : ""}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-5 px-6 py-6">
+          {isLoading ? (
+            <Card className="rounded-xl border border-slate-200 shadow-none">
+              <CardContent className="p-5 text-sm text-slate-600">
+                Loading decision details...
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
+              <CardContent className="p-5 text-sm text-red-700">
+                {error instanceof Error ? error.message : "Failed to load decision details."}
+              </CardContent>
+            </Card>
+          ) : decision ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                {[
+                  ["Outcome", formatDecisionOutcome(decision.outcome)],
+                  ["Score", String(decision.score)],
+                  ["Triggered", decision.triggered ? "Yes" : "No"],
+                  ["Created", formatDecisionDate(decision.created_at)],
+                ].map(([label, value]) => (
+                  <Card key={label} className="rounded-xl border border-slate-200 shadow-none">
+                    <CardContent className="px-4 py-3">
+                      <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                        {label}
+                      </div>
+                      <div className="mt-1 text-[18px] font-semibold text-slate-950">
+                        {value}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="rounded-xl border border-slate-200 shadow-none">
+                <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+                  <div>
+                    <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                      Object
+                    </div>
+                    <div className="mt-1 text-[14px] text-slate-950">
+                      {decision.object_type} / {decision.object_id}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                      Iteration
+                    </div>
+                    <div className="mt-1 text-[14px] text-slate-950">
+                      {decision.scenario_iteration_id}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl border border-slate-200 shadow-none">
+                <CardContent className="space-y-3 p-5">
+                  <div className="text-[15px] font-semibold text-slate-950">Rule Executions</div>
+                  {ruleExecutions.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
+                      No rule executions were recorded for this decision.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {ruleExecutions.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
+                        >
+                          <div>
+                            <div className="text-[14px] font-medium text-slate-950">
+                              {item.rule_name}
+                            </div>
+                            <div className="text-[12px] text-slate-500">{item.rule_id}</div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[13px] text-slate-600">{item.outcome}</span>
+                            <TablePill>{item.score_modifier}</TablePill>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-5 xl:grid-cols-3">
+                <Card className="rounded-xl border border-slate-200 shadow-none">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="text-[15px] font-semibold text-slate-950">
+                      Workflow Executions
+                    </div>
+                    {workflowExecutions.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
+                        No workflow executions were created.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {workflowExecutions.map((item) => (
+                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[14px] font-medium text-slate-950">
+                                {item.action_type}
+                              </div>
+                              <TablePill>{item.status}</TablePill>
+                            </div>
+                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-xl border border-slate-200 shadow-none">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="text-[15px] font-semibold text-slate-950">
+                      Screening Executions
+                    </div>
+                    {screeningExecutions.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
+                        No screening executions were created.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {screeningExecutions.map((item) => (
+                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[14px] font-medium text-slate-950">
+                                {item.provider_reference || item.config_id}
+                              </div>
+                              <TablePill>{item.status}</TablePill>
+                            </div>
+                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-xl border border-slate-200 shadow-none">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="text-[15px] font-semibold text-slate-950">
+                      Scoring Requests
+                    </div>
+                    {scoringRequests.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
+                        No scoring requests were created.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {scoringRequests.map((item) => (
+                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[14px] font-medium text-slate-950">
+                                {item.provider_reference || item.config_id}
+                              </div>
+                              <TablePill>{item.status}</TablePill>
+                            </div>
+                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function LiveDecisionsView({
+  tenantId,
+  scenarios,
+}: {
+  tenantId: string;
+  scenarios: DetectionScenario[];
+}) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [newFilterOpen, setNewFilterOpen] = useState(false);
+  const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
+  const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
+    []
+  );
+  const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome"];
+  const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
+  const decisionsQuery = useQuery({
+    queryKey: ["decision-engine", "decisions", tenantId],
+    queryFn: () => decisionEngineApi.listDecisions(tenantId),
+    enabled: Boolean(tenantId),
+  });
+  const scenarioNameById = useMemo(
+    () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
+    [scenarios]
+  );
+  const scenarioFilterOptions = useMemo(
+    () => scenarios.map((scenario) => scenario.name).sort((a, b) => a.localeCompare(b)),
+    [scenarios]
+  );
+  const decisions = useMemo(() => {
+    const items = [...(decisionsQuery.data?.decisions ?? [])].sort(
+      (left, right) =>
+        new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+    );
+
+    return items.filter((item) => {
+      const scenarioName = scenarioNameById.get(item.scenario_id) ?? item.scenario_id;
+      const outcomeLabel = formatDecisionOutcome(item.outcome);
+      const matchesSearch =
+        searchTerm.trim().length === 0 ||
+        [item.id, item.object_id, item.object_type, scenarioName]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm.trim().toLowerCase());
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      return selectedFilters.every((filter) => {
+        switch (filter.type) {
+          case "Scenario":
+            return scenarioName === filter.value;
+          case "Trigger object":
+            return item.object_type.toLowerCase().includes(filter.value.toLowerCase());
+          case "Object ID":
+            return item.object_id.toLowerCase().includes(filter.value.toLowerCase());
+          case "Outcome":
+            return outcomeLabel === filter.value;
+          default:
+            return true;
+        }
+      });
+    });
+  }, [decisionsQuery.data?.decisions, scenarioNameById, searchTerm, selectedFilters]);
+
+  function upsertFilter(type: string, value: string) {
+    setSelectedFilters((current) => {
+      const existing = current.find((item) => item.type === type);
+      if (!existing) {
+        return [...current, { type, value }];
+      }
+
+      return current.map((item) => (item.type === type ? { ...item, value } : item));
+    });
+  }
+
+  function removeFilter(type: string) {
+    setSelectedFilters((current) => current.filter((item) => item.type !== type));
+    setActiveFilterMenu((current) => (current === type ? null : current));
+  }
+
+  function availableFilterItems() {
+    return filterItems.filter(
+      (item) => !selectedFilters.some((selected) => selected.type === item)
+    );
+  }
+
+  if (scenarios.length === 0) {
+    return (
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="p-6 text-sm text-slate-600">
+          No decisions created yet because there are no scenarios configured.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex w-full max-w-md gap-1.5">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by decision, object, or scenario"
+                className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
+              />
+            </div>
+          </div>
+
+          <div className="relative flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFiltersOpen((current) => !current);
+                setActiveFilterMenu(null);
+              }}
+              className="h-10 rounded-xl border-slate-200 bg-white px-4 text-[14px] shadow-none"
+            >
+              <Filter className="size-4" />
+              Filters
+            </Button>
+            <Button
+              disabled
+              className="h-10 rounded-xl bg-[#6b7280] px-4 text-[14px] shadow-none hover:bg-[#5b6473]"
+            >
+              <Plus className="size-4" />
+              Add to Case
+            </Button>
+            {filtersOpen ? (
+              <div className="absolute right-[152px] top-12 z-10 w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
+                {filterItems.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      upsertFilter(
+                        item,
+                        item === "Outcome"
+                          ? "Approve"
+                          : item === "Scenario"
+                            ? scenarioFilterOptions[0] ?? ""
+                            : ""
+                      );
+                      setFiltersOpen(false);
+                    }}
+                    className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {selectedFilters.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedFilters.map((filter) => (
+              <div key={filter.type} className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveFilterMenu((current) =>
+                      current === filter.type ? null : filter.type
+                    )
+                  }
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-[#1f4f96]"
+                >
+                  <span className="font-medium">{filter.type}</span>
+                  <span className="text-slate-500">{filter.value || "Any"}</span>
+                  <span className="text-slate-500">×</span>
+                </button>
+
+                {activeFilterMenu === filter.type ? (
+                  <div className="absolute left-0 top-12 z-10 w-[280px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
+                    {filter.type === "Outcome" ? (
+                      <div className="space-y-2 p-2">
+                        {outcomeFilterItems.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => upsertFilter(filter.type, item)}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
+                          >
+                            <span
+                              className={cn(
+                                "rounded-full px-3 py-1.5",
+                                item === "Approve"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : item === "Block and Review"
+                                    ? "bg-orange-100 text-orange-700"
+                                    : item === "Decline"
+                                      ? "bg-rose-100 text-rose-700"
+                                      : "bg-amber-100 text-amber-700"
+                              )}
+                            >
+                              {item}
+                            </span>
+                            {filter.value === item ? <span className="text-[#1f4f96]">✓</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : filter.type === "Scenario" ? (
+                      <div className="space-y-1 p-2">
+                        {scenarioFilterOptions.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => upsertFilter(filter.type, item)}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
+                          >
+                            <span>{item}</span>
+                            {filter.value === item ? <span className="text-[#1f4f96]">✓</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 p-2">
+                        <Input
+                          value={filter.value}
+                          onChange={(event) => upsertFilter(filter.type, event.target.value)}
+                          className="h-10 rounded-lg border-slate-200 text-[14px] shadow-none"
+                        />
+                      </div>
+                    )}
+                    <div className="mt-2 border-t border-slate-100 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => removeFilter(filter.type)}
+                        className="w-full rounded-lg px-3 py-2 text-left text-[14px] text-rose-700 hover:bg-rose-50"
+                      >
+                        Remove filter
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() => setNewFilterOpen((current) => !current)}
+              className="h-10 rounded-xl border-slate-200 bg-white px-4 text-[14px] shadow-none"
+            >
+              <Plus className="size-4" />
+              New Filter
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSelectedFilters([]);
+                setActiveFilterMenu(null);
+                setNewFilterOpen(false);
+              }}
+              className="h-10 rounded-xl px-4 text-[14px]"
+            >
+              Clear filters
+            </Button>
+            {newFilterOpen ? (
+              <div className="relative">
+                <div className="absolute left-0 top-2 z-10 w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
+                  {availableFilterItems().map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        upsertFilter(
+                          item,
+                          item === "Outcome"
+                            ? "Approve"
+                            : item === "Scenario"
+                              ? scenarioFilterOptions[0] ?? ""
+                              : ""
+                        );
+                        setNewFilterOpen(false);
+                      }}
+                      className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {decisionsQuery.isLoading ? (
+          <Card className="rounded-xl border border-slate-200 shadow-none">
+            <CardContent className="p-6 text-sm text-slate-600">Loading decisions...</CardContent>
+          </Card>
+        ) : decisionsQuery.isError ? (
+          <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
+            <CardContent className="p-6 text-sm text-red-700">
+              {decisionsQuery.error instanceof Error
+                ? decisionsQuery.error.message
+                : "Failed to load decisions."}
+            </CardContent>
+          </Card>
+        ) : decisions.length === 0 ? (
+          <Card className="rounded-xl border border-slate-200 shadow-none">
+            <CardContent className="p-6 text-sm text-slate-600">
+              No decisions matched the current search and filters.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-white text-[13px] font-semibold text-slate-950">
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Scenario</th>
+                      <th className="px-4 py-3">Trigger object</th>
+                      <th className="px-4 py-3">Case</th>
+                      <th className="px-4 py-3">Score</th>
+                      <th className="px-4 py-3">Outcome</th>
+                      <th className="px-4 py-3 text-right">View</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {decisions.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0"
+                      >
+                        <td className="px-4 py-3 text-slate-600">
+                          {formatDecisionDate(item.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-slate-950">
+                            {scenarioNameById.get(item.scenario_id) ?? item.scenario_id}
+                          </div>
+                          <div className="text-[12px] text-slate-500">{item.id}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <TablePill>{item.object_type}</TablePill>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-950">{item.object_id}</td>
+                        <td className="px-4 py-3">{item.score}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-3 py-1.5 text-[13px] font-medium",
+                              outcomeBadgeClass(item.outcome)
+                            )}
+                          >
+                            {formatDecisionOutcome(item.outcome)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end">
+                            <RowIconButton
+                              label={`View decision ${item.id}`}
+                              onClick={() => setSelectedDecisionId(item.id)}
+                            >
+                              <Eye className="size-4" />
+                            </RowIconButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {selectedDecisionId ? (
+        <DecisionDetailModal
+          tenantId={tenantId}
+          decisionId={selectedDecisionId}
+          scenarioName={
+            scenarioNameById.get(
+              decisions.find((item) => item.id === selectedDecisionId)?.scenario_id ?? ""
+            ) ?? ""
+          }
+          onClose={() => setSelectedDecisionId(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -1493,7 +2182,9 @@ export default function DetectionPage() {
           )
         ) : null}
         {activeTab === "Analytics" ? <AnalyticsView /> : null}
-        {activeTab === "Decisions" ? <DecisionsView hasScenarios={scenarios.length > 0} /> : null}
+        {activeTab === "Decisions" ? (
+          <LiveDecisionsView tenantId={tenantId} scenarios={scenarios} />
+        ) : null}
       </div>
 
       <ScenarioModal
