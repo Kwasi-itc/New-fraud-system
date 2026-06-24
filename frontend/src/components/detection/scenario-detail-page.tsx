@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronRight,
-  Copy,
   Eye,
   Info,
   Pencil,
@@ -170,17 +169,9 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
                   <span className="font-medium text-[#1f4f96]">our api</span> and get synchronous answers in real time
                 </p>
                 {hasLiveIteration ? (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-[14px] font-semibold text-slate-950">
-                      You&apos;ll need the
-                    </p>
-                    <div className="inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5">
-                      <span className="font-mono text-[13px] text-slate-950">
-                        ID {scenario.id.slice(0, 16)}...
-                      </span>
-                      <Copy className="size-3.5 text-slate-700" />
-                    </div>
-                  </div>
+                  <p className="text-[14px] font-semibold text-slate-950">
+                    This live scenario is ready to be called from the API.
+                  </p>
                 ) : (
                   <p className="text-[14px] font-semibold text-slate-950">
                     You need to activate a version to use this feature

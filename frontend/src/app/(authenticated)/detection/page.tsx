@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ChevronDown,
@@ -19,7 +19,6 @@ import {
   Plus,
   Search,
   SquarePen,
-  X,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,10 +29,6 @@ import {
   type CustomList,
   type Decision,
   type Scenario as DecisionEngineScenario,
-  type RuleExecution,
-  type ScoringRequest,
-  type ScreeningExecution,
-  type WorkflowExecution,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import { useAssembledDataModelQuery } from "@/lib/data-model-query";
@@ -51,6 +46,7 @@ type DetectionScenario = {
   description: string;
   trigger: string;
   created: string;
+  liveIterationId?: string | null;
 };
 
 type DetectionList = {
@@ -84,6 +80,7 @@ function adaptScenario(item: DecisionEngineScenario): DetectionScenario {
     description: item.description || "No description provided",
     trigger: item.trigger_object_type,
     created: formatScenarioDate(item.created_at),
+    liveIterationId: item.live_iteration_id ?? null,
   };
 }
 
@@ -641,257 +638,6 @@ function AnalyticsView() {
   );
 }
 
-function DecisionDetailModal({
-  tenantId,
-  decisionId,
-  scenarioName,
-  onClose,
-}: {
-  tenantId: string;
-  decisionId: string;
-  scenarioName: string;
-  onClose: () => void;
-}) {
-  const decisionQuery = useQuery({
-    queryKey: ["decision-engine", "decision", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.getDecision(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-  const workflowExecutionsQuery = useQuery({
-    queryKey: ["decision-engine", "workflow-executions", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listWorkflowExecutions(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-  const screeningExecutionsQuery = useQuery({
-    queryKey: ["decision-engine", "screening-executions", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listScreeningExecutions(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-  const scoringRequestsQuery = useQuery({
-    queryKey: ["decision-engine", "scoring-requests", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listScoringRequests(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  const decision = decisionQuery.data?.decision;
-  const ruleExecutions = decisionQuery.data?.rule_executions ?? [];
-  const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
-  const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
-  const scoringRequests = scoringRequestsQuery.data?.scoring_requests ?? [];
-  const isLoading =
-    decisionQuery.isLoading ||
-    workflowExecutionsQuery.isLoading ||
-    screeningExecutionsQuery.isLoading ||
-    scoringRequestsQuery.isLoading;
-  const error =
-    decisionQuery.error ??
-    workflowExecutionsQuery.error ??
-    screeningExecutionsQuery.error ??
-    scoringRequestsQuery.error;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-6 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-[1080px] overflow-y-auto rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-6 py-5">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-tight text-slate-950">
-              Decision Details
-            </h2>
-            <div className="mt-1 text-[13px] text-slate-500">
-              {decisionId} {scenarioName ? `• ${scenarioName}` : ""}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <div className="space-y-5 px-6 py-6">
-          {isLoading ? (
-            <Card className="rounded-xl border border-slate-200 shadow-none">
-              <CardContent className="p-5 text-sm text-slate-600">
-                Loading decision details...
-              </CardContent>
-            </Card>
-          ) : error ? (
-            <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
-              <CardContent className="p-5 text-sm text-red-700">
-                {error instanceof Error ? error.message : "Failed to load decision details."}
-              </CardContent>
-            </Card>
-          ) : decision ? (
-            <>
-              <div className="grid gap-3 md:grid-cols-4">
-                {[
-                  ["Outcome", formatDecisionOutcome(decision.outcome)],
-                  ["Score", String(decision.score)],
-                  ["Triggered", decision.triggered ? "Yes" : "No"],
-                  ["Created", formatDecisionDate(decision.created_at)],
-                ].map(([label, value]) => (
-                  <Card key={label} className="rounded-xl border border-slate-200 shadow-none">
-                    <CardContent className="px-4 py-3">
-                      <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
-                        {label}
-                      </div>
-                      <div className="mt-1 text-[18px] font-semibold text-slate-950">
-                        {value}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <Card className="rounded-xl border border-slate-200 shadow-none">
-                <CardContent className="grid gap-4 p-5 md:grid-cols-2">
-                  <div>
-                    <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
-                      Object
-                    </div>
-                    <div className="mt-1 text-[14px] text-slate-950">
-                      {decision.object_type} / {decision.object_id}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-500">
-                      Iteration
-                    </div>
-                    <div className="mt-1 text-[14px] text-slate-950">
-                      {decision.scenario_iteration_id}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-xl border border-slate-200 shadow-none">
-                <CardContent className="space-y-3 p-5">
-                  <div className="text-[15px] font-semibold text-slate-950">Rule Executions</div>
-                  {ruleExecutions.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
-                      No rule executions were recorded for this decision.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {ruleExecutions.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
-                        >
-                          <div>
-                            <div className="text-[14px] font-medium text-slate-950">
-                              {item.rule_name}
-                            </div>
-                            <div className="text-[12px] text-slate-500">{item.rule_id}</div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[13px] text-slate-600">{item.outcome}</span>
-                            <TablePill>{item.score_modifier}</TablePill>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-5 xl:grid-cols-3">
-                <Card className="rounded-xl border border-slate-200 shadow-none">
-                  <CardContent className="space-y-3 p-5">
-                    <div className="text-[15px] font-semibold text-slate-950">
-                      Workflow Executions
-                    </div>
-                    {workflowExecutions.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
-                        No workflow executions were created.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {workflowExecutions.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[14px] font-medium text-slate-950">
-                                {item.action_type}
-                              </div>
-                              <TablePill>{item.status}</TablePill>
-                            </div>
-                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-xl border border-slate-200 shadow-none">
-                  <CardContent className="space-y-3 p-5">
-                    <div className="text-[15px] font-semibold text-slate-950">
-                      Screening Executions
-                    </div>
-                    {screeningExecutions.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
-                        No screening executions were created.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {screeningExecutions.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[14px] font-medium text-slate-950">
-                                {item.provider_reference || item.config_id}
-                              </div>
-                              <TablePill>{item.status}</TablePill>
-                            </div>
-                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-xl border border-slate-200 shadow-none">
-                  <CardContent className="space-y-3 p-5">
-                    <div className="text-[15px] font-semibold text-slate-950">
-                      Scoring Requests
-                    </div>
-                    {scoringRequests.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
-                        No scoring requests were created.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {scoringRequests.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-slate-200 px-4 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[14px] font-medium text-slate-950">
-                                {item.provider_reference || item.config_id}
-                              </div>
-                              <TablePill>{item.status}</TablePill>
-                            </div>
-                            <div className="mt-1 text-[12px] text-slate-500">{item.id}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          ) : null}
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
 function LiveDecisionsView({
   tenantId,
   scenarios,
@@ -903,7 +649,6 @@ function LiveDecisionsView({
   const [newFilterOpen, setNewFilterOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
     []
   );
@@ -914,10 +659,32 @@ function LiveDecisionsView({
     queryFn: () => decisionEngineApi.listDecisions(tenantId),
     enabled: Boolean(tenantId),
   });
+  const iterationQueries = useQueries({
+    queries: scenarios
+      .filter((scenario) => scenario.liveIterationId)
+      .map((scenario) => ({
+        queryKey: ["decision-engine", "iterations", tenantId, scenario.id],
+        queryFn: () => decisionEngineApi.listIterations(tenantId, scenario.id),
+        enabled: Boolean(tenantId),
+      })),
+  });
   const scenarioNameById = useMemo(
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
     [scenarios]
   );
+  const liveVersionByScenarioId = useMemo(() => {
+    const entries = scenarios
+      .filter((scenario) => scenario.liveIterationId)
+      .map((scenario, index) => {
+        const iterations = iterationQueries[index]?.data?.iterations ?? [];
+        const liveIteration = iterations.find(
+          (iteration) => iteration.id === scenario.liveIterationId
+        );
+        return [scenario.id, liveIteration ? `V${liveIteration.version}` : "Live"] as const;
+      });
+
+    return new Map(entries);
+  }, [iterationQueries, scenarios]);
   const scenarioFilterOptions = useMemo(
     () => scenarios.map((scenario) => scenario.name).sort((a, b) => a.localeCompare(b)),
     [scenarios]
@@ -1211,11 +978,11 @@ function LiveDecisionsView({
                     <tr className="border-b border-slate-200 bg-white text-[13px] font-semibold text-slate-950">
                       <th className="px-4 py-3">Date</th>
                       <th className="px-4 py-3">Scenario</th>
+                      <th className="px-4 py-3">Live version</th>
                       <th className="px-4 py-3">Trigger object</th>
                       <th className="px-4 py-3">Case</th>
                       <th className="px-4 py-3">Score</th>
                       <th className="px-4 py-3">Outcome</th>
-                      <th className="px-4 py-3 text-right">View</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1228,15 +995,20 @@ function LiveDecisionsView({
                           {formatDecisionDate(item.created_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-slate-950">
+                          <Link
+                            href={`/detection/decisions/${item.id}`}
+                            className="font-medium text-slate-950 transition hover:text-[#2d63b8]"
+                          >
                             {scenarioNameById.get(item.scenario_id) ?? item.scenario_id}
-                          </div>
-                          <div className="text-[12px] text-slate-500">{item.id}</div>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {liveVersionByScenarioId.get(item.scenario_id) ?? "-"}
                         </td>
                         <td className="px-4 py-3">
                           <TablePill>{item.object_type}</TablePill>
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-950">{item.object_id}</td>
+                        <td className="px-4 py-3 font-medium text-slate-400">-</td>
                         <td className="px-4 py-3">{item.score}</td>
                         <td className="px-4 py-3">
                           <span
@@ -1248,16 +1020,6 @@ function LiveDecisionsView({
                             {formatDecisionOutcome(item.outcome)}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end">
-                            <RowIconButton
-                              label={`View decision ${item.id}`}
-                              onClick={() => setSelectedDecisionId(item.id)}
-                            >
-                              <Eye className="size-4" />
-                            </RowIconButton>
-                          </div>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1268,18 +1030,6 @@ function LiveDecisionsView({
         )}
       </div>
 
-      {selectedDecisionId ? (
-        <DecisionDetailModal
-          tenantId={tenantId}
-          decisionId={selectedDecisionId}
-          scenarioName={
-            scenarioNameById.get(
-              decisions.find((item) => item.id === selectedDecisionId)?.scenario_id ?? ""
-            ) ?? ""
-          }
-          onClose={() => setSelectedDecisionId(null)}
-        />
-      ) : null}
     </>
   );
 }
