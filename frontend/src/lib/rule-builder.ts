@@ -1367,71 +1367,247 @@ export function tryParseAstToConditionGroups(
 
 export function summarizeRuleFormula(ast: unknown) {
   const groups = tryParseAstToConditionGroups(ast);
-  if (!groups) {
-    return null;
+  if (groups) {
+    const renderedGroups = groups
+      .map((group) => {
+        const renderedConditions = group.conditions
+          .map((condition) => {
+            const operator = getRuleOperatorOption(condition.operator);
+            if (!operator) {
+              return null;
+            }
+
+            const left =
+              condition.leftMode === "function" && condition.leftFunction
+                ? condition.leftFunction.label
+                : condition.leftMode === "custom_list"
+                  ? `List: ${condition.left}`
+                  : condition.leftMode === "constant"
+                    ? condition.valueType === "string"
+                      ? `"${condition.left}"`
+                      : condition.left
+                    : condition.left;
+
+            if (!left) {
+              return null;
+            }
+
+            if (operator.unary) {
+              return `${left} ${operator.label}`;
+            }
+
+            const right =
+              condition.rightMode === "function" && condition.rightFunction
+                ? condition.rightFunction.label
+                : condition.rightMode === "custom_list"
+                  ? `List: ${condition.right}`
+                  : condition.valueType === "string"
+                    ? `"${condition.right}"`
+                    : condition.right;
+
+            if (!right) {
+              return null;
+            }
+
+            return `${left} ${operator.label} ${right}`;
+          })
+          .filter((item): item is string => Boolean(item));
+
+        if (renderedConditions.length === 0) {
+          return null;
+        }
+
+        const groupSummary = renderedConditions.join(" and ");
+        const opens = "(".repeat(group.openBefore ?? 0);
+        const closes = ")".repeat(group.closeAfter ?? 0);
+        return `${opens}${groupSummary}${closes}`;
+      })
+      .filter((item): item is string => Boolean(item));
+
+    if (renderedGroups.length > 0) {
+      return renderedGroups.join(" or ");
+    }
   }
 
-  const renderedGroups = groups
-    .map((group) => {
-      const renderedConditions = group.conditions
-        .map((condition) => {
-          const operator = getRuleOperatorOption(condition.operator);
-          if (!operator) {
-            return null;
-          }
+  return summarizeRuleAstNode(ast);
+}
 
-          const left =
-            condition.leftMode === "function" && condition.leftFunction
-              ? condition.leftFunction.label
-              : condition.leftMode === "custom_list"
-                ? `List: ${condition.left}`
-                : condition.leftMode === "constant"
-                  ? condition.valueType === "string"
-                    ? `"${condition.left}"`
-                    : condition.left
-                  : condition.left;
+function formatRuleSummaryConstant(value: JSONValue | undefined) {
+  if (typeof value === "string") {
+    return `"${value}"`;
+  }
 
-          if (!left) {
-            return null;
-          }
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
+    return String(value);
+  }
 
-          if (operator.unary) {
-            return `${left} ${operator.label}`;
-          }
+  if (Array.isArray(value)) {
+    return value.map((item) => formatRuleSummaryConstant(item)).join(", ");
+  }
 
-          const right =
-            condition.rightMode === "function" && condition.rightFunction
-              ? condition.rightFunction.label
-              : condition.rightMode === "custom_list"
-                ? `List: ${condition.right}`
-                : condition.valueType === "string"
-                  ? `"${condition.right}"`
-                  : condition.right;
+  return null;
+}
 
-          if (!right) {
-            return null;
-          }
-
-          return `${left} ${operator.label} ${right}`;
-        })
-        .filter((item): item is string => Boolean(item));
-
-      if (renderedConditions.length === 0) {
+function summarizeAggregatorFilters(node: RuleAstNode) {
+  const filtersNode = node.named_children?.filters;
+  const filters = filtersNode?.children ?? [];
+  const rendered = filters
+    .map((filterNode) => {
+      if (getNodeFunction(filterNode) !== "Filter") {
         return null;
       }
 
-      const groupSummary = renderedConditions.join(" and ");
-      const opens = "(".repeat(group.openBefore ?? 0);
-      const closes = ")".repeat(group.closeAfter ?? 0);
-      return `${opens}${groupSummary}${closes}`;
+      const fieldName =
+        typeof filterNode.named_children?.fieldName?.constant === "string"
+          ? filterNode.named_children.fieldName.constant
+          : "field";
+      const operator =
+        typeof filterNode.named_children?.operator?.constant === "string"
+          ? filterNode.named_children.operator.constant
+          : "=";
+      const value = formatRuleSummaryConstant(
+        filterNode.named_children?.value?.constant
+      );
+
+      return value ? `${fieldName} ${operator} ${value}` : `${fieldName} ${operator}`;
     })
     .filter((item): item is string => Boolean(item));
 
-  if (renderedGroups.length === 0) {
+  if (rendered.length === 0) {
     return null;
   }
 
-  return renderedGroups.join(" or ");
+  return rendered.join(" and ");
+}
+
+function summarizeRuleAstNode(ast: unknown): string | null {
+  if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
+    return null;
+  }
+
+  const node = normalizeAstNode(ast as ASTNodeLike);
+  const functionName = getNodeFunction(node);
+
+  if (!functionName) {
+    return formatRuleSummaryConstant(node.constant);
+  }
+
+  if (functionName === "and" || functionName === "or") {
+    const joiner = functionName === "and" ? " and " : " or ";
+    const renderedChildren = (node.children ?? [])
+      .map((child) => summarizeRuleAstNode(child))
+      .filter((item): item is string => Boolean(item));
+
+    if (renderedChildren.length === 0) {
+      return null;
+    }
+
+    if (renderedChildren.length === 1) {
+      return renderedChildren[0] ?? null;
+    }
+
+    return `(${renderedChildren.join(joiner)})`;
+  }
+
+  if (functionName === "not") {
+    const target = summarizeRuleAstNode(node.children?.[0]);
+    return target ? `not (${target})` : null;
+  }
+
+  if (functionName === "field_ref") {
+    return typeof node.named_children?.field?.constant === "string"
+      ? node.named_children.field.constant
+      : null;
+  }
+
+  if (functionName === "related_field") {
+    const path = node.named_children?.path?.constant;
+    const field =
+      typeof node.named_children?.field?.constant === "string"
+        ? node.named_children.field.constant
+        : "field";
+
+    return typeof path === "string" ? `${path}.${field}` : field;
+  }
+
+  if (functionName === "in_custom_list") {
+    const listName =
+      typeof node.named_children?.list?.constant === "string"
+        ? node.named_children.list.constant
+        : "list";
+    const value =
+      summarizeRuleAstNode(node.named_children?.value) ?? "value";
+    return `${value} is in list ${listName}`;
+  }
+
+  if (functionName === "Aggregator") {
+    const aggregator =
+      typeof node.named_children?.aggregator?.constant === "string"
+        ? node.named_children.aggregator.constant
+        : "COUNT";
+    const fieldName =
+      typeof node.named_children?.fieldName?.constant === "string"
+        ? node.named_children.fieldName.constant
+        : "field";
+    const tableName =
+      typeof node.named_children?.tableName?.constant === "string"
+        ? node.named_children.tableName.constant
+        : "records";
+    const filters = summarizeAggregatorFilters(node);
+    const summary = `${getAggregatorDisplayLabel(aggregator)} ${fieldName} on ${tableName}`;
+    return filters ? `${summary} where ${filters}` : summary;
+  }
+
+  if (functionName === "past_decision_count") {
+    const outcome =
+      typeof node.named_children?.outcome?.constant === "string"
+        ? node.named_children.outcome.constant
+        : null;
+    return outcome
+      ? `Past decision count for ${outcome}`
+      : "Past decision count";
+  }
+
+  if (functionName === "lower") {
+    const target = summarizeRuleAstNode(node.children?.[0]);
+    return target ? `lower(${target})` : "lower(...)";
+  }
+
+  const operator = getRuleOperatorOption(functionName);
+  if (operator) {
+    const renderedChildren = (node.children ?? [])
+      .map((child) => summarizeRuleAstNode(child))
+      .filter((item): item is string => Boolean(item));
+
+    if (operator.unary) {
+      return renderedChildren[0] ? `${renderedChildren[0]} ${operator.label}` : null;
+    }
+
+    if (renderedChildren.length === 2) {
+      return `${renderedChildren[0]} ${operator.label} ${renderedChildren[1]}`;
+    }
+  }
+
+  const positionalArgs = (node.children ?? [])
+    .map((child) => summarizeRuleAstNode(child))
+    .filter((item): item is string => Boolean(item));
+  const namedArgs = Object.entries(node.named_children ?? {})
+    .map(([key, child]) => {
+      const rendered = summarizeRuleAstNode(child);
+      return rendered ? `${key}: ${rendered}` : null;
+    })
+    .filter((item): item is string => Boolean(item));
+  const args = [...positionalArgs, ...namedArgs];
+
+  if (args.length === 0) {
+    return buildDefaultFunctionLabel(node);
+  }
+
+  return `${buildDefaultFunctionLabel(node)}(${args.join(", ")})`;
 }
 
 function parseAdvancedConditionNode(
