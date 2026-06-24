@@ -5,7 +5,7 @@ export default async function LegacyScenarioEditPage({
 }: {
   params: Promise<{ scenarioId: string; iterationId: string }>;
 }) {
-  const { scenarioId } = await params;
+  const { scenarioId, iterationId } = await params;
 
-  redirect(`/detection/${scenarioId}/edit`);
+  redirect(`/detection/${scenarioId}/edit?iterationId=${iterationId}`);
 }

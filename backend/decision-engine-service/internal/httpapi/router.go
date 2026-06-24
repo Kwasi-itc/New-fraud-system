@@ -195,6 +195,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft", scenarioHandler.CreateDraftFromIteration)
 	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId", scenarioHandler.UpdateIteration)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/commit", publicationHandler.CommitIteration)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate", publicationHandler.DeactivateIteration)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications", publicationHandler.ListPublications)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/publications", publicationHandler.ExecutePublicationAction)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications/preparation", publicationHandler.GetPreparationStatus)

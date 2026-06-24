@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle,
   ArrowLeft,
   Copy,
   Info,
@@ -61,8 +60,8 @@ function RuleEditorContent({
   scenarioId,
   scenarioName,
   triggerObjectType,
-  draftIterationId,
-  draftIterationVersion,
+  iterationId,
+  iterationVersion,
   isEditable,
   currentRule,
   fieldOptions,
@@ -79,8 +78,8 @@ function RuleEditorContent({
   scenarioId: string;
   scenarioName: string;
   triggerObjectType: string;
-  draftIterationId: string;
-  draftIterationVersion: number;
+  iterationId: string;
+  iterationVersion: number;
   isEditable: boolean;
   currentRule: Rule;
   fieldOptions: string[];
@@ -141,7 +140,7 @@ function RuleEditorContent({
 
   const updateRuleMutation = useMutation({
     mutationFn: async () =>
-      decisionEngineApi.updateRule(tenantId, scenarioId, draftIterationId, currentRule.id, {
+      decisionEngineApi.updateRule(tenantId, scenarioId, iterationId, currentRule.id, {
         display_order: currentRule.display_order,
         name: name.trim(),
         description: description.trim(),
@@ -179,7 +178,7 @@ function RuleEditorContent({
 
   const deleteRuleMutation = useMutation({
     mutationFn: async () =>
-      decisionEngineApi.deleteRule(tenantId, scenarioId, draftIterationId, currentRule.id),
+      decisionEngineApi.deleteRule(tenantId, scenarioId, iterationId, currentRule.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["decision-engine", "rules", tenantId, scenarioId],
@@ -266,7 +265,7 @@ function RuleEditorContent({
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
                   <span>{scenarioName}</span>
                   <span className="text-slate-300">/</span>
-                  <span>{formatIterationLabel(draftIterationVersion)}</span>
+                  <span>{formatIterationLabel(iterationVersion)}</span>
                   <span className="text-slate-300">/</span>
                   <span>{currentRule.id}</span>
                 </div>
@@ -418,7 +417,7 @@ function RuleEditorContent({
                     <div className="flex items-center justify-between">
                       <div className="text-[13px] font-medium text-slate-900">Iteration</div>
                       <Badge className="rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[12px] font-medium tracking-normal normal-case text-slate-700">
-                        {formatIterationLabel(draftIterationVersion)}
+                        {formatIterationLabel(iterationVersion)}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-[13px] text-slate-600">
@@ -502,9 +501,11 @@ function RuleEditorContent({
 export function RuleDetailPage({
   scenarioId,
   ruleId,
+  initialIterationId = null,
 }: {
   scenarioId: string;
   ruleId: string;
+  initialIterationId?: string | null;
 }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const scenarioQuery = useQuery({
@@ -536,11 +537,24 @@ export function RuleDetailPage({
 
     return draftIterations.sort((a, b) => b.version - a.version)[0] ?? null;
   }, [iterationsQuery.data?.iterations]);
+  const selectedIteration = useMemo(() => {
+    const iterations = iterationsQuery.data?.iterations ?? [];
+    if (initialIterationId) {
+      return (
+        iterations.find((iteration) => iteration.id === initialIterationId) ??
+        draftIteration ??
+        [...iterations].sort((a, b) => b.version - a.version)[0] ??
+        null
+      );
+    }
+
+    return draftIteration ?? [...iterations].sort((a, b) => b.version - a.version)[0] ?? null;
+  }, [draftIteration, initialIterationId, iterationsQuery.data?.iterations]);
 
   const rulesQuery = useQuery({
-    queryKey: ["decision-engine", "rules", tenantId, scenarioId, draftIteration?.id],
-    queryFn: () => decisionEngineApi.listRules(tenantId, scenarioId, draftIteration!.id),
-    enabled: Boolean(tenantId && scenarioId && draftIteration?.id),
+    queryKey: ["decision-engine", "rules", tenantId, scenarioId, selectedIteration?.id],
+    queryFn: () => decisionEngineApi.listRules(tenantId, scenarioId, selectedIteration!.id),
+    enabled: Boolean(tenantId && scenarioId && selectedIteration?.id),
   });
   const ruleGroupsQuery = useQuery({
     queryKey: ["decision-engine", "rule-groups", tenantId, scenarioId],
@@ -548,10 +562,10 @@ export function RuleDetailPage({
     enabled: Boolean(tenantId && scenarioId),
   });
   const validationQuery = useQuery({
-    queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIteration?.id],
+    queryKey: ["decision-engine", "validation", tenantId, scenarioId, selectedIteration?.id],
     queryFn: () =>
-      decisionEngineApi.validateIteration(tenantId, scenarioId, draftIteration!.id),
-    enabled: Boolean(tenantId && scenarioId && draftIteration?.id),
+      decisionEngineApi.validateIteration(tenantId, scenarioId, selectedIteration!.id),
+    enabled: Boolean(tenantId && scenarioId && selectedIteration?.id),
   });
   const customListsQuery = useQuery({
     queryKey: ["decision-engine", "custom-lists", tenantId],
@@ -679,11 +693,11 @@ export function RuleDetailPage({
     );
   }
 
-  if (!draftIteration) {
+  if (!selectedIteration) {
     return (
       <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Create a draft iteration before editing rules.
+          No iteration is available for this rule.
         </CardContent>
       </Card>
     );
@@ -695,7 +709,7 @@ export function RuleDetailPage({
         <CardContent className="p-5 text-sm text-red-700">
           {rulesQuery.error instanceof Error
             ? rulesQuery.error.message
-            : "The requested rule could not be found in the current draft iteration."}
+          : "The requested rule could not be found in the selected iteration."}
         </CardContent>
       </Card>
     );
@@ -708,9 +722,9 @@ export function RuleDetailPage({
       scenarioId={scenarioId}
       scenarioName={scenarioQuery.data?.scenario.name ?? "Scenario"}
       triggerObjectType={scenarioQuery.data?.scenario.trigger_object_type ?? ""}
-      draftIterationId={draftIteration.id}
-      draftIterationVersion={draftIteration.version}
-      isEditable={draftIteration.status === "draft"}
+      iterationId={selectedIteration.id}
+      iterationVersion={selectedIteration.version}
+      isEditable={selectedIteration.status === "draft"}
       currentRule={currentRule}
       fieldOptions={fieldOptions}
       accessorOptions={accessorOptions}

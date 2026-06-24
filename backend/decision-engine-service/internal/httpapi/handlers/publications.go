@@ -38,6 +38,24 @@ func (h PublicationHandler) CommitIteration(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"iteration": dto.AdaptIteration(item)})
 }
 
+func (h PublicationHandler) DeactivateIteration(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+	iterationID := c.Param("iterationId")
+
+	result, err := h.publicationService.Unpublish(c.Request.Context(), tenantID, scenarioID, iterationID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "deactivate_iteration_failed", "details": err.Error()})
+		return
+	}
+
+	out := make([]dto.PublicationResponse, len(result))
+	for i, item := range result {
+		out[i] = dto.AdaptPublication(item)
+	}
+	c.JSON(http.StatusOK, gin.H{"publications": out})
+}
+
 func (h PublicationHandler) ExecutePublicationAction(c *gin.Context) {
 	var req dto.PublicationActionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -9,7 +9,6 @@ import {
   Eye,
   Info,
   Pencil,
-  Play,
   Plus,
   SquarePen,
 } from "lucide-react";
@@ -56,6 +55,11 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
     queryFn: () => decisionEngineApi.getScenario(tenantId, scenarioId),
     enabled: Boolean(tenantId && scenarioId),
   });
+  const scheduledExecutionsQuery = useQuery({
+    queryKey: ["decision-engine", "scheduled-executions", tenantId, scenarioId],
+    queryFn: () => decisionEngineApi.listScheduledExecutions(tenantId, scenarioId),
+    enabled: Boolean(tenantId && scenarioId),
+  });
 
   if (!tenantId) {
     return (
@@ -92,6 +96,8 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
   const scenario = scenarioQuery.data.scenario;
   const description = scenario.description || "No description provided";
   const hasLiveIteration = Boolean(scenario.live_iteration_id);
+  const scheduledExecutionCount =
+    scheduledExecutionsQuery.data?.scheduled_executions.length ?? 0;
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-6 px-4 sm:px-6 xl:px-8">
@@ -131,13 +137,15 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
         </div>
         <div className="flex flex-wrap gap-3">
           {hasLiveIteration ? (
-            <Button
-              variant="outline"
-              className="h-10 rounded-xl border-[#2d63b8] bg-white px-4 text-[14px] text-[#1f4f96] shadow-none"
-            >
-              <Eye className="size-4" />
-              See live version
-            </Button>
+            <Link href={`/detection/${scenarioId}/live`}>
+              <Button
+                variant="outline"
+                className="h-10 rounded-xl border-[#2d63b8] bg-white px-4 text-[14px] text-[#1f4f96] shadow-none"
+              >
+                <Eye className="size-4" />
+                See live version
+              </Button>
+            </Link>
           ) : null}
           <Link href={`/detection/${scenarioId}/edit`}>
             <Button className="h-10 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]">
@@ -192,21 +200,12 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
                   Run automatically or manually on ingested data
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {hasLiveIteration ? (
-                    <Button
-                      variant="outline"
-                      className="h-8 rounded-full border-[#2d63b8] px-3.5 text-[13px] text-[#1f4f96] shadow-none"
-                    >
-                      <Play className="size-3.5 fill-current" />
-                      Launch now
-                    </Button>
-                  ) : null}
                   <Link href={`/detection/${scenarioId}/execution`}>
                     <Button
                       variant="outline"
                       className="h-8 rounded-full border-slate-200 px-3.5 text-[13px] shadow-none"
                     >
-                      Schedule executions (0)
+                      Schedule executions ({scheduledExecutionCount})
                     </Button>
                   </Link>
                 </div>
@@ -223,14 +222,26 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
                 <p className="text-[14px] text-slate-950">
                   Test and compare a scenario version with a live one
                 </p>
-                <Button
-                  disabled
-                  variant="outline"
-                  className="h-8 rounded-full border-slate-200 px-3.5 text-[13px] shadow-none"
-                >
-                  <Plus className="size-3.5" />
-                  New Test
-                </Button>
+                {hasLiveIteration ? (
+                  <Link href={`/detection/${scenarioId}/tests`}>
+                    <Button
+                      variant="outline"
+                      className="h-8 rounded-full border-[#2d63b8] px-3.5 text-[13px] text-[#1f4f96] shadow-none"
+                    >
+                      <Plus className="size-3.5" />
+                      New Test
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="h-8 rounded-full border-slate-200 px-3.5 text-[13px] shadow-none"
+                  >
+                    <Plus className="size-3.5" />
+                    New Test
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

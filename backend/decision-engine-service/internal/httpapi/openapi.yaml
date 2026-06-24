@@ -268,6 +268,24 @@ paths:
                 $ref: '#/components/schemas/IterationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/deactivate:
+    post:
+      tags: [Scenario Authoring]
+      summary: Deactivate one live iteration
+      description: Unpublishes the specified live iteration so the scenario no longer has an active live iteration.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '200':
+          description: Iteration deactivated and unpublish action recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/publications:
     get:
       tags: [Scenario Authoring]

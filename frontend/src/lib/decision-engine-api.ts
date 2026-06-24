@@ -180,8 +180,22 @@ export type RuleExecution = {
 };
 
 export type DecisionEvaluationResult = {
+  triggered: boolean;
   decision: Decision;
   rule_executions: RuleExecution[];
+};
+
+export type TestRunEvaluationResult = {
+  live: {
+    triggered: boolean;
+    decision?: Decision;
+    rule_executions?: RuleExecution[];
+  };
+  phantom: {
+    triggered: boolean;
+    decision?: Decision;
+    rule_executions?: RuleExecution[];
+  };
 };
 
 export type IngestionTriggerRequest = {
@@ -207,9 +221,23 @@ export type TestRun = {
 };
 
 export type CreateTestRunRequest = {
-  live_iteration_id: string;
   phantom_iteration_id: string;
   expires_at?: string;
+};
+
+export type TestRunDecisionSummary = {
+  outcome: string;
+  score: number;
+  count: number;
+};
+
+export type TestRunRuleStat = {
+  rule_id: string;
+  rule_name: string;
+  hit_count: number;
+  no_hit_count: number;
+  snoozed_count: number;
+  total_count: number;
 };
 
 export type Workflow = {
@@ -432,9 +460,9 @@ export type RecurringSchedule = {
 };
 
 export type CreateScheduledExecutionRequest = {
-  scenario_iteration_id: string;
   scheduled_for: string;
-  request_body: JSONValue;
+  items: EvaluateDecisionRequest[];
+  candidate_limit: number;
 };
 
 export type AsyncDecisionExecution = {
@@ -598,6 +626,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/draft`,
   commitIteration: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/commit`,
+  deactivateIteration: (tenantId: string, scenarioId: string, iterationId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/deactivate`,
   publications: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications`,
   rules: (tenantId: string, scenarioId: string, iterationId: string) =>
@@ -624,8 +654,16 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/ingestion-events/record-ingested`,
   testRuns: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/test-runs`,
+  testRun: (tenantId: string, testRunId: string) =>
+    `/v1/tenants/${tenantId}/test-runs/${testRunId}`,
   evaluateTestRun: (tenantId: string, testRunId: string) =>
     `/v1/tenants/${tenantId}/test-runs/${testRunId}/evaluate`,
+  cancelTestRun: (tenantId: string, testRunId: string) =>
+    `/v1/tenants/${tenantId}/test-runs/${testRunId}/cancel`,
+  testRunDecisionSummaries: (tenantId: string, testRunId: string) =>
+    `/v1/tenants/${tenantId}/test-runs/${testRunId}/decision-data-by-score`,
+  testRunRuleStats: (tenantId: string, testRunId: string) =>
+    `/v1/tenants/${tenantId}/test-runs/${testRunId}/data-by-rule-execution`,
   workflows: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/workflows`,
   workflow: (tenantId: string, scenarioId: string, workflowId: string) =>
@@ -793,6 +831,11 @@ export const decisionEngineApi = {
       decisionEnginePaths.commitIteration(tenantId, scenarioId, iterationId),
       { method: "POST" }
     ),
+  deactivateIteration: async (tenantId: string, scenarioId: string, iterationId: string) =>
+    decisionEngineFetch<{ publications: Publication[] }>(
+      decisionEnginePaths.deactivateIteration(tenantId, scenarioId, iterationId),
+      { method: "POST" }
+    ),
   listPublications: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ publications: Publication[] }>(
       decisionEnginePaths.publications(tenantId, scenarioId)
@@ -921,17 +964,31 @@ export const decisionEngineApi = {
         body: JSON.stringify(payload),
       }
     ),
+  getTestRun: async (tenantId: string, testRunId: string) =>
+    decisionEngineFetch<{ test_run: TestRun }>(decisionEnginePaths.testRun(tenantId, testRunId)),
   evaluateTestRun: async (
     tenantId: string,
     testRunId: string,
     payload: EvaluateDecisionRequest
   ) =>
-    decisionEngineFetch<{ result: DecisionEvaluationResult }>(
+    decisionEngineFetch<{ result: TestRunEvaluationResult }>(
       decisionEnginePaths.evaluateTestRun(tenantId, testRunId),
       {
         method: "POST",
         body: JSON.stringify(payload),
       }
+    ),
+  cancelTestRun: async (tenantId: string, testRunId: string) =>
+    decisionEngineFetch<{ test_run: TestRun }>(decisionEnginePaths.cancelTestRun(tenantId, testRunId), {
+      method: "POST",
+    }),
+  listTestRunDecisionSummaries: async (tenantId: string, testRunId: string) =>
+    decisionEngineFetch<{ decisions: TestRunDecisionSummary[] }>(
+      decisionEnginePaths.testRunDecisionSummaries(tenantId, testRunId)
+    ),
+  listTestRunRuleStats: async (tenantId: string, testRunId: string) =>
+    decisionEngineFetch<{ rules: TestRunRuleStat[] }>(
+      decisionEnginePaths.testRunRuleStats(tenantId, testRunId)
     ),
   listWorkflows: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ workflows: Workflow[] }>(
