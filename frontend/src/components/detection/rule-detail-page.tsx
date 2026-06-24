@@ -38,6 +38,7 @@ import {
   isUnaryRuleOperator,
   simpleRuleOperatorOptions,
   slugifyStableRuleId,
+  summarizeRuleFormula,
   tryParseAstToAdvancedConditionGroups,
   tryParseAstToConditionGroups,
   type AdvancedRuleConditionGroup,
@@ -53,6 +54,14 @@ function coerceScoreModifier(value: string) {
 
 function formatIterationLabel(version: number, isLive = false) {
   return isLive ? `V${version} Live` : `Draft V${version}`;
+}
+
+function formatRuleSummaryForDisplay(summary: string) {
+  return summary
+    .replace(/\)\s+and\s+\(/g, ")\nAND\n(")
+    .replace(/\)\s+or\s+\(/g, ")\nOR\n(")
+    .replace(/\s+and\s+/g, "\nAND\n")
+    .replace(/\s+or\s+/g, "\nOR\n");
 }
 
 function RuleEditorContent({
@@ -122,6 +131,14 @@ function RuleEditorContent({
   );
   const hasUnsupportedFormula =
     parsedGroups === null && parsedAdvancedGroups === null;
+  const ruleSummary = useMemo(
+    () => summarizeRuleFormula(currentRule.formula),
+    [currentRule.formula]
+  );
+  const formattedRuleSummary = useMemo(
+    () => (ruleSummary ? formatRuleSummaryForDisplay(ruleSummary) : null),
+    [ruleSummary]
+  );
 
   useEffect(() => {
     setConditionGroups((current) => {
@@ -354,7 +371,24 @@ function RuleEditorContent({
               <div className="space-y-5">
                 <Card className="rounded-xl border border-slate-200 shadow-none">
                   <CardContent className="space-y-4 p-6">
-                    {editorMode === "advanced" && !hasUnsupportedFormula ? (
+                    {hasUnsupportedFormula ? (
+                      <div className="space-y-4">
+                        <div className="overflow-hidden rounded-xl border border-[#d7e7fb] bg-[#f7fbff]">
+                          <div className="border-b border-[#d7e7fb] px-4 py-3">
+                            <div className="text-[13px] font-medium text-[#2d63b8]">
+                              Rule logic
+                            </div>
+                            <div className="mt-1 text-[12px] text-slate-500">
+                              Displayed in readable form for this rule shape.
+                            </div>
+                          </div>
+                          <pre className="whitespace-pre-wrap break-words px-4 py-4 font-mono text-[13px] leading-6 text-slate-800">
+                            {formattedRuleSummary ??
+                              "A readable summary is not available for this rule formula."}
+                          </pre>
+                        </div>
+                      </div>
+                    ) : editorMode === "advanced" ? (
                       <RuleBuilderAdvanced
                         groups={advancedConditionGroups}
                         onChange={setAdvancedConditionGroups}
