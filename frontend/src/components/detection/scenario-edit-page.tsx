@@ -644,15 +644,6 @@ export function ScenarioEditPage({
   });
   const createDraftMutation = useMutation({
     mutationFn: async () => {
-      if (currentIteration) {
-        const response = await decisionEngineApi.createDraftIteration(
-          tenantId,
-          scenarioId,
-          currentIteration.id
-        );
-        return response.iteration;
-      }
-
       const response = await decisionEngineApi.createIteration(tenantId, scenarioId);
       return response.iteration;
     },
@@ -664,12 +655,7 @@ export function ScenarioEditPage({
       setIterationMenuOpen(false);
       pushToast({
         title: "Draft created",
-        description: currentIteration
-          ? `Draft v${iteration.version} was created from ${scenarioStatusLabel(
-              currentIteration.version,
-              currentIteration.id === scenario?.live_iteration_id
-            )}.`
-          : `Draft v${iteration.version} is ready for editing.`,
+        description: `Draft v${iteration.version} is ready for editing.`,
         variant: "success",
       });
     },
