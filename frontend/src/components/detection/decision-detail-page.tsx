@@ -91,6 +91,14 @@ function executionStatusClass(value: string) {
   }
 }
 
+function formatRuleSummaryForDisplay(summary: string) {
+  return summary
+    .replace(/\)\s+and\s+\(/g, ")\nAND\n(")
+    .replace(/\)\s+or\s+\(/g, ")\nOR\n(")
+    .replace(/\s+and\s+/g, "\nAND\n")
+    .replace(/\s+or\s+/g, "\nOR\n");
+}
+
 export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const [detailOpen, setDetailOpen] = useState(true);
@@ -303,6 +311,9 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       const ruleSummary = ruleDefinition
                         ? summarizeRuleFormula(ruleDefinition.formula)
                         : null;
+                      const formattedRuleSummary = ruleSummary
+                        ? formatRuleSummaryForDisplay(ruleSummary)
+                        : null;
                       return (
                         <div key={item.id} className="rounded-xl border border-slate-200 bg-white">
                           <button
@@ -394,8 +405,14 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                   <div className="text-[12px] font-medium text-slate-500">
                                     Rule logic
                                   </div>
-                                  <div className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-[14px] text-slate-800">
-                                    {ruleSummary ?? "Rule definition is not available for this iteration."}
+                                  <div className="mt-2 overflow-hidden rounded-xl border border-[#d7e7fb] bg-[#f7fbff]">
+                                    <div className="border-b border-[#d7e7fb] px-3 py-2 text-[12px] font-medium text-[#2d63b8]">
+                                      Readable summary
+                                    </div>
+                                    <pre className="whitespace-pre-wrap break-words px-3 py-3 font-mono text-[13px] leading-6 text-slate-800">
+                                      {formattedRuleSummary ??
+                                        "Rule definition is not available for this iteration."}
+                                    </pre>
                                   </div>
                                 </div>
                               </div>
