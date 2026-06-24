@@ -1,8 +1,9 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { Info, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
+import { ConditionSelectorRow } from "@/components/detection/condition-selector-row";
 import { RuleOperandSelector } from "@/components/detection/rule-operand-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,11 +44,87 @@ export type FunctionVariableTableFieldOption = {
   label: string;
 };
 
+export type FunctionVariableFilterDraft = {
+  id: string;
+  fieldKey: string;
+  operator: "=" | "!=" | ">" | ">=" | "<" | "<=";
+  rightValue: string;
+  rightMode: "literal" | "field";
+};
+
+export function createFunctionVariableFilterDraft(): FunctionVariableFilterDraft {
+  return {
+    id: globalThis.crypto?.randomUUID?.() ?? `filter-${Date.now()}-${Math.random()}`,
+    fieldKey: "",
+    operator: "=",
+    rightValue: "",
+    rightMode: "literal",
+  };
+}
+
+function decodeFunctionVariableLiteralSelection(value: string): string {
+  if (value.startsWith("literal:number:")) {
+    return value.replace(/^literal:number:/, "");
+  }
+
+  if (value.startsWith("literal:boolean:")) {
+    return value.replace(/^literal:boolean:/, "");
+  }
+
+  if (value.startsWith("literal:string:")) {
+    return value.replace(/^literal:string:/, "");
+  }
+
+  return value;
+}
+
+function buildFunctionVariableLiteralSearchOptions(searchValue: string) {
+  const normalized = searchValue.toLowerCase();
+  const literalOptions: Array<{
+    value: string;
+    label: string;
+    meta: string;
+    sideLabel: string;
+  }> = [];
+
+  if (searchValue.trim().length > 0 && Number.isFinite(Number(searchValue))) {
+    literalOptions.push({
+      value: `literal:number:${searchValue}`,
+      label: searchValue,
+      meta: "Number",
+      sideLabel: "Use number",
+    });
+  }
+
+  literalOptions.push({
+    value: `literal:string:${searchValue}`,
+    label: `"${searchValue}"`,
+    meta: "String",
+    sideLabel: "Use string",
+  });
+
+  if ("true".includes(normalized) || "false".includes(normalized)) {
+    ["true", "false"]
+      .filter((candidate) => candidate.includes(normalized))
+      .forEach((candidate) => {
+        literalOptions.push({
+          value: `literal:boolean:${candidate}`,
+          label: candidate,
+          meta: "Boolean",
+          sideLabel: "Use boolean",
+        });
+      });
+  }
+
+  return literalOptions;
+}
+
 export type FunctionVariableDraft = {
   aggregator: AggregatorOperator;
   variableName: string;
   fieldKey: string;
   percentile: string;
+  filters: FunctionVariableFilterDraft[];
 };
 
 export function FunctionVariableModal({
@@ -96,7 +173,18 @@ export function FunctionVariableModal({
   const needsPercentile = draft.aggregator === "PCTILE";
   const percentileValue = Number(draft.percentile);
   const hasValidPercentile = !needsPercentile || Number.isFinite(percentileValue);
-  const canSave = Boolean(draft.fieldKey && hasValidPercentile);
+  const hasValidFilters = draft.filters.every(
+    (filter) => Boolean(filter.fieldKey) && filter.rightValue.trim().length > 0
+  );
+  const canSave = Boolean(draft.fieldKey && hasValidPercentile && hasValidFilters);
+  const filterOperatorOptions = [
+    { value: "=", label: "=" },
+    { value: "!=", label: "!=" },
+    { value: ">", label: ">" },
+    { value: ">=", label: ">=" },
+    { value: "<", label: "<" },
+    { value: "<=", label: "<=" },
+  ];
 
   if (typeof document === "undefined") {
     return null;
@@ -213,17 +301,120 @@ export function FunctionVariableModal({
           ) : null}
 
           <div className="space-y-3">
-            <div className="text-[15px] font-medium text-slate-900">Filters</div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-[14px] text-slate-700">
-              <div className="flex items-start gap-2">
-                <Info className="mt-0.5 size-4 shrink-0 text-slate-500" />
-                <span>
-                  Filter authoring for aggregator variables is the next pass. This first
-                  slice saves the variable and field selection end to end.
-                </span>
-              </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[15px] font-medium text-slate-900">Filters</div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  onChange({
+                    ...draft,
+                    filters: [...draft.filters, createFunctionVariableFilterDraft()],
+                  })
+                }
+                className="h-8 rounded-lg border-slate-200 px-3 text-sm shadow-none hover:translate-y-0"
+              >
+                <Plus className="size-4" />
+                Add filter
+              </Button>
             </div>
+
+            {draft.filters.length === 0 ? (
+              <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-[14px] text-slate-600">
+                No filters added. The variable will aggregate across all matching records.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {draft.filters.map((filter, index) => (
+                  <div key={filter.id} className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+                    <ConditionSelectorRow
+                      prefixLabel={index === 0 ? "where" : "and"}
+                      className="flex flex-wrap items-start gap-3 text-[14px]"
+                      leftSelector={{
+                        value: filter.fieldKey,
+                        options: fieldOptions,
+                        groups: fieldGroups,
+                        panelPosition: "top",
+                        placeholder: "Select a field...",
+                        searchPlaceholder: "Search fields",
+                        emptyLabel: "No fields matched your search.",
+                        invalid: !filter.fieldKey,
+                        prefix: "Tt",
+                        onChange: (value) =>
+                          onChange({
+                            ...draft,
+                            filters: draft.filters.map((item) =>
+                              item.id === filter.id ? { ...item, fieldKey: value } : item
+                            ),
+                          }),
+                      }}
+                      operatorSelector={{
+                        value: filter.operator,
+                        options: filterOperatorOptions,
+                        panelPosition: "top",
+                        placeholder: "Select an operator...",
+                        searchPlaceholder: "Search operators",
+                        emptyLabel: "No operators matched your search.",
+                        invalid: !filter.operator,
+                        onChange: (value) =>
+                          onChange({
+                            ...draft,
+                            filters: draft.filters.map((item) =>
+                              item.id === filter.id
+                                ? {
+                                    ...item,
+                                    operator: value as FunctionVariableFilterDraft["operator"],
+                                  }
+                                : item
+                            ),
+                          }),
+                      }}
+                      rightSelector={{
+                        value: filter.rightValue,
+                        panelPosition: "top",
+                        placeholder: "Select or enter a value...",
+                        searchPlaceholder: "Enter a filter value",
+                        emptyLabel: "No values matched your search.",
+                        invalid: !filter.rightValue.trim(),
+                        prefix:
+                          filter.rightMode === "field"
+                            ? "Tt"
+                            : filter.rightValue.trim().length > 0
+                              ? "#"
+                              : "Tt",
+                        options: fieldOptions,
+                        groups: fieldGroups,
+                        searchOptionsBuilder: (searchValue) =>
+                          buildFunctionVariableLiteralSearchOptions(searchValue),
+                        onChange: (value) =>
+                          onChange({
+                            ...draft,
+                            filters: draft.filters.map((item) =>
+                              item.id === filter.id
+                                ? {
+                                    ...item,
+                                    rightValue: value.startsWith("literal:")
+                                      ? decodeFunctionVariableLiteralSelection(value)
+                                      : value,
+                                    rightMode: value.startsWith("literal:") ? "literal" : "field",
+                                  }
+                                : item
+                            ),
+                          }),
+                      }}
+                      onRemove={() =>
+                        onChange({
+                          ...draft,
+                          filters: draft.filters.filter((item) => item.id !== filter.id),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-5">

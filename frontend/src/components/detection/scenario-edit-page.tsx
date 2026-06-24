@@ -1125,6 +1125,7 @@ export function ScenarioEditPage({
       variableName: "",
       fieldKey: "",
       percentile: "50",
+      filters: [],
     });
   }
 
@@ -1147,6 +1148,32 @@ export function ScenarioEditPage({
         fieldName,
         label: draft.variableName.trim() || `${draft.aggregator.toLowerCase()}_${fieldName}`,
         percentile: draft.aggregator === "PCTILE" ? Number(draft.percentile) : undefined,
+        filters: draft.filters
+          .map((filter) => {
+            const [filterTableName = "", filterFieldName = ""] = filter.fieldKey.split("::");
+            return filterTableName && filterFieldName
+              ? {
+                  tableName: filterTableName,
+                  fieldName: filterFieldName,
+                  operator: filter.operator,
+                  rightMode: filter.rightMode,
+                  value:
+                    filter.rightMode === "field"
+                      ? filter.rightValue.split("::")[1] ?? filter.rightValue
+                      : filter.rightValue,
+                }
+              : null;
+          })
+          .filter(
+            (
+              filter
+            ): filter is {
+              tableName: string;
+              fieldName: string;
+              operator: string;
+              value: string;
+            } => Boolean(filter)
+          ),
       }),
       label: draft.variableName.trim(),
       meta: `Aggregation on ${tableName}`,

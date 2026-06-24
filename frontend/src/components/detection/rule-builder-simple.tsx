@@ -144,6 +144,9 @@ export function RuleBuilderSimple({
   disabled?: boolean;
 }) {
   const [aggregatorModal, setAggregatorModal] = useState<AggregatorModalState | null>(null);
+  const [createdFunctionOperands, setCreatedFunctionOperands] = useState<
+    SimpleRuleFunctionOperand[]
+  >([]);
 
   const fieldSelectorOptions = accessorOptions.map((option) => ({
     value: option.id,
@@ -219,6 +222,10 @@ export function RuleBuilderSimple({
   const functionOperands = useMemo(() => {
     const items = new Map<string, SimpleRuleFunctionOperand>();
 
+    createdFunctionOperands.forEach((operand) => {
+      items.set(operand.id, operand);
+    });
+
     groups.forEach((group) => {
       group.conditions.forEach((condition) => {
         if (condition.leftFunction) {
@@ -231,7 +238,7 @@ export function RuleBuilderSimple({
     });
 
     return [...items.values()].sort((left, right) => left.label.localeCompare(right.label));
-  }, [groups]);
+  }, [createdFunctionOperands, groups]);
 
   const functionLookup = useMemo(
     () => new Map(functionOperands.map((operand) => [`function:${operand.id}`, operand])),
@@ -386,6 +393,7 @@ export function RuleBuilderSimple({
       variableName: "",
       fieldKey: "",
       percentile: "50",
+      filters: [],
     });
   }
 
@@ -409,11 +417,41 @@ export function RuleBuilderSimple({
         label: draft.variableName.trim() || `${draft.aggregator.toLowerCase()}_${fieldName}`,
         percentile:
           draft.aggregator === "PCTILE" ? Number(draft.percentile) : undefined,
+        filters: draft.filters
+          .map((filter) => {
+            const [filterTableName = "", filterFieldName = ""] = filter.fieldKey.split("::");
+            return filterTableName && filterFieldName
+              ? {
+                  tableName: filterTableName,
+                  fieldName: filterFieldName,
+                  operator: filter.operator,
+                  rightMode: filter.rightMode,
+                  value:
+                    filter.rightMode === "field"
+                      ? filter.rightValue.split("::")[1] ?? filter.rightValue
+                      : filter.rightValue,
+                }
+              : null;
+          })
+          .filter(
+            (
+              filter
+            ): filter is {
+              tableName: string;
+              fieldName: string;
+              operator: string;
+              value: string;
+            } => Boolean(filter)
+          ),
       }),
       label: draft.variableName.trim(),
       meta: `Aggregation on ${tableName}`,
     });
 
+    setCreatedFunctionOperands((current) => {
+      const next = current.filter((item) => item.id !== operand.id);
+      return [...next, operand].sort((left, right) => left.label.localeCompare(right.label));
+    });
     applyFunctionOperand(draft.groupId, draft.conditionId, draft.side, operand);
     setAggregatorModal(null);
   }

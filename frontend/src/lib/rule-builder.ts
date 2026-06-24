@@ -323,7 +323,28 @@ export function buildAggregatorAst(params: {
   fieldName: string;
   label: string;
   percentile?: number;
+  filters?: Array<{
+    tableName: string;
+    fieldName: string;
+    operator: string;
+    rightMode: "literal" | "field";
+    value: string;
+  }>;
 }): RuleAstNode {
+  const parseFilterConstant = (value: string): JSONValue => {
+    const trimmed = value.trim();
+    if (trimmed.toLowerCase() === "true") {
+      return true;
+    }
+    if (trimmed.toLowerCase() === "false") {
+      return false;
+    }
+    if (trimmed.length > 0 && Number.isFinite(Number(trimmed))) {
+      return Number(trimmed);
+    }
+    return value;
+  };
+
   return {
     function: "Aggregator",
     named_children: {
@@ -331,6 +352,30 @@ export function buildAggregatorAst(params: {
       fieldName: { constant: params.fieldName },
       aggregator: { constant: params.aggregator },
       label: { constant: params.label },
+      ...(params.filters && params.filters.length > 0
+        ? {
+            filters: {
+              function: "List",
+              children: params.filters.map((filter) => ({
+                function: "Filter",
+                named_children: {
+                  tableName: { constant: filter.tableName },
+                  fieldName: { constant: filter.fieldName },
+                  operator: { constant: filter.operator },
+                  value:
+                    filter.rightMode === "field"
+                      ? {
+                          function: "field_ref",
+                          named_children: {
+                            field: { constant: filter.value },
+                          },
+                        }
+                      : { constant: parseFilterConstant(filter.value) },
+                },
+              })),
+            },
+          }
+        : {}),
       ...(params.percentile !== undefined
         ? {
             percentile: {
