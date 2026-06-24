@@ -984,7 +984,16 @@ export function RuleBuilderSimple({
         <FunctionVariableModal
           draft={aggregatorModal}
           onClose={() => setAggregatorModal(null)}
-          onChange={setAggregatorModal}
+          onChange={(draft) =>
+            setAggregatorModal((current) =>
+              current
+                ? {
+                    ...current,
+                    ...draft,
+                  }
+                : null
+            )
+          }
           onSave={saveAggregatorVariable}
           tableFieldOptions={tableFieldOptions}
         />

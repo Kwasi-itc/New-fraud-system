@@ -884,24 +884,6 @@ export function ScenarioEditPage({
     currentIteration?.score_review_threshold,
   ]);
 
-  useEffect(() => {
-    if (!filteredScenarioDecisions.length) {
-      if (selectedDecisionId !== null) {
-        setSelectedDecisionId(null);
-      }
-      return;
-    }
-
-    if (!selectedDecisionId) {
-      setSelectedDecisionId(filteredScenarioDecisions[0].id);
-      return;
-    }
-
-    if (!filteredScenarioDecisions.some((decision) => decision.id === selectedDecisionId)) {
-      setSelectedDecisionId(filteredScenarioDecisions[0].id);
-    }
-  }, [filteredScenarioDecisions, selectedDecisionId]);
-
   const description = scenario?.description || "No description provided";
   const triggerObjectType = scenario?.trigger_object_type ?? "trigger";
   const isLiveSelectedIteration = currentIteration?.id === scenario?.live_iteration_id;
@@ -943,6 +925,23 @@ export function ScenarioEditPage({
     filteredScenarioDecisions.find((decision) => decision.id === selectedDecisionId) ??
     filteredScenarioDecisions[0] ??
     null;
+  useEffect(() => {
+    if (!filteredScenarioDecisions.length) {
+      if (selectedDecisionId !== null) {
+        setSelectedDecisionId(null);
+      }
+      return;
+    }
+
+    if (!selectedDecisionId) {
+      setSelectedDecisionId(filteredScenarioDecisions[0].id);
+      return;
+    }
+
+    if (!filteredScenarioDecisions.some((decision) => decision.id === selectedDecisionId)) {
+      setSelectedDecisionId(filteredScenarioDecisions[0].id);
+    }
+  }, [filteredScenarioDecisions, selectedDecisionId]);
   const triggerFunctionVariableSelectorOptions = useMemo(
     () =>
       triggerFunctionOperands
