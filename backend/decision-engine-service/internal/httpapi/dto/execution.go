@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
@@ -36,7 +37,7 @@ type ScheduledExecutionResponse struct {
 	ScenarioIterationID string    `json:"scenario_iteration_id"`
 	Status              string    `json:"status"`
 	ScheduledFor        time.Time `json:"scheduled_for"`
-	RequestBody         []byte    `json:"request_body"`
+	RequestBody         json.RawMessage `json:"request_body"`
 	CreatedAt           time.Time `json:"created_at"`
 }
 
@@ -52,7 +53,7 @@ type AsyncDecisionExecutionResponse struct {
 	ScenarioID  string    `json:"scenario_id"`
 	ObjectType  string    `json:"object_type"`
 	Status      string    `json:"status"`
-	RequestBody []byte    `json:"request_body"`
+	RequestBody json.RawMessage `json:"request_body"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

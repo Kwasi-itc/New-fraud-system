@@ -248,6 +248,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.GetRecurringSchedule)
 	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.UpdateRecurringSchedule)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.ListScheduledExecutionsByScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId", executionHandler.GetScheduledExecution)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.CreateScheduledExecution)
 	v1.GET("/tenants/:tenantId/platform/custom-lists", platformHandler.ListCustomLists)
 	v1.POST("/tenants/:tenantId/platform/custom-lists", platformHandler.CreateCustomList)

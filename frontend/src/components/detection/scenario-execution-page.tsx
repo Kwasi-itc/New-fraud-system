@@ -5,58 +5,23 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarRange, Info, Plus } from "lucide-react";
 
+import {
+  deriveScheduledExecutionCandidateLimit,
+  deriveScheduledExecutionItems,
+  deriveScheduledExecutionSource,
+  formatExecutionDateTime,
+} from "@/components/detection/scheduled-execution-shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   decisionEngineApi,
   type EvaluateDecisionRequest,
-  type ScheduledExecution,
+  type JSONValue,
 } from "@/lib/decision-engine-api";
 import { cn } from "@/lib/utils";
 
 type ExecutionMode = "ingested_candidates" | "explicit_items";
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function deriveRequestItems(execution: ScheduledExecution) {
-  const body = execution.request_body;
-
-  if (Array.isArray(body)) {
-    return body;
-  }
-
-  if (body && typeof body === "object" && "items" in body) {
-    return Array.isArray(body.items) ? body.items : [];
-  }
-
-  return [];
-}
-
-function deriveCandidateLimit(execution: ScheduledExecution) {
-  const body = execution.request_body;
-
-  if (body && typeof body === "object" && "candidate_limit" in body) {
-    const candidateLimit = body.candidate_limit;
-    return typeof candidateLimit === "number" ? candidateLimit : null;
-  }
-
-  return null;
-}
-
-function deriveExecutionSource(execution: ScheduledExecution) {
-  return deriveRequestItems(execution).length > 0 ? "Explicit items" : "Ingested candidates";
-}
 
 function parseExplicitItems(value: string) {
   let parsed: unknown;
@@ -87,8 +52,8 @@ function parseExplicitItems(value: string) {
 
     const fields =
       candidate.fields && typeof candidate.fields === "object" && !Array.isArray(candidate.fields)
-        ? candidate.fields
-        : {};
+        ? (candidate.fields as JSONValue)
+        : ({} as JSONValue);
 
     return {
       object_id: candidate.object_id,
@@ -372,20 +337,32 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
                   </tr>
                 ) : (
                   executions.map((execution) => {
-                    const items = deriveRequestItems(execution);
-                    const executionCandidateLimit = deriveCandidateLimit(execution);
+                    const items = deriveScheduledExecutionItems(execution);
+                    const executionCandidateLimit =
+                      deriveScheduledExecutionCandidateLimit(execution);
 
                     return (
                       <tr
                         key={execution.id}
-                        className="border-b border-slate-100 text-[14px] text-slate-900 last:border-b-0"
+                        className="border-b border-slate-100 text-[14px] text-slate-900 transition hover:bg-slate-50 last:border-b-0"
                       >
-                        <td className="px-4 py-3.5">{formatDateTime(execution.scheduled_for)}</td>
-                        <td className="px-4 py-3.5">{deriveExecutionSource(execution)}</td>
+                        <td className="px-4 py-3.5">
+                          <Link
+                            href={`/detection/${scenarioId}/execution/${execution.id}`}
+                            className="font-medium text-[#1f4f96] hover:underline"
+                          >
+                            {formatExecutionDateTime(execution.scheduled_for)}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {deriveScheduledExecutionSource(execution)}
+                        </td>
                         <td className="px-4 py-3.5">{executionCandidateLimit ?? "-"}</td>
                         <td className="px-4 py-3.5">{items.length > 0 ? items.length : "-"}</td>
                         <td className="px-4 py-3.5 capitalize">{execution.status}</td>
-                        <td className="px-4 py-3.5">{formatDateTime(execution.created_at)}</td>
+                        <td className="px-4 py-3.5">
+                          {formatExecutionDateTime(execution.created_at)}
+                        </td>
                       </tr>
                     );
                   })

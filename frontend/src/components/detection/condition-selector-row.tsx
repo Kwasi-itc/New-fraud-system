@@ -45,6 +45,7 @@ export function ConditionSelectorRow({
   leftSelector,
   operatorSelector,
   rightSelector,
+  rightContent,
   onRemove,
   disabled = false,
   className,
@@ -55,6 +56,7 @@ export function ConditionSelectorRow({
   leftSelector: SelectorConfig;
   operatorSelector: SelectorConfig;
   rightSelector?: SelectorConfig | null;
+  rightContent?: ReactNode;
   onRemove: () => void;
   disabled?: boolean;
   className?: string;
@@ -105,7 +107,9 @@ export function ConditionSelectorRow({
         searchOptionsBuilder={operatorSelector.searchOptionsBuilder}
         onChange={operatorSelector.onChange}
       />
-      {rightSelector ? (
+      {rightContent ? (
+        rightContent
+      ) : rightSelector ? (
         <RuleOperandSelector
           className={rightSelector.className ?? "min-w-[220px] max-w-[280px]"}
           disabled={disabled}

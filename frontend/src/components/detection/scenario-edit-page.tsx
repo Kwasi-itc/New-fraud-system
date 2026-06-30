@@ -141,7 +141,7 @@ function createTriggerRow(index: number): TriggerRow {
   };
 }
 
-function normalizeTriggerRows(rows: TriggerRow[]) {
+function normalizeTriggerRows(rows: TriggerRow[]): TriggerRow[] {
   return rows.map((row, index) => ({
     ...row,
     prefix: index === 0 ? "where" : "and",
@@ -150,12 +150,20 @@ function normalizeTriggerRows(rows: TriggerRow[]) {
 
 const EMPTY_ITERATIONS: Iteration[] = [];
 
-function scenarioStatusLabel(version?: number, live = false) {
-  if (live && version) {
-    return `V${version} Live`;
+function scenarioStatusLabel(version?: number, live = false, status?: string) {
+  if (!version) {
+    return live ? "Live" : "Draft";
   }
 
-  return "Draft";
+  if (live) {
+    return `v${version}. Live`;
+  }
+
+  if (status === "committed") {
+    return `v${version}. Committed`;
+  }
+
+  return `v${version}. Draft`;
 }
 
 function EditorTabButton({
@@ -697,7 +705,9 @@ export function ScenarioEditPage({
       await queryClient.invalidateQueries({
         queryKey: ["decision-engine", "validation", tenantId, scenarioId, draftIteration?.id],
       });
-      router.push(`/detection/${scenarioId}/edit/rules/${rule.id}`);
+      router.push(
+        `/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${rule.iteration_id}`
+      );
     },
     onError: (error) => {
       pushToast({
@@ -875,7 +885,8 @@ export function ScenarioEditPage({
   const isLiveSelectedIteration = currentIteration?.id === scenario?.live_iteration_id;
   const statusLabel = scenarioStatusLabel(
     currentIteration?.version,
-    isLiveSelectedIteration
+    isLiveSelectedIteration,
+    currentIteration?.status
   );
   const rules = rulesQuery.data?.rules ?? [];
   const isDraftIteration = currentIteration?.status === "draft";
@@ -941,7 +952,13 @@ export function ScenarioEditPage({
     [triggerFunctionOperands]
   );
   const triggerDirectFunctionOptions = useMemo(
-    () => [...triggerDirectFunctionSelectorOptions].sort((left, right) => left.label.localeCompare(right.label)),
+    () =>
+      triggerDirectFunctionSelectorOptions
+        .map((option) => ({
+          ...option,
+          keywords: [...option.keywords],
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
     []
   );
   const triggerFunctionSelectorOptions = useMemo(
@@ -1129,30 +1146,48 @@ export function ScenarioEditPage({
     });
   }
 
-  function saveTriggerVariable(draft: TriggerVariableModalState) {
-    const [tableName = "", fieldName = ""] = draft.fieldKey.split("::");
-    if (!tableName || !fieldName) {
-      setTriggerVariableModal(draft);
+  function saveTriggerVariable(draft: FunctionVariableDraft) {
+    const modalState = triggerVariableModal
+      ? {
+          ...triggerVariableModal,
+          ...draft,
+        }
+      : null;
+    if (!modalState) {
       return;
     }
 
-    if (draft.aggregator === "PCTILE" && !Number.isFinite(Number(draft.percentile))) {
-      setTriggerVariableModal(draft);
+    const [tableName = "", fieldName = ""] = modalState.fieldKey.split("::");
+    if (!tableName || !fieldName) {
+      setTriggerVariableModal(modalState);
+      return;
+    }
+
+    if (
+      modalState.aggregator === "PCTILE" &&
+      !Number.isFinite(Number(modalState.percentile))
+    ) {
+      setTriggerVariableModal(modalState);
       return;
     }
 
     const operand = createFunctionOperand({
       ast: buildAggregatorAst({
-        aggregator: draft.aggregator,
+        aggregator: modalState.aggregator,
         tableName,
         fieldName,
-        label: draft.variableName.trim() || `${draft.aggregator.toLowerCase()}_${fieldName}`,
-        percentile: draft.aggregator === "PCTILE" ? Number(draft.percentile) : undefined,
-        filters: draft.filters
-          .map((filter) => {
+        label:
+          modalState.variableName.trim() ||
+          `${modalState.aggregator.toLowerCase()}_${fieldName}`,
+        percentile:
+          modalState.aggregator === "PCTILE"
+            ? Number(modalState.percentile)
+            : undefined,
+        filters: modalState.filters
+          .flatMap((filter) => {
             const [filterTableName = "", filterFieldName = ""] = filter.fieldKey.split("::");
             return filterTableName && filterFieldName
-              ? {
+              ? [{
                   tableName: filterTableName,
                   fieldName: filterFieldName,
                   operator: filter.operator,
@@ -1161,21 +1196,12 @@ export function ScenarioEditPage({
                     filter.rightMode === "field"
                       ? filter.rightValue.split("::")[1] ?? filter.rightValue
                       : filter.rightValue,
-                }
-              : null;
+                }]
+              : [];
           })
-          .filter(
-            (
-              filter
-            ): filter is {
-              tableName: string;
-              fieldName: string;
-              operator: string;
-              value: string;
-            } => Boolean(filter)
-          ),
+          ,
       }),
-      label: draft.variableName.trim(),
+      label: modalState.variableName.trim(),
       meta: `Aggregation on ${tableName}`,
     });
 
@@ -1185,10 +1211,10 @@ export function ScenarioEditPage({
     });
     setTriggerRows((current) =>
       current.map((row) =>
-        row.id === draft.rowId
+        row.id === modalState.rowId
           ? {
               ...row,
-              [draft.side]: `function:${operand.id}`,
+              [modalState.side]: `function:${operand.id}`,
             }
           : row
       )
@@ -1234,7 +1260,7 @@ export function ScenarioEditPage({
     );
   }
 
-  if (scenarioQuery.isError || !scenarioQuery.data?.scenario) {
+  if (scenarioQuery.isError || !scenario) {
     return (
       <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-none">
         <CardContent className="p-5 text-sm text-red-700">
@@ -1378,7 +1404,11 @@ export function ScenarioEditPage({
                         {sortedIterations.map((iteration) => {
                           const isSelected = iteration.id === currentIteration?.id;
                           const isLive = iteration.id === scenario.live_iteration_id;
-                          const iterationLabel = scenarioStatusLabel(iteration.version, isLive);
+                          const iterationLabel = scenarioStatusLabel(
+                            iteration.version,
+                            isLive,
+                            iteration.status
+                          );
 
                           return (
                             <button
@@ -1395,12 +1425,7 @@ export function ScenarioEditPage({
                                   : "text-slate-950 hover:bg-slate-50"
                               )}
                             >
-                              <div className="flex flex-col">
-                                <span className="font-medium">{iterationLabel}</span>
-                                <span className="text-[12px] text-slate-500">
-                                  Version {iteration.version}
-                                </span>
-                              </div>
+                              <span className="font-medium">{iterationLabel}</span>
                               {isSelected ? <CheckCircle2 className="size-4" /> : null}
                             </button>
                           );
@@ -2174,14 +2199,14 @@ export function ScenarioEditPage({
                             <td className="px-4 py-3 text-[14px] font-medium">
                               {isDraftIteration ? (
                                 <Link
-                                  href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${currentIteration?.id ?? ""}`}
+                                  href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${rule.iteration_id}`}
                                   className="text-left hover:text-[#1f4f96]"
                                 >
                                   {rule.name}
                                 </Link>
                               ) : (
                                 <Link
-                                  href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${currentIteration?.id ?? ""}`}
+                                  href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${rule.iteration_id}`}
                                   className="text-left hover:text-[#1f4f96]"
                                 >
                                   {rule.name}
@@ -2223,7 +2248,7 @@ export function ScenarioEditPage({
                                     asChild
                                     className="h-8 rounded-lg border-slate-200 px-3 text-[12px] shadow-none"
                                   >
-                                    <Link href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${currentIteration?.id ?? ""}`}>
+                                    <Link href={`/detection/${scenarioId}/edit/rules/${rule.id}?iterationId=${rule.iteration_id}`}>
                                       Edit
                                     </Link>
                                   </Button>
@@ -2575,7 +2600,16 @@ export function ScenarioEditPage({
         <FunctionVariableModal
           draft={triggerVariableModal}
           onClose={() => setTriggerVariableModal(null)}
-          onChange={setTriggerVariableModal}
+          onChange={(draft) =>
+            setTriggerVariableModal((current) =>
+              current
+                ? {
+                    ...current,
+                    ...draft,
+                  }
+                : null
+            )
+          }
           onSave={saveTriggerVariable}
           tableFieldOptions={triggerTableFieldOptions}
         />

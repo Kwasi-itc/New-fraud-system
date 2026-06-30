@@ -199,6 +199,93 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 	}
 }
 
+func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC)
+	result, err := evaluateScenarioByIteration(
+		context.Background(),
+		ruleTestIDGen{value: uuid.MustParse("22222222-2222-2222-2222-222222222222")},
+		ruleTestClock{now: now},
+		"tenant-1",
+		"scenario-1",
+		"iter-1",
+		DecisionEvaluationRequest{
+			ObjectID:   "txn-1",
+			ObjectType: "transactions",
+			Fields: map[string]any{
+				"object_id": "txn-1",
+			},
+		},
+		scenarioIterationRepoStub{
+			iteration: scenario.Iteration{
+				ID:                           "iter-1",
+				ScenarioID:                   "scenario-1",
+				TenantID:                     "tenant-1",
+				Status:                       scenario.IterationStatusCommitted,
+				TriggerFormula:               []byte(`{"constant":true}`),
+				ScoreReviewThreshold:         intPtrTest(10),
+				ScoreBlockAndReviewThreshold: intPtrTest(20),
+				ScoreDeclineThreshold:        intPtrTest(30),
+			},
+		},
+		ruleRepoStub{
+			rules: []scenario.Rule{
+				{
+					ID:            "rule-amount",
+					Name:          "Test transaction amount",
+					ScoreModifier: 100,
+					Formula: []byte(`{
+						"function":"gt",
+						"children":[
+							{"function":"field_ref","named_children":{"field":{"constant":"amount"}}},
+							{"constant":1000}
+						]
+					}`),
+				},
+			},
+		},
+		dataModelReaderStub{
+			model: ports.TenantModel{
+				RevisionID:        "rev-1",
+				RecordLookupField: "object_id",
+				Tables: map[string]ports.TenantModelTable{
+					"transactions": {
+						Name: "transactions",
+						Fields: map[string]ports.TenantModelField{
+							"object_id": {Name: "object_id", Type: "string"},
+							"amount":    {Name: "amount", Type: "number"},
+						},
+					},
+				},
+			},
+		},
+		stubTenantDataReader{},
+		stubDecisionRepo{},
+		nil,
+		nil,
+		nil,
+		nil,
+		asteval.AggregatePushdownModeEnabled,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
+	}
+	if !result.Triggered {
+		t.Fatalf("evaluateScenarioByIteration() Triggered = false, want true")
+	}
+	if result.Decision == nil {
+		t.Fatalf("evaluateScenarioByIteration() Decision = nil")
+	}
+	if result.Decision.Score != 0 {
+		t.Fatalf("evaluateScenarioByIteration() score = %d, want 0", result.Decision.Score)
+	}
+	if len(result.RuleExecutions) != 1 || result.RuleExecutions[0].Outcome != "no_hit" {
+		t.Fatalf("evaluateScenarioByIteration() rule executions = %#v", result.RuleExecutions)
+	}
+}
+
 func TestResolveRuleEvaluationConcurrency(t *testing.T) {
 	t.Parallel()
 

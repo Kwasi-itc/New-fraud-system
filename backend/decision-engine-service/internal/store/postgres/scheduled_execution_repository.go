@@ -28,6 +28,20 @@ func (r ScheduledExecutionRepository) Create(ctx context.Context, item execution
 	return out, err
 }
 
+func (r ScheduledExecutionRepository) GetByID(ctx context.Context, tenantID, scenarioID, executionID string) (execution.ScheduledExecution, error) {
+	const stmt = `
+		select id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
+		from core.scheduled_executions
+		where tenant_id = $1 and scenario_id = $2 and id = $3
+	`
+	var out execution.ScheduledExecution
+	var status string
+	err := r.q.QueryRow(ctx, stmt, tenantID, scenarioID, executionID).
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.ScenarioIterationID, &status, &out.ScheduledFor, &out.RequestBody, &out.CreatedAt)
+	out.Status = execution.Status(status)
+	return out, err
+}
+
 func (r ScheduledExecutionRepository) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]execution.ScheduledExecution, error) {
 	const stmt = `
 		select id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at

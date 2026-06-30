@@ -2168,6 +2168,18 @@ func downcastToInt64(number float64) (int64, bool) {
 }
 
 func compareValues(op string, left, right any) (bool, error) {
+	if left == nil || right == nil {
+		switch op {
+		case "eq":
+			return left == nil && right == nil, nil
+		case "neq":
+			return left != nil || right != nil, nil
+		case "gt", "gte", "lt", "lte":
+			return false, nil
+		default:
+			return false, fmt.Errorf("unsupported operator %q", op)
+		}
+	}
 	if leftTime, ok := parseTimeValue(left); ok {
 		rightTime, ok := parseTimeValue(right)
 		if !ok {

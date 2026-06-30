@@ -56,11 +56,7 @@ export function RuleValidationPanel({
           ) : (
             <CheckCircle2 className="size-4 text-emerald-700" />
           )}
-          <span className={hasErrors ? "text-amber-900" : "text-emerald-900"}>
-            {hasErrors
-              ? "This iteration has validation issues."
-              : "This iteration is valid against the current data model."}
-          </span>
+          {hasErrors ? <span className="text-amber-900">This iteration has validation issues.</span> : null}
         </div>
 
         {validationTriggerErrors.length > 0 ? (

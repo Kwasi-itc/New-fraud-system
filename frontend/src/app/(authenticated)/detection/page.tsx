@@ -35,7 +35,12 @@ import { useAssembledDataModelQuery } from "@/lib/data-model-query";
 import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
-const tabs = ["Scenarios", "Lists", "Analytics", "Decisions"] as const;
+const tabs = [
+  "Scenarios",
+  "Lists",
+  // "Analytics",
+  "Decisions",
+] as const;
 
 type DetectionTab = (typeof tabs)[number];
 
@@ -1931,7 +1936,7 @@ export default function DetectionPage() {
             <ListsTable lists={lists} />
           )
         ) : null}
-        {activeTab === "Analytics" ? <AnalyticsView /> : null}
+        {/* {activeTab === "Analytics" ? <AnalyticsView /> : null} */}
         {activeTab === "Decisions" ? (
           <LiveDecisionsView tenantId={tenantId} scenarios={scenarios} />
         ) : null}

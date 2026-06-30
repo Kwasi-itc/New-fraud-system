@@ -1349,6 +1349,27 @@ paths:
                 $ref: '#/components/schemas/ScheduledExecutionEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}:
+    get:
+      tags: [Execution]
+      summary: Get a scheduled execution by id
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scheduled execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledExecutionEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule:
     get:
       tags: [Execution]

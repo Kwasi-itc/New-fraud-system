@@ -197,7 +197,6 @@ export function FunctionVariableModal({
           <h3 className="text-[1.65rem] font-semibold tracking-tight text-slate-950">
             Create a variable
           </h3>
-          <div className="mt-1 text-[13px] text-slate-500">From Marble database</div>
           <button
             type="button"
             onClick={onClose}

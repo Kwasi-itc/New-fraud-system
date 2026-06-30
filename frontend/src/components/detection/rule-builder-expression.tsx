@@ -3,10 +3,22 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
-import { RuleOperandSelector } from "@/components/detection/rule-operand-selector";
+import {
+  buildCustomListOperandSources,
+  buildFieldOperandSources,
+  buildFunctionOperandSources,
+  buildLiteralSearchOptions,
+  decodeLiteralSelection,
+} from "@/components/detection/rule-operand-sources";
+import {
+  RuleOperandSelector,
+  type OperandOption,
+  type OperandOptionGroup,
+} from "@/components/detection/rule-operand-selector";
 import {
   createExpressionLeaf,
   createExpressionOperator,
+  createFunctionOperand,
   getRuleOperatorOption,
   isExpressionRuleNodeComplete,
   isUnaryRuleOperator,
@@ -14,6 +26,7 @@ import {
   type ExpressionLeafMode,
   type RuleAccessorOption,
   type RuleOperatorOption,
+  type SimpleRuleFunctionOperand,
   type SimpleValueType,
 } from "@/lib/rule-builder";
 import { cn } from "@/lib/utils";
@@ -35,6 +48,14 @@ function mapNode(
     ...node,
     children: node.children.map((child) => mapNode(child, targetId, updater)),
   };
+}
+
+function collectFunctionOperands(node: ExpressionRuleNode): SimpleRuleFunctionOperand[] {
+  if (node.kind === "leaf") {
+    return node.mode === "function" && node.functionOperand ? [node.functionOperand] : [];
+  }
+
+  return node.children.flatMap((child) => collectFunctionOperands(child));
 }
 
 function adjustOperatorChildren(node: Extract<ExpressionRuleNode, { kind: "operator" }>) {
@@ -125,44 +146,33 @@ function BracketMenu({
 function ExpressionNodeEditor({
   node,
   root = false,
+  compact = false,
   accessorOptions,
   operatorOptions,
   customListOptions,
+  functionOperands,
+  triggerObjectType,
+  operandOptionsOverride,
+  operandGroupsOverride,
   disabled,
   onChange,
 }: {
   node: ExpressionRuleNode;
   root?: boolean;
+  compact?: boolean;
   accessorOptions: RuleAccessorOption[];
   operatorOptions: RuleOperatorOption[];
   customListOptions: Array<{ id: string; name: string }>;
+  functionOperands: SimpleRuleFunctionOperand[];
+  triggerObjectType: string;
+  operandOptionsOverride?: OperandOption[];
+  operandGroupsOverride?: OperandOptionGroup[];
   disabled?: boolean;
   onChange: (node: ExpressionRuleNode) => void;
 }) {
-  const accessorSelectorOptions = useMemo(
-    () =>
-      accessorOptions.map((option) => ({
-        value: option.id,
-        label: option.label,
-        meta: option.meta,
-        keywords: [option.kind],
-      })),
-    [accessorOptions]
-  );
-  const accessorGroups = useMemo(
-    () => [
-      {
-        id: "payload",
-        label: "Field",
-        options: accessorSelectorOptions.filter((option) => option.keywords?.includes("payload")),
-      },
-      {
-        id: "database",
-        label: "Related",
-        options: accessorSelectorOptions.filter((option) => option.keywords?.includes("database")),
-      },
-    ],
-    [accessorSelectorOptions]
+  const { fieldSelectorOptions, fieldDiscoveryGroups } = useMemo(
+    () => buildFieldOperandSources({ accessorOptions, triggerObjectType }),
+    [accessorOptions, triggerObjectType]
   );
   const operatorSelectorOptions = useMemo(
     () =>
@@ -173,14 +183,41 @@ function ExpressionNodeEditor({
       })),
     [operatorOptions]
   );
-  const customListSelectorOptions = useMemo(
-    () =>
-      customListOptions.map((item) => ({
-        value: item.id,
-        label: item.name,
-        meta: "Custom list",
-      })),
+  const { customListSelectorOptions, customListDiscoveryGroups } = useMemo(
+    () => buildCustomListOperandSources(customListOptions),
     [customListOptions]
+  );
+  const { functionSelectorOptions, functionDiscoveryGroups, functionLookup } = useMemo(
+    () => buildFunctionOperandSources(functionOperands),
+    [functionOperands]
+  );
+  const operandOptions = useMemo(
+    () =>
+      operandOptionsOverride ?? [
+        ...fieldSelectorOptions,
+        ...functionSelectorOptions,
+        ...customListSelectorOptions,
+      ],
+    [
+      customListSelectorOptions,
+      fieldSelectorOptions,
+      functionSelectorOptions,
+      operandOptionsOverride,
+    ]
+  );
+  const operandGroups = useMemo(
+    () =>
+      operandGroupsOverride ?? [
+        ...fieldDiscoveryGroups,
+        ...customListDiscoveryGroups,
+        ...functionDiscoveryGroups,
+      ],
+    [
+      customListDiscoveryGroups,
+      fieldDiscoveryGroups,
+      functionDiscoveryGroups,
+      operandGroupsOverride,
+    ]
   );
 
   const updateChild = (childId: string, updater: (child: ExpressionRuleNode) => ExpressionRuleNode) => {
@@ -188,6 +225,148 @@ function ExpressionNodeEditor({
   };
 
   if (node.kind === "leaf") {
+    const selectorValue =
+      node.mode === "accessor"
+        ? node.accessorId
+        : node.mode === "custom_list"
+          ? `custom-list:${node.value}`
+          : node.mode === "function" && node.functionOperand
+            ? `function:${node.functionOperand.id}`
+          : `literal:${node.valueType}:${node.value}`;
+    const literalSelectedOption =
+      node.mode === "constant"
+        ? {
+            value: selectorValue,
+            label: node.valueType === "string" ? `"${node.value}"` : node.value,
+            meta:
+              node.valueType === "number"
+                ? "Number"
+                : node.valueType === "boolean"
+                  ? "Boolean"
+                  : "String",
+          }
+        : null;
+    const functionSelectedOption =
+      node.mode === "function" && node.functionOperand
+        ? {
+            value: selectorValue,
+            label: node.functionOperand.label,
+            meta: node.functionOperand.meta,
+          }
+        : null;
+    const selectedMeta =
+      node.mode === "function"
+        ? node.functionOperand?.meta
+        : node.mode === "custom_list"
+          ? "Custom list"
+          : node.mode === "constant"
+            ? node.valueType === "number"
+              ? "Number"
+              : node.valueType === "boolean"
+                ? "Boolean"
+                : "String"
+            : undefined;
+    const selectedPrefix =
+      node.mode === "function"
+        ? "fx"
+        : node.mode === "custom_list"
+          ? "[]"
+          : node.mode === "constant"
+            ? node.valueType === "number"
+              ? "#"
+              : node.valueType === "boolean"
+                ? "?"
+                : "Tt"
+            : "Tt";
+
+    const handleLeafSelectorChange = (value: string) => {
+      const literalSelection = decodeLiteralSelection(value);
+      if (literalSelection) {
+        onChange({
+          ...node,
+          mode: "constant",
+          value: literalSelection.rawValue,
+          valueType: literalSelection.valueType,
+        });
+        return;
+      }
+
+      if (value.startsWith("custom-list:")) {
+        onChange({
+          ...node,
+          mode: "custom_list",
+          value: value.replace(/^custom-list:/, ""),
+          valueType: "string",
+        });
+        return;
+      }
+
+      if (value.startsWith("function:")) {
+        const selectedFunction = functionLookup.get(value);
+        if (!selectedFunction) {
+          return;
+        }
+
+        onChange({
+          ...node,
+          mode: "function",
+          functionOperand: selectedFunction,
+          valueType: selectedFunction.valueType,
+        });
+        return;
+      }
+
+      onChange({
+        ...node,
+        mode: "accessor",
+        accessorId: value,
+      });
+    };
+
+    const selector = (
+      <RuleOperandSelector
+        className={compact ? "min-w-[170px] max-w-[220px] shrink-0" : "min-w-[260px] max-w-[360px]"}
+        disabled={disabled}
+        value={selectorValue}
+        prefix={selectedPrefix}
+        invalid={
+          node.mode === "accessor"
+            ? !node.accessorId.trim()
+            : node.mode === "function"
+              ? !node.functionOperand
+              : !node.value.trim()
+        }
+        selectedMeta={selectedMeta}
+        options={[
+          ...operandOptions,
+          ...(functionSelectedOption ? [functionSelectedOption] : []),
+          ...(literalSelectedOption ? [literalSelectedOption] : []),
+        ]}
+        groups={operandGroups}
+        actions={[
+          {
+            id: `nest-${node.id}`,
+            label: "Open bracket",
+            onSelect: () =>
+              onChange(
+                createExpressionOperator({
+                  children: [node, createExpressionLeaf()],
+                })
+              ),
+          },
+        ]}
+        placeholder="Select an operand..."
+        searchPlaceholder="Select or create an operand"
+        emptyLabel="No operands matched your search."
+        searchOptionsBuilder={(searchValue) => buildLiteralSearchOptions(searchValue)}
+        onChange={handleLeafSelectorChange}
+      />
+    );
+
+    if (compact) {
+      return selector;
+    }
+
     const valueTypeOptions = [
       { value: "string", label: "String" },
       { value: "number", label: "Number" },
@@ -195,95 +374,10 @@ function ExpressionNodeEditor({
     ];
 
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-sm border border-slate-300 bg-white p-1">
-          {[
-            { value: "accessor", label: "Field" },
-            { value: "constant", label: "Value" },
-            { value: "custom_list", label: "List" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-                              disabled={disabled}
-                              onClick={() =>
-                                onChange({
-                                  ...node,
-                                  mode: option.value as ExpressionLeafMode,
-                                })
-                              }
-              className={cn(
-                "rounded-sm px-3 py-2 text-[12px] font-medium transition",
-                node.mode === option.value
-                  ? "bg-[#eef3ff] text-[#365fa3]"
-                  : "text-slate-600 hover:bg-slate-50"
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {node.mode === "accessor" ? (
-          <RuleOperandSelector
-            className="min-w-[260px] max-w-[360px]"
-            disabled={disabled}
-            value={node.accessorId}
-            prefix="fx"
-            invalid={!node.accessorId.trim()}
-            options={accessorSelectorOptions}
-            groups={accessorGroups}
-            actions={[
-              {
-                id: `nest-${node.id}`,
-                label: "Open bracket",
-                onSelect: () =>
-                  onChange(
-                    createExpressionOperator({
-                      children: [node, createExpressionLeaf()],
-                    })
-                  ),
-              },
-            ]}
-            placeholder="Select an operand..."
-            searchPlaceholder="Search operands"
-            emptyLabel="No operands matched your search."
-            onChange={(value) => onChange({ ...node, accessorId: value })}
-          />
-        ) : node.mode === "custom_list" ? (
-          <RuleOperandSelector
-            className="min-w-[220px] max-w-[320px]"
-            disabled={disabled}
-            value={node.value}
-            prefix="[]"
-            invalid={!node.value.trim()}
-            options={customListSelectorOptions}
-            groups={[
-              {
-                id: "lists",
-                label: "Lists",
-                options: customListSelectorOptions,
-              },
-            ]}
-            actions={[
-              {
-                id: `nest-${node.id}`,
-                label: "Open bracket",
-                onSelect: () =>
-                  onChange(
-                    createExpressionOperator({
-                      children: [node, createExpressionLeaf()],
-                    })
-                  ),
-              },
-            ]}
-            placeholder="Select a list..."
-            searchPlaceholder="Search lists"
-            emptyLabel="No lists matched your search."
-            onChange={(value) => onChange({ ...node, value })}
-          />
-        ) : (
-          <>
+      <div className="flex flex-wrap items-start gap-2">
+        {selector}
+        {node.mode === "constant" ? (
+          <div className="flex flex-wrap items-center gap-2">
             <RuleOperandSelector
               className="min-w-[120px] max-w-[150px]"
               disabled={disabled}
@@ -304,22 +398,8 @@ function ExpressionNodeEditor({
                 className="h-10 w-full rounded-sm border border-slate-300 bg-white px-3 text-[14px] text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#365fa3] disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() =>
-                onChange(
-                  createExpressionOperator({
-                    children: [node, createExpressionLeaf()],
-                  })
-                )
-              }
-              className="inline-flex h-10 items-center rounded-sm border border-slate-300 bg-white px-3 text-[13px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Open bracket
-            </button>
-          </>
-        )}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -331,16 +411,21 @@ function ExpressionNodeEditor({
 
   const content = (
     <>
-      <ExpressionNodeEditor
-        node={children[0] ?? createExpressionLeaf()}
-        accessorOptions={accessorOptions}
-        operatorOptions={operatorOptions}
-        customListOptions={customListOptions}
-        disabled={disabled}
-        onChange={(child) => updateChild(children[0]!.id, () => child)}
-      />
+        <ExpressionNodeEditor
+          node={children[0] ?? createExpressionLeaf()}
+          compact={compact}
+          accessorOptions={accessorOptions}
+          operatorOptions={operatorOptions}
+          customListOptions={customListOptions}
+          functionOperands={functionOperands}
+          triggerObjectType={triggerObjectType}
+          operandOptionsOverride={operandOptionsOverride}
+          operandGroupsOverride={operandGroupsOverride}
+          disabled={disabled}
+          onChange={(child) => updateChild(children[0]!.id, () => child)}
+        />
       <RuleOperandSelector
-        className="min-w-[150px] max-w-[190px]"
+        className={compact ? "min-w-[110px] max-w-[140px] shrink-0" : "min-w-[150px] max-w-[190px]"}
         disabled={disabled}
         value={node.operator}
         invalid={!node.operator}
@@ -361,9 +446,14 @@ function ExpressionNodeEditor({
       {!unary ? (
         <ExpressionNodeEditor
           node={children[1] ?? createExpressionLeaf()}
+          compact={compact}
           accessorOptions={accessorOptions}
           operatorOptions={operatorOptions}
           customListOptions={customListOptions}
+          functionOperands={functionOperands}
+          triggerObjectType={triggerObjectType}
+          operandOptionsOverride={operandOptionsOverride}
+          operandGroupsOverride={operandGroupsOverride}
           disabled={disabled}
           onChange={(child) => updateChild(children[1]!.id, () => child)}
         />
@@ -385,7 +475,7 @@ function ExpressionNodeEditor({
   }
 
   return (
-    <div className="inline-flex flex-wrap items-center gap-2">
+    <>
       <BracketMenu
         label="("
         unary={unary}
@@ -429,7 +519,7 @@ function ExpressionNodeEditor({
                 })
         }
       />
-    </div>
+    </>
   );
 }
 
@@ -439,15 +529,57 @@ export function RuleBuilderExpression({
   accessorOptions,
   operatorOptions,
   customListOptions,
+  functionOperands = [],
+  triggerObjectType = "trigger",
+  operandOptionsOverride,
+  operandGroupsOverride,
   disabled = false,
+  compact = false,
 }: {
   root: ExpressionRuleNode;
   onChange: (root: ExpressionRuleNode) => void;
   accessorOptions: RuleAccessorOption[];
   operatorOptions: RuleOperatorOption[];
   customListOptions: Array<{ id: string; name: string }>;
+  functionOperands?: SimpleRuleFunctionOperand[];
+  triggerObjectType?: string;
+  operandOptionsOverride?: OperandOption[];
+  operandGroupsOverride?: OperandOptionGroup[];
   disabled?: boolean;
+  compact?: boolean;
 }) {
+  const availableFunctionOperands = useMemo(() => {
+    const directFunctions = [
+      createFunctionOperand({ ast: { function: "TimeNow" } }),
+      createFunctionOperand({ ast: { function: "record_risk_level" } }),
+    ];
+    const items = new Map<string, SimpleRuleFunctionOperand>();
+    [...functionOperands, ...collectFunctionOperands(root), ...directFunctions].forEach((operand) => {
+      items.set(operand.id, operand);
+    });
+    return [...items.values()].sort((left, right) => left.label.localeCompare(right.label));
+  }, [functionOperands, root]);
+
+  if (compact) {
+    return (
+      <div className="inline-flex max-w-full flex-wrap items-center gap-2 align-middle">
+        <ExpressionNodeEditor
+          compact
+          node={root}
+          accessorOptions={accessorOptions}
+          operatorOptions={operatorOptions}
+          customListOptions={customListOptions}
+          functionOperands={availableFunctionOperands}
+          triggerObjectType={triggerObjectType}
+          operandOptionsOverride={operandOptionsOverride}
+          operandGroupsOverride={operandGroupsOverride}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="text-[13px] text-slate-600">
@@ -460,6 +592,10 @@ export function RuleBuilderExpression({
           accessorOptions={accessorOptions}
           operatorOptions={operatorOptions}
           customListOptions={customListOptions}
+          functionOperands={availableFunctionOperands}
+          triggerObjectType={triggerObjectType}
+          operandOptionsOverride={operandOptionsOverride}
+          operandGroupsOverride={operandGroupsOverride}
           disabled={disabled}
           onChange={onChange}
         />

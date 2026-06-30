@@ -5,7 +5,7 @@ import { ArrowLeft, Check, ChevronDown, ChevronRight, Search } from "lucide-reac
 
 import { cn } from "@/lib/utils";
 
-type OperandOption = {
+export type OperandOption = {
   value: string;
   label: string;
   keywords?: string[];
@@ -15,7 +15,7 @@ type OperandOption = {
   onSelectAction?: () => void;
 };
 
-type OperandOptionGroup = {
+export type OperandOptionGroup = {
   id: string;
   label: string;
   options?: OperandOption[];
@@ -23,7 +23,7 @@ type OperandOptionGroup = {
   count?: number;
 };
 
-type OperandAction = {
+export type OperandAction = {
   id: string;
   label: string;
   onSelect: () => void;

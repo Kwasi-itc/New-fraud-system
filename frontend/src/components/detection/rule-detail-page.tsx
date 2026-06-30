@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Copy,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { RuleBuilderAdvanced } from "@/components/detection/rule-builder-advanced";
+import { RuleBuilderExpression } from "@/components/detection/rule-builder-expression";
 import { RuleBuilderSimple } from "@/components/detection/rule-builder-simple";
 import { RuleGroupPicker } from "@/components/detection/rule-group-picker";
 import { RuleValidationPanel } from "@/components/detection/rule-validation-panel";
@@ -31,20 +32,26 @@ import {
 import {
   compileAdvancedConditionGroupsToAst,
   compileConditionGroupsToAst,
+  compileExpressionRuleNodeToAst,
   createAdvancedRuleGroup,
+  createExpressionOperator,
   createSimpleRuleGroup,
   extractAccessorOptions,
   extractPayloadFieldNames,
+  isExpressionRuleNodeComplete,
   isUnaryRuleOperator,
   simpleRuleOperatorOptions,
   slugifyStableRuleId,
   summarizeRuleFormula,
   tryParseAstToAdvancedConditionGroups,
   tryParseAstToConditionGroups,
+  tryParseAstToExpressionRuleNode,
   type AdvancedRuleConditionGroup,
+  type ExpressionRuleNode,
   type RuleAccessorOption,
   type SimpleRuleConditionGroup,
 } from "@/lib/rule-builder";
+import { cn } from "@/lib/utils";
 import { useToastStore } from "@/stores/toast-store";
 
 function coerceScoreModifier(value: string) {
@@ -81,7 +88,6 @@ function RuleEditorContent({
   ruleGroups,
   validation,
   isValidating,
-  onValidate,
 }: {
   tenantId: string;
   scenarioId: string;
@@ -99,7 +105,6 @@ function RuleEditorContent({
   ruleGroups: string[];
   validation?: ValidationResult;
   isValidating: boolean;
-  onValidate: () => void;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -120,8 +125,12 @@ function RuleEditorContent({
     () => tryParseAstToAdvancedConditionGroups(currentRule.formula, accessorOptions),
     [accessorOptions, currentRule.formula]
   );
-  const [editorMode] = useState<"simple" | "advanced">(() =>
-    parsedGroups ? "simple" : parsedAdvancedGroups ? "advanced" : "simple"
+  const parsedExpressionRoot = useMemo(
+    () => tryParseAstToExpressionRuleNode(currentRule.formula, accessorOptions),
+    [accessorOptions, currentRule.formula]
+  );
+  const [editorMode] = useState<"simple" | "advanced" | "expression">(() =>
+    parsedGroups ? "simple" : parsedAdvancedGroups ? "advanced" : parsedExpressionRoot ? "expression" : "simple"
   );
   const [conditionGroups, setConditionGroups] = useState<SimpleRuleConditionGroup[]>(
     parsedGroups ?? [createSimpleRuleGroup()]
@@ -129,8 +138,11 @@ function RuleEditorContent({
   const [advancedConditionGroups, setAdvancedConditionGroups] = useState<AdvancedRuleConditionGroup[]>(
     parsedAdvancedGroups ?? [createAdvancedRuleGroup(accessorOptions[0]?.id ?? "")]
   );
+  const [expressionRoot, setExpressionRoot] = useState<ExpressionRuleNode>(
+    parsedExpressionRoot ?? createExpressionOperator()
+  );
   const hasUnsupportedFormula =
-    parsedGroups === null && parsedAdvancedGroups === null;
+    parsedGroups === null && parsedAdvancedGroups === null && parsedExpressionRoot === null;
   const ruleSummary = useMemo(
     () => summarizeRuleFormula(currentRule.formula),
     [currentRule.formula]
@@ -155,6 +167,13 @@ function RuleEditorContent({
     });
   }, [accessorOptions, currentRule.id, parsedAdvancedGroups]);
 
+  useEffect(() => {
+    setExpressionRoot((current) => {
+      const nextRoot = parsedExpressionRoot ?? createExpressionOperator();
+      return JSON.stringify(current) === JSON.stringify(nextRoot) ? current : nextRoot;
+    });
+  }, [currentRule.id, parsedExpressionRoot]);
+
   const updateRuleMutation = useMutation({
     mutationFn: async () =>
       decisionEngineApi.updateRule(tenantId, scenarioId, iterationId, currentRule.id, {
@@ -163,6 +182,8 @@ function RuleEditorContent({
         description: description.trim(),
         formula: hasUnsupportedFormula
           ? currentRule.formula
+          : editorMode === "expression"
+            ? compileExpressionRuleNodeToAst(expressionRoot, accessorOptions)
           : editorMode === "advanced"
             ? compileAdvancedConditionGroupsToAst(advancedConditionGroups, accessorOptions)
             : compileConditionGroupsToAst(conditionGroups, accessorOptions),
@@ -225,7 +246,9 @@ function RuleEditorContent({
     !name.trim() ||
     !stableRuleId.trim() ||
     (!hasUnsupportedFormula &&
-      (editorMode === "advanced"
+      (editorMode === "expression"
+        ? !isExpressionRuleNodeComplete(expressionRoot)
+        : editorMode === "advanced"
         ? !advancedConditionGroups.some((group) =>
             group.conditions.some((condition) => {
               if (!condition.leftAccessorId.trim()) {
@@ -249,6 +272,8 @@ function RuleEditorContent({
                 ((condition.leftMode === "function" && condition.leftFunction) ||
                   condition.left.trim()) &&
                 (isUnaryRuleOperator(condition.operator) ||
+                  (condition.rightExpression &&
+                    isExpressionRuleNodeComplete(condition.rightExpression)) ||
                   (condition.rightMode === "function" && condition.rightFunction) ||
                   condition.right.trim())
             )
@@ -397,6 +422,16 @@ function RuleEditorContent({
                         triggerObjectType={triggerObjectType}
                         disabled={!isEditable}
                       />
+                    ) : editorMode === "expression" ? (
+                      <RuleBuilderExpression
+                        root={expressionRoot}
+                        onChange={setExpressionRoot}
+                        accessorOptions={accessorOptions}
+                        operatorOptions={operatorOptions}
+                        customListOptions={customListOptions}
+                        triggerObjectType={triggerObjectType}
+                        disabled={!isEditable}
+                      />
                     ) : (
                       <RuleBuilderSimple
                         groups={conditionGroups}
@@ -510,19 +545,6 @@ function RuleEditorContent({
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-xl border border-slate-200 shadow-none">
-                  <CardContent className="space-y-3 p-5">
-                    <Button
-                      variant="outline"
-                      onClick={onValidate}
-                      disabled={isValidating}
-                      className="h-10 w-full rounded-xl border-slate-200 px-4 text-[14px] shadow-none"
-                    >
-                      <Sparkles className="size-4" />
-                      {isValidating ? "Validating..." : "Validate iteration"}
-                    </Button>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </div>
@@ -590,6 +612,20 @@ export function RuleDetailPage({
     queryFn: () => decisionEngineApi.listRules(tenantId, scenarioId, selectedIteration!.id),
     enabled: Boolean(tenantId && scenarioId && selectedIteration?.id),
   });
+  const fallbackIterations = useMemo(
+    () =>
+      (iterationsQuery.data?.iterations ?? []).filter(
+        (iteration) => iteration.id !== selectedIteration?.id
+      ),
+    [iterationsQuery.data?.iterations, selectedIteration?.id]
+  );
+  const allIterationRulesQueries = useQueries({
+    queries: fallbackIterations.map((iteration) => ({
+        queryKey: ["decision-engine", "rules", tenantId, scenarioId, iteration.id],
+        queryFn: () => decisionEngineApi.listRules(tenantId, scenarioId, iteration.id),
+        enabled: Boolean(tenantId && scenarioId && iteration.id && ruleId),
+      })),
+  });
   const ruleGroupsQuery = useQuery({
     queryKey: ["decision-engine", "rule-groups", tenantId, scenarioId],
     queryFn: () => decisionEngineApi.listRuleGroups(tenantId, scenarioId),
@@ -607,10 +643,25 @@ export function RuleDetailPage({
     enabled: Boolean(tenantId),
   });
 
+  const fallbackRuleMatch = useMemo(() => {
+    for (let index = 0; index < allIterationRulesQueries.length; index += 1) {
+      const query = allIterationRulesQueries[index];
+      const matchedRule = query.data?.rules.find((rule) => rule.id === ruleId);
+      if (matchedRule) {
+        return {
+          rule: matchedRule,
+          iteration: fallbackIterations[index] ?? null,
+        };
+      }
+    }
+
+    return null;
+  }, [allIterationRulesQueries, fallbackIterations, ruleId]);
   const currentRule = useMemo(
-    () => rulesQuery.data?.rules.find((rule) => rule.id === ruleId) ?? null,
-    [ruleId, rulesQuery.data?.rules]
+    () => rulesQuery.data?.rules.find((rule) => rule.id === ruleId) ?? fallbackRuleMatch?.rule ?? null,
+    [fallbackRuleMatch?.rule, ruleId, rulesQuery.data?.rules]
   );
+  const resolvedIteration = fallbackRuleMatch?.iteration ?? selectedIteration;
 
   const ruleGroups = useMemo(() => {
     return [...(ruleGroupsQuery.data?.rule_groups ?? [])].sort((a, b) => a.localeCompare(b));
@@ -727,7 +778,7 @@ export function RuleDetailPage({
     );
   }
 
-  if (!selectedIteration) {
+  if (!resolvedIteration) {
     return (
       <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
@@ -756,9 +807,9 @@ export function RuleDetailPage({
       scenarioId={scenarioId}
       scenarioName={scenarioQuery.data?.scenario.name ?? "Scenario"}
       triggerObjectType={scenarioQuery.data?.scenario.trigger_object_type ?? ""}
-      iterationId={selectedIteration.id}
-      iterationVersion={selectedIteration.version}
-      isEditable={selectedIteration.status === "draft"}
+      iterationId={resolvedIteration.id}
+      iterationVersion={resolvedIteration.version}
+      isEditable={resolvedIteration.status === "draft"}
       currentRule={currentRule}
       fieldOptions={fieldOptions}
       accessorOptions={accessorOptions}
@@ -768,7 +819,6 @@ export function RuleDetailPage({
       ruleGroups={ruleGroups}
       validation={validationQuery.data?.validation}
       isValidating={validationQuery.isLoading || validationQuery.isFetching}
-      onValidate={() => void validationQuery.refetch()}
     />
   );
 }

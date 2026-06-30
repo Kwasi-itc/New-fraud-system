@@ -726,6 +726,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/rule-snoozes/${snoozeId}`,
   scheduledExecutions: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/scheduled-executions`,
+  scheduledExecution: (tenantId: string, scenarioId: string, executionId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/scheduled-executions/${executionId}`,
   recurringSchedule: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/recurring-schedule`,
   asyncDecisionExecutions: (tenantId: string) =>
@@ -1336,6 +1338,10 @@ export const decisionEngineApi = {
   listScheduledExecutions: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ scheduled_executions: ScheduledExecution[] }>(
       decisionEnginePaths.scheduledExecutions(tenantId, scenarioId)
+    ),
+  getScheduledExecution: async (tenantId: string, scenarioId: string, executionId: string) =>
+    decisionEngineFetch<{ scheduled_execution: ScheduledExecution }>(
+      decisionEnginePaths.scheduledExecution(tenantId, scenarioId, executionId)
     ),
   getRecurringSchedule: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ recurring_schedule: RecurringSchedule }>(

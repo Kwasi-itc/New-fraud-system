@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { ConditionSelectorRow } from "@/components/detection/condition-selector-row";
@@ -10,16 +10,28 @@ import {
   type FunctionVariableDraft,
   type FunctionVariableTableFieldOption,
 } from "@/components/detection/function-variable-modal";
+import { RuleBuilderExpression } from "@/components/detection/rule-builder-expression";
+import {
+  buildCustomListOperandSources,
+  buildFieldOperandSources,
+  buildFunctionOperandSources,
+  buildLiteralSearchOptions,
+  decodeLiteralSelection,
+} from "@/components/detection/rule-operand-sources";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   buildAggregatorAst,
   createFunctionOperand,
+  createExpressionLeaf,
+  createExpressionOperator,
   createSimpleRuleCondition,
   createSimpleRuleGroup,
   getRuleOperatorOption,
+  isExpressionRuleNodeComplete,
   isUnaryRuleOperator,
   type AggregatorOperator,
+  type ExpressionRuleNode,
   type RuleAccessorOption,
   type RuleOperatorOption,
   type SimpleRuleCondition,
@@ -32,79 +44,6 @@ type AggregatorModalState = {
   groupId: string;
   conditionId: string;
 } & FunctionVariableDraft;
-
-function isLiteralNumberValue(value: string) {
-  return value.trim().length > 0 && Number.isFinite(Number(value));
-}
-
-function decodeLiteralSelection(value: string): {
-  rawValue: string;
-  valueType: "string" | "number" | "boolean";
-} | null {
-  if (value.startsWith("literal:string:")) {
-    return {
-      rawValue: value.replace(/^literal:string:/, ""),
-      valueType: "string",
-    };
-  }
-
-  if (value.startsWith("literal:number:")) {
-    return {
-      rawValue: value.replace(/^literal:number:/, ""),
-      valueType: "number",
-    };
-  }
-
-  if (value.startsWith("literal:boolean:")) {
-    return {
-      rawValue: value.replace(/^literal:boolean:/, ""),
-      valueType: "boolean",
-    };
-  }
-
-  return null;
-}
-
-function buildLiteralSearchOptions(searchValue: string, usesList = false) {
-  const normalized = searchValue.toLowerCase();
-  const literalOptions: Array<{
-    value: string;
-    label: string;
-    meta: string;
-    sideLabel: string;
-  }> = [];
-
-  if (isLiteralNumberValue(searchValue)) {
-    literalOptions.push({
-      value: `literal:number:${searchValue}`,
-      label: searchValue,
-      meta: usesList ? "Number list" : "Number",
-      sideLabel: "Use number",
-    });
-  }
-
-  literalOptions.push({
-    value: `literal:string:${searchValue}`,
-    label: `"${searchValue}"`,
-    meta: usesList ? "String list" : "String",
-    sideLabel: "Use string",
-  });
-
-  if ("true".includes(normalized) || "false".includes(normalized)) {
-    ["true", "false"]
-      .filter((candidate) => candidate.includes(normalized))
-      .forEach((candidate) => {
-        literalOptions.push({
-          value: `literal:boolean:${candidate}`,
-          label: candidate,
-          meta: usesList ? "Boolean list" : "Boolean",
-          sideLabel: "Use boolean",
-        });
-      });
-  }
-
-  return literalOptions;
-}
 
 function updateConditionInGroups(
   groups: SimpleRuleConditionGroup[],
@@ -121,6 +60,87 @@ function updateConditionInGroups(
           ),
         }
       : group
+  );
+}
+
+function buildRightExpressionSeed(
+  condition: SimpleRuleCondition
+): ExpressionRuleNode {
+  const baseLeft =
+    condition.rightMode === "field"
+      ? createExpressionLeaf({
+          mode: "accessor",
+          accessorId: condition.right,
+        })
+      : condition.rightMode === "custom_list"
+        ? createExpressionLeaf({
+            mode: "custom_list",
+            value: condition.right,
+            valueType: "string",
+          })
+        : createExpressionLeaf({
+            mode: "constant",
+            value: condition.right,
+            valueType: condition.valueType,
+          });
+
+  return createExpressionOperator({
+    children: [baseLeft, createExpressionLeaf()],
+  });
+}
+
+function BracketControl({
+  label,
+  onAdd,
+  onRemove,
+  disabled,
+  addLabel,
+}: {
+  label: ReactNode;
+  onAdd: () => void;
+  onRemove: () => void;
+  disabled?: boolean;
+  addLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className="inline-flex h-10 items-center justify-center rounded-sm border border-slate-300 bg-white px-2 text-[18px] text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {label}
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-sm border border-slate-300 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              onAdd();
+              setOpen(false);
+            }}
+            className="block w-full rounded-sm px-3 py-2 text-left text-[13px] text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {addLabel}
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              onRemove();
+              setOpen(false);
+            }}
+            className="block w-full rounded-sm px-3 py-2 text-left text-[13px] text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Remove nesting
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -148,76 +168,20 @@ export function RuleBuilderSimple({
     SimpleRuleFunctionOperand[]
   >([]);
 
-  const fieldSelectorOptions = accessorOptions.map((option) => ({
-    value: option.id,
-    label: option.label,
-    meta: option.meta,
-    keywords: [option.meta, option.label],
-  }));
-  const fieldDiscoveryGroups = useMemo(() => {
-    const payloadOptions = fieldSelectorOptions.filter((option) =>
-      option.value.startsWith("payload:")
-    );
-    const databaseOptionGroups = new Map<string, typeof fieldSelectorOptions>();
-
-    fieldSelectorOptions
-      .filter((option) => option.value.startsWith("database:"))
-      .forEach((option) => {
-        const accessor = accessorOptions.find((item) => item.id === option.value);
-        const path =
-          accessor?.astNode.named_children?.path?.constant &&
-          Array.isArray(accessor.astNode.named_children.path.constant)
-            ? accessor.astNode.named_children.path.constant
-                .filter((item): item is string => typeof item === "string")
-            : [];
-        const tableName =
-          typeof accessor?.astNode.named_children?.tableName?.constant === "string"
-            ? accessor.astNode.named_children.tableName.constant
-            : triggerObjectType;
-        const groupLabel =
-          path.length > 0 ? `${tableName}_${path.join("_")}` : `From ${tableName}`;
-        const current = databaseOptionGroups.get(groupLabel) ?? [];
-        current.push(option);
-        databaseOptionGroups.set(groupLabel, current);
-      });
-
-    return [
-      {
-        id: "fields",
-        label: "Fields",
-        children: [
-          ...(payloadOptions.length > 0
-            ? [
-                {
-                  id: `fields-${triggerObjectType || "trigger"}`,
-                  label: `From ${triggerObjectType || "trigger"}`,
-                  options: payloadOptions,
-                },
-              ]
-            : []),
-          ...[...databaseOptionGroups.entries()]
-            .sort(([left], [right]) => left.localeCompare(right))
-            .map(([label, options]) => ({
-              id: `fields-${label}`,
-              label,
-              options,
-            })),
-        ],
-      },
-    ];
-  }, [accessorOptions, fieldSelectorOptions, triggerObjectType]);
+  const { fieldSelectorOptions, fieldDiscoveryGroups } = useMemo(
+    () => buildFieldOperandSources({ accessorOptions, triggerObjectType }),
+    [accessorOptions, triggerObjectType]
+  );
 
   const operatorSelectorOptions = operatorOptions.map((operatorOption) => ({
     value: operatorOption.value,
     label: operatorOption.label,
     keywords: operatorOption.keywords,
   }));
-  const customListSelectorOptions = customListOptions.map((customList) => ({
-    value: `custom-list:${customList.id}`,
-    label: customList.name,
-    meta: "Custom list",
-    keywords: ["list", "custom list"],
-  }));
+  const { customListSelectorOptions } = useMemo(
+    () => buildCustomListOperandSources(customListOptions),
+    [customListOptions]
+  );
 
   const functionOperands = useMemo(() => {
     const items = new Map<string, SimpleRuleFunctionOperand>();
@@ -240,16 +204,10 @@ export function RuleBuilderSimple({
     return [...items.values()].sort((left, right) => left.label.localeCompare(right.label));
   }, [createdFunctionOperands, groups]);
 
-  const functionLookup = useMemo(
-    () => new Map(functionOperands.map((operand) => [`function:${operand.id}`, operand])),
+  const { functionLookup, functionSelectorOptions } = useMemo(
+    () => buildFunctionOperandSources(functionOperands),
     [functionOperands]
   );
-  const functionSelectorOptions = functionOperands.map((operand) => ({
-    value: `function:${operand.id}`,
-    label: operand.label,
-    meta: operand.meta,
-    keywords: ["function", "variable", operand.label],
-  }));
 
   function updateCondition(
     groupId: string,
@@ -260,10 +218,14 @@ export function RuleBuilderSimple({
   }
 
   function updateOperator(groupId: string, conditionId: string, value: string) {
+    const nextOperator = getRuleOperatorOption(value);
     updateCondition(groupId, conditionId, (condition) => {
       return {
         ...condition,
         operator: value as SimpleRuleCondition["operator"],
+        ...(nextOperator?.unary || nextOperator?.usesList
+          ? { rightExpression: null }
+          : {}),
       };
     });
   }
@@ -321,6 +283,7 @@ export function RuleBuilderSimple({
         right: "",
         rightMode: "function",
         rightFunction: selectedFunction,
+        rightExpression: null,
         valueType: selectedFunction.valueType,
       }));
       return;
@@ -333,6 +296,7 @@ export function RuleBuilderSimple({
         right: literalSelection.rawValue,
         rightMode: "constant",
         rightFunction: null,
+        rightExpression: null,
         valueType: literalSelection.valueType,
       }));
       return;
@@ -348,6 +312,7 @@ export function RuleBuilderSimple({
           : value,
       rightMode: isFieldSelection ? "field" : value.startsWith("custom-list:") ? "custom_list" : "constant",
       rightFunction: null,
+      rightExpression: null,
       valueType: isFieldSelection || value.startsWith("custom-list:") ? "string" : condition.valueType,
     }));
   }
@@ -374,9 +339,31 @@ export function RuleBuilderSimple({
         right: "",
         rightMode: "function",
         rightFunction: operand,
+        rightExpression: null,
         valueType: operand.valueType,
       };
     });
+  }
+
+  function openRightOperandExpression(groupId: string, conditionId: string) {
+    updateCondition(groupId, conditionId, (condition) => ({
+      ...condition,
+      rightExpression: condition.rightExpression ?? buildRightExpressionSeed(condition),
+    }));
+  }
+
+  function updateRightOperandExpression(
+    groupId: string,
+    conditionId: string,
+    rightExpression: ExpressionRuleNode
+  ) {
+    updateCondition(groupId, conditionId, (condition) => ({
+      ...condition,
+      rightExpression,
+      right: "",
+      rightFunction: null,
+      rightMode: "constant",
+    }));
   }
 
   function openAggregatorVariableModal(
@@ -397,31 +384,48 @@ export function RuleBuilderSimple({
     });
   }
 
-  function saveAggregatorVariable(draft: AggregatorModalState) {
-    const [tableName = "", fieldName = ""] = draft.fieldKey.split("::");
-    if (!tableName || !fieldName) {
-      setAggregatorModal(draft);
+  function saveAggregatorVariable(draft: FunctionVariableDraft) {
+    const modalState = aggregatorModal
+      ? {
+          ...aggregatorModal,
+          ...draft,
+        }
+      : null;
+    if (!modalState) {
       return;
     }
 
-    if (draft.aggregator === "PCTILE" && !Number.isFinite(Number(draft.percentile))) {
-      setAggregatorModal(draft);
+    const [tableName = "", fieldName = ""] = modalState.fieldKey.split("::");
+    if (!tableName || !fieldName) {
+      setAggregatorModal(modalState);
+      return;
+    }
+
+    if (
+      modalState.aggregator === "PCTILE" &&
+      !Number.isFinite(Number(modalState.percentile))
+    ) {
+      setAggregatorModal(modalState);
       return;
     }
 
     const operand = createFunctionOperand({
       ast: buildAggregatorAst({
-        aggregator: draft.aggregator,
+        aggregator: modalState.aggregator,
         tableName,
         fieldName,
-        label: draft.variableName.trim() || `${draft.aggregator.toLowerCase()}_${fieldName}`,
+        label:
+          modalState.variableName.trim() ||
+          `${modalState.aggregator.toLowerCase()}_${fieldName}`,
         percentile:
-          draft.aggregator === "PCTILE" ? Number(draft.percentile) : undefined,
-        filters: draft.filters
-          .map((filter) => {
+          modalState.aggregator === "PCTILE"
+            ? Number(modalState.percentile)
+            : undefined,
+        filters: modalState.filters
+          .flatMap((filter) => {
             const [filterTableName = "", filterFieldName = ""] = filter.fieldKey.split("::");
             return filterTableName && filterFieldName
-              ? {
+              ? [{
                   tableName: filterTableName,
                   fieldName: filterFieldName,
                   operator: filter.operator,
@@ -430,21 +434,12 @@ export function RuleBuilderSimple({
                     filter.rightMode === "field"
                       ? filter.rightValue.split("::")[1] ?? filter.rightValue
                       : filter.rightValue,
-                }
-              : null;
+                }]
+              : [];
           })
-          .filter(
-            (
-              filter
-            ): filter is {
-              tableName: string;
-              fieldName: string;
-              operator: string;
-              value: string;
-            } => Boolean(filter)
-          ),
+          ,
       }),
-      label: draft.variableName.trim(),
+      label: modalState.variableName.trim(),
       meta: `Aggregation on ${tableName}`,
     });
 
@@ -452,7 +447,7 @@ export function RuleBuilderSimple({
       const next = current.filter((item) => item.id !== operand.id);
       return [...next, operand].sort((left, right) => left.label.localeCompare(right.label));
     });
-    applyFunctionOperand(draft.groupId, draft.conditionId, draft.side, operand);
+    applyFunctionOperand(modalState.groupId, modalState.conditionId, modalState.side, operand);
     setAggregatorModal(null);
   }
 
@@ -470,74 +465,233 @@ export function RuleBuilderSimple({
   }
 
   function removeCondition(groupId: string, conditionId: string) {
-    const nextGroups = groups
-      .map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              conditions: group.conditions.filter((condition) => condition.id !== conditionId),
-            }
-          : group
-      )
-      .filter((group) => group.conditions.length > 0);
+    const groupIndex = groups.findIndex((group) => group.id === groupId);
+    if (groupIndex === -1) {
+      return;
+    }
 
-    onChange(nextGroups.length > 0 ? nextGroups : [createSimpleRuleGroup()]);
+    const nextGroups = groups.map((group, index) =>
+      index === groupIndex
+        ? {
+            ...group,
+            conditions: group.conditions.filter((condition) => condition.id !== conditionId),
+          }
+        : group
+    );
+    const targetGroup = nextGroups[groupIndex];
+    if (!targetGroup) {
+      onChange([createSimpleRuleGroup()]);
+      return;
+    }
+
+    if (targetGroup.conditions.length > 0) {
+      onChange(nextGroups);
+      return;
+    }
+
+    const remainingGroups = nextGroups.filter((_, index) => index !== groupIndex);
+    if (remainingGroups.length === 0) {
+      onChange([createSimpleRuleGroup()]);
+      return;
+    }
+
+    const openBefore = targetGroup.openBefore ?? 0;
+    const closeAfter = targetGroup.closeAfter ?? 0;
+
+    if (openBefore > 0) {
+      const receiverIndex = Math.min(groupIndex, remainingGroups.length - 1);
+      const receiver = remainingGroups[receiverIndex];
+      if (receiver) {
+        remainingGroups[receiverIndex] = {
+          ...receiver,
+          openBefore: (receiver.openBefore ?? 0) + openBefore,
+        };
+      }
+    }
+
+    if (closeAfter > 0) {
+      const receiverIndex = Math.max(0, groupIndex - 1);
+      const receiver = remainingGroups[receiverIndex];
+      if (receiver) {
+        remainingGroups[receiverIndex] = {
+          ...receiver,
+          closeAfter: (receiver.closeAfter ?? 0) + closeAfter,
+        };
+      }
+    }
+
+    onChange(remainingGroups);
   }
 
   function addGroup() {
     onChange([...groups, createSimpleRuleGroup()]);
   }
 
-  function wrapGroup(groupId: string) {
+  function getOpenBalanceThroughIndex(groupIndex: number) {
+    return groups.slice(0, groupIndex + 1).reduce((balance, group) => {
+      return balance + (group.openBefore ?? 0) - (group.closeAfter ?? 0);
+    }, 0);
+  }
+
+  function moveClosingBracket(fromIndex: number, toIndex: number) {
+    onChange(
+      groups.map((group, index) => {
+        if (index === fromIndex && index === toIndex) {
+          return group;
+        }
+
+        if (index === fromIndex) {
+          return {
+            ...group,
+            closeAfter: Math.max(0, (group.closeAfter ?? 0) - 1),
+          };
+        }
+
+        if (index === toIndex) {
+          return {
+            ...group,
+            closeAfter: (group.closeAfter ?? 0) + 1,
+          };
+        }
+
+        return group;
+      })
+    );
+  }
+
+  function addOpenBracket(groupId: string) {
     const groupIndex = groups.findIndex((group) => group.id === groupId);
     if (groupIndex === -1) {
       return;
     }
 
-    const nextGroups = [...groups];
-    const currentGroup = nextGroups[groupIndex]!;
-    nextGroups[groupIndex] = {
-      ...currentGroup,
-      openBefore: (currentGroup.openBefore ?? 0) + 1,
-    };
-    nextGroups.splice(
-      groupIndex + 1,
-      0,
-      createSimpleRuleGroup({
-        closeAfter: 1,
-      })
+    onChange(
+      groups.map((group, index) =>
+        index === groupIndex
+          ? {
+              ...group,
+              openBefore: (group.openBefore ?? 0) + 1,
+              closeAfter: (group.closeAfter ?? 0) + 1,
+            }
+          : group
+      )
     );
-    onChange(nextGroups);
   }
 
-  function unwrapGroup(groupId: string) {
+  function addCloseBracket(groupId: string) {
+    const groupIndex = groups.findIndex((group) => group.id === groupId);
+    if (groupIndex === -1) {
+      return;
+    }
+
+    if (getOpenBalanceThroughIndex(groupIndex) <= 0) {
+      for (let index = groupIndex - 1; index >= 0; index -= 1) {
+        const matchingCloseIndex = findMatchingCloseIndex(index);
+        if (matchingCloseIndex !== -1 && matchingCloseIndex < groupIndex) {
+          moveClosingBracket(matchingCloseIndex, groupIndex);
+          return;
+        }
+      }
+
+      return;
+    }
+
+    onChange(
+      groups.map((group, index) =>
+        index === groupIndex
+          ? {
+              ...group,
+              closeAfter: (group.closeAfter ?? 0) + 1,
+            }
+          : group
+      )
+    );
+  }
+
+  function findMatchingCloseIndex(openGroupIndex: number) {
+    const currentGroup = groups[openGroupIndex];
+    if (!currentGroup || (currentGroup.openBefore ?? 0) <= 0) {
+      return -1;
+    }
+
+    let balance = currentGroup.openBefore ?? 0;
+    for (let index = openGroupIndex; index < groups.length; index += 1) {
+      if (index > openGroupIndex) {
+        balance += groups[index]!.openBefore ?? 0;
+      }
+      balance -= groups[index]!.closeAfter ?? 0;
+      if (balance <= 0) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  function canAddCloseBracket(groupIndex: number) {
+    if (getOpenBalanceThroughIndex(groupIndex) > 0) {
+      return true;
+    }
+
+    for (let index = groupIndex - 1; index >= 0; index -= 1) {
+      const matchingCloseIndex = findMatchingCloseIndex(index);
+      if (matchingCloseIndex !== -1 && matchingCloseIndex < groupIndex) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function findMatchingOpenIndex(closeGroupIndex: number) {
+    const currentGroup = groups[closeGroupIndex];
+    if (!currentGroup || (currentGroup.closeAfter ?? 0) <= 0) {
+      return -1;
+    }
+
+    let balance = currentGroup.closeAfter ?? 0;
+    for (let index = closeGroupIndex; index >= 0; index -= 1) {
+      if (index < closeGroupIndex) {
+        balance += groups[index]!.closeAfter ?? 0;
+      }
+      balance -= groups[index]!.openBefore ?? 0;
+      if (balance <= 0) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  function removeNesting(groupId: string) {
     const groupIndex = groups.findIndex((group) => group.id === groupId);
     if (groupIndex === -1) {
       return;
     }
 
     const currentGroup = groups[groupIndex]!;
-    if ((currentGroup.openBefore ?? 0) <= 0) {
+    const openingIndex =
+      (currentGroup.openBefore ?? 0) > 0 ? groupIndex : findMatchingOpenIndex(groupIndex);
+    if (openingIndex === -1) {
       return;
     }
 
-    let balance = currentGroup.openBefore ?? 0;
-    let closingIndex = groupIndex;
-
-    for (let index = groupIndex; index < groups.length; index += 1) {
-      if (index > groupIndex) {
-        balance += groups[index]!.openBefore ?? 0;
-      }
-      balance -= groups[index]!.closeAfter ?? 0;
-      if (balance <= 0) {
-        closingIndex = index;
-        break;
-      }
+    const closingIndex = findMatchingCloseIndex(openingIndex);
+    if (closingIndex === -1) {
+      return;
     }
 
     onChange(
       groups.map((group, index) => {
-        if (index === groupIndex) {
+        if (index === openingIndex && index === closingIndex) {
+          return {
+            ...group,
+            openBefore: Math.max(0, (group.openBefore ?? 0) - 1),
+            closeAfter: Math.max(0, (group.closeAfter ?? 0) - 1),
+          };
+        }
+
+        if (index === openingIndex) {
           return {
             ...group,
             openBefore: Math.max(0, (group.openBefore ?? 0) - 1),
@@ -561,6 +715,7 @@ export function RuleBuilderSimple({
       (condition.leftMode === "function" && condition.leftFunction) || condition.left.trim()
     );
     const hasRightOperand = Boolean(
+      (condition.rightExpression && isExpressionRuleNodeComplete(condition.rightExpression)) ||
       (condition.rightMode === "function" && condition.rightFunction) || condition.right.trim()
     );
 
@@ -573,6 +728,7 @@ export function RuleBuilderSimple({
 
   function isConditionStarted(condition: SimpleRuleCondition) {
     return Boolean(
+      condition.rightExpression ||
       (condition.leftMode === "function" && condition.leftFunction) ||
         (condition.rightMode === "function" && condition.rightFunction) ||
         condition.left.trim() ||
@@ -590,7 +746,9 @@ export function RuleBuilderSimple({
       : [
           (condition.leftMode === "function" && condition.leftFunction) || condition.left.trim(),
           condition.operator,
-          (condition.rightMode === "function" && condition.rightFunction) || condition.right.trim(),
+          (condition.rightExpression && isExpressionRuleNodeComplete(condition.rightExpression)) ||
+            (condition.rightMode === "function" && condition.rightFunction) ||
+            condition.right.trim(),
         ];
 
     return requiredValues.filter(Boolean).length;
@@ -609,11 +767,7 @@ export function RuleBuilderSimple({
               </div>
             ) : null}
             <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <div className="grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-start gap-3">
-                <div className="pt-1 text-[18px] text-slate-700">
-                  {(group.openBefore ?? 0) > 0 ? "(".repeat(group.openBefore ?? 0) : ""}
-                </div>
-                <div className="space-y-4">
+              <div className="space-y-4">
                   {group.conditions.map((condition, conditionIndex) => {
                     const complete = isConditionComplete(condition);
                     const started = isConditionStarted(condition);
@@ -648,7 +802,9 @@ export function RuleBuilderSimple({
                           ? `custom-list:${condition.right}`
                           : condition.right;
                     const rightSelectedMeta =
-                      condition.rightMode === "function"
+                      condition.rightExpression
+                        ? "Expression"
+                        : condition.rightMode === "function"
                         ? condition.rightFunction?.meta
                         : condition.rightMode === "custom_list"
                           ? "Custom list"
@@ -762,18 +918,29 @@ export function RuleBuilderSimple({
                               {
                                 value: `modeling-open-bracket-${group.id}-${condition.id}`,
                                 label: "Open bracket",
-                                meta: "Wrap this block in brackets",
+                                meta: "Start a nested block here",
                                 isAction: true,
-                                onSelectAction: () => wrapGroup(group.id),
+                                onSelectAction: () => addOpenBracket(group.id),
                               },
-                              ...((group.openBefore ?? 0) > 0
+                              ...(canAddCloseBracket(groupIndex)
+                                ? [
+                                    {
+                                      value: `modeling-close-bracket-${group.id}-${condition.id}`,
+                                      label: "Close bracket",
+                                      meta: "End a nested block here",
+                                      isAction: true,
+                                      onSelectAction: () => addCloseBracket(group.id),
+                                    },
+                                  ]
+                                : []),
+                              ...((group.openBefore ?? 0) > 0 || (group.closeAfter ?? 0) > 0
                                 ? [
                                     {
                                       value: `modeling-remove-bracket-${group.id}-${condition.id}`,
-                                      label: "Remove bracket",
-                                      meta: "Unwrap this block",
+                                      label: "Remove nesting",
+                                      meta: "Remove one bracket level",
                                       isAction: true,
-                                      onSelectAction: () => unwrapGroup(group.id),
+                                      onSelectAction: () => removeNesting(group.id),
                                     },
                                   ]
                                 : []),
@@ -879,100 +1046,162 @@ export function RuleBuilderSimple({
                         key={condition.id}
                         className="space-y-2"
                       >
-                        <ConditionSelectorRow
-                          prefixLabel={conditionIndex === 0 ? "if" : "and"}
-                          className="flex flex-wrap items-start gap-3 text-[14px]"
-                          leftSelector={{
-                            value: leftValue,
-                            invalid:
-                              started &&
-                              !(
-                                (condition.leftMode === "function" && condition.leftFunction) ||
-                                condition.left.trim()
-                              ),
-                            selectedMeta: leftSelectedMeta,
-                            prefix:
-                              condition.leftMode === "function"
-                                ? "fx"
-                                : condition.leftMode === "custom_list"
-                                  ? "[]"
-                                  : condition.valueType === "number"
-                                    ? "#"
-                                    : "Tt",
-                            options: [
-                              ...fieldSelectorOptions,
-                              ...functionSelectorOptions,
-                              ...customListSelectorOptions,
-                            ],
-                            groups: leftGroups,
-                            placeholder: "Select an operand...",
-                            searchPlaceholder: "Select or create an operand",
-                            emptyLabel: "No operands matched your search.",
-                            searchOptionsBuilder: (searchValue) =>
-                              buildLiteralSearchOptions(searchValue),
-                            onChange: (nextValue) =>
-                              updateLeftOperand(group.id, condition.id, nextValue),
-                          }}
-                          operatorSelector={{
-                            value: condition.operator,
-                            invalid: started && !condition.operator,
-                            prefix: null,
-                            className: "min-w-[150px] max-w-[190px]",
-                            options: operatorSelectorOptions,
-                            placeholder: "...",
-                            searchPlaceholder: "Search operators",
-                            emptyLabel: "No operators matched your search.",
-                            onChange: (nextValue) =>
-                              updateOperator(
-                                group.id,
-                                condition.id,
-                                nextValue as SimpleRuleCondition["operator"]
-                              ),
-                          }}
-                          rightSelector={
-                            requiresRightOperand
-                              ? {
-                                  value: rightValue,
-                                  invalid:
-                                    started &&
-                                    !(
-                                      (condition.rightMode === "function" &&
-                                        condition.rightFunction) ||
-                                      condition.right.trim()
-                                    ),
-                                  selectedMeta: rightSelectedMeta,
-                                  prefix:
-                                    condition.rightMode === "function"
-                                      ? "fx"
-                                      : condition.rightMode === "custom_list"
-                                        ? "[]"
-                                        : condition.valueType === "number"
-                                          ? "#"
-                                          : condition.valueType === "boolean"
-                                            ? "?"
-                                            : "Tt",
-                                  options: [
+                        <div className="flex flex-wrap items-start gap-2">
+                          {conditionIndex === 0
+                            ? Array.from({ length: group.openBefore ?? 0 }).map((_, bracketIndex) => (
+                                <div
+                                  key={`${group.id}-open-${bracketIndex}`}
+                                  className="pt-1 text-[18px] text-slate-700"
+                                >
+                                  <BracketControl
+                                    label="("
+                                    disabled={disabled}
+                                    addLabel="Open bracket"
+                                    onAdd={() => addOpenBracket(group.id)}
+                                    onRemove={() => removeNesting(group.id)}
+                                  />
+                                </div>
+                              ))
+                            : null}
+                          <ConditionSelectorRow
+                            prefixLabel={conditionIndex === 0 ? "if" : "and"}
+                            className="flex flex-wrap items-start gap-3 text-[14px]"
+                            leftSelector={{
+                              value: leftValue,
+                              invalid:
+                                started &&
+                                !(
+                                  (condition.leftMode === "function" && condition.leftFunction) ||
+                                  condition.left.trim()
+                                ),
+                              selectedMeta: leftSelectedMeta,
+                              prefix:
+                                condition.leftMode === "function"
+                                  ? "fx"
+                                  : condition.leftMode === "custom_list"
+                                    ? "[]"
+                                    : condition.valueType === "number"
+                                      ? "#"
+                                      : "Tt",
+                              options: [
+                                ...fieldSelectorOptions,
+                                ...functionSelectorOptions,
+                                ...customListSelectorOptions,
+                              ],
+                              groups: leftGroups,
+                              placeholder: "Select an operand...",
+                              searchPlaceholder: "Select or create an operand",
+                              emptyLabel: "No operands matched your search.",
+                              searchOptionsBuilder: (searchValue) =>
+                                buildLiteralSearchOptions(searchValue),
+                              onChange: (nextValue) =>
+                                updateLeftOperand(group.id, condition.id, nextValue),
+                            }}
+                            operatorSelector={{
+                              value: condition.operator,
+                              invalid: started && !condition.operator,
+                              prefix: null,
+                              className: "min-w-[150px] max-w-[190px]",
+                              options: operatorSelectorOptions,
+                              placeholder: "...",
+                              searchPlaceholder: "Search operators",
+                              emptyLabel: "No operators matched your search.",
+                              onChange: (nextValue) =>
+                                updateOperator(
+                                  group.id,
+                                  condition.id,
+                                  nextValue as SimpleRuleCondition["operator"]
+                                ),
+                            }}
+                            rightSelector={
+                              requiresRightOperand
+                                ? condition.rightExpression
+                                  ? null
+                                  : {
+                                      value: rightValue,
+                                      invalid:
+                                        started &&
+                                        !(
+                                          (condition.rightExpression &&
+                                            isExpressionRuleNodeComplete(condition.rightExpression)) ||
+                                          (condition.rightMode === "function" &&
+                                            condition.rightFunction) ||
+                                          condition.right.trim()
+                                        ),
+                                      selectedMeta: rightSelectedMeta,
+                                      prefix:
+                                        condition.rightExpression
+                                          ? "()"
+                                          : condition.rightMode === "function"
+                                          ? "fx"
+                                          : condition.rightMode === "custom_list"
+                                            ? "[]"
+                                            : condition.valueType === "number"
+                                              ? "#"
+                                              : condition.valueType === "boolean"
+                                                ? "?"
+                                                : "Tt",
+                                      options: [
+                                        ...fieldSelectorOptions,
+                                        ...functionSelectorOptions,
+                                        ...customListSelectorOptions,
+                                      ],
+                                      groups: rightGroups,
+                                      placeholder: "Select an operand...",
+                                      searchPlaceholder: "Select or create an operand",
+                                      emptyLabel: "No operands matched your search.",
+                                      searchOptionsBuilder: (searchValue) =>
+                                        buildLiteralSearchOptions(
+                                          searchValue,
+                                          Boolean(selectedOperator?.usesList)
+                                        ),
+                                      actions:
+                                        !selectedOperator?.usesList &&
+                                        condition.rightMode !== "function" &&
+                                        condition.rightMode !== "custom_list"
+                                          ? [
+                                              {
+                                                id: `rhs-expression-${group.id}-${condition.id}`,
+                                                label: condition.rightExpression
+                                                  ? "Edit bracketed expression"
+                                                  : "Open bracket",
+                                                onSelect: () =>
+                                                  openRightOperandExpression(group.id, condition.id),
+                                              },
+                                            ]
+                                          : undefined,
+                                      onChange: (nextValue) =>
+                                        updateRightOperand(group.id, condition.id, nextValue),
+                                    }
+                                : null
+                            }
+                            rightContent={
+                              requiresRightOperand && condition.rightExpression ? (
+                                <RuleBuilderExpression
+                                  root={condition.rightExpression}
+                                  onChange={(nextExpression) =>
+                                    updateRightOperandExpression(group.id, condition.id, nextExpression)
+                                  }
+                                  accessorOptions={accessorOptions}
+                                  operatorOptions={operatorOptions}
+                                  customListOptions={customListOptions}
+                                  functionOperands={functionOperands}
+                                  triggerObjectType={triggerObjectType}
+                                  operandOptionsOverride={[
                                     ...fieldSelectorOptions,
                                     ...functionSelectorOptions,
                                     ...customListSelectorOptions,
-                                  ],
-                                  groups: rightGroups,
-                                  placeholder: "Select an operand...",
-                                  searchPlaceholder: "Select or create an operand",
-                                  emptyLabel: "No operands matched your search.",
-                                  searchOptionsBuilder: (searchValue) =>
-                                    buildLiteralSearchOptions(
-                                      searchValue,
-                                      Boolean(selectedOperator?.usesList)
-                                    ),
-                                  onChange: (nextValue) =>
-                                    updateRightOperand(group.id, condition.id, nextValue),
-                                }
-                              : null
-                          }
-                          disabled={disabled}
-                          onRemove={() => removeCondition(group.id, condition.id)}
-                        />
+                                  ]}
+                                  operandGroupsOverride={rightGroups}
+                                  disabled={disabled}
+                                  compact
+                                />
+                              ) : undefined
+                            }
+                            disabled={disabled}
+                            onRemove={() => removeCondition(group.id, condition.id)}
+                          />
+                        </div>
                         {started && !complete ? (
                           <div className="inline-flex rounded-md bg-[#ffe7de] px-3 py-2 text-[12px] font-medium text-[#ec5a2e]">
                             {required} required
@@ -992,9 +1221,17 @@ export function RuleBuilderSimple({
                     <Plus className="size-4" />
                     Condition
                   </Button>
-                </div>
-                <div className="pt-1 text-[18px] text-slate-700">
-                  {(group.closeAfter ?? 0) > 0 ? ")".repeat(group.closeAfter ?? 0) : ""}
+                <div className="flex flex-wrap items-start gap-2 pt-1 text-[18px] text-slate-700">
+                  {Array.from({ length: group.closeAfter ?? 0 }).map((_, bracketIndex) => (
+                    <BracketControl
+                      key={`${group.id}-close-${bracketIndex}`}
+                      label=")"
+                      disabled={disabled}
+                      addLabel="Close bracket"
+                      onAdd={() => addCloseBracket(group.id)}
+                      onRemove={() => removeNesting(group.id)}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

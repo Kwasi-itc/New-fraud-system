@@ -185,6 +185,7 @@ type OutboxEventRepository interface {
 
 type ScheduledExecutionRepository interface {
 	Create(ctx context.Context, item execution.ScheduledExecution) (execution.ScheduledExecution, error)
+	GetByID(ctx context.Context, tenantID, scenarioID, executionID string) (execution.ScheduledExecution, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]execution.ScheduledExecution, error)
 	ListDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error)
 	UpdateStatus(ctx context.Context, id string, status execution.Status) error

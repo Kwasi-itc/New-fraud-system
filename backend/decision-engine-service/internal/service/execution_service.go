@@ -142,6 +142,10 @@ func (s ExecutionService) ListScheduledExecutionsByScenario(ctx context.Context,
 	return s.scheduledRepo.ListByScenario(ctx, tenantID, scenarioID)
 }
 
+func (s ExecutionService) GetScheduledExecutionByID(ctx context.Context, tenantID, scenarioID, executionID string) (execution.ScheduledExecution, error) {
+	return s.scheduledRepo.GetByID(ctx, tenantID, scenarioID, executionID)
+}
+
 func (s ExecutionService) CreateAsyncDecisionExecution(ctx context.Context, tenantID string, req AsyncDecisionExecutionRequest) (execution.AsyncDecisionExecution, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -185,7 +189,7 @@ func (s ExecutionService) ProcessDueScheduledExecutions(ctx context.Context, lim
 		}
 		if err := s.runScheduledExecution(ctx, item); err != nil {
 			_ = s.scheduledRepo.UpdateStatus(ctx, item.ID, execution.StatusFailed)
-			return err
+			continue
 		}
 		if err := s.scheduledRepo.UpdateStatus(ctx, item.ID, execution.StatusCompleted); err != nil {
 			return err
@@ -273,7 +277,7 @@ func (s ExecutionService) ProcessQueuedAsyncExecutions(ctx context.Context, limi
 		}
 		if err := s.runAsyncExecution(ctx, item); err != nil {
 			_ = s.asyncRepo.UpdateStatus(ctx, item.ID, execution.StatusFailed)
-			return err
+			continue
 		}
 		if err := s.asyncRepo.UpdateStatus(ctx, item.ID, execution.StatusCompleted); err != nil {
 			return err

@@ -48,6 +48,18 @@ func (h ExecutionHandler) ListScheduledExecutionsByScenario(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"scheduled_executions": out})
 }
 
+func (h ExecutionHandler) GetScheduledExecution(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	scenarioID := c.Param("scenarioId")
+	executionID := c.Param("executionId")
+	item, err := h.executionService.GetScheduledExecutionByID(c.Request.Context(), tenantID, scenarioID, executionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "scheduled_execution_not_found", "details": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"scheduled_execution": dto.AdaptScheduledExecution(item)})
+}
+
 func (h ExecutionHandler) CreateAsyncDecisionExecution(c *gin.Context) {
 	var req dto.CreateAsyncDecisionExecutionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
