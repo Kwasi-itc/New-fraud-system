@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -55,6 +56,17 @@ func main() {
 	case "down":
 		if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {
 			log.Fatalf("migrate down: %v", err)
+		}
+	case "force":
+		if len(os.Args) < 3 {
+			log.Fatalf("usage: go run ./cmd/migrate force <version>")
+		}
+		version, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			log.Fatalf("parse force version: %v", err)
+		}
+		if err := m.Force(version); err != nil {
+			log.Fatalf("migrate force: %v", err)
 		}
 	default:
 		log.Fatalf("unsupported migrate command %q", os.Args[1])

@@ -445,6 +445,7 @@ export type ScheduledExecution = {
   tenant_id: string;
   scenario_id: string;
   scenario_iteration_id: string;
+  source: string;
   status: string;
   scheduled_for: string;
   request_body: JSONValue;
@@ -455,8 +456,13 @@ export type RecurringSchedule = {
   enabled: boolean;
   frequency: string;
   time_of_day: string;
+  minute_of_hour: number;
+  day_of_week: string;
+  day_of_month: number;
   timezone: string;
   candidate_limit: number;
+  next_run?: string | null;
+  last_run?: string | null;
 };
 
 export type CreateScheduledExecutionRequest = {

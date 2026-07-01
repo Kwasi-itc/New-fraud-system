@@ -18,6 +18,9 @@ type RecurringScheduleRequest struct {
 	Enabled        bool   `json:"enabled"`
 	Frequency      string `json:"frequency"`
 	TimeOfDay      string `json:"time_of_day"`
+	MinuteOfHour   int    `json:"minute_of_hour"`
+	DayOfWeek      string `json:"day_of_week"`
+	DayOfMonth     int    `json:"day_of_month"`
 	Timezone       string `json:"timezone"`
 	CandidateLimit int    `json:"candidate_limit"`
 }
@@ -26,8 +29,13 @@ type RecurringScheduleResponse struct {
 	Enabled        bool   `json:"enabled"`
 	Frequency      string `json:"frequency"`
 	TimeOfDay      string `json:"time_of_day"`
+	MinuteOfHour   int    `json:"minute_of_hour"`
+	DayOfWeek      string `json:"day_of_week"`
+	DayOfMonth     int    `json:"day_of_month"`
 	Timezone       string `json:"timezone"`
 	CandidateLimit int    `json:"candidate_limit"`
+	NextRun        *time.Time `json:"next_run,omitempty"`
+	LastRun        *time.Time `json:"last_run,omitempty"`
 }
 
 type ScheduledExecutionResponse struct {
@@ -35,6 +43,7 @@ type ScheduledExecutionResponse struct {
 	TenantID            string    `json:"tenant_id"`
 	ScenarioID          string    `json:"scenario_id"`
 	ScenarioIterationID string    `json:"scenario_iteration_id"`
+	Source              string    `json:"source"`
 	Status              string    `json:"status"`
 	ScheduledFor        time.Time `json:"scheduled_for"`
 	RequestBody         json.RawMessage `json:"request_body"`
@@ -63,6 +72,7 @@ func AdaptScheduledExecution(item execution.ScheduledExecution) ScheduledExecuti
 		TenantID:            item.TenantID,
 		ScenarioID:          item.ScenarioID,
 		ScenarioIterationID: item.ScenarioIterationID,
+		Source:              string(item.Source),
 		Status:              string(item.Status),
 		ScheduledFor:        item.ScheduledFor,
 		RequestBody:         item.RequestBody,
@@ -115,6 +125,9 @@ func AdaptRecurringScheduleRequest(req RecurringScheduleRequest) service.Recurri
 		Enabled:        req.Enabled,
 		Frequency:      req.Frequency,
 		TimeOfDay:      req.TimeOfDay,
+		MinuteOfHour:   req.MinuteOfHour,
+		DayOfWeek:      req.DayOfWeek,
+		DayOfMonth:     req.DayOfMonth,
 		Timezone:       req.Timezone,
 		CandidateLimit: req.CandidateLimit,
 	}
@@ -125,7 +138,12 @@ func AdaptRecurringSchedule(item service.RecurringScheduleConfig) RecurringSched
 		Enabled:        item.Enabled,
 		Frequency:      item.Frequency,
 		TimeOfDay:      item.TimeOfDay,
+		MinuteOfHour:   item.MinuteOfHour,
+		DayOfWeek:      item.DayOfWeek,
+		DayOfMonth:     item.DayOfMonth,
 		Timezone:       item.Timezone,
 		CandidateLimit: item.CandidateLimit,
+		NextRun:        item.NextRun,
+		LastRun:        item.LastRun,
 	}
 }

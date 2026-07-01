@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS scheduled_executions_recurring_unique_idx;

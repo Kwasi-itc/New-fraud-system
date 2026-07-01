@@ -551,7 +551,6 @@ export function RuleBuilderExpression({
   const availableFunctionOperands = useMemo(() => {
     const directFunctions = [
       createFunctionOperand({ ast: { function: "TimeNow" } }),
-      createFunctionOperand({ ast: { function: "record_risk_level" } }),
     ];
     const items = new Map<string, SimpleRuleFunctionOperand>();
     [...functionOperands, ...collectFunctionOperands(root), ...directFunctions].forEach((operand) => {

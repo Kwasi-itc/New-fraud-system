@@ -391,6 +391,34 @@ export function buildAggregatorAst(params: {
   };
 }
 
+export function buildTimeAddAst(params: {
+  timestampAst: RuleAstNode;
+  duration: string;
+  sign: "+" | "-";
+}): RuleAstNode {
+  return {
+    function: "TimeAdd",
+    named_children: {
+      timestampField: normalizeAstNode(params.timestampAst),
+      duration: { constant: params.duration },
+      sign: { constant: params.sign },
+    },
+  };
+}
+
+export function buildTimestampExtractAst(params: {
+  timestampAst: RuleAstNode;
+  part: "year" | "month" | "day_of_month" | "day_of_week" | "hour";
+}): RuleAstNode {
+  return {
+    function: "TimestampExtract",
+    named_children: {
+      timestamp: normalizeAstNode(params.timestampAst),
+      part: { constant: params.part },
+    },
+  };
+}
+
 function getAggregatorDisplayLabel(aggregator: string) {
   switch (aggregator) {
     case "AVG":
@@ -435,6 +463,28 @@ function buildDefaultFunctionLabel(ast: RuleAstNode) {
     return "Current time";
   }
 
+  if (functionName === "TimeAdd") {
+    const sign =
+      ast.named_children?.sign?.constant === "-"
+        ? "-"
+        : "+";
+    const duration =
+      typeof ast.named_children?.duration?.constant === "string"
+        ? ast.named_children.duration.constant
+        : "PT0S";
+
+    return `Time ${sign === "+" ? "plus" : "minus"} ${duration}`;
+  }
+
+  if (functionName === "TimestampExtract") {
+    const part =
+      typeof ast.named_children?.part?.constant === "string"
+        ? ast.named_children.part.constant
+        : "part";
+
+    return `Extract ${part}`;
+  }
+
   if (functionName === "record_risk_level") {
     return "Record risk level";
   }
@@ -454,6 +504,10 @@ function buildFunctionMeta(ast: RuleAstNode) {
 
   if (functionName === "TimeNow") {
     return "Function";
+  }
+
+  if (functionName === "TimeAdd" || functionName === "TimestampExtract") {
+    return "Date function";
   }
 
   if (functionName === "record_risk_level") {
@@ -495,6 +549,10 @@ function normalizeFunctionOperand(
 function getFunctionValueType(ast: RuleAstNode): SimpleValueType {
   const functionName = getNodeFunction(ast);
   if (functionName === "Aggregator") {
+    return "number";
+  }
+
+  if (functionName === "TimestampExtract") {
     return "number";
   }
 
@@ -1659,6 +1717,30 @@ function summarizeRuleAstNode(ast: unknown): string | null {
     return outcome
       ? `Past decision count for ${outcome}`
       : "Past decision count";
+  }
+
+  if (functionName === "TimeAdd") {
+    const timestamp =
+      summarizeRuleAstNode(node.named_children?.timestampField) ?? "timestamp";
+    const sign =
+      node.named_children?.sign?.constant === "-"
+        ? "-"
+        : "+";
+    const duration =
+      typeof node.named_children?.duration?.constant === "string"
+        ? node.named_children.duration.constant
+        : "PT0S";
+    return `${timestamp} ${sign} ${duration}`;
+  }
+
+  if (functionName === "TimestampExtract") {
+    const part =
+      typeof node.named_children?.part?.constant === "string"
+        ? node.named_children.part.constant
+        : "part";
+    const timestamp =
+      summarizeRuleAstNode(node.named_children?.timestamp) ?? "timestamp";
+    return `${part} of ${timestamp}`;
   }
 
   if (functionName === "lower") {

@@ -5,6 +5,12 @@ import { Plus } from "lucide-react";
 
 import { ConditionSelectorRow } from "@/components/detection/condition-selector-row";
 import {
+  createDateFunctionDraft,
+  DateFunctionModal,
+  type DateFunctionDraft,
+  type DateFunctionType,
+} from "@/components/detection/date-function-modal";
+import {
   AGGREGATOR_OPTIONS,
   FunctionVariableModal,
   type FunctionVariableDraft,
@@ -44,6 +50,12 @@ type AggregatorModalState = {
   groupId: string;
   conditionId: string;
 } & FunctionVariableDraft;
+
+type DateFunctionModalState = {
+  side: "left" | "right";
+  groupId: string;
+  conditionId: string;
+} & DateFunctionDraft;
 
 function updateConditionInGroups(
   groups: SimpleRuleConditionGroup[],
@@ -164,6 +176,7 @@ export function RuleBuilderSimple({
   disabled?: boolean;
 }) {
   const [aggregatorModal, setAggregatorModal] = useState<AggregatorModalState | null>(null);
+  const [dateFunctionModal, setDateFunctionModal] = useState<DateFunctionModalState | null>(null);
   const [createdFunctionOperands, setCreatedFunctionOperands] = useState<
     SimpleRuleFunctionOperand[]
   >([]);
@@ -382,6 +395,35 @@ export function RuleBuilderSimple({
       percentile: "50",
       filters: [],
     });
+  }
+
+  function openDateFunctionModal(
+    groupId: string,
+    conditionId: string,
+    side: "left" | "right",
+    type: DateFunctionType
+  ) {
+    setDateFunctionModal({
+      side,
+      groupId,
+      conditionId,
+      ...createDateFunctionDraft(type),
+    });
+  }
+
+  function saveDateFunction(operand: SimpleRuleFunctionOperand) {
+    if (!dateFunctionModal) {
+      return;
+    }
+
+    setCreatedFunctionOperands((current) => [...current, operand]);
+    applyFunctionOperand(
+      dateFunctionModal.groupId,
+      dateFunctionModal.conditionId,
+      dateFunctionModal.side,
+      operand
+    );
+    setDateFunctionModal(null);
   }
 
   function saveAggregatorVariable(draft: FunctionVariableDraft) {
@@ -710,6 +752,42 @@ export function RuleBuilderSimple({
     );
   }
 
+  function buildDateFunctionActions(
+    groupId: string,
+    conditionId: string,
+    side: "left" | "right"
+  ) {
+    return [
+      {
+        value: `date-time-add-${groupId}-${conditionId}-${side}`,
+        label: "Adjust time",
+        isAction: true,
+        onSelectAction: () => openDateFunctionModal(groupId, conditionId, side, "TimeAdd"),
+      },
+      {
+        value: `date-extract-${groupId}-${conditionId}-${side}`,
+        label: "Extract time part",
+        isAction: true,
+        onSelectAction: () =>
+          openDateFunctionModal(groupId, conditionId, side, "TimestampExtract"),
+      },
+      {
+        value: `direct-time-now-${groupId}-${conditionId}-${side}`,
+        label: "Current time",
+        isAction: true,
+        onSelectAction: () =>
+          applyFunctionOperand(
+            groupId,
+            conditionId,
+            side,
+            createFunctionOperand({
+              ast: { function: "TimeNow" },
+            })
+          ),
+      },
+    ];
+  }
+
   function isConditionComplete(condition: SimpleRuleCondition) {
     const hasLeftOperand = Boolean(
       (condition.leftMode === "function" && condition.leftFunction) || condition.left.trim()
@@ -871,38 +949,9 @@ export function RuleBuilderSimple({
                           },
                           {
                             id: `functions-direct-${group.id}-${condition.id}`,
-                            label: "Direct functions",
+                            label: "Date and platform",
                             options: [
-                              {
-                                value: `direct-time-now-${group.id}-${condition.id}`,
-                                label: "Current time",
-                                meta: "Function",
-                                isAction: true,
-                                onSelectAction: () =>
-                                  applyFunctionOperand(
-                                    group.id,
-                                    condition.id,
-                                    "left",
-                                    createFunctionOperand({
-                                      ast: { function: "TimeNow" },
-                                    })
-                                  ),
-                              },
-                              {
-                                value: `direct-risk-level-${group.id}-${condition.id}`,
-                                label: "Record risk level",
-                                meta: "Platform function",
-                                isAction: true,
-                                onSelectAction: () =>
-                                  applyFunctionOperand(
-                                    group.id,
-                                    condition.id,
-                                    "left",
-                                    createFunctionOperand({
-                                      ast: { function: "record_risk_level" },
-                                    })
-                                  ),
-                              },
+                              ...buildDateFunctionActions(group.id, condition.id, "left"),
                             ],
                           },
                         ],
@@ -988,38 +1037,9 @@ export function RuleBuilderSimple({
                           },
                           {
                             id: `functions-direct-right-${group.id}-${condition.id}`,
-                            label: "Direct functions",
+                            label: "Date and platform",
                             options: [
-                              {
-                                value: `direct-time-now-right-${group.id}-${condition.id}`,
-                                label: "Current time",
-                                meta: "Function",
-                                isAction: true,
-                                onSelectAction: () =>
-                                  applyFunctionOperand(
-                                    group.id,
-                                    condition.id,
-                                    "right",
-                                    createFunctionOperand({
-                                      ast: { function: "TimeNow" },
-                                    })
-                                  ),
-                              },
-                              {
-                                value: `direct-risk-level-right-${group.id}-${condition.id}`,
-                                label: "Record risk level",
-                                meta: "Platform function",
-                                isAction: true,
-                                onSelectAction: () =>
-                                  applyFunctionOperand(
-                                    group.id,
-                                    condition.id,
-                                    "right",
-                                    createFunctionOperand({
-                                      ast: { function: "record_risk_level" },
-                                    })
-                                  ),
-                              },
+                              ...buildDateFunctionActions(group.id, condition.id, "right"),
                             ],
                           },
                         ],
@@ -1271,6 +1291,26 @@ export function RuleBuilderSimple({
           }
           onSave={saveAggregatorVariable}
           tableFieldOptions={tableFieldOptions}
+        />
+      ) : null}
+
+      {dateFunctionModal ? (
+        <DateFunctionModal
+          draft={dateFunctionModal}
+          onClose={() => setDateFunctionModal(null)}
+          onChange={(draft) =>
+            setDateFunctionModal((current) =>
+              current
+                ? {
+                    ...current,
+                    ...draft,
+                  }
+                : null
+            )
+          }
+          onSave={saveDateFunction}
+          accessorOptions={accessorOptions}
+          functionOperands={functionOperands}
         />
       ) : null}
     </>

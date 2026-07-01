@@ -2555,13 +2555,24 @@ components:
           type: boolean
         frequency:
           type: string
+          enum: [daily, hourly, weekly, monthly]
         time_of_day:
           type: string
+        minute_of_hour:
+          type: integer
+          minimum: 0
+          maximum: 59
+        day_of_week:
+          type: string
+        day_of_month:
+          type: integer
+          minimum: 1
+          maximum: 31
         timezone:
           type: string
         candidate_limit:
           type: integer
-      required: [enabled, frequency, time_of_day, timezone, candidate_limit]
+      required: [enabled, frequency, timezone, candidate_limit]
     RecurringScheduleResponse:
       type: object
       properties:
@@ -2569,13 +2580,30 @@ components:
           type: boolean
         frequency:
           type: string
+          enum: [daily, hourly, weekly, monthly]
         time_of_day:
           type: string
+        minute_of_hour:
+          type: integer
+          minimum: 0
+          maximum: 59
+        day_of_week:
+          type: string
+        day_of_month:
+          type: integer
+          minimum: 1
+          maximum: 31
         timezone:
           type: string
         candidate_limit:
           type: integer
-      required: [enabled, frequency, time_of_day, timezone, candidate_limit]
+        next_run:
+          type: string
+          format: date-time
+        last_run:
+          type: string
+          format: date-time
+      required: [enabled, frequency, timezone, candidate_limit]
     ScheduledExecutionResponse:
       type: object
       properties:
@@ -2587,6 +2615,9 @@ components:
           type: string
         scenario_iteration_id:
           type: string
+        source:
+          type: string
+          enum: [manual, recurring]
         status:
           type: string
         scheduled_for:
@@ -2598,7 +2629,7 @@ components:
         created_at:
           type: string
           format: date-time
-      required: [id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at]
+      required: [id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at]
     CreateAsyncDecisionExecutionRequest:
       type: object
       properties:

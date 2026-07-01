@@ -110,7 +110,7 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
                 collapsed ? "justify-center" : "justify-between gap-3"
               )}
             >
-              <Link href="/dashboard" className={cn("block", collapsed && "w-full")}>
+              <Link href="/detection" className={cn("block", collapsed && "w-full")}>
                 <FdsLogo
                   compact={collapsed}
                   hideText

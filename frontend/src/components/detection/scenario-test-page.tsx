@@ -159,30 +159,30 @@ export function ScenarioTestPage({ scenarioId }: { scenarioId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] space-y-6 px-4 sm:px-6 xl:px-8">
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-4">
+    <div className="mx-auto w-full max-w-[1280px] space-y-4 px-4 sm:px-6 xl:px-8">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3">
         <Link
           href={`/detection/${scenarioId}`}
-          className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900"
+          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-900"
         >
           <ArrowLeft className="size-4" />
         </Link>
         <div>
-          <h1 className="text-[1.65rem] font-semibold tracking-tight text-slate-950">
+          <h1 className="text-[1.45rem] font-semibold tracking-tight text-slate-950">
             Test and compare
           </h1>
-          <p className="text-[14px] text-slate-600">
+          <p className="text-[13px] text-slate-600">
             Create comparison runs, then inspect each run on its own details page.
           </p>
         </div>
       </div>
 
-      <Card className="rounded-2xl border border-slate-200 shadow-none">
-        <CardContent className="space-y-4 p-5">
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="space-y-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[16px] font-semibold text-slate-950">Create comparison</p>
-              <p className="text-[13px] text-slate-500">
+              <p className="text-[15px] font-semibold text-slate-950">Create comparison</p>
+              <p className="text-[12px] text-slate-500">
                 Live iteration:{" "}
                 <span className="font-medium">
                   {scenarioStatusLabel(
@@ -199,11 +199,11 @@ export function ScenarioTestPage({ scenarioId }: { scenarioId: string }) {
             ) : null}
           </div>
 
-          <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="grid gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:grid-cols-[1fr_auto] md:items-center">
             <select
               value={activePhantomIterationId}
               onChange={(event) => setPhantomIterationId(event.target.value)}
-              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-[14px] text-slate-950 shadow-none outline-none"
+              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-950 shadow-none outline-none"
             >
               <option value="">Select iteration to compare</option>
               {phantomIterations.map((iteration) => (
@@ -215,7 +215,7 @@ export function ScenarioTestPage({ scenarioId }: { scenarioId: string }) {
             <Button
               onClick={() => createTestRunMutation.mutate()}
               disabled={!liveIterationId || !activePhantomIterationId || createTestRunMutation.isPending}
-              className="h-10 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]"
+              className="h-9 rounded-lg bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
             >
               <Plus className="size-4" />
               {createTestRunMutation.isPending ? "Creating..." : "Create comparison"}
@@ -224,67 +224,60 @@ export function ScenarioTestPage({ scenarioId }: { scenarioId: string }) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border border-slate-200 shadow-none">
-        <CardContent className="space-y-4 p-5">
+      <Card className="rounded-xl border border-slate-200 shadow-none">
+        <CardContent className="space-y-3 p-4">
           <div className="flex items-center gap-2">
             <GitCompareArrows className="size-4 text-[#1f4f96]" />
-            <h2 className="text-[16px] font-semibold text-slate-950">Comparison runs</h2>
+            <h2 className="text-[15px] font-semibold text-slate-950">Comparison runs</h2>
           </div>
 
           {testRuns.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 px-4 py-8 text-center text-[14px] text-slate-500">
+            <div className="rounded-lg border border-slate-200 px-4 py-6 text-center text-[13px] text-slate-500">
               No comparison runs yet.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="overflow-hidden rounded-lg border border-slate-200">
+              <div className="hidden grid-cols-[minmax(0,1.6fr)_140px_170px_170px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 md:grid">
+                <span>Comparison</span>
+                <span>Status</span>
+                <span>Created</span>
+                <span>Expires</span>
+              </div>
               {testRuns.map((testRun) => {
                 const phantomIteration = iterationById.get(testRun.phantom_iteration_id);
                 return (
                   <Link
                     key={testRun.id}
                     href={`/detection/${scenarioId}/tests/${testRun.id}`}
-                    className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50"
+                    className="grid gap-2 border-b border-slate-100 bg-white px-4 py-3 transition last:border-b-0 hover:bg-slate-50 md:grid-cols-[minmax(0,1.6fr)_140px_170px_170px] md:items-center md:gap-3"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[15px] font-semibold text-[#1f4f96]">
-                          Live vs {scenarioStatusLabel(phantomIteration?.version)}
-                        </p>
-                        <p className="mt-1 text-[13px] text-slate-500">
-                          Created {formatDateTime(testRun.created_at)}
-                        </p>
-                      </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold text-[#1f4f96]">
+                        {scenarioStatusLabel(
+                          iterationById.get(testRun.live_iteration_id)?.version,
+                          true
+                        )}{" "}
+                        vs {scenarioStatusLabel(phantomIteration?.version)}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-slate-500 md:hidden">
+                        Created {formatDateTime(testRun.created_at)}
+                      </p>
+                    </div>
+                    <div>
                       <Badge
                         className={cn(
-                          "rounded-full border px-2 py-0.5 text-[12px] font-medium tracking-normal normal-case",
+                          "rounded-full border px-2 py-0.5 text-[11px] font-medium tracking-normal normal-case",
                           testRunStatusClasses(testRun.status)
                         )}
                       >
                         {testRun.status}
                       </Badge>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                        <div className="text-[12px] text-slate-500">Live iteration</div>
-                        <div className="mt-1 text-[14px] font-medium text-slate-950">
-                          {scenarioStatusLabel(
-                            iterationById.get(testRun.live_iteration_id)?.version,
-                            true
-                          )}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                        <div className="text-[12px] text-slate-500">Phantom iteration</div>
-                        <div className="mt-1 text-[14px] font-medium text-slate-950">
-                          {scenarioStatusLabel(phantomIteration?.version)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                        <div className="text-[12px] text-slate-500">Expires at</div>
-                        <div className="mt-1 text-[14px] font-medium text-slate-950">
-                          {formatDateTime(testRun.expires_at)}
-                        </div>
-                      </div>
+                    <div className="text-[12px] text-slate-600">
+                      {formatDateTime(testRun.created_at)}
+                    </div>
+                    <div className="text-[12px] text-slate-600">
+                      {formatDateTime(testRun.expires_at)}
                     </div>
                   </Link>
                 );

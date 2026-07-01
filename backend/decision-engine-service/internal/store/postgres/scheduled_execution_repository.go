@@ -16,38 +16,45 @@ func NewScheduledExecutionRepository(q queryable) ScheduledExecutionRepository {
 func (r ScheduledExecutionRepository) Create(ctx context.Context, item execution.ScheduledExecution) (execution.ScheduledExecution, error) {
 	const stmt = `
 		insert into core.scheduled_executions (
-			id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
-		) values ($1,$2,$3,$4,$5,$6,$7,$8)
-		returning id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
+			id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		on conflict (tenant_id, scenario_id, scheduled_for, source)
+		where source = 'recurring'
+		do update set status = core.scheduled_executions.status
+		returning id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at
 	`
 	var out execution.ScheduledExecution
+	var source string
 	var status string
-	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ScenarioID, item.ScenarioIterationID, string(item.Status), item.ScheduledFor, item.RequestBody, item.CreatedAt).
-		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.ScenarioIterationID, &status, &out.ScheduledFor, &out.RequestBody, &out.CreatedAt)
+	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ScenarioID, item.ScenarioIterationID, string(item.Source), string(item.Status), item.ScheduledFor, item.RequestBody, item.CreatedAt).
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.ScenarioIterationID, &source, &status, &out.ScheduledFor, &out.RequestBody, &out.CreatedAt)
+	out.Source = execution.Source(source)
 	out.Status = execution.Status(status)
 	return out, err
 }
 
 func (r ScheduledExecutionRepository) GetByID(ctx context.Context, tenantID, scenarioID, executionID string) (execution.ScheduledExecution, error) {
 	const stmt = `
-		select id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
+		select id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at
 		from core.scheduled_executions
 		where tenant_id = $1 and scenario_id = $2 and id = $3
 	`
 	var out execution.ScheduledExecution
+	var source string
 	var status string
 	err := r.q.QueryRow(ctx, stmt, tenantID, scenarioID, executionID).
-		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.ScenarioIterationID, &status, &out.ScheduledFor, &out.RequestBody, &out.CreatedAt)
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.ScenarioIterationID, &source, &status, &out.ScheduledFor, &out.RequestBody, &out.CreatedAt)
+	out.Source = execution.Source(source)
 	out.Status = execution.Status(status)
 	return out, err
 }
 
 func (r ScheduledExecutionRepository) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]execution.ScheduledExecution, error) {
 	const stmt = `
-		select id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
+		select id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at
 		from core.scheduled_executions
 		where tenant_id = $1 and scenario_id = $2
-		order by created_at desc
+		order by scheduled_for desc, created_at desc
 	`
 	rows, err := r.q.Query(ctx, stmt, tenantID, scenarioID)
 	if err != nil {
@@ -58,10 +65,12 @@ func (r ScheduledExecutionRepository) ListByScenario(ctx context.Context, tenant
 	var items []execution.ScheduledExecution
 	for rows.Next() {
 		var item execution.ScheduledExecution
+		var source string
 		var status string
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &status, &item.ScheduledFor, &item.RequestBody, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &source, &status, &item.ScheduledFor, &item.RequestBody, &item.CreatedAt); err != nil {
 			return nil, err
 		}
+		item.Source = execution.Source(source)
 		item.Status = execution.Status(status)
 		items = append(items, item)
 	}
@@ -73,7 +82,7 @@ func (r ScheduledExecutionRepository) ListDue(ctx context.Context, now time.Time
 		limit = 50
 	}
 	const stmt = `
-		select id, tenant_id, scenario_id, scenario_iteration_id, status, scheduled_for, request_body, created_at
+		select id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at
 		from core.scheduled_executions
 		where status = 'pending' and scheduled_for <= $1
 		order by scheduled_for asc
@@ -88,10 +97,12 @@ func (r ScheduledExecutionRepository) ListDue(ctx context.Context, now time.Time
 	var items []execution.ScheduledExecution
 	for rows.Next() {
 		var item execution.ScheduledExecution
+		var source string
 		var status string
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &status, &item.ScheduledFor, &item.RequestBody, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &source, &status, &item.ScheduledFor, &item.RequestBody, &item.CreatedAt); err != nil {
 			return nil, err
 		}
+		item.Source = execution.Source(source)
 		item.Status = execution.Status(status)
 		items = append(items, item)
 	}

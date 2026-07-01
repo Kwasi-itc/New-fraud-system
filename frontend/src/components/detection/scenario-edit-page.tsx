@@ -24,13 +24,10 @@ import {
   Workflow,
 } from "lucide-react";
 
-import { ConditionSelectorRow } from "@/components/detection/condition-selector-row";
 import {
-  AGGREGATOR_OPTIONS,
-  FunctionVariableModal,
-  type FunctionVariableDraft,
   type FunctionVariableTableFieldOption,
 } from "@/components/detection/function-variable-modal";
+import { RuleBuilderSimple } from "@/components/detection/rule-builder-simple";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,14 +39,12 @@ import {
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import {
-  type AggregatorOperator,
-  buildAggregatorAst,
-  createFunctionOperand,
+  compileConditionGroupsToAst,
+  createSimpleRuleGroup,
   getRuleOperatorOption,
-  isUnaryRuleOperator,
   extractAccessorOptions,
   simpleRuleOperatorOptions,
-  type SimpleRuleFunctionOperand,
+  type SimpleRuleConditionGroup,
   summarizeRuleFormula,
   tryParseAstToConditionGroups,
 } from "@/lib/rule-builder";
@@ -57,96 +52,6 @@ import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
 type EditorTab = "Trigger" | "Rules" | "Decision";
-
-function isTriggerLiteralNumberValue(value: string) {
-  return value.trim().length > 0 && Number.isFinite(Number(value));
-}
-
-function buildTriggerLiteralSearchOptions(searchValue: string) {
-  const normalized = searchValue.toLowerCase();
-  const literalOptions: Array<{
-    value: string;
-    label: string;
-    meta: string;
-    sideLabel: string;
-  }> = [];
-
-  if (isTriggerLiteralNumberValue(searchValue)) {
-    literalOptions.push({
-      value: `literal:number:${searchValue}`,
-      label: searchValue,
-      meta: "Number",
-      sideLabel: "Use number",
-    });
-  }
-
-  literalOptions.push({
-    value: `literal:string:${searchValue}`,
-    label: `"${searchValue}"`,
-    meta: "String",
-    sideLabel: "Use string",
-  });
-
-  if ("true".includes(normalized) || "false".includes(normalized)) {
-    ["true", "false"]
-      .filter((candidate) => candidate.includes(normalized))
-      .forEach((candidate) => {
-        literalOptions.push({
-          value: `literal:boolean:${candidate}`,
-          label: candidate,
-          meta: "Boolean",
-          sideLabel: "Use boolean",
-        });
-      });
-  }
-
-  return literalOptions;
-}
-
-const triggerDirectFunctionSelectorOptions = [
-  {
-    value: "function:TimeNow",
-    label: "Current time",
-    meta: "Function",
-    keywords: ["function", "current time", "TimeNow"],
-  },
-  {
-    value: "function:record_risk_level",
-    label: "Record risk level",
-    meta: "Platform function",
-    keywords: ["function", "platform function", "record risk level", "record_risk_level"],
-  },
-] as const;
-
-type TriggerVariableModalState = {
-  side: "left" | "right";
-  rowId: string;
-} & FunctionVariableDraft;
-
-type TriggerRow = {
-  id: string;
-  prefix: "where" | "and";
-  left: string;
-  operator: string;
-  right: string;
-};
-
-function createTriggerRow(index: number): TriggerRow {
-  return {
-    id: `row-${index + 1}`,
-    prefix: index === 0 ? "where" : "and",
-    left: "",
-    operator: "",
-    right: "",
-  };
-}
-
-function normalizeTriggerRows(rows: TriggerRow[]): TriggerRow[] {
-  return rows.map((row, index) => ({
-    ...row,
-    prefix: index === 0 ? "where" : "and",
-  }));
-}
 
 const EMPTY_ITERATIONS: Iteration[] = [];
 
@@ -164,6 +69,56 @@ function scenarioStatusLabel(version?: number, live = false, status?: string) {
   }
 
   return `v${version}. Draft`;
+}
+
+function recurringScheduleSummary(schedule: {
+  enabled: boolean;
+  frequency: string;
+  time_of_day: string;
+  minute_of_hour: number;
+  day_of_week: string;
+  day_of_month: number;
+  timezone: string;
+}) {
+  if (!schedule.enabled) {
+    return "Recurring schedule disabled.";
+  }
+
+  if (schedule.frequency === "hourly") {
+    return `Recurring schedule saved: hourly at minute ${String(
+      schedule.minute_of_hour ?? 0
+    ).padStart(2, "0")} ${schedule.timezone}`;
+  }
+
+  if (schedule.frequency === "weekly") {
+    const weekday = schedule.day_of_week
+      ? `${schedule.day_of_week.slice(0, 1).toUpperCase()}${schedule.day_of_week.slice(1)}`
+      : "Monday";
+    return `Recurring schedule saved: weekly on ${weekday} at ${schedule.time_of_day} ${schedule.timezone}`;
+  }
+
+  if (schedule.frequency === "monthly") {
+    return `Recurring schedule saved: monthly on day ${schedule.day_of_month} at ${schedule.time_of_day} ${schedule.timezone}`;
+  }
+
+  return `Recurring schedule saved: daily at ${schedule.time_of_day} ${schedule.timezone}`;
+}
+
+function formatNextRunLabel(value: string | null | undefined, timezone = "UTC") {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: timezone,
+  }).format(date) + ` ${timezone}`;
 }
 
 function EditorTabButton({
@@ -478,7 +433,12 @@ export function ScenarioEditPage({
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmImmediate, setConfirmImmediate] = useState(false);
   const [scheduleEnabledDraft, setScheduleEnabledDraft] = useState<boolean | null>(null);
+  const [scheduleFrequencyDraft, setScheduleFrequencyDraft] = useState<string | null>(null);
   const [scheduleTimeDraft, setScheduleTimeDraft] = useState<string | null>(null);
+  const [scheduleMinuteDraft, setScheduleMinuteDraft] = useState<string | null>(null);
+  const [scheduleDayOfWeekDraft, setScheduleDayOfWeekDraft] = useState<string | null>(null);
+  const [scheduleDayOfMonthDraft, setScheduleDayOfMonthDraft] = useState<string | null>(null);
+  const [scheduleTimezoneDraft, setScheduleTimezoneDraft] = useState<string | null>(null);
   const [scheduleMessage, setScheduleMessage] = useState<string | null>(null);
   const [reviewThresholdDraft, setReviewThresholdDraft] = useState<string>("");
   const [blockAndReviewThresholdDraft, setBlockAndReviewThresholdDraft] = useState<string>("");
@@ -489,19 +449,16 @@ export function ScenarioEditPage({
   const [decisionOpen, setDecisionOpen] = useState(true);
   const [triggerScheduleOpen, setTriggerScheduleOpen] = useState(true);
   const [triggerConditionsOpen, setTriggerConditionsOpen] = useState(true);
-  const [triggerBuilderOpen, setTriggerBuilderOpen] = useState(false);
+  const [triggerMessage, setTriggerMessage] = useState<string | null>(null);
   const [ruleFiltersOpen, setRuleFiltersOpen] = useState(false);
   const [ruleGroupFilterOpen, setRuleGroupFilterOpen] = useState(false);
   const [iterationMenuOpen, setIterationMenuOpen] = useState(false);
   const [selectedIterationId, setSelectedIterationId] = useState<string | null>(null);
   const [ruleGroupFilter, setRuleGroupFilter] = useState("");
   const [ruleSearch, setRuleSearch] = useState("");
-  const [triggerFunctionOperands, setTriggerFunctionOperands] = useState<
-    SimpleRuleFunctionOperand[]
-  >([]);
-  const [triggerVariableModal, setTriggerVariableModal] =
-    useState<TriggerVariableModalState | null>(null);
-  const [triggerRows, setTriggerRows] = useState<TriggerRow[]>([createTriggerRow(0)]);
+  const [triggerConditionGroups, setTriggerConditionGroups] = useState<
+    SimpleRuleConditionGroup[]
+  >([createSimpleRuleGroup()]);
 
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
@@ -526,6 +483,9 @@ export function ScenarioEditPage({
       enabled: boolean;
       frequency: string;
       time_of_day: string;
+      minute_of_hour: number;
+      day_of_week: string;
+      day_of_month: number;
       timezone: string;
       candidate_limit: number;
     }) => decisionEngineApi.updateRecurringSchedule(tenantId, scenarioId, payload),
@@ -534,12 +494,13 @@ export function ScenarioEditPage({
         queryKey: ["decision-engine", "recurring-schedule", tenantId, scenarioId],
       });
       setScheduleEnabledDraft(null);
+      setScheduleFrequencyDraft(null);
       setScheduleTimeDraft(null);
-      setScheduleMessage(
-        recurring_schedule.enabled
-          ? `Recurring schedule saved: daily at ${recurring_schedule.time_of_day} UTC`
-          : "Recurring schedule disabled."
-      );
+      setScheduleMinuteDraft(null);
+      setScheduleDayOfWeekDraft(null);
+      setScheduleDayOfMonthDraft(null);
+      setScheduleTimezoneDraft(null);
+      setScheduleMessage(recurringScheduleSummary(recurring_schedule));
     },
     onError: (error) => {
       setScheduleMessage(error instanceof Error ? error.message : "Failed to save schedule.");
@@ -638,7 +599,12 @@ export function ScenarioEditPage({
     queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
     queryFn: () =>
       decisionEngineApi.validateIteration(tenantId, scenarioId, currentIteration!.id),
-    enabled: Boolean(activeTab === "Rules" && tenantId && scenarioId && currentIteration?.id),
+    enabled: Boolean(
+      (activeTab === "Trigger" || activeTab === "Rules") &&
+        tenantId &&
+        scenarioId &&
+        currentIteration?.id
+    ),
   });
   const scenarioDecisionsQuery = useQuery({
     queryKey: ["decision-engine", "scenario-decisions", tenantId, scenarioId],
@@ -713,6 +679,50 @@ export function ScenarioEditPage({
       pushToast({
         title: "Failed to create rule",
         description: error instanceof Error ? error.message : "The rule could not be created.",
+        variant: "error",
+      });
+    },
+  });
+
+  const updateTriggerConditionsMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentIteration) {
+        throw new Error("No iteration selected.");
+      }
+
+      return decisionEngineApi.updateIteration(tenantId, scenarioId, currentIteration.id, {
+        trigger_formula: compileConditionGroupsToAst(
+          triggerConditionGroups,
+          triggerAccessorOptions
+        ),
+        score_review_threshold: currentIteration.score_review_threshold ?? null,
+        score_block_and_review_threshold:
+          currentIteration.score_block_and_review_threshold ?? null,
+        score_decline_threshold: currentIteration.score_decline_threshold ?? null,
+        schedule: currentIteration.schedule,
+      });
+    },
+    onSuccess: async ({ iteration }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "iterations", tenantId, scenarioId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
+      });
+      setTriggerMessage(`Trigger conditions saved for v${iteration.version}.`);
+      pushToast({
+        title: "Trigger conditions saved",
+        description: `Version ${iteration.version} now uses the updated trigger formula.`,
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to save trigger conditions.";
+      setTriggerMessage(message);
+      pushToast({
+        title: "Failed to save trigger conditions",
+        description: message,
         variant: "error",
       });
     },
@@ -939,39 +949,6 @@ export function ScenarioEditPage({
       setSelectedDecisionId(filteredScenarioDecisions[0].id);
     }
   }, [filteredScenarioDecisions, selectedDecisionId]);
-  const triggerFunctionVariableSelectorOptions = useMemo(
-    () =>
-      triggerFunctionOperands
-        .map((operand) => ({
-          value: `function:${operand.id}`,
-          label: operand.label,
-          meta: operand.meta,
-          keywords: ["function", "variable", operand.label],
-        }))
-        .sort((left, right) => left.label.localeCompare(right.label)),
-    [triggerFunctionOperands]
-  );
-  const triggerDirectFunctionOptions = useMemo(
-    () =>
-      triggerDirectFunctionSelectorOptions
-        .map((option) => ({
-          ...option,
-          keywords: [...option.keywords],
-        }))
-        .sort((left, right) => left.label.localeCompare(right.label)),
-    []
-  );
-  const triggerFunctionSelectorOptions = useMemo(
-    () => [...triggerFunctionVariableSelectorOptions, ...triggerDirectFunctionOptions],
-    [triggerDirectFunctionOptions, triggerFunctionVariableSelectorOptions]
-  );
-  const triggerFunctionLookup = useMemo(
-    () =>
-      new Map([
-        ...triggerFunctionSelectorOptions.map((option) => [option.value, option] as const),
-      ]),
-    [triggerFunctionSelectorOptions]
-  );
   const triggerAccessorOptions = useMemo(
     () =>
       extractAccessorOptions(
@@ -982,16 +959,6 @@ export function ScenarioEditPage({
       editorIdentifiersQuery.data?.database_accessors,
       editorIdentifiersQuery.data?.payload_accessors,
     ]
-  );
-  const triggerFieldSelectorOptions = useMemo(
-    () =>
-      triggerAccessorOptions.map((option) => ({
-        value: option.id,
-        label: option.label,
-        meta: option.meta,
-        keywords: [option.meta, option.label],
-      })),
-    [triggerAccessorOptions]
   );
   const triggerTableFieldOptions = useMemo<FunctionVariableTableFieldOption[]>(
     () =>
@@ -1025,98 +992,31 @@ export function ScenarioEditPage({
         )
     )
   );
-  const triggerFieldDiscoveryGroups = useMemo(() => {
-    const payloadOptions = triggerFieldSelectorOptions.filter((option) =>
-      option.value.startsWith("payload:")
-    );
-    const databaseOptionGroups = new Map<string, typeof triggerFieldSelectorOptions>();
+  useEffect(() => {
+    const parsed =
+      tryParseAstToConditionGroups(currentIteration?.trigger_formula, triggerAccessorOptions) ?? [];
+    const nextGroups =
+      parsed.length > 0 ? parsed : [createSimpleRuleGroup()];
 
-    triggerFieldSelectorOptions
-      .filter((option) => option.value.startsWith("database:"))
-      .forEach((option) => {
-        const accessor = triggerAccessorOptions.find((item) => item.id === option.value);
-        const path =
-          accessor?.astNode.named_children?.path?.constant &&
-          Array.isArray(accessor.astNode.named_children.path.constant)
-            ? accessor.astNode.named_children.path.constant.filter(
-                (item): item is string => typeof item === "string"
-              )
-            : [];
-        const tableName =
-          typeof accessor?.astNode.named_children?.tableName?.constant === "string"
-            ? accessor.astNode.named_children.tableName.constant
-            : triggerObjectType;
-        const groupLabel =
-          path.length > 0 ? `${tableName}_${path.join("_")}` : `From ${tableName}`;
-        const current = databaseOptionGroups.get(groupLabel) ?? [];
-        current.push(option);
-        databaseOptionGroups.set(groupLabel, current);
-      });
-
-    return [
-      {
-        id: "fields",
-        label: "Fields",
-        children: [
-          ...(payloadOptions.length > 0
-            ? [
-                {
-                  id: `fields-${triggerObjectType}`,
-                  label: `From ${triggerObjectType}`,
-                  options: payloadOptions,
-                },
-              ]
-            : []),
-          ...[...databaseOptionGroups.entries()]
-            .sort(([left], [right]) => left.localeCompare(right))
-            .map(([label, options]) => ({
-              id: `fields-${label}`,
-              label,
-              options,
-            })),
-        ],
-      },
-    ];
-  }, [triggerAccessorOptions, triggerFieldSelectorOptions, triggerObjectType]);
-  const triggerCustomListSelectorOptions = useMemo(
-    () =>
-      (customListsQuery.data?.custom_lists ?? [])
-        .map((item) => ({
-          value: `custom-list:${item.id}`,
-          label: item.name,
-          meta: "Custom list",
-          keywords: ["list", item.name],
-        }))
-        .sort((left, right) => left.label.localeCompare(right.label)),
-    [customListsQuery.data?.custom_lists]
-  );
-  const triggerOperatorSelectorOptions = useMemo(() => {
+    setTriggerConditionGroups(nextGroups);
+    setTriggerMessage(null);
+  }, [currentIteration?.id, currentIteration?.trigger_formula, triggerAccessorOptions]);
+  const triggerRuleOperatorOptions = useMemo(() => {
     const availableFunctions = new Set(
       (ruleFunctionsQuery.data?.rule_functions ?? []).map((ruleFunction) => ruleFunction.name)
     );
 
-    const operatorOptions =
-      availableFunctions.size === 0
-        ? simpleRuleOperatorOptions
-        : simpleRuleOperatorOptions.filter((option) => availableFunctions.has(option.value));
-
-    return operatorOptions.map((option) => ({
-      value: option.value,
-      label: option.label,
-      keywords: option.keywords,
-    }));
+    return availableFunctions.size === 0
+      ? simpleRuleOperatorOptions
+      : simpleRuleOperatorOptions.filter((option) => availableFunctions.has(option.value));
   }, [ruleFunctionsQuery.data?.rule_functions]);
-  const triggerOperandSelectorOptionsAll = useMemo(
-    () => [
-      ...triggerFieldSelectorOptions,
-      ...triggerCustomListSelectorOptions,
-      ...triggerFunctionSelectorOptions,
-    ],
-    [
-      triggerCustomListSelectorOptions,
-      triggerFieldSelectorOptions,
-      triggerFunctionSelectorOptions,
-    ]
+  const triggerCustomLists = useMemo(
+    () =>
+      (customListsQuery.data?.custom_lists ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+      })),
+    [customListsQuery.data?.custom_lists]
   );
   const distinctRuleGroups = Array.from(
     new Set(rules.map((rule) => rule.rule_group).filter(Boolean))
@@ -1129,116 +1029,6 @@ export function ScenarioEditPage({
     const matchesGroup = !ruleGroupFilter || rule.rule_group === ruleGroupFilter;
     return matchesSearch && matchesGroup;
   });
-
-  function openTriggerVariableModal(
-    rowId: string,
-    side: "left" | "right",
-    aggregator: AggregatorOperator
-  ) {
-    setTriggerVariableModal({
-      rowId,
-      side,
-      aggregator,
-      variableName: "",
-      fieldKey: "",
-      percentile: "50",
-      filters: [],
-    });
-  }
-
-  function saveTriggerVariable(draft: FunctionVariableDraft) {
-    const modalState = triggerVariableModal
-      ? {
-          ...triggerVariableModal,
-          ...draft,
-        }
-      : null;
-    if (!modalState) {
-      return;
-    }
-
-    const [tableName = "", fieldName = ""] = modalState.fieldKey.split("::");
-    if (!tableName || !fieldName) {
-      setTriggerVariableModal(modalState);
-      return;
-    }
-
-    if (
-      modalState.aggregator === "PCTILE" &&
-      !Number.isFinite(Number(modalState.percentile))
-    ) {
-      setTriggerVariableModal(modalState);
-      return;
-    }
-
-    const operand = createFunctionOperand({
-      ast: buildAggregatorAst({
-        aggregator: modalState.aggregator,
-        tableName,
-        fieldName,
-        label:
-          modalState.variableName.trim() ||
-          `${modalState.aggregator.toLowerCase()}_${fieldName}`,
-        percentile:
-          modalState.aggregator === "PCTILE"
-            ? Number(modalState.percentile)
-            : undefined,
-        filters: modalState.filters
-          .flatMap((filter) => {
-            const [filterTableName = "", filterFieldName = ""] = filter.fieldKey.split("::");
-            return filterTableName && filterFieldName
-              ? [{
-                  tableName: filterTableName,
-                  fieldName: filterFieldName,
-                  operator: filter.operator,
-                  rightMode: filter.rightMode,
-                  value:
-                    filter.rightMode === "field"
-                      ? filter.rightValue.split("::")[1] ?? filter.rightValue
-                      : filter.rightValue,
-                }]
-              : [];
-          })
-          ,
-      }),
-      label: modalState.variableName.trim(),
-      meta: `Aggregation on ${tableName}`,
-    });
-
-    setTriggerFunctionOperands((current) => {
-      const next = current.filter((item) => item.id !== operand.id);
-      return [...next, operand].sort((left, right) => left.label.localeCompare(right.label));
-    });
-    setTriggerRows((current) =>
-      current.map((row) =>
-        row.id === modalState.rowId
-          ? {
-              ...row,
-              [modalState.side]: `function:${operand.id}`,
-            }
-          : row
-      )
-    );
-    setTriggerVariableModal(null);
-  }
-
-  function resetTriggerBuilder() {
-    setTriggerBuilderOpen(false);
-    setTriggerRows([createTriggerRow(0)]);
-    setTriggerFunctionOperands([]);
-    setTriggerVariableModal(null);
-  }
-
-  function removeTriggerRow(rowId: string) {
-    if (triggerRows.length <= 1) {
-      resetTriggerBuilder();
-      return;
-    }
-
-    setTriggerRows((current) =>
-      normalizeTriggerRows(current.filter((row) => row.id !== rowId))
-    );
-  }
 
   if (!tenantId) {
     return (
@@ -1274,7 +1064,20 @@ export function ScenarioEditPage({
 
   const recurringSchedule = recurringScheduleQuery.data?.recurring_schedule;
   const effectiveScheduleEnabled = scheduleEnabledDraft ?? recurringSchedule?.enabled ?? false;
+  const effectiveScheduleFrequency =
+    scheduleFrequencyDraft ?? recurringSchedule?.frequency ?? "daily";
   const effectiveScheduleTime = scheduleTimeDraft ?? recurringSchedule?.time_of_day ?? "00:00";
+  const effectiveScheduleMinute = scheduleMinuteDraft ?? String(recurringSchedule?.minute_of_hour ?? 0);
+  const effectiveScheduleDayOfWeek =
+    scheduleDayOfWeekDraft ?? recurringSchedule?.day_of_week ?? "monday";
+  const effectiveScheduleDayOfMonth =
+    scheduleDayOfMonthDraft ?? String(recurringSchedule?.day_of_month ?? 1);
+  const effectiveScheduleTimezone =
+    scheduleTimezoneDraft ?? recurringSchedule?.timezone ?? "UTC";
+  const nextRunLabel = formatNextRunLabel(
+    recurringSchedule?.next_run,
+    recurringSchedule?.timezone ?? effectiveScheduleTimezone
+  );
   const validation = validationQuery.data?.validation;
   const validationTriggerErrors = validation?.trigger_errors ?? [];
   const validationErrors = validation?.errors ?? [];
@@ -1286,11 +1089,22 @@ export function ScenarioEditPage({
 
   function handleSaveRecurringSchedule() {
     setScheduleMessage(null);
+    const parsedMinute = Number(effectiveScheduleMinute);
+    const parsedDayOfMonth = Number(effectiveScheduleDayOfMonth);
     void updateRecurringScheduleMutation.mutate({
       enabled: effectiveScheduleEnabled,
-      frequency: "daily",
-      time_of_day: effectiveScheduleTime,
-      timezone: "UTC",
+      frequency: effectiveScheduleFrequency,
+      time_of_day: effectiveScheduleFrequency === "hourly" ? "" : effectiveScheduleTime,
+      minute_of_hour:
+        effectiveScheduleFrequency === "hourly" && Number.isFinite(parsedMinute)
+          ? Math.max(0, Math.min(59, parsedMinute))
+          : 0,
+      day_of_week: effectiveScheduleFrequency === "weekly" ? effectiveScheduleDayOfWeek : "",
+      day_of_month:
+        effectiveScheduleFrequency === "monthly" && Number.isFinite(parsedDayOfMonth)
+          ? Math.max(1, Math.min(31, parsedDayOfMonth))
+          : 0,
+      timezone: effectiveScheduleTimezone,
       candidate_limit: recurringSchedule?.candidate_limit ?? 100,
     });
   }
@@ -1357,6 +1171,11 @@ export function ScenarioEditPage({
     }
 
     return triggerAccessorLabelLookup.get(params.value) ?? params.value;
+  }
+
+  function handleClearTriggerConditions() {
+    setTriggerConditionGroups([createSimpleRuleGroup()]);
+    setTriggerMessage("Trigger conditions cleared. Save to apply the default trigger.");
   }
 
   return (
@@ -1585,16 +1404,99 @@ export function ScenarioEditPage({
                         {effectiveScheduleEnabled ? (
                           <div className="flex flex-wrap items-center gap-3">
                             <span>Run</span>
-                            <div className="inline-flex min-w-[104px] items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
-                              daily
-                            </div>
-                            <span>at</span>
-                            <Input
-                              type="time"
-                              value={effectiveScheduleTime}
-                              onChange={(event) => setScheduleTimeDraft(event.target.value)}
-                              className="h-10 w-[120px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
-                            />
+                            <select
+                              value={effectiveScheduleFrequency}
+                              onChange={(event) => setScheduleFrequencyDraft(event.target.value)}
+                              className="h-10 min-w-[124px] rounded-lg border border-slate-200 bg-white px-3 text-[14px] text-slate-950 outline-none"
+                            >
+                              <option value="daily">daily</option>
+                              <option value="hourly">hourly</option>
+                              <option value="weekly">weekly</option>
+                              <option value="monthly">monthly</option>
+                            </select>
+                            <span>timezone</span>
+                            <select
+                              value={effectiveScheduleTimezone}
+                              onChange={(event) => setScheduleTimezoneDraft(event.target.value)}
+                              className="h-10 min-w-[190px] rounded-lg border border-slate-200 bg-white px-3 text-[14px] text-slate-950 outline-none"
+                            >
+                              <option value="UTC">UTC</option>
+                              <option value="Africa/Accra">Africa/Accra</option>
+                              <option value="Europe/London">Europe/London</option>
+                              <option value="America/New_York">America/New_York</option>
+                              <option value="America/Chicago">America/Chicago</option>
+                              <option value="America/Los_Angeles">America/Los_Angeles</option>
+                              <option value="Asia/Dubai">Asia/Dubai</option>
+                              <option value="Asia/Singapore">Asia/Singapore</option>
+                              <option value="Asia/Tokyo">Asia/Tokyo</option>
+                              <option value="Australia/Sydney">Australia/Sydney</option>
+                            </select>
+                            {effectiveScheduleFrequency === "hourly" ? (
+                              <>
+                                <span>at minute</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={effectiveScheduleMinute}
+                                  onChange={(event) => setScheduleMinuteDraft(event.target.value)}
+                                  className="h-10 w-[96px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                                />
+                              </>
+                            ) : effectiveScheduleFrequency === "monthly" ? (
+                              <>
+                                <span>on day</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  value={effectiveScheduleDayOfMonth}
+                                  onChange={(event) => setScheduleDayOfMonthDraft(event.target.value)}
+                                  className="h-10 w-[96px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                                />
+                                <span>at</span>
+                                <Input
+                                  type="time"
+                                  value={effectiveScheduleTime}
+                                  onChange={(event) => setScheduleTimeDraft(event.target.value)}
+                                  className="h-10 w-[120px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                                />
+                              </>
+                            ) : effectiveScheduleFrequency === "weekly" ? (
+                              <>
+                                <span>on</span>
+                                <select
+                                  value={effectiveScheduleDayOfWeek}
+                                  onChange={(event) => setScheduleDayOfWeekDraft(event.target.value)}
+                                  className="h-10 min-w-[132px] rounded-lg border border-slate-200 bg-white px-3 text-[14px] text-slate-950 outline-none"
+                                >
+                                  <option value="monday">Monday</option>
+                                  <option value="tuesday">Tuesday</option>
+                                  <option value="wednesday">Wednesday</option>
+                                  <option value="thursday">Thursday</option>
+                                  <option value="friday">Friday</option>
+                                  <option value="saturday">Saturday</option>
+                                  <option value="sunday">Sunday</option>
+                                </select>
+                                <span>at</span>
+                                <Input
+                                  type="time"
+                                  value={effectiveScheduleTime}
+                                  onChange={(event) => setScheduleTimeDraft(event.target.value)}
+                                  className="h-10 w-[120px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <span>at</span>
+                                <Input
+                                  type="time"
+                                  value={effectiveScheduleTime}
+                                  onChange={(event) => setScheduleTimeDraft(event.target.value)}
+                                  className="h-10 w-[120px] rounded-lg border-slate-200 px-3 text-[14px] shadow-none"
+                                />
+                              </>
+                            )}
                           </div>
                         ) : null}
                         <div className="flex items-center gap-3">
@@ -1610,6 +1512,11 @@ export function ScenarioEditPage({
                             <p className="text-[13px] text-slate-600">{scheduleMessage}</p>
                           ) : null}
                         </div>
+                        {nextRunLabel ? (
+                          <p className="text-[13px] text-slate-600">
+                            Next run: <span className="font-medium text-slate-900">{nextRunLabel}</span>
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -1649,7 +1556,7 @@ export function ScenarioEditPage({
                     </div>
                   </div>
 
-                  {hasLiveIteration ? (
+                  {!isDraftIteration ? (
                     <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3.5 py-3.5">
                       <div className="inline-flex rounded-md bg-slate-50 px-3 py-1.5 text-[14px] font-medium text-[#1f4f96]">
                         {scenario.trigger_object_type}
@@ -1728,324 +1635,64 @@ export function ScenarioEditPage({
                       )}
                     </div>
                   ) : (
-                    <>
-                      {!triggerBuilderOpen ? (
-                        <>
-                          <div className="rounded-lg border border-[#3b82f6] bg-blue-50 px-3.5 py-2.5 text-[14px] text-[#2563eb]">
-                            All{" "}
-                            <span className="font-semibold">
-                              {scenario.trigger_object_type}
-                            </span>{" "}
-                            will be checked
-                          </div>
-                          <div className="flex justify-end gap-3">
-                            <Button
-                              variant="outline"
-                              disabled={!isDraftIteration}
-                              onClick={() => setTriggerBuilderOpen(true)}
-                              className="h-8 rounded-full border-slate-200 px-3.5 text-[13px] shadow-none"
-                            >
-                              Add trigger condition
-                            </Button>
-                            <Button
-                              disabled={!isDraftIteration}
-                              className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
-                            >
-                              Save
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3.5 py-3.5">
-                          <div className="inline-flex rounded-md bg-slate-50 px-3 py-1.5 text-[14px] font-medium text-[#1f4f96]">
-                            {scenario.trigger_object_type}
-                          </div>
-                          <div className="space-y-3">
-                            {triggerRows.map((row) => (
-                              <div key={row.id} className="space-y-2">
-                                {(() => {
-                                  const requiresRightOperand = !isUnaryRuleOperator(row.operator);
-                                  const selectedLeftFunction = triggerFunctionLookup.get(row.left);
-                                  const selectedRightFunction = triggerFunctionLookup.get(row.right);
-                                  const leftOperandGroups = [
-                                    ...triggerFieldDiscoveryGroups,
-                                    ...(triggerCustomListSelectorOptions.length > 0
-                                      ? [
-                                          {
-                                            id: `custom-lists-left-${row.id}`,
-                                            label: "Lists",
-                                            children: [
-                                              {
-                                                id: `custom-lists-left-items-${row.id}`,
-                                                label: "Lists",
-                                                options: triggerCustomListSelectorOptions,
-                                              },
-                                            ],
-                                          },
-                                        ]
-                                      : []),
-                                    {
-                                      id: `functions-left-${row.id}`,
-                                      label: "Functions",
-                                      children: [
-                                        ...(triggerFunctionVariableSelectorOptions.length > 0
-                                          ? [
-                                              {
-                                                id: `functions-existing-left-${row.id}`,
-                                                label: "Variables",
-                                                options: triggerFunctionVariableSelectorOptions,
-                                              },
-                                            ]
-                                          : []),
-                                        {
-                                          id: `functions-create-left-${row.id}`,
-                                          label: "Create a variable",
-                                          options: AGGREGATOR_OPTIONS.map((option) => ({
-                                            value: `trigger-aggregator-left-${row.id}-${option.value}`,
-                                            label: option.label,
-                                            meta: option.helper ?? "Aggregation",
-                                            isAction: true,
-                                            onSelectAction: () =>
-                                              openTriggerVariableModal(row.id, "left", option.value),
-                                          })),
-                                        },
-                                        {
-                                          id: `functions-direct-left-${row.id}`,
-                                          label: "Direct functions",
-                                          options: triggerDirectFunctionOptions.map((option) => ({
-                                            ...option,
-                                            isAction: true,
-                                            onSelectAction: () =>
-                                              setTriggerRows((current) =>
-                                                current.map((item) =>
-                                                  item.id === row.id
-                                                    ? { ...item, left: option.value }
-                                                    : item
-                                                )
-                                              ),
-                                          })),
-                                        },
-                                      ],
-                                    },
-                                    {
-                                      id: `modeling-left-${row.id}`,
-                                      label: "Modeling",
-                                      children: [
-                                        {
-                                          id: `modeling-left-items-${row.id}`,
-                                          label: "Modeling",
-                                          options: [
-                                            {
-                                              value: `modeling-open-bracket-left-${row.id}`,
-                                              label: "Open bracket",
-                                              meta: "Modeling",
-                                              isAction: true,
-                                              onSelectAction: () =>
-                                                pushToast({
-                                                  title: "Modeling in triggers is next",
-                                                  description:
-                                                    "The trigger menu now matches the rule menu, but bracket modeling is not wired yet.",
-                                                  variant: "success",
-                                                }),
-                                            },
-                                          ],
-                                        },
-                                      ],
-                                    },
-                                  ];
-                                  const rightOperandGroups = [
-                                    {
-                                      id: `fields-right-${row.id}`,
-                                      label: "Fields",
-                                      children: triggerFieldDiscoveryGroups[0]?.children ?? [],
-                                    },
-                                    {
-                                      id: `functions-right-${row.id}`,
-                                      label: "Functions",
-                                      children: [
-                                        ...(triggerFunctionVariableSelectorOptions.length > 0
-                                          ? [
-                                              {
-                                                id: `functions-existing-right-${row.id}`,
-                                                label: "Variables",
-                                                options: triggerFunctionVariableSelectorOptions,
-                                              },
-                                            ]
-                                          : []),
-                                        {
-                                          id: `functions-create-right-${row.id}`,
-                                          label: "Create a variable",
-                                          options: AGGREGATOR_OPTIONS.map((option) => ({
-                                            value: `trigger-aggregator-right-${row.id}-${option.value}`,
-                                            label: option.label,
-                                            meta: option.helper ?? "Aggregation",
-                                            isAction: true,
-                                            onSelectAction: () =>
-                                              openTriggerVariableModal(row.id, "right", option.value),
-                                          })),
-                                        },
-                                        {
-                                          id: `functions-direct-right-${row.id}`,
-                                          label: "Direct functions",
-                                          options: triggerDirectFunctionOptions.map((option) => ({
-                                            ...option,
-                                            isAction: true,
-                                            onSelectAction: () =>
-                                              setTriggerRows((current) =>
-                                                current.map((item) =>
-                                                  item.id === row.id
-                                                    ? { ...item, right: option.value }
-                                                    : item
-                                                )
-                                              ),
-                                          })),
-                                        },
-                                      ],
-                                    },
-                                    ...(triggerCustomListSelectorOptions.length > 0
-                                      ? [
-                                          {
-                                            id: `custom-lists-right-${row.id}`,
-                                            label: "Lists",
-                                            children: [
-                                              {
-                                                id: `custom-lists-right-items-${row.id}`,
-                                                label: "Lists",
-                                                options: triggerCustomListSelectorOptions,
-                                              },
-                                            ],
-                                          },
-                                        ]
-                                      : []),
-                                  ];
-
-                                  return (
-                                    <>
-                                      <ConditionSelectorRow
-                                        prefixLabel={row.prefix}
-                                        disabled={!isDraftIteration}
-                                        leftSelector={{
-                                          value: row.left,
-                                          options: triggerOperandSelectorOptionsAll,
-                                          groups: leftOperandGroups,
-                                          placeholder: "Select an operand...",
-                                          searchPlaceholder: "Select or create an operand",
-                                          emptyLabel: "No operands matched your search.",
-                                          invalid: !row.left,
-                                          prefix: selectedLeftFunction ? "fx" : "Tt",
-                                          selectedMeta: selectedLeftFunction?.meta,
-                                          searchOptionsBuilder: (searchValue) =>
-                                            buildTriggerLiteralSearchOptions(searchValue),
-                                          onChange: (value) =>
-                                            setTriggerRows((current) =>
-                                              current.map((item) =>
-                                                item.id === row.id
-                                                  ? { ...item, left: value }
-                                                  : item
-                                              )
-                                            ),
-                                        }}
-                                        operatorSelector={{
-                                          value: row.operator,
-                                          options: triggerOperatorSelectorOptions,
-                                          placeholder: "...",
-                                          searchPlaceholder: "Search operators",
-                                          emptyLabel: "No operators matched your search.",
-                                          invalid: !row.operator,
-                                          onChange: (value) =>
-                                            setTriggerRows((current) =>
-                                              current.map((item) =>
-                                                item.id === row.id
-                                                  ? { ...item, operator: value }
-                                                  : item
-                                              )
-                                            ),
-                                        }}
-                                        rightSelector={
-                                          requiresRightOperand
-                                            ? {
-                                                value: row.right,
-                                                options: triggerOperandSelectorOptionsAll,
-                                                groups: rightOperandGroups,
-                                                placeholder: "Select an operand...",
-                                                searchPlaceholder:
-                                                  "Select or create an operand",
-                                                emptyLabel:
-                                                  "No operands matched your search.",
-                                                invalid: !row.right,
-                                                prefix: selectedRightFunction ? "fx" : "Tt",
-                                                selectedMeta: selectedRightFunction?.meta,
-                                                searchOptionsBuilder: (searchValue) =>
-                                                  buildTriggerLiteralSearchOptions(searchValue),
-                                                onChange: (value) =>
-                                                  setTriggerRows((current) =>
-                                                    current.map((item) =>
-                                                      item.id === row.id
-                                                        ? { ...item, right: value }
-                                                        : item
-                                                    )
-                                                  ),
-                                              }
-                                            : null
-                                        }
-                                        onRemove={() => removeTriggerRow(row.id)}
-                                      />
-                                      <div className="inline-flex rounded-md bg-[#ffd9d2] px-3 py-1 text-[13px] text-[#dd3719]">
-                                        {[
-                                          row.left,
-                                          row.operator,
-                                          requiresRightOperand ? row.right : "unary",
-                                        ].filter(Boolean).length}{" "}
-                                        / 3 filled
-                                      </div>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="space-y-3">
-                              <Button
-                                variant="outline"
-                                disabled={!isDraftIteration}
-                                onClick={() =>
-                                  setTriggerRows((current) =>
-                                    normalizeTriggerRows([
-                                      ...current,
-                                      createTriggerRow(current.length),
-                                    ])
-                                  )
-                                }
-                                className="h-8 rounded-xl border-[#2d63b8] px-3.5 text-[13px] text-[#1f4f96] shadow-none"
-                              >
-                                <Plus className="size-3.5" />
-                                Condition
-                              </Button>
-                              <div className="inline-flex rounded-md bg-[#ffd9d2] px-3 py-2 text-[13px] text-[#dd3719]">
-                                The formula must return a boolean
-                              </div>
-                            </div>
-                            <div className="flex gap-3">
-                              <Button
-                                variant="outline"
-                                disabled={!isDraftIteration}
-                                onClick={resetTriggerBuilder}
-                                className="h-8 rounded-xl border-slate-200 px-3.5 text-[13px] shadow-none"
-                              >
-                                Delete trigger condition
-                              </Button>
-                              <Button
-                                disabled={!isDraftIteration}
-                                className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
-                              >
-                                Save
-                              </Button>
-                            </div>
-                          </div>
+                    <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3.5 py-3.5">
+                      <div className="inline-flex rounded-md bg-slate-50 px-3 py-1.5 text-[14px] font-medium text-[#1f4f96]">
+                        {scenario.trigger_object_type}
+                      </div>
+                      {!parsedTriggerConditionGroups.length ? (
+                        <div className="rounded-lg border border-[#3b82f6] bg-blue-50 px-3.5 py-2.5 text-[14px] text-[#2563eb]">
+                          All <span className="font-semibold">{scenario.trigger_object_type}</span>{" "}
+                          will be checked until you add trigger conditions.
                         </div>
-                      )}
-                    </>
+                      ) : null}
+                      {validationTriggerErrors.length > 0 ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] text-red-700">
+                          {validationTriggerErrors.map((error, index) => (
+                            <p key={`${error}-${index}`}>{error}</p>
+                          ))}
+                        </div>
+                      ) : null}
+                      <RuleBuilderSimple
+                        groups={triggerConditionGroups}
+                        onChange={setTriggerConditionGroups}
+                        accessorOptions={triggerAccessorOptions}
+                        operatorOptions={triggerRuleOperatorOptions}
+                        customListOptions={triggerCustomLists}
+                        triggerObjectType={scenario.trigger_object_type}
+                        tableFieldOptions={triggerTableFieldOptions}
+                        disabled={
+                          !isDraftIteration || updateTriggerConditionsMutation.isPending
+                        }
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            disabled={
+                              !isDraftIteration || updateTriggerConditionsMutation.isPending
+                            }
+                            onClick={handleClearTriggerConditions}
+                            className="h-8 rounded-xl border-slate-200 px-3.5 text-[13px] shadow-none"
+                          >
+                            Clear trigger conditions
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {triggerMessage ? (
+                            <p className="text-[13px] text-slate-600">{triggerMessage}</p>
+                          ) : null}
+                          <Button
+                            disabled={
+                              !isDraftIteration || updateTriggerConditionsMutation.isPending
+                            }
+                            onClick={() => updateTriggerConditionsMutation.mutate()}
+                            className="h-8 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
+                          >
+                            {updateTriggerConditionsMutation.isPending ? "Saving..." : "Save"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 ) : null}
@@ -2595,25 +2242,6 @@ export function ScenarioEditPage({
           </Card>
         ) : null}
       </div>
-
-      {triggerVariableModal ? (
-        <FunctionVariableModal
-          draft={triggerVariableModal}
-          onClose={() => setTriggerVariableModal(null)}
-          onChange={(draft) =>
-            setTriggerVariableModal((current) =>
-              current
-                ? {
-                    ...current,
-                    ...draft,
-                  }
-                : null
-            )
-          }
-          onSave={saveTriggerVariable}
-          tableFieldOptions={triggerTableFieldOptions}
-        />
-      ) : null}
 
       <CommitModal
         isOpen={commitOpen}

@@ -70,7 +70,15 @@ func (s ExecutionService) GetRecurringSchedule(ctx context.Context, tenantID, sc
 	if err != nil {
 		return RecurringScheduleConfig{}, err
 	}
-	return DecodeRecurringScheduleConfig(iteration.Schedule)
+	cfg, err := DecodeRecurringScheduleConfig(iteration.Schedule)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	items, err := s.scheduledRepo.ListByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	return hydrateRecurringSchedule(cfg, s.clock.Now(), items)
 }
 
 func (s ExecutionService) UpdateRecurringSchedule(ctx context.Context, tenantID, scenarioID string, cfg RecurringScheduleConfig) (RecurringScheduleConfig, error) {
@@ -103,7 +111,11 @@ func (s ExecutionService) UpdateRecurringSchedule(ctx context.Context, tenantID,
 	if err != nil {
 		return RecurringScheduleConfig{}, err
 	}
-	return normalized, nil
+	items, err := s.scheduledRepo.ListByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return RecurringScheduleConfig{}, err
+	}
+	return hydrateRecurringSchedule(normalized, s.clock.Now(), items)
 }
 
 func (s ExecutionService) CreateScheduledExecution(ctx context.Context, tenantID, scenarioID string, scheduledFor time.Time, req ScheduledExecutionRequest) (execution.ScheduledExecution, error) {
@@ -124,6 +136,7 @@ func (s ExecutionService) CreateScheduledExecution(ctx context.Context, tenantID
 		TenantID:            tenantID,
 		ScenarioID:          scenarioID,
 		ScenarioIterationID: *scn.LiveIterationID,
+		Source:              execution.SourceManual,
 		Status:              execution.StatusPending,
 		ScheduledFor:        scheduledFor,
 		RequestBody:         body,
@@ -214,26 +227,15 @@ func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, lim
 			continue
 		}
 
-		scheduledFor, err := nextScheduledTimeForDay(now, cfg)
-		if err != nil {
-			return err
-		}
-		if scheduledFor.After(now) {
-			continue
-		}
-
 		existing, err := s.scheduledRepo.ListByScenario(ctx, iteration.TenantID, iteration.ScenarioID)
 		if err != nil {
 			return err
 		}
-		alreadyCreated := false
-		for _, item := range existing {
-			if item.ScheduledFor.Equal(scheduledFor) {
-				alreadyCreated = true
-				break
-			}
+		dueTimes, err := dueRecurringScheduleTimes(now, cfg, existing, limit)
+		if err != nil {
+			return err
 		}
-		if alreadyCreated {
+		if len(dueTimes) == 0 {
 			continue
 		}
 
@@ -245,21 +247,24 @@ func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, lim
 			return err
 		}
 
-		item := execution.ScheduledExecution{
-			ID:                  s.idGen.New().String(),
-			TenantID:            iteration.TenantID,
-			ScenarioID:          iteration.ScenarioID,
-			ScenarioIterationID: iteration.ID,
-			Status:              execution.StatusPending,
-			ScheduledFor:        scheduledFor,
-			RequestBody:         body,
-			CreatedAt:           now,
-		}
-		if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
-			_, err := store.ScheduledExecutions().Create(ctx, item)
-			return err
-		}); err != nil {
-			return err
+		for _, scheduledFor := range dueTimes {
+			item := execution.ScheduledExecution{
+				ID:                  s.idGen.New().String(),
+				TenantID:            iteration.TenantID,
+				ScenarioID:          iteration.ScenarioID,
+				ScenarioIterationID: iteration.ID,
+				Source:              execution.SourceRecurring,
+				Status:              execution.StatusPending,
+				ScheduledFor:        scheduledFor,
+				RequestBody:         body,
+				CreatedAt:           now,
+			}
+			if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+				_, err := store.ScheduledExecutions().Create(ctx, item)
+				return err
+			}); err != nil {
+				return err
+			}
 		}
 	}
 

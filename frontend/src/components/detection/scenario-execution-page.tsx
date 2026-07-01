@@ -10,6 +10,8 @@ import {
   deriveScheduledExecutionItems,
   deriveScheduledExecutionSource,
   formatExecutionDateTime,
+  formatNextRun,
+  formatRecurringScheduleSummary,
 } from "@/components/detection/scheduled-execution-shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -94,6 +96,11 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
     queryFn: () => decisionEngineApi.listScheduledExecutions(tenantId, scenarioId),
     enabled: Boolean(tenantId && scenarioId),
   });
+  const recurringScheduleQuery = useQuery({
+    queryKey: ["decision-engine", "recurring-schedule", tenantId, scenarioId],
+    queryFn: () => decisionEngineApi.getRecurringSchedule(tenantId, scenarioId),
+    enabled: Boolean(tenantId && scenarioId && scenarioQuery.data?.scenario?.live_iteration_id),
+  });
 
   const createExecutionMutation = useMutation({
     mutationFn: async () => {
@@ -139,7 +146,11 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
     );
   }
 
-  if (scenarioQuery.isLoading || executionsQuery.isLoading) {
+  if (
+    scenarioQuery.isLoading ||
+    executionsQuery.isLoading ||
+    recurringScheduleQuery.isLoading
+  ) {
     return (
       <Card className="rounded-2xl border border-slate-200 shadow-none">
         <CardContent className="p-5 text-sm text-slate-600">
@@ -173,9 +184,24 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
     );
   }
 
+  if (recurringScheduleQuery.isError) {
+    return (
+      <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-none">
+        <CardContent className="p-5 text-sm text-red-700">
+          {recurringScheduleQuery.error instanceof Error
+            ? recurringScheduleQuery.error.message
+            : "Failed to load recurring schedule."}
+        </CardContent>
+      </Card>
+    );
+  }
+
   const scenario = scenarioQuery.data.scenario;
   const executions = executionsQuery.data?.scheduled_executions ?? [];
+  const recurringSchedule = recurringScheduleQuery.data?.recurring_schedule;
   const canSchedule = Boolean(scenario.live_iteration_id);
+  const nextRunLabel = formatNextRun(recurringSchedule?.next_run, recurringSchedule?.timezone ?? "UTC");
+  const lastRunLabel = formatNextRun(recurringSchedule?.last_run, recurringSchedule?.timezone ?? "UTC");
 
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-5 px-4 sm:px-6 xl:px-8">
@@ -206,6 +232,37 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
           Run this live scenario automatically against ingested candidates or manually against explicit items.
         </p>
       </div>
+
+      <Card className="rounded-2xl border border-slate-200 shadow-none">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
+          <div className="space-y-1">
+            <p className="text-[15px] font-semibold text-slate-950">Recurring schedule</p>
+            <p className="text-[13px] text-slate-600">
+              {recurringSchedule
+                ? formatRecurringScheduleSummary(recurringSchedule)
+                : canSchedule
+                  ? "No recurring schedule saved yet."
+                  : "Publish a live version to configure recurring scheduling."}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+            <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-slate-500">
+              Next run
+            </p>
+            <p className="text-[14px] font-medium text-slate-950">
+              {nextRunLabel ?? "Not scheduled"}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+            <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-slate-500">
+              Last run
+            </p>
+            <p className="text-[14px] font-medium text-slate-950">
+              {lastRunLabel ?? "No recorded run"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="rounded-2xl border border-slate-200 shadow-none">
         <CardContent className="space-y-4 p-4">

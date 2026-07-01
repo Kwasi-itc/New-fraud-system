@@ -6,6 +6,7 @@ import (
 )
 
 type Status string
+type Source string
 
 const (
 	StatusPending   Status = "pending"
@@ -15,11 +16,17 @@ const (
 	StatusFailed    Status = "failed"
 )
 
+const (
+	SourceManual    Source = "manual"
+	SourceRecurring Source = "recurring"
+)
+
 type ScheduledExecution struct {
 	ID                  string
 	TenantID            string
 	ScenarioID          string
 	ScenarioIterationID string
+	Source              Source
 	Status              Status
 	ScheduledFor        time.Time
 	RequestBody         json.RawMessage
