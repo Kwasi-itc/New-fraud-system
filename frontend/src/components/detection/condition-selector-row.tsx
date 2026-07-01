@@ -43,8 +43,10 @@ type SelectorConfig = {
 export function ConditionSelectorRow({
   prefixLabel,
   leftSelector,
+  leftAccessory,
   operatorSelector,
   rightSelector,
+  rightAccessory,
   rightContent,
   onRemove,
   disabled = false,
@@ -54,8 +56,10 @@ export function ConditionSelectorRow({
 }: {
   prefixLabel: ReactNode;
   leftSelector: SelectorConfig;
+  leftAccessory?: ReactNode;
   operatorSelector: SelectorConfig;
   rightSelector?: SelectorConfig | null;
+  rightAccessory?: ReactNode;
   rightContent?: ReactNode;
   onRemove: () => void;
   disabled?: boolean;
@@ -90,6 +94,7 @@ export function ConditionSelectorRow({
         searchOptionsBuilder={leftSelector.searchOptionsBuilder}
         onChange={leftSelector.onChange}
       />
+      {leftAccessory}
       <RuleOperandSelector
         className={operatorSelector.className ?? "min-w-[120px] max-w-[170px]"}
         disabled={disabled}
@@ -124,10 +129,11 @@ export function ConditionSelectorRow({
           selectedMeta={rightSelector.selectedMeta}
           actions={rightSelector.actions}
           panelPosition={rightSelector.panelPosition}
-          searchOptionsBuilder={rightSelector.searchOptionsBuilder}
-          onChange={rightSelector.onChange}
+        searchOptionsBuilder={rightSelector.searchOptionsBuilder}
+        onChange={rightSelector.onChange}
         />
       ) : null}
+      {rightAccessory}
       <button
         type="button"
         disabled={disabled}

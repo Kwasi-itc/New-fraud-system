@@ -10,6 +10,7 @@ import {
   type DateFunctionDraft,
   type DateFunctionType,
 } from "@/components/detection/date-function-modal";
+import { FunctionDetailsModal } from "@/components/detection/function-details-modal";
 import {
   AGGREGATOR_OPTIONS,
   FunctionVariableModal,
@@ -177,6 +178,7 @@ export function RuleBuilderSimple({
 }) {
   const [aggregatorModal, setAggregatorModal] = useState<AggregatorModalState | null>(null);
   const [dateFunctionModal, setDateFunctionModal] = useState<DateFunctionModalState | null>(null);
+  const [detailsOperand, setDetailsOperand] = useState<SimpleRuleFunctionOperand | null>(null);
   const [createdFunctionOperands, setCreatedFunctionOperands] = useState<
     SimpleRuleFunctionOperand[]
   >([]);
@@ -1117,6 +1119,18 @@ export function RuleBuilderSimple({
                               onChange: (nextValue) =>
                                 updateLeftOperand(group.id, condition.id, nextValue),
                             }}
+                            leftAccessory={
+                              disabled && condition.leftMode === "function" && condition.leftFunction ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setDetailsOperand(condition.leftFunction!)}
+                                  className="h-10 rounded-sm border-slate-200 px-3 text-[12px] shadow-none"
+                                >
+                                  View
+                                </Button>
+                              ) : undefined
+                            }
                             operatorSelector={{
                               value: condition.operator,
                               invalid: started && !condition.operator,
@@ -1194,6 +1208,21 @@ export function RuleBuilderSimple({
                                         updateRightOperand(group.id, condition.id, nextValue),
                                     }
                                 : null
+                            }
+                            rightAccessory={
+                              disabled &&
+                              !condition.rightExpression &&
+                              condition.rightMode === "function" &&
+                              condition.rightFunction ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setDetailsOperand(condition.rightFunction!)}
+                                  className="h-10 rounded-sm border-slate-200 px-3 text-[12px] shadow-none"
+                                >
+                                  View
+                                </Button>
+                              ) : undefined
                             }
                             rightContent={
                               requiresRightOperand && condition.rightExpression ? (
@@ -1311,6 +1340,13 @@ export function RuleBuilderSimple({
           onSave={saveDateFunction}
           accessorOptions={accessorOptions}
           functionOperands={functionOperands}
+        />
+      ) : null}
+
+      {detailsOperand ? (
+        <FunctionDetailsModal
+          operand={detailsOperand}
+          onClose={() => setDetailsOperand(null)}
         />
       ) : null}
     </>
