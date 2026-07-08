@@ -1,6 +1,7 @@
 package datamodel
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -134,6 +135,7 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 			}
 		}
 		model.Tables[key] = ports.TenantModelTable{
+			ID:            table.ID,
 			Name:          table.Name,
 			Fields:        fields,
 			LinksToSingle: links,
@@ -141,6 +143,48 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 	}
 
 	return model, nil
+}
+
+func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ports.ManagedIndexJob, error) {
+	body, err := json.Marshal(map[string]any{
+		"table_id":               tableID,
+		"index_type":             indexType,
+		"columns":                columns,
+		"requested_by_operation": requestedByOperation,
+	})
+	if err != nil {
+		return ports.ManagedIndexJob{}, fmt.Errorf("encode index job request: %w", err)
+	}
+	url := fmt.Sprintf("%s/v1/tenants/%s/index-jobs", c.baseURL, tenantID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return ports.ManagedIndexJob{}, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return ports.ManagedIndexJob{}, fmt.Errorf("perform request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return ports.ManagedIndexJob{}, fmt.Errorf("unexpected status from data-model-service index job create: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		IndexJob indexJobResponse `json:"index_job"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return ports.ManagedIndexJob{}, fmt.Errorf("decode response: %w", err)
+	}
+	return ports.ManagedIndexJob{
+		ID:        payload.IndexJob.ID,
+		TableName: payload.IndexJob.TableName,
+		IndexType: payload.IndexJob.IndexType,
+		Status:    payload.IndexJob.Status,
+		Columns:   payload.IndexJob.Columns,
+	}, nil
 }
 
 func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]ports.ManagedIndexJob, error) {
@@ -208,6 +252,7 @@ type publishedDataModelResponse struct {
 }
 
 type assembledTableResponse struct {
+	ID            string                            `json:"id"`
 	Name          string                            `json:"name"`
 	Fields        map[string]assembledFieldResponse `json:"fields"`
 	LinksToSingle map[string]assembledLinkResponse  `json:"links_to_single"`

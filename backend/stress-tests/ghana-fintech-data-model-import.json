@@ -1,0 +1,337 @@
+{
+  "data_model": {
+    "version": "v1",
+    "tables": [
+      {
+        "name": "customer",
+        "description": "Customer identity and profile information.",
+        "alias": "Customer",
+        "semantic_type": "customer",
+        "caption_field": "full_name",
+        "fields": [
+          { "name": "customer_id", "description": "Unique customer identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "full_name", "description": "Customer full legal name.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "phone_number", "description": "Primary phone number in international format.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "email", "description": "Customer email address.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "date_of_birth", "description": "Customer date of birth.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "gender", "description": "Customer gender.", "data_type": "string", "nullable": true, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "female", "label": "Female", "sort_order": 1 },
+            { "value": "male", "label": "Male", "sort_order": 2 },
+            { "value": "other", "label": "Other", "sort_order": 3 }
+          ] },
+          { "name": "nationality", "description": "Customer nationality.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "country", "description": "Customer country code.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "region", "description": "Customer region or state.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "city", "description": "Customer city.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "id_type", "description": "Identity document type.", "data_type": "string", "nullable": true, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "ghana_card", "label": "Ghana Card", "sort_order": 1 },
+            { "value": "passport", "label": "Passport", "sort_order": 2 },
+            { "value": "voter_id", "label": "Voter ID", "sort_order": 3 }
+          ] },
+          { "name": "id_number_hash", "description": "Hashed identity document number.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "kyc_level", "description": "Customer KYC level.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "tier_0", "label": "Tier 0", "sort_order": 0 },
+            { "value": "tier_1", "label": "Tier 1", "sort_order": 1 },
+            { "value": "tier_2", "label": "Tier 2", "sort_order": 2 },
+            { "value": "tier_3", "label": "Tier 3", "sort_order": 3 }
+          ] },
+          { "name": "kyc_status", "description": "Customer KYC status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "pending", "label": "Pending", "sort_order": 1 },
+            { "value": "verified", "label": "Verified", "sort_order": 2 },
+            { "value": "rejected", "label": "Rejected", "sort_order": 3 }
+          ] },
+          { "name": "risk_tier", "description": "Customer risk tier.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "low", "label": "Low", "sort_order": 1 },
+            { "value": "medium", "label": "Medium", "sort_order": 2 },
+            { "value": "high", "label": "High", "sort_order": 3 }
+          ] },
+          { "name": "created_at", "description": "Customer creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["customer_id", "full_name", "phone_number", "kyc_level", "kyc_status", "risk_tier", "country"],
+          "field_order": ["customer_id", "full_name", "phone_number", "email", "kyc_level", "kyc_status", "risk_tier", "country", "region", "city", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "customer_id", "target_table": "account", "filter_field": "customer_id", "ordering_field": "created_at" }
+        ]
+      },
+      {
+        "name": "account",
+        "description": "Customer account details and balances.",
+        "alias": "Account",
+        "semantic_type": "account",
+        "caption_field": "account_ref",
+        "fields": [
+          { "name": "account_ref", "description": "Account reference, usually a phone-number-like wallet identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "customer_id", "description": "Customer that owns the account.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "account_type", "description": "Type of account.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "mobile_wallet", "label": "Mobile Wallet", "sort_order": 1 },
+            { "value": "bank_account", "label": "Bank Account", "sort_order": 2 },
+            { "value": "card_account", "label": "Card Account", "sort_order": 3 }
+          ] },
+          { "name": "account_status", "description": "Current account status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "active", "label": "Active", "sort_order": 1 },
+            { "value": "restricted", "label": "Restricted", "sort_order": 2 },
+            { "value": "suspended", "label": "Suspended", "sort_order": 3 },
+            { "value": "closed", "label": "Closed", "sort_order": 4 }
+          ] },
+          { "name": "currency", "description": "Account currency.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "GHS", "label": "Ghana Cedi", "sort_order": 1 },
+            { "value": "KES", "label": "Kenyan Shilling", "sort_order": 2 },
+            { "value": "RWF", "label": "Rwandan Franc", "sort_order": 3 },
+            { "value": "LRD", "label": "Liberian Dollar", "sort_order": 4 }
+          ] },
+          { "name": "country", "description": "Account country code.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "available_balance", "description": "Available account balance.", "data_type": "float", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "ledger_balance", "description": "Ledger account balance.", "data_type": "float", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "daily_limit", "description": "Daily transaction limit.", "data_type": "float", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "monthly_limit", "description": "Monthly transaction limit.", "data_type": "float", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "borrowing_limit", "description": "Borrowing limit for group contribution products.", "data_type": "float", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "last_login_at", "description": "Most recent login timestamp.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "last_transaction_at", "description": "Most recent transaction timestamp.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "last_profile_change_at", "description": "Most recent sensitive account profile change timestamp.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "created_at", "description": "Account creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["account_ref", "customer_id", "account_type", "account_status", "available_balance", "currency", "country"],
+          "field_order": ["account_ref", "customer_id", "account_type", "account_status", "currency", "country", "available_balance", "ledger_balance", "daily_limit", "monthly_limit", "borrowing_limit", "last_login_at", "last_transaction_at", "last_profile_change_at", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "account_ref", "target_table": "transaction", "filter_field": "account_ref", "ordering_field": "date" },
+          { "source_field": "account_ref", "target_table": "beneficiary", "filter_field": "account_ref", "ordering_field": "created_at" },
+          { "source_field": "account_ref", "target_table": "device", "filter_field": "account_ref", "ordering_field": "first_seen_at" }
+        ]
+      },
+      {
+        "name": "processor",
+        "description": "Payment processors and transaction gateways.",
+        "alias": "Processor",
+        "semantic_type": "processor",
+        "caption_field": "processor_name",
+        "fields": [
+          { "name": "processor_id", "description": "Unique processor identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "processor_name", "description": "Processor display name.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "genpay", "label": "Genpay", "sort_order": 1 },
+            { "value": "uniwallet", "label": "Uniwallet", "sort_order": 2 }
+          ] },
+          { "name": "processor_type", "description": "Processor type.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "mobile_money", "label": "Mobile Money", "sort_order": 1 },
+            { "value": "card_gateway", "label": "Card Gateway", "sort_order": 2 },
+            { "value": "bank_switch", "label": "Bank Switch", "sort_order": 3 }
+          ] },
+          { "name": "country", "description": "Primary operating country.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "status", "description": "Processor status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "active", "label": "Active", "sort_order": 1 },
+            { "value": "degraded", "label": "Degraded", "sort_order": 2 },
+            { "value": "disabled", "label": "Disabled", "sort_order": 3 }
+          ] },
+          { "name": "created_at", "description": "Processor creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["processor_id", "processor_name", "processor_type", "country", "status"],
+          "field_order": ["processor_id", "processor_name", "processor_type", "country", "status", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "processor_id", "target_table": "transaction", "filter_field": "processor_id", "ordering_field": "date" }
+        ]
+      },
+      {
+        "name": "merchant",
+        "description": "Merchants involved in payment processing.",
+        "alias": "Merchant",
+        "semantic_type": "merchant",
+        "caption_field": "merchant_name",
+        "fields": [
+          { "name": "merchant_id", "description": "Unique merchant identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "merchant_name", "description": "Merchant trading name.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "registered_business_name", "description": "Registered business name.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "business_registration_number", "description": "Business registration number.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "tin", "description": "Tax identification number.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "merchant_category", "description": "Merchant business category.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "mcc", "description": "Merchant category code.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "country", "description": "Merchant country code.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "region", "description": "Merchant region.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "city", "description": "Merchant city.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "settlement_account_ref", "description": "Merchant settlement account reference.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "settlement_bank", "description": "Merchant settlement bank.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "risk_rating", "description": "Merchant risk rating.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "low", "label": "Low", "sort_order": 1 },
+            { "value": "medium", "label": "Medium", "sort_order": 2 },
+            { "value": "high", "label": "High", "sort_order": 3 }
+          ] },
+          { "name": "merchant_status", "description": "Merchant status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "active", "label": "Active", "sort_order": 1 },
+            { "value": "restricted", "label": "Restricted", "sort_order": 2 },
+            { "value": "suspended", "label": "Suspended", "sort_order": 3 }
+          ] },
+          { "name": "onboarding_date", "description": "Merchant onboarding date.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "created_at", "description": "Merchant creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["merchant_id", "merchant_name", "merchant_category", "country", "risk_rating", "merchant_status"],
+          "field_order": ["merchant_id", "merchant_name", "registered_business_name", "business_registration_number", "tin", "merchant_category", "mcc", "country", "region", "city", "settlement_account_ref", "settlement_bank", "risk_rating", "merchant_status", "onboarding_date", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "merchant_id", "target_table": "transaction", "filter_field": "merchant_id", "ordering_field": "date" }
+        ]
+      },
+      {
+        "name": "beneficiary",
+        "description": "Recipients of customer payments and transfers.",
+        "alias": "Beneficiary",
+        "semantic_type": "beneficiary",
+        "caption_field": "beneficiary_name",
+        "fields": [
+          { "name": "beneficiary_id", "description": "Unique beneficiary identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "account_ref", "description": "Account that created or owns the beneficiary.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_name", "description": "Beneficiary name.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_account_ref", "description": "Beneficiary bank or wallet account reference.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_bank", "description": "Beneficiary bank name.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_wallet_network", "description": "Beneficiary mobile wallet network.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_type", "description": "Type of beneficiary.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "person", "label": "Person", "sort_order": 1 },
+            { "value": "merchant", "label": "Merchant", "sort_order": 2 },
+            { "value": "organization", "label": "Organization", "sort_order": 3 }
+          ] },
+          { "name": "country", "description": "Beneficiary country code.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "status", "description": "Beneficiary status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "active", "label": "Active", "sort_order": 1 },
+            { "value": "blocked", "label": "Blocked", "sort_order": 2 },
+            { "value": "deleted", "label": "Deleted", "sort_order": 3 }
+          ] },
+          { "name": "created_at", "description": "Beneficiary creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["beneficiary_id", "account_ref", "beneficiary_name", "beneficiary_account_ref", "beneficiary_type", "country", "status"],
+          "field_order": ["beneficiary_id", "account_ref", "beneficiary_name", "beneficiary_account_ref", "beneficiary_bank", "beneficiary_wallet_network", "beneficiary_type", "country", "status", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "beneficiary_id", "target_table": "transaction", "filter_field": "beneficiary_id", "ordering_field": "date" }
+        ]
+      },
+      {
+        "name": "device",
+        "description": "Devices used to access customer accounts.",
+        "alias": "Device",
+        "semantic_type": "device",
+        "caption_field": "device_fingerprint",
+        "fields": [
+          { "name": "device_id", "description": "Unique device identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "account_ref", "description": "Account associated with the device.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "customer_id", "description": "Customer associated with the device.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "device_fingerprint", "description": "Stable device fingerprint.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "device_type", "description": "Device type.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "android", "label": "Android", "sort_order": 1 },
+            { "value": "ios", "label": "iOS", "sort_order": 2 },
+            { "value": "web", "label": "Web", "sort_order": 3 },
+            { "value": "pos", "label": "POS", "sort_order": 4 }
+          ] },
+          { "name": "os", "description": "Operating system.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "browser", "description": "Browser name for web access.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "app_version", "description": "Application version.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "ip", "description": "Most recent device IP address.", "data_type": "ip_address", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "first_seen_at", "description": "First time this device was seen.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "last_seen_at", "description": "Most recent time this device was seen.", "data_type": "timestamp", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "is_trusted", "description": "Whether the device is trusted.", "data_type": "bool", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "risk_score", "description": "Device risk score.", "data_type": "int", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "created_at", "description": "Device record creation timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] }
+        ],
+        "options": {
+          "displayed_fields": ["device_id", "account_ref", "customer_id", "device_type", "ip", "is_trusted", "risk_score"],
+          "field_order": ["device_id", "account_ref", "customer_id", "device_fingerprint", "device_type", "os", "browser", "app_version", "ip", "first_seen_at", "last_seen_at", "is_trusted", "risk_score", "created_at"]
+        },
+        "navigation_options": [
+          { "source_field": "device_id", "target_table": "transaction", "filter_field": "device_id", "ordering_field": "date" }
+        ]
+      },
+      {
+        "name": "transaction",
+        "description": "Financial transactions for fraud monitoring.",
+        "alias": "Transaction",
+        "semantic_type": "transaction",
+        "caption_field": "transaction_id",
+        "fields": [
+          { "name": "transaction_id", "description": "Unique transaction identifier.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": true, "enum_values": [] },
+          { "name": "account_ref", "description": "Account reference for the customer initiating or receiving the transaction.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "processor_id", "description": "Processor handling the transaction.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "merchant_id", "description": "Merchant involved in the transaction.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "beneficiary_id", "description": "Beneficiary involved in the transaction.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "product_id", "description": "Product identifier associated with the transaction.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "device_id", "description": "Device used for the transaction.", "data_type": "string", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "date", "description": "Transaction event timestamp.", "data_type": "timestamp", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "amount", "description": "Transaction amount.", "data_type": "float", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "currency", "description": "Transaction currency.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "GHS", "label": "Ghana Cedi", "sort_order": 1 },
+            { "value": "KES", "label": "Kenyan Shilling", "sort_order": 2 },
+            { "value": "RWF", "label": "Rwandan Franc", "sort_order": 3 },
+            { "value": "LRD", "label": "Liberian Dollar", "sort_order": 4 }
+          ] },
+          { "name": "country", "description": "Transaction country code.", "data_type": "string", "nullable": false, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "channel", "description": "Transaction channel.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "card", "label": "Card", "sort_order": 1 },
+            { "value": "wallet", "label": "Wallet", "sort_order": 2 },
+            { "value": "bank", "label": "Bank", "sort_order": 3 }
+          ] },
+          { "name": "transaction_type", "description": "Business transaction type.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "contribution", "label": "Contribution", "sort_order": 1 },
+            { "value": "payment", "label": "Payment", "sort_order": 2 },
+            { "value": "transfer", "label": "Transfer", "sort_order": 3 },
+            { "value": "disbursement", "label": "Disbursement", "sort_order": 4 },
+            { "value": "cash_out", "label": "Cash Out", "sort_order": 5 },
+            { "value": "loan", "label": "Loan", "sort_order": 6 },
+            { "value": "repayment", "label": "Repayment", "sort_order": 7 }
+          ] },
+          { "name": "direction", "description": "Transaction direction.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "inbound", "label": "Inbound", "sort_order": 1 },
+            { "value": "outbound", "label": "Outbound", "sort_order": 2 }
+          ] },
+          { "name": "status", "description": "Transaction status.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "pending", "label": "Pending", "sort_order": 1 },
+            { "value": "successful", "label": "Successful", "sort_order": 2 },
+            { "value": "failed", "label": "Failed", "sort_order": 3 },
+            { "value": "reversed", "label": "Reversed", "sort_order": 4 },
+            { "value": "declined", "label": "Declined", "sort_order": 5 }
+          ] },
+          { "name": "ip", "description": "IP address observed for the transaction.", "data_type": "ip_address", "nullable": true, "is_enum": false, "is_unique": false, "enum_values": [] },
+          { "name": "system_type", "description": "System surface that originated the transaction.", "data_type": "string", "nullable": false, "is_enum": true, "is_unique": false, "enum_values": [
+            { "value": "mobile_app", "label": "Mobile App", "sort_order": 1 },
+            { "value": "web_app", "label": "Web App", "sort_order": 2 },
+            { "value": "pos_terminal", "label": "POS Terminal", "sort_order": 3 },
+            { "value": "api", "label": "API", "sort_order": 4 },
+            { "value": "back_office", "label": "Back Office", "sort_order": 5 },
+            { "value": "disbursement", "label": "Disbursement", "sort_order": 6 },
+            { "value": "cash_out", "label": "Cash Out", "sort_order": 7 }
+          ] }
+        ],
+        "options": {
+          "displayed_fields": ["transaction_id", "account_ref", "amount", "currency", "channel", "status", "date"],
+          "field_order": ["transaction_id", "account_ref", "processor_id", "merchant_id", "beneficiary_id", "product_id", "device_id", "date", "amount", "currency", "country", "channel", "transaction_type", "direction", "status", "ip", "system_type"]
+        },
+        "navigation_options": []
+      }
+    ],
+    "links": [
+      { "name": "customer_accounts", "parent_table": "customer", "parent_field": "customer_id", "child_table": "account", "child_field": "customer_id" },
+      { "name": "account_transactions", "parent_table": "account", "parent_field": "account_ref", "child_table": "transaction", "child_field": "account_ref" },
+      { "name": "processor_transactions", "parent_table": "processor", "parent_field": "processor_id", "child_table": "transaction", "child_field": "processor_id" },
+      { "name": "merchant_transactions", "parent_table": "merchant", "parent_field": "merchant_id", "child_table": "transaction", "child_field": "merchant_id" },
+      { "name": "beneficiary_transactions", "parent_table": "beneficiary", "parent_field": "beneficiary_id", "child_table": "transaction", "child_field": "beneficiary_id" },
+      { "name": "device_transactions", "parent_table": "device", "parent_field": "device_id", "child_table": "transaction", "child_field": "device_id" },
+      { "name": "account_beneficiaries", "parent_table": "account", "parent_field": "account_ref", "child_table": "beneficiary", "child_field": "account_ref" },
+      { "name": "account_devices", "parent_table": "account", "parent_field": "account_ref", "child_table": "device", "child_field": "account_ref" },
+      { "name": "customer_devices", "parent_table": "customer", "parent_field": "customer_id", "child_table": "device", "child_field": "customer_id" }
+    ],
+    "pivots": [
+      { "base_table": "transaction", "path_links": ["account_transactions"] },
+      { "base_table": "transaction", "path_links": ["account_transactions", "customer_accounts"] },
+      { "base_table": "transaction", "path_links": ["processor_transactions"] },
+      { "base_table": "transaction", "path_links": ["merchant_transactions"] },
+      { "base_table": "transaction", "path_links": ["beneficiary_transactions"] },
+      { "base_table": "transaction", "path_links": ["device_transactions"] },
+      { "base_table": "account", "path_links": ["customer_accounts"] },
+      { "base_table": "beneficiary", "path_links": ["account_beneficiaries"] },
+      { "base_table": "device", "path_links": ["account_devices"] },
+      { "base_table": "device", "path_links": ["customer_devices"] }
+    ]
+  }
+}

@@ -123,7 +123,7 @@ class ScenarioScalingHarness(RuleComplexityHarness):
             self.related_seed_count,
             self.config.scenario_threshold,
         )
-        if self.ingestion_database_url and (self.variant.seed_account or self.variant.seed_related_records):
+        if self.ingestion_database_url:
             await asyncio.to_thread(self.materialize_ingestion_schema, self.ingestion_database_url)
         await self.seed_variant_data(self.variant)
         if self.variant.seed_decision_history:

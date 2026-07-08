@@ -355,6 +355,10 @@ func (s scenarioDataModelReaderStub) ListIndexJobs(context.Context, string) ([]p
 	return nil, nil
 }
 
+func (s scenarioDataModelReaderStub) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
+	return ports.ManagedIndexJob{}, nil
+}
+
 func (s scenarioDataModelReaderStub) RetryIndexJob(context.Context, string) error {
 	return nil
 }

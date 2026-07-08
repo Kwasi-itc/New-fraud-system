@@ -15,11 +15,18 @@ import httpx
 from decision_throughput_limit import (
     Config as BaseConfig,
     Metrics,
-    ThroughputHarness,
     add_error,
     environment_metadata,
     format_optional,
     percentile,
+)
+from decision_rule_complexity_scaling import (
+    CHANNELS,
+    DOMAIN_ACCOUNTS,
+    DOMAIN_MERCHANTS,
+    DOMAIN_PRODUCTS,
+    PROCESSORS,
+    RuleComplexityHarness,
 )
 
 
@@ -35,6 +42,7 @@ class Config:
     decision_engine_url: str
     auth_token: str | None
     scenario_threshold: int
+    ingestion_database_url: str | None
 
 
 @dataclass
@@ -64,7 +72,7 @@ def to_base_config(config: Config) -> BaseConfig:
     )
 
 
-async def run_one_request(harness: ThroughputHarness, metrics: ClosedLoopMetrics, vu_id: int) -> None:
+async def run_one_request(harness: RuleComplexityHarness, metrics: ClosedLoopMetrics, vu_id: int) -> None:
     started_at = time.perf_counter()
     metrics.attempted += 1
     try:
@@ -89,7 +97,7 @@ async def run_one_request(harness: ThroughputHarness, metrics: ClosedLoopMetrics
 
 async def worker(
     vu_id: int,
-    harness: ThroughputHarness,
+    harness: RuleComplexityHarness,
     metrics: ClosedLoopMetrics,
     start_gate: asyncio.Event,
     deadline: float,
@@ -99,7 +107,7 @@ async def worker(
         await run_one_request(harness, metrics, vu_id)
 
 
-async def run_closed_loop(harness: ThroughputHarness, vus: int, duration_seconds: float) -> tuple[ClosedLoopMetrics, float]:
+async def run_closed_loop(harness: RuleComplexityHarness, vus: int, duration_seconds: float) -> tuple[ClosedLoopMetrics, float]:
     metrics = ClosedLoopMetrics()
     start_gate = asyncio.Event()
     started_at = time.perf_counter()
@@ -115,7 +123,7 @@ async def run_closed_loop(harness: ThroughputHarness, vus: int, duration_seconds
 
 def summarize_metrics(
     config: Config,
-    harness: ThroughputHarness,
+    harness: RuleComplexityHarness,
     metrics: ClosedLoopMetrics,
     elapsed_seconds: float,
 ) -> dict[str, Any]:
@@ -142,8 +150,16 @@ def summarize_metrics(
             "rules_per_scenario": 1,
             "rule_shape": "amount > scenario_threshold",
             "scenario_threshold": config.scenario_threshold,
+            "account_count": len(DOMAIN_ACCOUNTS),
+            "merchant_count": len(DOMAIN_MERCHANTS),
+            "product_count": len(DOMAIN_PRODUCTS),
+            "processors": PROCESSORS,
+            "channels": CHANNELS,
         },
-        "run": asdict(config) | {"auth_token": "set" if config.auth_token else None},
+        "run": asdict(config) | {
+            "auth_token": "set" if config.auth_token else None,
+            "ingestion_database_url": "set" if config.ingestion_database_url else None,
+        },
         "workload_counts": {
             "configured_vus": config.vus,
             "completed_evaluations": metrics.completed,
@@ -217,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
     parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
+    parser.add_argument("--ingestion-database-url", default=os.getenv("INGESTION_DATABASE_URL"))
     return parser
 
 
@@ -244,11 +261,17 @@ def parse_config() -> Config:
         decision_engine_url=args.decision_engine_url.rstrip("/"),
         auth_token=args.auth_token,
         scenario_threshold=args.scenario_threshold,
+        ingestion_database_url=args.ingestion_database_url,
     )
 
 
 async def run_trial(config: Config) -> dict[str, Any]:
-    harness = ThroughputHarness(to_base_config(config))
+    harness = RuleComplexityHarness(
+        to_base_config(config),
+        "baseline_payload",
+        related_seed_count=100,
+        ingestion_database_url=config.ingestion_database_url,
+    )
     try:
         print("bootstrapping tenant/model/scenario...")
         await harness.bootstrap()
