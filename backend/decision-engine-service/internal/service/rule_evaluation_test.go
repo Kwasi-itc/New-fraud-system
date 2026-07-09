@@ -178,6 +178,7 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 		nil,
 		asteval.AggregatePushdownModeEnabled,
 		nil,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
@@ -268,6 +269,7 @@ func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testi
 		nil,
 		asteval.AggregatePushdownModeEnabled,
 		nil,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
@@ -368,6 +370,9 @@ func (s ruleRepoStub) Create(context.Context, scenario.Rule) (scenario.Rule, err
 }
 func (s ruleRepoStub) ListByIteration(context.Context, string, string, string) ([]scenario.Rule, error) {
 	return s.rules, nil
+}
+func (s ruleRepoStub) ListRuleGroupsByScenario(context.Context, string, string) ([]string, error) {
+	return nil, nil
 }
 func (s ruleRepoStub) GetByID(context.Context, string, string, string, string) (scenario.Rule, error) {
 	return scenario.Rule{}, nil

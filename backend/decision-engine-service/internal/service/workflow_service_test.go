@@ -371,13 +371,28 @@ type nilScheduledExecutionRepository []struct{}
 func (nilScheduledExecutionRepository) Create(context.Context, execution.ScheduledExecution) (execution.ScheduledExecution, error) {
 	return execution.ScheduledExecution{}, nil
 }
+func (nilScheduledExecutionRepository) GetByID(context.Context, string, string, string) (execution.ScheduledExecution, error) {
+	return execution.ScheduledExecution{}, nil
+}
 func (nilScheduledExecutionRepository) ListByScenario(context.Context, string, string) ([]execution.ScheduledExecution, error) {
+	return nil, nil
+}
+func (nilScheduledExecutionRepository) CountByStatus(context.Context, string, string) (map[execution.Status]int, error) {
 	return nil, nil
 }
 func (nilScheduledExecutionRepository) ListDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
 	return nil, nil
 }
+func (nilScheduledExecutionRepository) ClaimDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
+	return nil, nil
+}
 func (nilScheduledExecutionRepository) UpdateStatus(context.Context, string, execution.Status) error {
+	return nil
+}
+func (nilScheduledExecutionRepository) RecordAttemptFailure(context.Context, string, execution.Status, *time.Time, string, *time.Time) error {
+	return nil
+}
+func (nilScheduledExecutionRepository) ResetForRetry(context.Context, string, execution.Status) error {
 	return nil
 }
 
@@ -386,13 +401,28 @@ type nilAsyncDecisionExecutionRepository []struct{}
 func (nilAsyncDecisionExecutionRepository) Create(context.Context, execution.AsyncDecisionExecution) (execution.AsyncDecisionExecution, error) {
 	return execution.AsyncDecisionExecution{}, nil
 }
+func (nilAsyncDecisionExecutionRepository) GetByID(context.Context, string, string) (execution.AsyncDecisionExecution, error) {
+	return execution.AsyncDecisionExecution{}, nil
+}
 func (nilAsyncDecisionExecutionRepository) ListByTenant(context.Context, string) ([]execution.AsyncDecisionExecution, error) {
+	return nil, nil
+}
+func (nilAsyncDecisionExecutionRepository) CountByStatus(context.Context, string) (map[execution.Status]int, error) {
 	return nil, nil
 }
 func (nilAsyncDecisionExecutionRepository) ListQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
 	return nil, nil
 }
+func (nilAsyncDecisionExecutionRepository) ClaimQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
+	return nil, nil
+}
 func (nilAsyncDecisionExecutionRepository) UpdateStatus(context.Context, string, execution.Status) error {
+	return nil
+}
+func (nilAsyncDecisionExecutionRepository) RecordAttemptFailure(context.Context, string, execution.Status, *time.Time, string, *time.Time) error {
+	return nil
+}
+func (nilAsyncDecisionExecutionRepository) ResetForRetry(context.Context, string, execution.Status) error {
 	return nil
 }
 
@@ -418,6 +448,9 @@ func (nilCustomListRepository) Create(context.Context, platform.CustomListEntry)
 }
 func (nilCustomListRepository) ListEntriesByListID(context.Context, string, string) ([]platform.CustomListEntry, error) {
 	return nil, nil
+}
+func (nilCustomListRepository) UpdateEntry(context.Context, platform.CustomListEntry) (platform.CustomListEntry, error) {
+	return platform.CustomListEntry{}, nil
 }
 func (nilCustomListRepository) RenameEntriesByListID(context.Context, string, string, string) error {
 	return nil
@@ -597,6 +630,9 @@ func (nilRuleRepository) Create(context.Context, scenario.Rule) (scenario.Rule, 
 	return scenario.Rule{}, nil
 }
 func (nilRuleRepository) ListByIteration(context.Context, string, string, string) ([]scenario.Rule, error) {
+	return nil, nil
+}
+func (nilRuleRepository) ListRuleGroupsByScenario(context.Context, string, string) ([]string, error) {
 	return nil, nil
 }
 func (nilRuleRepository) GetByID(context.Context, string, string, string, string) (scenario.Rule, error) {

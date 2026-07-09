@@ -20,10 +20,33 @@ Current configuration knobs:
 - `WORKER_MODE`
   - allowed values: `batch`, `poll`
   - default: `batch`
+- `WORKER_TASKS`
+  - comma-separated worker task selection
+  - supported values: `scheduled`, `async`, `workflow_dispatch`, `screening_dispatch`, `scoring_dispatch`, `outbox`
+  - default: all supported worker tasks enabled
+- `WORKER_TASK_PRIORITIES`
+  - comma-separated `task:priority` entries
+  - lower numeric value means higher processing priority
+  - tasks not overridden use built-in defaults
 - `WORKER_POLL_INTERVAL`
   - default: `15s`
 - `WORKER_BATCH_LIMIT`
   - default: `100`
+- `SCHEDULED_EXECUTION_MAX_ATTEMPTS`
+  - default: `3`
+- `SCHEDULED_EXECUTION_RETRY_BACKOFF`
+  - default: `30s`
+- `ASYNC_EXECUTION_MAX_ATTEMPTS`
+  - default: `3`
+- `ASYNC_EXECUTION_RETRY_BACKOFF`
+  - default: `30s`
+- `LIVE_DECISION_CONCURRENCY_LIMIT`
+  - default: `0`
+  - `0` disables the live-path concurrency gate
+  - values greater than `0` reject excess realtime decision requests with `429`
+- `LIVE_ASYNC_FALLBACK_ENABLED`
+  - default: `false`
+  - when enabled, overloaded realtime decision requests are deferred into async execution instead of being rejected
 
 ### Current worker responsibilities
 
@@ -35,6 +58,163 @@ Each worker cycle processes:
 - pending screening executions
 - pending scoring requests
 - pending outbox events
+
+### Current worker topology and ownership
+
+The worker task groups and their owned responsibility are:
+
+- `scheduled`
+  - claims and runs due scheduled decision executions
+- `async`
+  - claims and runs queued async decision executions
+- `workflow_dispatch`
+  - dispatches persisted workflow execution intent
+- `screening_dispatch`
+  - dispatches persisted screening executions to providers
+- `scoring_dispatch`
+  - dispatches persisted scoring requests to providers
+- `outbox`
+  - publishes persisted outbox events
+
+Deployments can run all task groups together or split them by `WORKER_TASKS` for targeted worker shapes.
+
+### Current worker runtime visibility
+
+Each worker cycle now emits per-task runtime state in logs, including:
+
+- run count
+- failure count
+- last duration
+- last success time
+- last failure time
+- last error
+
+### Current worker task priority model
+
+Default task priority order is:
+
+1. `async`
+2. `scheduled`
+3. `workflow_dispatch`
+4. `screening_dispatch`
+5. `scoring_dispatch`
+6. `outbox`
+
+This order can be overridden with `WORKER_TASK_PRIORITIES`.
+
+### Current execution retry behavior
+
+- scheduled executions and async decision executions increment `attempt_count` when claimed
+- failed executions are automatically retried with exponential backoff based on the configured base delay
+- once `max_attempts` is reached, execution status becomes `failed` and `failed_at` is recorded
+- queued and pending execution claims only pick rows whose `next_attempt_at` is due
+
+### Current execution deduplication behavior
+
+- scheduled and async decision execution creation accepts an optional `idempotency_key`
+- when the same tenant submits the same `idempotency_key` again, the service returns the existing execution row instead of creating a duplicate
+- recurring scheduled executions continue to preserve uniqueness by schedule time and source
+
+### Current execution lifecycle events
+
+Deferred execution state changes now emit outbox events:
+
+- `scheduled_execution.queued`
+- `scheduled_execution.retry_scheduled`
+- `scheduled_execution.completed`
+- `scheduled_execution.failed`
+- `async_decision_execution.queued`
+- `async_decision_execution.retry_scheduled`
+- `async_decision_execution.completed`
+- `async_decision_execution.failed`
+
+## 1.1 Realtime overload protection
+
+The synchronous decision endpoints can now apply an explicit live concurrency cap.
+
+Current behavior:
+
+- `POST /v1/tenants/:tenantId/scenarios/:scenarioId/evaluate`
+- `POST /v1/tenants/:tenantId/decisions`
+- `POST /v1/tenants/:tenantId/decisions/all`
+- `POST /v1/tenants/:tenantId/ingestion-events/record-ingested`
+
+All share the same in-process non-blocking gate when `LIVE_DECISION_CONCURRENCY_LIMIT` is configured.
+
+If the limit is reached:
+
+- when `LIVE_ASYNC_FALLBACK_ENABLED=false`, the request is rejected immediately with `429`
+- when `LIVE_ASYNC_FALLBACK_ENABLED=true`, the request is accepted as an async decision execution and returns `202`
+
+### Current sync vs deferred workload split
+
+- synchronous by default:
+  - direct single-scenario evaluation
+  - direct all-live-scenarios evaluation
+  - ingestion-triggered all-live-scenarios evaluation
+- deferred by explicit API:
+  - async decision executions
+  - scheduled executions
+- deferred under overload when async fallback is enabled:
+  - single-scenario decision creation and evaluation
+  - all-live-scenarios decision creation
+  - ingestion-triggered fan-out evaluation
+
+### Current synchronous side effects review
+
+The live decision path still does these synchronously:
+
+- scenario lookup and live-iteration lookup
+- rule evaluation
+- decision persistence
+- rule execution persistence
+- creation of workflow execution records
+- creation of screening execution records
+- creation of scoring request records
+- creation of deferred execution lifecycle outbox events
+
+The live decision path does not synchronously do these side effects:
+
+- workflow external dispatch
+- screening provider dispatch
+- scoring provider dispatch
+- outbox publication delivery
+
+### Caching and queueing stance
+
+- in-memory caching is used for hot evaluation metadata and repeated reads
+- async execution, scheduled work, and dispatch use the worker/job path
+- Redis is not the default execution queue for decision processing
+- Redis should only be introduced where a measured hot-path cache benefit is clear
+
+### Cache invalidation rules
+
+- scenario and iteration metadata caches are short-lived and TTL-based
+- publishing or changing live scenario state relies on the short TTL window rather than explicit distributed cache busting
+- tenant model caching is also TTL-based and assumes model changes must tolerate that short propagation window
+- a stronger distributed invalidation mechanism is deferred until a measured consistency need justifies the extra complexity
+
+### Webhook and screening-enrichment scope
+
+- decision-engine-service does not currently own generic webhook dispatch or delivery as a first-class runtime path
+- workflow side effects are dispatched through the workflow-action integration path
+- explicit webhook delivery infrastructure remains outside the current service boundary
+- rich screening enrichment is not a current live-path runtime feature; provider-side orchestration remains the owning boundary
+
+### Payload offloading stance
+
+- V1 does not enable payload offloading for execution, rule-evaluation, screening, or scoring payloads by default
+- offloading should only be introduced after measured row-size, storage-growth, or query-cost pressure
+- the current design keeps this as a deliberate deferred capability, not an accidental omission
+
+### Benchmark rollout process
+
+Before enabling a new optimization class broadly:
+
+1. run focused package tests for the touched path
+2. run the existing stress-test or benchmark harness for that path in isolation
+3. compare baseline latency and throughput against the pre-change numbers
+4. only keep the optimization enabled by default if it improves the measured workload without causing correctness regressions
 
 ### V1 decision
 

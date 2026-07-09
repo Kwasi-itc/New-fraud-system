@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
+	"golang.org/x/sync/errgroup"
 )
 
 type DecisionEvaluationRequest struct {
@@ -53,35 +55,37 @@ type DBPoolStats struct {
 type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
-	txManager                   ports.TransactionManager
-	idGen                       ports.IDGenerator
-	clock                       ports.Clock
-	dataModelReader             ports.DataModelReader
-	scenarioRepo                ports.ScenarioRepository
-	iterationRepo               ports.ScenarioIterationRepository
-	ruleRepo                    ports.RuleRepository
-	tenantDataReader            ports.TenantDataReader
-	decisionRepo                ports.DecisionRepository
-	ruleExecRepo                ports.RuleExecutionRepository
-	workflowRepo                ports.WorkflowRepository
-	workflowRuleRepo            ports.WorkflowRuleRepository
-	workflowCondRepo            ports.WorkflowConditionRepository
-	workflowActionRepo          ports.WorkflowActionRepository
-	workflowExecRepo            ports.WorkflowExecutionRepository
-	snoozeRepo                  ports.RuleSnoozeRepository
-	outboxRepo                  ports.OutboxEventRepository
-	customListRepo              ports.CustomListRepository
-	recordTagRepo               ports.RecordTagRepository
-	riskRepo                    ports.RiskSnapshotRepository
-	ipFlagRepo                  ports.IPFlagRepository
-	screeningConfigRepo         ports.ScreeningConfigRepository
-	screeningExecRepo           ports.ScreeningExecutionRepository
-	scoringConfigRepo           ports.ScoringConfigRepository
-	scoringRequestRepo          ports.ScoringRequestRepository
-	aggregatePushdownMode       string
-	aggregatePushdownAggregates []string
-	evaluationCache             *decisionEvaluationCache
-	dbPoolStatsProvider         DBPoolStatsProvider
+	txManager                     ports.TransactionManager
+	idGen                         ports.IDGenerator
+	clock                         ports.Clock
+	dataModelReader               ports.DataModelReader
+	scenarioRepo                  ports.ScenarioRepository
+	iterationRepo                 ports.ScenarioIterationRepository
+	ruleRepo                      ports.RuleRepository
+	tenantDataReader              ports.TenantDataReader
+	decisionRepo                  ports.DecisionRepository
+	ruleExecRepo                  ports.RuleExecutionRepository
+	workflowRepo                  ports.WorkflowRepository
+	workflowRuleRepo              ports.WorkflowRuleRepository
+	workflowCondRepo              ports.WorkflowConditionRepository
+	workflowActionRepo            ports.WorkflowActionRepository
+	workflowExecRepo              ports.WorkflowExecutionRepository
+	snoozeRepo                    ports.RuleSnoozeRepository
+	outboxRepo                    ports.OutboxEventRepository
+	customListRepo                ports.CustomListRepository
+	recordTagRepo                 ports.RecordTagRepository
+	riskRepo                      ports.RiskSnapshotRepository
+	ipFlagRepo                    ports.IPFlagRepository
+	screeningConfigRepo           ports.ScreeningConfigRepository
+	screeningExecRepo             ports.ScreeningExecutionRepository
+	scoringConfigRepo             ports.ScoringConfigRepository
+	scoringRequestRepo            ports.ScoringRequestRepository
+	aggregatePushdownMode         string
+	aggregatePushdownAggregates   []string
+	ruleEvaluationConcurrency     int
+	scenarioEvaluationConcurrency int
+	evaluationCache               *decisionEvaluationCache
+	dbPoolStatsProvider           DBPoolStatsProvider
 }
 
 func NewDecisionService(
@@ -112,38 +116,42 @@ func NewDecisionService(
 	scoringRequestRepo ports.ScoringRequestRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	ruleEvaluationConcurrency int,
+	scenarioEvaluationConcurrency int,
 	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
 	return DecisionService{
-		txManager:                   txManager,
-		idGen:                       idGen,
-		clock:                       clock,
-		dataModelReader:             dataModelReader,
-		scenarioRepo:                scenarioRepo,
-		iterationRepo:               iterationRepo,
-		ruleRepo:                    ruleRepo,
-		tenantDataReader:            tenantDataReader,
-		decisionRepo:                decisionRepo,
-		ruleExecRepo:                ruleExecRepo,
-		workflowRepo:                workflowRepo,
-		workflowRuleRepo:            workflowRuleRepo,
-		workflowCondRepo:            workflowCondRepo,
-		workflowActionRepo:          workflowActionRepo,
-		workflowExecRepo:            workflowExecRepo,
-		snoozeRepo:                  snoozeRepo,
-		outboxRepo:                  outboxRepo,
-		customListRepo:              customListRepo,
-		recordTagRepo:               recordTagRepo,
-		riskRepo:                    riskRepo,
-		ipFlagRepo:                  ipFlagRepo,
-		screeningConfigRepo:         screeningConfigRepo,
-		screeningExecRepo:           screeningExecRepo,
-		scoringConfigRepo:           scoringConfigRepo,
-		scoringRequestRepo:          scoringRequestRepo,
-		aggregatePushdownMode:       aggregatePushdownMode,
-		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
-		evaluationCache:             newDecisionEvaluationCache(decisionEvaluationCacheTTL),
-		dbPoolStatsProvider:         dbPoolStatsProvider,
+		txManager:                     txManager,
+		idGen:                         idGen,
+		clock:                         clock,
+		dataModelReader:               dataModelReader,
+		scenarioRepo:                  scenarioRepo,
+		iterationRepo:                 iterationRepo,
+		ruleRepo:                      ruleRepo,
+		tenantDataReader:              tenantDataReader,
+		decisionRepo:                  decisionRepo,
+		ruleExecRepo:                  ruleExecRepo,
+		workflowRepo:                  workflowRepo,
+		workflowRuleRepo:              workflowRuleRepo,
+		workflowCondRepo:              workflowCondRepo,
+		workflowActionRepo:            workflowActionRepo,
+		workflowExecRepo:              workflowExecRepo,
+		snoozeRepo:                    snoozeRepo,
+		outboxRepo:                    outboxRepo,
+		customListRepo:                customListRepo,
+		recordTagRepo:                 recordTagRepo,
+		riskRepo:                      riskRepo,
+		ipFlagRepo:                    ipFlagRepo,
+		screeningConfigRepo:           screeningConfigRepo,
+		screeningExecRepo:             screeningExecRepo,
+		scoringConfigRepo:             scoringConfigRepo,
+		scoringRequestRepo:            scoringRequestRepo,
+		aggregatePushdownMode:         aggregatePushdownMode,
+		aggregatePushdownAggregates:   append([]string(nil), aggregatePushdownAggregates...),
+		ruleEvaluationConcurrency:     ruleEvaluationConcurrency,
+		scenarioEvaluationConcurrency: scenarioEvaluationConcurrency,
+		evaluationCache:               newDecisionEvaluationCache(decisionEvaluationCacheTTL),
+		dbPoolStatsProvider:           dbPoolStatsProvider,
 	}
 }
 
@@ -227,7 +235,7 @@ func (s DecisionService) evaluateScenario(
 		markTiming("record_get")
 	}
 	currentStage = "tenant_model_get"
-	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	model, err := s.getTenantModel(ctx, tenantID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -293,7 +301,7 @@ func (s DecisionService) evaluateScenario(
 	}
 	decisionID := s.idGen.New().String()
 	currentStage = "rules_eval"
-	evaluatedRules, err := evaluateRules(ctx, rules, runtime, activeSnoozeGroups, 0)
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, activeSnoozeGroups, s.ruleEvaluationConcurrency)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -564,6 +572,23 @@ func (s DecisionService) getRules(ctx context.Context, tenantID, scenarioID, ite
 	return items, nil
 }
 
+func (s DecisionService) getTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if item, ok := s.evaluationCache.getTenantModel(tenantID, now); ok {
+			return item, nil
+		}
+	}
+	item, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	if err != nil {
+		return ports.TenantModel{}, err
+	}
+	if s.evaluationCache != nil {
+		s.evaluationCache.setTenantModel(tenantID, item, now)
+	}
+	return item, nil
+}
+
 func (s DecisionService) getWorkflowRules(ctx context.Context, tenantID, scenarioID string) ([]workflow.Rule, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
@@ -638,6 +663,7 @@ type decisionEvaluationCache struct {
 	scenarios              map[string]cachedScenario
 	iterations             map[string]cachedIteration
 	rules                  map[string]cachedRules
+	tenantModels           map[string]cachedTenantModel
 	workflowRules          map[string]cachedWorkflowRules
 	activeWorkflows        map[string]cachedWorkflows
 	activeScreeningConfigs map[string]cachedScreeningConfigs
@@ -656,6 +682,11 @@ type cachedIteration struct {
 
 type cachedRules struct {
 	items     []scenarioDomain.Rule
+	expiresAt time.Time
+}
+
+type cachedTenantModel struct {
+	item      ports.TenantModel
 	expiresAt time.Time
 }
 
@@ -685,6 +716,7 @@ func newDecisionEvaluationCache(ttl time.Duration) *decisionEvaluationCache {
 		scenarios:              map[string]cachedScenario{},
 		iterations:             map[string]cachedIteration{},
 		rules:                  map[string]cachedRules{},
+		tenantModels:           map[string]cachedTenantModel{},
 		workflowRules:          map[string]cachedWorkflowRules{},
 		activeWorkflows:        map[string]cachedWorkflows{},
 		activeScreeningConfigs: map[string]cachedScreeningConfigs{},
@@ -744,6 +776,25 @@ func (c *decisionEvaluationCache) setRules(tenantID, scenarioID, iterationID str
 	c.mu.Lock()
 	c.rules[iterationCacheKey(tenantID, scenarioID, iterationID)] = cachedRules{
 		items:     cloneScenarioRules(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
+}
+
+func (c *decisionEvaluationCache) getTenantModel(tenantID string, now time.Time) (ports.TenantModel, bool) {
+	c.mu.RLock()
+	entry, ok := c.tenantModels[tenantID]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return ports.TenantModel{}, false
+	}
+	return cloneTenantModel(entry.item), true
+}
+
+func (c *decisionEvaluationCache) setTenantModel(tenantID string, item ports.TenantModel, now time.Time) {
+	c.mu.Lock()
+	c.tenantModels[tenantID] = cachedTenantModel{
+		item:      cloneTenantModel(item),
 		expiresAt: now.Add(c.ttl),
 	}
 	c.mu.Unlock()
@@ -858,6 +909,30 @@ func cloneScenarioRules(items []scenarioDomain.Rule) []scenarioDomain.Rule {
 	return out
 }
 
+func cloneTenantModel(item ports.TenantModel) ports.TenantModel {
+	out := ports.TenantModel{
+		RevisionID:        item.RevisionID,
+		RecordLookupField: item.RecordLookupField,
+		Tables:            make(map[string]ports.TenantModelTable, len(item.Tables)),
+	}
+	for name, table := range item.Tables {
+		clonedTable := ports.TenantModelTable{
+			ID:            table.ID,
+			Name:          table.Name,
+			Fields:        make(map[string]ports.TenantModelField, len(table.Fields)),
+			LinksToSingle: make(map[string]ports.TenantModelLink, len(table.LinksToSingle)),
+		}
+		for fieldName, field := range table.Fields {
+			clonedTable.Fields[fieldName] = field
+		}
+		for linkName, link := range table.LinksToSingle {
+			clonedTable.LinksToSingle[linkName] = link
+		}
+		out.Tables[name] = clonedTable
+	}
+	return out
+}
+
 func cloneWorkflowRules(items []workflow.Rule) []workflow.Rule {
 	return append([]workflow.Rule(nil), items...)
 }
@@ -929,18 +1004,54 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 
 	results := MultiScenarioEvaluationResult{
 		ObjectID: req.ObjectID,
-		Results:  make([]DecisionEvaluationResult, 0, len(scenarios)),
+		Results:  make([]DecisionEvaluationResult, len(scenarios)),
 	}
 	evalCache := asteval.NewEvaluationCache()
 	evaluationNow := s.clock.Now()
-	for _, scn := range scenarios {
-		result, err := s.evaluateScenario(ctx, tenantID, scn.ID, req, evalCache, evaluationNow)
-		if err != nil {
-			return MultiScenarioEvaluationResult{}, err
-		}
-		results.Results = append(results.Results, result)
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(resolveScenarioEvaluationConcurrency(s.scenarioEvaluationConcurrency, len(scenarios)))
+	for i, scn := range scenarios {
+		i := i
+		scn := scn
+		group.Go(func() error {
+			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, evaluationNow)
+			if err != nil {
+				return err
+			}
+			results.Results[i] = result
+			return nil
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return MultiScenarioEvaluationResult{}, err
 	}
 	return results, nil
+}
+
+const defaultScenarioEvaluationConcurrency = 4
+
+func resolveScenarioEvaluationConcurrency(configured, scenarioCount int) int {
+	if scenarioCount <= 0 {
+		return 1
+	}
+	if configured > 0 {
+		if configured > scenarioCount {
+			return scenarioCount
+		}
+		return configured
+	}
+	limit := defaultScenarioEvaluationConcurrency
+	if cpuCount := runtime.GOMAXPROCS(0); cpuCount > 0 && cpuCount < limit {
+		limit = cpuCount
+	}
+	if limit > scenarioCount {
+		limit = scenarioCount
+	}
+	if limit < 1 {
+		return 1
+	}
+	return limit
 }
 
 func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime) ([]workflow.Execution, error) {

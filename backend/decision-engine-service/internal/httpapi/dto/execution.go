@@ -10,6 +10,7 @@ import (
 
 type CreateScheduledExecutionRequest struct {
 	ScheduledFor   time.Time                 `json:"scheduled_for"`
+	IdempotencyKey string                    `json:"idempotency_key"`
 	Items          []EvaluateDecisionRequest `json:"items"`
 	CandidateLimit int                       `json:"candidate_limit"`
 }
@@ -26,44 +27,65 @@ type RecurringScheduleRequest struct {
 }
 
 type RecurringScheduleResponse struct {
-	Enabled        bool   `json:"enabled"`
-	Frequency      string `json:"frequency"`
-	TimeOfDay      string `json:"time_of_day"`
-	MinuteOfHour   int    `json:"minute_of_hour"`
-	DayOfWeek      string `json:"day_of_week"`
-	DayOfMonth     int    `json:"day_of_month"`
-	Timezone       string `json:"timezone"`
-	CandidateLimit int    `json:"candidate_limit"`
+	Enabled        bool       `json:"enabled"`
+	Frequency      string     `json:"frequency"`
+	TimeOfDay      string     `json:"time_of_day"`
+	MinuteOfHour   int        `json:"minute_of_hour"`
+	DayOfWeek      string     `json:"day_of_week"`
+	DayOfMonth     int        `json:"day_of_month"`
+	Timezone       string     `json:"timezone"`
+	CandidateLimit int        `json:"candidate_limit"`
 	NextRun        *time.Time `json:"next_run,omitempty"`
 	LastRun        *time.Time `json:"last_run,omitempty"`
 }
 
 type ScheduledExecutionResponse struct {
-	ID                  string    `json:"id"`
-	TenantID            string    `json:"tenant_id"`
-	ScenarioID          string    `json:"scenario_id"`
-	ScenarioIterationID string    `json:"scenario_iteration_id"`
-	Source              string    `json:"source"`
-	Status              string    `json:"status"`
-	ScheduledFor        time.Time `json:"scheduled_for"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	ScenarioID          string          `json:"scenario_id"`
+	ScenarioIterationID string          `json:"scenario_iteration_id"`
+	Source              string          `json:"source"`
+	Status              string          `json:"status"`
+	IdempotencyKey      string          `json:"idempotency_key,omitempty"`
+	AttemptCount        int             `json:"attempt_count"`
+	MaxAttempts         int             `json:"max_attempts"`
+	ScheduledFor        time.Time       `json:"scheduled_for"`
+	NextAttemptAt       *time.Time      `json:"next_attempt_at,omitempty"`
 	RequestBody         json.RawMessage `json:"request_body"`
-	CreatedAt           time.Time `json:"created_at"`
+	LastError           string          `json:"last_error"`
+	CreatedAt           time.Time       `json:"created_at"`
+	FailedAt            *time.Time      `json:"failed_at,omitempty"`
 }
 
 type CreateAsyncDecisionExecutionRequest struct {
-	ScenarioID string                    `json:"scenario_id"`
-	ObjectType string                    `json:"object_type"`
-	Items      []EvaluateDecisionRequest `json:"items"`
+	ScenarioID     string                    `json:"scenario_id"`
+	ObjectType     string                    `json:"object_type"`
+	IdempotencyKey string                    `json:"idempotency_key"`
+	Items          []EvaluateDecisionRequest `json:"items"`
 }
 
 type AsyncDecisionExecutionResponse struct {
-	ID          string    `json:"id"`
-	TenantID    string    `json:"tenant_id"`
-	ScenarioID  string    `json:"scenario_id"`
-	ObjectType  string    `json:"object_type"`
-	Status      string    `json:"status"`
-	RequestBody json.RawMessage `json:"request_body"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID             string          `json:"id"`
+	TenantID       string          `json:"tenant_id"`
+	ScenarioID     string          `json:"scenario_id"`
+	ObjectType     string          `json:"object_type"`
+	Status         string          `json:"status"`
+	IdempotencyKey string          `json:"idempotency_key,omitempty"`
+	AttemptCount   int             `json:"attempt_count"`
+	MaxAttempts    int             `json:"max_attempts"`
+	NextAttemptAt  *time.Time      `json:"next_attempt_at,omitempty"`
+	RequestBody    json.RawMessage `json:"request_body"`
+	LastError      string          `json:"last_error"`
+	CreatedAt      time.Time       `json:"created_at"`
+	FailedAt       *time.Time      `json:"failed_at,omitempty"`
+}
+
+type ExecutionStatusSummaryResponse struct {
+	Pending   int `json:"pending"`
+	Queued    int `json:"queued"`
+	Running   int `json:"running"`
+	Completed int `json:"completed"`
+	Failed    int `json:"failed"`
 }
 
 func AdaptScheduledExecution(item execution.ScheduledExecution) ScheduledExecutionResponse {
@@ -74,21 +96,43 @@ func AdaptScheduledExecution(item execution.ScheduledExecution) ScheduledExecuti
 		ScenarioIterationID: item.ScenarioIterationID,
 		Source:              string(item.Source),
 		Status:              string(item.Status),
+		IdempotencyKey:      item.IdempotencyKey,
+		AttemptCount:        item.AttemptCount,
+		MaxAttempts:         item.MaxAttempts,
 		ScheduledFor:        item.ScheduledFor,
+		NextAttemptAt:       item.NextAttemptAt,
 		RequestBody:         item.RequestBody,
+		LastError:           item.LastError,
 		CreatedAt:           item.CreatedAt,
+		FailedAt:            item.FailedAt,
 	}
 }
 
 func AdaptAsyncDecisionExecution(item execution.AsyncDecisionExecution) AsyncDecisionExecutionResponse {
 	return AsyncDecisionExecutionResponse{
-		ID:          item.ID,
-		TenantID:    item.TenantID,
-		ScenarioID:  item.ScenarioID,
-		ObjectType:  item.ObjectType,
-		Status:      string(item.Status),
-		RequestBody: item.RequestBody,
-		CreatedAt:   item.CreatedAt,
+		ID:             item.ID,
+		TenantID:       item.TenantID,
+		ScenarioID:     item.ScenarioID,
+		ObjectType:     item.ObjectType,
+		Status:         string(item.Status),
+		IdempotencyKey: item.IdempotencyKey,
+		AttemptCount:   item.AttemptCount,
+		MaxAttempts:    item.MaxAttempts,
+		NextAttemptAt:  item.NextAttemptAt,
+		RequestBody:    item.RequestBody,
+		LastError:      item.LastError,
+		CreatedAt:      item.CreatedAt,
+		FailedAt:       item.FailedAt,
+	}
+}
+
+func AdaptExecutionStatusSummary(item service.ExecutionStatusSummary) ExecutionStatusSummaryResponse {
+	return ExecutionStatusSummaryResponse{
+		Pending:   item.Pending,
+		Queued:    item.Queued,
+		Running:   item.Running,
+		Completed: item.Completed,
+		Failed:    item.Failed,
 	}
 }
 
@@ -102,9 +146,10 @@ func AdaptAsyncExecutionRequest(req CreateAsyncDecisionExecutionRequest) service
 		}
 	}
 	return service.AsyncDecisionExecutionRequest{
-		ScenarioID: req.ScenarioID,
-		ObjectType: req.ObjectType,
-		Items:      items,
+		ScenarioID:     req.ScenarioID,
+		ObjectType:     req.ObjectType,
+		IdempotencyKey: req.IdempotencyKey,
+		Items:          items,
 	}
 }
 
@@ -117,7 +162,7 @@ func AdaptScheduledExecutionRequest(req CreateScheduledExecutionRequest) service
 			Fields:     item.Fields,
 		}
 	}
-	return service.ScheduledExecutionRequest{Items: items, CandidateLimit: req.CandidateLimit}
+	return service.ScheduledExecutionRequest{Items: items, CandidateLimit: req.CandidateLimit, IdempotencyKey: req.IdempotencyKey}
 }
 
 func AdaptRecurringScheduleRequest(req RecurringScheduleRequest) service.RecurringScheduleConfig {

@@ -30,14 +30,22 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		AuthMode:                    cfg.ServiceAuthMode,
-		AuthToken:                   cfg.ServiceAuthToken,
-		AllowedOrigins:              cfg.ServiceAllowedOrigins,
-		DataModelServiceURL:         cfg.DataModelServiceURL,
-		IngestionServiceURL:         cfg.IngestionServiceURL,
-		HTTPClientTimeout:           cfg.HTTPClientTimeout,
-		AggregatePushdownMode:       cfg.AggregatePushdownMode,
-		AggregatePushdownAggregates: cfg.AggregatePushdownAggregates,
+		AuthMode:                       cfg.ServiceAuthMode,
+		AuthToken:                      cfg.ServiceAuthToken,
+		AllowedOrigins:                 cfg.ServiceAllowedOrigins,
+		DataModelServiceURL:            cfg.DataModelServiceURL,
+		IngestionServiceURL:            cfg.IngestionServiceURL,
+		HTTPClientTimeout:              cfg.HTTPClientTimeout,
+		AggregatePushdownMode:          cfg.AggregatePushdownMode,
+		AggregatePushdownAggregates:    cfg.AggregatePushdownAggregates,
+		LiveDecisionConcurrencyLimit:   cfg.LiveDecisionConcurrencyLimit,
+		LiveAsyncFallbackEnabled:       cfg.LiveAsyncFallbackEnabled,
+		RuleEvaluationConcurrency:      cfg.RuleEvaluationConcurrency,
+		ScenarioEvaluationConcurrency:  cfg.ScenarioEvaluationConcurrency,
+		ScheduledExecutionMaxAttempts:  cfg.ScheduledExecutionMaxAttempts,
+		ScheduledExecutionRetryBackoff: cfg.ScheduledExecutionRetryBackoff,
+		AsyncExecutionMaxAttempts:      cfg.AsyncExecutionMaxAttempts,
+		AsyncExecutionRetryBackoff:     cfg.AsyncExecutionRetryBackoff,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

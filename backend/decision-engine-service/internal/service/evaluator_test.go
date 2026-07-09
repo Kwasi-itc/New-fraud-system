@@ -86,6 +86,10 @@ func (s stubCustomListRepo) ListEntriesByListID(ctx context.Context, tenantID, l
 	return nil, nil
 }
 
+func (s stubCustomListRepo) UpdateEntry(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
+	return item, nil
+}
+
 func (s stubCustomListRepo) RenameEntriesByListID(ctx context.Context, tenantID, listID, listName string) error {
 	return nil
 }

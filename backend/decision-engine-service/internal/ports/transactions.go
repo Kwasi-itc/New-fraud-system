@@ -187,15 +187,24 @@ type ScheduledExecutionRepository interface {
 	Create(ctx context.Context, item execution.ScheduledExecution) (execution.ScheduledExecution, error)
 	GetByID(ctx context.Context, tenantID, scenarioID, executionID string) (execution.ScheduledExecution, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]execution.ScheduledExecution, error)
+	CountByStatus(ctx context.Context, tenantID, scenarioID string) (map[execution.Status]int, error)
 	ListDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error)
+	ClaimDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error)
 	UpdateStatus(ctx context.Context, id string, status execution.Status) error
+	RecordAttemptFailure(ctx context.Context, id string, status execution.Status, nextAttemptAt *time.Time, lastError string, failedAt *time.Time) error
+	ResetForRetry(ctx context.Context, id string, status execution.Status) error
 }
 
 type AsyncDecisionExecutionRepository interface {
 	Create(ctx context.Context, item execution.AsyncDecisionExecution) (execution.AsyncDecisionExecution, error)
+	GetByID(ctx context.Context, tenantID, executionID string) (execution.AsyncDecisionExecution, error)
 	ListByTenant(ctx context.Context, tenantID string) ([]execution.AsyncDecisionExecution, error)
+	CountByStatus(ctx context.Context, tenantID string) (map[execution.Status]int, error)
 	ListQueued(ctx context.Context, limit int) ([]execution.AsyncDecisionExecution, error)
+	ClaimQueued(ctx context.Context, limit int) ([]execution.AsyncDecisionExecution, error)
 	UpdateStatus(ctx context.Context, id string, status execution.Status) error
+	RecordAttemptFailure(ctx context.Context, id string, status execution.Status, nextAttemptAt *time.Time, lastError string, failedAt *time.Time) error
+	ResetForRetry(ctx context.Context, id string, status execution.Status) error
 }
 
 type ScreeningConfigRepository interface {
