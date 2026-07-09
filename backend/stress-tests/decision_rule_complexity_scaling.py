@@ -5,9 +5,11 @@ import asyncio
 import importlib.util
 import json
 import os
+import random
 import statistics
 import time
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -31,12 +33,73 @@ from decision_throughput_limit import (
 DEFAULT_VARIANTS = [
     "baseline_payload",
     "nested_payload",
-    "custom_list",
+    "custom_list_related_fuzzy",
     "related_field",
     "decision_history",
     "related_records_count",
-    "aggregate_count_pushdown",
+    "aggregate_count",
+    "aggregate_velocity",
     "mixed_heavy",
+]
+
+PROCESSORS = ["genpay", "uniwallet"]
+CHANNELS = ["card", "wallet", "bank"]
+MERCHANT_BLACKLIST = ["Sankofa Betting House", "Volta Crypto Exchange", "Accra Gold Deals"]
+VELOCITY_WINDOW_DAYS = 7
+VELOCITY_AMOUNT_THRESHOLD = 5_000
+DOMAIN_ACCOUNTS = [
+    {"account_ref": "2332416370369", "customer_name": "Ama Mensah", "account_status": "active", "risk_tier": "standard"},
+    {"account_ref": "2332448891021", "customer_name": "Kojo Boateng", "account_status": "active", "risk_tier": "high"},
+    {"account_ref": "2332094517780", "customer_name": "Esi Owusu", "account_status": "active", "risk_tier": "standard"},
+]
+DOMAIN_MERCHANTS = [
+    {
+        "merchant_id": "dbb82c30-d9df-4c9c-bf96-5be052f644e8",
+        "merchant_name": "Sankofa Betting House Ltd",
+        "merchant_category": "gaming",
+        "merchant_status": "active",
+        "risk_tier": "high",
+    },
+    {
+        "merchant_id": "87399a0b-ad5b-4c37-a6bb-49fca821184f",
+        "merchant_name": "Makola Grocery Mart",
+        "merchant_category": "retail",
+        "merchant_status": "active",
+        "risk_tier": "standard",
+    },
+    {
+        "merchant_id": "0ba8209b-92dc-4ef9-93a8-dcebb067fe09",
+        "merchant_name": "Volta Crypto Exchange GH",
+        "merchant_category": "crypto",
+        "merchant_status": "active",
+        "risk_tier": "high",
+    },
+]
+DOMAIN_PRODUCTS = [
+    {
+        "product_id": "2ae50a9e-0487-4436-a11a-cb486a04c168",
+        "product_name": "Mobile Wallet Cashout",
+        "product_type": "wallet",
+        "risk_category": "medium",
+        "status": "active",
+        "daily_limit": 5_000,
+    },
+    {
+        "product_id": "68fcb1f7-6bf8-466f-9a89-a4d2c5c00f48",
+        "product_name": "Merchant Card Collection",
+        "product_type": "card",
+        "risk_category": "standard",
+        "status": "active",
+        "daily_limit": 10_000,
+    },
+    {
+        "product_id": "c1349cef-e96f-4af8-82b4-4e83990843f7",
+        "product_name": "Instant Bank Transfer",
+        "product_type": "bank",
+        "risk_category": "high",
+        "status": "active",
+        "daily_limit": 20_000,
+    },
 ]
 
 
@@ -128,23 +191,40 @@ def filter_node(table_name: str, field_name: str, operator: str, value: dict[str
     return fn("Filter", **named)
 
 
-def related_records_node(object_type: str, owner_id: str, limit: int) -> dict[str, Any]:
+def time_add_node(timestamp_field: dict[str, Any], duration: str, sign: str) -> dict[str, Any]:
+    return fn("TimeAdd", timestampField=timestamp_field, duration=const(duration), sign=const(sign))
+
+
+def related_records_node(object_type: str, merchant_id: str, limit: int) -> dict[str, Any]:
     return fn(
         "related_records",
         object_type=const(object_type),
-        match_field=const("owner_id"),
-        equals=const(owner_id),
+        match_field=const("merchant_id"),
+        equals=const(merchant_id),
         limit=const(limit),
     )
 
 
-def aggregate_count_node(object_type: str, owner_id: str) -> dict[str, Any]:
+def aggregate_count_node(object_type: str, merchant_id: str) -> dict[str, Any]:
     return fn(
         "Aggregator",
         tableName=const(object_type),
-        fieldName=const("object_id"),
+        fieldName=const("transaction_id"),
         aggregator=const("COUNT"),
-        filters=list_node(),
+        filters=list_node(filter_node(object_type, "merchant_id", "=", const(merchant_id))),
+    )
+
+
+def aggregate_velocity_node(object_type: str, merchant_id: str) -> dict[str, Any]:
+    return fn(
+        "Aggregator",
+        tableName=const(object_type),
+        fieldName=const("amount"),
+        aggregator=const("SUM"),
+        filters=list_node(
+            filter_node(object_type, "merchant_id", "=", const(merchant_id)),
+            filter_node(object_type, "date", ">=", time_add_node(field("date"), f"P{VELOCITY_WINDOW_DAYS}D", "-")),
+        ),
     )
 
 
@@ -154,43 +234,61 @@ def nested_payload_formula(limit: int) -> dict[str, Any]:
         gt(field("amount"), const(limit)),
         fn(
             "or",
-            eq(field("status"), const("pending")),
-            eq(field("status"), const("review")),
+            eq(field("processor"), const("genpay")),
+            eq(field("processor"), const("uniwallet")),
         ),
-        fn("not", eq(field("country"), const("blocked"))),
-        fn("contains", fn("lower", field("email")), const("@example.com")),
-        fn("starts_with", field("merchant"), const("ITC")),
-        fn("ends_with", fn("lower", field("email")), const(".com")),
+        fn("in", field("channel"), list_node(const("card"), const("wallet"), const("bank"))),
+        eq(field("currency"), const("GHS")),
+        eq(field("country"), const("GH")),
+        fn("contains", field("transaction_id"), field("processor")),
     )
 
 
-def custom_list_formula() -> dict[str, Any]:
-    return fn("in_custom_list", list=const("blocked_emails"), value=fn("lower", field("email")))
+def custom_list_related_fuzzy_formula() -> dict[str, Any]:
+    return gte(
+        fn(
+            "FuzzyMatchAnyOf",
+            fn("related_field", path=const("merchant"), field=const("merchant_name")),
+            list_node(*(const(value) for value in MERCHANT_BLACKLIST)),
+            algorithm=const("bag_of_words_similarity"),
+        ),
+        const(80),
+    )
 
 
 def related_field_formula() -> dict[str, Any]:
-    return eq(fn("related_field", path=const("account"), field=const("account_status")), const("active"))
+    return fn(
+        "and",
+        eq(fn("related_field", path=const("account"), field=const("account_status")), const("active")),
+        eq(fn("related_field", path=const("merchant"), field=const("merchant_status")), const("active")),
+        eq(fn("related_field", path=const("product"), field=const("status")), const("active")),
+    )
 
 
 def decision_history_formula() -> dict[str, Any]:
     return gte(fn("past_decision_count", outcome=const("review")), const(1))
 
 
-def related_records_count_formula(object_type: str, owner_id: str, seed_count: int) -> dict[str, Any]:
-    return gte(fn("list_count", related_records_node(object_type, owner_id, seed_count + 10)), const(seed_count))
+def related_records_count_formula(object_type: str, merchant_id: str, seed_count: int) -> dict[str, Any]:
+    return gte(fn("list_count", related_records_node(object_type, merchant_id, seed_count + 10)), const(seed_count))
 
 
-def aggregate_count_formula(object_type: str, owner_id: str, seed_count: int) -> dict[str, Any]:
-    return gte(aggregate_count_node(object_type, owner_id), const(seed_count))
+def aggregate_count_formula(object_type: str, merchant_id: str, seed_count: int) -> dict[str, Any]:
+    return gte(aggregate_count_node(object_type, merchant_id), const(seed_count))
 
 
-def mixed_heavy_formula(object_type: str, owner_id: str, seed_count: int) -> dict[str, Any]:
+def aggregate_velocity_formula(object_type: str, merchant_id: str) -> dict[str, Any]:
+    return gte(aggregate_velocity_node(object_type, merchant_id), const(VELOCITY_AMOUNT_THRESHOLD))
+
+
+def mixed_heavy_formula(object_type: str, merchant_id: str, seed_count: int) -> dict[str, Any]:
     return fn(
         "and",
         nested_payload_formula(1000),
-        custom_list_formula(),
+        custom_list_related_fuzzy_formula(),
         related_field_formula(),
-        gte(aggregate_count_node(object_type, owner_id), const(seed_count)),
+        aggregate_count_formula(object_type, merchant_id, seed_count),
+        aggregate_velocity_formula(object_type, merchant_id),
     )
 
 
@@ -241,6 +339,8 @@ class RuleComplexityHarness(ThroughputHarness):
         self.ingestion_database_url = ingestion_database_url
         self.history_object_pool_size = history_object_pool_size
         self.account_object_type = ""
+        self.merchant_object_type = ""
+        self.product_object_type = ""
         self.owner_id = f"owner_{variant_name}_{unique_name('seed')}"
         self.stable_object_id = f"{variant_name}_target_{unique_name('object')}"
         self.history_object_ids: list[str] = []
@@ -248,6 +348,12 @@ class RuleComplexityHarness(ThroughputHarness):
         self.seeded_counts: dict[str, int] = {}
         self.variant: VariantDefinition | None = None
         self.model_fields_by_table: dict[str, list[dict[str, Any]]] = {}
+        self.domain_accounts = DOMAIN_ACCOUNTS
+        self.domain_merchants = DOMAIN_MERCHANTS
+        self.domain_products = DOMAIN_PRODUCTS
+        self.primary_merchant_id = DOMAIN_MERCHANTS[0]["merchant_id"]
+        self.current_time = datetime(2025, 1, 30, 12, 0, 28, tzinfo=timezone.utc)
+        self.random = random.Random(f"{variant_name}:{related_seed_count}")
 
     async def bootstrap(self) -> None:
         await self.wait_until_ready(self.data_model, "data-model")
@@ -267,7 +373,7 @@ class RuleComplexityHarness(ThroughputHarness):
         await self.request(self.data_model, "POST", f"/v1/tenants/{self.tenant_id}/provision", 200)
         await self.bootstrap_model()
         self.variant = build_variant(self.variant_name, self.object_type, self.owner_id, self.related_seed_count, self.config.scenario_threshold)
-        if self.ingestion_database_url and (self.variant.seed_account or self.variant.seed_related_records):
+        if self.ingestion_database_url:
             await asyncio.to_thread(self.materialize_ingestion_schema, self.ingestion_database_url)
         await self.seed_variant_data(self.variant)
         if self.variant.seed_decision_history:
@@ -303,30 +409,78 @@ class RuleComplexityHarness(ThroughputHarness):
                 },
             )
         )["table"]
+        merchants = (
+            await self.request(
+                self.data_model,
+                "POST",
+                f"/v1/tenants/{self.tenant_id}/tables",
+                201,
+                json={
+                    "name": unique_name("merchants"),
+                    "description": "Rule complexity merchant table",
+                    "alias": "Merchants",
+                    "semantic_type": "entity",
+                },
+            )
+        )["table"]
+        products = (
+            await self.request(
+                self.data_model,
+                "POST",
+                f"/v1/tenants/{self.tenant_id}/tables",
+                201,
+                json={
+                    "name": unique_name("products"),
+                    "description": "Rule complexity product table",
+                    "alias": "Products",
+                    "semantic_type": "entity",
+                },
+            )
+        )["table"]
         self.object_type = transactions["name"]
         self.account_object_type = accounts["name"]
+        self.merchant_object_type = merchants["name"]
+        self.product_object_type = products["name"]
 
         fields: dict[str, dict[str, Any]] = {}
         for item in [
-            {"name": "amount", "data_type": "int", "nullable": False},
+            {"name": "account_ref", "data_type": "string", "nullable": False},
             {
-                "name": "status",
+                "name": "processor",
                 "data_type": "string",
                 "nullable": False,
                 "is_enum": True,
                 "enum_values": [
-                    {"value": "pending", "label": "Pending", "sort_order": 10},
-                    {"value": "review", "label": "Review", "sort_order": 20},
+                    {"value": "genpay", "label": "Genpay", "sort_order": 10},
+                    {"value": "uniwallet", "label": "Uniwallet", "sort_order": 20},
                 ],
             },
-            {"name": "account_id", "data_type": "string", "nullable": True},
-            {"name": "ip", "data_type": "ip_address", "nullable": True},
-            {"name": "merchant", "data_type": "string", "nullable": False},
-            {"name": "email", "data_type": "string", "nullable": False},
+            {"name": "merchant_id", "data_type": "string", "nullable": False},
+            {"name": "product_id", "data_type": "string", "nullable": False},
+            {"name": "transaction_id", "data_type": "string", "nullable": False, "is_unique": True},
+            {"name": "date", "data_type": "timestamp", "nullable": False},
+            {"name": "amount", "data_type": "int", "nullable": False},
+            {
+                "name": "currency",
+                "data_type": "string",
+                "nullable": False,
+                "is_enum": True,
+                "enum_values": [
+                    {"value": "GHS", "label": "Ghanaian cedi", "sort_order": 10},
+                ],
+            },
             {"name": "country", "data_type": "string", "nullable": False},
-            {"name": "owner_id", "data_type": "string", "nullable": True},
-            {"name": "event_time", "data_type": "timestamp", "nullable": True},
-            {"name": "note", "data_type": "string", "nullable": True},
+            {
+                "name": "channel",
+                "data_type": "string",
+                "nullable": False,
+                "is_enum": True,
+                "enum_values": [
+                    {"value": "card", "label": "Card", "sort_order": 10},
+                    {"value": "wallet", "label": "Wallet", "sort_order": 20},
+                    {"value": "bank", "label": "Bank", "sort_order": 30},
+                ],
+            },
         ]:
             created = (
                 await self.request(self.data_model, "POST", f"/v1/tables/{transactions['id']}/fields", 201, json=item)
@@ -339,23 +493,51 @@ class RuleComplexityHarness(ThroughputHarness):
                 "POST",
                 f"/v1/tables/{accounts['id']}/fields",
                 201,
-                json={"name": "account_key", "data_type": "string", "nullable": False, "is_unique": True},
+                json={"name": "account_ref", "data_type": "string", "nullable": False, "is_unique": True},
             )
         )["field"]
-        await self.request(
-            self.data_model,
-            "POST",
-            f"/v1/tables/{accounts['id']}/fields",
-            201,
-            json={"name": "account_status", "data_type": "string", "nullable": False},
-        )
-        await self.request(
-            self.data_model,
-            "POST",
-            f"/v1/tables/{accounts['id']}/fields",
-            201,
-            json={"name": "owner_id", "data_type": "string", "nullable": True},
-        )
+        for item in [
+            {"name": "customer_name", "data_type": "string", "nullable": False},
+            {"name": "account_status", "data_type": "string", "nullable": False},
+            {"name": "risk_tier", "data_type": "string", "nullable": False},
+        ]:
+            await self.request(self.data_model, "POST", f"/v1/tables/{accounts['id']}/fields", 201, json=item)
+
+        merchant_key = (
+            await self.request(
+                self.data_model,
+                "POST",
+                f"/v1/tables/{merchants['id']}/fields",
+                201,
+                json={"name": "merchant_id", "data_type": "string", "nullable": False, "is_unique": True},
+            )
+        )["field"]
+        for item in [
+            {"name": "merchant_name", "data_type": "string", "nullable": False},
+            {"name": "merchant_category", "data_type": "string", "nullable": False},
+            {"name": "merchant_status", "data_type": "string", "nullable": False},
+            {"name": "risk_tier", "data_type": "string", "nullable": False},
+            {"name": "country", "data_type": "string", "nullable": False},
+        ]:
+            await self.request(self.data_model, "POST", f"/v1/tables/{merchants['id']}/fields", 201, json=item)
+
+        product_key = (
+            await self.request(
+                self.data_model,
+                "POST",
+                f"/v1/tables/{products['id']}/fields",
+                201,
+                json={"name": "product_id", "data_type": "string", "nullable": False, "is_unique": True},
+            )
+        )["field"]
+        for item in [
+            {"name": "product_name", "data_type": "string", "nullable": False},
+            {"name": "product_type", "data_type": "string", "nullable": False},
+            {"name": "risk_category", "data_type": "string", "nullable": False},
+            {"name": "status", "data_type": "string", "nullable": False},
+            {"name": "daily_limit", "data_type": "int", "nullable": False},
+        ]:
+            await self.request(self.data_model, "POST", f"/v1/tables/{products['id']}/fields", 201, json=item)
         await self.request(
             self.data_model,
             "POST",
@@ -366,26 +548,69 @@ class RuleComplexityHarness(ThroughputHarness):
                 "parent_table_id": accounts["id"],
                 "parent_field_id": account_key["id"],
                 "child_table_id": transactions["id"],
-                "child_field_id": fields["account_id"]["id"],
+                "child_field_id": fields["account_ref"]["id"],
+            },
+        )
+        await self.request(
+            self.data_model,
+            "POST",
+            f"/v1/tenants/{self.tenant_id}/links",
+            201,
+            json={
+                "name": "merchant",
+                "parent_table_id": merchants["id"],
+                "parent_field_id": merchant_key["id"],
+                "child_table_id": transactions["id"],
+                "child_field_id": fields["merchant_id"]["id"],
+            },
+        )
+        await self.request(
+            self.data_model,
+            "POST",
+            f"/v1/tenants/{self.tenant_id}/links",
+            201,
+            json={
+                "name": "product",
+                "parent_table_id": products["id"],
+                "parent_field_id": product_key["id"],
+                "child_table_id": transactions["id"],
+                "child_field_id": fields["product_id"]["id"],
             },
         )
         self.model_fields_by_table = {
             self.object_type: [
+                {"name": "account_ref", "data_type": "string", "is_unique": False},
+                {"name": "processor", "data_type": "string", "is_unique": False},
+                {"name": "merchant_id", "data_type": "string", "is_unique": False},
+                {"name": "product_id", "data_type": "string", "is_unique": False},
+                {"name": "transaction_id", "data_type": "string", "is_unique": True},
+                {"name": "date", "data_type": "timestamp", "is_unique": False},
                 {"name": "amount", "data_type": "int", "is_unique": False},
-                {"name": "status", "data_type": "string", "is_unique": False},
-                {"name": "account_id", "data_type": "string", "is_unique": False},
-                {"name": "ip", "data_type": "ip_address", "is_unique": False},
-                {"name": "merchant", "data_type": "string", "is_unique": False},
-                {"name": "email", "data_type": "string", "is_unique": False},
+                {"name": "currency", "data_type": "string", "is_unique": False},
                 {"name": "country", "data_type": "string", "is_unique": False},
-                {"name": "owner_id", "data_type": "string", "is_unique": False},
-                {"name": "event_time", "data_type": "timestamp", "is_unique": False},
-                {"name": "note", "data_type": "string", "is_unique": False},
+                {"name": "channel", "data_type": "string", "is_unique": False},
             ],
             self.account_object_type: [
-                {"name": "account_key", "data_type": "string", "is_unique": True},
+                {"name": "account_ref", "data_type": "string", "is_unique": True},
+                {"name": "customer_name", "data_type": "string", "is_unique": False},
                 {"name": "account_status", "data_type": "string", "is_unique": False},
-                {"name": "owner_id", "data_type": "string", "is_unique": False},
+                {"name": "risk_tier", "data_type": "string", "is_unique": False},
+            ],
+            self.merchant_object_type: [
+                {"name": "merchant_id", "data_type": "string", "is_unique": True},
+                {"name": "merchant_name", "data_type": "string", "is_unique": False},
+                {"name": "merchant_category", "data_type": "string", "is_unique": False},
+                {"name": "merchant_status", "data_type": "string", "is_unique": False},
+                {"name": "risk_tier", "data_type": "string", "is_unique": False},
+                {"name": "country", "data_type": "string", "is_unique": False},
+            ],
+            self.product_object_type: [
+                {"name": "product_id", "data_type": "string", "is_unique": True},
+                {"name": "product_name", "data_type": "string", "is_unique": False},
+                {"name": "product_type", "data_type": "string", "is_unique": False},
+                {"name": "risk_category", "data_type": "string", "is_unique": False},
+                {"name": "status", "data_type": "string", "is_unique": False},
+                {"name": "daily_limit", "data_type": "int", "is_unique": False},
             ],
         }
 
@@ -434,37 +659,67 @@ class RuleComplexityHarness(ThroughputHarness):
                                     sql.Identifier(field_def["name"]),
                                 )
                             )
+                    if table_name == self.object_type:
+                        cur.execute(
+                            sql.SQL("CREATE INDEX IF NOT EXISTS {} ON {} ({})").format(
+                                sql.Identifier(f"{table_name}_updated_at_idx"),
+                                table_ident,
+                                sql.Identifier("updated_at"),
+                            )
+                        )
+                        cur.execute(
+                            sql.SQL("CREATE INDEX IF NOT EXISTS {} ON {} ({}, {}) INCLUDE ({})").format(
+                                sql.Identifier(f"{table_name}_merchant_date_amount_idx"),
+                                table_ident,
+                                sql.Identifier("merchant_id"),
+                                sql.Identifier("date"),
+                                sql.Identifier("amount"),
+                            )
+                        )
             conn.commit()
 
     async def seed_variant_data(self, variant: VariantDefinition) -> None:
-        account_key = self.account_key()
-        if variant.seed_account:
-            await self.ingest(self.account_object_type, {
-                "object_id": account_key,
-                "account_key": account_key,
-                "account_status": "active",
-                "owner_id": self.owner_id,
-            })
-            self.seeded_counts["accounts"] = 1
+        await self.seed_domain_objects()
         if variant.seed_custom_list:
-            await self.request(
-                self.decision_engine,
-                "POST",
-                f"/v1/tenants/{self.tenant_id}/platform/custom-list-entries",
-                201,
-                json={"list_name": "blocked_emails", "value": "risk@example.com"},
-            )
-            self.seeded_counts["custom_list_entries"] = 1
+            for value in MERCHANT_BLACKLIST:
+                await self.request(
+                    self.decision_engine,
+                    "POST",
+                    f"/v1/tenants/{self.tenant_id}/platform/custom-list-entries",
+                    201,
+                    json={"list_name": "blocked_merchant_names", "value": value},
+                )
+            self.seeded_counts["custom_list_entries"] = len(MERCHANT_BLACKLIST)
         if variant.seed_related_records:
             rows = []
             for index in range(self.related_seed_count):
                 payload = self.payload(f"seed_{index}_{unique_name('txn')}")
                 payload["amount"] = 100 + index
-                payload["owner_id"] = self.owner_id
-                payload["status"] = "pending"
+                payload["merchant_id"] = self.primary_merchant_id
                 rows.append(payload)
             await self.ingest_batch(self.object_type, rows)
             self.seeded_counts["related_records"] = len(rows)
+
+    async def seed_domain_objects(self) -> None:
+        if "accounts" not in self.seeded_counts:
+            for account in self.domain_accounts:
+                await self.ingest(self.account_object_type, {"object_id": account["account_ref"], **account})
+            self.seeded_counts["accounts"] = len(self.domain_accounts)
+        if "merchants" not in self.seeded_counts:
+            for merchant in self.domain_merchants:
+                await self.ingest(
+                    self.merchant_object_type,
+                    {
+                        "object_id": merchant["merchant_id"],
+                        "country": "GH",
+                        **merchant,
+                    },
+                )
+            self.seeded_counts["merchants"] = len(self.domain_merchants)
+        if "products" not in self.seeded_counts:
+            for product in self.domain_products:
+                await self.ingest(self.product_object_type, {"object_id": product["product_id"], **product})
+            self.seeded_counts["products"] = len(self.domain_products)
 
     async def bootstrap_scenario(self, variant: VariantDefinition) -> None:
         scenario = (
@@ -569,17 +824,32 @@ class RuleComplexityHarness(ThroughputHarness):
         self.seeded_counts["seed_scenarios"] = self.seeded_counts.get("seed_scenarios", 0) + 1
 
     def account_key(self) -> str:
-        return f"acct_{self.owner_id}"
+        return self.domain_accounts[0]["account_ref"]
+
+    def next_domain_time(self) -> str:
+        self.current_time += timedelta(seconds=self.random.randint(60 * 60, 2 * 24 * 60 * 60))
+        return self.current_time.isoformat().replace("+00:00", "Z")
 
     def payload(self, object_id: str) -> dict[str, Any]:
-        payload = record_payload(object_id=object_id, amount=self.config.amount)
-        payload["account_id"] = self.account_key()
-        payload["owner_id"] = self.owner_id
-        payload["email"] = "risk@example.com"
-        payload["merchant"] = "ITC Market"
-        payload["country"] = "gh"
-        payload["status"] = "pending"
-        return payload
+        account = self.random.choice(self.domain_accounts)
+        merchant = self.random.choice(self.domain_merchants)
+        product = self.random.choice(self.domain_products)
+        processor = self.random.choice(PROCESSORS)
+        channel = self.random.choice(CHANNELS)
+        transaction_id = f"{channel}__{processor}__{object_id}"
+        return {
+            "object_id": object_id,
+            "account_ref": account["account_ref"],
+            "processor": processor,
+            "merchant_id": merchant["merchant_id"],
+            "product_id": product["product_id"],
+            "transaction_id": transaction_id,
+            "date": self.next_domain_time(),
+            "amount": self.config.amount,
+            "currency": "GHS",
+            "country": "GH",
+            "channel": channel,
+        }
 
     async def ingest(self, object_type: str, payload: dict[str, Any]) -> None:
         await self.ingest_with_schema_retry(f"/v1/tenants/{self.tenant_id}/ingest/{object_type}", payload)
@@ -641,15 +911,16 @@ def build_variant(name: str, object_type: str, owner_id: str, related_seed_count
             description="Nested payload-only logical rule.",
             formula=nested_payload_formula(threshold),
         ),
-        "custom_list": VariantDefinition(
-            name="custom_list",
-            description="Custom list membership lookup against email.",
-            formula=custom_list_formula(),
+        "custom_list_related_fuzzy": VariantDefinition(
+            name="custom_list_related_fuzzy",
+            description="Related merchant name fuzzy match against merchant blacklist custom list.",
+            formula=custom_list_related_fuzzy_formula(),
             seed_custom_list=True,
+            seed_account=True,
         ),
         "related_field": VariantDefinition(
             name="related_field",
-            description="Related account traversal and field read.",
+            description="Related account, merchant, and product traversal and field reads.",
             formula=related_field_formula(),
             seed_account=True,
         ),
@@ -663,19 +934,31 @@ def build_variant(name: str, object_type: str, owner_id: str, related_seed_count
         "related_records_count": VariantDefinition(
             name="related_records_count",
             description="List related records and count owner matches.",
-            formula=related_records_count_formula(object_type, owner_id, related_seed_count),
+            formula=related_records_count_formula(object_type, DOMAIN_MERCHANTS[0]["merchant_id"], related_seed_count),
+            seed_related_records=True,
+        ),
+        "aggregate_count": VariantDefinition(
+            name="aggregate_count",
+            description="Aggregate count of seeded transactions for the same merchant.",
+            formula=aggregate_count_formula(object_type, DOMAIN_MERCHANTS[0]["merchant_id"], related_seed_count),
             seed_related_records=True,
         ),
         "aggregate_count_pushdown": VariantDefinition(
             name="aggregate_count_pushdown",
-            description="Remote aggregate count over seeded transaction records.",
-            formula=aggregate_count_formula(object_type, owner_id, related_seed_count),
+            description="Deprecated alias for aggregate_count.",
+            formula=aggregate_count_formula(object_type, DOMAIN_MERCHANTS[0]["merchant_id"], related_seed_count),
+            seed_related_records=True,
+        ),
+        "aggregate_velocity": VariantDefinition(
+            name="aggregate_velocity",
+            description="Aggregate sum of merchant transaction amount over a seven-day velocity window.",
+            formula=aggregate_velocity_formula(object_type, DOMAIN_MERCHANTS[0]["merchant_id"]),
             seed_related_records=True,
         ),
         "mixed_heavy": VariantDefinition(
             name="mixed_heavy",
-            description="Nested payload, custom list, related field, and aggregate count.",
-            formula=mixed_heavy_formula(object_type, owner_id, related_seed_count),
+            description="Nested payload, merchant blacklist fuzzy match, related fields, aggregate count, and velocity.",
+            formula=mixed_heavy_formula(object_type, DOMAIN_MERCHANTS[0]["merchant_id"], related_seed_count),
             seed_account=True,
             seed_custom_list=True,
             seed_related_records=True,
@@ -771,6 +1054,14 @@ def summarize_trial(
             "rules_per_scenario": 1,
             "seeded_counts": harness.seeded_counts,
             "related_seed_count": config.related_seed_count,
+            "account_count": len(harness.domain_accounts),
+            "merchant_count": len(harness.domain_merchants),
+            "product_count": len(harness.domain_products),
+            "processors": PROCESSORS,
+            "channels": CHANNELS,
+            "merchant_blacklist_entries": len(MERCHANT_BLACKLIST),
+            "velocity_window_days": VELOCITY_WINDOW_DAYS,
+            "velocity_amount_threshold": VELOCITY_AMOUNT_THRESHOLD,
             "stable_object_id": variant.stable_object_id,
             "history_object_pool_size": config.history_object_pool_size if variant.seed_decision_history else 0,
         },

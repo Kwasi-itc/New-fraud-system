@@ -22,7 +22,7 @@ from decision_throughput_limit import (
 
 
 DEFAULT_DATA_SIZES = [100, 1000, 10000, 100000]
-DEFAULT_VARIANTS = ["aggregate_count_pushdown", "mixed_heavy"]
+DEFAULT_VARIANTS = ["aggregate_count", "aggregate_velocity", "mixed_heavy"]
 
 
 @dataclass(frozen=True)

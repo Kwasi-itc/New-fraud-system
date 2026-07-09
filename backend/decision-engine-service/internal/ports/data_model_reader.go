@@ -17,6 +17,7 @@ type ManagedIndexJob struct {
 }
 
 type TenantModelTable struct {
+	ID            string
 	Name          string
 	Fields        map[string]TenantModelField
 	LinksToSingle map[string]TenantModelLink
@@ -37,6 +38,7 @@ type TenantModelLink struct {
 
 type DataModelReader interface {
 	GetTenantModel(ctx context.Context, tenantID string) (TenantModel, error)
+	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
 	RetryIndexJob(ctx context.Context, jobID string) error
 }

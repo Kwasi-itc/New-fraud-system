@@ -10,16 +10,22 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-from marble_decision_throughput_limit import (
-    Config as BaseConfig,
-    MarbleThroughputHarness,
+from marble_scaling_common import (
+    CHANNELS,
+    DOMAIN_ACCOUNTS,
+    DOMAIN_MERCHANTS,
+    DOMAIN_PRODUCTS,
+    MarbleClient,
+    MarbleScalingHarness,
+    PROCESSORS,
     Metrics,
-    add_error,
     environment_metadata,
+    firebase_login,
     format_optional,
+    latency_summary,
+    per_vu_summary,
     percentile,
+    run_closed_loop,
 )
 
 
@@ -32,9 +38,13 @@ class Config:
     timeout_seconds: float
     output: str
     api_url: str
-    api_key: str
-    scenario_id: str
-    seed_parent_records: bool
+    api_key: str | None
+    admin_token: str | None
+    admin_email: str | None
+    admin_password: str | None
+    firebase_auth_url: str
+    firebase_api_key: str
+    scenario_threshold: float
 
 
 @dataclass
@@ -47,85 +57,10 @@ class ClosedLoopMetrics(Metrics):
             self.per_vu_successes = {}
 
 
-def to_base_config(config: Config) -> BaseConfig:
-    return BaseConfig(
-        rate=0,
-        vus=config.vus,
-        duration_seconds=config.duration_seconds,
-        warmup_duration_seconds=0,
-        transaction_value=config.transaction_value,
-        account_past_balance=config.account_past_balance,
-        timeout_seconds=config.timeout_seconds,
-        output=config.output,
-        api_url=config.api_url,
-        api_key=config.api_key,
-        org_export="org-export.json",
-        scenario_name="",
-        scenario_id=config.scenario_id,
-        scenario_threshold=0,
-        seed_parent_records=config.seed_parent_records,
-        create_stress_scenario=False,
-    )
-
-
-async def run_one_request(harness: MarbleThroughputHarness, metrics: ClosedLoopMetrics, vu_id: int) -> None:
-    started_at = time.perf_counter()
-    metrics.attempted += 1
-    try:
-        decision_created = await harness.decide_once()
-    except httpx.TimeoutException as exc:
-        metrics.completed += 1
-        metrics.failures += 1
-        metrics.timeouts += 1
-        add_error(metrics, f"timeout: {exc}")
-    except Exception as exc:
-        metrics.completed += 1
-        metrics.failures += 1
-        add_error(metrics, str(exc))
-    else:
-        metrics.completed += 1
-        if decision_created:
-            metrics.successes += 1
-            assert metrics.latencies_ms is not None
-            metrics.latencies_ms.append((time.perf_counter() - started_at) * 1000.0)
-            assert metrics.per_vu_successes is not None
-            metrics.per_vu_successes[vu_id] = metrics.per_vu_successes.get(vu_id, 0) + 1
-        else:
-            metrics.failures += 1
-            metrics.skipped_decisions += 1
-            add_error(metrics, "scenario trigger condition did not match")
-
-
-async def worker(
-    vu_id: int,
-    harness: MarbleThroughputHarness,
-    metrics: ClosedLoopMetrics,
-    start_gate: asyncio.Event,
-    deadline: float,
-) -> None:
-    await start_gate.wait()
-    while time.perf_counter() < deadline:
-        await run_one_request(harness, metrics, vu_id)
-
-
-async def run_closed_loop(harness: MarbleThroughputHarness, vus: int, duration_seconds: float) -> tuple[ClosedLoopMetrics, float]:
-    metrics = ClosedLoopMetrics()
-    start_gate = asyncio.Event()
-    started_at = time.perf_counter()
-    deadline = started_at + duration_seconds
-    tasks = [
-        asyncio.create_task(worker(vu_id, harness, metrics, start_gate, deadline))
-        for vu_id in range(vus)
-    ]
-    start_gate.set()
-    await asyncio.gather(*tasks)
-    return metrics, time.perf_counter() - started_at
-
-
 def summarize_metrics(
     config: Config,
-    harness: MarbleThroughputHarness,
-    metrics: ClosedLoopMetrics,
+    harness: MarbleScalingHarness,
+    metrics: Metrics,
     elapsed_seconds: float,
 ) -> dict[str, Any]:
     latencies = metrics.latencies_ms or []
@@ -141,14 +76,22 @@ def summarize_metrics(
             "load_model": "Closed loop: each VU sends a new request immediately after its previous request completes.",
             "sustainability_definition": "0% errors, 0% timeouts, and 0 skipped decisions during measured run.",
         },
-        "environment": environment_metadata(to_base_config(config)),
+        "environment": environment_metadata(config.api_url),
         "setup": {
-            "scenario_id": harness.scenario_id,
-            "trigger_object_type": "transactions",
-            "seeded_company_id": harness.company_id if config.seed_parent_records else None,
-            "seeded_account_id": harness.account_id if config.seed_parent_records else None,
+            "scenario_ids": harness.scenario_ids,
+            "trigger_object_type": harness.transaction_table,
+            "transaction_table": harness.transaction_table,
+            "account_table": harness.account_table,
+            "merchant_table": harness.merchant_table,
+            "product_table": harness.product_table,
+            "account_count": len(DOMAIN_ACCOUNTS),
+            "merchant_count": len(DOMAIN_MERCHANTS),
+            "product_count": len(DOMAIN_PRODUCTS),
+            "processors": PROCESSORS,
+            "channels": CHANNELS,
+            "seeded_counts": harness.seeded_counts,
         },
-        "run": asdict(config) | {"api_key": "set"},
+        "run": asdict(config) | {"api_key": "set", "admin_token": "set"},
         "workload_counts": {
             "configured_vus": config.vus,
             "completed_decisions": metrics.completed,
@@ -164,18 +107,8 @@ def summarize_metrics(
             "error_rate": metrics.failures / metrics.completed if metrics.completed else 0.0,
             "timeout_rate": metrics.timeouts / metrics.completed if metrics.completed else 0.0,
         },
-        "per_vu_successes": {
-            "min": min(per_vu_counts) if per_vu_counts else 0,
-            "max": max(per_vu_counts) if per_vu_counts else 0,
-            "avg": statistics.fmean(per_vu_counts) if per_vu_counts else 0,
-        },
-        "latency_ms": {
-            "avg": statistics.fmean(latencies) if latencies else None,
-            "p50": percentile(latencies, 50),
-            "p95": percentile(latencies, 95),
-            "p99": percentile(latencies, 99),
-            "max": max(latencies) if latencies else None,
-        },
+        "per_vu_successes": per_vu_summary(metrics),
+        "latency_ms": latency_summary(latencies),
         "result": {
             "sustainable": sustainable,
             "elapsed_seconds": elapsed_seconds,
@@ -222,12 +155,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", help="Summary JSON output path.")
     parser.add_argument("--api-url", default=os.getenv("MARBLE_API_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--api-key", default=os.getenv("MARBLE_API_KEY"))
-    parser.add_argument("--scenario-id", default=os.getenv("SCENARIO_ID"))
-    parser.add_argument(
-        "--seed-parent-records",
-        action="store_true",
-        help="Ingest linked company/account records before the run.",
-    )
+    parser.add_argument("--admin-token", default=os.getenv("MARBLE_ADMIN_TOKEN"))
+    parser.add_argument("--admin-email", default=os.getenv("MARBLE_ADMIN_EMAIL"))
+    parser.add_argument("--admin-password", default=os.getenv("MARBLE_ADMIN_PASSWORD"))
+    parser.add_argument("--firebase-auth-url", default=os.getenv("FIREBASE_AUTH_URL", "http://127.0.0.1:9099"))
+    parser.add_argument("--firebase-api-key", default=os.getenv("FIREBASE_API_KEY", "dummy"))
+    parser.add_argument("--scenario-threshold", type=float, default=1000.0, help="Simple amount rule threshold.")
     return parser
 
 
@@ -244,10 +177,8 @@ def parse_config() -> Config:
         raise SystemExit("--duration must be greater than 0")
     if args.timeout <= 0:
         raise SystemExit("--timeout must be greater than 0")
-    if not args.api_key:
-        raise SystemExit("set --api-key or MARBLE_API_KEY")
-    if not args.scenario_id:
-        raise SystemExit("set --scenario-id or SCENARIO_ID")
+    if not args.admin_token and not (args.admin_email and args.admin_password):
+        raise SystemExit("set --admin-token or MARBLE_ADMIN_TOKEN, or set admin email/password")
     return Config(
         vus=args.vus,
         duration_seconds=args.duration,
@@ -257,26 +188,61 @@ def parse_config() -> Config:
         output=args.output or default_output_path(args.vus, args.duration),
         api_url=args.api_url.rstrip("/"),
         api_key=args.api_key,
-        scenario_id=args.scenario_id,
-        seed_parent_records=args.seed_parent_records,
+        admin_token=args.admin_token,
+        admin_email=args.admin_email,
+        admin_password=args.admin_password,
+        firebase_auth_url=args.firebase_auth_url.rstrip("/"),
+        firebase_api_key=args.firebase_api_key,
+        scenario_threshold=args.scenario_threshold,
     )
 
 
 async def run_trial(config: Config) -> dict[str, Any]:
-    harness = MarbleThroughputHarness(to_base_config(config))
+    client = MarbleClient(config.api_url, config.api_key, config.admin_token, config.timeout_seconds, config.vus)
+    if config.admin_token:
+        client.set_admin_token(config.admin_token)
+    else:
+        assert config.admin_email is not None
+        assert config.admin_password is not None
+        token = await firebase_login(
+            config.api_url,
+            config.firebase_auth_url,
+            config.firebase_api_key,
+            config.admin_email,
+            config.admin_password,
+            config.timeout_seconds,
+        )
+        client.set_admin_token(token)
+    harness = MarbleScalingHarness(client, config.transaction_value, config.scenario_threshold, related_seed_count=100)
     try:
-        print("bootstrapping API readiness...")
-        await harness.bootstrap()
-        print(f"bootstrap complete; scenario_id={harness.scenario_id}")
+        print("bootstrapping tenant model and baseline scenario...")
+        await client.wait_ready()
+        await client.create_api_key()
+        await harness.bootstrap_model()
+        await harness.seed_for_variant("baseline_payload")
+        variant = harness.variant("baseline_payload")
+        await harness.create_scenario(variant)
+        print(f"bootstrap complete; scenario_id={harness.scenario_ids[0]}")
         print(f"running closed-loop load for {config.duration_seconds:.0f}s with {config.vus} VUs...")
-        metrics, elapsed = await run_closed_loop(harness, config.vus, config.duration_seconds)
+        async def action() -> bool:
+            response = await client.request(
+                client.public,
+                "POST",
+                "/v1/decisions",
+                200,
+                json={"scenario_id": harness.scenario_ids[0], "trigger_object": harness.next_transaction_payload()},
+            )
+            metadata = response.get("metadata", {})
+            return int(metadata.get("skipped", 0)) == 0
+
+        metrics, elapsed = await run_closed_loop(action, config.vus, config.duration_seconds)
         summary = summarize_metrics(config, harness, metrics, elapsed)
         output_path = Path(config.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(summary, indent=2, default=str) + "\n", encoding="utf-8")
         return summary
     finally:
-        await harness.close()
+        await client.close()
 
 
 async def async_main() -> int:

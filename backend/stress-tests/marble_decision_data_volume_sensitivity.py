@@ -25,7 +25,7 @@ from marble_scaling_common import (
 
 
 DEFAULT_DATA_SIZES = [100, 1000, 10000, 100000]
-DEFAULT_VARIANTS = ["aggregate_count_pushdown", "mixed_heavy"]
+DEFAULT_VARIANTS = ["aggregate_count", "aggregate_velocity", "mixed_heavy"]
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class Config:
     timeout_seconds: float
     output_dir: str
     api_url: str
-    api_key: str
+    api_key: str | None
     admin_token: str | None
     admin_email: str | None
     admin_password: str | None
@@ -116,7 +116,11 @@ def summarize_trial(
             "variant": variant,
             "transaction_table": harness.transaction_table,
             "account_table": harness.account_table,
-            "link_name": harness.link_name,
+            "merchant_table": harness.merchant_table,
+            "product_table": harness.product_table,
+            "account_link_name": harness.account_link_name,
+            "merchant_link_name": harness.merchant_link_name,
+            "product_link_name": harness.product_link_name,
             "scenario_count": config.scenario_count,
             "rules_per_scenario": config.rules_per_scenario,
             "total_rules_per_request": config.scenario_count * config.rules_per_scenario,
@@ -215,6 +219,7 @@ async def run_trial(config: Config, variant_name: str, data_size: int, vus: int,
             f"{config.scenario_count} scenarios x {config.rules_per_scenario} rules for {vus} VUs..."
         )
         await client.wait_ready()
+        await client.create_api_key()
         await harness.bootstrap_model()
         await harness.seed_for_variant(variant_name)
         variant = harness.variant(variant_name)
@@ -288,8 +293,6 @@ def parse_config() -> Config:
         raise SystemExit("--scenario-count must be greater than 0")
     if args.rules_per_scenario <= 0:
         raise SystemExit("--rules-per-scenario must be greater than 0")
-    if not args.api_key:
-        raise SystemExit("set --api-key or MARBLE_API_KEY")
     if not args.admin_token and (not args.admin_email or not args.admin_password):
         raise SystemExit("set --admin-token/MARBLE_ADMIN_TOKEN or --admin-email and --admin-password")
     output_dir = args.output_dir or str(Path("stress-tests/marble-data-volume-runs") / utc_now().replace(":", "").replace(".", "-"))

@@ -269,6 +269,9 @@ func (s accessorDataModelReaderStub) GetTenantModel(context.Context, string) (po
 func (s accessorDataModelReaderStub) ListIndexJobs(context.Context, string) ([]ports.ManagedIndexJob, error) {
 	return nil, nil
 }
+func (s accessorDataModelReaderStub) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
+	return ports.ManagedIndexJob{}, nil
+}
 func (s accessorDataModelReaderStub) RetryIndexJob(context.Context, string) error {
 	return nil
 }

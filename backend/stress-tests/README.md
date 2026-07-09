@@ -70,6 +70,8 @@ k6 run stress-tests/decision-ingestion-stress.js
 
 ## Decision Throughput Limit
 
+Deprecated: `decision_throughput_limit.py`, `decision_throughput_orchestrator.py`, and the Marble equivalents are retained for historical context only. Use the closed-loop and scaling harnesses below for current comparison work.
+
 The first protocol-driven decision-engine stress test is a Python orchestrator. It targets direct scenario evaluation only and automatically finds the highest sustainable evaluations-per-second rate with zero errors.
 
 Run a small smoke test:
@@ -131,13 +133,33 @@ Use `decision_rule_complexity_scaling.py` to compare direct scenario evaluation 
 Default variants:
 
 - `baseline_payload`: amount threshold only.
-- `nested_payload`: payload-only nested conditions and string functions.
-- `custom_list`: custom-list membership lookup.
-- `related_field`: related account lookup.
+- `nested_payload`: payload-only company transaction checks over amount, processor, channel, currency, country, and transaction id.
+- `custom_list_related_fuzzy`: related merchant name fuzzy match against a merchant blacklist custom list.
+- `related_field`: related account, merchant, and product lookups.
 - `decision_history`: prior decision lookup.
 - `related_records_count`: fetch related records and count them in the decision engine.
-- `aggregate_count_pushdown`: count matching records through aggregate pushdown.
-- `mixed_heavy`: nested payload, custom list, related field, aggregate, and decision history.
+- `aggregate_count`: count seeded transactions for the same merchant.
+- `aggregate_velocity`: sum merchant transaction amount inside the velocity window.
+- `mixed_heavy`: nested payload, merchant blacklist fuzzy match, related fields, aggregate count, and aggregate velocity.
+
+The current company-domain transaction payload uses:
+
+```json
+{
+  "account_ref": "2332416370369",
+  "processor": "uniwallet",
+  "merchant_id": "dbb82c30-d9df-4c9c-bf96-5be052f644e8",
+  "product_id": "2ae50a9e-0487-4436-a11a-cb486a04c168",
+  "transaction_id": "wallet__uniwallet__<uuid>",
+  "date": "2025-01-30T12:00:28Z",
+  "amount": 1800,
+  "currency": "GHS",
+  "country": "GH",
+  "channel": "wallet"
+}
+```
+
+Each trial seeds three accounts, three merchants, three products, and a merchant-name blacklist where needed. Generated requests randomly choose account, merchant, product, processor (`genpay`, `uniwallet`), and channel (`card`, `wallet`, `bank`). Transaction time is monotonic and advances by a random interval between one hour and two days.
 
 Run the default rule-complexity matrix:
 
@@ -152,7 +174,7 @@ Run selected variants:
 
 ```bash
 python3 stress-tests/decision_rule_complexity_scaling.py \
-  --variants=baseline_payload,decision_history,mixed_heavy \
+  --variants=baseline_payload,custom_list_related_fuzzy,aggregate_count,aggregate_velocity,mixed_heavy \
   --vus=5,10 \
   --duration=60 \
   --history-object-pool-size=1000 \

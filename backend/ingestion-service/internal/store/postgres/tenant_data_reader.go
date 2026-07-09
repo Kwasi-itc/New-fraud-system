@@ -197,7 +197,7 @@ func buildAggregateExpression(name, fieldName string) (string, error) {
 	case "count_distinct":
 		return fmt.Sprintf("COUNT(DISTINCT %s)", sanitizeIdentifier(fieldName)), nil
 	case "sum":
-		return fmt.Sprintf("SUM(%s)", sanitizeIdentifier(fieldName)), nil
+		return fmt.Sprintf("COALESCE(SUM(%s), 0)", sanitizeIdentifier(fieldName)), nil
 	case "avg":
 		return fmt.Sprintf("AVG(%s)", sanitizeIdentifier(fieldName)), nil
 	case "min":

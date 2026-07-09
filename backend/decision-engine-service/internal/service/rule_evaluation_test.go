@@ -356,6 +356,9 @@ func (s dataModelReaderStub) GetTenantModel(context.Context, string) (ports.Tena
 func (s dataModelReaderStub) ListIndexJobs(context.Context, string) ([]ports.ManagedIndexJob, error) {
 	return nil, nil
 }
+func (s dataModelReaderStub) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
+	return ports.ManagedIndexJob{}, nil
+}
 func (s dataModelReaderStub) RetryIndexJob(context.Context, string) error {
 	return nil
 }

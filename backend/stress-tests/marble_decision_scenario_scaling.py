@@ -41,7 +41,7 @@ class Config:
     output_dir: str
     related_seed_count: int
     api_url: str
-    api_key: str
+    api_key: str | None
     admin_token: str | None
     admin_email: str | None
     admin_password: str | None
@@ -87,7 +87,11 @@ def summarize_trial(
             "complexity": complexity,
             "transaction_table": harness.transaction_table,
             "account_table": harness.account_table,
-            "link_name": harness.link_name,
+            "merchant_table": harness.merchant_table,
+            "product_table": harness.product_table,
+            "account_link_name": harness.account_link_name,
+            "merchant_link_name": harness.merchant_link_name,
+            "product_link_name": harness.product_link_name,
             "scenario_count": scenario_count,
             "rules_per_scenario": rules_per_scenario,
             "total_rules_per_request": scenario_count * rules_per_scenario,
@@ -246,6 +250,7 @@ async def run_trial(
     try:
         print(f"bootstrapping Marble {complexity}: {scenario_count} scenarios x {rules_per_scenario} rules for {vus} VUs...")
         await client.wait_ready()
+        await client.create_api_key()
         await harness.bootstrap_model()
         await harness.seed_for_variant(complexity)
         variant = harness.variant(complexity)
@@ -308,8 +313,6 @@ def parse_config() -> Config:
         raise SystemExit("--timeout must be greater than 0")
     if args.related_seed_count <= 0:
         raise SystemExit("--related-seed-count must be greater than 0")
-    if not args.api_key:
-        raise SystemExit("set --api-key or MARBLE_API_KEY")
     if not args.admin_token and (not args.admin_email or not args.admin_password):
         raise SystemExit("set --admin-token/MARBLE_ADMIN_TOKEN or --admin-email and --admin-password")
     output_dir = args.output_dir or str(Path("stress-tests/marble-scenario-scaling-runs") / utc_now().replace(":", "").replace(".", "-"))
