@@ -21,6 +21,12 @@ The service has been planned and scaffolded at the documentation level, but runt
 5. start `ingestion-service` worker if testing CSV jobs
 6. call ingest endpoints against a provisioned tenant
 
+## Planned docs endpoints
+
+- `http://127.0.0.1:8081/docs`
+- `http://127.0.0.1:8081/redoc`
+- `http://127.0.0.1:8081/openapi.yaml`
+
 ## Planned minimum environment variables
 
 - `DATABASE_URL`

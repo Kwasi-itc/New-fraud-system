@@ -54,12 +54,6 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
     queryFn: () => decisionEngineApi.getScenario(tenantId, scenarioId),
     enabled: Boolean(tenantId && scenarioId),
   });
-  const scheduledExecutionsQuery = useQuery({
-    queryKey: ["decision-engine", "scheduled-executions", tenantId, scenarioId],
-    queryFn: () => decisionEngineApi.listScheduledExecutions(tenantId, scenarioId),
-    enabled: Boolean(tenantId && scenarioId),
-  });
-
   if (!tenantId) {
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
@@ -95,9 +89,6 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
   const scenario = scenarioQuery.data.scenario;
   const description = scenario.description || "No description provided";
   const hasLiveIteration = Boolean(scenario.live_iteration_id);
-  const scheduledExecutionCount =
-    scheduledExecutionsQuery.data?.scheduled_executions.length ?? 0;
-
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-6 px-4 sm:px-6 xl:px-8">
       <div className="border-b border-slate-200 pb-3">
@@ -161,52 +152,6 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
           <Card className="rounded-xl border border-slate-200 shadow-none">
             <CardContent className="space-y-3 p-4">
               <div className="-mt-7 w-fit rounded-t-xl border border-b-0 border-slate-200 bg-white px-3 py-1.5 text-[14px] text-slate-700">
-                API
-              </div>
-              <div className="space-y-3">
-                <p className="text-[14px] text-slate-950">
-                  Ask for a decision using{" "}
-                  <span className="font-medium text-[#1f4f96]">our api</span> and get synchronous answers in real time
-                </p>
-                {hasLiveIteration ? (
-                  <p className="text-[14px] font-semibold text-slate-950">
-                    This live scenario is ready to be called from the API.
-                  </p>
-                ) : (
-                  <p className="text-[14px] font-semibold text-slate-950">
-                    You need to activate a version to use this feature
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border border-slate-200 shadow-none">
-            <CardContent className="space-y-3 p-4">
-              <div className="-mt-7 w-fit rounded-t-xl border border-b-0 border-slate-200 bg-white px-3 py-1.5 text-[14px] text-slate-700">
-                Batch
-              </div>
-              <div className="space-y-4">
-                <p className="text-[14px] text-slate-950">
-                  Run automatically or manually on ingested data
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Link href={`/detection/${scenarioId}/execution`}>
-                    <Button
-                      variant="outline"
-                      className="h-8 rounded-full border-slate-200 px-3.5 text-[13px] shadow-none"
-                    >
-                      Schedule executions ({scheduledExecutionCount})
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border border-slate-200 shadow-none">
-            <CardContent className="space-y-3 p-4">
-              <div className="-mt-7 w-fit rounded-t-xl border border-b-0 border-slate-200 bg-white px-3 py-1.5 text-[14px] text-slate-700">
                 Version comparison
               </div>
               <div className="space-y-4">
@@ -219,8 +164,8 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
                       variant="outline"
                       className="h-8 rounded-full border-[#2d63b8] px-3.5 text-[13px] text-[#1f4f96] shadow-none"
                     >
-                      <Plus className="size-3.5" />
-                      New Test
+                      <SquarePen className="size-3.5" />
+                      Manage tests
                     </Button>
                   </Link>
                 ) : (

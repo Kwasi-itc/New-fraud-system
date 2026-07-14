@@ -3,30 +3,12 @@ info:
   title: Decision Engine Service API
   version: 0.2.0
   description: |-
-    Standalone Marble-inspired decision engine service for the new fraud platform.
+    This service helps teams define fraud scenarios, test decision logic, and review the decisions produced for tenant records.
 
-    Current implementation status:
-    - health and readiness endpoints
-    - service auth middleware
-    - scenario, iteration, publication, and rule authoring APIs
-    - tenant-model-backed AST validation
-    - decision evaluation and decision-history reads
-    - test-run and phantom-decision evaluation
-    - rule snooze persistence and lookup
-    - workflow, screening, scoring, async-execution, and scheduled-execution records
-    - platform helper-data endpoints for custom lists, record tags, risk snapshots, and IP flags
-    - ingestion-triggered evaluation callback
-    - worker command for batch dispatch and execution processing
-
-    Remaining planned work:
-    - settle worker model beyond the current one-shot batch processor
-    - finalize downstream workflow/case side effects
-    - harden relation-heavy rule-engine semantics further
+    It also supports related workflow, screening, scoring, and execution tracking features used around the decision process.
 tags:
-  - name: Health
-    description: Liveness, readiness, docs, and service metadata.
   - name: Scenario Authoring
-    description: Tenant-scoped scenario, iteration, publication, and rule management.
+    description: Create and maintain tenant-owned scenarios, their draft and live iterations, publication state, and the rules that define decision logic over a target object type.
   - name: Validation
     description: AST and iteration validation against tenant data models.
   - name: Decisions
@@ -43,14 +25,19 @@ tags:
     description: Helper-data endpoints consumed by evaluator functions.
   - name: Outbox
     description: Tenant-scoped outbox event inspection.
+  - name: Health
+    description: Basic service checks and setup details, including whether the service is running and ready to use.
+  - name: Internal
+    description: Internal service-to-service callbacks used by other backend services.
 paths:
   /healthz:
     get:
       tags: [Health]
       summary: Liveness probe
+      description: Quick check that the service is up and responding.
       responses:
         '200':
-          description: Service is alive
+          description: Service is running
           content:
             application/json:
               schema:
@@ -59,6 +46,7 @@ paths:
     get:
       tags: [Health]
       summary: Readiness probe
+      description: Checks whether the service is ready to handle requests.
       responses:
         '200':
           description: Service is ready
@@ -67,7 +55,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
         '503':
-          description: Database is unavailable
+          description: Service is not ready yet
           content:
             application/json:
               schema:
@@ -76,9 +64,10 @@ paths:
     get:
       tags: [Health]
       summary: Service metadata and upstream URLs
+      description: Shows basic service details and the other services it is connected to.
       responses:
         '200':
-          description: Service info
+          description: Service details
           content:
             application/json:
               schema:
@@ -87,6 +76,7 @@ paths:
     get:
       tags: [Validation]
       summary: List supported rule functions for AST authoring
+      description: Returns the AST function catalog used by scenario and rule authoring clients.
       responses:
         '200':
           description: Rule function catalog
@@ -98,6 +88,7 @@ paths:
     get:
       tags: [Scenario Authoring]
       summary: List scenarios for one tenant
+      description: Lists the scenario definitions owned by one tenant.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       responses:
@@ -112,6 +103,7 @@ paths:
     post:
       tags: [Scenario Authoring]
       summary: Create a scenario
+      description: Creates a new scenario shell for one tenant. The scenario is later versioned through iterations.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -135,6 +127,7 @@ paths:
     get:
       tags: [Scenario Authoring]
       summary: Get one scenario
+      description: Returns one scenario definition by id.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -150,6 +143,7 @@ paths:
     put:
       tags: [Scenario Authoring]
       summary: Update one scenario
+      description: Updates mutable scenario metadata such as name, description, and trigger object type.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -181,6 +175,78 @@ paths:
           description: Scenario deleted
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/copy:
+    post:
+      tags: [Scenario Authoring]
+      summary: Copy one scenario
+      description: Creates a new scenario by copying the selected scenario and its authoring state.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopyScenarioRequest'
+            example:
+              name: High Amount Review Copy
+      responses:
+        '201':
+          description: Scenario copy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/rules/latest:
+    get:
+      tags: [Scenario Authoring]
+      summary: List rules from the latest iteration
+      description: Returns the rules from the most recent iteration for the scenario.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Latest rule list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description:
+    post:
+      tags: [Scenario Authoring]
+      summary: Describe a scenario expression with AI
+      description: Reserved for future AI-assisted scenario explanations. This endpoint is currently not implemented.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotImplementedResponse'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast:
+    post:
+      tags: [Scenario Authoring]
+      summary: Generate a scenario expression with AI
+      description: Reserved for future AI-assisted rule generation. This endpoint is currently not implemented.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotImplementedResponse'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers:
     get:
       tags: [Scenario Authoring]
@@ -201,6 +267,7 @@ paths:
     get:
       tags: [Scenario Authoring]
       summary: List iterations for one scenario
+      description: Lists the draft and live iterations belonging to one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -216,6 +283,7 @@ paths:
     post:
       tags: [Scenario Authoring]
       summary: Create a draft iteration
+      description: Creates a new draft iteration for a scenario so rules and trigger logic can be edited safely.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -228,7 +296,41 @@ paths:
                 $ref: '#/components/schemas/IterationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/metadata:
+    get:
+      tags: [Scenario Authoring]
+      summary: List iteration metadata for one scenario
+      description: Returns a lighter-weight iteration list for timeline or picker views.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Iteration metadata list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationMetadataListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}:
+    get:
+      tags: [Scenario Authoring]
+      summary: Get one iteration
+      description: Returns one scenario iteration by id.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '200':
+          description: Iteration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags: [Scenario Authoring]
       summary: Update one draft iteration
@@ -245,6 +347,24 @@ paths:
       responses:
         '200':
           description: Iteration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/draft:
+    post:
+      tags: [Scenario Authoring]
+      summary: Create a draft from an iteration
+      description: Creates a new draft iteration by copying the selected iteration.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+      responses:
+        '201':
+          description: Draft iteration created
           content:
             application/json:
               schema:
@@ -323,6 +443,62 @@ paths:
                 $ref: '#/components/schemas/PublicationListEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation:
+    get:
+      tags: [Scenario Authoring]
+      summary: Get publication preparation status for one iteration
+      description: Returns whether the target iteration still requires data-model preparation work before publication can complete.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: iteration_id
+          in: query
+          required: true
+          description: Iteration identifier to check for publication preparation status.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Publication preparation status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationPreparationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scenario Authoring]
+      summary: Start publication preparation for one iteration
+      description: Starts any required data-model preparation work for the iteration and returns the updated preparation status.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                iteration_id:
+                  type: string
+                  description: Iteration identifier to prepare for publication.
+              required: [iteration_id]
+            example:
+              iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+      responses:
+        '202':
+          description: Publication preparation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationPreparationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules:
     get:
       tags: [Scenario Authoring]
@@ -415,10 +591,28 @@ paths:
           description: Rule deleted
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description:
+    get:
+      tags: [Scenario Authoring]
+      summary: Describe a rule with AI
+      description: Reserved for future AI-assisted rule explanations. This endpoint is currently not implemented.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - $ref: '#/components/parameters/IterationId'
+        - $ref: '#/components/parameters/RuleId'
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotImplementedResponse'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/validate:
     post:
       tags: [Validation]
       summary: Validate one iteration and its rules against the tenant model
+      description: Validates the trigger formula and rule formulas for one iteration against the current tenant data model.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -442,6 +636,7 @@ paths:
     post:
       tags: [Decisions]
       summary: Evaluate one scenario against one record payload
+      description: Evaluates one scenario iteration set against one record payload and returns the resulting decision and rule executions when triggered.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -464,6 +659,7 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by scenario
+      description: Lists persisted decisions previously produced by one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -476,10 +672,85 @@ paths:
                 $ref: '#/components/schemas/DecisionListEnvelope'
         '500':
           $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/decisions:
+    get:
+      tags: [Decisions]
+      summary: List decisions by tenant with optional filters
+      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: scenario_id
+          in: query
+          description: Restrict results to decisions produced by one scenario.
+          schema:
+            type: string
+        - name: object_type
+          in: query
+          description: Restrict results to decisions for one object type. This matches the tenant data-model table name.
+          schema:
+            type: string
+        - name: object_id
+          in: query
+          description: Restrict results to decisions for one external record identifier. Use with `object_type`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Decision list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Decisions]
+      summary: Create a decision for one scenario
+      description: Evaluates one scenario and returns the resulting decision using a tenant-level route.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDecisionRequest'
+      responses:
+        '200':
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionEvaluationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/decisions/all:
+    post:
+      tags: [Decisions]
+      summary: Create decisions across all live scenarios
+      description: Evaluates all live scenarios that apply to the supplied record.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateDecisionRequest'
+      responses:
+        '200':
+          description: Multi-scenario evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiDecisionEvaluationEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/decisions/{decisionId}:
     get:
       tags: [Decisions]
       summary: Get one decision and its rule executions
+      description: Returns one persisted decision plus the rule-execution records that contributed to it.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
@@ -496,6 +767,7 @@ paths:
     post:
       tags: [Decisions]
       summary: Evaluate all live scenarios for an ingested record
+      description: Evaluates every live scenario for the tenant that targets the ingested record's object type.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -517,6 +789,7 @@ paths:
     get:
       tags: [Test Runs]
       summary: List test runs by scenario
+      description: Lists stored test runs for one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -532,6 +805,7 @@ paths:
     post:
       tags: [Test Runs]
       summary: Create a test run
+      description: Creates a live-vs-phantom test run so a candidate iteration can be compared against the live one.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -550,10 +824,77 @@ paths:
                 $ref: '#/components/schemas/TestRunEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/test-runs/{testRunId}:
+    get:
+      tags: [Test Runs]
+      summary: Get one test run
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TestRunId'
+      responses:
+        '200':
+          description: Test run detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/test-runs/{testRunId}/cancel:
+    post:
+      tags: [Test Runs]
+      summary: Cancel one test run
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TestRunId'
+      responses:
+        '200':
+          description: Cancelled test run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score:
+    get:
+      tags: [Test Runs]
+      summary: Summarize test-run decisions by score and outcome
+      description: Returns grouped counts that help compare decision outcomes and scores within the test run.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TestRunId'
+      responses:
+        '200':
+          description: Test-run decision summary list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunDecisionSummaryListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution:
+    get:
+      tags: [Test Runs]
+      summary: Summarize test-run rule execution results
+      description: Returns per-rule counts showing how often rules hit, missed, or were snoozed during the test run.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TestRunId'
+      responses:
+        '200':
+          description: Test-run rule statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunRuleStatListEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate:
     post:
       tags: [Test Runs]
       summary: Evaluate one test run against a record payload
+      description: Evaluates the supplied record against both the live and phantom iterations for the test run.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/TestRunId'
@@ -576,6 +917,7 @@ paths:
     get:
       tags: [Workflows]
       summary: List workflows by scenario
+      description: Lists legacy outcome-driven workflows attached to one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -591,6 +933,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Create a workflow
+      description: Creates a legacy outcome-driven workflow that dispatches actions based on final decision outcomes.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -647,6 +990,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Reorder workflows by scenario
+      description: Updates the display order of the legacy workflows attached to the scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -663,10 +1007,80 @@ paths:
           description: Workflows reordered
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}:
+    get:
+      tags: [Workflows]
+      summary: Get one workflow
+      description: Returns one legacy outcome-driven workflow by id.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: workflowId
+          in: path
+          required: true
+          description: Workflow identifier for one legacy workflow definition.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Workflows]
+      summary: Update one workflow
+      description: Updates one legacy outcome-driven workflow.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: workflowId
+          in: path
+          required: true
+          description: Workflow identifier for one legacy workflow definition.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowRequest'
+      responses:
+        '200':
+          description: Workflow updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Workflows]
+      summary: Delete one workflow
+      description: Removes one legacy workflow from the scenario.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: workflowId
+          in: path
+          required: true
+          description: Workflow identifier for one legacy workflow definition.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workflow deleted
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules:
     get:
       tags: [Workflows]
       summary: List structured workflow rules by scenario
+      description: Lists structured workflow rules attached to one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -682,6 +1096,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Create a structured workflow rule
+      description: Creates a structured workflow-rule shell. Conditions and actions are added through child endpoints.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -710,6 +1125,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Reorder structured workflow rules by scenario
+      description: Updates the evaluation order of the structured workflow rules for the scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -730,6 +1146,7 @@ paths:
     get:
       tags: [Workflows]
       summary: Get one structured workflow rule
+      description: Returns one structured workflow rule with its conditions and actions.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -750,6 +1167,7 @@ paths:
     put:
       tags: [Workflows]
       summary: Update one structured workflow rule
+      description: Updates the main settings for one structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -776,6 +1194,7 @@ paths:
     delete:
       tags: [Workflows]
       summary: Delete one structured workflow rule
+      description: Removes one structured workflow rule from the scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -793,6 +1212,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Create a workflow condition
+      description: Adds one condition to the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -846,6 +1266,7 @@ paths:
     put:
       tags: [Workflows]
       summary: Update a workflow condition
+      description: Updates one condition on the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -857,6 +1278,7 @@ paths:
         - name: conditionId
           in: path
           required: true
+          description: Workflow-condition identifier for one stored condition on the workflow rule.
           schema:
             type: string
       requestBody:
@@ -877,6 +1299,7 @@ paths:
     delete:
       tags: [Workflows]
       summary: Delete a workflow condition
+      description: Removes one condition from the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -888,6 +1311,7 @@ paths:
         - name: conditionId
           in: path
           required: true
+          description: Workflow-condition identifier for one stored condition on the workflow rule.
           schema:
             type: string
       responses:
@@ -899,6 +1323,7 @@ paths:
     post:
       tags: [Workflows]
       summary: Create a workflow action
+      description: Adds one action to the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -948,6 +1373,7 @@ paths:
     put:
       tags: [Workflows]
       summary: Update a workflow action
+      description: Updates one action on the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -959,6 +1385,7 @@ paths:
         - name: actionId
           in: path
           required: true
+          description: Workflow-action identifier for one stored action on the workflow rule.
           schema:
             type: string
       requestBody:
@@ -979,6 +1406,7 @@ paths:
     delete:
       tags: [Workflows]
       summary: Delete a workflow action
+      description: Removes one action from the selected structured workflow rule.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -990,6 +1418,7 @@ paths:
         - name: actionId
           in: path
           required: true
+          description: Workflow-action identifier for one stored action on the workflow rule.
           schema:
             type: string
       responses:
@@ -1001,6 +1430,7 @@ paths:
     get:
       tags: [Workflows]
       summary: List workflow executions by decision
+      description: Lists the workflow actions that were triggered from the selected decision.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
@@ -1050,10 +1480,79 @@ paths:
                 $ref: '#/components/schemas/ScreeningConfigEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}:
+    get:
+      tags: [Screening and Scoring]
+      summary: Get one screening config
+      description: Returns one screening configuration by id.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Screening-config identifier for one stored screening setup.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screening config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningConfigEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Screening and Scoring]
+      summary: Update one screening config
+      description: Updates one screening configuration.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Screening-config identifier for one stored screening setup.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScreeningConfigRequest'
+      responses:
+        '200':
+          description: Screening config updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningConfigEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Screening and Scoring]
+      summary: Delete one screening config
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Screening-config identifier for one stored screening setup.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Screening config deleted
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions:
     get:
       tags: [Screening and Scoring]
       summary: List screening executions by decision
+      description: Lists screening execution records produced from one decision.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
@@ -1070,11 +1569,13 @@ paths:
     get:
       tags: [Screening and Scoring]
       summary: Get one screening execution
+      description: Returns one screening execution record and its latest provider result details.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
           required: true
+          description: Screening-execution identifier for one provider execution record.
           schema:
             type: string
       responses:
@@ -1090,11 +1591,13 @@ paths:
     post:
       tags: [Screening and Scoring]
       summary: Update screening execution status and provider result payload
+      description: Records provider-side status, references, and result payloads for a screening execution.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
           required: true
+          description: Screening-execution identifier for one provider execution record.
           schema:
             type: string
       requestBody:
@@ -1125,11 +1628,13 @@ paths:
     post:
       tags: [Screening and Scoring]
       summary: Retry a screening execution
+      description: Requeues a screening execution that needs another provider attempt.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
           required: true
+          description: Screening-execution identifier for one provider execution record.
           schema:
             type: string
       responses:
@@ -1178,10 +1683,79 @@ paths:
                 $ref: '#/components/schemas/ScoringConfigEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}:
+    get:
+      tags: [Screening and Scoring]
+      summary: Get one scoring config
+      description: Returns one scoring configuration by id.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Scoring-config identifier for one stored scoring setup.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scoring config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringConfigEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Screening and Scoring]
+      summary: Update one scoring config
+      description: Updates one scoring configuration.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Scoring-config identifier for one stored scoring setup.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScoringConfigRequest'
+      responses:
+        '200':
+          description: Scoring config updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringConfigEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Screening and Scoring]
+      summary: Delete one scoring config
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - name: configId
+          in: path
+          required: true
+          description: Scoring-config identifier for one stored scoring setup.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Scoring config deleted
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/decisions/{decisionId}/scoring-requests:
     get:
       tags: [Screening and Scoring]
       summary: List scoring requests by decision
+      description: Lists scoring request records produced from one decision.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
@@ -1203,6 +1777,7 @@ paths:
         - name: requestId
           in: path
           required: true
+          description: Scoring-request identifier for one provider scoring request record.
           schema:
             type: string
       responses:
@@ -1218,11 +1793,13 @@ paths:
     post:
       tags: [Screening and Scoring]
       summary: Update scoring request status and provider result payload
+      description: Records provider-side status, references, and result payloads for a scoring request.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: requestId
           in: path
           required: true
+          description: Scoring-request identifier for one provider scoring request record.
           schema:
             type: string
       requestBody:
@@ -1256,6 +1833,7 @@ paths:
         - name: requestId
           in: path
           required: true
+          description: Scoring-request identifier for one provider scoring request record.
           schema:
             type: string
       responses:
@@ -1271,15 +1849,18 @@ paths:
     get:
       tags: [Execution]
       summary: List active rule snoozes by scenario
+      description: Lists active snoozes that suppress repeat rule-driven behavior for a scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
         - name: object_type
           in: query
+          description: Restrict results to snoozes for one object type. This matches the tenant data-model table name.
           schema:
             type: string
         - name: object_id
           in: query
+          description: Restrict results to snoozes for one external record identifier.
           schema:
             type: string
       responses:
@@ -1294,6 +1875,7 @@ paths:
     post:
       tags: [Execution]
       summary: Create a rule snooze
+      description: Creates a snooze record for one object and snooze group until the given expiration time.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -1316,9 +1898,27 @@ paths:
     get:
       tags: [Execution]
       summary: List scheduled executions by scenario
+      description: Lists scheduled execution records for one scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
+        - name: status
+          in: query
+          description: Restrict results to one execution status such as `pending`, `queued`, `running`, `completed`, or `failed`.
+          schema:
+            type: string
+        - name: min_attempt_count
+          in: query
+          description: Restrict results to executions with at least this many attempts recorded.
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          description: Maximum number of scheduled executions to return.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
           description: Scheduled execution list
@@ -1331,6 +1931,7 @@ paths:
     post:
       tags: [Execution]
       summary: Create a scheduled execution
+      description: Queues a one-time scheduled execution for a scenario with one or more evaluation payloads.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -1353,12 +1954,14 @@ paths:
     get:
       tags: [Execution]
       summary: Get a scheduled execution by id
+      description: Returns one scheduled scenario execution by id.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
         - in: path
           name: executionId
           required: true
+          description: Scheduled-execution identifier for one queued scenario run.
           schema:
             type: string
       responses:
@@ -1370,10 +1973,51 @@ paths:
                 $ref: '#/components/schemas/ScheduledExecutionEnvelope'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/retry:
+    post:
+      tags: [Execution]
+      summary: Retry a scheduled execution
+      description: Requeues a scheduled execution that needs another attempt.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+        - in: path
+          name: executionId
+          required: true
+          description: Scheduled-execution identifier for one queued scenario run.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scheduled execution requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/status-summary:
+    get:
+      tags: [Execution]
+      summary: Get scheduled execution status summary for one scenario
+      description: Returns aggregate counts of scheduled executions by status for the scenario.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScenarioId'
+      responses:
+        '200':
+          description: Scheduled execution status summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusSummaryEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule:
     get:
       tags: [Execution]
       summary: Get recurring schedule for a scenario
+      description: Returns the current recurring execution schedule for the scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -1389,6 +2033,7 @@ paths:
     put:
       tags: [Execution]
       summary: Update recurring schedule for a scenario
+      description: Updates the recurring execution schedule for the scenario.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -1411,8 +2056,26 @@ paths:
     get:
       tags: [Execution]
       summary: List asynchronous decision executions by tenant
+      description: Lists asynchronous decision-execution requests for a tenant.
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - name: status
+          in: query
+          description: Restrict results to one execution status such as `pending`, `queued`, `running`, `completed`, or `failed`.
+          schema:
+            type: string
+        - name: min_attempt_count
+          in: query
+          description: Restrict results to async executions with at least this many attempts recorded.
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          description: Maximum number of async execution records to return.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
           description: Async execution list
@@ -1425,6 +2088,7 @@ paths:
     post:
       tags: [Execution]
       summary: Create an asynchronous decision execution
+      description: Queues asynchronous scenario evaluation for multiple record payloads.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -1442,10 +2106,71 @@ paths:
                 $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/async-decision-executions/status-summary:
+    get:
+      tags: [Execution]
+      summary: Get asynchronous execution status summary for one tenant
+      description: Returns aggregate counts of asynchronous decision executions by status for the tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Async execution status summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusSummaryEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/tenants/{tenantId}/async-decision-executions/{executionId}:
+    get:
+      tags: [Execution]
+      summary: Get one asynchronous decision execution
+      description: Returns one queued or completed asynchronous decision-execution request.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: executionId
+          in: path
+          required: true
+          description: Async-decision-execution identifier for one queued evaluation request.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Async decision execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/async-decision-executions/{executionId}/retry:
+    post:
+      tags: [Execution]
+      summary: Retry an asynchronous decision execution
+      description: Requeues an asynchronous decision-execution request that needs another attempt.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: executionId
+          in: path
+          required: true
+          description: Async-decision-execution identifier for one queued evaluation request.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Async decision execution requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/platform/custom-lists:
     get:
       tags: [Platform Helpers]
       summary: List custom lists by tenant
+      description: Lists tenant-scoped custom-list definitions used by evaluator helper functions.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       responses:
@@ -1460,6 +2185,7 @@ paths:
     post:
       tags: [Platform Helpers]
       summary: Create a custom list
+      description: Creates a tenant-scoped custom list for helper-driven matching or lookup.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -1486,6 +2212,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       responses:
@@ -1505,6 +2232,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       requestBody:
@@ -1530,6 +2258,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       responses:
@@ -1546,6 +2275,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       responses:
@@ -1565,6 +2295,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       requestBody:
@@ -1591,6 +2322,7 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
       requestBody:
@@ -1622,11 +2354,13 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
         - name: entryId
           in: path
           required: true
+          description: Custom-list entry identifier for one stored list value.
           schema:
             type: string
       requestBody:
@@ -1652,11 +2386,13 @@ paths:
         - name: listId
           in: path
           required: true
+          description: Custom-list identifier for one tenant-scoped helper list.
           schema:
             type: string
         - name: entryId
           in: path
           required: true
+          description: Custom-list entry identifier for one stored list value.
           schema:
             type: string
       responses:
@@ -1668,10 +2404,12 @@ paths:
     get:
       tags: [Platform Helpers]
       summary: List custom-list entries by tenant
+      description: Lists custom-list entries across the tenant, optionally filtered to one named list.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: list_name
           in: query
+          description: Restrict results to entries belonging to one custom list name.
           schema:
             type: string
       responses:
@@ -1707,14 +2445,17 @@ paths:
     get:
       tags: [Platform Helpers]
       summary: List record tags by tenant
+      description: Lists stored record tags, optionally filtered by object type and object id.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: object_type
           in: query
+          description: Restrict results to tags for one object type. This matches the tenant data-model table name.
           schema:
             type: string
         - name: object_id
           in: query
+          description: Restrict results to tags for one external record identifier.
           schema:
             type: string
       responses:
@@ -1729,6 +2470,7 @@ paths:
     post:
       tags: [Platform Helpers]
       summary: Create a record tag
+      description: Stores one helper tag against a tenant record.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -1771,10 +2513,12 @@ paths:
     get:
       tags: [Platform Helpers]
       summary: List IP flags by tenant
+      description: Lists stored IP-address flags, optionally filtered to one IP address.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: ip_address
           in: query
+          description: Restrict results to one flagged IP address.
           schema:
             type: string
       responses:
@@ -1810,10 +2554,12 @@ paths:
     get:
       tags: [Outbox]
       summary: List outbox events by tenant
+      description: Lists persisted outbox events for a tenant so operators can inspect pending or delivered downstream work.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: limit
           in: query
+          description: Maximum number of outbox events to return.
           schema:
             type: integer
             default: 50
@@ -1828,12 +2574,49 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalError'
+  /internal/screening-status-updates:
+    post:
+      tags: [Internal]
+      summary: Receive screening status updates from the screening service
+      description: Internal callback used to update decision-engine screening execution records after downstream screening work completes or changes state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalScreeningStatusUpdateRequest'
+            example:
+              tenant_id: tenant_demo
+              screening_id: sexec_01HZYA6K1R3M7Q9T4N2D8P5CVB
+              decision_id: dec_01HZY90B4J4QWQ5TS9N5P7DZ9C
+              scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+              screening_config_id: sconf_01HZYA2N4V8Q3T7K5M1R9D6CPX
+              status: completed
+              provider: comply-guard
+              object_type: transactions
+              object_id: txn_100234
+              provider_reference: screening-job-42
+              last_error: ""
+              partial: false
+              idempotency_key: screening-callback-42
+              completed_at: '2026-07-14T10:23:00Z'
+              match_count: 0
+      responses:
+        '200':
+          description: Screening execution updated from callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreeningExecutionEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   parameters:
     TenantId:
       name: tenantId
       in: path
       required: true
+      description: Tenant identifier for the tenant that owns the scenario, decision, workflow, or execution record.
       schema:
         type: string
         format: uuid
@@ -1841,6 +2624,7 @@ components:
       name: scenarioId
       in: path
       required: true
+      description: Scenario identifier for one decisioning scenario definition.
       schema:
         type: string
         format: uuid
@@ -1848,6 +2632,7 @@ components:
       name: iterationId
       in: path
       required: true
+      description: Scenario iteration identifier for one draft or live version of a scenario.
       schema:
         type: string
         format: uuid
@@ -1855,6 +2640,7 @@ components:
       name: ruleId
       in: path
       required: true
+      description: Rule identifier for one rule belonging to a scenario iteration or workflow rule set.
       schema:
         type: string
         format: uuid
@@ -1862,6 +2648,7 @@ components:
       name: decisionId
       in: path
       required: true
+      description: Decision identifier for one persisted scenario evaluation result.
       schema:
         type: string
         format: uuid
@@ -1869,6 +2656,7 @@ components:
       name: testRunId
       in: path
       required: true
+      description: Test-run identifier for one live-vs-phantom scenario evaluation run.
       schema:
         type: string
         format: uuid
@@ -1914,13 +2702,17 @@ components:
       required: [status, error]
     ServiceInfo:
       type: object
+      description: Runtime service metadata and configured upstream base URLs.
       properties:
         service:
           type: string
+          description: Static service identifier.
         data_model_service_url:
           type: string
+          description: Base URL for the configured `data-model-service` dependency.
         ingestion_service_url:
           type: string
+          description: Base URL for the configured `ingestion-service` dependency.
       required: [service, data_model_service_url, ingestion_service_url]
     ErrorEnvelope:
       type: object
@@ -1971,30 +2763,54 @@ components:
       additionalProperties: false
     CreateScenarioRequest:
       type: object
+      description: Payload for creating or updating a scenario definition.
       properties:
         name:
           type: string
+          description: Human-readable scenario name.
         description:
           type: string
+          description: Free-form explanation of what the scenario is intended to detect or decide.
         trigger_object_type:
           type: string
+          description: Object type this scenario evaluates. In practice this matches the tenant data-model table name for incoming records, such as `transactions` or `customers`.
       required: [name, trigger_object_type]
+      example:
+        name: High Amount Review
+        description: Review high-value transactions from new counterparties.
+        trigger_object_type: transactions
+    CopyScenarioRequest:
+      type: object
+      description: Optional values to use when creating a copied scenario.
+      properties:
+        name:
+          type: string
+          description: Name to give the copied scenario.
+      example:
+        name: High Amount Review Copy
     ScenarioResponse:
       type: object
+      description: Scenario definition owned by one tenant.
       properties:
         id:
           type: string
+          description: Stable scenario identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the scenario.
         name:
           type: string
+          description: Human-readable scenario name.
         description:
           type: string
+          description: Free-form explanation of the scenario.
         trigger_object_type:
           type: string
+          description: Object type the scenario evaluates. This matches the tenant model table name for the target records.
         live_iteration_id:
           type: string
           nullable: true
+          description: Currently active live iteration for the scenario, when one exists.
         created_at:
           type: string
           format: date-time
@@ -2002,32 +2818,51 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, name, description, trigger_object_type, created_at, updated_at]
+      example:
+        id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        tenant_id: tenant_demo
+        name: High Amount Review
+        description: Review high-value transactions from new counterparties.
+        trigger_object_type: transactions
+        live_iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        created_at: '2026-07-14T09:00:00Z'
+        updated_at: '2026-07-14T09:15:00Z'
     IterationResponse:
       type: object
+      description: One versioned scenario iteration, usually draft or live.
       properties:
         id:
           type: string
+          description: Stable iteration identifier.
         scenario_id:
           type: string
+          description: Parent scenario for this iteration.
         tenant_id:
           type: string
+          description: Tenant that owns the iteration.
         version:
           type: integer
+          description: Version number assigned to the iteration within the scenario.
         status:
           type: string
+          description: Iteration lifecycle state, such as draft or live.
         trigger_formula:
           $ref: '#/components/schemas/ASTNode'
         score_review_threshold:
           type: integer
           nullable: true
+          description: Minimum total score that yields a review outcome when configured.
         score_block_and_review_threshold:
           type: integer
           nullable: true
+          description: Minimum total score that yields a block-and-review outcome when configured.
         score_decline_threshold:
           type: integer
           nullable: true
+          description: Minimum total score that yields a decline outcome when configured.
         schedule:
           type: string
+          description: Stored schedule expression or serialized schedule config for recurring execution when used.
         created_at:
           type: string
           format: date-time
@@ -2036,8 +2871,24 @@ components:
           format: date-time
           nullable: true
       required: [id, scenario_id, tenant_id, version, status, created_at]
+      example:
+        id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        tenant_id: tenant_demo
+        version: 3
+        status: live
+        trigger_formula:
+          kind: literal
+          value: true
+        score_review_threshold: 50
+        score_block_and_review_threshold: 80
+        score_decline_threshold: 95
+        schedule: ""
+        created_at: '2026-07-14T09:01:00Z'
+        committed_at: '2026-07-14T09:10:00Z'
     UpdateIterationRequest:
       type: object
+      description: Mutable scenario-iteration fields. Omitted properties remain unchanged.
       properties:
         trigger_formula:
           $ref: '#/components/schemas/ASTNode'
@@ -2052,6 +2903,33 @@ components:
           nullable: true
         schedule:
           type: string
+    MetadataIterationResponse:
+      type: object
+      description: Lightweight iteration record used for lists and timeline views.
+      properties:
+        id:
+          type: string
+          description: Stable iteration identifier.
+        scenario_id:
+          type: string
+          description: Scenario that owns the iteration.
+        tenant_id:
+          type: string
+          description: Tenant that owns the iteration.
+        version:
+          type: integer
+          description: Iteration version number within the scenario.
+        status:
+          type: string
+          description: Iteration lifecycle state, such as draft or live.
+        created_at:
+          type: string
+          format: date-time
+        committed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, scenario_id, tenant_id, version, status, created_at]
     PublicationActionRequest:
       type: object
       properties:
@@ -2063,70 +2941,125 @@ components:
       required: [action, iteration_id]
     PublicationResponse:
       type: object
+      description: Recorded publication or unpublication action for a scenario iteration.
       properties:
         id:
           type: string
+          description: Publication action identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the publication record.
         scenario_id:
           type: string
+          description: Scenario affected by the publication action.
         iteration_id:
           type: string
+          description: Iteration that was published or unpublished.
         action:
           type: string
+          description: Publication action performed, typically publish or unpublish.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, iteration_id, action, created_at]
+    PublicationPreparationStatusResponse:
+      type: object
+      description: Preparation state for publishing one scenario iteration when data-model work is required first.
+      properties:
+        scenario_id:
+          type: string
+          description: Scenario whose iteration is being prepared for publication.
+        iteration_id:
+          type: string
+          description: Iteration being checked or prepared for publication.
+        preparation_required:
+          type: boolean
+          description: Whether publication currently depends on prerequisite preparation work.
+        preparation_started:
+          type: boolean
+          description: Whether the required preparation work has already been started.
+        preparation_finished:
+          type: boolean
+          description: Whether the required preparation work has finished.
+        pending_items:
+          type: integer
+          description: Number of remaining preparation items or related jobs still blocking publication.
+      required: [scenario_id, iteration_id, preparation_required, preparation_started, preparation_finished, pending_items]
+      example:
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        preparation_required: true
+        preparation_started: true
+        preparation_finished: false
+        pending_items: 2
     CreateRuleRequest:
       type: object
+      description: Payload for creating or replacing one rule inside a scenario iteration.
       properties:
         display_order:
           type: integer
+          description: Relative rule ordering inside the iteration.
         name:
           type: string
+          description: Human-readable rule name.
         description:
           type: string
+          description: Free-form explanation of the rule.
         formula:
           $ref: '#/components/schemas/ASTNode'
         score_modifier:
           type: integer
+          description: Score contribution applied when the rule hits.
         rule_group:
           type: string
+          description: Group label used to organize rules in authoring and reporting.
         snooze_group_id:
           type: string
           nullable: true
+          description: Optional snooze group identifier used to suppress repeat outcomes.
         stable_rule_id:
           type: string
+          description: Stable logical identifier preserved across iteration copies and publication flows.
       required: [display_order, name, description, formula, score_modifier, rule_group, stable_rule_id]
     UpdateRuleRequest:
       $ref: '#/components/schemas/CreateRuleRequest'
     RuleResponse:
       type: object
+      description: Stored rule definition for one scenario iteration.
       properties:
         id:
           type: string
+          description: Stable rule identifier.
         iteration_id:
           type: string
+          description: Iteration that owns the rule.
         tenant_id:
           type: string
+          description: Tenant that owns the rule.
         display_order:
           type: integer
+          description: Relative rule ordering inside the iteration.
         name:
           type: string
+          description: Human-readable rule name.
         description:
           type: string
+          description: Free-form explanation of the rule.
         formula:
           $ref: '#/components/schemas/ASTNode'
         score_modifier:
           type: integer
+          description: Score contribution applied when the rule hits.
         rule_group:
           type: string
+          description: Group label used to organize rules in authoring and reporting.
         snooze_group_id:
           type: string
           nullable: true
+          description: Optional snooze group identifier used for suppression behavior.
         stable_rule_id:
           type: string
+          description: Stable logical identifier for the rule across iteration versions.
         created_at:
           type: string
           format: date-time
@@ -2136,195 +3069,318 @@ components:
       required: [id, iteration_id, tenant_id, display_order, name, description, formula, score_modifier, rule_group, stable_rule_id, created_at, updated_at]
     RuleValidationResultResponse:
       type: object
+      description: Validation result for one stored rule inside a scenario iteration.
       properties:
         rule_id:
           type: string
+          description: Rule that was validated.
         name:
           type: string
+          description: Rule name at validation time.
         valid:
           type: boolean
+          description: Whether the rule formula passed validation.
         errors:
           type: array
+          description: Validation messages returned for the rule.
           items:
             type: string
       required: [rule_id, name, valid, errors]
     IterationValidationResponse:
       type: object
+      description: Validation result for one scenario iteration and its rules against the current tenant model.
       properties:
         valid:
           type: boolean
+          description: Whether the iteration passed validation overall.
         model_revision:
           type: string
+          description: Tenant model revision used during validation when available.
         trigger_errors:
           type: array
+          description: Validation messages returned for the iteration trigger formula.
           items:
             type: string
         rule_results:
           type: array
+          description: Per-rule validation results.
           items:
             $ref: '#/components/schemas/RuleValidationResultResponse'
         errors:
           type: array
+          description: Non-rule validation errors for the iteration.
           items:
             type: string
       required: [valid, model_revision, trigger_errors, rule_results, errors]
     RuleFunctionArgumentResponse:
       type: object
+      description: One supported function argument exposed to AST authoring clients.
       properties:
         name:
           type: string
+          description: Argument name used by the function.
         kind:
           type: string
+          description: Expected argument type or AST value kind.
         required:
           type: boolean
+          description: Whether callers must provide the argument.
         description:
           type: string
+          description: Authoring guidance for the argument.
       required: [name, kind, required, description]
     RuleFunctionResponse:
       type: object
+      description: One supported function available to the scenario and workflow expression builders.
       properties:
         name:
           type: string
+          description: Function name used in AST formulas.
         category:
           type: string
+          description: High-level function grouping shown in authoring clients.
         description:
           type: string
+          description: Human-readable explanation of what the function does.
         return_type:
           type: string
+          description: Value type returned by the function.
         positional_arity:
           type: integer
           nullable: true
+          description: Required positional argument count when the function uses fixed arity.
         supports_named_args:
           type: boolean
+          description: Whether named arguments are supported.
         arguments:
           type: array
+          description: Supported function arguments in authoring order.
           items:
             $ref: '#/components/schemas/RuleFunctionArgumentResponse'
         requires_model:
           type: boolean
+          description: Whether the function depends on the tenant data model metadata.
         requires_data_read:
           type: boolean
+          description: Whether the function reads stored record data during evaluation.
         requires_platform:
           type: boolean
+          description: Whether the function depends on helper/platform data such as lists or tags.
         example:
           type: string
+          description: Example formula snippet showing how to call the function.
       required: [name, category, description, return_type, supports_named_args, arguments, requires_model, requires_data_read, requires_platform, example]
     EvaluateDecisionRequest:
       type: object
+      description: Record payload used to evaluate one scenario or execution request.
       properties:
         object_id:
           type: string
+          description: External record identifier for the evaluated object.
         object_type:
           type: string
+          description: Object type being evaluated. In practice this is the tenant data-model table name for the record.
         fields:
           type: object
           additionalProperties: true
+          description: Raw record fields supplied to the evaluator.
       required: [object_id, object_type, fields]
+      example:
+        object_id: txn_100234
+        object_type: transactions
+        fields:
+          amount: 12500
+          currency: USD
+          counterparty_country: NG
+          customer_tenure_days: 12
+    CreateDecisionRequest:
+      type: object
+      description: Tenant-level request to evaluate one scenario and create the resulting decision output.
+      properties:
+        scenario_id:
+          type: string
+          description: Scenario to evaluate.
+        object_id:
+          type: string
+          description: External record identifier for the evaluated object.
+        object_type:
+          type: string
+          description: Object type being evaluated. This matches the tenant data-model table name for the record.
+        fields:
+          type: object
+          additionalProperties: true
+          description: Raw record fields supplied to the evaluator.
+      required: [scenario_id, object_id, object_type, fields]
+      example:
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        object_id: txn_100234
+        object_type: transactions
+        fields:
+          amount: 12500
+          currency: USD
     IngestionTriggerRequest:
       type: object
+      description: Record-ingested callback payload used to evaluate all live scenarios for one object type.
       properties:
         object_id:
           type: string
+          description: External record identifier for the ingested object.
         object_type:
           type: string
+          description: Object type of the ingested record. This matches the tenant table name from the data model.
         fields:
           type: object
           additionalProperties: true
+          description: Raw ingested record fields supplied to scenario evaluation.
         source:
           type: string
+          description: Optional source label indicating where the ingestion trigger originated.
       required: [object_id, object_type, fields]
+      example:
+        object_id: txn_100234
+        object_type: transactions
+        fields:
+          amount: 12500
+          currency: USD
+          customer_id: cust_778
+        source: ingestion-service
     DecisionResponse:
       type: object
+      description: Persisted result of evaluating one scenario against one record.
       properties:
         id:
           type: string
+          description: Stable decision identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the decision.
         scenario_id:
           type: string
+          description: Scenario that produced the decision.
         scenario_iteration_id:
           type: string
+          description: Specific scenario iteration used for this evaluation.
         object_id:
           type: string
+          description: External record identifier for the evaluated object.
         object_type:
           type: string
+          description: Evaluated object type, matching the tenant model table name.
         outcome:
           type: string
+          description: Final scenario outcome, such as approve, review, block_and_review, or decline.
         score:
           type: integer
+          description: Final accumulated score for the evaluation.
         triggered:
           type: boolean
+          description: Whether the scenario actually triggered and produced a persisted decision result.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, outcome, score, triggered, created_at]
+      example:
+        id: dec_01HZY90B4J4QWQ5TS9N5P7DZ9C
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        scenario_iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        object_id: txn_100234
+        object_type: transactions
+        outcome: review
+        score: 65
+        triggered: true
+        created_at: '2026-07-14T10:00:00Z'
     RuleExecutionResponse:
       type: object
+      description: Persisted execution record for one rule evaluated within a decision.
       properties:
         id:
           type: string
+          description: Stable rule-execution identifier.
         decision_id:
           type: string
+          description: Decision that this rule execution belongs to.
         rule_id:
           type: string
+          description: Rule that was evaluated.
         rule_name:
           type: string
+          description: Human-readable rule name at evaluation time.
         outcome:
           type: string
+          description: Rule evaluation outcome, typically hit or miss style state.
         score_modifier:
           type: integer
+          description: Score contribution applied by this rule execution.
         created_at:
           type: string
           format: date-time
       required: [id, decision_id, rule_id, rule_name, outcome, score_modifier, created_at]
     DecisionEvaluationResponse:
       type: object
+      description: Immediate evaluation result returned by the live decisioning API.
       properties:
         triggered:
           type: boolean
+          description: Whether the evaluation produced a triggered decision result.
         decision:
           allOf:
             - $ref: '#/components/schemas/DecisionResponse'
           nullable: true
+          description: Persisted decision record when the scenario triggered.
         rule_executions:
           type: array
           items:
             $ref: '#/components/schemas/RuleExecutionResponse'
+          description: Rule-level execution details returned for the evaluation.
       required: [triggered]
     MultiDecisionEvaluationResponse:
       type: object
+      description: Evaluation results for all live scenarios triggered by one ingested record.
       properties:
         object_id:
           type: string
+          description: External record identifier that was evaluated across scenarios.
         results:
           type: array
           items:
             $ref: '#/components/schemas/DecisionEvaluationResponse'
+          description: Per-scenario evaluation results.
       required: [object_id, results]
     CreateTestRunRequest:
       type: object
+      description: Request to compare live and phantom scenario behavior in a test run.
       properties:
         phantom_iteration_id:
           type: string
+          description: Phantom iteration to evaluate alongside the current live iteration.
         expires_at:
           type: string
           format: date-time
+          description: Time when the test run should expire and stop being available.
       required: [phantom_iteration_id, expires_at]
     TestRunResponse:
       type: object
+      description: Stored test-run record for live-vs-phantom scenario comparison.
       properties:
         id:
           type: string
+          description: Stable test-run identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the test run.
         scenario_id:
           type: string
+          description: Scenario under test.
         live_iteration_id:
           type: string
+          description: Currently live iteration compared during the test run.
         phantom_iteration_id:
           type: string
+          description: Phantom iteration being compared against the live one.
         status:
           type: string
+          description: Test-run lifecycle state.
         created_at:
           type: string
           format: date-time
@@ -2335,22 +3391,74 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, live_iteration_id, phantom_iteration_id, status, created_at, expires_at, updated_at]
+      example:
+        id: testrun_01HZY94N8YJ2A6Q3K1R7X4M2FD
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        live_iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        phantom_iteration_id: iter_01HZY93M9M2GQ8A1N6T4C7R5ZE
+        status: active
+        created_at: '2026-07-14T10:00:00Z'
+        expires_at: '2026-07-15T10:00:00Z'
+        updated_at: '2026-07-14T10:00:00Z'
     TestRunEvaluationResponse:
       type: object
+      description: Side-by-side evaluation result for live and phantom scenario behavior.
       properties:
         live:
           $ref: '#/components/schemas/DecisionEvaluationResponse'
+          description: Evaluation result for the live iteration.
         phantom:
           $ref: '#/components/schemas/DecisionEvaluationResponse'
+          description: Evaluation result for the phantom iteration.
       required: [live, phantom]
+    TestRunDecisionSummaryResponse:
+      type: object
+      description: Grouped count of test-run decisions by outcome and score.
+      properties:
+        outcome:
+          type: string
+          description: Decision outcome represented by the group.
+        score:
+          type: integer
+          description: Score represented by the group.
+        count:
+          type: integer
+          description: Number of decisions in the group.
+      required: [outcome, score, count]
+    TestRunRuleStatResponse:
+      type: object
+      description: Per-rule summary of execution results inside a test run.
+      properties:
+        rule_id:
+          type: string
+          description: Rule identifier.
+        rule_name:
+          type: string
+          description: Rule name shown in the summary.
+        hit_count:
+          type: integer
+          description: Number of times the rule hit.
+        no_hit_count:
+          type: integer
+          description: Number of times the rule did not hit.
+        snoozed_count:
+          type: integer
+          description: Number of times the rule outcome was snoozed.
+        total_count:
+          type: integer
+          description: Total number of executions counted for the rule.
+      required: [rule_id, rule_name, hit_count, no_hit_count, snoozed_count, total_count]
     CreateWorkflowRequest:
       type: object
       description: Legacy outcome-driven workflow definition. This model triggers from final decision outcomes. Use structured workflow-rules when execution should depend on specific rule hits or payload expressions.
       properties:
         name:
           type: string
+          description: Human-readable workflow name.
         description:
           type: string
+          description: Free-form explanation of what the workflow should do.
         allowed_outcomes:
           type: array
           items:
@@ -2361,9 +3469,22 @@ components:
           description: Supported legacy workflow actions are create_case, add_tag, and emit_event.
         action_config:
           $ref: '#/components/schemas/JSONValue'
+          description: Action-specific payload forwarded to the downstream workflow consumer.
         active:
           type: boolean
+          description: Whether the workflow is enabled for execution.
       required: [name, description, allowed_outcomes, action_type, action_config, active]
+      example:
+        name: Review Case Creation
+        description: Create a case for review outcomes.
+        allowed_outcomes: [review]
+        action_type: create_case
+        action_config:
+          queue: manual-review
+          priority: high
+        active: true
+    UpdateWorkflowRequest:
+      $ref: '#/components/schemas/CreateWorkflowRequest'
     CreateWorkflowRuleRequest:
       type: object
       description: Structured workflow-rule definition. Add conditions and actions after creating the rule. Structured workflow-rules are preferred over legacy workflows when a scenario has them.
@@ -2377,11 +3498,14 @@ components:
       required: [name, fallthrough]
     UpdateWorkflowRuleRequest:
       type: object
+      description: Mutable fields for a structured workflow rule.
       properties:
         name:
           type: string
+          description: Human-readable workflow-rule name.
         fallthrough:
           type: boolean
+          description: Whether evaluation should continue to lower-priority workflow rules after this rule matches.
       required: [name, fallthrough]
     WorkflowConditionRequest:
       type: object
@@ -2392,6 +3516,7 @@ components:
           description: Condition function name.
         params:
           $ref: '#/components/schemas/JSONValue'
+          description: Condition-specific configuration payload.
       required: [function, params]
     WorkflowActionRequest:
       type: object
@@ -2402,32 +3527,43 @@ components:
           description: Action type to dispatch when the workflow-rule matches.
         action_config:
           $ref: '#/components/schemas/JSONValue'
+          description: Action-specific payload forwarded when the workflow-rule matches.
       required: [action_type, action_config]
     WorkflowResponse:
       type: object
+      description: Legacy outcome-driven workflow definition stored for a scenario.
       properties:
         id:
           type: string
+          description: Stable workflow identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the workflow.
         scenario_id:
           type: string
+          description: Scenario that owns the workflow.
         display_order:
           type: integer
+          description: Relative workflow ordering within the scenario.
         name:
           type: string
+          description: Human-readable workflow name.
         description:
           type: string
+          description: Free-form explanation of the workflow.
         allowed_outcomes:
           type: array
           items:
             type: string
         action_type:
           type: string
+          description: Legacy workflow action type to dispatch.
         action_config:
           $ref: '#/components/schemas/JSONValue'
+          description: Action-specific payload stored for downstream execution.
         active:
           type: boolean
+          description: Whether the workflow is enabled.
         created_at:
           type: string
           format: date-time
@@ -2435,59 +3571,94 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, display_order, name, description, allowed_outcomes, action_type, action_config, active, created_at, updated_at]
+      example:
+        id: wf_01HZY97T5B3R4A6N8K2M1P9DQC
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        display_order: 1
+        name: Review Case Creation
+        description: Create a case for review outcomes.
+        allowed_outcomes: [review]
+        action_type: create_case
+        action_config:
+          queue: manual-review
+          priority: high
+        active: true
+        created_at: '2026-07-14T10:05:00Z'
+        updated_at: '2026-07-14T10:05:00Z'
     WorkflowExecutionResponse:
       type: object
+      description: Persisted execution record for a workflow or workflow-rule action triggered by a decision.
       properties:
         id:
           type: string
+          description: Stable workflow-execution identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the execution record.
         workflow_id:
           type: string
           nullable: true
+          description: Legacy workflow that produced this execution, when applicable.
         workflow_rule_id:
           type: string
           nullable: true
+          description: Structured workflow rule that produced this execution, when applicable.
         workflow_action_id:
           type: string
           nullable: true
+          description: Structured workflow action that produced this execution, when applicable.
         decision_id:
           type: string
+          description: Decision that triggered the workflow execution.
         scenario_id:
           type: string
+          description: Scenario associated with the triggering decision.
         action_type:
           type: string
+          description: Action type dispatched for this execution.
         status:
           type: string
+          description: Current execution state for the workflow action.
         action_config:
           $ref: '#/components/schemas/JSONValue'
+          description: Action payload used for the workflow execution.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, decision_id, scenario_id, action_type, status, action_config, created_at]
     WorkflowRuleResponse:
       type: object
+      description: Structured workflow-rule definition stored for a scenario.
       properties:
         id:
           type: string
+          description: Stable workflow-rule identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the workflow rule.
         scenario_id:
           type: string
+          description: Scenario that owns the workflow rule.
         name:
           type: string
+          description: Human-readable workflow-rule name.
         priority:
           type: integer
+          description: Relative evaluation priority among workflow rules.
         fallthrough:
           type: boolean
+          description: Whether evaluation continues to lower-priority workflow rules after this rule matches.
         conditions:
           type: array
           items:
             $ref: '#/components/schemas/WorkflowConditionResponse'
+          description: Conditions attached to the workflow rule.
         actions:
           type: array
           items:
             $ref: '#/components/schemas/WorkflowActionResponse'
+          description: Actions dispatched when the workflow rule matches.
         created_at:
           type: string
           format: date-time
@@ -2495,19 +3666,52 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, name, priority, fallthrough, conditions, actions, created_at, updated_at]
+      example:
+        id: wrule_01HZY9BM2YJ5T3Q7N6K4A8D1PX
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        name: Escalate High Amount Reviews
+        priority: 1
+        fallthrough: false
+        conditions:
+          - id: cond_01HZY9C2X7G4P6N8T1M5R3K9DA
+            tenant_id: tenant_demo
+            rule_id: wrule_01HZY9BM2YJ5T3Q7N6K4A8D1PX
+            function: outcome_in
+            params:
+              outcomes: [review]
+            created_at: '2026-07-14T10:06:00Z'
+            updated_at: '2026-07-14T10:06:00Z'
+        actions:
+          - id: act_01HZY9D5M4A8Q2T7N1K6P3R9VC
+            tenant_id: tenant_demo
+            rule_id: wrule_01HZY9BM2YJ5T3Q7N6K4A8D1PX
+            action_type: create_case
+            action_config:
+              queue: enhanced-review
+            created_at: '2026-07-14T10:06:00Z'
+            updated_at: '2026-07-14T10:06:00Z'
+        created_at: '2026-07-14T10:06:00Z'
+        updated_at: '2026-07-14T10:06:00Z'
     WorkflowConditionResponse:
       type: object
+      description: Stored condition attached to a structured workflow rule.
       properties:
         id:
           type: string
+          description: Stable workflow-condition identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the condition.
         rule_id:
           type: string
+          description: Workflow rule that owns the condition.
         function:
           type: string
+          description: Condition function name.
         params:
           $ref: '#/components/schemas/JSONValue'
+          description: Condition-specific payload stored for evaluation.
         created_at:
           type: string
           format: date-time
@@ -2517,17 +3721,23 @@ components:
       required: [id, tenant_id, rule_id, function, params, created_at, updated_at]
     WorkflowActionResponse:
       type: object
+      description: Stored action attached to a structured workflow rule.
       properties:
         id:
           type: string
+          description: Stable workflow-action identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the action.
         rule_id:
           type: string
+          description: Workflow rule that owns the action.
         action_type:
           type: string
+          description: Action type dispatched when the workflow rule matches.
         action_config:
           $ref: '#/components/schemas/JSONValue'
+          description: Action-specific payload stored for execution.
         created_at:
           type: string
           format: date-time
@@ -2537,25 +3747,32 @@ components:
       required: [id, tenant_id, rule_id, action_type, action_config, created_at, updated_at]
     CreateScheduledExecutionRequest:
       type: object
+      description: Request to queue one scheduled execution for a scenario.
       properties:
         scheduled_for:
           type: string
           format: date-time
+          description: Time when the execution should be run.
         items:
           type: array
           items:
             $ref: '#/components/schemas/EvaluateDecisionRequest'
+          description: Record payloads to evaluate when the scheduled execution runs.
         candidate_limit:
           type: integer
+          description: Maximum number of candidate records or evaluation items to process.
       required: [scheduled_for, items, candidate_limit]
     RecurringScheduleRequest:
       type: object
+      description: Recurring schedule configuration for automatic scenario execution.
       properties:
         enabled:
           type: boolean
+          description: Whether recurring execution is enabled.
         frequency:
           type: string
           enum: [daily, hourly, weekly, monthly]
+          description: Schedule frequency.
         time_of_day:
           type: string
         minute_of_hour:
@@ -2570,11 +3787,14 @@ components:
           maximum: 31
         timezone:
           type: string
+          description: Timezone used to interpret the schedule fields.
         candidate_limit:
           type: integer
+          description: Maximum number of candidate records to process per recurring run.
       required: [enabled, frequency, timezone, candidate_limit]
     RecurringScheduleResponse:
       type: object
+      description: Stored recurring schedule configuration plus run metadata.
       properties:
         enabled:
           type: boolean
@@ -2600,12 +3820,15 @@ components:
         next_run:
           type: string
           format: date-time
+          description: Next computed run time when available.
         last_run:
           type: string
           format: date-time
+          description: Most recent run time when available.
       required: [enabled, frequency, timezone, candidate_limit]
     ScheduledExecutionResponse:
       type: object
+      description: Persisted scheduled execution record for a scenario run.
       properties:
         id:
           type: string
@@ -2618,32 +3841,66 @@ components:
         source:
           type: string
           enum: [manual, recurring]
+          description: Whether the execution was created manually or by recurring scheduling.
         status:
           type: string
+          description: Current execution state.
         scheduled_for:
           type: string
           format: date-time
         request_body:
           type: string
           format: byte
+          description: Serialized request payload used for the scheduled execution.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, scenario_iteration_id, source, status, scheduled_for, request_body, created_at]
+    ExecutionStatusSummaryResponse:
+      type: object
+      description: Aggregate execution counts grouped by status.
+      properties:
+        pending:
+          type: integer
+          description: Count of execution records waiting to be queued.
+        queued:
+          type: integer
+          description: Count of execution records queued for work.
+        running:
+          type: integer
+          description: Count of execution records currently being processed.
+        completed:
+          type: integer
+          description: Count of successfully completed execution records.
+        failed:
+          type: integer
+          description: Count of failed execution records.
+      required: [pending, queued, running, completed, failed]
+      example:
+        pending: 1
+        queued: 3
+        running: 0
+        completed: 18
+        failed: 2
     CreateAsyncDecisionExecutionRequest:
       type: object
+      description: Request to queue asynchronous decision execution for multiple records.
       properties:
         scenario_id:
           type: string
+          description: Scenario to evaluate asynchronously.
         object_type:
           type: string
+          description: Object type being evaluated. This matches the tenant data-model table name.
         items:
           type: array
           items:
             $ref: '#/components/schemas/EvaluateDecisionRequest'
+          description: Record payloads queued for asynchronous evaluation.
       required: [scenario_id, object_type, items]
     AsyncDecisionExecutionResponse:
       type: object
+      description: Persisted asynchronous decision-execution request.
       properties:
         id:
           type: string
@@ -2653,33 +3910,45 @@ components:
           type: string
         object_type:
           type: string
+          description: Object type being evaluated, matching the tenant model table name.
         status:
           type: string
+          description: Current asynchronous execution state.
         request_body:
           type: string
           format: byte
+          description: Serialized request payload submitted for async evaluation.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, object_type, status, request_body, created_at]
     CreateScreeningConfigRequest:
       type: object
+      description: Configuration payload for decision-linked screening execution.
       properties:
         name:
           type: string
+          description: Human-readable screening configuration name.
         allowed_outcomes:
           type: array
           items:
             type: string
+          description: Decision outcomes that should trigger screening for this config.
         provider:
           type: string
+          description: Screening provider key or routing identifier.
         config_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider-specific screening configuration payload.
         active:
           type: boolean
+          description: Whether the screening config is enabled.
       required: [name, allowed_outcomes, provider, config_json, active]
+    UpdateScreeningConfigRequest:
+      $ref: '#/components/schemas/CreateScreeningConfigRequest'
     ScreeningConfigResponse:
       type: object
+      description: Stored screening configuration attached to a scenario.
       properties:
         id:
           type: string
@@ -2687,6 +3956,7 @@ components:
           type: string
         scenario_id:
           type: string
+          description: Scenario that owns the screening configuration.
         name:
           type: string
         allowed_outcomes:
@@ -2706,8 +3976,22 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at]
+      example:
+        id: sconf_01HZYA2N4V8Q3T7K5M1R9D6CPX
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        name: PEP Screening
+        allowed_outcomes: [review, block_and_review]
+        provider: comply-guard
+        config_json:
+          dataset: pep
+          threshold: 0.9
+        active: true
+        created_at: '2026-07-14T10:20:00Z'
+        updated_at: '2026-07-14T10:20:00Z'
     ScreeningExecutionResponse:
       type: object
+      description: Persisted screening execution record created from a decision.
       properties:
         id:
           type: string
@@ -2715,20 +3999,28 @@ components:
           type: string
         config_id:
           type: string
+          description: Screening configuration that produced this execution.
         decision_id:
           type: string
+          description: Decision that triggered the screening request.
         scenario_id:
           type: string
+          description: Scenario associated with the screening execution.
         status:
           type: string
+          description: Current screening execution state.
         request_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider request payload recorded by the service.
         response_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Latest provider response payload recorded by the service.
         provider_reference:
           type: string
+          description: Provider-side reference id when available.
         last_error:
           type: string
+          description: Latest or terminal screening error when present.
         created_at:
           type: string
           format: date-time
@@ -2748,37 +4040,71 @@ components:
           format: date-time
           nullable: true
       required: [id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at]
+      example:
+        id: sexec_01HZYA6K1R3M7Q9T4N2D8P5CVB
+        tenant_id: tenant_demo
+        config_id: sconf_01HZYA2N4V8Q3T7K5M1R9D6CPX
+        decision_id: dec_01HZY90B4J4QWQ5TS9N5P7DZ9C
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        status: completed
+        request_json:
+          subject_name: Example Trading Ltd
+          country: NG
+        response_json:
+          matches: []
+          provider_status: cleared
+        provider_reference: screening-job-42
+        last_error: ""
+        created_at: '2026-07-14T10:22:00Z'
+        updated_at: '2026-07-14T10:23:00Z'
+        sent_at: '2026-07-14T10:22:05Z'
+        completed_at: '2026-07-14T10:23:00Z'
+        failed_at: null
     UpdateScreeningExecutionStatusRequest:
       type: object
+      description: Provider-status update payload for a screening execution.
       properties:
         status:
           type: string
           enum: [pending, queued, sent, completed, failed]
+          description: New screening execution state.
         provider_reference:
           type: string
+          description: Provider-side reference id when available.
         response_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider response payload to persist with the execution.
         last_error:
           type: string
+          description: Error text to persist when the screening execution failed.
       required: [status]
     CreateScoringConfigRequest:
       type: object
+      description: Configuration payload for decision-linked scoring execution.
       properties:
         name:
           type: string
+          description: Human-readable scoring configuration name.
         allowed_outcomes:
           type: array
           items:
             type: string
+          description: Decision outcomes that should trigger scoring for this config.
         ruleset_ref:
           type: string
+          description: Provider or ruleset reference used to select the scoring model.
         config_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider-specific scoring configuration payload.
         active:
           type: boolean
+          description: Whether the scoring config is enabled.
       required: [name, allowed_outcomes, ruleset_ref, config_json, active]
+    UpdateScoringConfigRequest:
+      $ref: '#/components/schemas/CreateScoringConfigRequest'
     ScoringConfigResponse:
       type: object
+      description: Stored scoring configuration attached to a scenario.
       properties:
         id:
           type: string
@@ -2786,6 +4112,7 @@ components:
           type: string
         scenario_id:
           type: string
+          description: Scenario that owns the scoring configuration.
         name:
           type: string
         allowed_outcomes:
@@ -2805,8 +4132,22 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, name, allowed_outcomes, ruleset_ref, config_json, active, created_at, updated_at]
+      example:
+        id: scorecfg_01HZYABX5N2Q7T4K1M8R3D6PVA
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        name: High Risk Scoring
+        allowed_outcomes: [review]
+        ruleset_ref: internal-score-v2
+        config_json:
+          model_version: v2
+          scorecard: retail_txn
+        active: true
+        created_at: '2026-07-14T10:25:00Z'
+        updated_at: '2026-07-14T10:25:00Z'
     ScoringRequestResponse:
       type: object
+      description: Persisted scoring request record created from a decision.
       properties:
         id:
           type: string
@@ -2814,20 +4155,28 @@ components:
           type: string
         config_id:
           type: string
+          description: Scoring configuration that produced this request.
         decision_id:
           type: string
+          description: Decision that triggered the scoring request.
         scenario_id:
           type: string
+          description: Scenario associated with the scoring request.
         status:
           type: string
+          description: Current scoring request state.
         request_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider request payload recorded by the service.
         response_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Latest provider response payload recorded by the service.
         provider_reference:
           type: string
+          description: Provider-side reference id when available.
         last_error:
           type: string
+          description: Latest or terminal scoring error when present.
         created_at:
           type: string
           format: date-time
@@ -2847,34 +4196,65 @@ components:
           format: date-time
           nullable: true
       required: [id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at]
+      example:
+        id: sreq_01HZYAEJ8V4Q2M7T1N6K3D9PRC
+        tenant_id: tenant_demo
+        config_id: scorecfg_01HZYABX5N2Q7T4K1M8R3D6PVA
+        decision_id: dec_01HZY90B4J4QWQ5TS9N5P7DZ9C
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        status: completed
+        request_json:
+          object_id: txn_100234
+          amount: 12500
+        response_json:
+          score: 742
+          band: medium
+        provider_reference: score-run-17
+        last_error: ""
+        created_at: '2026-07-14T10:27:00Z'
+        updated_at: '2026-07-14T10:28:00Z'
+        sent_at: '2026-07-14T10:27:10Z'
+        completed_at: '2026-07-14T10:28:00Z'
+        failed_at: null
     UpdateScoringRequestStatusRequest:
       type: object
+      description: Provider-status update payload for a scoring request.
       properties:
         status:
           type: string
           enum: [pending, queued, sent, completed, failed]
+          description: New scoring request state.
         provider_reference:
           type: string
+          description: Provider-side reference id when available.
         response_json:
           $ref: '#/components/schemas/JSONValue'
+          description: Provider response payload to persist with the request.
         last_error:
           type: string
+          description: Error text to persist when the scoring request failed.
       required: [status]
     CreateRuleSnoozeRequest:
       type: object
+      description: Request to suppress repeat rule-trigger behavior for one object until expiration.
       properties:
         object_type:
           type: string
+          description: Object type being snoozed. This matches the tenant data-model table name.
         object_id:
           type: string
+          description: External record identifier being snoozed.
         snooze_group_id:
           type: string
+          description: Snooze group key shared by rules that should be suppressed together.
         expires_at:
           type: string
           format: date-time
+          description: Time when the snooze expires.
       required: [object_type, object_id, snooze_group_id, expires_at]
     RuleSnoozeResponse:
       type: object
+      description: Stored rule-snooze record for one object and scenario.
       properties:
         id:
           type: string
@@ -2884,10 +4264,13 @@ components:
           type: string
         object_type:
           type: string
+          description: Object type being snoozed, matching the tenant model table name.
         object_id:
           type: string
+          description: External record identifier being snoozed.
         snooze_group_id:
           type: string
+          description: Snooze group key used for suppression matching.
         created_at:
           type: string
           format: date-time
@@ -2895,24 +4278,40 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, scenario_id, object_type, object_id, snooze_group_id, created_at, expires_at]
+      example:
+        id: snooze_01HZYAJK7Q3M8T1N4R6D2P9CVX
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        object_type: transactions
+        object_id: txn_100234
+        snooze_group_id: repeat-high-amount
+        created_at: '2026-07-14T10:30:00Z'
+        expires_at: '2026-07-21T10:30:00Z'
     CreateCustomListEntryRequest:
       type: object
+      description: Payload for adding one value to a custom list.
       properties:
         value:
           type: string
+          description: Entry value stored in the custom list.
       required: [value]
     CreateCustomListRequest:
       type: object
+      description: Payload for creating a tenant-scoped custom list.
       properties:
         name:
           type: string
+          description: Human-readable custom-list name.
         description:
           type: string
+          description: Free-form explanation of the list's purpose.
         kind:
           type: string
+          description: List kind or matching mode used by evaluator helpers.
       required: [name, description, kind]
     UpdateCustomListRequest:
       type: object
+      description: Mutable custom-list fields.
       properties:
         name:
           type: string
@@ -2923,6 +4322,7 @@ components:
       required: [name, description, kind]
     CustomListResponse:
       type: object
+      description: Stored tenant-scoped custom-list definition.
       properties:
         id:
           type: string
@@ -2934,6 +4334,7 @@ components:
           type: string
         kind:
           type: string
+          description: List kind or matching mode used by evaluator helpers.
         created_at:
           type: string
           format: date-time
@@ -2941,36 +4342,56 @@ components:
           type: string
           format: date-time
       required: [id, tenant_id, name, description, kind, created_at, updated_at]
+      example:
+        id: clist_01HZYAMR6N2Q4T8K1M5D7P3CVB
+        tenant_id: tenant_demo
+        name: High Risk Countries
+        description: Countries that require additional review.
+        kind: set
+        created_at: '2026-07-14T10:35:00Z'
+        updated_at: '2026-07-14T10:35:00Z'
     CreateRecordTagRequest:
       type: object
+      description: Payload for tagging one record for helper lookups.
       properties:
         object_type:
           type: string
+          description: Tagged object type, matching the tenant model table name.
         object_id:
           type: string
+          description: External record identifier being tagged.
         tag:
           type: string
+          description: Tag value to associate with the record.
       required: [object_type, object_id, tag]
     CreateRiskSnapshotRequest:
       type: object
+      description: Payload for storing a risk snapshot for one record.
       properties:
         object_type:
           type: string
+          description: Object type for the risk snapshot, matching the tenant model table name.
         object_id:
           type: string
+          description: External record identifier for the snapshot.
         risk_level:
           type: string
+          description: Stored risk level classification for the record.
       required: [object_type, object_id, risk_level]
     CreateIPFlagRequest:
       type: object
+      description: Payload for storing one IP-address flag.
       properties:
         ip_address:
           type: string
+          description: IP address being flagged.
         flag:
           type: string
+          description: Stored flag or classification for the IP address.
       required: [ip_address, flag]
     CustomListEntryResponse:
       type: object
+      description: Stored value belonging to a tenant custom list.
       properties:
         id:
           type: string
@@ -2979,22 +4400,28 @@ components:
         list_id:
           type: string
           nullable: true
+          description: Owning list identifier when available.
         list_name:
           type: string
+          description: Owning list name.
         value:
           type: string
+          description: Stored custom-list entry value.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, list_name, value, created_at]
     ImportCustomListEntriesResponse:
       type: object
+      description: Summary of a custom-list CSV import operation.
       properties:
         imported_count:
           type: integer
+          description: Number of entries imported successfully.
       required: [imported_count]
     RecordTagResponse:
       type: object
+      description: Stored tenant-scoped record tag.
       properties:
         id:
           type: string
@@ -3002,16 +4429,27 @@ components:
           type: string
         object_type:
           type: string
+          description: Tagged object type, matching the tenant model table name.
         object_id:
           type: string
+          description: External record identifier being tagged.
         tag:
           type: string
+          description: Stored tag value.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, object_type, object_id, tag, created_at]
+      example:
+        id: rtag_01HZYAQH4T7M2N6K1D8P3R9CVX
+        tenant_id: tenant_demo
+        object_type: customers
+        object_id: cust_778
+        tag: vip
+        created_at: '2026-07-14T10:40:00Z'
     RiskSnapshotResponse:
       type: object
+      description: Stored tenant-scoped risk snapshot for one record.
       properties:
         id:
           type: string
@@ -3019,16 +4457,20 @@ components:
           type: string
         object_type:
           type: string
+          description: Object type for the snapshot, matching the tenant model table name.
         object_id:
           type: string
+          description: External record identifier for the snapshot.
         risk_level:
           type: string
+          description: Stored risk level classification.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, object_type, object_id, risk_level, created_at]
     IPFlagResponse:
       type: object
+      description: Stored IP-address flag record.
       properties:
         id:
           type: string
@@ -3036,14 +4478,17 @@ components:
           type: string
         ip_address:
           type: string
+          description: Flagged IP address.
         flag:
           type: string
+          description: Stored flag or classification value.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, ip_address, flag, created_at]
     OutboxEventResponse:
       type: object
+      description: Persisted outbox event awaiting or reflecting downstream delivery.
       properties:
         id:
           type: string
@@ -3051,18 +4496,100 @@ components:
           type: string
         aggregate_type:
           type: string
+          description: Aggregate category that produced the event.
         aggregate_id:
           type: string
+          description: Aggregate identifier associated with the event.
         event_type:
           type: string
+          description: Event name or category published to downstream consumers.
         payload:
           $ref: '#/components/schemas/JSONValue'
+          description: Event payload body.
         status:
           type: string
+          description: Current outbox delivery state.
         created_at:
           type: string
           format: date-time
       required: [id, tenant_id, aggregate_type, aggregate_id, event_type, payload, status, created_at]
+      example:
+        id: outbox_01HZYATV9Q4M7T2N1K6D3P8CRX
+        tenant_id: tenant_demo
+        aggregate_type: workflow_execution
+        aggregate_id: wexec_01HZYAUH3M8Q2T7N4D1P6R9CV
+        event_type: workflow.execution.created
+        payload:
+          workflow_execution_id: wexec_01HZYAUH3M8Q2T7N4D1P6R9CV
+          action: create_case
+        status: pending
+        created_at: '2026-07-14T10:45:00Z'
+    NotImplementedResponse:
+      type: object
+      description: Placeholder response for routes that exist but are not implemented yet.
+      properties:
+        error:
+          type: string
+          description: Stable error code for the unimplemented route.
+        details:
+          type: string
+          description: Human-readable explanation of what is not implemented yet.
+      required: [error, details]
+      example:
+        error: ai_not_implemented
+        details: This endpoint has not been implemented yet.
+    InternalScreeningStatusUpdateRequest:
+      type: object
+      description: Internal callback payload used by the screening service to push screening status changes back into the decision engine.
+      properties:
+        tenant_id:
+          type: string
+          description: Tenant that owns the screening execution.
+        screening_id:
+          type: string
+          description: Screening execution identifier being updated.
+        decision_id:
+          type: string
+          description: Decision associated with the screening execution.
+        scenario_id:
+          type: string
+          description: Scenario associated with the screening execution.
+        screening_config_id:
+          type: string
+          description: Screening configuration that produced the execution.
+        status:
+          type: string
+          description: New screening status reported by the screening service.
+        provider:
+          type: string
+          description: Screening provider associated with the update.
+        object_type:
+          type: string
+          description: Object type for the screened record. This matches the tenant data-model table name.
+        object_id:
+          type: string
+          description: External record identifier for the screened object.
+        provider_reference:
+          type: string
+          description: Provider-side reference for the screening job when available.
+        last_error:
+          type: string
+          description: Error message to store if the screening failed or only partially completed.
+        partial:
+          type: boolean
+          description: Whether the callback reflects only a partial result.
+        idempotency_key:
+          type: string
+          description: Idempotency key used to deduplicate repeated callback deliveries.
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Completion time reported by the screening service when available.
+        match_count:
+          type: integer
+          description: Number of matches reported by the screening service.
+      required: [tenant_id, screening_id, decision_id, scenario_id, screening_config_id, status, provider, object_type, object_id, provider_reference, last_error, partial, idempotency_key, match_count]
     ScenarioEnvelope:
       type: object
       properties:
@@ -3091,6 +4618,14 @@ components:
           items:
             $ref: '#/components/schemas/IterationResponse'
       required: [iterations]
+    IterationMetadataListEnvelope:
+      type: object
+      properties:
+        iterations:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetadataIterationResponse'
+      required: [iterations]
     PublicationListEnvelope:
       type: object
       properties:
@@ -3099,6 +4634,12 @@ components:
           items:
             $ref: '#/components/schemas/PublicationResponse'
       required: [publications]
+    PublicationPreparationEnvelope:
+      type: object
+      properties:
+        preparation:
+          $ref: '#/components/schemas/PublicationPreparationStatusResponse'
+      required: [preparation]
     RuleEnvelope:
       type: object
       properties:
@@ -3203,6 +4744,22 @@ components:
         result:
           $ref: '#/components/schemas/TestRunEvaluationResponse'
       required: [result]
+    TestRunDecisionSummaryListEnvelope:
+      type: object
+      properties:
+        decisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRunDecisionSummaryResponse'
+      required: [decisions]
+    TestRunRuleStatListEnvelope:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRunRuleStatResponse'
+      required: [rules]
     WorkflowEnvelope:
       type: object
       properties:
@@ -3335,6 +4892,12 @@ components:
           items:
             $ref: '#/components/schemas/ScheduledExecutionResponse'
       required: [scheduled_executions]
+    ExecutionStatusSummaryEnvelope:
+      type: object
+      properties:
+        status_summary:
+          $ref: '#/components/schemas/ExecutionStatusSummaryResponse'
+      required: [status_summary]
     RecurringScheduleEnvelope:
       type: object
       properties:

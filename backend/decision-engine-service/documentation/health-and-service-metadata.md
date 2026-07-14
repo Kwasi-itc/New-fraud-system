@@ -9,6 +9,7 @@ This document explains the health, readiness, docs, and service-metadata routes 
 - `GET /v1/service-info`
 - `GET /openapi.yaml`
 - `GET /docs`
+- `GET /redoc`
 
 Primary files:
 
@@ -123,3 +124,22 @@ How it should be used:
 
 - interactive endpoint exploration
 - quick onboarding for engineers without opening the YAML directly
+
+### `GET /redoc`
+
+Purpose:
+
+- serves the embedded Redoc page for the OpenAPI spec
+
+Parameters:
+
+- none
+
+How it works:
+
+- serves a reference-style docs UI backed by the same embedded OpenAPI spec
+
+How it should be used:
+
+- cleaner read-only API reference browsing
+- sharing a more documentation-oriented view than Swagger UI

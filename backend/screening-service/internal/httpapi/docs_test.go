@@ -37,4 +37,15 @@ func TestDocsRoutesServeOpenAPISpecAndDocsPage(t *testing.T) {
 	if !strings.Contains(docsRec.Body.String(), "SwaggerUIBundle") {
 		t.Fatal("expected swagger UI bootstrap in docs page")
 	}
+
+	redocReq := httptest.NewRequest(http.MethodGet, "/redoc", nil)
+	redocRec := httptest.NewRecorder()
+	router.ServeHTTP(redocRec, redocReq)
+
+	if redocRec.Code != http.StatusOK {
+		t.Fatalf("expected redoc 200, got %d", redocRec.Code)
+	}
+	if !strings.Contains(redocRec.Body.String(), "redoc.standalone.js") {
+		t.Fatal("expected redoc bootstrap in redoc page")
+	}
 }
