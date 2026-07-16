@@ -123,6 +123,8 @@ The current webhook subsystem is outbound delivery only. It is not the ingestion
 - idempotent ingestion contract
 - request IDs and structured logs
 - embedded OpenAPI specification
+- Swagger-style docs page
+- Redoc page
 
 ## Project layout
 
@@ -256,6 +258,14 @@ Current supported predicate operators:
 - `ends_with`
 
 This endpoint is intended for decision-time aggregate execution, not for exposing raw SQL or arbitrary query semantics.
+
+## API docs
+
+The service exposes:
+
+- raw OpenAPI spec: `GET /openapi.yaml`
+- Swagger UI page: `GET /docs`
+- Redoc page: `GET /redoc`
 
 ## Key docs
 

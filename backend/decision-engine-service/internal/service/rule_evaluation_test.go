@@ -178,6 +178,7 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 		nil,
 		asteval.AggregatePushdownModeEnabled,
 		nil,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
@@ -268,6 +269,7 @@ func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testi
 		nil,
 		asteval.AggregatePushdownModeEnabled,
 		nil,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("evaluateScenarioByIteration() error = %v", err)

@@ -17,14 +17,22 @@ import (
 )
 
 type RouterConfig struct {
-	AuthMode                    string
-	AuthToken                   string
-	AllowedOrigins              []string
-	DataModelServiceURL         string
-	IngestionServiceURL         string
-	HTTPClientTimeout           time.Duration
-	AggregatePushdownMode       string
-	AggregatePushdownAggregates []string
+	AuthMode                       string
+	AuthToken                      string
+	AllowedOrigins                 []string
+	DataModelServiceURL            string
+	IngestionServiceURL            string
+	HTTPClientTimeout              time.Duration
+	AggregatePushdownMode          string
+	AggregatePushdownAggregates    []string
+	LiveDecisionConcurrencyLimit   int
+	LiveAsyncFallbackEnabled       bool
+	RuleEvaluationConcurrency      int
+	ScenarioEvaluationConcurrency  int
+	ScheduledExecutionMaxAttempts  int
+	ScheduledExecutionRetryBackoff time.Duration
+	AsyncExecutionMaxAttempts      int
+	AsyncExecutionRetryBackoff     time.Duration
 }
 
 type uuidGenerator struct{}
@@ -138,13 +146,30 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, dbPoolStatsProvider(db))
-	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, dbPoolStatsProvider(db))
+	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	snoozeService := service.NewSnoozeService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, ruleSnoozeRepo)
 	outboxService := service.NewOutboxService(outboxRepo)
-	executionService := service.NewExecutionService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, tenantDataReader, scheduledExecutionRepo, asyncDecisionExecutionRepo, decisionService)
+	executionService := service.NewExecutionService(
+		txManager,
+		uuidGenerator{},
+		systemClock{},
+		scenarioRepo,
+		iterationRepo,
+		tenantDataReader,
+		scheduledExecutionRepo,
+		asyncDecisionExecutionRepo,
+		outboxRepo,
+		decisionService,
+		service.ExecutionRetryPolicy{
+			ScheduledMaxAttempts: cfg.ScheduledExecutionMaxAttempts,
+			ScheduledBaseBackoff: cfg.ScheduledExecutionRetryBackoff,
+			AsyncMaxAttempts:     cfg.AsyncExecutionMaxAttempts,
+			AsyncBaseBackoff:     cfg.AsyncExecutionRetryBackoff,
+		},
+	)
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, screeningConfigRepo, screeningExecutionRepo)
 	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo)
 	platformService := service.NewPlatformService(txManager, uuidGenerator{}, systemClock{}, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
@@ -153,7 +178,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	publicationHandler := handlers.NewPublicationHandler(iterationService, publicationService)
 	ruleHandler := handlers.NewRuleHandler(ruleService)
 	validationHandler := handlers.NewValidationHandler(validationService)
-	decisionHandler := handlers.NewDecisionHandler(decisionService)
+	decisionHandler := handlers.NewDecisionHandler(decisionService, executionService, cfg.LiveDecisionConcurrencyLimit, cfg.LiveAsyncFallbackEnabled)
 	testRunHandler := handlers.NewTestRunHandler(testRunService)
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
 	workflowRuleHandler := handlers.NewWorkflowRuleHandler(workflowRuleService)
@@ -248,7 +273,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.GetRecurringSchedule)
 	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.UpdateRecurringSchedule)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.ListScheduledExecutionsByScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/status-summary", executionHandler.GetScheduledExecutionStatusSummary)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId", executionHandler.GetScheduledExecution)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId/retry", executionHandler.RetryScheduledExecution)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.CreateScheduledExecution)
 	v1.GET("/tenants/:tenantId/platform/custom-lists", platformHandler.ListCustomLists)
 	v1.POST("/tenants/:tenantId/platform/custom-lists", platformHandler.CreateCustomList)
@@ -281,6 +308,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/scoring-requests/:requestId/retry", scoringHandler.RetryRequest)
 	v1.GET("/tenants/:tenantId/outbox-events", outboxHandler.ListByTenant)
 	v1.GET("/tenants/:tenantId/async-decision-executions", executionHandler.ListAsyncDecisionExecutionsByTenant)
+	v1.GET("/tenants/:tenantId/async-decision-executions/status-summary", executionHandler.GetAsyncDecisionExecutionStatusSummary)
+	v1.GET("/tenants/:tenantId/async-decision-executions/:executionId", executionHandler.GetAsyncDecisionExecution)
+	v1.POST("/tenants/:tenantId/async-decision-executions/:executionId/retry", executionHandler.RetryAsyncDecisionExecution)
 	v1.POST("/tenants/:tenantId/async-decision-executions", executionHandler.CreateAsyncDecisionExecution)
 	v1.POST("/tenants/:tenantId/test-runs/:testRunId/evaluate", testRunHandler.Evaluate)
 	v1.POST("/tenants/:tenantId/ingestion-events/record-ingested", decisionHandler.HandleRecordIngested)

@@ -182,6 +182,7 @@ and
 You can also open the API docs in a browser:
 
 - `http://127.0.0.1:8080/docs`
+- `http://127.0.0.1:8080/redoc`
 - `http://127.0.0.1:8080/openapi.yaml`
 
 ## Step 7: create a tenant

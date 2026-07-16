@@ -165,6 +165,7 @@ Public operational routes:
 - `GET /readyz`
 - `GET /openapi.yaml`
 - `GET /docs`
+- `GET /redoc`
 
 Authenticated `/v1` routes:
 
@@ -228,8 +229,9 @@ The service now exposes:
 
 - raw OpenAPI spec: `GET /openapi.yaml`
 - browser docs page: `GET /docs`
+- Redoc page: `GET /redoc`
 
-The docs page loads a Swagger UI frontend and points it at the embedded OpenAPI document.
+The docs pages load Swagger UI and Redoc frontends against the same embedded OpenAPI document.
 
 ## Transactions and mutation behavior
 

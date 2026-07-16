@@ -42,7 +42,7 @@ Current `data-model` routes:
 - `POST /v1/tenants/:tenantId/pivots`
 - `DELETE /v1/pivots/:pivotId?dry_run=true`
 - `GET /v1/tables/:tableId/navigation-options`
-- `POST /v1/tenants/:tenantId/navigation-options`
+- `POST /v1/tables/:tableId/navigation-options`
 - `DELETE /v1/navigation-options/:navigationOptionId`
 - `GET /v1/tables/:tableId/options`
 - `PUT /v1/tables/:tableId/options`
@@ -721,7 +721,7 @@ Primary service: [internal/service/navigation_option_service.go](/C:/Users/Kwasi
 Endpoints:
 
 - `GET /v1/tables/:tableId/navigation-options`
-- `POST /v1/tenants/:tenantId/navigation-options`
+- `POST /v1/tables/:tableId/navigation-options`
 - `DELETE /v1/navigation-options/:navigationOptionId`
 
 ### What A Navigation Option Means

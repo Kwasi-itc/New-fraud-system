@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -54,6 +55,23 @@ type workerRunner struct {
 	executionService service.ExecutionService
 	dispatchService  service.DispatchService
 	batchLimit       int
+	tasks            map[string]struct{}
+	taskOrder        []string
+	metrics          *workerMetrics
+}
+
+type workerMetrics struct {
+	mu    sync.Mutex
+	tasks map[string]workerTaskMetrics
+}
+
+type workerTaskMetrics struct {
+	Runs          int64
+	Failures      int64
+	LastDuration  time.Duration
+	LastSuccessAt time.Time
+	LastFailureAt time.Time
+	LastError     string
 }
 
 func main() {
@@ -130,6 +148,8 @@ func main() {
 		scoringRequestRepo,
 		cfg.AggregatePushdownMode,
 		cfg.AggregatePushdownAggregates,
+		cfg.RuleEvaluationConcurrency,
+		cfg.ScenarioEvaluationConcurrency,
 		dbPoolStatsProvider(db),
 	)
 
@@ -142,7 +162,14 @@ func main() {
 		tenantDataReader,
 		scheduledRepo,
 		asyncRepo,
+		outboxRepo,
 		decisionService,
+		service.ExecutionRetryPolicy{
+			ScheduledMaxAttempts: cfg.ScheduledExecutionMaxAttempts,
+			ScheduledBaseBackoff: cfg.ScheduledExecutionRetryBackoff,
+			AsyncMaxAttempts:     cfg.AsyncExecutionMaxAttempts,
+			AsyncBaseBackoff:     cfg.AsyncExecutionRetryBackoff,
+		},
 	)
 	dispatchClient := dispatchclient.NewHTTPClient(
 		cfg.HTTPClientTimeout,
@@ -169,6 +196,9 @@ func main() {
 		executionService: executionService,
 		dispatchService:  dispatchService,
 		batchLimit:       cfg.WorkerBatchLimit,
+		tasks:            toTaskSet(cfg.WorkerTasks),
+		taskOrder:        app.SortedWorkerTasks(cfg.WorkerTasks, cfg.WorkerTaskPriorities),
+		metrics:          newWorkerMetrics(cfg.WorkerTasks),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -176,13 +206,13 @@ func main() {
 
 	switch cfg.WorkerMode {
 	case "poll":
-		logger.Info("worker poll loop starting", "poll_interval", cfg.WorkerPollInterval.String(), "batch_limit", cfg.WorkerBatchLimit)
+		logger.Info("worker poll loop starting", "poll_interval", cfg.WorkerPollInterval.String(), "batch_limit", cfg.WorkerBatchLimit, "tasks", cfg.WorkerTasks)
 		if err := runner.runPollLoop(ctx, cfg.WorkerPollInterval); err != nil {
 			logger.Error("worker poll loop failed", "error", err)
 			os.Exit(1)
 		}
 	default:
-		logger.Info("worker batch run starting", "batch_limit", cfg.WorkerBatchLimit)
+		logger.Info("worker batch run starting", "batch_limit", cfg.WorkerBatchLimit, "tasks", cfg.WorkerTasks)
 		if err := runner.runOnce(ctx); err != nil {
 			logger.Error("worker batch run failed", "error", err)
 			os.Exit(1)
@@ -213,29 +243,125 @@ func (w workerRunner) runPollLoop(ctx context.Context, interval time.Duration) e
 }
 
 func (w workerRunner) runOnce(ctx context.Context) error {
+	cycleStartedAt := time.Now()
 	w.logger.Info("worker cycle started", "batch_limit", w.batchLimit)
 
-	if err := w.executionService.ProcessDueScheduledExecutions(ctx, w.batchLimit); err != nil {
-		return err
-	}
-	if err := w.executionService.ProcessQueuedAsyncExecutions(ctx, w.batchLimit); err != nil {
-		return err
-	}
-	if err := w.dispatchService.ProcessPendingWorkflowExecutions(ctx, w.batchLimit); err != nil {
-		return err
-	}
-	if err := w.dispatchService.ProcessPendingScreeningExecutions(ctx, w.batchLimit); err != nil {
-		return err
-	}
-	if err := w.dispatchService.ProcessPendingScoringRequests(ctx, w.batchLimit); err != nil {
-		return err
-	}
-	if err := w.dispatchService.ProcessPendingOutboxEvents(ctx, w.batchLimit); err != nil {
-		return err
+	for _, task := range w.taskOrder {
+		if !w.enabled(task) {
+			continue
+		}
+		if err := w.runNamedTask(ctx, task); err != nil {
+			return err
+		}
 	}
 
-	w.logger.Info("worker cycle completed")
+	w.logger.Info("worker cycle completed", "duration_ms", time.Since(cycleStartedAt).Milliseconds(), "task_metrics", w.metrics.snapshot())
 	return nil
+}
+
+func (w workerRunner) enabled(task string) bool {
+	_, ok := w.tasks[task]
+	return ok
+}
+
+func toTaskSet(tasks []string) map[string]struct{} {
+	out := make(map[string]struct{}, len(tasks))
+	for _, task := range tasks {
+		out[task] = struct{}{}
+	}
+	return out
+}
+
+func (w workerRunner) runNamedTask(ctx context.Context, task string) error {
+	switch task {
+	case "scheduled":
+		return w.runTask(task, func() error {
+			return w.executionService.ProcessDueScheduledExecutions(ctx, w.batchLimit)
+		})
+	case "async":
+		return w.runTask(task, func() error {
+			return w.executionService.ProcessQueuedAsyncExecutions(ctx, w.batchLimit)
+		})
+	case "workflow_dispatch":
+		return w.runTask(task, func() error {
+			return w.dispatchService.ProcessPendingWorkflowExecutions(ctx, w.batchLimit)
+		})
+	case "screening_dispatch":
+		return w.runTask(task, func() error {
+			return w.dispatchService.ProcessPendingScreeningExecutions(ctx, w.batchLimit)
+		})
+	case "scoring_dispatch":
+		return w.runTask(task, func() error {
+			return w.dispatchService.ProcessPendingScoringRequests(ctx, w.batchLimit)
+		})
+	case "outbox":
+		return w.runTask(task, func() error {
+			return w.dispatchService.ProcessPendingOutboxEvents(ctx, w.batchLimit)
+		})
+	default:
+		return nil
+	}
+}
+
+func (w workerRunner) runTask(name string, fn func() error) error {
+	startedAt := time.Now()
+	err := fn()
+	duration := time.Since(startedAt)
+	w.metrics.record(name, duration, err)
+	if err != nil {
+		w.logger.Error("worker task failed", "task", name, "duration_ms", duration.Milliseconds(), "error", err)
+		return err
+	}
+	w.logger.Info("worker task completed", "task", name, "duration_ms", duration.Milliseconds())
+	return nil
+}
+
+func newWorkerMetrics(tasks []string) *workerMetrics {
+	metrics := &workerMetrics{tasks: make(map[string]workerTaskMetrics, len(tasks))}
+	for _, task := range tasks {
+		metrics.tasks[task] = workerTaskMetrics{}
+	}
+	return metrics
+}
+
+func (m *workerMetrics) record(task string, duration time.Duration, err error) {
+	if m == nil {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	current := m.tasks[task]
+	current.Runs++
+	current.LastDuration = duration
+	if err != nil {
+		current.Failures++
+		current.LastFailureAt = time.Now().UTC()
+		current.LastError = err.Error()
+	} else {
+		current.LastSuccessAt = time.Now().UTC()
+		current.LastError = ""
+	}
+	m.tasks[task] = current
+}
+
+func (m *workerMetrics) snapshot() map[string]map[string]any {
+	if m == nil {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]map[string]any, len(m.tasks))
+	for task, metrics := range m.tasks {
+		out[task] = map[string]any{
+			"runs":             metrics.Runs,
+			"failures":         metrics.Failures,
+			"last_duration_ms": metrics.LastDuration.Milliseconds(),
+			"last_success_at":  metrics.LastSuccessAt,
+			"last_failure_at":  metrics.LastFailureAt,
+			"last_error":       metrics.LastError,
+		}
+	}
+	return out
 }
 
 func firstNonEmpty(values ...string) string {

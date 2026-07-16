@@ -38,6 +38,11 @@ paths:
     get:
       tags: [Health]
       summary: Liveness probe
+      description: |-
+        Lightweight process liveness check.
+
+        Use this to confirm the HTTP service is running. It does not verify database connectivity or
+        prove that the service is ready to execute ingestion work.
       responses:
         '200':
           description: Service is alive
@@ -49,6 +54,11 @@ paths:
     get:
       tags: [Health]
       summary: Readiness probe
+      description: |-
+        Dependency-aware readiness check.
+
+        Use this before routing traffic to the service. A successful response means the service can
+        reach its configured database dependency and is ready to handle requests.
       responses:
         '200':
           description: Service is ready
@@ -66,6 +76,12 @@ paths:
     post:
       tags: [Tenant Ingestion]
       summary: Ingest one record
+      description: |-
+        Creates or updates one tenant-scoped record through the published ingestion contract.
+
+        The payload is validated against the current `data-model-service` contract for the tenant and
+        object type. Full-write semantics apply here, so required fields are enforced and `object_id`
+        must be present.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ObjectType'
@@ -95,6 +111,11 @@ paths:
     patch:
       tags: [Tenant Ingestion]
       summary: Patch one record
+      description: |-
+        Partially updates one tenant-scoped record.
+
+        This uses patch semantics rather than full-write semantics. `object_id` is still required so
+        the service can locate the target record, but only the supplied fields are validated and applied.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ObjectType'
@@ -125,6 +146,12 @@ paths:
     post:
       tags: [Tenant Ingestion]
       summary: Ingest a batch of records
+      description: |-
+        Ingests multiple records of the same object type in one synchronous request.
+
+        Each row is validated against the tenant's published contract. This is the direct batch form of
+        the single-record ingest flow and is intended for callers that already have records in JSON form
+        rather than CSV.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ObjectType'
@@ -155,10 +182,145 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+    patch:
+      tags: [Tenant Ingestion]
+      summary: Patch a batch of records
+      description: |-
+        Partially updates multiple records of the same object type in one synchronous request.
+
+        This is the batch form of patch ingestion. Each record must still identify its target with
+        `object_id`, but only the supplied fields are validated and applied.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+      responses:
+        '200':
+          description: Batch patched
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IngestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/tenants/{tenantId}/records/{objectType}:
+    get:
+      tags: [Tenant Queries]
+      summary: List records for one object type
+      description: |-
+        Returns records for one tenant object type.
+
+        Use this for simple record browsing or lightweight lookups when you already know the object
+        type and just need a bounded list of records.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+        - name: limit
+          in: query
+          description: Maximum number of records to return. If omitted, the service uses its default limit.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Record list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/records/{objectType}/search:
+    get:
+      tags: [Tenant Queries]
+      summary: Search records by one field value
+      description: |-
+        Returns records for one object type that match a single field/value lookup.
+
+        This is a simple query endpoint for exact field matching rather than a broad search surface.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+        - name: field
+          in: query
+          required: true
+          description: Field name to match within the target object type.
+          schema:
+            type: string
+        - name: value
+          in: query
+          required: true
+          description: Field value to match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of matching records to return. If omitted, the service uses its default limit.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Matching record list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/records/{objectType}/{objectId}:
+    get:
+      tags: [Tenant Queries]
+      summary: Get one record by object id
+      description: |-
+        Returns one tenant record by object type and object id.
+
+        Use this when you already know the record identifier and want the stored field values back.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ObjectType'
+        - name: objectId
+          in: path
+          required: true
+          description: External record identifier used as the tenant-scoped lookup key.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/ingest/{objectType}/csv:
     post:
       tags: [Upload Logs]
       summary: Upload a CSV file for asynchronous ingestion
+      description: |-
+        Uploads a CSV file for worker-driven asynchronous ingestion.
+
+        The API stores the upload and creates an upload-log record immediately, then the background
+        worker claims the uploaded file and processes rows through the same validation and write path
+        used by batch ingestion.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ObjectType'
@@ -194,6 +356,11 @@ paths:
     get:
       tags: [Upload Logs]
       summary: List upload logs for one tenant/object type
+      description: |-
+        Lists CSV upload logs for one tenant and object type.
+
+        Use this to inspect asynchronous ingestion progress, including whether uploads are still queued,
+        currently processing, completed successfully, or failed.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ObjectType'
@@ -213,6 +380,12 @@ paths:
     post:
       tags: [Tenant Queries]
       summary: Execute a tenant-scoped aggregate query
+      description: |-
+        Executes a constrained aggregate query inside the tenant schema.
+
+        This endpoint exists primarily for decision-time aggregate pushdown from `decision-engine-service`.
+        It validates the object type, field names, aggregate, and filter structure against the published
+        tenant model and returns only the aggregate result.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -234,6 +407,11 @@ paths:
     get:
       tags: [Upload Logs]
       summary: Get one upload log
+      description: |-
+        Returns one upload-log record by id.
+
+        Use this to poll the detailed state of a previously uploaded CSV job, including row counts,
+        attempt counts, terminal failure details, and current processing status.
       parameters:
         - name: uploadLogId
           in: path
@@ -259,6 +437,7 @@ components:
       name: tenantId
       in: path
       required: true
+      description: Tenant identifier. This must match a tenant known to `data-model-service`.
       schema:
         type: string
         format: uuid
@@ -266,8 +445,10 @@ components:
       name: objectType
       in: path
       required: true
+      description: Logical object type to ingest or query. In practice this is the tenant data-model table name, such as `transactions`, `accounts`, or `customers`.
       schema:
         type: string
+        example: transactions
   responses:
     BadRequest:
       description: Bad request
@@ -304,28 +485,77 @@ components:
       required: [status, error]
     IngestResult:
       type: object
+      description: Result for one ingested record after validation and write processing.
       properties:
         object_id:
           type: string
+          description: External record identifier used as the tenant-scoped lookup key for the ingested object.
         action:
           type: string
           enum: [created, updated]
+          description: Whether the write created a new record or updated an existing one.
         revision_id:
           type: string
+          description: Published data-model revision used to validate this write.
         replayed:
           type: boolean
+          description: True when the service replayed a previously successful idempotent response instead of writing again.
       required: [object_id, action, revision_id]
-    ValidationError:
+    RecordLookup:
       type: object
+      description: Stored tenant record returned by the record lookup endpoints.
       properties:
         object_id:
           type: string
+          description: External record identifier used as the tenant-scoped lookup key.
+        object_type:
+          type: string
+          description: Logical object type for the record. This matches the tenant data-model table name.
+          example: transactions
+        fields:
+          type: object
+          additionalProperties: true
+          description: Stored field values for the record.
+      required: [object_id, object_type, fields]
+      example:
+        object_id: txn_100234
+        object_type: transactions
+        fields:
+          amount: 12500
+          currency: USD
+          customer_id: cust_778
+    RecordResponse:
+      type: object
+      description: Envelope for a single record lookup.
+      properties:
+        record:
+          $ref: '#/components/schemas/RecordLookup'
+      required: [record]
+    RecordListResponse:
+      type: object
+      description: Envelope for a list of records returned by list or search endpoints.
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordLookup'
+      required: [records]
+    ValidationError:
+      type: object
+      description: Field-level validation failure for one record in an ingest request.
+      properties:
+        object_id:
+          type: string
+          description: Record identifier when available. This may be omitted if the payload could not be tied to one object.
         field:
           type: string
+          description: Field name that failed validation.
         code:
           type: string
+          description: Machine-readable validation code.
         message:
           type: string
+          description: Human-readable explanation of the validation failure.
       required: [field, code, message]
     ErrorEnvelope:
       type: object
@@ -357,68 +587,96 @@ components:
       required: [error, validation_errors]
     UploadLog:
       type: object
+      description: Tracked CSV upload and worker-processing state for asynchronous ingestion.
       properties:
         id:
           type: string
+          description: Upload-log identifier.
         tenant_id:
           type: string
+          description: Tenant that owns the uploaded CSV job.
         object_type:
           type: string
+          description: Target logical object type. This matches the tenant table name used for ingestion.
+          example: transactions
         mode:
           type: string
           enum: [create, patch]
+          description: Whether CSV rows are processed with full-write semantics or patch semantics.
         filename:
           type: string
+          description: Original uploaded filename.
         content_type:
           type: string
+          description: Uploaded file content type as received by the API.
         status:
           type: string
           enum: [pending, uploaded, processing, completed, failed]
+          description: Current asynchronous processing state for the upload.
         total_rows:
           type: integer
+          description: Total number of CSV data rows detected in the upload.
         successful_rows:
           type: integer
+          description: Number of rows successfully written so far.
         failed_rows:
           type: integer
+          description: Number of rows that failed validation or processing.
         attempt_count:
           type: integer
+          description: Number of worker processing attempts made for this upload.
         error_message:
           type: string
+          description: Terminal or latest processing error when the upload has failed.
       required: [id, tenant_id, object_type, mode, filename, content_type, status, total_rows, successful_rows, failed_rows, attempt_count]
     AggregateQueryRequest:
       type: object
+      description: Request for one constrained aggregate query evaluated inside the tenant schema.
       properties:
         object_type:
           type: string
+          description: Target logical object type to query. This is the tenant table name from the published data model.
+          example: transactions
         aggregate:
           type: string
           enum: [count, count_distinct, sum, avg, min, max]
+          description: Aggregate function to execute.
         field:
           type: string
+          description: Field to aggregate. For `count`, this is still supplied so the request shape stays uniform.
         filter:
           $ref: '#/components/schemas/AggregateFilter'
       required: [object_type, aggregate, field]
     AggregateFilter:
       type: object
+      description: Recursive filter tree used to constrain an aggregate query.
       properties:
         kind:
           type: string
           enum: [group, predicate]
+          description: Whether this node is a logical group or a leaf predicate.
         operator:
           type: string
           enum: [and, or, not]
+          description: Logical operator for group nodes.
         children:
           type: array
+          description: Child filter nodes for group expressions.
           items:
             $ref: '#/components/schemas/AggregateFilter'
         field:
           type: string
+          description: Field name used by a predicate node.
         op:
           type: string
           enum: [eq, neq, gt, gte, lt, lte, in, is_null, is_not_null, starts_with, ends_with]
-        value: {}
+          description: Predicate operator for a leaf node.
+        value:
+          description: Comparison value for predicate operators that require one.
     AggregateQueryResponse:
       type: object
+      description: Aggregate result returned from a tenant-scoped query.
       properties:
-        value: {}
+        value:
+          description: Computed aggregate result.
       required: [value]

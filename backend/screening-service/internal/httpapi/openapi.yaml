@@ -1,33 +1,43 @@
 openapi: 3.0.3
 info:
   title: Screening Service API
-  version: 0.1.0
-  description: >
-    Baseline OpenAPI contract for the screening-service endpoints currently used in
-    live integration flows and endpoint testing.
-servers:
-  - url: http://localhost:8085
+  version: 0.2.0
+  description: |-
+    This service handles screening requests, match review, whitelist management, continuous screening,
+    dataset updates, and the related file and callback flows around screening work.
 tags:
-  - name: Health
   - name: Service
+    description: Basic service checks, metrics, and connection details.
+  - name: Provider
+    description: Provider dataset and freshness endpoints used to inspect the active screening provider.
+  - name: Dataset Updates
+    description: Tenant-scoped dataset update jobs used to sync provider list changes.
   - name: Screenings
+    description: Screening creation, lookup, retry, match review, comments, enrichment, and evidence-file flows.
+  - name: Whitelist
+    description: Tenant-scoped whitelist search and maintenance endpoints.
+  - name: Continuous Screening
+    description: Continuous-screening configuration and monitored-object management.
   - name: Internal
+    description: Internal service-to-service screening intake routes.
 paths:
   /healthz:
     get:
-      tags: [Health]
+      tags: [Service]
       summary: Liveness probe
+      description: Quick check that the screening service is up and responding.
       responses:
         '200':
-          description: Service is alive
+          description: Service is running
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
   /readyz:
     get:
-      tags: [Health]
+      tags: [Service]
       summary: Readiness probe
+      description: Checks whether the screening service is ready to handle requests.
       responses:
         '200':
           description: Service is ready
@@ -36,28 +46,217 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReadyResponse'
         '503':
-          description: Service is not ready
+          description: Service is not ready yet
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /metrics:
+    get:
+      tags: [Service]
+      summary: Get request metrics snapshot
+      description: Returns the current in-memory request metrics snapshot for the service.
+      responses:
+        '200':
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
   /v1/service-info:
     get:
       tags: [Service]
-      summary: Get screening-service downstream configuration summary
+      summary: Get service connection details
+      description: Shows the downstream services and provider settings currently configured for screening-service.
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Service configuration summary
+          description: Service information
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceInfoResponse'
+  /v1/screening-provider/catalog:
+    get:
+      tags: [Provider]
+      summary: Get provider dataset catalog
+      description: Returns the provider dataset catalog payload for the selected provider.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: query
+          description: Provider key to inspect. If omitted, the default provider is used.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider catalog payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/screening-provider/freshness:
+    get:
+      tags: [Provider]
+      summary: Get provider dataset freshness
+      description: Returns the provider freshness payload for the selected provider.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: query
+          description: Provider key to inspect. If omitted, the default provider is used.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider freshness payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/dataset-update-jobs:
+    get:
+      tags: [Dataset Updates]
+      summary: List dataset update jobs
+      description: Lists dataset update jobs for one tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Dataset update job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Dataset Updates]
+      summary: Create a dataset update job
+      description: Creates a dataset update job for one tenant and provider.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDatasetUpdateJobRequest'
+            example:
+              provider: opensanctions
+              job_type: delta_sync
+              cursor: ""
+      responses:
+        '201':
+          description: Dataset update job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/dataset-update-jobs/{jobId}:
+    get:
+      tags: [Dataset Updates]
+      summary: Get one dataset update job
+      description: Returns one dataset update job by id.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Dataset update job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/dataset-update-jobs/{jobId}/retry:
+    post:
+      tags: [Dataset Updates]
+      summary: Retry a dataset update job
+      description: Requeues a dataset update job that needs another attempt.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Dataset update job retried
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screenings:
+    post:
+      tags: [Screenings]
+      summary: Create a decision-linked screening
+      description: Creates a screening request tied to a decision and returns the screening record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScreeningRequest'
+      responses:
+        '201':
+          description: Screening created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screenings/freeform-search:
+    post:
+      tags: [Screenings]
+      summary: Create a freeform screening
+      description: Creates a manual screening request that is not tied to a decision.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScreeningRequest'
+      responses:
+        '201':
+          description: Freeform screening created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/decisions/{decisionId}/screenings:
     get:
       tags: [Screenings]
       summary: List screenings created for a decision
+      description: Lists screening records created from one decision.
       security:
         - bearerAuth: []
       parameters:
@@ -69,13 +268,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ScreeningSummary'
+                $ref: '#/components/schemas/GenericArray'
   /v1/tenants/{tenantId}/screenings/{screeningId}:
     get:
       tags: [Screenings]
       summary: Get screening detail
+      description: Returns the screening plus its related matches and comments.
       security:
         - bearerAuth: []
       parameters:
@@ -89,18 +287,235 @@ paths:
               schema:
                 $ref: '#/components/schemas/ScreeningDetailResponse'
         '404':
-          description: Screening was not found
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/screenings/{screeningId}/retry:
+    post:
+      tags: [Screenings]
+      summary: Retry a screening
+      description: Requeues a screening that needs another provider attempt.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+      responses:
+        '200':
+          description: Screening retried
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /internal/v1/tenants/{tenantId}/decision-screenings:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screening-matches/{matchId}/review:
     post:
-      tags: [Internal]
-      summary: Create or reuse a decision-linked screening
-      description: >
-        Internal decision-engine intake endpoint. Calls are idempotent on
-        `idempotency_key`.
+      tags: [Screenings]
+      summary: Review a screening match
+      description: Records a review outcome for one screening match and can optionally whitelist it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MatchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewMatchRequest'
+      responses:
+        '200':
+          description: Match reviewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screening-matches/{matchId}/comments:
+    post:
+      tags: [Screenings]
+      summary: Add a comment to a screening match
+      description: Adds a reviewer comment to one screening match.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MatchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screening-matches/{matchId}/enrich:
+    post:
+      tags: [Screenings]
+      summary: Enrich a screening match
+      description: Requests additional provider data for one screening match.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MatchId'
+      responses:
+        '200':
+          description: Match enriched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screenings/{screeningId}/files:
+    get:
+      tags: [Screenings]
+      summary: List screening files
+      description: Lists file metadata attached to one screening.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+      responses:
+        '200':
+          description: Screening file list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Screenings]
+      summary: Create screening file metadata
+      description: Stores metadata for a file that has already been uploaded for a screening.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFileRequest'
+      responses:
+        '201':
+          description: Screening file created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screenings/{screeningId}/file-uploads:
+    post:
+      tags: [Screenings]
+      summary: Create a screening file upload session
+      description: Creates file metadata plus a delegated upload session for a screening evidence file.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFileUploadRequest'
+      responses:
+        '201':
+          description: File upload session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screenings/{screeningId}/files/{fileId}:
+    get:
+      tags: [Screenings]
+      summary: Get one screening file
+      description: Returns one file metadata record attached to the screening.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: Screening file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/screenings/{screeningId}/files/{fileId}/download:
+    get:
+      tags: [Screenings]
+      summary: Get screening file download details
+      description: Returns the delegated download details for one screening file.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ScreeningId'
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: File download details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/screening-whitelist:
+    get:
+      tags: [Whitelist]
+      summary: Search whitelist entries
+      description: Searches whitelist entries for one tenant by entity id or unique counterparty identifier.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: entity_id
+          in: query
+          description: Restrict results to one entity identifier.
+          schema:
+            type: string
+        - name: unique_counterparty_identifier
+          in: query
+          description: Restrict results to one unique counterparty identifier.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Whitelist entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Whitelist]
+      summary: Create a whitelist entry
+      description: Creates one whitelist entry for the tenant.
       security:
         - bearerAuth: []
       parameters:
@@ -110,20 +525,263 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateDecisionScreeningRequest'
+              $ref: '#/components/schemas/CreateWhitelistRequest'
       responses:
         '201':
-          description: Screening created or existing screening returned
+          description: Whitelist entry created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScreeningSummary'
+                $ref: '#/components/schemas/GenericObject'
         '400':
-          description: Validation error
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Whitelist]
+      summary: Delete a whitelist entry
+      description: Deletes one whitelist entry using the entity id and optional unique counterparty identifier.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: entity_id
+          in: query
+          required: true
+          description: Entity identifier for the whitelist entry to delete.
+          schema:
+            type: string
+        - name: unique_counterparty_identifier
+          in: query
+          description: Optional unique counterparty identifier for the whitelist entry to delete.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Whitelist entry deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/continuous-screening-configs:
+    get:
+      tags: [Continuous Screening]
+      summary: List continuous-screening configs
+      description: Lists continuous-screening configurations for one tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Continuous-screening config list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/GenericArray'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Continuous Screening]
+      summary: Create a continuous-screening config
+      description: Creates one continuous-screening configuration for a tenant object type.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuousConfigRequest'
+      responses:
+        '201':
+          description: Continuous-screening config created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/continuous-screening-configs/{configId}:
+    get:
+      tags: [Continuous Screening]
+      summary: Get one continuous-screening config
+      description: Returns one continuous-screening configuration by id.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: Continuous-screening config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Continuous Screening]
+      summary: Update a continuous-screening config
+      description: Updates one continuous-screening configuration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ConfigId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuousConfigRequest'
+      responses:
+        '200':
+          description: Continuous-screening config updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Continuous Screening]
+      summary: Delete a continuous-screening config
+      description: Removes one continuous-screening configuration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '204':
+          description: Continuous-screening config deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/continuous-screening-configs/{configId}/monitored-objects:
+    get:
+      tags: [Continuous Screening]
+      summary: List monitored objects for a config
+      description: Lists monitored objects attached to one continuous-screening configuration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: Monitored-object list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Continuous Screening]
+      summary: Create a monitored object
+      description: Registers one monitored object under a continuous-screening configuration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ConfigId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitoredObjectRequest'
+      responses:
+        '201':
+          description: Monitored object created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/monitored-objects/{monitoredObjectId}:
+    get:
+      tags: [Continuous Screening]
+      summary: Get one monitored object
+      description: Returns one monitored object by id.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MonitoredObjectId'
+      responses:
+        '200':
+          description: Monitored object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Continuous Screening]
+      summary: Delete a monitored object
+      description: Removes one monitored object from continuous screening.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MonitoredObjectId'
+      responses:
+        '204':
+          description: Monitored object deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/monitored-objects/{monitoredObjectId}/requeue:
+    post:
+      tags: [Continuous Screening]
+      summary: Requeue a monitored object
+      description: Requeues one monitored object for another screening attempt.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/MonitoredObjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequeueMonitoredObjectRequest'
+      responses:
+        '200':
+          description: Monitored object requeued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /internal/v1/tenants/{tenantId}/decision-screenings:
+    post:
+      tags: [Internal]
+      summary: Create or reuse a decision-linked screening
+      description: Internal decision-engine intake endpoint. Calls are idempotent on `idempotency_key`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScreeningRequest'
+      responses:
+        '201':
+          description: Screening created or reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -135,12 +793,14 @@ components:
       name: tenantId
       in: path
       required: true
+      description: Tenant identifier for the screening data being accessed.
       schema:
         type: string
     DecisionId:
       name: decisionId
       in: path
       required: true
+      description: Decision identifier associated with the screening work.
       schema:
         type: string
         format: uuid
@@ -148,19 +808,86 @@ components:
       name: screeningId
       in: path
       required: true
+      description: Screening identifier.
       schema:
         type: string
         format: uuid
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      description: Screening-match identifier.
+      schema:
+        type: string
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      description: Screening-file identifier.
+      schema:
+        type: string
+    ConfigId:
+      name: configId
+      in: path
+      required: true
+      description: Continuous-screening configuration identifier.
+      schema:
+        type: string
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: Dataset-update job identifier.
+      schema:
+        type: string
+    MonitoredObjectId:
+      name: monitoredObjectId
+      in: path
+      required: true
+      description: Monitored-object identifier.
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Internal processing failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    GenericObject:
+      type: object
+      additionalProperties: true
+      description: Flexible JSON object returned by the screening service.
+    GenericArray:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+      description: Flexible JSON array returned by list endpoints.
     HealthResponse:
       type: object
       required: [status, service]
       properties:
         status:
           type: string
+          description: Health state.
           example: ok
         service:
           type: string
+          description: Service name.
           example: screening-service
     ReadyResponse:
       type: object
@@ -168,6 +895,7 @@ components:
       properties:
         status:
           type: string
+          description: Readiness state.
           example: ready
     ErrorResponse:
       type: object
@@ -175,8 +903,10 @@ components:
       properties:
         error:
           type: string
+          description: Human-readable error message.
     ServiceInfoResponse:
       type: object
+      description: Active downstream and provider configuration summary.
       required:
         - service
         - screening_provider_url
@@ -218,23 +948,26 @@ components:
           type: string
     SearchQuery:
       type: object
+      description: One search query sent to the screening provider.
       required: [name, type]
       properties:
         name:
           type: string
+          description: Name or label to screen.
           example: Acme Ltd
         type:
           type: string
+          description: Entity type being screened.
           example: Organization
         filters:
           type: object
           additionalProperties: true
-    CreateDecisionScreeningRequest:
+          description: Optional provider-side query filters.
+    CreateScreeningRequest:
       type: object
+      description: Payload for creating a screening request.
       required:
         - provider
-        - decision_id
-        - screening_config_id
         - idempotency_key
         - object_type
         - object_id
@@ -242,35 +975,59 @@ components:
       properties:
         provider:
           type: string
+          description: Screening provider key.
           example: opensanctions
         decision_id:
           type: string
           format: uuid
+          description: Decision associated with the screening when applicable.
         scenario_id:
           type: string
           format: uuid
+          description: Scenario associated with the screening when applicable.
         screening_config_id:
           type: string
           format: uuid
+          description: Screening configuration associated with the request when applicable.
         idempotency_key:
           type: string
+          description: Key used to deduplicate repeated screening intake calls.
         object_type:
           type: string
+          description: Object type for the screened record.
+          example: transactions
         object_id:
           type: string
+          description: External record identifier for the screened record.
         queries:
           type: array
+          description: Provider search queries to execute.
           items:
             $ref: '#/components/schemas/SearchQuery'
         provider_config:
           type: object
           additionalProperties: true
+          description: Provider-specific configuration overrides.
         limit_override:
           type: integer
+          description: Optional result-limit override for the provider call.
         unique_counterparty_identifier:
           type: string
+          description: Optional counterparty identifier used in screening and whitelist flows.
+      example:
+        provider: opensanctions
+        decision_id: 8c8d8e1d-37f2-4d77-9b88-5a2afba97310
+        scenario_id: b41b3c31-d516-47aa-8b73-a4d0458fcbcf
+        screening_config_id: a8fe9d01-2f76-4d8d-b77f-6de221a87c9a
+        idempotency_key: screening-req-42
+        object_type: transactions
+        object_id: txn_100234
+        queries:
+          - name: Example Trading Ltd
+            type: Organization
     ScreeningSummary:
       type: object
+      description: Basic screening record summary.
       required: [id]
       properties:
         id:
@@ -303,6 +1060,7 @@ components:
           format: date-time
     ScreeningDetailResponse:
       type: object
+      description: Screening detail payload with related matches and comments.
       properties:
         screening:
           $ref: '#/components/schemas/ScreeningSummary'
@@ -316,3 +1074,118 @@ components:
           items:
             type: object
             additionalProperties: true
+    ReviewMatchRequest:
+      type: object
+      description: Review payload for one screening match.
+      required: [status, comment, reviewer_id, whitelist]
+      properties:
+        status:
+          type: string
+        comment:
+          type: string
+        reviewer_id:
+          type: string
+        whitelist:
+          type: boolean
+    AddCommentRequest:
+      type: object
+      description: Comment payload for one screening match.
+      required: [comment, author_id]
+      properties:
+        comment:
+          type: string
+        author_id:
+          type: string
+    CreateFileRequest:
+      type: object
+      description: Metadata for a screening evidence file that was already uploaded.
+      required: [file_name, content_type, file_size, storage_key, uploaded_by]
+      properties:
+        file_name:
+          type: string
+        content_type:
+          type: string
+        file_size:
+          type: integer
+          format: int64
+        storage_key:
+          type: string
+        uploaded_by:
+          type: string
+    CreateFileUploadRequest:
+      type: object
+      description: Request to create a delegated upload session for a screening evidence file.
+      required: [file_name, content_type, file_size, uploaded_by]
+      properties:
+        file_name:
+          type: string
+        content_type:
+          type: string
+        file_size:
+          type: integer
+          format: int64
+        uploaded_by:
+          type: string
+    CreateWhitelistRequest:
+      type: object
+      description: Payload for creating one whitelist entry.
+      required: [entity_id, reviewer_id]
+      properties:
+        entity_id:
+          type: string
+        reviewer_id:
+          type: string
+        unique_counterparty_identifier:
+          type: string
+          nullable: true
+    ContinuousConfigRequest:
+      type: object
+      description: Payload for creating or updating one continuous-screening configuration.
+      required: [name, object_type, provider, field_map, enabled]
+      properties:
+        name:
+          type: string
+        object_type:
+          type: string
+          example: customers
+        provider:
+          type: string
+        field_map:
+          type: object
+          additionalProperties: true
+        review_inbox_id:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+    MonitoredObjectRequest:
+      type: object
+      description: Payload for registering one monitored object under a continuous-screening config.
+      required: [object_type, object_id, attributes]
+      properties:
+        object_type:
+          type: string
+        object_id:
+          type: string
+        attributes:
+          type: object
+          additionalProperties: true
+    RequeueMonitoredObjectRequest:
+      type: object
+      description: Payload for requeueing one monitored object with updated attributes.
+      required: [attributes]
+      properties:
+        attributes:
+          type: object
+          additionalProperties: true
+    CreateDatasetUpdateJobRequest:
+      type: object
+      description: Payload for creating one dataset update job.
+      required: [provider, job_type]
+      properties:
+        provider:
+          type: string
+        job_type:
+          type: string
+        cursor:
+          type: string

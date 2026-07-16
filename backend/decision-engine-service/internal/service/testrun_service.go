@@ -50,6 +50,7 @@ type TestRunService struct {
 	ipFlagRepo                  ports.IPFlagRepository
 	aggregatePushdownMode       string
 	aggregatePushdownAggregates []string
+	ruleEvaluationConcurrency   int
 }
 
 func NewTestRunService(
@@ -71,6 +72,7 @@ func NewTestRunService(
 	ipFlagRepo ports.IPFlagRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	ruleEvaluationConcurrency int,
 ) TestRunService {
 	return TestRunService{
 		txManager:                   txManager,
@@ -91,6 +93,7 @@ func NewTestRunService(
 		ipFlagRepo:                  ipFlagRepo,
 		aggregatePushdownMode:       aggregatePushdownMode,
 		aggregatePushdownAggregates: append([]string(nil), aggregatePushdownAggregates...),
+		ruleEvaluationConcurrency:   ruleEvaluationConcurrency,
 	}
 }
 
@@ -154,11 +157,11 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		return TestRunEvaluationResult{}, fmt.Errorf("test run is expired")
 	}
 
-	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates)
+	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
-	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates)
+	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
@@ -301,6 +304,7 @@ func evaluateScenarioByIteration(
 	ipFlagRepo ports.IPFlagRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	ruleEvaluationConcurrency int,
 ) (DecisionEvaluationResult, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -350,7 +354,7 @@ func evaluateScenarioByIteration(
 	}
 	now := clock.Now()
 	decisionID := idGen.New().String()
-	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, 0)
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, ruleEvaluationConcurrency)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -396,6 +400,7 @@ func evaluatePhantomByIteration(
 	ipFlagRepo ports.IPFlagRepository,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
+	ruleEvaluationConcurrency int,
 ) (*decision.PhantomDecision, []decision.PhantomRuleExecution, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -445,7 +450,7 @@ func evaluatePhantomByIteration(
 	}
 	now := clock.Now()
 	phantomID := idGen.New().String()
-	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, 0)
+	evaluatedRules, err := evaluateRules(ctx, rules, runtime, nil, ruleEvaluationConcurrency)
 	if err != nil {
 		return nil, nil, err
 	}

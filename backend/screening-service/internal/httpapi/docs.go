@@ -18,6 +18,10 @@ func registerDocsRoutes(router *gin.Engine) {
 	router.GET("/docs", func(c *gin.Context) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(docsHTML))
 	})
+
+	router.GET("/redoc", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(redocHTML))
+	})
 }
 
 var _ embed.FS
@@ -43,9 +47,8 @@ const docsHTML = `<!doctype html>
       <strong>Screening Service API</strong>
       <span style="margin-left:16px;">Raw spec: <a href="/openapi.yaml">/openapi.yaml</a></span>
       <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
-        Standalone screening lifecycle service. This baseline spec covers health, service metadata, decision-engine
-        intake, and screening retrieval endpoints currently exercised in the integration flow. Expand the spec as more
-        screening, whitelist, file, dataset-update, and continuous-screening endpoints are formalized.
+        This service handles screening requests, match review, whitelist management, continuous screening,
+        dataset updates, and the related file and callback flows around screening work.
       </div>
     </header>
     <div id="swagger-ui"></div>
@@ -61,5 +64,28 @@ const docsHTML = `<!doctype html>
         });
       };
     </script>
+  </body>
+</html>`
+
+const redocHTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Screening Service Redoc</title>
+    <style>
+      body { margin: 0; background: #ffffff; }
+      header { padding: 16px 24px; background: #111827; color: #f9fafb; font-family: system-ui, sans-serif; }
+      header a { color: #93c5fd; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Screening Service API</strong>
+      <span style="margin-left:16px;">Raw spec: <a href="/openapi.yaml">/openapi.yaml</a></span>
+      <span style="margin-left:16px;">Swagger UI: <a href="/docs">/docs</a></span>
+    </header>
+    <redoc spec-url="/openapi.yaml"></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
   </body>
 </html>`
