@@ -369,6 +369,9 @@ func (s ruleRepoStub) Create(context.Context, scenario.Rule) (scenario.Rule, err
 func (s ruleRepoStub) ListByIteration(context.Context, string, string, string) ([]scenario.Rule, error) {
 	return s.rules, nil
 }
+func (s ruleRepoStub) ListRuleGroupsByScenario(context.Context, string, string) ([]string, error) {
+	return nil, nil
+}
 func (s ruleRepoStub) GetByID(context.Context, string, string, string, string) (scenario.Rule, error) {
 	return scenario.Rule{}, nil
 }

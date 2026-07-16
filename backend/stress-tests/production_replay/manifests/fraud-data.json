@@ -1,0 +1,83 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": 1,
+  "timezone": "Africa/Accra",
+  "reference_data": {
+    "merchant_globs": [
+      "/Users/kwilson/Desktop/ITC/fraud_data/data/dumps/merchant-info-dump/batch_*.json"
+    ],
+    "merchant_product_globs": [
+      "/Users/kwilson/Desktop/ITC/fraud_data/data/dumps/merchant-product-dump/batch_*.json"
+    ],
+    "staff_csv": "/Users/kwilson/Desktop/ITC/fraud_data/data/lists/fraud-staff.csv",
+    "merchant_watchlist_xlsx": "/Users/kwilson/Desktop/ITC/fraud_data/data/lists/merchants.xlsx"
+  },
+  "transaction_streams": [
+    {
+      "id": "genpay-inflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/genpay/inflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "incoming",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    },
+    {
+      "id": "genpay-v2-inflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/genpayv2/inflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "incoming",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    },
+    {
+      "id": "uniwallet-inflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/uniwallet/inflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "incoming",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    },
+    {
+      "id": "uniwallet-outflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/uniwallet/outflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "outgoing",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    },
+    {
+      "id": "uniwallet-v2-inflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/uniwalletv2/inflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "incoming",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    },
+    {
+      "id": "uniwallet-v2-outflow",
+      "adapter": "production_transaction_csv_v1",
+      "globs": [
+        "/Users/kwilson/Desktop/ITC/fraud_data/transactions/uniwalletv2/outflow/*.csv"
+      ],
+      "channel": "wallet",
+      "direction": "outgoing",
+      "system_type": "wallet_transfer",
+      "timezone": "Africa/Accra"
+    }
+  ]
+}

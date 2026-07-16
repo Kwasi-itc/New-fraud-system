@@ -1,0 +1,12 @@
+services:
+  ingestion-migrate:
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+
+  ingestion-service:
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+
+  ingestion-worker:
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable

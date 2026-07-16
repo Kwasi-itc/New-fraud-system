@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itc.local/fraud-system/production-replay-manifest-v1.schema.json",
+  "title": "Production Replay Manifest V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "timezone",
+    "reference_data",
+    "transaction_streams"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "timezone": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "merchant_globs",
+        "merchant_product_globs",
+        "staff_csv"
+      ],
+      "properties": {
+        "merchant_globs": {
+          "$ref": "#/$defs/globs"
+        },
+        "merchant_product_globs": {
+          "$ref": "#/$defs/globs"
+        },
+        "staff_csv": {
+          "type": "string",
+          "minLength": 1
+        },
+        "merchant_watchlist_xlsx": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "transaction_streams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "adapter",
+          "globs",
+          "channel",
+          "direction",
+          "system_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adapter": {
+            "type": "string",
+            "minLength": 1
+          },
+          "globs": {
+            "$ref": "#/$defs/globs"
+          },
+          "channel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "system_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "globs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

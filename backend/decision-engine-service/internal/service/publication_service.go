@@ -258,7 +258,10 @@ func (s PublicationService) indexPreparationState(ctx context.Context, tenantID,
 	if err != nil {
 		return nil, nil, err
 	}
-	requirements := []indexRequirement{}
+	requirements, err := collectIndexRequirements(model, scn.TriggerObjectType, iteration.TriggerFormula, rules)
+	if err != nil {
+		return nil, nil, err
+	}
 	allJobs, err := s.dataModelReader.ListIndexJobs(ctx, tenantID)
 	if err != nil {
 		return nil, nil, err

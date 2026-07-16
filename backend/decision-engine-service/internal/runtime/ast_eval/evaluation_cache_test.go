@@ -17,8 +17,44 @@ type countingCustomListRepo struct {
 	contains int
 }
 
+func (r *countingCustomListRepo) CreateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	return item, nil
+}
+
+func (r *countingCustomListRepo) ListLists(ctx context.Context, tenantID string) ([]platform.CustomList, error) {
+	return nil, nil
+}
+
+func (r *countingCustomListRepo) GetListByID(ctx context.Context, tenantID, listID string) (platform.CustomList, error) {
+	return platform.CustomList{}, nil
+}
+
+func (r *countingCustomListRepo) UpdateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error) {
+	return item, nil
+}
+
+func (r *countingCustomListRepo) DeleteList(ctx context.Context, tenantID, listID string) error {
+	return nil
+}
+
 func (r *countingCustomListRepo) Create(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
 	return item, nil
+}
+
+func (r *countingCustomListRepo) ListEntriesByListID(ctx context.Context, tenantID, listID string) ([]platform.CustomListEntry, error) {
+	return nil, nil
+}
+
+func (r *countingCustomListRepo) UpdateEntry(ctx context.Context, item platform.CustomListEntry) (platform.CustomListEntry, error) {
+	return item, nil
+}
+
+func (r *countingCustomListRepo) RenameEntriesByListID(ctx context.Context, tenantID, listID, listName string) error {
+	return nil
+}
+
+func (r *countingCustomListRepo) DeleteEntry(ctx context.Context, tenantID, listID, entryID string) error {
+	return nil
 }
 
 func (r *countingCustomListRepo) ListByName(ctx context.Context, tenantID, listName string) ([]platform.CustomListEntry, error) {

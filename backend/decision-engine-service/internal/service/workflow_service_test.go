@@ -371,6 +371,9 @@ type nilScheduledExecutionRepository []struct{}
 func (nilScheduledExecutionRepository) Create(context.Context, execution.ScheduledExecution) (execution.ScheduledExecution, error) {
 	return execution.ScheduledExecution{}, nil
 }
+func (nilScheduledExecutionRepository) GetByID(context.Context, string, string, string) (execution.ScheduledExecution, error) {
+	return execution.ScheduledExecution{}, nil
+}
 func (nilScheduledExecutionRepository) ListByScenario(context.Context, string, string) ([]execution.ScheduledExecution, error) {
 	return nil, nil
 }
@@ -418,6 +421,9 @@ func (nilCustomListRepository) Create(context.Context, platform.CustomListEntry)
 }
 func (nilCustomListRepository) ListEntriesByListID(context.Context, string, string) ([]platform.CustomListEntry, error) {
 	return nil, nil
+}
+func (nilCustomListRepository) UpdateEntry(context.Context, platform.CustomListEntry) (platform.CustomListEntry, error) {
+	return platform.CustomListEntry{}, nil
 }
 func (nilCustomListRepository) RenameEntriesByListID(context.Context, string, string, string) error {
 	return nil
@@ -597,6 +603,9 @@ func (nilRuleRepository) Create(context.Context, scenario.Rule) (scenario.Rule, 
 	return scenario.Rule{}, nil
 }
 func (nilRuleRepository) ListByIteration(context.Context, string, string, string) ([]scenario.Rule, error) {
+	return nil, nil
+}
+func (nilRuleRepository) ListRuleGroupsByScenario(context.Context, string, string) ([]string, error) {
 	return nil, nil
 }
 func (nilRuleRepository) GetByID(context.Context, string, string, string, string) (scenario.Rule, error) {
