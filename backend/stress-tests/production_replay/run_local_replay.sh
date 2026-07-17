@@ -7,6 +7,14 @@ BACKEND_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKSPACE_DIR="$(cd "$BACKEND_DIR/.." && pwd)"
 DATA_ROOT="${FRAUD_DATA_ROOT:-/Users/kwilson/Desktop/ITC/fraud_data}"
 VENV_DIR="${PRODUCTION_REPLAY_VENV:-/tmp/fraud-production-replay-venv}"
+TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
+MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-3600}}"
+MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
+CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
+DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
+HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
+DAYS="${PRODUCTION_REPLAY_DAYS:-${DAYS:-}}"
+WEEKS="${PRODUCTION_REPLAY_WEEKS:-${WEEKS:-}}"
 SMOKE_MANIFEST="/tmp/fraud-data-local-smoke.json"
 SAMPLE_DIR="/tmp/fraud-data-local-sample"
 SETUP_LOG="/tmp/fraud-data-local-setup.log"
@@ -17,6 +25,42 @@ require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     printf 'error: required command not found: %s\n' "$1" >&2
     exit 1
+  fi
+}
+
+compose() {
+  docker compose --project-directory "$WORKSPACE_DIR" \
+    --file "$WORKSPACE_DIR/docker-compose.yml" \
+    --file "$COMPOSE_OVERRIDE" \
+    "$@"
+}
+
+normalize_multiplier() {
+  local value="$1"
+  value="${value%x}"
+  value="${value%X}"
+  value="${value%\*}"
+  printf '%s' "$value"
+}
+
+duration_selector() {
+  local selected=0
+  [[ -n "$DURATION" ]] && selected=$((selected + 1))
+  [[ -n "$HOURS" ]] && selected=$((selected + 1))
+  [[ -n "$DAYS" ]] && selected=$((selected + 1))
+  [[ -n "$WEEKS" ]] && selected=$((selected + 1))
+  if [[ "$selected" -gt 1 ]]; then
+    printf 'error: define only one of DURATION, HOURS, DAYS, or WEEKS\n' >&2
+    exit 1
+  fi
+  if [[ -n "$DURATION" ]]; then
+    printf '%s' "$DURATION"
+  elif [[ -n "$HOURS" ]]; then
+    printf '%sh' "$HOURS"
+  elif [[ -n "$DAYS" ]]; then
+    printf '%sd' "$DAYS"
+  elif [[ -n "$WEEKS" ]]; then
+    printf '%sw' "$WEEKS"
   fi
 }
 
@@ -44,11 +88,46 @@ if [[ ! -d "$DATA_ROOT" ]]; then
   exit 1
 fi
 
+MULTIPLIER="$(normalize_multiplier "$MULTIPLIER")"
+REPLAY_DURATION="$(duration_selector)"
+if [[ "$TRANSACTIONS" != "all" && ! "$TRANSACTIONS" =~ ^[0-9]+$ ]]; then
+  printf 'error: TRANSACTIONS must be a positive integer or all; got %s\n' "$TRANSACTIONS" >&2
+  exit 1
+fi
+if [[ "$TRANSACTIONS" != "all" && "$TRANSACTIONS" -le 0 ]]; then
+  printf 'error: TRANSACTIONS must be positive; got %s\n' "$TRANSACTIONS" >&2
+  exit 1
+fi
+if [[ ! "$MULTIPLIER" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  printf 'error: MULTIPLIER must be positive, with optional x or * suffix; got %s\n' "$MULTIPLIER" >&2
+  exit 1
+fi
+if [[ ! "$MAX_IN_FLIGHT" =~ ^[0-9]+$ || "$MAX_IN_FLIGHT" -le 0 ]]; then
+  printf 'error: MAX_IN_FLIGHT must be a positive integer; got %s\n' "$MAX_IN_FLIGHT" >&2
+  exit 1
+fi
+if [[ ! "$CHECKPOINT_EVERY" =~ ^[0-9]+$ || "$CHECKPOINT_EVERY" -le 0 ]]; then
+  printf 'error: CHECKPOINT_EVERY must be a positive integer; got %s\n' "$CHECKPOINT_EVERY" >&2
+  exit 1
+fi
+
+if [[ -n "$REPLAY_DURATION" ]]; then
+  printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s\n' \
+    "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT"
+else
+  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s\n' \
+    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT"
+fi
+
+printf 'Preparing local fraud databases from existing images...\n'
+compose up -d --no-build postgres
+compose run --rm data-model-migrate
+compose run --rm ingestion-migrate
+compose run --rm decision-engine-migrate
+compose run --rm screening-migrate
+
 printf 'Starting local fraud services from existing images...\n'
-docker compose --project-directory "$WORKSPACE_DIR" \
-  --file "$WORKSPACE_DIR/docker-compose.yml" \
-  --file "$COMPOSE_OVERRIDE" \
-  up -d --no-build \
+compose up -d --no-build \
   data-model-service \
   ingestion-service \
   decision-engine-service \
@@ -69,11 +148,18 @@ fi
 
 (
   cd "$BACKEND_DIR"
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample \
+  SAMPLE_ARGS=(
     --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
     --data-root "$DATA_ROOT" \
     --output-dir "$SAMPLE_DIR" \
     --output-manifest "$SMOKE_MANIFEST"
+  )
+  if [[ -n "$REPLAY_DURATION" ]]; then
+    SAMPLE_ARGS+=(--duration "$REPLAY_DURATION")
+  else
+    SAMPLE_ARGS+=(--transactions "$TRANSACTIONS")
+  fi
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
 )
 
 printf 'Creating a local replay tenant and loading reference data...\n'
@@ -92,7 +178,13 @@ if [[ -z "$TENANT_ID" ]]; then
   exit 1
 fi
 
-printf 'Replaying 1,000 production-format transactions...\n'
+if [[ -n "$REPLAY_DURATION" ]]; then
+  printf 'Replaying production-format transactions from the first %s of source time...\n' "$REPLAY_DURATION"
+elif [[ "$TRANSACTIONS" == "all" ]]; then
+  printf 'Replaying all production-format transactions...\n'
+else
+  printf 'Replaying %s production-format transactions...\n' "$TRANSACTIONS"
+fi
 set +e
 (
   cd "$BACKEND_DIR"
@@ -100,9 +192,9 @@ set +e
     --manifest "$SMOKE_MANIFEST" \
     --execute \
     --tenant-id "$TENANT_ID" \
-    --multiplier 3600 \
-    --max-in-flight 50 \
-    --checkpoint-every 100
+    --multiplier "$MULTIPLIER" \
+    --max-in-flight "$MAX_IN_FLIGHT" \
+    --checkpoint-every "$CHECKPOINT_EVERY"
 ) | tee "$REPLAY_LOG"
 REPLAY_STATUS="${PIPESTATUS[0]}"
 set -e

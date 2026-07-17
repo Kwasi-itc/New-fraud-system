@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -169,7 +170,12 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return ports.ManagedIndexJob{}, fmt.Errorf("unexpected status from data-model-service index job create: %d", resp.StatusCode)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return ports.ManagedIndexJob{}, fmt.Errorf(
+			"unexpected status from data-model-service index job create: %d: %s",
+			resp.StatusCode,
+			strings.TrimSpace(string(body)),
+		)
 	}
 
 	var payload struct {

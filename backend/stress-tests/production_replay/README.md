@@ -7,10 +7,37 @@ This standalone Python harness profiles internal reference and transaction dumps
 From `New-fraud-system`, run:
 
 ```bash
+make production-replay
+```
+
+The Make target accepts the common replay parameters:
+
+```bash
+make production-replay TRANSACTIONS=2000 MULTIPLIER=3
+make production-replay TRANSACTIONS=3000 MULTIPLIER=4x
+make production-replay TRANSACTIONS=all MULTIPLIER=360x
+```
+
+You can replay a source-time window instead of choosing a transaction count:
+
+```bash
+make production-replay HOURS=6 MULTIPLIER=360x
+make production-replay DAYS=2 MULTIPLIER=360x
+make production-replay WEEKS=1 MULTIPLIER=360x
+make production-replay DURATION=12h MULTIPLIER=360x
+```
+
+When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ignored. The duration sample starts at the earliest source transaction timestamp and includes all configured streams up to that source-time cutoff.
+
+`MULTIPLIER` also accepts a `*` suffix, for example `MULTIPLIER='360*'`. Quote it in your shell so it is not treated as a filename pattern.
+
+You can still run the wrapper directly:
+
+```bash
 ./backend/stress-tests/production_replay/run_local_replay.sh
 ```
 
-This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, creates a local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, replays exactly 1,000 production-format transactions across all six streams, and prints a compact ingestion and decision summary. A harness-local Compose override points ingestion's migration, API, and worker at the same tenant-data database as data-model; it does not modify the base Compose file. The command leaves Docker and the local tenant running for inspection. If a required Docker image does not exist, it fails instead of building it.
+This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, creates a local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. A harness-local Compose override points ingestion's migration, API, and worker at the same tenant-data database as data-model; it does not modify the base Compose file. The command leaves Docker and the local tenant running for inspection. If a required Docker image does not exist, it fails instead of building it.
 
 ## Safety Model
 
