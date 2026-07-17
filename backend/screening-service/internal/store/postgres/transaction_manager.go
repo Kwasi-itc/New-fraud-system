@@ -69,3 +69,7 @@ func (s mutationStore) MonitoredObjects() ports.MonitoredObjectRepository {
 func (s mutationStore) DatasetUpdateJobs() ports.DatasetUpdateJobRepository {
 	return NewDatasetUpdateJobRepository(s.tx)
 }
+
+func (s mutationStore) RawTx() pgx.Tx {
+	return s.tx
+}

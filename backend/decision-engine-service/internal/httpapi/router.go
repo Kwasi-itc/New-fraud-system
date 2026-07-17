@@ -7,32 +7,46 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 )
 
 type RouterConfig struct {
-	AuthMode                       string
-	AuthToken                      string
-	AllowedOrigins                 []string
-	DataModelServiceURL            string
-	IngestionServiceURL            string
-	HTTPClientTimeout              time.Duration
-	AggregatePushdownMode          string
-	AggregatePushdownAggregates    []string
-	LiveDecisionConcurrencyLimit   int
-	LiveAsyncFallbackEnabled       bool
-	RuleEvaluationConcurrency      int
-	ScenarioEvaluationConcurrency  int
-	ScheduledExecutionMaxAttempts  int
-	ScheduledExecutionRetryBackoff time.Duration
-	AsyncExecutionMaxAttempts      int
-	AsyncExecutionRetryBackoff     time.Duration
+	AuthMode                            string
+	AuthToken                           string
+	AllowedOrigins                      []string
+	DataModelServiceURL                 string
+	IngestionServiceURL                 string
+	HTTPClientTimeout                   time.Duration
+	AggregatePushdownMode               string
+	AggregatePushdownAggregates         []string
+	LiveDecisionConcurrencyLimit        int
+	LiveAsyncFallbackEnabled            bool
+	RuleEvaluationConcurrency           int
+	ScenarioEvaluationConcurrency       int
+	ScheduledExecutionMaxAttempts       int
+	ScheduledExecutionRetryBackoff      time.Duration
+	AsyncExecutionMaxAttempts           int
+	AsyncExecutionRetryBackoff          time.Duration
+	AsyncExecutionDefaultWaitWindow     time.Duration
+	AsyncExecutionMaxWaitWindow         time.Duration
+	AsyncExecutionCallbackTimeout       time.Duration
+	AsyncExecutionCallbackSigningSecret string
+	ScheduledExecutionQueueName         string
+	AsyncExecutionQueueName             string
+	AsyncExecutionCallbackQueueName     string
+	WorkflowDispatchQueueName           string
+	ScreeningDispatchQueueName          string
+	ScoringDispatchQueueName            string
+	OutboxQueueName                     string
 }
 
 type uuidGenerator struct{}
@@ -108,6 +122,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	var recordTagRepo ports.RecordTagRepository
 	var riskRepo ports.RiskSnapshotRepository
 	var ipFlagRepo ports.IPFlagRepository
+	var scheduledEnqueuer riverjobs.ScheduledExecutionEnqueuer = riverjobs.NoopScheduledExecutionEnqueuer{}
+	var asyncEnqueuer riverjobs.AsyncDecisionExecutionEnqueuer = riverjobs.NoopAsyncDecisionExecutionEnqueuer{}
+	var asyncCallbackEnqueuer riverjobs.AsyncDecisionExecutionCallbackEnqueuer = riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{}
+	var workflowEnqueuer riverjobs.WorkflowExecutionEnqueuer = riverjobs.NoopWorkflowExecutionEnqueuer{}
+	var screeningEnqueuer riverjobs.ScreeningExecutionEnqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
+	var scoringEnqueuer riverjobs.ScoringRequestEnqueuer = riverjobs.NoopScoringRequestEnqueuer{}
+	var outboxEnqueuer riverjobs.OutboxEventEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		scenarioRepo = storepostgres.NewScenarioRepository(db)
@@ -136,6 +157,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		recordTagRepo = storepostgres.NewRecordTagRepository(db)
 		riskRepo = storepostgres.NewRiskSnapshotRepository(db)
 		ipFlagRepo = storepostgres.NewIPFlagRepository(db)
+		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		scheduledEnqueuer = riverjobs.NewRiverScheduledExecutionEnqueuer(riverClient, max(1, cfg.ScheduledExecutionMaxAttempts), cfg.ScheduledExecutionQueueName)
+		asyncEnqueuer = riverjobs.NewRiverAsyncDecisionExecutionEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionQueueName)
+		asyncCallbackEnqueuer = riverjobs.NewRiverAsyncDecisionExecutionCallbackEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionCallbackQueueName)
+		workflowEnqueuer = riverjobs.NewRiverWorkflowExecutionEnqueuer(riverClient, 1, cfg.WorkflowDispatchQueueName)
+		screeningEnqueuer = riverjobs.NewRiverScreeningExecutionEnqueuer(riverClient, 1, cfg.ScreeningDispatchQueueName)
+		scoringEnqueuer = riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
+		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
@@ -146,7 +175,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, dbPoolStatsProvider(db))
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
@@ -169,9 +198,19 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			AsyncMaxAttempts:     cfg.AsyncExecutionMaxAttempts,
 			AsyncBaseBackoff:     cfg.AsyncExecutionRetryBackoff,
 		},
+		service.AsyncExecutionBehavior{
+			DefaultWaitWindow:     cfg.AsyncExecutionDefaultWaitWindow,
+			MaxWaitWindow:         cfg.AsyncExecutionMaxWaitWindow,
+			CallbackTimeout:       cfg.AsyncExecutionCallbackTimeout,
+			CallbackSigningSecret: cfg.AsyncExecutionCallbackSigningSecret,
+		},
+		scheduledEnqueuer,
+		asyncEnqueuer,
+		asyncCallbackEnqueuer,
+		outboxEnqueuer,
 	)
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, screeningConfigRepo, screeningExecutionRepo)
-	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, screeningConfigRepo, screeningExecutionRepo, screeningEnqueuer)
+	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo, scoringEnqueuer)
 	platformService := service.NewPlatformService(txManager, uuidGenerator{}, systemClock{}, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
 	scenarioHandler := handlers.NewScenarioHandler(scenarioService, iterationService)
 	accessorHandler := handlers.NewAccessorHandler(accessorService)
@@ -323,4 +362,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.POST("/screening-status-updates", internalScreeningHandler.UpdateStatus)
 
 	return router
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

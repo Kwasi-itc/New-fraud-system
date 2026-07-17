@@ -49,6 +49,17 @@ func (s DispatchService) ProcessPendingScreenings(ctx context.Context, limit int
 	return nil
 }
 
+func (s DispatchService) RunScreening(ctx context.Context, tenantID, screeningID string) error {
+	item, err := s.screeningRepo.GetByID(ctx, tenantID, screeningID)
+	if err != nil {
+		return err
+	}
+	if item.Status != screening.StatusPending {
+		return nil
+	}
+	return s.processScreening(ctx, item)
+}
+
 func (s DispatchService) processScreening(ctx context.Context, item screening.Screening) error {
 	now := s.clock.Now()
 	item.Status = screening.StatusProcessing

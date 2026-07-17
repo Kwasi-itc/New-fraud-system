@@ -25,13 +25,15 @@ func (w TenantDataWriter) UpsertRecord(ctx context.Context, model ingestion.Publ
 	if !ok {
 		return "", fmt.Errorf("object type %s is not available for ingestion", objectType)
 	}
-	_ = mode
 
 	objectID, _ := record[model.RecordLookupField].(string)
 	schemaName := tenantSchemaName(model.TenantID)
 	exists, err := w.objectExists(ctx, schemaName, table.Name, objectID)
 	if err != nil {
 		return "", err
+	}
+	if exists && mode == ingestion.ModePatch {
+		return "updated", w.patchRecord(ctx, schemaName, table.Name, model.RecordLookupField, objectID, record, now)
 	}
 
 	columnNames := []string{"id", model.RecordLookupField, "updated_at"}
@@ -80,6 +82,38 @@ func (w TenantDataWriter) UpsertRecord(ctx context.Context, model ingestion.Publ
 		return "updated", nil
 	}
 	return "created", nil
+}
+
+func (w TenantDataWriter) patchRecord(ctx context.Context, schemaName, tableName, lookupField, objectID string, record map[string]any, now time.Time) error {
+	assignments := []string{fmt.Sprintf("%s = $1", sanitizeIdentifier("updated_at"))}
+	values := []any{now}
+
+	fieldNames := make([]string, 0, len(record))
+	for fieldName := range record {
+		if fieldName == lookupField {
+			continue
+		}
+		fieldNames = append(fieldNames, fieldName)
+	}
+	sort.Strings(fieldNames)
+	for _, fieldName := range fieldNames {
+		values = append(values, record[fieldName])
+		assignments = append(assignments, fmt.Sprintf("%s = $%d", sanitizeIdentifier(fieldName), len(values)))
+	}
+	values = append(values, objectID)
+
+	query := fmt.Sprintf(`
+		UPDATE %s
+		SET %s
+		WHERE %s = $%d
+	`,
+		sanitizeIdentifier(schemaName, tableName),
+		strings.Join(assignments, ", "),
+		sanitizeIdentifier(lookupField),
+		len(values),
+	)
+	_, err := w.db.Exec(ctx, query, values...)
+	return err
 }
 
 func (w TenantDataWriter) objectExists(ctx context.Context, schemaName, tableName, objectID string) (bool, error) {

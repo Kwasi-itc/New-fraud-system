@@ -49,6 +49,17 @@ func (s ContinuousWorkerService) ProcessPendingMonitoredObjects(ctx context.Cont
 	return nil
 }
 
+func (s ContinuousWorkerService) RunMonitoredObject(ctx context.Context, tenantID, monitoredObjectID string) error {
+	item, err := s.monitoredObjRepo.GetByID(ctx, tenantID, monitoredObjectID)
+	if err != nil {
+		return err
+	}
+	if item.Status != screening.MonitoredObjectStatusPending {
+		return nil
+	}
+	return s.processMonitoredObject(ctx, item)
+}
+
 func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, item screening.MonitoredObject) error {
 	config, err := s.continuousRepo.GetByID(ctx, item.TenantID, item.ConfigID)
 	if err != nil {

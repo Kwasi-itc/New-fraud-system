@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
@@ -42,6 +44,7 @@ type MutationStore interface {
 	RecordTags() RecordTagRepository
 	RiskSnapshots() RiskSnapshotRepository
 	IPFlags() IPFlagRepository
+	RawTx() pgx.Tx
 }
 
 type TransactionManager interface {
@@ -141,6 +144,7 @@ type WorkflowRepository interface {
 
 type WorkflowExecutionRepository interface {
 	CreateMany(ctx context.Context, items []workflow.Execution) ([]workflow.Execution, error)
+	GetByID(ctx context.Context, tenantID, executionID string) (workflow.Execution, error)
 	ListByDecision(ctx context.Context, tenantID, decisionID string) ([]workflow.Execution, error)
 	ListByStatus(ctx context.Context, status workflow.ExecutionStatus, limit int) ([]workflow.Execution, error)
 	UpdateStatus(ctx context.Context, id string, status workflow.ExecutionStatus) error
@@ -178,6 +182,7 @@ type RuleSnoozeRepository interface {
 
 type OutboxEventRepository interface {
 	CreateMany(ctx context.Context, items []integration.OutboxEvent) ([]integration.OutboxEvent, error)
+	GetByID(ctx context.Context, tenantID, eventID string) (integration.OutboxEvent, error)
 	ListByTenant(ctx context.Context, tenantID string, limit int) ([]integration.OutboxEvent, error)
 	ListByStatus(ctx context.Context, status integration.OutboxStatus, limit int) ([]integration.OutboxEvent, error)
 	UpdateStatus(ctx context.Context, id string, status integration.OutboxStatus) error
@@ -189,7 +194,7 @@ type ScheduledExecutionRepository interface {
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]execution.ScheduledExecution, error)
 	CountByStatus(ctx context.Context, tenantID, scenarioID string) (map[execution.Status]int, error)
 	ListDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error)
-	ClaimDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error)
+	StartAttempt(ctx context.Context, id string) (execution.ScheduledExecution, error)
 	UpdateStatus(ctx context.Context, id string, status execution.Status) error
 	RecordAttemptFailure(ctx context.Context, id string, status execution.Status, nextAttemptAt *time.Time, lastError string, failedAt *time.Time) error
 	ResetForRetry(ctx context.Context, id string, status execution.Status) error
@@ -201,9 +206,11 @@ type AsyncDecisionExecutionRepository interface {
 	ListByTenant(ctx context.Context, tenantID string) ([]execution.AsyncDecisionExecution, error)
 	CountByStatus(ctx context.Context, tenantID string) (map[execution.Status]int, error)
 	ListQueued(ctx context.Context, limit int) ([]execution.AsyncDecisionExecution, error)
-	ClaimQueued(ctx context.Context, limit int) ([]execution.AsyncDecisionExecution, error)
+	StartAttempt(ctx context.Context, id string) (execution.AsyncDecisionExecution, error)
 	UpdateStatus(ctx context.Context, id string, status execution.Status) error
+	MarkCompleted(ctx context.Context, id string, resultBody []byte, completedAt time.Time, callbackStatus string) error
 	RecordAttemptFailure(ctx context.Context, id string, status execution.Status, nextAttemptAt *time.Time, lastError string, failedAt *time.Time) error
+	UpdateCallbackDelivery(ctx context.Context, id string, callbackStatus string, attemptCount int, lastError string, sentAt *time.Time) error
 	ResetForRetry(ctx context.Context, id string, status execution.Status) error
 }
 

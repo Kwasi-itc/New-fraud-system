@@ -62,6 +62,20 @@ func (s DispatchService) ProcessPendingWorkflowExecutions(ctx context.Context, l
 	return nil
 }
 
+func (s DispatchService) RunWorkflowExecution(ctx context.Context, tenantID, executionID string) error {
+	item, err := s.workflowExecRepo.GetByID(ctx, tenantID, executionID)
+	if err != nil {
+		return err
+	}
+	if item.Status != workflow.ExecutionStatusPendingDispatch {
+		return nil
+	}
+	if err := s.workflowDispatcher.DispatchWorkflowExecution(ctx, item); err != nil {
+		return s.workflowExecRepo.UpdateStatus(ctx, item.ID, workflow.ExecutionStatusDispatchFailed)
+	}
+	return s.workflowExecRepo.UpdateStatus(ctx, item.ID, workflow.ExecutionStatusDispatched)
+}
+
 func (s DispatchService) ProcessPendingScreeningExecutions(ctx context.Context, limit int) error {
 	items, err := s.screeningExecRepo.ListByStatus(ctx, screening.ExecutionStatusPending, limit)
 	if err != nil {
@@ -79,6 +93,20 @@ func (s DispatchService) ProcessPendingScreeningExecutions(ctx context.Context, 
 		}
 	}
 	return nil
+}
+
+func (s DispatchService) RunScreeningExecution(ctx context.Context, tenantID, executionID string) error {
+	item, err := s.screeningExecRepo.GetByID(ctx, tenantID, executionID)
+	if err != nil {
+		return err
+	}
+	if item.Status != screening.ExecutionStatusPending {
+		return nil
+	}
+	if err := s.screeningProvider.SendScreeningExecution(ctx, item); err != nil {
+		return s.screeningExecRepo.UpdateStatus(ctx, item.ID, screening.ExecutionStatusFailed)
+	}
+	return s.screeningExecRepo.UpdateStatus(ctx, item.ID, screening.ExecutionStatusSent)
 }
 
 func (s DispatchService) ProcessPendingScoringRequests(ctx context.Context, limit int) error {
@@ -100,6 +128,20 @@ func (s DispatchService) ProcessPendingScoringRequests(ctx context.Context, limi
 	return nil
 }
 
+func (s DispatchService) RunScoringRequest(ctx context.Context, tenantID, requestID string) error {
+	item, err := s.scoringReqRepo.GetByID(ctx, tenantID, requestID)
+	if err != nil {
+		return err
+	}
+	if item.Status != scoring.RequestStatusPending {
+		return nil
+	}
+	if err := s.scoringProvider.SendScoringRequest(ctx, item); err != nil {
+		return s.scoringReqRepo.UpdateStatus(ctx, item.ID, scoring.RequestStatusFailed)
+	}
+	return s.scoringReqRepo.UpdateStatus(ctx, item.ID, scoring.RequestStatusSent)
+}
+
 func (s DispatchService) ProcessPendingOutboxEvents(ctx context.Context, limit int) error {
 	items, err := s.outboxRepo.ListByStatus(ctx, integration.OutboxStatusPending, limit)
 	if err != nil {
@@ -117,4 +159,18 @@ func (s DispatchService) ProcessPendingOutboxEvents(ctx context.Context, limit i
 		}
 	}
 	return nil
+}
+
+func (s DispatchService) RunOutboxEvent(ctx context.Context, tenantID, eventID string) error {
+	item, err := s.outboxRepo.GetByID(ctx, tenantID, eventID)
+	if err != nil {
+		return err
+	}
+	if item.Status != integration.OutboxStatusPending {
+		return nil
+	}
+	if err := s.outboxPublisher.PublishOutboxEvent(ctx, item); err != nil {
+		return s.outboxRepo.UpdateStatus(ctx, item.ID, integration.OutboxStatusFailed)
+	}
+	return s.outboxRepo.UpdateStatus(ctx, item.ID, integration.OutboxStatusSent)
 }

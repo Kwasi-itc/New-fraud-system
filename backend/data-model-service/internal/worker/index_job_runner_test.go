@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
@@ -42,7 +41,7 @@ func (s stubWorkerTableRepository) ListByTenant(context.Context, uuid.UUID) ([]d
 	return nil, nil
 }
 func (s stubWorkerTableRepository) Update(context.Context, datamodel.Table) error { return nil }
-func (s stubWorkerTableRepository) Delete(context.Context, uuid.UUID) error        { return nil }
+func (s stubWorkerTableRepository) Delete(context.Context, uuid.UUID) error       { return nil }
 
 type stubWorkerIndexJobRepository struct {
 	claimed        *datamodel.IndexJob
@@ -60,11 +59,11 @@ func (s *stubWorkerIndexJobRepository) GetByID(context.Context, uuid.UUID) (data
 func (s *stubWorkerIndexJobRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.IndexJob, error) {
 	return nil, nil
 }
-func (s *stubWorkerIndexJobRepository) ClaimNext(context.Context, time.Time, int) (*datamodel.IndexJob, error) {
-	if s.claimErr != nil {
-		return nil, s.claimErr
+func (s *stubWorkerIndexJobRepository) StartAttempt(_ context.Context, _ uuid.UUID, _ time.Time) (datamodel.IndexJob, error) {
+	if s.claimed == nil {
+		return datamodel.IndexJob{}, s.claimErr
 	}
-	return s.claimed, nil
+	return *s.claimed, nil
 }
 func (s *stubWorkerIndexJobRepository) MarkApplied(_ context.Context, id uuid.UUID, _ time.Time) error {
 	s.appliedIDs = append(s.appliedIDs, id)
@@ -75,7 +74,7 @@ func (s *stubWorkerIndexJobRepository) MarkFailed(_ context.Context, id uuid.UUI
 	s.failedMsgs = append(s.failedMsgs, message)
 	return nil
 }
-func (s *stubWorkerIndexJobRepository) Reschedule(_ context.Context, id uuid.UUID, _ string, _ time.Time) error {
+func (s *stubWorkerIndexJobRepository) MarkPendingRetry(_ context.Context, id uuid.UUID, _ string) error {
 	s.rescheduledIDs = append(s.rescheduledIDs, id)
 	return nil
 }
@@ -98,11 +97,15 @@ type stubWorkerSchemaManager struct {
 	exists bool
 }
 
-func (s stubWorkerSchemaManager) ProvisionTenantSchema(context.Context, tenant.Tenant) error { return nil }
+func (s stubWorkerSchemaManager) ProvisionTenantSchema(context.Context, tenant.Tenant) error {
+	return nil
+}
 func (s stubWorkerSchemaManager) CreateTable(context.Context, tenant.Tenant, datamodel.Table) error {
 	return nil
 }
-func (s stubWorkerSchemaManager) DropTable(context.Context, tenant.Tenant, datamodel.Table) error { return nil }
+func (s stubWorkerSchemaManager) DropTable(context.Context, tenant.Tenant, datamodel.Table) error {
+	return nil
+}
 func (s stubWorkerSchemaManager) AddField(context.Context, tenant.Tenant, datamodel.Table, datamodel.Field) error {
 	return nil
 }
@@ -137,7 +140,7 @@ type fixedClock struct {
 
 func (c fixedClock) Now() time.Time { return c.now }
 
-func TestRunnerRunOnceMarksAppliedAndLogsSchemaChange(t *testing.T) {
+func TestRunnerRunJobMarksAppliedAndLogsSchemaChange(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
@@ -165,18 +168,11 @@ func TestRunnerRunOnceMarksAppliedAndLogsSchemaChange(t *testing.T) {
 		stubWorkerSchemaManager{},
 		stubWorkerIDGenerator{value: uuid.New()},
 		fixedClock{now: now},
-		time.Second,
 		3,
-		time.Second,
-		10 * time.Second,
 	)
 
-	processed, err := runner.runOnce(context.Background())
-	if err != nil {
+	if err := runner.RunJob(context.Background(), jobID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected processed job")
 	}
 	if len(indexJobs.appliedIDs) != 1 || indexJobs.appliedIDs[0] != jobID {
 		t.Fatalf("unexpected applied ids: %v", indexJobs.appliedIDs)
@@ -186,7 +182,7 @@ func TestRunnerRunOnceMarksAppliedAndLogsSchemaChange(t *testing.T) {
 	}
 }
 
-func TestRunnerRunOnceReschedulesBeforeFinalFailure(t *testing.T) {
+func TestRunnerRunJobReschedulesBeforeFinalFailure(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 5, 18, 12, 30, 0, 0, time.UTC)
@@ -213,18 +209,11 @@ func TestRunnerRunOnceReschedulesBeforeFinalFailure(t *testing.T) {
 		stubWorkerSchemaManager{err: errors.New("ddl failed")},
 		stubWorkerIDGenerator{value: uuid.New()},
 		fixedClock{now: now},
-		time.Second,
 		3,
-		2 * time.Second,
-		10 * time.Second,
 	)
 
-	processed, err := runner.runOnce(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected processed job")
+	if err := runner.RunJob(context.Background(), jobID); err == nil {
+		t.Fatal("expected error")
 	}
 	if len(indexJobs.rescheduledIDs) != 1 || indexJobs.rescheduledIDs[0] != jobID {
 		t.Fatalf("unexpected rescheduled ids: %v", indexJobs.rescheduledIDs)
@@ -234,7 +223,7 @@ func TestRunnerRunOnceReschedulesBeforeFinalFailure(t *testing.T) {
 	}
 }
 
-func TestRunnerRunOnceMarksFailedAfterMaxAttempts(t *testing.T) {
+func TestRunnerRunJobMarksFailedAfterMaxAttempts(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 5, 18, 12, 45, 0, 0, time.UTC)
@@ -261,18 +250,11 @@ func TestRunnerRunOnceMarksFailedAfterMaxAttempts(t *testing.T) {
 		stubWorkerSchemaManager{err: errors.New("ddl failed")},
 		stubWorkerIDGenerator{value: uuid.New()},
 		fixedClock{now: now},
-		time.Second,
 		3,
-		2*time.Second,
-		10*time.Second,
 	)
 
-	processed, err := runner.runOnce(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected processed job")
+	if err := runner.RunJob(context.Background(), jobID); err == nil {
+		t.Fatal("expected error")
 	}
 	if len(indexJobs.failedIDs) != 1 || indexJobs.failedIDs[0] != jobID {
 		t.Fatalf("unexpected failed ids: %v", indexJobs.failedIDs)
@@ -282,29 +264,22 @@ func TestRunnerRunOnceMarksFailedAfterMaxAttempts(t *testing.T) {
 	}
 }
 
-func TestRunnerRunOnceReturnsFalseWhenNoRows(t *testing.T) {
+func TestRunnerRunJobReturnsStartError(t *testing.T) {
 	t.Parallel()
 
 	runner := NewRunner(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		stubWorkerTenantRepository{},
 		stubWorkerTableRepository{},
-		&stubWorkerIndexJobRepository{claimErr: pgx.ErrNoRows},
+		&stubWorkerIndexJobRepository{claimErr: errors.New("not found")},
 		&stubWorkerSchemaChangeRepository{},
 		stubWorkerSchemaManager{},
 		stubWorkerIDGenerator{value: uuid.New()},
 		fixedClock{now: time.Now().UTC()},
-		time.Second,
 		3,
-		time.Second,
-		10 * time.Second,
 	)
 
-	processed, err := runner.runOnce(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if processed {
-		t.Fatal("expected no processed job")
+	if err := runner.RunJob(context.Background(), uuid.New()); err == nil {
+		t.Fatal("expected error")
 	}
 }

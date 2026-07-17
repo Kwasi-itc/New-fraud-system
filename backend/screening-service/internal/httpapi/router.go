@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	blobclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/blob"
 	caseclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/case"
@@ -15,6 +17,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 )
@@ -35,6 +38,12 @@ type RouterConfig struct {
 	BlobServiceURL         string
 	DecisionEngineURL      string
 	HTTPClientTimeout      time.Duration
+	ScreeningQueueName     string
+	ScreeningQueueWorkers  int
+	DatasetJobQueueName    string
+	DatasetJobQueueWorkers int
+	MonitoredQueueName     string
+	MonitoredQueueWorkers  int
 }
 
 type uuidGenerator struct{}
@@ -68,6 +77,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	var fileRepo ports.ScreeningFileRepository
 	var continuousRepo ports.ContinuousConfigRepository
 	var monitoredObjRepo ports.MonitoredObjectRepository
+	var screeningEnqueuer riverjobs.ScreeningEnqueuer = riverjobs.NoopScreeningEnqueuer{}
+	var datasetJobEnqueuer riverjobs.DatasetJobEnqueuer = riverjobs.NoopDatasetJobEnqueuer{}
+	var monitoredEnqueuer riverjobs.MonitoredObjectEnqueuer = riverjobs.NoopMonitoredObjectEnqueuer{}
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		screeningRepo = storepostgres.NewScreeningRepository(db)
@@ -77,6 +89,19 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		fileRepo = storepostgres.NewScreeningFileRepository(db)
 		continuousRepo = storepostgres.NewContinuousConfigRepository(db)
 		monitoredObjRepo = storepostgres.NewMonitoredObjectRepository(db)
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+			Workers: river.NewWorkers(),
+			Queues: map[string]river.QueueConfig{
+				cfg.ScreeningQueueName:  {MaxWorkers: max(1, cfg.ScreeningQueueWorkers)},
+				cfg.DatasetJobQueueName: {MaxWorkers: max(1, cfg.DatasetJobQueueWorkers)},
+				cfg.MonitoredQueueName:  {MaxWorkers: max(1, cfg.MonitoredQueueWorkers)},
+			},
+		})
+		if err == nil {
+			screeningEnqueuer = riverjobs.NewRiverScreeningEnqueuer(riverClient, 1, cfg.ScreeningQueueName)
+			datasetJobEnqueuer = riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
+			monitoredEnqueuer = riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, 1, cfg.MonitoredQueueName)
+		}
 	}
 
 	providerClient := provider.NewHTTPClient(cfg.ScreeningProviderURL, provider.ParseProviderURLs(cfg.ScreeningProviderURLs), cfg.HTTPClientTimeout, provider.OpenSanctionsConfig{
@@ -94,7 +119,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	if db != nil {
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
 	}
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
 	whitelistHandler := handlers.NewWhitelistHandler(screeningService)
 	continuousHandler := handlers.NewContinuousHandler(screeningService)
@@ -164,4 +189,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.POST("/v1/tenants/:tenantId/decision-screenings", internalDecisionHandler.Create)
 
 	return router
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"golang.org/x/sync/errgroup"
 )
@@ -80,6 +81,10 @@ type DecisionService struct {
 	screeningExecRepo             ports.ScreeningExecutionRepository
 	scoringConfigRepo             ports.ScoringConfigRepository
 	scoringRequestRepo            ports.ScoringRequestRepository
+	workflowExecutionEnqueuer     riverjobs.WorkflowExecutionEnqueuer
+	screeningExecutionEnqueuer    riverjobs.ScreeningExecutionEnqueuer
+	scoringRequestEnqueuer        riverjobs.ScoringRequestEnqueuer
+	outboxEventEnqueuer           riverjobs.OutboxEventEnqueuer
 	aggregatePushdownMode         string
 	aggregatePushdownAggregates   []string
 	ruleEvaluationConcurrency     int
@@ -114,12 +119,28 @@ func NewDecisionService(
 	screeningExecRepo ports.ScreeningExecutionRepository,
 	scoringConfigRepo ports.ScoringConfigRepository,
 	scoringRequestRepo ports.ScoringRequestRepository,
+	workflowExecutionEnqueuer riverjobs.WorkflowExecutionEnqueuer,
+	screeningExecutionEnqueuer riverjobs.ScreeningExecutionEnqueuer,
+	scoringRequestEnqueuer riverjobs.ScoringRequestEnqueuer,
+	outboxEventEnqueuer riverjobs.OutboxEventEnqueuer,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
 	ruleEvaluationConcurrency int,
 	scenarioEvaluationConcurrency int,
 	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
+	if workflowExecutionEnqueuer == nil {
+		workflowExecutionEnqueuer = riverjobs.NoopWorkflowExecutionEnqueuer{}
+	}
+	if screeningExecutionEnqueuer == nil {
+		screeningExecutionEnqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
+	}
+	if scoringRequestEnqueuer == nil {
+		scoringRequestEnqueuer = riverjobs.NoopScoringRequestEnqueuer{}
+	}
+	if outboxEventEnqueuer == nil {
+		outboxEventEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
+	}
 	return DecisionService{
 		txManager:                     txManager,
 		idGen:                         idGen,
@@ -146,6 +167,10 @@ func NewDecisionService(
 		screeningExecRepo:             screeningExecRepo,
 		scoringConfigRepo:             scoringConfigRepo,
 		scoringRequestRepo:            scoringRequestRepo,
+		workflowExecutionEnqueuer:     workflowExecutionEnqueuer,
+		screeningExecutionEnqueuer:    screeningExecutionEnqueuer,
+		scoringRequestEnqueuer:        scoringRequestEnqueuer,
+		outboxEventEnqueuer:           outboxEventEnqueuer,
 		aggregatePushdownMode:         aggregatePushdownMode,
 		aggregatePushdownAggregates:   append([]string(nil), aggregatePushdownAggregates...),
 		ruleEvaluationConcurrency:     ruleEvaluationConcurrency,
@@ -401,17 +426,32 @@ func (s DecisionService) evaluateScenario(
 		if err != nil {
 			return err
 		}
+		for _, item := range storedWorkflowExecs {
+			if err := s.workflowExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+				return err
+			}
+		}
 		markTxTiming("workflow_insert")
 		currentStage = "tx_screening_insert"
 		storedScreeningExecs, err = store.ScreeningExecutions().CreateMany(ctx, screeningExecs)
 		if err != nil {
 			return err
 		}
+		for _, item := range storedScreeningExecs {
+			if err := s.screeningExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+				return err
+			}
+		}
 		markTxTiming("screening_insert")
 		currentStage = "tx_scoring_insert"
 		storedScoringReqs, err = store.ScoringRequests().CreateMany(ctx, scoringReqs)
 		if err != nil {
 			return err
+		}
+		for _, item := range storedScoringReqs {
+			if err := s.scoringRequestEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+				return err
+			}
 		}
 		markTxTiming("scoring_insert")
 		currentStage = "tx_outbox_build"
@@ -422,7 +462,14 @@ func (s DecisionService) evaluateScenario(
 		outboxEventCount = len(outboxEvents)
 		markTxTiming("outbox_build")
 		currentStage = "tx_outbox_insert"
-		_, err = store.OutboxEvents().CreateMany(ctx, outboxEvents)
+		storedOutboxEvents, err := store.OutboxEvents().CreateMany(ctx, outboxEvents)
+		if err == nil {
+			for _, item := range storedOutboxEvents {
+				if enqueueErr := s.outboxEventEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); enqueueErr != nil {
+					return enqueueErr
+				}
+			}
+		}
 		markTxTiming("outbox_insert")
 		timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
 		return err

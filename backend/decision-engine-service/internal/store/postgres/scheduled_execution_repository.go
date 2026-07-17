@@ -20,7 +20,7 @@ func (r ScheduledExecutionRepository) Create(ctx context.Context, item execution
 				id, tenant_id, scenario_id, scenario_iteration_id, source, status, idempotency_key, attempt_count, max_attempts, scheduled_for, next_attempt_at, request_body, last_error, created_at, failed_at
 			) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 			on conflict do nothing
-			returning id, tenant_id, scenario_id, scenario_iteration_id, source, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, scheduled_for, next_attempt_at, request_body, last_error, created_at, failed_at
+			returning id, tenant_id, scenario_id, scenario_iteration_id, source, status, idempotency_key, attempt_count, max_attempts, scheduled_for, next_attempt_at, request_body, last_error, created_at, failed_at
 		)
 		select id, tenant_id, scenario_id, scenario_iteration_id, source, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, scheduled_for, next_attempt_at, request_body, last_error, created_at, failed_at
 		from inserted
@@ -144,46 +144,23 @@ func (r ScheduledExecutionRepository) ListDue(ctx context.Context, now time.Time
 	return items, rows.Err()
 }
 
-func (r ScheduledExecutionRepository) ClaimDue(ctx context.Context, now time.Time, limit int) ([]execution.ScheduledExecution, error) {
-	if limit <= 0 {
-		limit = 50
-	}
+func (r ScheduledExecutionRepository) StartAttempt(ctx context.Context, id string) (execution.ScheduledExecution, error) {
 	const stmt = `
-		with due as (
-			select id
-			from core.scheduled_executions
-			where status = 'pending' and scheduled_for <= $1 and (next_attempt_at is null or next_attempt_at <= $1)
-			order by scheduled_for asc
-			limit $2
-			for update skip locked
-		)
-		update core.scheduled_executions se
+		update core.scheduled_executions
 		set status = 'running',
-		    attempt_count = se.attempt_count + 1,
+		    attempt_count = attempt_count + 1,
 		    next_attempt_at = null
-		from due
-		where se.id = due.id
-		returning se.id, se.tenant_id, se.scenario_id, se.scenario_iteration_id, se.source, se.status, coalesce(se.idempotency_key, ''), se.attempt_count, se.max_attempts, se.scheduled_for, se.next_attempt_at, se.request_body, se.last_error, se.created_at, se.failed_at
+		where id = $1 and status = 'pending'
+		returning id, tenant_id, scenario_id, scenario_iteration_id, source, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, scheduled_for, next_attempt_at, request_body, last_error, created_at, failed_at
 	`
-	rows, err := r.q.Query(ctx, stmt, now, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []execution.ScheduledExecution
-	for rows.Next() {
-		var item execution.ScheduledExecution
-		var source string
-		var status string
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &source, &status, &item.IdempotencyKey, &item.AttemptCount, &item.MaxAttempts, &item.ScheduledFor, &item.NextAttemptAt, &item.RequestBody, &item.LastError, &item.CreatedAt, &item.FailedAt); err != nil {
-			return nil, err
-		}
-		item.Source = execution.Source(source)
-		item.Status = execution.Status(status)
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	var item execution.ScheduledExecution
+	var source string
+	var status string
+	err := r.q.QueryRow(ctx, stmt, id).
+		Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &source, &status, &item.IdempotencyKey, &item.AttemptCount, &item.MaxAttempts, &item.ScheduledFor, &item.NextAttemptAt, &item.RequestBody, &item.LastError, &item.CreatedAt, &item.FailedAt)
+	item.Source = execution.Source(source)
+	item.Status = execution.Status(status)
+	return item, err
 }
 
 func (r ScheduledExecutionRepository) UpdateStatus(ctx context.Context, id string, status execution.Status) error {

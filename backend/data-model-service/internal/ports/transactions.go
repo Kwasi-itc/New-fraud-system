@@ -1,6 +1,10 @@
 package ports
 
-import "context"
+import (
+	"context"
+
+	"github.com/jackc/pgx/v5"
+)
 
 type MutationStore interface {
 	Tenants() TenantRepository
@@ -15,6 +19,7 @@ type MutationStore interface {
 	TenantSchemaMigrations() TenantSchemaMigrationRepository
 	IndexJobs() IndexJobRepository
 	SchemaManager() SchemaManager
+	RawTx() pgx.Tx
 }
 
 type TransactionManager interface {

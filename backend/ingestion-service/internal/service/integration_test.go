@@ -180,9 +180,11 @@ func TestIntegrationCSVUploadServiceProcessesUploadedLog(t *testing.T) {
 	uploadService := NewUploadLogService(
 		storepostgres.NewUploadLogRepository(pool),
 		ingestService,
+		storepostgres.NewTransactionManager(pool),
 		idGenerator,
 		clock,
 		3,
+		nil,
 	)
 
 	log, err := uploadService.Create(
@@ -201,12 +203,8 @@ func TestIntegrationCSVUploadServiceProcessesUploadedLog(t *testing.T) {
 		t.Fatalf("expected uploaded status, got %+v", log)
 	}
 
-	processed, err := uploadService.ProcessNextUploaded(ctx)
-	if err != nil {
-		t.Fatalf("process next uploaded log: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected one uploaded log to be processed")
+	if err := uploadService.RunLog(ctx, uuid.MustParse(log.ID)); err != nil {
+		t.Fatalf("run upload log: %v", err)
 	}
 
 	reloaded, err := uploadService.Get(ctx, uuid.MustParse(log.ID))
@@ -251,9 +249,11 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 	uploadService := NewUploadLogService(
 		storepostgres.NewUploadLogRepository(pool),
 		ingestService,
+		storepostgres.NewTransactionManager(pool),
 		idGenerator,
 		clock,
 		2,
+		nil,
 	)
 
 	log, err := uploadService.Create(
@@ -269,12 +269,8 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 		t.Fatalf("create upload log: %v", err)
 	}
 
-	processed, err := uploadService.ProcessNextUploaded(ctx)
-	if err != nil {
-		t.Fatalf("first process next uploaded log: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected first processing attempt")
+	if err := uploadService.RunLog(ctx, uuid.MustParse(log.ID)); err != nil {
+		t.Fatalf("first run upload log: %v", err)
 	}
 
 	reloaded, err := uploadService.Get(ctx, uuid.MustParse(log.ID))
@@ -291,12 +287,8 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 		t.Fatalf("expected no completion timestamp while requeued, got %+v", reloaded)
 	}
 
-	processed, err = uploadService.ProcessNextUploaded(ctx)
-	if err != nil {
-		t.Fatalf("second process next uploaded log: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected second processing attempt")
+	if err := uploadService.RunLog(ctx, uuid.MustParse(log.ID)); err != nil {
+		t.Fatalf("second run upload log: %v", err)
 	}
 
 	reloaded, err = uploadService.Get(ctx, uuid.MustParse(log.ID))
@@ -434,6 +426,9 @@ func resetIntegrationDatabase(t *testing.T, ctx context.Context, pool *pgxpool.P
 		if _, err := pool.Exec(ctx, fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", pgx.Identifier{schema}.Sanitize())); err != nil {
 			t.Fatalf("drop schema %s: %v", schema, err)
 		}
+	}
+	if _, err := pool.Exec(ctx, `DROP TABLE IF EXISTS public.schema_migrations_ingestion`); err != nil {
+		t.Fatalf("drop schema_migrations_ingestion: %v", err)
 	}
 
 	runMetadataMigrations(t, databaseURL)

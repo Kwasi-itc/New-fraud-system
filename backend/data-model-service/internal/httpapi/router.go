@@ -7,9 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/reconcile"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 	tenantdbpostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/tenantdb/postgres"
@@ -28,9 +31,11 @@ func (systemClock) Now() time.Time {
 }
 
 type RouterConfig struct {
-	AuthMode       string
-	AuthToken      string
-	AllowedOrigins []string
+	AuthMode               string
+	AuthToken              string
+	AllowedOrigins         []string
+	IndexWorkerMaxAttempts int
+	IndexJobQueueName      string
 }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
@@ -56,6 +61,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeRepository := storepostgres.NewSchemaChangeRepository(db)
 	tenantSchemaMigrationRepository := storepostgres.NewTenantSchemaMigrationRepository(db)
 	indexJobRepository := storepostgres.NewIndexJobRepository(db)
+	riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+	indexJobEnqueuer := riverjobs.NewRiverIndexJobEnqueuer(riverClient, cfg.IndexWorkerMaxAttempts, cfg.IndexJobQueueName)
 	schemaManager := tenantdbpostgres.NewSchemaManager(db)
 	transactionManager := storepostgres.NewTransactionManager(db)
 	tenantService := service.NewTenantService(
@@ -163,6 +170,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
+		indexJobEnqueuer,
 	)
 	dataModelHandler := handlers.NewDataModelHandler(
 		readService,

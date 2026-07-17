@@ -35,6 +35,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		AllowedOrigins:      cfg.AllowedOrigins,
 		DataModelServiceURL: cfg.DataModelServiceURL,
 		HTTPClientTimeout:   cfg.HTTPClientTimeout,
+		WorkerMaxAttempts:   cfg.WorkerMaxAttempts,
+		UploadLogQueueName:  cfg.UploadLogQueueName,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

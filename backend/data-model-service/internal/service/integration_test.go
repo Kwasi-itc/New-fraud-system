@@ -445,18 +445,7 @@ func TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure(t *testing.
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
 	txManager := storepostgres.NewTransactionManager(pool)
 
-	idGen := sequenceIDGenerator{values: []uuid.UUID{
-		uuid.MustParse("10000000-0000-0000-0000-000000000001"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000002"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000003"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000004"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000005"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000006"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000007"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000008"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000009"),
-		uuid.MustParse("10000000-0000-0000-0000-000000000010"),
-	}}
+	idGen := sequenceIDGenerator{values: integrationUUIDSequence(20)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 12, 15, 0, 0, 0, time.UTC)}
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, &idGen, clock)
@@ -1009,6 +998,9 @@ func resetIntegrationDatabase(t *testing.T, ctx context.Context, pool *pgxpool.P
 		if _, err := pool.Exec(ctx, fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", pgx.Identifier{schema}.Sanitize())); err != nil {
 			t.Fatalf("drop schema %s: %v", schema, err)
 		}
+	}
+	if _, err := pool.Exec(ctx, `DROP TABLE IF EXISTS public.schema_migrations`); err != nil {
+		t.Fatalf("drop schema_migrations: %v", err)
 	}
 
 	runMetadataMigrations(t, databaseURL)

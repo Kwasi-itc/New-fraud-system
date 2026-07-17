@@ -20,6 +20,8 @@ type Config struct {
 	HTTPClientTimeout   time.Duration
 	WorkerPollInterval  time.Duration
 	WorkerMaxAttempts   int
+	UploadLogQueueName  string
+	UploadLogQueueWorkers int
 }
 
 func LoadConfig() (Config, error) {
@@ -41,6 +43,8 @@ func LoadConfig() (Config, error) {
 		GinMode:             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:   httpClientTimeout,
 		WorkerMaxAttempts:   getEnvInt("WORKER_MAX_ATTEMPTS", 3),
+		UploadLogQueueName:  getEnv("UPLOAD_LOG_QUEUE_NAME", "upload_logs"),
+		UploadLogQueueWorkers: getEnvInt("UPLOAD_LOG_QUEUE_WORKERS", 4),
 	}
 	workerPollInterval, err := getEnvDuration("WORKER_POLL_INTERVAL", 5*time.Second)
 	if err != nil {
@@ -56,6 +60,12 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
+	}
+	if strings.TrimSpace(cfg.UploadLogQueueName) == "" {
+		return Config{}, fmt.Errorf("UPLOAD_LOG_QUEUE_NAME must not be empty")
+	}
+	if cfg.UploadLogQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("UPLOAD_LOG_QUEUE_WORKERS must be greater than zero")
 	}
 
 	return cfg, nil

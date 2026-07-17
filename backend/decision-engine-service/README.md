@@ -1,6 +1,6 @@
 # Decision Engine Service
 
-Standalone Go service for Marble's decision engine domain, extracted from the monolithic `api` service and designed to work alongside `data-model-service` and `ingestion-service`.
+Standalone Go service for the decision engine domain, extracted from the monolithic `api` service and designed to work alongside `data-model-service` and `ingestion-service`.
 
 Current location in the workspace:
 
@@ -10,7 +10,7 @@ This folder now contains an active standalone service implementation plus the or
 
 ## Purpose
 
-The service is intended to own the full Marble decision-engine behavior:
+The service is intended to own the full decision-engine behavior:
 
 - scenario authoring
 - scenario iteration authoring
@@ -113,7 +113,8 @@ Implemented:
 - screening status callback receiver at `POST /internal/screening-status-updates`
 - outbox event persistence
 - scheduled and async decision execution processing
-- worker support for both one-shot batch runs and poll-loop execution
+- River-backed execution workers for scheduled and async execution queues
+- legacy poll-loop support for workflow, screening, scoring, and outbox dispatch tasks
 - maintained OpenAPI spec for the implemented route surface
 
 Still intentionally provisional or deferred:
@@ -132,6 +133,7 @@ The current package layout differs slightly from the original planning docs:
 - AST runtime and AST validation now live in `internal/runtime/ast_eval`
 - application orchestration remains in `internal/service`
 - worker behavior currently lives in the `cmd/worker` entrypoint rather than a dedicated `internal/worker` package
+- execution queues now run through River while the remaining dispatch tasks still use the legacy poll runner
 - screening, scoring, and platform helper integrations currently use service-owned repositories plus dispatch/provider shells
 - workflow support now exists in two layers:
   - legacy flat workflow definitions for backward-compatible V1 behavior
@@ -164,6 +166,10 @@ Relevant optional downstream variables:
 - `SERVICE_AUTH_TOKEN`
 - `AGGREGATE_PUSHDOWN_MODE`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
+- `SCHEDULED_EXECUTION_QUEUE_NAME`
+- `SCHEDULED_EXECUTION_QUEUE_WORKERS`
+- `ASYNC_EXECUTION_QUEUE_NAME`
+- `ASYNC_EXECUTION_QUEUE_WORKERS`
 
 `SCREENING_SERVICE_URL` is the preferred screening dispatch target for the worker. `SCREENING_PROVIDER_URL` remains as a fallback compatibility variable.
 
@@ -691,7 +697,7 @@ Scheduled executions are for future runs of a scenario. You create a scheduled e
 - a fixed list of evaluation items
 - or no explicit items, in which case the worker can load candidate records from the trigger object type
 
-When the worker sees that the scheduled time has arrived, it runs the scenario and marks the execution as completed or failed.
+When the scheduled time arrives, a River worker runs the scenario and updates the execution record to `completed` or `failed`.
 
 Use scheduled executions when the scenario should run later rather than immediately at API request time.
 
@@ -702,7 +708,7 @@ Endpoints:
 - `GET /v1/tenants/{tenantId}/async-decision-executions`
 - `POST /v1/tenants/{tenantId}/async-decision-executions`
 
-Async decision executions are queued background evaluations. Instead of evaluating records inline, the API stores a queued execution record and the worker processes it later.
+Async decision executions are queued background evaluations. Instead of evaluating records inline, the API stores a queued execution record and a River worker processes it later.
 
 Use async decision executions when:
 

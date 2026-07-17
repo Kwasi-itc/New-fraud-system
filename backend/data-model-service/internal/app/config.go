@@ -5,21 +5,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Config struct {
-	Port                      string
-	DatabaseURL               string
-	ServiceAuthMode           string
-	ServiceAuthToken          string
-	ServiceAllowedOrigins     []string
-	LogLevel                  string
-	GinMode                   string
-	IndexWorkerPollInterval   time.Duration
-	IndexWorkerMaxAttempts    int
-	IndexWorkerRetryBaseDelay time.Duration
-	IndexWorkerRetryMaxDelay  time.Duration
+	Port                   string
+	DatabaseURL            string
+	ServiceAuthMode        string
+	ServiceAuthToken       string
+	ServiceAllowedOrigins  []string
+	LogLevel               string
+	GinMode                string
+	IndexWorkerMaxAttempts int
+	IndexJobQueueName      string
+	IndexJobQueueWorkers   int
 }
 
 func LoadConfig() (Config, error) {
@@ -34,28 +32,21 @@ func LoadConfig() (Config, error) {
 		LogLevel:               getEnv("LOG_LEVEL", "info"),
 		GinMode:                getEnv("GIN_MODE", "debug"),
 		IndexWorkerMaxAttempts: getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5),
+		IndexJobQueueName:      getEnv("INDEX_JOB_QUEUE_NAME", "index_jobs"),
+		IndexJobQueueWorkers:   getEnvInt("INDEX_JOB_QUEUE_WORKERS", 4),
 	}
-	pollInterval, err := getEnvDuration("INDEX_WORKER_POLL_INTERVAL", 2*time.Second)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.IndexWorkerPollInterval = pollInterval
-	retryBaseDelay, err := getEnvDuration("INDEX_WORKER_RETRY_BASE_DELAY", 5*time.Second)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.IndexWorkerRetryBaseDelay = retryBaseDelay
-	retryMaxDelay, err := getEnvDuration("INDEX_WORKER_RETRY_MAX_DELAY", 2*time.Minute)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.IndexWorkerRetryMaxDelay = retryMaxDelay
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
 	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
+	}
+	if cfg.IndexJobQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("INDEX_JOB_QUEUE_WORKERS must be greater than zero")
+	}
+	if strings.TrimSpace(cfg.IndexJobQueueName) == "" {
+		return Config{}, fmt.Errorf("INDEX_JOB_QUEUE_NAME must not be empty")
 	}
 
 	return cfg, nil
@@ -67,18 +58,6 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback, nil
-	}
-	parsed, err := time.ParseDuration(value)
-	if err != nil {
-		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
-	}
-	return parsed, nil
 }
 
 func getEnvInt(key string, fallback int) int {

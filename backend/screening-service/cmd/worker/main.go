@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/app"
 	blobclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/blob"
@@ -18,6 +20,7 @@ import (
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 )
@@ -31,11 +34,8 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 type workerRunner struct {
-	logger           *slog.Logger
-	screeningWorker  service.DispatchService
-	continuousWorker service.ContinuousWorkerService
-	datasetWorker    service.DatasetUpdateWorkerService
-	batchLimit       int
+	logger     *slog.Logger
+	batchLimit int
 }
 
 func main() {
@@ -76,21 +76,63 @@ func main() {
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
 	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.ServiceAuthMode, cfg.ServiceAuthToken, cfg.HTTPClientTimeout)
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher)
+	workers := river.NewWorkers()
+	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+		Workers: workers,
+		Queues: map[string]river.QueueConfig{
+			cfg.ScreeningQueueName: {
+				MaxWorkers: cfg.ScreeningQueueWorkers,
+			},
+			cfg.DatasetJobQueueName: {
+				MaxWorkers: cfg.DatasetJobQueueWorkers,
+			},
+			cfg.MonitoredQueueName: {
+				MaxWorkers: cfg.MonitoredQueueWorkers,
+			},
+		},
+	})
+	if err != nil {
+		logger.Error("failed to initialize river client", "error", err)
+		os.Exit(1)
+	}
+	screeningEnqueuer := riverjobs.NewRiverScreeningEnqueuer(riverClient, 1, cfg.ScreeningQueueName)
+	datasetJobEnqueuer := riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
+	monitoredEnqueuer := riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, 1, cfg.MonitoredQueueName)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	dispatchService := service.NewDispatchService(txManager, systemClock{}, screeningRepo, matchRepo, providerClient, decisionPublisher)
 	continuousWorker := service.NewContinuousWorkerService(txManager, systemClock{}, continuousRepo, monitoredObjRepo, ingestionReader, screeningService)
-	datasetWorker := service.NewDatasetUpdateWorkerService(txManager, systemClock{}, datasetJobRepo, continuousRepo, monitoredObjRepo, providerClient)
+	datasetWorker := service.NewDatasetUpdateWorkerService(txManager, systemClock{}, datasetJobRepo, continuousRepo, monitoredObjRepo, providerClient, monitoredEnqueuer)
+	screeningWorker := riverjobs.NewScreeningWorker(dispatchService)
+	datasetJobWorker := riverjobs.NewDatasetJobWorker(datasetWorker)
+	monitoredWorker := riverjobs.NewMonitoredObjectWorker(continuousWorker)
+	river.AddWorker(workers, &screeningWorker)
+	river.AddWorker(workers, &datasetJobWorker)
+	river.AddWorker(workers, &monitoredWorker)
 
 	runner := workerRunner{
-		logger:           logger,
-		screeningWorker:  dispatchService,
-		continuousWorker: continuousWorker,
-		datasetWorker:    datasetWorker,
-		batchLimit:       cfg.WorkerBatchLimit,
+		logger:     logger,
+		batchLimit: cfg.WorkerBatchLimit,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	logger.Info("starting screening River workers",
+		"screening_queue", cfg.ScreeningQueueName,
+		"screening_workers", cfg.ScreeningQueueWorkers,
+		"dataset_job_queue", cfg.DatasetJobQueueName,
+		"dataset_job_workers", cfg.DatasetJobQueueWorkers,
+		"monitored_queue", cfg.MonitoredQueueName,
+		"monitored_workers", cfg.MonitoredQueueWorkers,
+	)
+	if err := riverClient.Start(ctx); err != nil {
+		logger.Error("failed to start river client", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		stopCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = riverClient.Stop(stopCtx)
+	}()
 
 	switch cfg.WorkerMode {
 	case "poll":
@@ -133,27 +175,6 @@ func (w workerRunner) runPollLoop(ctx context.Context, interval time.Duration) e
 func (w workerRunner) runOnce(ctx context.Context) error {
 	cycleStartedAt := time.Now()
 	w.logger.Info("screening worker cycle started", "batch_limit", w.batchLimit)
-
-	screeningStartedAt := time.Now()
-	if err := w.screeningWorker.ProcessPendingScreenings(ctx, w.batchLimit); err != nil {
-		w.logger.Error("screening worker phase failed", "phase", "screening_dispatch", "duration_ms", time.Since(screeningStartedAt).Milliseconds(), "error", err)
-		return err
-	}
-	w.logger.Info("screening worker phase completed", "phase", "screening_dispatch", "duration_ms", time.Since(screeningStartedAt).Milliseconds())
-
-	continuousStartedAt := time.Now()
-	if err := w.continuousWorker.ProcessPendingMonitoredObjects(ctx, w.batchLimit); err != nil {
-		w.logger.Error("screening worker phase failed", "phase", "continuous_screening", "duration_ms", time.Since(continuousStartedAt).Milliseconds(), "error", err)
-		return err
-	}
-	w.logger.Info("screening worker phase completed", "phase", "continuous_screening", "duration_ms", time.Since(continuousStartedAt).Milliseconds())
-
-	datasetStartedAt := time.Now()
-	if err := w.datasetWorker.ProcessPendingJobs(ctx, w.batchLimit); err != nil {
-		w.logger.Error("screening worker phase failed", "phase", "dataset_update_jobs", "duration_ms", time.Since(datasetStartedAt).Milliseconds(), "error", err)
-		return err
-	}
-	w.logger.Info("screening worker phase completed", "phase", "dataset_update_jobs", "duration_ms", time.Since(datasetStartedAt).Milliseconds())
 	w.logger.Info("screening worker cycle completed", "duration_ms", time.Since(cycleStartedAt).Milliseconds())
 	return nil
 }

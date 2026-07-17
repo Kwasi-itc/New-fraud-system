@@ -161,3 +161,7 @@ func (s mutationStore) RiskSnapshots() ports.RiskSnapshotRepository {
 func (s mutationStore) IPFlags() ports.IPFlagRepository {
 	return NewIPFlagRepository(s.tx)
 }
+
+func (s mutationStore) RawTx() pgx.Tx {
+	return s.tx
+}

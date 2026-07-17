@@ -31,6 +31,16 @@ func TestLoadConfigAcceptsDisabledAuthWithoutToken(t *testing.T) {
 	}
 }
 
+func TestLoadConfigRejectsInvalidQueueWorkers(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://example")
+	t.Setenv("INDEX_JOB_QUEUE_WORKERS", "0")
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("expected invalid queue worker error")
+	}
+}
+
 func TestLoadConfigReadsDotEnvFromWorkingDirectory(t *testing.T) {
 	tempDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tempDir, ".env"), []byte("DATABASE_URL=postgres://from-dotenv\nSERVICE_AUTH_MODE=disabled\nPORT=9090\n"), 0o600); err != nil {

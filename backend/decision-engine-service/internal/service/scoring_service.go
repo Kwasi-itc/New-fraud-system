@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 type ScoringService struct {
@@ -16,10 +17,14 @@ type ScoringService struct {
 	scenarioRepo ports.ScenarioRepository
 	configRepo   ports.ScoringConfigRepository
 	requestRepo  ports.ScoringRequestRepository
+	enqueuer     riverjobs.ScoringRequestEnqueuer
 }
 
-func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScoringConfigRepository, requestRepo ports.ScoringRequestRepository) ScoringService {
-	return ScoringService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, requestRepo: requestRepo}
+func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScoringConfigRepository, requestRepo ports.ScoringRequestRepository, enqueuer riverjobs.ScoringRequestEnqueuer) ScoringService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopScoringRequestEnqueuer{}
+	}
+	return ScoringService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, requestRepo: requestRepo, enqueuer: enqueuer}
 }
 
 func (s ScoringService) CreateConfig(ctx context.Context, tenantID, scenarioID, name string, allowedOutcomes []string, rulesetRef string, configJSON json.RawMessage, active bool) (scoring.Config, error) {
@@ -136,7 +141,10 @@ func (s ScoringService) UpdateRequestStatus(ctx context.Context, tenantID, reque
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		updated, runErr = store.ScoringRequests().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 	})
 	return updated, err
 }

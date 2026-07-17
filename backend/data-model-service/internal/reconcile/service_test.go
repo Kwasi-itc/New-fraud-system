@@ -92,11 +92,11 @@ func TestReconcileTenantSchedulesRepairJobsForMissingManagedIndexes(t *testing.T
 				OrderingFieldName: "updated_at",
 			}},
 		},
-		indexJobs:         indexJobs,
-		schemaChanges:     stubSchemaChangeRepository{},
-		schemaManager:     stubSchemaManager{managedIndexExists: false},
-		idGenerator:       stubIDGenerator{value: uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")},
-		clock:             fixedTestClock{now: time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)},
+		indexJobs:     indexJobs,
+		schemaChanges: stubSchemaChangeRepository{},
+		schemaManager: stubSchemaManager{managedIndexExists: false},
+		idGenerator:   stubIDGenerator{value: uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")},
+		clock:         fixedTestClock{now: time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)},
 		introspect: stubIntrospector{
 			schemaExists: true,
 			tables:       []string{"cases"},
@@ -180,7 +180,9 @@ type stubNavigationOptionRepository struct {
 	options []datamodel.NavigationOption
 }
 
-func (stubNavigationOptionRepository) Create(context.Context, datamodel.NavigationOption) error { return nil }
+func (stubNavigationOptionRepository) Create(context.Context, datamodel.NavigationOption) error {
+	return nil
+}
 func (stubNavigationOptionRepository) GetByID(context.Context, uuid.UUID) (datamodel.NavigationOption, error) {
 	return datamodel.NavigationOption{}, nil
 }
@@ -206,16 +208,14 @@ func (*stubIndexJobRepository) GetByID(context.Context, uuid.UUID) (datamodel.In
 func (*stubIndexJobRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.IndexJob, error) {
 	return nil, nil
 }
-func (*stubIndexJobRepository) ClaimNext(context.Context, time.Time, int) (*datamodel.IndexJob, error) {
-	return nil, nil
+func (*stubIndexJobRepository) StartAttempt(context.Context, uuid.UUID, time.Time) (datamodel.IndexJob, error) {
+	return datamodel.IndexJob{}, nil
 }
 func (*stubIndexJobRepository) MarkApplied(context.Context, uuid.UUID, time.Time) error { return nil }
 func (*stubIndexJobRepository) MarkFailed(context.Context, uuid.UUID, string, time.Time) error {
 	return nil
 }
-func (*stubIndexJobRepository) Reschedule(context.Context, uuid.UUID, string, time.Time) error {
-	return nil
-}
+func (*stubIndexJobRepository) MarkPendingRetry(context.Context, uuid.UUID, string) error { return nil }
 func (*stubIndexJobRepository) Retry(context.Context, uuid.UUID, time.Time) error { return nil }
 
 type stubSchemaChangeRepository struct{}
@@ -225,7 +225,7 @@ func (stubSchemaChangeRepository) ListByTenant(context.Context, uuid.UUID) ([]da
 	return nil, nil
 }
 
-type stubSchemaManager struct{
+type stubSchemaManager struct {
 	managedIndexExists bool
 }
 

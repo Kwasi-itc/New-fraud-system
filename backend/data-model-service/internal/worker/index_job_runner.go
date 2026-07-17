@@ -3,13 +3,10 @@ package worker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
-	"math"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
@@ -28,10 +25,7 @@ type Runner struct {
 	schemaManager ports.SchemaManager
 	idGenerator   ports.IDGenerator
 	clock         Clock
-	pollInterval  time.Duration
 	maxAttempts   int
-	retryBaseDelay time.Duration
-	retryMaxDelay  time.Duration
 }
 
 func NewRunner(
@@ -43,10 +37,7 @@ func NewRunner(
 	schemaManager ports.SchemaManager,
 	idGenerator ports.IDGenerator,
 	clock Clock,
-	pollInterval time.Duration,
 	maxAttempts int,
-	retryBaseDelay time.Duration,
-	retryMaxDelay time.Duration,
 ) Runner {
 	return Runner{
 		logger:        logger,
@@ -57,81 +48,52 @@ func NewRunner(
 		schemaManager: schemaManager,
 		idGenerator:   idGenerator,
 		clock:         clock,
-		pollInterval:  pollInterval,
 		maxAttempts:   maxAttempts,
-		retryBaseDelay: retryBaseDelay,
-		retryMaxDelay:  retryMaxDelay,
 	}
 }
 
-func (r Runner) Run(ctx context.Context) error {
-	ticker := time.NewTicker(r.pollInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		processed, err := r.runOnce(ctx)
-		if err != nil {
-			return err
-		}
-		if processed {
-			continue
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
-
-func (r Runner) runOnce(ctx context.Context) (bool, error) {
-	job, err := r.indexJobs.ClaimNext(ctx, r.clock.Now(), r.maxAttempts)
+func (r Runner) RunJob(ctx context.Context, id uuid.UUID) error {
+	job, err := r.indexJobs.StartAttempt(ctx, id, r.clock.Now())
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
+		return err
 	}
+	_, err = r.executeJob(ctx, job)
+	return err
+}
 
+func (r Runner) executeJob(ctx context.Context, job datamodel.IndexJob) (bool, error) {
 	if job.TableID == nil {
-		r.failJob(ctx, *job, "index job missing table_id")
+		r.failJob(ctx, job, "index job missing table_id")
 		return true, nil
 	}
 
 	tenantRecord, err := r.tenants.GetByID(ctx, job.TenantID)
 	if err != nil {
-		r.failJob(ctx, *job, err.Error())
+		r.failJob(ctx, job, err.Error())
 		return true, nil
 	}
 	table, err := r.tables.GetByID(ctx, *job.TableID)
 	if err != nil {
-		r.failJob(ctx, *job, err.Error())
+		r.failJob(ctx, job, err.Error())
 		return true, nil
 	}
 
-	state, err := r.schemaManager.GetManagedIndexState(ctx, tenantRecord, table, *job)
+	state, err := r.schemaManager.GetManagedIndexState(ctx, tenantRecord, table, job)
 	if err != nil {
-		r.failJob(ctx, *job, err.Error())
+		r.failJob(ctx, job, err.Error())
 		return true, nil
 	}
 	if state.Exists {
-		return r.markApplied(ctx, *job, table, state.Name)
+		return r.markApplied(ctx, job, table, state.Name)
 	}
 
-	if err := r.schemaManager.CreateManagedIndex(ctx, tenantRecord, table, *job); err != nil {
-		r.retryOrFail(ctx, *job, err.Error())
+	if err := r.schemaManager.CreateManagedIndex(ctx, tenantRecord, table, job); err != nil {
+		r.retryOrFail(ctx, job, err.Error())
 		r.logger.Error("index job failed", "job_id", job.ID, "error", err)
-		return true, nil
+		return true, err
 	}
 
-	return r.markApplied(ctx, *job, table, state.Name)
+	return r.markApplied(ctx, job, table, state.Name)
 }
 
 func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table datamodel.Table, indexName string) (bool, error) {
@@ -160,8 +122,7 @@ func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table d
 
 func (r Runner) retryOrFail(ctx context.Context, job datamodel.IndexJob, message string) {
 	if job.AttemptCount < r.maxAttempts {
-		scheduledAt := r.clock.Now().Add(r.retryDelay(job.AttemptCount))
-		if err := r.indexJobs.Reschedule(ctx, job.ID, message, scheduledAt); err == nil {
+		if err := r.indexJobs.MarkPendingRetry(ctx, job.ID, message); err == nil {
 			r.recordSchemaChange(ctx, job, r.clock.Now(), "reschedule_index_job", "pending", map[string]any{
 				"table_id":               uuidString(job.TableID),
 				"table_name":             job.TableName,
@@ -170,7 +131,6 @@ func (r Runner) retryOrFail(ctx context.Context, job datamodel.IndexJob, message
 				"requested_by_operation": job.RequestedByOperation,
 				"attempt_count":          job.AttemptCount,
 				"error_message":          message,
-				"scheduled_at":           scheduledAt,
 			})
 			return
 		}
@@ -190,18 +150,6 @@ func (r Runner) failJob(ctx context.Context, job datamodel.IndexJob, message str
 		"attempt_count":          job.AttemptCount,
 		"error_message":          message,
 	})
-}
-
-func (r Runner) retryDelay(attemptCount int) time.Duration {
-	if r.retryBaseDelay <= 0 {
-		return 0
-	}
-	multiplier := math.Pow(2, math.Max(0, float64(attemptCount-1)))
-	delay := time.Duration(float64(r.retryBaseDelay) * multiplier)
-	if r.retryMaxDelay > 0 && delay > r.retryMaxDelay {
-		return r.retryMaxDelay
-	}
-	return delay
 }
 
 func (r Runner) recordSchemaChange(

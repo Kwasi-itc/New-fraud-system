@@ -92,12 +92,15 @@ func (h ExecutionHandler) CreateAsyncDecisionExecution(c *gin.Context) {
 		return
 	}
 	tenantID := c.Param("tenantId")
-	item, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, dto.AdaptAsyncExecutionRequest(req))
+	result, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, dto.AdaptAsyncExecutionRequest(req))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "create_async_decision_execution_failed", "details": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"async_decision_execution": dto.AdaptAsyncDecisionExecution(item)})
+	c.JSON(http.StatusCreated, dto.CreateAsyncDecisionExecutionResponse{
+		AsyncDecisionExecution: dto.AdaptAsyncDecisionExecution(result.Execution),
+		CompletedInline:        result.CompletedInline,
+	})
 }
 
 func (h ExecutionHandler) ListAsyncDecisionExecutionsByTenant(c *gin.Context) {

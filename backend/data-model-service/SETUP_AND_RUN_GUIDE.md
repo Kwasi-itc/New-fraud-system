@@ -1,6 +1,6 @@
 # Setup And Run Guide
 
-This guide explains how to set up, run, verify, and stop the standalone data model service in `new/backend/data-model-service`, including the async index worker.
+This guide explains how to set up, run, verify, and stop the standalone data model service in `new/backend/data-model-service`, including the River-backed async index worker.
 
 ## What you need
 
@@ -130,7 +130,7 @@ Expected startup behavior:
 
 ## Step 5: start the async index worker
 
-Run this in a separate terminal if you want pending `core.index_jobs` to be executed:
+Run this in a separate terminal if you want pending `core.index_jobs` to be executed through River:
 
 ```powershell
 $env:GOCACHE='C:\Users\Kwasi Addo\Dev\Work\IT Consortium\Marble\marble\new\backend\data-model-service\.gocache'
@@ -152,9 +152,9 @@ make run-worker
 
 What this does:
 
-- polls `core.index_jobs`
+- runs the River worker for index jobs
 - creates managed secondary indexes for pending jobs
-- retries failed jobs with scheduled backoff until max attempts are exhausted
+- retries failed jobs until max attempts are exhausted
 - marks jobs `applied` or `failed`
 - writes schema-change audit rows for retry/apply/fail transitions
 

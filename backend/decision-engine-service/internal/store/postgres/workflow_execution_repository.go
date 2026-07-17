@@ -38,6 +38,21 @@ func (r WorkflowExecutionRepository) CreateMany(ctx context.Context, items []wor
 	return out, nil
 }
 
+func (r WorkflowExecutionRepository) GetByID(ctx context.Context, tenantID, executionID string) (workflow.Execution, error) {
+	const stmt = `
+		select id, tenant_id, workflow_id, workflow_rule_id, workflow_action_id, decision_id, scenario_id, action_type, status, action_config, created_at
+		from core.workflow_executions
+		where tenant_id = $1 and id = $2
+	`
+	var item workflow.Execution
+	var actionType, status string
+	err := r.q.QueryRow(ctx, stmt, tenantID, executionID).
+		Scan(&item.ID, &item.TenantID, &item.WorkflowID, &item.WorkflowRuleID, &item.WorkflowActionID, &item.DecisionID, &item.ScenarioID, &actionType, &status, &item.ActionConfig, &item.CreatedAt)
+	item.ActionType = workflow.ActionType(actionType)
+	item.Status = workflow.ExecutionStatus(status)
+	return item, err
+}
+
 func (r WorkflowExecutionRepository) ListByDecision(ctx context.Context, tenantID, decisionID string) ([]workflow.Execution, error) {
 	const stmt = `
 		select id, tenant_id, workflow_id, workflow_rule_id, workflow_action_id, decision_id, scenario_id, action_type, status, action_config, created_at

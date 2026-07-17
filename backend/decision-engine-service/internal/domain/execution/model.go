@@ -40,17 +40,24 @@ type ScheduledExecution struct {
 }
 
 type AsyncDecisionExecution struct {
-	ID             string
-	TenantID       string
-	ScenarioID     string
-	ObjectType     string
-	Status         Status
-	IdempotencyKey string
-	AttemptCount   int
-	MaxAttempts    int
-	NextAttemptAt  *time.Time
-	RequestBody    json.RawMessage
-	LastError      string
-	CreatedAt      time.Time
-	FailedAt       *time.Time
+	ID                   string
+	TenantID             string
+	ScenarioID           string
+	ObjectType           string
+	Status               Status
+	IdempotencyKey       string
+	AttemptCount         int
+	MaxAttempts          int
+	NextAttemptAt        *time.Time
+	RequestBody          json.RawMessage
+	LastError            string
+	ResultBody           json.RawMessage
+	CallbackURL          string
+	CallbackStatus       string
+	CallbackAttemptCount int
+	CallbackLastError    string
+	CallbackSentAt       *time.Time
+	CreatedAt            time.Time
+	CompletedAt          *time.Time
+	FailedAt             *time.Time
 }

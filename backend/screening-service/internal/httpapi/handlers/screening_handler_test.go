@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
@@ -76,6 +77,9 @@ func TestScreeningHandlerCreateFileUploadReturnsSession(t *testing.T) {
 		nil,
 		nil,
 		testBlobStore{},
+		nil,
+		nil,
+		nil,
 		nil,
 	)
 
@@ -188,6 +192,9 @@ func newTestScreeningService() service.ScreeningService {
 		nil,
 		testBlobStore{},
 		nil,
+		nil,
+		nil,
+		nil,
 	)
 }
 
@@ -224,6 +231,7 @@ func (t testMutationStore) ScreeningFiles() ports.ScreeningFileRepository       
 func (t testMutationStore) ContinuousConfigs() ports.ContinuousConfigRepository { return t.continuous }
 func (t testMutationStore) MonitoredObjects() ports.MonitoredObjectRepository   { return t.monitored }
 func (t testMutationStore) DatasetUpdateJobs() ports.DatasetUpdateJobRepository { return t.dataset }
+func (t testMutationStore) RawTx() pgx.Tx                                       { return nil }
 
 type testScreeningRepo struct {
 	items map[string]screening.Screening

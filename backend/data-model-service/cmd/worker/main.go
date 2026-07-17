@@ -9,9 +9,12 @@ import (
 	"syscall"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/app"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 	tenantdbpostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/tenantdb/postgres"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 )
 
 func main() {
@@ -42,19 +45,42 @@ func main() {
 		tenantdbpostgres.NewSchemaManager(db),
 		app.UUIDGenerator{},
 		app.SystemClock{},
-		cfg.IndexWorkerPollInterval,
 		cfg.IndexWorkerMaxAttempts,
-		cfg.IndexWorkerRetryBaseDelay,
-		cfg.IndexWorkerRetryMaxDelay,
 	)
 
 	logger.Info("starting index job worker",
-		"poll_interval", cfg.IndexWorkerPollInterval.String(),
 		"max_attempts", cfg.IndexWorkerMaxAttempts,
-		"retry_base_delay", cfg.IndexWorkerRetryBaseDelay.String(),
-		"retry_max_delay", cfg.IndexWorkerRetryMaxDelay.String(),
 	)
-	if err := runner.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+
+	workers := river.NewWorkers()
+	indexWorker := riverjobs.NewIndexJobWorker(runner)
+	river.AddWorker(workers, &indexWorker)
+
+	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+		Workers: workers,
+		Queues: map[string]river.QueueConfig{
+			cfg.IndexJobQueueName: {
+				MaxWorkers: cfg.IndexJobQueueWorkers,
+			},
+		},
+	})
+	if err != nil {
+		logger.Error("failed to initialize river client", "error", err)
+		os.Exit(1)
+	}
+
+	if err := riverClient.Start(ctx); err != nil {
+		logger.Error("failed to start river client", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		stopCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = riverClient.Stop(stopCtx)
+	}()
+
+	<-ctx.Done()
+	if err := ctx.Err(); err != nil && !errors.Is(err, context.Canceled) {
 		logger.Error("worker exited with error", "error", err)
 		os.Exit(1)
 	}

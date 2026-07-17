@@ -254,7 +254,7 @@ func (h DecisionHandler) deferAsyncScenarioExecution(c *gin.Context, tenantID, s
 		})
 		return
 	}
-	item, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
+	result, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
 		ScenarioID: scenarioID,
 		ObjectType: objectType,
 		Items: []service.DecisionEvaluationRequest{{
@@ -268,8 +268,8 @@ func (h DecisionHandler) deferAsyncScenarioExecution(c *gin.Context, tenantID, s
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "live_decision_overloaded", "details": "failed to enqueue async fallback execution"})
 		return
 	}
-	logHandlerSuccess(c, "live decision deferred to async execution", "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", objectID, "object_type", objectType, "execution_id", item.ID)
-	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(item)})
+	logHandlerSuccess(c, "live decision deferred to async execution", "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", objectID, "object_type", objectType, "execution_id", result.Execution.ID)
+	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(result.Execution)})
 }
 
 func (h DecisionHandler) deferAsyncAllScenariosExecution(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any) {
@@ -281,7 +281,7 @@ func (h DecisionHandler) deferAsyncAllScenariosExecution(c *gin.Context, tenantI
 		})
 		return
 	}
-	item, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
+	result, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
 		ObjectType: objectType,
 		Items: []service.DecisionEvaluationRequest{{
 			ObjectID:   objectID,
@@ -294,6 +294,6 @@ func (h DecisionHandler) deferAsyncAllScenariosExecution(c *gin.Context, tenantI
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "live_decision_overloaded", "details": "failed to enqueue async fallback execution"})
 		return
 	}
-	logHandlerSuccess(c, "live all-scenarios decision deferred to async execution", "tenant_id", tenantID, "object_id", objectID, "object_type", objectType, "execution_id", item.ID)
-	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(item)})
+	logHandlerSuccess(c, "live all-scenarios decision deferred to async execution", "tenant_id", tenantID, "object_id", objectID, "object_type", objectType, "execution_id", result.Execution.ID)
+	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(result.Execution)})
 }

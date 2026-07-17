@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -11,12 +12,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	dispatchclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch"
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 )
@@ -119,6 +123,44 @@ func main() {
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
+	workers := river.NewWorkers()
+	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+		Workers: workers,
+		Queues: map[string]river.QueueConfig{
+			cfg.ScheduledExecutionQueueName: {
+				MaxWorkers: cfg.ScheduledExecutionQueueWorkers,
+			},
+			cfg.AsyncExecutionQueueName: {
+				MaxWorkers: cfg.AsyncExecutionQueueWorkers,
+			},
+			cfg.AsyncExecutionCallbackQueueName: {
+				MaxWorkers: cfg.AsyncExecutionCallbackQueueWorkers,
+			},
+			cfg.WorkflowDispatchQueueName: {
+				MaxWorkers: cfg.WorkflowDispatchQueueWorkers,
+			},
+			cfg.ScreeningDispatchQueueName: {
+				MaxWorkers: cfg.ScreeningDispatchQueueWorkers,
+			},
+			cfg.ScoringDispatchQueueName: {
+				MaxWorkers: cfg.ScoringDispatchQueueWorkers,
+			},
+			cfg.OutboxQueueName: {
+				MaxWorkers: cfg.OutboxQueueWorkers,
+			},
+		},
+	})
+	if err != nil {
+		logger.Error("failed to initialize river client", "error", err)
+		os.Exit(1)
+	}
+	scheduledEnqueuer := riverjobs.NewRiverScheduledExecutionEnqueuer(riverClient, max(1, cfg.ScheduledExecutionMaxAttempts), cfg.ScheduledExecutionQueueName)
+	asyncEnqueuer := riverjobs.NewRiverAsyncDecisionExecutionEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionQueueName)
+	asyncCallbackEnqueuer := riverjobs.NewRiverAsyncDecisionExecutionCallbackEnqueuer(riverClient, max(1, cfg.AsyncExecutionCallbackMaxAttempts), cfg.AsyncExecutionCallbackQueueName)
+	workflowEnqueuer := riverjobs.NewRiverWorkflowExecutionEnqueuer(riverClient, 1, cfg.WorkflowDispatchQueueName)
+	screeningEnqueuer := riverjobs.NewRiverScreeningExecutionEnqueuer(riverClient, 1, cfg.ScreeningDispatchQueueName)
+	scoringEnqueuer := riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
+	outboxEnqueuer := riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 
 	decisionService := service.NewDecisionService(
 		txManager,
@@ -146,6 +188,10 @@ func main() {
 		screeningExecutionRepo,
 		scoringConfigRepo,
 		scoringRequestRepo,
+		workflowEnqueuer,
+		screeningEnqueuer,
+		scoringEnqueuer,
+		outboxEnqueuer,
 		cfg.AggregatePushdownMode,
 		cfg.AggregatePushdownAggregates,
 		cfg.RuleEvaluationConcurrency,
@@ -170,7 +216,23 @@ func main() {
 			AsyncMaxAttempts:     cfg.AsyncExecutionMaxAttempts,
 			AsyncBaseBackoff:     cfg.AsyncExecutionRetryBackoff,
 		},
+		service.AsyncExecutionBehavior{
+			DefaultWaitWindow:     cfg.AsyncExecutionDefaultWaitWindow,
+			MaxWaitWindow:         cfg.AsyncExecutionMaxWaitWindow,
+			CallbackTimeout:       cfg.AsyncExecutionCallbackTimeout,
+			CallbackSigningSecret: cfg.AsyncExecutionCallbackSigningSecret,
+		},
+		scheduledEnqueuer,
+		asyncEnqueuer,
+		asyncCallbackEnqueuer,
+		outboxEnqueuer,
 	)
+	scheduledWorker := riverjobs.NewScheduledExecutionWorker(executionService)
+	asyncWorker := riverjobs.NewAsyncDecisionExecutionWorker(executionService)
+	asyncCallbackWorker := riverjobs.NewAsyncDecisionExecutionCallbackWorker(executionService)
+	river.AddWorker(workers, &scheduledWorker)
+	river.AddWorker(workers, &asyncWorker)
+	river.AddWorker(workers, &asyncCallbackWorker)
 	dispatchClient := dispatchclient.NewHTTPClient(
 		cfg.HTTPClientTimeout,
 		cfg.ServiceAuthMode,
@@ -190,34 +252,76 @@ func main() {
 		dispatchClient,
 		dispatchClient,
 	)
+	workflowWorker := riverjobs.NewWorkflowExecutionWorker(dispatchService)
+	screeningWorker := riverjobs.NewScreeningExecutionWorker(dispatchService)
+	scoringWorker := riverjobs.NewScoringRequestWorker(dispatchService)
+	outboxWorker := riverjobs.NewOutboxEventWorker(dispatchService)
+	river.AddWorker(workers, &workflowWorker)
+	river.AddWorker(workers, &screeningWorker)
+	river.AddWorker(workers, &scoringWorker)
+	river.AddWorker(workers, &outboxWorker)
 
 	runner := workerRunner{
 		logger:           logger,
 		executionService: executionService,
 		dispatchService:  dispatchService,
 		batchLimit:       cfg.WorkerBatchLimit,
-		tasks:            toTaskSet(cfg.WorkerTasks),
-		taskOrder:        app.SortedWorkerTasks(cfg.WorkerTasks, cfg.WorkerTaskPriorities),
-		metrics:          newWorkerMetrics(cfg.WorkerTasks),
+		tasks:            toTaskSet(legacyWorkerTasks(cfg.WorkerTasks)),
+		taskOrder:        app.SortedWorkerTasks(legacyWorkerTasks(cfg.WorkerTasks), cfg.WorkerTaskPriorities),
+		metrics:          newWorkerMetrics(legacyWorkerTasks(cfg.WorkerTasks)),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	logger.Info("starting decision engine execution workers",
+		"scheduled_queue", cfg.ScheduledExecutionQueueName,
+		"scheduled_workers", cfg.ScheduledExecutionQueueWorkers,
+		"async_queue", cfg.AsyncExecutionQueueName,
+		"async_workers", cfg.AsyncExecutionQueueWorkers,
+		"async_callback_queue", cfg.AsyncExecutionCallbackQueueName,
+		"async_callback_workers", cfg.AsyncExecutionCallbackQueueWorkers,
+		"workflow_queue", cfg.WorkflowDispatchQueueName,
+		"workflow_workers", cfg.WorkflowDispatchQueueWorkers,
+		"screening_queue", cfg.ScreeningDispatchQueueName,
+		"screening_workers", cfg.ScreeningDispatchQueueWorkers,
+		"scoring_queue", cfg.ScoringDispatchQueueName,
+		"scoring_workers", cfg.ScoringDispatchQueueWorkers,
+		"outbox_queue", cfg.OutboxQueueName,
+		"outbox_workers", cfg.OutboxQueueWorkers,
+	)
+	if err := riverClient.Start(ctx); err != nil {
+		logger.Error("failed to start river client", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		stopCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = riverClient.Stop(stopCtx)
+	}()
+
+	if len(runner.taskOrder) == 0 {
+		<-ctx.Done()
+		if err := ctx.Err(); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("worker exited with error", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	switch cfg.WorkerMode {
 	case "poll":
-		logger.Info("worker poll loop starting", "poll_interval", cfg.WorkerPollInterval.String(), "batch_limit", cfg.WorkerBatchLimit, "tasks", cfg.WorkerTasks)
+		logger.Info("legacy worker poll loop starting", "poll_interval", cfg.WorkerPollInterval.String(), "batch_limit", cfg.WorkerBatchLimit, "tasks", runner.taskOrder)
 		if err := runner.runPollLoop(ctx, cfg.WorkerPollInterval); err != nil {
-			logger.Error("worker poll loop failed", "error", err)
+			logger.Error("legacy worker poll loop failed", "error", err)
 			os.Exit(1)
 		}
 	default:
-		logger.Info("worker batch run starting", "batch_limit", cfg.WorkerBatchLimit, "tasks", cfg.WorkerTasks)
+		logger.Info("legacy worker batch run starting", "batch_limit", cfg.WorkerBatchLimit, "tasks", runner.taskOrder)
 		if err := runner.runOnce(ctx); err != nil {
-			logger.Error("worker batch run failed", "error", err)
+			logger.Error("legacy worker batch run failed", "error", err)
 			os.Exit(1)
 		}
-		logger.Info("worker batch run completed")
+		logger.Info("legacy worker batch run completed")
 	}
 }
 
@@ -274,14 +378,6 @@ func toTaskSet(tasks []string) map[string]struct{} {
 
 func (w workerRunner) runNamedTask(ctx context.Context, task string) error {
 	switch task {
-	case "scheduled":
-		return w.runTask(task, func() error {
-			return w.executionService.ProcessDueScheduledExecutions(ctx, w.batchLimit)
-		})
-	case "async":
-		return w.runTask(task, func() error {
-			return w.executionService.ProcessQueuedAsyncExecutions(ctx, w.batchLimit)
-		})
 	case "workflow_dispatch":
 		return w.runTask(task, func() error {
 			return w.dispatchService.ProcessPendingWorkflowExecutions(ctx, w.batchLimit)
@@ -371,4 +467,15 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func legacyWorkerTasks(tasks []string) []string {
+	return nil
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

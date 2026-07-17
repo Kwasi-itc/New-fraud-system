@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type stubTenantRepository struct {
@@ -38,7 +40,7 @@ func (s stubTableRepository) ListByTenant(context.Context, uuid.UUID) ([]datamod
 	return nil, nil
 }
 func (s stubTableRepository) Update(context.Context, datamodel.Table) error { return nil }
-func (s stubTableRepository) Delete(context.Context, uuid.UUID) error        { return nil }
+func (s stubTableRepository) Delete(context.Context, uuid.UUID) error       { return nil }
 
 type stubFieldRepository struct {
 	fields []datamodel.Field
@@ -52,8 +54,8 @@ func (s stubFieldRepository) GetByID(context.Context, uuid.UUID) (datamodel.Fiel
 func (s stubFieldRepository) ListByTable(context.Context, uuid.UUID) ([]datamodel.Field, error) {
 	return s.fields, s.err
 }
-func (s stubFieldRepository) Delete(context.Context, uuid.UUID) error              { return nil }
-func (s stubFieldRepository) Update(context.Context, datamodel.Field) error         { return nil }
+func (s stubFieldRepository) Delete(context.Context, uuid.UUID) error       { return nil }
+func (s stubFieldRepository) Update(context.Context, datamodel.Field) error { return nil }
 
 type stubIndexJobRepository struct {
 	created []datamodel.IndexJob
@@ -73,8 +75,8 @@ func (s *stubIndexJobRepository) GetByID(context.Context, uuid.UUID) (datamodel.
 func (s *stubIndexJobRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.IndexJob, error) {
 	return nil, s.err
 }
-func (s *stubIndexJobRepository) ClaimNext(context.Context, time.Time, int) (*datamodel.IndexJob, error) {
-	return nil, nil
+func (s *stubIndexJobRepository) StartAttempt(context.Context, uuid.UUID, time.Time) (datamodel.IndexJob, error) {
+	return s.job, s.err
 }
 func (s *stubIndexJobRepository) MarkApplied(context.Context, uuid.UUID, time.Time) error {
 	return nil
@@ -82,7 +84,7 @@ func (s *stubIndexJobRepository) MarkApplied(context.Context, uuid.UUID, time.Ti
 func (s *stubIndexJobRepository) MarkFailed(context.Context, uuid.UUID, string, time.Time) error {
 	return nil
 }
-func (s *stubIndexJobRepository) Reschedule(context.Context, uuid.UUID, string, time.Time) error {
+func (s *stubIndexJobRepository) MarkPendingRetry(context.Context, uuid.UUID, string) error {
 	return nil
 }
 func (s *stubIndexJobRepository) Retry(_ context.Context, id uuid.UUID, scheduledAt time.Time) error {
@@ -91,6 +93,20 @@ func (s *stubIndexJobRepository) Retry(_ context.Context, id uuid.UUID, schedule
 	s.job.ScheduledAt = &scheduledAt
 	s.job.ErrorMessage = nil
 	return s.err
+}
+
+type stubIndexJobEnqueuer struct {
+	jobIDs []uuid.UUID
+}
+
+func (s *stubIndexJobEnqueuer) Enqueue(_ context.Context, jobID uuid.UUID, _ *time.Time) error {
+	s.jobIDs = append(s.jobIDs, jobID)
+	return nil
+}
+
+func (s *stubIndexJobEnqueuer) EnqueueTx(_ context.Context, _ pgx.Tx, jobID uuid.UUID, _ *time.Time) error {
+	s.jobIDs = append(s.jobIDs, jobID)
+	return nil
 }
 
 func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
@@ -103,6 +119,7 @@ func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
 	changeID := uuid.New()
 	repo := &stubIndexJobRepository{}
 	changeRepo := &stubSchemaChangeRepository{}
+	enqueuer := &stubIndexJobEnqueuer{}
 	service := NewIndexJobService(
 		stubTenantRepository{record: tenant.Tenant{ID: tenantID, Status: tenant.StatusActive}},
 		stubTableRepository{table: datamodel.Table{ID: tableID, TenantID: tenantID, Name: "cases"}},
@@ -115,6 +132,7 @@ func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
 		stubTransactionManager{store: stubMutationStore{indexJobs: repo, schemaChanges: changeRepo}},
 		&stubSequenceIDGenerator{values: []uuid.UUID{jobID, changeID}},
 		stubClock{now: now},
+		enqueuer,
 	)
 
 	job, err := service.Create(context.Background(), CreateIndexJobInput{
@@ -139,6 +157,9 @@ func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
 	if len(changeRepo.changes) != 1 || changeRepo.changes[0].Operation != "request_index_job" {
 		t.Fatalf("unexpected schema changes: %+v", changeRepo.changes)
 	}
+	if len(enqueuer.jobIDs) != 1 || enqueuer.jobIDs[0] != jobID {
+		t.Fatalf("unexpected enqueued ids: %v", enqueuer.jobIDs)
+	}
 }
 
 func TestIndexJobServiceRetryResetsFailedJob(t *testing.T) {
@@ -148,20 +169,22 @@ func TestIndexJobServiceRetryResetsFailedJob(t *testing.T) {
 	jobID := uuid.New()
 	repo := &stubIndexJobRepository{
 		job: datamodel.IndexJob{
-			ID:          jobID,
-			Status:      datamodel.IndexJobStatusFailed,
+			ID:           jobID,
+			Status:       datamodel.IndexJobStatusFailed,
 			ErrorMessage: stringPtr("boom"),
 		},
 	}
+	enqueuer := &stubIndexJobEnqueuer{}
 	service := NewIndexJobService(
 		stubTenantRepository{},
 		stubTableRepository{},
 		stubFieldRepository{},
 		repo,
 		&stubSchemaChangeRepository{},
-		stubTransactionManager{},
+		stubTransactionManager{store: stubMutationStore{indexJobs: repo}},
 		stubIDGenerator{value: uuid.New()},
 		stubClock{now: now},
+		enqueuer,
 	)
 
 	job, err := service.Retry(context.Background(), jobID)
@@ -176,6 +199,9 @@ func TestIndexJobServiceRetryResetsFailedJob(t *testing.T) {
 	}
 	if job.ScheduledAt == nil || !job.ScheduledAt.Equal(now) {
 		t.Fatalf("unexpected scheduled_at: %v", job.ScheduledAt)
+	}
+	if len(enqueuer.jobIDs) != 1 || enqueuer.jobIDs[0] != jobID {
+		t.Fatalf("unexpected enqueued ids: %v", enqueuer.jobIDs)
 	}
 }
 
@@ -196,3 +222,5 @@ func (s *stubSequenceIDGenerator) New() uuid.UUID {
 func stringPtr(value string) *string {
 	return &value
 }
+
+var _ riverjobs.IndexJobEnqueuer = (*stubIndexJobEnqueuer)(nil)

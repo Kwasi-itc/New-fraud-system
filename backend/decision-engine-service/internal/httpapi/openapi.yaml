@@ -2088,7 +2088,7 @@ paths:
     post:
       tags: [Execution]
       summary: Create an asynchronous decision execution
-      description: Queues asynchronous scenario evaluation for multiple record payloads.
+      description: Queues asynchronous scenario evaluation for one or more records. The request can optionally wait briefly for completion and return the finished result inline if the worker completes within that short window. If a callback URL is provided, the service also posts the terminal result there after completion or failure.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -3884,7 +3884,20 @@ components:
         failed: 2
     CreateAsyncDecisionExecutionRequest:
       type: object
-      description: Request to queue asynchronous decision execution for multiple records.
+      description: Request to queue asynchronous decision execution for multiple records, with optional short waiting and callback delivery behavior.
+      example:
+        scenario_id: scen_01HZYA2N4V8Q3T7K5M1R9D6CPX
+        object_type: transactions
+        idempotency_key: async-txn-001
+        wait_timeout_ms: 300
+        callback_url: https://api.example.com/webhooks/decision-results
+        items:
+          - object_id: txn_1001
+            object_type: transactions
+            fields:
+              amount: 1200
+              currency: USD
+              customer_country: GH
       properties:
         scenario_id:
           type: string
@@ -3892,15 +3905,56 @@ components:
         object_type:
           type: string
           description: Object type being evaluated. This matches the tenant data-model table name.
+        idempotency_key:
+          type: string
+          description: Optional client-provided key used to avoid creating duplicate async execution records for the same logical request.
+        wait_timeout_ms:
+          type: integer
+          description: Optional best-effort wait window in milliseconds. If the async execution reaches a terminal success state within this short window, the create response returns the completed execution record with the result body populated. When omitted, the service uses its default wait window.
+          minimum: 0
+          example: 300
+        callback_url:
+          type: string
+          description: Optional HTTP or HTTPS URL that receives the terminal async execution result after completion or failure.
+          example: https://api.example.com/webhooks/decision-results
         items:
           type: array
           items:
             $ref: '#/components/schemas/EvaluateDecisionRequest'
           description: Record payloads queued for asynchronous evaluation.
-      required: [scenario_id, object_type, items]
+      required: [object_type, items]
     AsyncDecisionExecutionResponse:
       type: object
       description: Persisted asynchronous decision-execution request.
+      example:
+        id: async_01HZYA2N4V8Q3T7K5M1R9D6CPX
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZYA2N4V8Q3T7K5M1R9D6CPX
+        object_type: transactions
+        status: completed
+        idempotency_key: async-txn-001
+        attempt_count: 1
+        max_attempts: 3
+        request_body:
+          scenario_id: scen_01HZYA2N4V8Q3T7K5M1R9D6CPX
+          object_type: transactions
+          items:
+            - object_id: txn_1001
+              object_type: transactions
+              fields:
+                amount: 1200
+                currency: USD
+        result_body:
+          triggered: true
+          decision:
+            id: dec_01HZYA2N4V8Q3T7K5M1R9D6CPX
+            outcome: review
+        callback_url: https://api.example.com/webhooks/decision-results
+        callback_status: sent
+        callback_attempt_count: 1
+        callback_sent_at: '2026-07-16T10:20:00Z'
+        created_at: '2026-07-16T10:19:59Z'
+        completed_at: '2026-07-16T10:20:00Z'
       properties:
         id:
           type: string
@@ -3914,13 +3968,59 @@ components:
         status:
           type: string
           description: Current asynchronous execution state.
+        idempotency_key:
+          type: string
+          description: Caller-supplied deduplication key, when present.
+        attempt_count:
+          type: integer
+          description: Number of worker attempts recorded for this execution.
+        max_attempts:
+          type: integer
+          description: Maximum worker attempts allowed before the execution stays failed.
+        next_attempt_at:
+          type: string
+          format: date-time
+          description: Next scheduled retry time when the execution is queued for another attempt.
         request_body:
           type: string
           format: byte
           description: Serialized request payload submitted for async evaluation.
+        result_body:
+          description: Serialized terminal result payload returned when the async execution completes successfully.
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+            - type: number
+            - type: integer
+            - type: boolean
+        callback_url:
+          type: string
+          description: Callback destination that should receive the terminal result, when configured.
+        callback_status:
+          type: string
+          description: Delivery state for the callback request, such as `pending`, `sent`, or `failed`.
+        callback_attempt_count:
+          type: integer
+          description: Number of callback delivery attempts made so far.
+        callback_last_error:
+          type: string
+          description: Most recent callback delivery error message, when a callback attempt failed.
+        callback_sent_at:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent successful callback delivery.
         created_at:
           type: string
           format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          description: Time when the execution reached successful terminal completion.
+        failed_at:
+          type: string
+          format: date-time
+          description: Time when the execution reached terminal failure.
       required: [id, tenant_id, scenario_id, object_type, status, request_body, created_at]
     CreateScreeningConfigRequest:
       type: object
@@ -4906,9 +5006,32 @@ components:
       required: [recurring_schedule]
     AsyncDecisionExecutionEnvelope:
       type: object
+      example:
+        async_decision_execution:
+          id: async_01HZYA2N4V8Q3T7K5M1R9D6CPX
+          tenant_id: tenant_demo
+          scenario_id: scen_01HZYA2N4V8Q3T7K5M1R9D6CPX
+          object_type: transactions
+          status: queued
+          attempt_count: 0
+          max_attempts: 3
+          request_body:
+            scenario_id: scen_01HZYA2N4V8Q3T7K5M1R9D6CPX
+            object_type: transactions
+            items:
+              - object_id: txn_1001
+                object_type: transactions
+                fields:
+                  amount: 1200
+          callback_url: https://api.example.com/webhooks/decision-results
+          created_at: '2026-07-16T10:19:59Z'
+        completed_inline: false
       properties:
         async_decision_execution:
           $ref: '#/components/schemas/AsyncDecisionExecutionResponse'
+        completed_inline:
+          type: boolean
+          description: Indicates whether the create request waited briefly and returned after the async execution had already completed successfully.
       required: [async_decision_execution]
     AsyncDecisionExecutionListEnvelope:
       type: object

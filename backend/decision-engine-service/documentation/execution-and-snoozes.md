@@ -181,6 +181,12 @@ How it should be used:
 
 - run a scenario at a future time against a prepared set of items
 
+How it runs:
+
+- the API stores the scheduled execution record
+- the service enqueues a River job for the execution id
+- when the scheduled time arrives, a River worker runs that execution
+
 ### `GET /v1/tenants/:tenantId/async-decision-executions`
 
 What it does:
@@ -197,3 +203,9 @@ How it should be used:
 
 - bulk evaluation workloads
 - replay/backfill scenarios where synchronous evaluation would be too large
+
+How it runs:
+
+- the API stores the async execution record
+- the service enqueues a River job for the execution id
+- a River worker loads and runs the queued execution later

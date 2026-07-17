@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -133,6 +134,10 @@ func (s publicationTestMutationStore) IPFlags() ports.IPFlagRepository {
 	return nil
 }
 
+func (s publicationTestMutationStore) RawTx() pgx.Tx {
+	return nil
+}
+
 type publicationTestScenarioRepo struct {
 	item       scenario.Scenario
 	setLiveArg *string
@@ -200,11 +205,11 @@ func TestDeactivateIteration(t *testing.T) {
 	liveIterationID := "iter-live"
 	scenarioRepo := &publicationTestScenarioRepo{
 		item: scenario.Scenario{
-			ID:              "scenario-1",
-			TenantID:        "tenant-1",
-			Name:            "Scenario",
+			ID:                "scenario-1",
+			TenantID:          "tenant-1",
+			Name:              "Scenario",
 			TriggerObjectType: "transactions",
-			LiveIterationID: &liveIterationID,
+			LiveIterationID:   &liveIterationID,
 		},
 	}
 	publicationRepo := &publicationTestPublicationRepo{}

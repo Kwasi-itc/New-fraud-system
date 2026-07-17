@@ -6,6 +6,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 )
 
 type DatasetUpdateWorkerService struct {
@@ -15,6 +16,7 @@ type DatasetUpdateWorkerService struct {
 	continuousRepo ports.ContinuousConfigRepository
 	monitoredRepo  ports.MonitoredObjectRepository
 	provider       ports.ScreeningProvider
+	monitoredEnq   riverjobs.MonitoredObjectEnqueuer
 }
 
 func NewDatasetUpdateWorkerService(
@@ -24,7 +26,11 @@ func NewDatasetUpdateWorkerService(
 	continuousRepo ports.ContinuousConfigRepository,
 	monitoredRepo ports.MonitoredObjectRepository,
 	provider ports.ScreeningProvider,
+	monitoredEnq riverjobs.MonitoredObjectEnqueuer,
 ) DatasetUpdateWorkerService {
+	if monitoredEnq == nil {
+		monitoredEnq = riverjobs.NoopMonitoredObjectEnqueuer{}
+	}
 	return DatasetUpdateWorkerService{
 		txManager:      txManager,
 		clock:          clock,
@@ -32,6 +38,7 @@ func NewDatasetUpdateWorkerService(
 		continuousRepo: continuousRepo,
 		monitoredRepo:  monitoredRepo,
 		provider:       provider,
+		monitoredEnq:   monitoredEnq,
 	}
 }
 
@@ -46,6 +53,17 @@ func (s DatasetUpdateWorkerService) ProcessPendingJobs(ctx context.Context, limi
 		}
 	}
 	return nil
+}
+
+func (s DatasetUpdateWorkerService) RunJob(ctx context.Context, tenantID, jobID string) error {
+	item, err := s.datasetJobRepo.GetByID(ctx, tenantID, jobID)
+	if err != nil {
+		return err
+	}
+	if item.Status != screening.DatasetUpdateJobStatusPending {
+		return nil
+	}
+	return s.processJob(ctx, item)
 }
 
 func (s DatasetUpdateWorkerService) processJob(ctx context.Context, item screening.DatasetUpdateJob) error {
@@ -116,8 +134,11 @@ func (s DatasetUpdateWorkerService) rescreenMonitoredObjects(ctx context.Context
 		object.Status = screening.MonitoredObjectStatusPending
 		object.UpdatedAt = now
 		if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
-			_, updateErr := store.MonitoredObjects().Update(ctx, object)
-			return updateErr
+			updated, updateErr := store.MonitoredObjects().Update(ctx, object)
+			if updateErr != nil {
+				return updateErr
+			}
+			return s.monitoredEnq.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 		}); err != nil {
 			return nil, err
 		}

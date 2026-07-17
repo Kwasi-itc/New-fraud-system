@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
@@ -27,7 +28,7 @@ type UploadLogRepository interface {
 	ListByTenantAndObjectType(ctx context.Context, tenantID uuid.UUID, objectType string) ([]ingestion.UploadLog, error)
 	GetByID(ctx context.Context, id uuid.UUID) (ingestion.UploadLog, error)
 	Update(ctx context.Context, log ingestion.UploadLog) error
-	ClaimNextUploaded(ctx context.Context, now time.Time) (*ingestion.UploadLog, error)
+	StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (ingestion.UploadLog, error)
 }
 
 type TenantDataWriter interface {
@@ -53,6 +54,7 @@ type MutationStore interface {
 	UploadLogs() UploadLogRepository
 	TenantWriter() TenantDataWriter
 	TenantReader() TenantDataReader
+	RawTx() pgx.Tx
 }
 
 type TransactionManager interface {

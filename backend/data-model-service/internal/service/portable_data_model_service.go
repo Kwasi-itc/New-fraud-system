@@ -241,11 +241,15 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 	})
 
 	for _, pivot := range published.Model.Pivots {
-		document.Pivots = append(document.Pivots, PortablePivot{
+		portablePivot := PortablePivot{
 			BaseTable: pivot.BaseTable,
-			Field:     pivot.Field,
-			PathLinks: append([]string(nil), pivot.PathLinks...),
-		})
+		}
+		if len(pivot.PathLinks) > 0 {
+			portablePivot.PathLinks = append([]string(nil), pivot.PathLinks...)
+		} else {
+			portablePivot.Field = pivot.Field
+		}
+		document.Pivots = append(document.Pivots, portablePivot)
 	}
 	slices.SortFunc(document.Pivots, func(lhs, rhs PortablePivot) int {
 		if lhs.BaseTable == rhs.BaseTable {

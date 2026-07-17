@@ -429,9 +429,9 @@ func TestRouterIntegrationPortableDataModelExportImportRoundTrip(t *testing.T) {
 			Version    string `json:"version"`
 			RevisionID string `json:"revision_id"`
 			Tables     []struct {
-				Name              string `json:"name"`
-				CaptionField      string `json:"caption_field"`
-				Fields            []struct {
+				Name         string `json:"name"`
+				CaptionField string `json:"caption_field"`
+				Fields       []struct {
 					Name       string `json:"name"`
 					EnumValues []struct {
 						Value string `json:"value"`
@@ -696,6 +696,9 @@ func resetRouterIntegrationDatabase(t *testing.T, ctx context.Context, pool *pgx
 		if _, err := pool.Exec(ctx, fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", pgx.Identifier{schema}.Sanitize())); err != nil {
 			t.Fatalf("drop schema %s: %v", schema, err)
 		}
+	}
+	if _, err := pool.Exec(ctx, `DROP TABLE IF EXISTS public.schema_migrations`); err != nil {
+		t.Fatalf("drop schema_migrations: %v", err)
 	}
 	runRouterMetadataMigrations(t, databaseURL)
 }

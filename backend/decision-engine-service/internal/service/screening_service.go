@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 type ScreeningService struct {
@@ -18,10 +19,14 @@ type ScreeningService struct {
 	scenarioRepo ports.ScenarioRepository
 	configRepo   ports.ScreeningConfigRepository
 	execRepo     ports.ScreeningExecutionRepository
+	enqueuer     riverjobs.ScreeningExecutionEnqueuer
 }
 
-func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScreeningConfigRepository, execRepo ports.ScreeningExecutionRepository) ScreeningService {
-	return ScreeningService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, execRepo: execRepo}
+func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScreeningConfigRepository, execRepo ports.ScreeningExecutionRepository, enqueuer riverjobs.ScreeningExecutionEnqueuer) ScreeningService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
+	}
+	return ScreeningService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, execRepo: execRepo, enqueuer: enqueuer}
 }
 
 func (s ScreeningService) CreateConfig(ctx context.Context, tenantID, scenarioID, name string, allowedOutcomes []string, provider string, configJSON json.RawMessage, active bool) (screening.Config, error) {
@@ -138,7 +143,10 @@ func (s ScreeningService) UpdateExecutionStatus(ctx context.Context, tenantID, e
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		updated, runErr = store.ScreeningExecutions().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 	})
 	return updated, err
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type IndexJobService struct {
@@ -22,6 +23,7 @@ type IndexJobService struct {
 	txManager        ports.TransactionManager
 	idGenerator      ports.IDGenerator
 	clock            ports.Clock
+	enqueuer         riverjobs.IndexJobEnqueuer
 }
 
 type CreateIndexJobInput struct {
@@ -42,7 +44,11 @@ func NewIndexJobService(
 	txManager ports.TransactionManager,
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
+	enqueuer riverjobs.IndexJobEnqueuer,
 ) IndexJobService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
+	}
 	return IndexJobService{
 		tenantRepository: tenantRepository,
 		tableRepository:  tableRepository,
@@ -52,6 +58,7 @@ func NewIndexJobService(
 		txManager:        txManager,
 		idGenerator:      idGenerator,
 		clock:            clock,
+		enqueuer:         enqueuer,
 	}
 }
 
@@ -129,6 +136,9 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 				"requested_by_operation": job.RequestedByOperation,
 			},
 		))
+		if err := s.enqueuer.EnqueueTx(ctx, store.RawTx(), job.ID, job.ScheduledAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.IndexJob{}, err
@@ -154,8 +164,20 @@ func (s IndexJobService) Retry(ctx context.Context, id uuid.UUID) (datamodel.Ind
 		return datamodel.IndexJob{}, fmt.Errorf("only failed index jobs can be retried")
 	}
 	scheduledAt := s.clock.Now()
-	if err := s.indexJobs.Retry(ctx, id, scheduledAt); err != nil {
+	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		if err := store.IndexJobs().Retry(ctx, id, scheduledAt); err != nil {
+			return err
+		}
+		if err := s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, &scheduledAt); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return datamodel.IndexJob{}, err
 	}
-	return s.indexJobs.GetByID(ctx, id)
+	job, err = s.indexJobs.GetByID(ctx, id)
+	if err != nil {
+		return datamodel.IndexJob{}, err
+	}
+	return job, nil
 }

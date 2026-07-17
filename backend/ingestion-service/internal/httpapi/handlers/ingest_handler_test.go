@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
@@ -77,6 +78,7 @@ func (stubMutationStore) OutboxEvents() ports.OutboxEventRepository { return stu
 func (stubMutationStore) UploadLogs() ports.UploadLogRepository     { return stubUploadLogRepo{} }
 func (stubMutationStore) TenantWriter() ports.TenantDataWriter      { return stubTenantWriter{} }
 func (stubMutationStore) TenantReader() ports.TenantDataReader      { return stubTenantReader{} }
+func (stubMutationStore) RawTx() pgx.Tx                             { return nil }
 
 type stubAuditRepo struct{}
 
@@ -103,8 +105,8 @@ func (stubUploadLogRepo) GetByID(context.Context, uuid.UUID) (ingestion.UploadLo
 	return ingestion.UploadLog{}, nil
 }
 func (stubUploadLogRepo) Update(context.Context, ingestion.UploadLog) error { return nil }
-func (stubUploadLogRepo) ClaimNextUploaded(context.Context, time.Time) (*ingestion.UploadLog, error) {
-	return nil, nil
+func (stubUploadLogRepo) StartAttempt(context.Context, uuid.UUID, time.Time) (ingestion.UploadLog, error) {
+	return ingestion.UploadLog{}, nil
 }
 
 type stubTenantWriter struct{}

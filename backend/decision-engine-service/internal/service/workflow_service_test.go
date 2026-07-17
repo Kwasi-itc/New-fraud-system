@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
@@ -153,6 +154,10 @@ func (workflowExecutionRepoStub) CreateMany(ctx context.Context, items []workflo
 	return items, nil
 }
 
+func (workflowExecutionRepoStub) GetByID(ctx context.Context, tenantID, executionID string) (workflow.Execution, error) {
+	return workflow.Execution{}, nil
+}
+
 func (workflowExecutionRepoStub) ListByDecision(ctx context.Context, tenantID, decisionID string) ([]workflow.Execution, error) {
 	return nil, nil
 }
@@ -243,6 +248,7 @@ func (s mutationStoreStub) CustomLists() ports.CustomListRepository         { re
 func (s mutationStoreStub) RecordTags() ports.RecordTagRepository           { return nil }
 func (s mutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository     { return nil }
 func (s mutationStoreStub) IPFlags() ports.IPFlagRepository                 { return nil }
+func (s mutationStoreStub) RawTx() pgx.Tx                                   { return nil }
 
 type fixedIDGenerator struct {
 	id uuid.UUID
@@ -356,6 +362,9 @@ type nilOutboxEventRepository []struct{}
 func (nilOutboxEventRepository) CreateMany(context.Context, []integration.OutboxEvent) ([]integration.OutboxEvent, error) {
 	return nil, nil
 }
+func (nilOutboxEventRepository) GetByID(context.Context, string, string) (integration.OutboxEvent, error) {
+	return integration.OutboxEvent{}, nil
+}
 func (nilOutboxEventRepository) ListByTenant(context.Context, string, int) ([]integration.OutboxEvent, error) {
 	return nil, nil
 }
@@ -383,8 +392,8 @@ func (nilScheduledExecutionRepository) CountByStatus(context.Context, string, st
 func (nilScheduledExecutionRepository) ListDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
 	return nil, nil
 }
-func (nilScheduledExecutionRepository) ClaimDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
-	return nil, nil
+func (nilScheduledExecutionRepository) StartAttempt(context.Context, string) (execution.ScheduledExecution, error) {
+	return execution.ScheduledExecution{}, nil
 }
 func (nilScheduledExecutionRepository) UpdateStatus(context.Context, string, execution.Status) error {
 	return nil
@@ -413,13 +422,19 @@ func (nilAsyncDecisionExecutionRepository) CountByStatus(context.Context, string
 func (nilAsyncDecisionExecutionRepository) ListQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
 	return nil, nil
 }
-func (nilAsyncDecisionExecutionRepository) ClaimQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
-	return nil, nil
+func (nilAsyncDecisionExecutionRepository) StartAttempt(context.Context, string) (execution.AsyncDecisionExecution, error) {
+	return execution.AsyncDecisionExecution{}, nil
 }
 func (nilAsyncDecisionExecutionRepository) UpdateStatus(context.Context, string, execution.Status) error {
 	return nil
 }
+func (nilAsyncDecisionExecutionRepository) MarkCompleted(context.Context, string, []byte, time.Time, string) error {
+	return nil
+}
 func (nilAsyncDecisionExecutionRepository) RecordAttemptFailure(context.Context, string, execution.Status, *time.Time, string, *time.Time) error {
+	return nil
+}
+func (nilAsyncDecisionExecutionRepository) UpdateCallbackDelivery(context.Context, string, string, int, string, *time.Time) error {
 	return nil
 }
 func (nilAsyncDecisionExecutionRepository) ResetForRetry(context.Context, string, execution.Status) error {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 )
 
 type ScreeningService struct {
@@ -26,6 +27,9 @@ type ScreeningService struct {
 	casePublisher     ports.CasePublisher
 	blobStore         ports.BlobStore
 	decisionPublisher ports.DecisionEnginePublisher
+	enqueuer          riverjobs.ScreeningEnqueuer
+	datasetEnqueuer   riverjobs.DatasetJobEnqueuer
+	monitoredEnqueuer riverjobs.MonitoredObjectEnqueuer
 }
 
 func NewScreeningService(
@@ -45,7 +49,19 @@ func NewScreeningService(
 	casePublisher ports.CasePublisher,
 	blobStore ports.BlobStore,
 	decisionPublisher ports.DecisionEnginePublisher,
+	enqueuer riverjobs.ScreeningEnqueuer,
+	datasetEnqueuer riverjobs.DatasetJobEnqueuer,
+	monitoredEnqueuer riverjobs.MonitoredObjectEnqueuer,
 ) ScreeningService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopScreeningEnqueuer{}
+	}
+	if datasetEnqueuer == nil {
+		datasetEnqueuer = riverjobs.NoopDatasetJobEnqueuer{}
+	}
+	if monitoredEnqueuer == nil {
+		monitoredEnqueuer = riverjobs.NoopMonitoredObjectEnqueuer{}
+	}
 	return ScreeningService{
 		txManager:         txManager,
 		idGen:             idGen,
@@ -63,6 +79,9 @@ func NewScreeningService(
 		casePublisher:     casePublisher,
 		blobStore:         blobStore,
 		decisionPublisher: decisionPublisher,
+		enqueuer:          enqueuer,
+		datasetEnqueuer:   datasetEnqueuer,
+		monitoredEnqueuer: monitoredEnqueuer,
 	}
 }
 
@@ -110,7 +129,10 @@ func (s ScreeningService) CreateScreening(ctx context.Context, tenantID string, 
 		}
 		var runErr error
 		created, runErr = store.Screenings().Create(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
 	})
 	return created, err
 }
@@ -186,7 +208,10 @@ func (s ScreeningService) Retry(ctx context.Context, tenantID, screeningID strin
 		}
 		var runErr error
 		updated, runErr = store.Screenings().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 	})
 	return updated, err
 }
@@ -541,7 +566,10 @@ func (s ScreeningService) CreateMonitoredObject(ctx context.Context, tenantID, c
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		created, runErr = store.MonitoredObjects().Create(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.monitoredEnqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
 	})
 	return created, err
 }
@@ -574,7 +602,10 @@ func (s ScreeningService) RequeueMonitoredObject(ctx context.Context, tenantID, 
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		updated, runErr = store.MonitoredObjects().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.monitoredEnqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 	})
 	return updated, err
 }
@@ -607,7 +638,10 @@ func (s ScreeningService) CreateDatasetUpdateJob(ctx context.Context, tenantID, 
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		created, runErr = store.DatasetUpdateJobs().Create(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.datasetEnqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
 	})
 	return created, err
 }
@@ -637,7 +671,10 @@ func (s ScreeningService) RetryDatasetUpdateJob(ctx context.Context, tenantID, j
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		updated, runErr = store.DatasetUpdateJobs().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.datasetEnqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
 	})
 	return updated, err
 }

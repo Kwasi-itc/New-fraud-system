@@ -119,7 +119,7 @@ The service is split into a few layers:
   - auth middleware
   - health and operational routes
 - `worker`
-  - polling runtime for async index jobs
+  - River-backed runtime for async index jobs
   - apply/fail job state transitions and audit logging
 - `reconcile`
   - compares metadata expectations to physical tenant schemas
@@ -360,7 +360,7 @@ Current flow:
 
 - create navigation options or explicitly enqueue index jobs through the API
 - run `go run ./cmd/worker` or `make run-worker`
-- the worker claims pending jobs, applies managed indexes, retries transient failures with scheduled backoff, marks jobs `applied` or `failed`, and records schema-change audit rows for each transition
+- the worker consumes River jobs that point at `core.index_jobs`, applies managed indexes, retries transient failures, marks jobs `applied` or `failed`, and records schema-change audit rows for each transition
 - `reconcile` detects missing managed indexes and schedules repair jobs automatically
 
 HTTP:

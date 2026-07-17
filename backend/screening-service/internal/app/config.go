@@ -31,6 +31,12 @@ type Config struct {
 	WorkerMode             string
 	WorkerPollInterval     time.Duration
 	WorkerBatchLimit       int
+	ScreeningQueueName     string
+	ScreeningQueueWorkers  int
+	DatasetJobQueueName    string
+	DatasetJobQueueWorkers int
+	MonitoredQueueName     string
+	MonitoredQueueWorkers  int
 }
 
 func LoadConfig() (Config, error) {
@@ -45,6 +51,18 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 	workerBatchLimit, err := getEnvInt("WORKER_BATCH_LIMIT", 100)
+	if err != nil {
+		return Config{}, err
+	}
+	screeningQueueWorkers, err := getEnvInt("SCREENING_QUEUE_WORKERS", 10)
+	if err != nil {
+		return Config{}, err
+	}
+	datasetJobQueueWorkers, err := getEnvInt("DATASET_JOB_QUEUE_WORKERS", 5)
+	if err != nil {
+		return Config{}, err
+	}
+	monitoredQueueWorkers, err := getEnvInt("MONITORED_OBJECT_QUEUE_WORKERS", 5)
 	if err != nil {
 		return Config{}, err
 	}
@@ -72,6 +90,12 @@ func LoadConfig() (Config, error) {
 		WorkerMode:             strings.ToLower(getEnv("WORKER_MODE", "batch")),
 		WorkerPollInterval:     workerPollInterval,
 		WorkerBatchLimit:       workerBatchLimit,
+		ScreeningQueueName:     strings.TrimSpace(getEnv("SCREENING_QUEUE_NAME", "screening_dispatch")),
+		ScreeningQueueWorkers:  screeningQueueWorkers,
+		DatasetJobQueueName:    strings.TrimSpace(getEnv("DATASET_JOB_QUEUE_NAME", "dataset_update_jobs")),
+		DatasetJobQueueWorkers: datasetJobQueueWorkers,
+		MonitoredQueueName:     strings.TrimSpace(getEnv("MONITORED_OBJECT_QUEUE_NAME", "monitored_objects")),
+		MonitoredQueueWorkers:  monitoredQueueWorkers,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -88,6 +112,24 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.WorkerBatchLimit <= 0 {
 		return Config{}, fmt.Errorf("WORKER_BATCH_LIMIT must be greater than zero")
+	}
+	if cfg.ScreeningQueueName == "" {
+		return Config{}, fmt.Errorf("SCREENING_QUEUE_NAME is required")
+	}
+	if cfg.ScreeningQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("SCREENING_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.DatasetJobQueueName == "" {
+		return Config{}, fmt.Errorf("DATASET_JOB_QUEUE_NAME is required")
+	}
+	if cfg.DatasetJobQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("DATASET_JOB_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.MonitoredQueueName == "" {
+		return Config{}, fmt.Errorf("MONITORED_OBJECT_QUEUE_NAME is required")
+	}
+	if cfg.MonitoredQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("MONITORED_OBJECT_QUEUE_WORKERS must be greater than zero")
 	}
 
 	return cfg, nil

@@ -6,7 +6,18 @@ It is intentionally narrower than the broader design documents. The goal is to r
 
 ## 1. Worker model
 
-V1 supports two worker operating modes:
+V1 now uses a mixed worker model:
+
+- River for execution queues
+  - scheduled executions
+  - async decision executions
+- the legacy worker runner for dispatch-style tasks
+  - workflow dispatch
+  - screening dispatch
+  - scoring dispatch
+  - outbox publishing
+
+The legacy runner still supports two operating modes:
 
 - `batch`
   - run one processing cycle and exit
@@ -32,10 +43,18 @@ Current configuration knobs:
   - default: `15s`
 - `WORKER_BATCH_LIMIT`
   - default: `100`
+- `SCHEDULED_EXECUTION_QUEUE_NAME`
+  - default: `scheduled_executions`
+- `SCHEDULED_EXECUTION_QUEUE_WORKERS`
+  - default: `4`
 - `SCHEDULED_EXECUTION_MAX_ATTEMPTS`
   - default: `3`
 - `SCHEDULED_EXECUTION_RETRY_BACKOFF`
   - default: `30s`
+- `ASYNC_EXECUTION_QUEUE_NAME`
+  - default: `async_decision_executions`
+- `ASYNC_EXECUTION_QUEUE_WORKERS`
+  - default: `4`
 - `ASYNC_EXECUTION_MAX_ATTEMPTS`
   - default: `3`
 - `ASYNC_EXECUTION_RETRY_BACKOFF`
@@ -50,23 +69,24 @@ Current configuration knobs:
 
 ### Current worker responsibilities
 
-Each worker cycle processes:
+Each legacy worker cycle processes:
 
-- due scheduled executions
-- queued async decision executions
 - pending workflow executions
 - pending screening executions
 - pending scoring requests
 - pending outbox events
+
+Execution queues are no longer claimed by the legacy poll runner.
+They are processed by River workers using the stored execution ids.
 
 ### Current worker topology and ownership
 
 The worker task groups and their owned responsibility are:
 
 - `scheduled`
-  - claims and runs due scheduled decision executions
+  - preserved as a logical task name for execution ownership, but runtime execution now happens through River
 - `async`
-  - claims and runs queued async decision executions
+  - preserved as a logical task name for execution ownership, but runtime execution now happens through River
 - `workflow_dispatch`
   - dispatches persisted workflow execution intent
 - `screening_dispatch`
@@ -76,7 +96,7 @@ The worker task groups and their owned responsibility are:
 - `outbox`
   - publishes persisted outbox events
 
-Deployments can run all task groups together or split them by `WORKER_TASKS` for targeted worker shapes.
+Deployments can still split the legacy dispatch tasks by `WORKER_TASKS`, but scheduled and async execution processing is now owned by River worker queues.
 
 ### Current worker runtime visibility
 
@@ -91,7 +111,7 @@ Each worker cycle now emits per-task runtime state in logs, including:
 
 ### Current worker task priority model
 
-Default task priority order is:
+Default legacy task priority order is:
 
 1. `async`
 2. `scheduled`
@@ -104,10 +124,10 @@ This order can be overridden with `WORKER_TASK_PRIORITIES`.
 
 ### Current execution retry behavior
 
-- scheduled executions and async decision executions increment `attempt_count` when claimed
+- scheduled executions and async decision executions increment `attempt_count` when a River worker starts an attempt
 - failed executions are automatically retried with exponential backoff based on the configured base delay
 - once `max_attempts` is reached, execution status becomes `failed` and `failed_at` is recorded
-- queued and pending execution claims only pick rows whose `next_attempt_at` is due
+- retryable executions are re-enqueued with a future run time based on `next_attempt_at`
 
 ### Current execution deduplication behavior
 
@@ -183,7 +203,8 @@ The live decision path does not synchronously do these side effects:
 ### Caching and queueing stance
 
 - in-memory caching is used for hot evaluation metadata and repeated reads
-- async execution, scheduled work, and dispatch use the worker/job path
+- async execution and scheduled work use River-backed jobs
+- dispatch uses the legacy worker/job path
 - Redis is not the default execution queue for decision processing
 - Redis should only be introduced where a measured hot-path cache benefit is clear
 

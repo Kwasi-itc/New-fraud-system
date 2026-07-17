@@ -2,10 +2,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
@@ -70,28 +70,16 @@ func (r UploadLogRepository) Update(ctx context.Context, log ingestion.UploadLog
 	return err
 }
 
-func (r UploadLogRepository) ClaimNextUploaded(ctx context.Context, now time.Time) (*ingestion.UploadLog, error) {
+func (r UploadLogRepository) StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (ingestion.UploadLog, error) {
 	var log ingestion.UploadLog
 	err := r.db.QueryRow(ctx, `
-		WITH next_log AS (
-			SELECT id
-			FROM core_ingestion.upload_logs
-			WHERE status = 'uploaded'
-			ORDER BY requested_at ASC
-			LIMIT 1
-			FOR UPDATE SKIP LOCKED
-		)
-		UPDATE core_ingestion.upload_logs u
-		SET status = 'processing', started_at = $1, attempt_count = u.attempt_count + 1
-		FROM next_log
-		WHERE u.id = next_log.id
-		RETURNING u.id, u.tenant_id, u.object_type, u.mode, u.filename, u.content_type, u.status, u.total_rows, u.successful_rows, u.failed_rows, u.error_message, u.payload, u.requested_at, u.started_at, u.completed_at, u.attempt_count
-	`, now).Scan(&log.ID, &log.TenantID, &log.ObjectType, &log.Mode, &log.Filename, &log.ContentType, &log.Status, &log.TotalRows, &log.SuccessfulRows, &log.FailedRows, &log.ErrorMessage, &log.Payload, &log.RequestedAt, &log.StartedAt, &log.CompletedAt, &log.AttemptCount)
+		UPDATE core_ingestion.upload_logs
+		SET status = 'processing', started_at = $2, attempt_count = attempt_count + 1
+		WHERE id = $1
+		RETURNING id, tenant_id, object_type, mode, filename, content_type, status, total_rows, successful_rows, failed_rows, error_message, payload, requested_at, started_at, completed_at, attempt_count
+	`, id, startedAt).Scan(&log.ID, &log.TenantID, &log.ObjectType, &log.Mode, &log.Filename, &log.ContentType, &log.Status, &log.TotalRows, &log.SuccessfulRows, &log.FailedRows, &log.ErrorMessage, &log.Payload, &log.RequestedAt, &log.StartedAt, &log.CompletedAt, &log.AttemptCount)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
+		return ingestion.UploadLog{}, fmt.Errorf("start upload log attempt: %w", err)
 	}
-	return &log, nil
+	return log, nil
 }

@@ -45,6 +45,12 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		BlobServiceURL:         cfg.BlobServiceURL,
 		DecisionEngineURL:      cfg.DecisionEngineURL,
 		HTTPClientTimeout:      cfg.HTTPClientTimeout,
+		ScreeningQueueName:     cfg.ScreeningQueueName,
+		ScreeningQueueWorkers:  cfg.ScreeningQueueWorkers,
+		DatasetJobQueueName:    cfg.DatasetJobQueueName,
+		DatasetJobQueueWorkers: cfg.DatasetJobQueueWorkers,
+		MonitoredQueueName:     cfg.MonitoredQueueName,
+		MonitoredQueueWorkers:  cfg.MonitoredQueueWorkers,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

@@ -50,3 +50,4 @@ func (s mutationStore) OutboxEvents() ports.OutboxEventRepository {
 func (s mutationStore) UploadLogs() ports.UploadLogRepository { return NewUploadLogRepository(s.tx) }
 func (s mutationStore) TenantWriter() ports.TenantDataWriter  { return NewTenantDataWriter(s.tx) }
 func (s mutationStore) TenantReader() ports.TenantDataReader  { return NewTenantDataReader(s.tx) }
+func (s mutationStore) RawTx() pgx.Tx                        { return s.tx }

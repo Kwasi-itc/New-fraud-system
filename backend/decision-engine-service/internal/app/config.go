@@ -10,36 +10,55 @@ import (
 )
 
 type Config struct {
-	Port                           string
-	DatabaseURL                    string
-	DataModelServiceURL            string
-	IngestionServiceURL            string
-	ServiceAuthMode                string
-	ServiceAuthToken               string
-	ServiceAllowedOrigins          []string
-	WorkflowActionURL              string
-	ScreeningServiceURL            string
-	ScreeningProviderURL           string
-	ScoringProviderURL             string
-	OutboxPublisherURL             string
-	LogLevel                       string
-	GinMode                        string
-	HTTPClientTimeout              time.Duration
-	AggregatePushdownMode          string
-	AggregatePushdownAggregates    []string
-	LiveDecisionConcurrencyLimit   int
-	LiveAsyncFallbackEnabled       bool
-	RuleEvaluationConcurrency      int
-	ScenarioEvaluationConcurrency  int
-	WorkerMode                     string
-	WorkerTasks                    []string
-	WorkerTaskPriorities           map[string]int
-	ScheduledExecutionMaxAttempts  int
-	ScheduledExecutionRetryBackoff time.Duration
-	AsyncExecutionMaxAttempts      int
-	AsyncExecutionRetryBackoff     time.Duration
-	WorkerPollInterval             time.Duration
-	WorkerBatchLimit               int
+	Port                                string
+	DatabaseURL                         string
+	DataModelServiceURL                 string
+	IngestionServiceURL                 string
+	ServiceAuthMode                     string
+	ServiceAuthToken                    string
+	ServiceAllowedOrigins               []string
+	WorkflowActionURL                   string
+	ScreeningServiceURL                 string
+	ScreeningProviderURL                string
+	ScoringProviderURL                  string
+	OutboxPublisherURL                  string
+	LogLevel                            string
+	GinMode                             string
+	HTTPClientTimeout                   time.Duration
+	AggregatePushdownMode               string
+	AggregatePushdownAggregates         []string
+	LiveDecisionConcurrencyLimit        int
+	LiveAsyncFallbackEnabled            bool
+	RuleEvaluationConcurrency           int
+	ScenarioEvaluationConcurrency       int
+	WorkerMode                          string
+	WorkerTasks                         []string
+	WorkerTaskPriorities                map[string]int
+	ScheduledExecutionMaxAttempts       int
+	ScheduledExecutionRetryBackoff      time.Duration
+	ScheduledExecutionQueueName         string
+	ScheduledExecutionQueueWorkers      int
+	AsyncExecutionMaxAttempts           int
+	AsyncExecutionRetryBackoff          time.Duration
+	AsyncExecutionDefaultWaitWindow     time.Duration
+	AsyncExecutionMaxWaitWindow         time.Duration
+	AsyncExecutionCallbackTimeout       time.Duration
+	AsyncExecutionCallbackMaxAttempts   int
+	AsyncExecutionQueueName             string
+	AsyncExecutionQueueWorkers          int
+	AsyncExecutionCallbackQueueName     string
+	AsyncExecutionCallbackQueueWorkers  int
+	AsyncExecutionCallbackSigningSecret string
+	WorkflowDispatchQueueName           string
+	WorkflowDispatchQueueWorkers        int
+	ScreeningDispatchQueueName          string
+	ScreeningDispatchQueueWorkers       int
+	ScoringDispatchQueueName            string
+	ScoringDispatchQueueWorkers         int
+	OutboxQueueName                     string
+	OutboxQueueWorkers                  int
+	WorkerPollInterval                  time.Duration
+	WorkerBatchLimit                    int
 }
 
 const maxRuleEvaluationConcurrency = 64
@@ -82,6 +101,22 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	asyncExecutionDefaultWaitWindow, err := getEnvDuration("ASYNC_EXECUTION_DEFAULT_WAIT_WINDOW", 300*time.Millisecond)
+	if err != nil {
+		return Config{}, err
+	}
+	asyncExecutionMaxWaitWindow, err := getEnvDuration("ASYNC_EXECUTION_MAX_WAIT_WINDOW", time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	asyncExecutionCallbackTimeout, err := getEnvDuration("ASYNC_EXECUTION_CALLBACK_TIMEOUT", 5*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	asyncExecutionCallbackMaxAttempts, err := getEnvInt("ASYNC_EXECUTION_CALLBACK_MAX_ATTEMPTS", 5)
+	if err != nil {
+		return Config{}, err
+	}
 	workerBatchLimit, err := getEnvInt("WORKER_BATCH_LIMIT", 100)
 	if err != nil {
 		return Config{}, err
@@ -91,6 +126,34 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 	asyncExecutionMaxAttempts, err := getEnvInt("ASYNC_EXECUTION_MAX_ATTEMPTS", 3)
+	if err != nil {
+		return Config{}, err
+	}
+	scheduledExecutionQueueWorkers, err := getEnvInt("SCHEDULED_EXECUTION_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
+	asyncExecutionQueueWorkers, err := getEnvInt("ASYNC_EXECUTION_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
+	asyncExecutionCallbackQueueWorkers, err := getEnvInt("ASYNC_EXECUTION_CALLBACK_QUEUE_WORKERS", 2)
+	if err != nil {
+		return Config{}, err
+	}
+	workflowDispatchQueueWorkers, err := getEnvInt("WORKFLOW_DISPATCH_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
+	screeningDispatchQueueWorkers, err := getEnvInt("SCREENING_DISPATCH_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
+	scoringDispatchQueueWorkers, err := getEnvInt("SCORING_DISPATCH_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
+	outboxQueueWorkers, err := getEnvInt("OUTBOX_QUEUE_WORKERS", 4)
 	if err != nil {
 		return Config{}, err
 	}
@@ -120,36 +183,55 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:                           getEnv("PORT", "8082"),
-		DatabaseURL:                    os.Getenv("DATABASE_URL"),
-		DataModelServiceURL:            strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
-		IngestionServiceURL:            strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
-		ServiceAuthMode:                getEnv("SERVICE_AUTH_MODE", "disabled"),
-		ServiceAuthToken:               os.Getenv("SERVICE_AUTH_TOKEN"),
-		ServiceAllowedOrigins:          parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
-		WorkflowActionURL:              strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
-		ScreeningServiceURL:            strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
-		ScreeningProviderURL:           strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
-		ScoringProviderURL:             strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
-		OutboxPublisherURL:             strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
-		LogLevel:                       getEnv("LOG_LEVEL", "debug"),
-		GinMode:                        getEnv("GIN_MODE", "debug"),
-		HTTPClientTimeout:              httpClientTimeout,
-		AggregatePushdownMode:          strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
-		AggregatePushdownAggregates:    parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
-		LiveDecisionConcurrencyLimit:   liveDecisionConcurrencyLimit,
-		LiveAsyncFallbackEnabled:       liveAsyncFallbackEnabled,
-		RuleEvaluationConcurrency:      ruleEvaluationConcurrency,
-		ScenarioEvaluationConcurrency:  scenarioEvaluationConcurrency,
-		WorkerMode:                     strings.ToLower(getEnv("WORKER_MODE", "batch")),
-		WorkerTasks:                    workerTasks,
-		WorkerTaskPriorities:           workerTaskPriorities,
-		ScheduledExecutionMaxAttempts:  scheduledExecutionMaxAttempts,
-		ScheduledExecutionRetryBackoff: scheduledExecutionRetryBackoff,
-		AsyncExecutionMaxAttempts:      asyncExecutionMaxAttempts,
-		AsyncExecutionRetryBackoff:     asyncExecutionRetryBackoff,
-		WorkerPollInterval:             workerPollInterval,
-		WorkerBatchLimit:               workerBatchLimit,
+		Port:                                getEnv("PORT", "8082"),
+		DatabaseURL:                         os.Getenv("DATABASE_URL"),
+		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
+		IngestionServiceURL:                 strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
+		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),
+		ServiceAllowedOrigins:               parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		WorkflowActionURL:                   strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
+		ScreeningServiceURL:                 strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
+		ScreeningProviderURL:                strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
+		ScoringProviderURL:                  strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
+		OutboxPublisherURL:                  strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
+		LogLevel:                            getEnv("LOG_LEVEL", "debug"),
+		GinMode:                             getEnv("GIN_MODE", "debug"),
+		HTTPClientTimeout:                   httpClientTimeout,
+		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
+		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
+		LiveAsyncFallbackEnabled:            liveAsyncFallbackEnabled,
+		RuleEvaluationConcurrency:           ruleEvaluationConcurrency,
+		ScenarioEvaluationConcurrency:       scenarioEvaluationConcurrency,
+		WorkerMode:                          strings.ToLower(getEnv("WORKER_MODE", "batch")),
+		WorkerTasks:                         workerTasks,
+		WorkerTaskPriorities:                workerTaskPriorities,
+		ScheduledExecutionMaxAttempts:       scheduledExecutionMaxAttempts,
+		ScheduledExecutionRetryBackoff:      scheduledExecutionRetryBackoff,
+		ScheduledExecutionQueueName:         getEnv("SCHEDULED_EXECUTION_QUEUE_NAME", "scheduled_executions"),
+		ScheduledExecutionQueueWorkers:      scheduledExecutionQueueWorkers,
+		AsyncExecutionMaxAttempts:           asyncExecutionMaxAttempts,
+		AsyncExecutionRetryBackoff:          asyncExecutionRetryBackoff,
+		AsyncExecutionDefaultWaitWindow:     asyncExecutionDefaultWaitWindow,
+		AsyncExecutionMaxWaitWindow:         asyncExecutionMaxWaitWindow,
+		AsyncExecutionCallbackTimeout:       asyncExecutionCallbackTimeout,
+		AsyncExecutionCallbackMaxAttempts:   asyncExecutionCallbackMaxAttempts,
+		AsyncExecutionQueueName:             getEnv("ASYNC_EXECUTION_QUEUE_NAME", "async_decision_executions"),
+		AsyncExecutionQueueWorkers:          asyncExecutionQueueWorkers,
+		AsyncExecutionCallbackQueueName:     getEnv("ASYNC_EXECUTION_CALLBACK_QUEUE_NAME", "async_decision_execution_callbacks"),
+		AsyncExecutionCallbackQueueWorkers:  asyncExecutionCallbackQueueWorkers,
+		AsyncExecutionCallbackSigningSecret: os.Getenv("ASYNC_EXECUTION_CALLBACK_SIGNING_SECRET"),
+		WorkflowDispatchQueueName:           getEnv("WORKFLOW_DISPATCH_QUEUE_NAME", "workflow_executions"),
+		WorkflowDispatchQueueWorkers:        workflowDispatchQueueWorkers,
+		ScreeningDispatchQueueName:          getEnv("SCREENING_DISPATCH_QUEUE_NAME", "screening_executions"),
+		ScreeningDispatchQueueWorkers:       screeningDispatchQueueWorkers,
+		ScoringDispatchQueueName:            getEnv("SCORING_DISPATCH_QUEUE_NAME", "scoring_requests"),
+		ScoringDispatchQueueWorkers:         scoringDispatchQueueWorkers,
+		OutboxQueueName:                     getEnv("OUTBOX_QUEUE_NAME", "outbox_events"),
+		OutboxQueueWorkers:                  outboxQueueWorkers,
+		WorkerPollInterval:                  workerPollInterval,
+		WorkerBatchLimit:                    workerBatchLimit,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -193,6 +275,60 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.AsyncExecutionRetryBackoff <= 0 {
 		return Config{}, fmt.Errorf("ASYNC_EXECUTION_RETRY_BACKOFF must be greater than zero")
+	}
+	if cfg.AsyncExecutionDefaultWaitWindow < 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_DEFAULT_WAIT_WINDOW must be greater than or equal to zero")
+	}
+	if cfg.AsyncExecutionMaxWaitWindow <= 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_MAX_WAIT_WINDOW must be greater than zero")
+	}
+	if cfg.AsyncExecutionCallbackTimeout <= 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_CALLBACK_TIMEOUT must be greater than zero")
+	}
+	if cfg.AsyncExecutionCallbackMaxAttempts <= 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_CALLBACK_MAX_ATTEMPTS must be greater than zero")
+	}
+	if cfg.ScheduledExecutionQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("SCHEDULED_EXECUTION_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.AsyncExecutionQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.AsyncExecutionCallbackQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_CALLBACK_QUEUE_WORKERS must be greater than zero")
+	}
+	if strings.TrimSpace(cfg.ScheduledExecutionQueueName) == "" {
+		return Config{}, fmt.Errorf("SCHEDULED_EXECUTION_QUEUE_NAME must not be empty")
+	}
+	if strings.TrimSpace(cfg.AsyncExecutionQueueName) == "" {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_QUEUE_NAME must not be empty")
+	}
+	if strings.TrimSpace(cfg.AsyncExecutionCallbackQueueName) == "" {
+		return Config{}, fmt.Errorf("ASYNC_EXECUTION_CALLBACK_QUEUE_NAME must not be empty")
+	}
+	if cfg.WorkflowDispatchQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("WORKFLOW_DISPATCH_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.ScreeningDispatchQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("SCREENING_DISPATCH_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.ScoringDispatchQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("SCORING_DISPATCH_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.OutboxQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("OUTBOX_QUEUE_WORKERS must be greater than zero")
+	}
+	if strings.TrimSpace(cfg.WorkflowDispatchQueueName) == "" {
+		return Config{}, fmt.Errorf("WORKFLOW_DISPATCH_QUEUE_NAME must not be empty")
+	}
+	if strings.TrimSpace(cfg.ScreeningDispatchQueueName) == "" {
+		return Config{}, fmt.Errorf("SCREENING_DISPATCH_QUEUE_NAME must not be empty")
+	}
+	if strings.TrimSpace(cfg.ScoringDispatchQueueName) == "" {
+		return Config{}, fmt.Errorf("SCORING_DISPATCH_QUEUE_NAME must not be empty")
+	}
+	if strings.TrimSpace(cfg.OutboxQueueName) == "" {
+		return Config{}, fmt.Errorf("OUTBOX_QUEUE_NAME must not be empty")
 	}
 	if cfg.RuleEvaluationConcurrency < 0 {
 		return Config{}, fmt.Errorf("RULE_EVALUATION_CONCURRENCY must be greater than or equal to zero")

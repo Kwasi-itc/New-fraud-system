@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
@@ -190,6 +191,7 @@ func (s scenarioMutationStore) RiskSnapshots() ports.RiskSnapshotRepository {
 	return nilRiskSnapshotRepository{}
 }
 func (s scenarioMutationStore) IPFlags() ports.IPFlagRepository { return nilIPFlagRepository{} }
+func (s scenarioMutationStore) RawTx() pgx.Tx                   { return nil }
 
 type nilWorkflowRepository struct{}
 
@@ -276,6 +278,9 @@ type nilWorkflowExecutionRepository struct{}
 
 func (nilWorkflowExecutionRepository) CreateMany(context.Context, []workflow.Execution) ([]workflow.Execution, error) {
 	return nil, nil
+}
+func (nilWorkflowExecutionRepository) GetByID(context.Context, string, string) (workflow.Execution, error) {
+	return workflow.Execution{}, nil
 }
 func (nilWorkflowExecutionRepository) ListByDecision(context.Context, string, string) ([]workflow.Execution, error) {
 	return nil, nil

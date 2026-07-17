@@ -78,9 +78,9 @@ type IndexJobRepository interface {
 	Create(ctx context.Context, job datamodel.IndexJob) error
 	GetByID(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error)
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.IndexJob, error)
-	ClaimNext(ctx context.Context, now time.Time, maxAttempts int) (*datamodel.IndexJob, error)
+	StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (datamodel.IndexJob, error)
 	MarkApplied(ctx context.Context, id uuid.UUID, completedAt time.Time) error
 	MarkFailed(ctx context.Context, id uuid.UUID, message string, completedAt time.Time) error
-	Reschedule(ctx context.Context, id uuid.UUID, message string, scheduledAt time.Time) error
+	MarkPendingRetry(ctx context.Context, id uuid.UUID, message string) error
 	Retry(ctx context.Context, id uuid.UUID, scheduledAt time.Time) error
 }

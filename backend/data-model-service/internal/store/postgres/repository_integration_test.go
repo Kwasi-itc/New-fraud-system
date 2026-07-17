@@ -187,14 +187,14 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 		t.Fatalf("upsert table options: %v", err)
 	}
 	navigationOption := datamodel.NavigationOption{
-		ID:                navigationOptionID,
-		TenantID:          tenantID,
-		SourceTableID:     accountTableID,
-		SourceFieldID:     accountObjectIDFieldID,
-		TargetTableID:     transactionTableID,
-		FilterFieldID:     transactionAccountIDFieldID,
-		OrderingFieldID:   transactionObjectIDFieldID,
-		CreatedAt:         now.Add(6 * time.Minute),
+		ID:              navigationOptionID,
+		TenantID:        tenantID,
+		SourceTableID:   accountTableID,
+		SourceFieldID:   accountObjectIDFieldID,
+		TargetTableID:   transactionTableID,
+		FilterFieldID:   transactionAccountIDFieldID,
+		OrderingFieldID: transactionObjectIDFieldID,
+		CreatedAt:       now.Add(6 * time.Minute),
 	}
 	if err := navigationOptionRepo.Create(ctx, navigationOption); err != nil {
 		t.Fatalf("create navigation option: %v", err)
@@ -300,12 +300,15 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 	if storedNavigationOptions[0].SourceTableName != "accounts" || storedNavigationOptions[0].TargetTableName != "transactions" {
 		t.Fatalf("unexpected navigation option names: %+v", storedNavigationOptions[0])
 	}
-	claimedJob, err := indexJobRepo.ClaimNext(ctx, now.Add(7*time.Minute), 3)
+	startedJob, err := indexJobRepo.StartAttempt(ctx, indexJobID, now.Add(7*time.Minute))
 	if err != nil {
-		t.Fatalf("claim index job: %v", err)
+		t.Fatalf("start index job attempt: %v", err)
 	}
-	if claimedJob.ID != indexJobID || claimedJob.Status != datamodel.IndexJobStatusRunning {
-		t.Fatalf("unexpected claimed job: %+v", claimedJob)
+	if startedJob.ID != indexJobID || startedJob.Status != datamodel.IndexJobStatusRunning {
+		t.Fatalf("unexpected started job: %+v", startedJob)
+	}
+	if startedJob.AttemptCount != 1 {
+		t.Fatalf("expected attempt_count 1, got %d", startedJob.AttemptCount)
 	}
 	if err := indexJobRepo.MarkFailed(ctx, indexJobID, "repo failure", now.Add(8*time.Minute)); err != nil {
 		t.Fatalf("mark index job failed: %v", err)
@@ -440,6 +443,9 @@ func resetRepositoryIntegrationDatabase(t *testing.T, ctx context.Context, pool 
 		if _, err := pool.Exec(ctx, fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", pgx.Identifier{schema}.Sanitize())); err != nil {
 			t.Fatalf("drop schema %s: %v", schema, err)
 		}
+	}
+	if _, err := pool.Exec(ctx, `DROP TABLE IF EXISTS public.schema_migrations`); err != nil {
+		t.Fatalf("drop schema_migrations: %v", err)
 	}
 
 	runRepositoryMetadataMigrations(t, databaseURL)

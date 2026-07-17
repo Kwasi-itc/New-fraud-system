@@ -77,38 +77,24 @@ func (r IndexJobRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID
 	return jobs, nil
 }
 
-func (r IndexJobRepository) ClaimNext(ctx context.Context, now time.Time, maxAttempts int) (*datamodel.IndexJob, error) {
+func (r IndexJobRepository) StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (datamodel.IndexJob, error) {
 	query := `
 		UPDATE core.index_jobs
-		SET status = $1,
+		SET status = $2,
 			attempt_count = attempt_count + 1,
-			started_at = $2,
+			started_at = $3,
 			error_message = NULL,
 			completed_at = NULL
-		WHERE id = (
-			SELECT id
-			FROM core.index_jobs
-			WHERE status = $3
-				AND (scheduled_at IS NULL OR scheduled_at <= $2)
-				AND attempt_count < $4
-			ORDER BY requested_at ASC, id ASC
-			FOR UPDATE SKIP LOCKED
-			LIMIT 1
-		)
+		WHERE id = $1
 		RETURNING id, tenant_id, table_id, table_name, index_type, columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
 			started_at, completed_at, scheduled_at, dedupe_key
 	`
-	job, err := scanIndexJob(r.db.QueryRow(ctx, query,
-		datamodel.IndexJobStatusRunning,
-		now,
-		datamodel.IndexJobStatusPending,
-		maxAttempts,
-	))
+	job, err := scanIndexJob(r.db.QueryRow(ctx, query, id, datamodel.IndexJobStatusRunning, startedAt))
 	if err != nil {
-		return nil, err
+		return datamodel.IndexJob{}, fmt.Errorf("start index job attempt: %w", err)
 	}
-	return &job, nil
+	return job, nil
 }
 
 func (r IndexJobRepository) MarkApplied(ctx context.Context, id uuid.UUID, completedAt time.Time) error {
@@ -135,18 +121,16 @@ func (r IndexJobRepository) MarkFailed(ctx context.Context, id uuid.UUID, messag
 	return nil
 }
 
-func (r IndexJobRepository) Reschedule(ctx context.Context, id uuid.UUID, message string, scheduledAt time.Time) error {
+func (r IndexJobRepository) MarkPendingRetry(ctx context.Context, id uuid.UUID, message string) error {
 	query := `
 		UPDATE core.index_jobs
 		SET status = $2,
 			error_message = $3,
-			started_at = NULL,
-			completed_at = NULL,
-			scheduled_at = $4
+			completed_at = NULL
 		WHERE id = $1
 	`
-	if _, err := r.db.Exec(ctx, query, id, datamodel.IndexJobStatusPending, message, scheduledAt); err != nil {
-		return fmt.Errorf("reschedule index job: %w", err)
+	if _, err := r.db.Exec(ctx, query, id, datamodel.IndexJobStatusPending, message); err != nil {
+		return fmt.Errorf("mark index job pending retry: %w", err)
 	}
 	return nil
 }
@@ -169,14 +153,14 @@ type indexJobScanner interface {
 
 func scanIndexJob(scanner indexJobScanner) (datamodel.IndexJob, error) {
 	var (
-		job               datamodel.IndexJob
-		tableID           *uuid.UUID
-		errorMessage      *string
-		startedAt         *time.Time
-		completedAt       *time.Time
-		scheduledAt       *time.Time
-		indexType         string
-		status            string
+		job          datamodel.IndexJob
+		tableID      *uuid.UUID
+		errorMessage *string
+		startedAt    *time.Time
+		completedAt  *time.Time
+		scheduledAt  *time.Time
+		indexType    string
+		status       string
 	)
 	if err := scanner.Scan(
 		&job.ID,

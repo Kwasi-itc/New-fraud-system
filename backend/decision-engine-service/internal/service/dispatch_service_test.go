@@ -20,6 +20,15 @@ func (s *stubWorkflowExecutionRepo) CreateMany(ctx context.Context, items []work
 	return items, nil
 }
 
+func (s *stubWorkflowExecutionRepo) GetByID(ctx context.Context, tenantID, executionID string) (workflow.Execution, error) {
+	for _, item := range s.items {
+		if item.TenantID == tenantID && item.ID == executionID {
+			return item, nil
+		}
+	}
+	return workflow.Execution{}, errors.New("not found")
+}
+
 func (s *stubWorkflowExecutionRepo) ListByDecision(ctx context.Context, tenantID, decisionID string) ([]workflow.Execution, error) {
 	return nil, nil
 }
@@ -109,6 +118,15 @@ type stubOutboxRepo struct {
 
 func (s *stubOutboxRepo) CreateMany(ctx context.Context, items []integration.OutboxEvent) ([]integration.OutboxEvent, error) {
 	return items, nil
+}
+
+func (s *stubOutboxRepo) GetByID(ctx context.Context, tenantID, eventID string) (integration.OutboxEvent, error) {
+	for _, item := range s.items {
+		if item.TenantID == tenantID && item.ID == eventID {
+			return item, nil
+		}
+	}
+	return integration.OutboxEvent{}, errors.New("not found")
 }
 
 func (s *stubOutboxRepo) ListByTenant(ctx context.Context, tenantID string, limit int) ([]integration.OutboxEvent, error) {

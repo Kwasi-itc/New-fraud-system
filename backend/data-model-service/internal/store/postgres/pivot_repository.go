@@ -23,7 +23,11 @@ func (r PivotRepository) Create(ctx context.Context, pivot datamodel.Pivot) erro
 			(id, tenant_id, base_table_id, field_id, path_link_ids, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
-	_, err := r.db.Exec(ctx, query, pivot.ID, pivot.TenantID, pivot.BaseTableID, pivot.FieldID, pivot.PathLinkIDs, pivot.CreatedAt)
+	pathLinkIDs := pivot.PathLinkIDs
+	if pathLinkIDs == nil {
+		pathLinkIDs = []uuid.UUID{}
+	}
+	_, err := r.db.Exec(ctx, query, pivot.ID, pivot.TenantID, pivot.BaseTableID, pivot.FieldID, pathLinkIDs, pivot.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("insert pivot: %w", err)
 	}

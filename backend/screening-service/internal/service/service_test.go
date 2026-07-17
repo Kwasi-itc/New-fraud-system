@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
@@ -67,6 +68,9 @@ func TestScreeningServiceReviewMatchPublishesCaseEvent(t *testing.T) {
 		fakeProvider{},
 		nil,
 		casePublisher,
+		nil,
+		nil,
+		nil,
 		nil,
 		nil,
 	)
@@ -134,6 +138,9 @@ func TestContinuousWorkerProcessesPendingMonitoredObject(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
+		nil,
+		nil,
 	)
 	worker := NewContinuousWorkerService(
 		fakeTxManager{store: fakeMutationStore{screenings: screenings, matches: matches, comments: &fakeCommentRepo{}, whitelist: &fakeWhitelistRepo{}, continuous: continuous, monitored: monitored}},
@@ -180,6 +187,7 @@ func TestDatasetUpdateWorkerRescreensMatchingProviderObjects(t *testing.T) {
 		continuous,
 		monitored,
 		fakeProvider{},
+		nil,
 	)
 
 	if err := worker.ProcessPendingJobs(context.Background(), 10); err != nil {
@@ -231,6 +239,9 @@ func TestScreeningServiceCreateScreeningUsesIdempotencyKey(t *testing.T) {
 		nil,
 		nil,
 		fakeProvider{},
+		nil,
+		nil,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -338,6 +349,7 @@ func (f fakeMutationStore) ScreeningFiles() ports.ScreeningFileRepository       
 func (f fakeMutationStore) ContinuousConfigs() ports.ContinuousConfigRepository { return f.continuous }
 func (f fakeMutationStore) MonitoredObjects() ports.MonitoredObjectRepository   { return f.monitored }
 func (f fakeMutationStore) DatasetUpdateJobs() ports.DatasetUpdateJobRepository { return f.datasetJobs }
+func (f fakeMutationStore) RawTx() pgx.Tx                                       { return nil }
 
 type fakeScreeningRepo struct {
 	items map[string]screening.Screening

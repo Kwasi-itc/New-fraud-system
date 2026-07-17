@@ -12,32 +12,42 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 )
 
 type UploadLogService struct {
 	uploadLogs    ports.UploadLogRepository
 	ingestService IngestService
+	txManager     ports.TransactionManager
 	idGenerator   ports.IDGenerator
 	clock         ports.Clock
 	maxAttempts   int
+	enqueuer      riverjobs.UploadLogEnqueuer
 }
 
 func NewUploadLogService(
 	uploadLogs ports.UploadLogRepository,
 	ingestService IngestService,
+	txManager ports.TransactionManager,
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
 	maxAttempts int,
+	enqueuer riverjobs.UploadLogEnqueuer,
 ) UploadLogService {
 	if maxAttempts <= 0 {
 		maxAttempts = 3
 	}
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopUploadLogEnqueuer{}
+	}
 	return UploadLogService{
 		uploadLogs:    uploadLogs,
 		ingestService: ingestService,
+		txManager:     txManager,
 		idGenerator:   idGenerator,
 		clock:         clock,
 		maxAttempts:   maxAttempts,
+		enqueuer:      enqueuer,
 	}
 }
 
@@ -54,7 +64,28 @@ func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, object
 		Payload:     payload,
 		RequestedAt: now,
 	}
-	return log, s.uploadLogs.Create(ctx, log)
+	logID, err := uuid.Parse(log.ID)
+	if err != nil {
+		return ingestion.UploadLog{}, err
+	}
+	if s.txManager == nil {
+		if err := s.uploadLogs.Create(ctx, log); err != nil {
+			return ingestion.UploadLog{}, err
+		}
+		if err := s.enqueuer.Enqueue(ctx, logID, nil); err != nil {
+			return ingestion.UploadLog{}, err
+		}
+		return log, nil
+	}
+	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		if err := store.UploadLogs().Create(ctx, log); err != nil {
+			return err
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), logID, nil)
+	}); err != nil {
+		return ingestion.UploadLog{}, err
+	}
+	return log, nil
 }
 
 func (s UploadLogService) List(ctx context.Context, tenantID uuid.UUID, objectType string) ([]ingestion.UploadLog, error) {
@@ -65,19 +96,16 @@ func (s UploadLogService) Get(ctx context.Context, id uuid.UUID) (ingestion.Uplo
 	return s.uploadLogs.GetByID(ctx, id)
 }
 
-func (s UploadLogService) ProcessNextUploaded(ctx context.Context) (bool, error) {
+func (s UploadLogService) RunLog(ctx context.Context, id uuid.UUID) error {
 	now := s.clock.Now()
-	log, err := s.uploadLogs.ClaimNextUploaded(ctx, now)
+	log, err := s.uploadLogs.StartAttempt(ctx, id, now)
 	if err != nil {
-		return false, err
-	}
-	if log == nil {
-		return false, nil
+		return err
 	}
 
 	records, err := decodeCSV(log.Payload)
 	if err != nil {
-		return true, s.handleRetryableFailure(ctx, log, now, err.Error())
+		return s.handleRetryableFailure(ctx, &log, now, err.Error())
 	}
 
 	log.TotalRows = len(records)
@@ -89,7 +117,7 @@ func (s UploadLogService) ProcessNextUploaded(ctx context.Context) (bool, error)
 	})
 	if err != nil {
 		log.FailedRows = len(records)
-		return true, s.handleRetryableFailure(ctx, log, now, err.Error())
+		return s.handleRetryableFailure(ctx, &log, now, err.Error())
 	}
 	if len(validationErrors) > 0 {
 		message := summarizeValidationErrors(validationErrors)
@@ -97,14 +125,13 @@ func (s UploadLogService) ProcessNextUploaded(ctx context.Context) (bool, error)
 		log.ErrorMessage = &message
 		log.FailedRows = len(records)
 		log.CompletedAt = &now
-		_ = s.uploadLogs.Update(ctx, *log)
-		return true, nil
+		return s.uploadLogs.Update(ctx, log)
 	}
 
 	log.Status = ingestion.UploadLogStatusCompleted
 	log.SuccessfulRows = len(results)
 	log.CompletedAt = &now
-	return true, s.uploadLogs.Update(ctx, *log)
+	return s.uploadLogs.Update(ctx, log)
 }
 
 func (s UploadLogService) handleRetryableFailure(ctx context.Context, log *ingestion.UploadLog, now time.Time, message string) error {
@@ -113,7 +140,22 @@ func (s UploadLogService) handleRetryableFailure(ctx context.Context, log *inges
 		log.Status = ingestion.UploadLogStatusUploaded
 		log.StartedAt = nil
 		log.CompletedAt = nil
-		return s.uploadLogs.Update(ctx, *log)
+		id, err := uuid.Parse(log.ID)
+		if err != nil {
+			return err
+		}
+		if s.txManager == nil {
+			if err := s.uploadLogs.Update(ctx, *log); err != nil {
+				return err
+			}
+			return s.enqueuer.Enqueue(ctx, id, nil)
+		}
+		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			if err := store.UploadLogs().Update(ctx, *log); err != nil {
+				return err
+			}
+			return s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, nil)
+		})
 	}
 	log.Status = ingestion.UploadLogStatusFailed
 	log.CompletedAt = &now

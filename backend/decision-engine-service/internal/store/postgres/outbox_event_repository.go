@@ -35,6 +35,20 @@ func (r OutboxEventRepository) CreateMany(ctx context.Context, items []integrati
 	return out, nil
 }
 
+func (r OutboxEventRepository) GetByID(ctx context.Context, tenantID, eventID string) (integration.OutboxEvent, error) {
+	const stmt = `
+		select id, tenant_id, aggregate_type, aggregate_id, event_type, payload, status, created_at
+		from core.outbox_events
+		where tenant_id = $1 and id = $2
+	`
+	var item integration.OutboxEvent
+	var status string
+	err := r.q.QueryRow(ctx, stmt, tenantID, eventID).
+		Scan(&item.ID, &item.TenantID, &item.AggregateType, &item.AggregateID, &item.EventType, &item.Payload, &status, &item.CreatedAt)
+	item.Status = integration.OutboxStatus(status)
+	return item, err
+}
+
 func (r OutboxEventRepository) ListByTenant(ctx context.Context, tenantID string, limit int) ([]integration.OutboxEvent, error) {
 	if limit <= 0 {
 		limit = 50

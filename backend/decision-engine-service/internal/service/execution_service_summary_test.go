@@ -30,8 +30,8 @@ func (s executionSummaryScheduledRepoStub) CountByStatus(context.Context, string
 func (s executionSummaryScheduledRepoStub) ListDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
 	return nil, nil
 }
-func (s executionSummaryScheduledRepoStub) ClaimDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
-	return nil, nil
+func (s executionSummaryScheduledRepoStub) StartAttempt(context.Context, string) (execution.ScheduledExecution, error) {
+	return execution.ScheduledExecution{}, nil
 }
 func (s executionSummaryScheduledRepoStub) UpdateStatus(context.Context, string, execution.Status) error {
 	return nil
@@ -65,13 +65,19 @@ func (s executionSummaryAsyncRepoStub) CountByStatus(context.Context, string) (m
 func (s executionSummaryAsyncRepoStub) ListQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
 	return nil, nil
 }
-func (s executionSummaryAsyncRepoStub) ClaimQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
-	return nil, nil
+func (s executionSummaryAsyncRepoStub) StartAttempt(context.Context, string) (execution.AsyncDecisionExecution, error) {
+	return execution.AsyncDecisionExecution{}, nil
 }
 func (s executionSummaryAsyncRepoStub) UpdateStatus(context.Context, string, execution.Status) error {
 	return nil
 }
+func (s executionSummaryAsyncRepoStub) MarkCompleted(context.Context, string, []byte, time.Time, string) error {
+	return nil
+}
 func (s executionSummaryAsyncRepoStub) RecordAttemptFailure(context.Context, string, execution.Status, *time.Time, string, *time.Time) error {
+	return nil
+}
+func (s executionSummaryAsyncRepoStub) UpdateCallbackDelivery(context.Context, string, string, int, string, *time.Time) error {
 	return nil
 }
 func (s executionSummaryAsyncRepoStub) ResetForRetry(context.Context, string, execution.Status) error {
@@ -99,8 +105,8 @@ func (s *executionRetryScheduledRepoStub) CountByStatus(context.Context, string,
 func (s *executionRetryScheduledRepoStub) ListDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
 	return nil, nil
 }
-func (s *executionRetryScheduledRepoStub) ClaimDue(context.Context, time.Time, int) ([]execution.ScheduledExecution, error) {
-	return nil, nil
+func (s *executionRetryScheduledRepoStub) StartAttempt(context.Context, string) (execution.ScheduledExecution, error) {
+	return execution.ScheduledExecution{}, nil
 }
 func (s *executionRetryScheduledRepoStub) UpdateStatus(context.Context, string, execution.Status) error {
 	return nil
@@ -136,16 +142,22 @@ func (s *executionRetryAsyncRepoStub) CountByStatus(context.Context, string) (ma
 func (s *executionRetryAsyncRepoStub) ListQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
 	return nil, nil
 }
-func (s *executionRetryAsyncRepoStub) ClaimQueued(context.Context, int) ([]execution.AsyncDecisionExecution, error) {
-	return nil, nil
+func (s *executionRetryAsyncRepoStub) StartAttempt(context.Context, string) (execution.AsyncDecisionExecution, error) {
+	return execution.AsyncDecisionExecution{}, nil
 }
 func (s *executionRetryAsyncRepoStub) UpdateStatus(context.Context, string, execution.Status) error {
+	return nil
+}
+func (s *executionRetryAsyncRepoStub) MarkCompleted(context.Context, string, []byte, time.Time, string) error {
 	return nil
 }
 func (s *executionRetryAsyncRepoStub) RecordAttemptFailure(_ context.Context, _ string, status execution.Status, nextAttemptAt *time.Time, _ string, failedAt *time.Time) error {
 	s.recordedStatus = status
 	s.recordedNextAttemptAt = nextAttemptAt
 	s.recordedFailedAt = failedAt
+	return nil
+}
+func (s *executionRetryAsyncRepoStub) UpdateCallbackDelivery(context.Context, string, string, int, string, *time.Time) error {
 	return nil
 }
 func (s *executionRetryAsyncRepoStub) ResetForRetry(context.Context, string, execution.Status) error {

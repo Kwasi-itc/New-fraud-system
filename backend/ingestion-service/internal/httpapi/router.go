@@ -7,10 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
 )
@@ -21,6 +24,8 @@ type RouterConfig struct {
 	AllowedOrigins      []string
 	DataModelServiceURL string
 	HTTPClientTimeout   time.Duration
+	WorkerMaxAttempts   int
+	UploadLogQueueName  string
 }
 
 type uuidGenerator struct{}
@@ -49,9 +54,12 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	var txManager ports.TransactionManager
 	var uploadLogRepository ports.UploadLogRepository
+	var uploadLogEnqueuer riverjobs.UploadLogEnqueuer = riverjobs.NoopUploadLogEnqueuer{}
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		uploadLogRepository = storepostgres.NewUploadLogRepository(db)
+		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		uploadLogEnqueuer = riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName)
 	}
 	modelContractService := service.NewModelContractService(dataModelReader)
 	_ = modelContractService
@@ -65,9 +73,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	uploadLogService := service.NewUploadLogService(
 		uploadLogRepository,
 		ingestService,
+		txManager,
 		uuidGenerator{},
 		systemClock{},
-		3,
+		max(1, cfg.WorkerMaxAttempts),
+		uploadLogEnqueuer,
 	)
 	uploadLogHandler := handlers.NewUploadLogHandler(uploadLogService)
 
@@ -89,4 +99,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/upload-logs/:uploadLogId", uploadLogHandler.Get)
 
 	return router
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
