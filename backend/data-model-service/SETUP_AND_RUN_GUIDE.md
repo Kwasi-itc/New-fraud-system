@@ -290,6 +290,25 @@ Invoke-WebRequest `
   Select-Object -ExpandProperty Content
 ```
 
+## Step 10b: set the caption field
+
+Setting `caption_field` to a valid string field updates table metadata and auto-enqueues a background `search` index job for that field.
+
+```powershell
+$body = @{
+  caption_field = "email"
+} | ConvertTo-Json
+
+Invoke-WebRequest `
+  -Method PATCH `
+  -Uri http://127.0.0.1:8080/v1/tables/<table-id> `
+  -ContentType "application/json" `
+  -Body $body |
+  Select-Object -ExpandProperty Content
+```
+
+After this, the worker will pick up the new `search` index job from `core.index_jobs`.
+
 ## Step 11: create a navigation option
 
 This creates navigation-option metadata and enqueues a background index job for the target table.
@@ -329,6 +348,12 @@ Invoke-WebRequest `
   -Uri http://127.0.0.1:8080/v1/tenants/<tenant-id>/index-jobs |
   Select-Object -ExpandProperty Content
 ```
+
+You should see jobs requested by operations such as:
+
+- `update_table_caption_field`
+- `create_navigation_option`
+- `reconcile_repair`
 
 ## Step 12: read the assembled data model
 

@@ -11,10 +11,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 	tenantdbpostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/tenantdb/postgres"
 )
@@ -37,6 +40,7 @@ type Service struct {
 	idGenerator       ports.IDGenerator
 	clock             ports.Clock
 	introspect        Introspector
+	enqueuer          riverjobs.IndexJobEnqueuer
 }
 
 type Introspector interface {
@@ -65,13 +69,13 @@ type TenantReport struct {
 }
 
 type TableReport struct {
-	TableName             string             `json:"table_name"`
-	PhysicalExists        bool               `json:"physical_exists"`
-	MissingColumns        []string           `json:"missing_columns"`
-	UnexpectedColumns     []string           `json:"unexpected_columns"`
-	MissingManagedIndexes []ManagedIndexGap  `json:"missing_managed_indexes"`
-	RepairJobIDs          []uuid.UUID        `json:"repair_job_ids"`
-	Healthy               bool               `json:"healthy"`
+	TableName             string            `json:"table_name"`
+	PhysicalExists        bool              `json:"physical_exists"`
+	MissingColumns        []string          `json:"missing_columns"`
+	UnexpectedColumns     []string          `json:"unexpected_columns"`
+	MissingManagedIndexes []ManagedIndexGap `json:"missing_managed_indexes"`
+	RepairJobIDs          []uuid.UUID       `json:"repair_job_ids"`
+	Healthy               bool              `json:"healthy"`
 }
 
 type ManagedIndexGap struct {
@@ -80,7 +84,11 @@ type ManagedIndexGap struct {
 	Columns   []string `json:"columns"`
 }
 
-func NewService(db *pgxpool.Pool) Service {
+func NewService(db *pgxpool.Pool, enqueuer riverjobs.IndexJobEnqueuer) Service {
+	if enqueuer == nil {
+		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		enqueuer = riverjobs.NewRiverIndexJobEnqueuer(riverClient, 10, riverjobs.IndexJobQueueName)
+	}
 	return Service{
 		db:                db,
 		tenants:           storepostgres.NewTenantRepository(db),
@@ -93,6 +101,7 @@ func NewService(db *pgxpool.Pool) Service {
 		idGenerator:       reconcileUUIDGenerator{},
 		clock:             reconcileSystemClock{},
 		introspect:        NewPostgresIntrospector(db),
+		enqueuer:          enqueuer,
 	}
 }
 
@@ -133,7 +142,7 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 	if err != nil {
 		return TenantReport{}, fmt.Errorf("list tenant index jobs: %w", err)
 	}
-	expectedManagedIndexes := expectedManagedIndexesByTable(navigationOptions)
+	expectedManagedIndexes := expectedManagedIndexesByTable(tables, navigationOptions)
 
 	schemaExists, err := s.introspect.SchemaExists(ctx, record.SchemaName)
 	if err != nil {
@@ -267,7 +276,7 @@ func (s Service) reconcileTable(
 	missingManagedIndexes := make([]ManagedIndexGap, 0, len(expectedManagedIndexes))
 	for _, gap := range expectedManagedIndexes {
 		state, err := s.schemaManager.GetManagedIndexState(ctx, record, table, datamodel.IndexJob{
-			IndexType: datamodel.IndexJobTypeRepair,
+			IndexType: datamodel.IndexJobType(gap.IndexType),
 			Columns:   gap.Columns,
 		})
 		if err != nil {
@@ -315,6 +324,9 @@ func (s Service) scheduleRepairJobs(
 			if err := s.indexJobs.Retry(ctx, existing.ID, now); err != nil {
 				return nil, fmt.Errorf("requeue repair job: %w", err)
 			}
+			if err := s.enqueuer.Enqueue(ctx, existing.ID, &now); err != nil {
+				return nil, fmt.Errorf("enqueue repair job retry: %w", err)
+			}
 			scheduled = append(scheduled, existing.ID)
 			indexJobs[existingIndex].Status = datamodel.IndexJobStatusPending
 			indexJobs[existingIndex].ScheduledAt = &now
@@ -338,6 +350,9 @@ func (s Service) scheduleRepairJobs(
 		}
 		if err := s.indexJobs.Create(ctx, job); err != nil {
 			return nil, fmt.Errorf("create repair job: %w", err)
+		}
+		if err := s.enqueuer.Enqueue(ctx, jobID, job.ScheduledAt); err != nil {
+			return nil, fmt.Errorf("enqueue repair job: %w", err)
 		}
 		scheduled = append(scheduled, jobID)
 		indexJobs = append(indexJobs, job)
@@ -460,15 +475,30 @@ func expectedColumns(fields []datamodel.Field) []string {
 	return result
 }
 
-func expectedManagedIndexesByTable(options []datamodel.NavigationOption) map[uuid.UUID][]ManagedIndexGap {
+func expectedManagedIndexesByTable(tables []datamodel.Table, options []datamodel.NavigationOption) map[uuid.UUID][]ManagedIndexGap {
 	grouped := make(map[uuid.UUID][]ManagedIndexGap)
 	seen := make(map[string]struct{})
+	for _, table := range tables {
+		if table.CaptionField == "" {
+			continue
+		}
+		columns := []string{datamodel.NormalizeName(table.CaptionField)}
+		key := table.ID.String() + ":" + string(datamodel.IndexJobTypeSearch) + ":" + strings.Join(columns, ",")
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		grouped[table.ID] = append(grouped[table.ID], ManagedIndexGap{
+			IndexType: string(datamodel.IndexJobTypeSearch),
+			Columns:   columns,
+		})
+	}
 	for _, option := range options {
 		columns := []string{
 			datamodel.NormalizeName(option.FilterFieldName),
 			datamodel.NormalizeName(option.OrderingFieldName),
 		}
-		key := option.TargetTableID.String() + ":" + strings.Join(columns, ",")
+		key := option.TargetTableID.String() + ":" + string(datamodel.IndexJobTypeNavigation) + ":" + strings.Join(columns, ",")
 		if _, ok := seen[key]; ok {
 			continue
 		}

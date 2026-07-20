@@ -438,6 +438,9 @@ paths:
         creation, so callers should treat table identity as stable and update only supported fields.
 
         Common mutable fields here are `description`, `alias`, `semantic_type`, and `caption_field`.
+        When `caption_field` is set to a valid string field, the service also auto-requests a
+        background `search` index job for that field. Reusing the same effective caption field does
+        not create a duplicate managed index job.
       security:
         - bearerAuth: []
       parameters:
@@ -1624,6 +1627,7 @@ components:
           type: string
         caption_field:
           type: string
+          description: Optional preferred record label field. When set to a valid string field, the service auto-requests a deduped background `search` index job for that field.
           example: object_id
       example:
         alias: Transactions
@@ -1650,7 +1654,7 @@ components:
           description: Business-meaning hint for the table, such as entity category metadata.
         caption_field:
           type: string
-          description: Preferred field name to use as the human-readable label for records in this table.
+          description: Preferred field name to use as the human-readable label for records in this table. Setting or changing this value can auto-request a background `search` index job.
         archived:
           type: boolean
           description: Whether the table is archived in the logical model.
@@ -2228,6 +2232,7 @@ components:
           type: string
         caption_field:
           type: string
+          description: Preferred label field name for the table. On import, setting this can trigger a managed background `search` index request through the normal table flows.
         fields:
           type: array
           items:
@@ -2357,7 +2362,7 @@ components:
           description: Business-meaning hint for the table.
         caption_field:
           type: string
-          description: Preferred record label field name for the table.
+          description: Preferred record label field name for the table. This value may have caused the service to request a managed `search` index job for the table.
         archived:
           type: boolean
           description: Whether the table is archived in the published model.

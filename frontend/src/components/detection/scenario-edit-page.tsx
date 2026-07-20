@@ -34,6 +34,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAssembledDataModelQuery } from "@/lib/data-model-query";
 import {
+  type Decision,
   type Iteration,
   type Rule,
   decisionEngineApi,
@@ -48,12 +49,26 @@ import {
   summarizeRuleFormula,
   tryParseAstToConditionGroups,
 } from "@/lib/rule-builder";
+import { formatExecutionRequestBody } from "@/components/detection/scheduled-execution-shared";
 import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
 type EditorTab = "Trigger" | "Rules" | "Decision";
 
 const EMPTY_ITERATIONS: Iteration[] = [];
+const EMPTY_DECISIONS: Decision[] = [];
+const EMPTY_ACCESSOR_OPTIONS: ReturnType<typeof extractAccessorOptions> = [];
+const EMPTY_TRIGGER_GROUPS: SimpleRuleConditionGroup[] = [createSimpleRuleGroup()];
+
+function formatDecisionRequestField(value: unknown) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value);
+}
 
 function scenarioStatusLabel(version?: number, live = false, status?: string) {
   if (!version) {
@@ -440,26 +455,38 @@ export function ScenarioEditPage({
   const [scheduleDayOfMonthDraft, setScheduleDayOfMonthDraft] = useState<string | null>(null);
   const [scheduleTimezoneDraft, setScheduleTimezoneDraft] = useState<string | null>(null);
   const [scheduleMessage, setScheduleMessage] = useState<string | null>(null);
-  const [reviewThresholdDraft, setReviewThresholdDraft] = useState<string>("");
-  const [blockAndReviewThresholdDraft, setBlockAndReviewThresholdDraft] = useState<string>("");
-  const [declineThresholdDraft, setDeclineThresholdDraft] = useState<string>("");
+  const [thresholdDrafts, setThresholdDrafts] = useState<{
+    iterationId: string | null;
+    review: string;
+    blockAndReview: string;
+    decline: string;
+  }>({
+    iterationId: null,
+    review: "",
+    blockAndReview: "",
+    decline: "",
+  });
   const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
   const [decisionSearch, setDecisionSearch] = useState("");
   const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
   const [decisionOpen, setDecisionOpen] = useState(true);
   const [triggerScheduleOpen, setTriggerScheduleOpen] = useState(true);
   const [triggerConditionsOpen, setTriggerConditionsOpen] = useState(true);
-  const [triggerMessage, setTriggerMessage] = useState<string | null>(null);
+  const [triggerDraftState, setTriggerDraftState] = useState<{
+    iterationId: string | null;
+    groups: SimpleRuleConditionGroup[];
+    message: string | null;
+  }>({
+    iterationId: null,
+    groups: EMPTY_TRIGGER_GROUPS,
+    message: null,
+  });
   const [ruleFiltersOpen, setRuleFiltersOpen] = useState(false);
   const [ruleGroupFilterOpen, setRuleGroupFilterOpen] = useState(false);
   const [iterationMenuOpen, setIterationMenuOpen] = useState(false);
   const [selectedIterationId, setSelectedIterationId] = useState<string | null>(null);
   const [ruleGroupFilter, setRuleGroupFilter] = useState("");
   const [ruleSearch, setRuleSearch] = useState("");
-  const [triggerConditionGroups, setTriggerConditionGroups] = useState<
-    SimpleRuleConditionGroup[]
-  >([createSimpleRuleGroup()]);
-
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
     queryFn: () => decisionEngineApi.getScenario(tenantId, scenarioId),
@@ -611,11 +638,6 @@ export function ScenarioEditPage({
     queryFn: () => decisionEngineApi.listScenarioDecisions(tenantId, scenarioId),
     enabled: Boolean(activeTab === "Decision" && tenantId && scenarioId),
   });
-  const decisionDetailQuery = useQuery({
-    queryKey: ["decision-engine", "decision", tenantId, selectedDecisionId],
-    queryFn: () => decisionEngineApi.getDecision(tenantId, selectedDecisionId!),
-    enabled: Boolean(activeTab === "Decision" && tenantId && selectedDecisionId),
-  });
   const createDraftMutation = useMutation({
     mutationFn: async () => {
       const response = await decisionEngineApi.createIteration(tenantId, scenarioId);
@@ -693,7 +715,7 @@ export function ScenarioEditPage({
       return decisionEngineApi.updateIteration(tenantId, scenarioId, currentIteration.id, {
         trigger_formula: compileConditionGroupsToAst(
           triggerConditionGroups,
-          triggerAccessorOptions
+          stableTriggerAccessorOptions
         ),
         score_review_threshold: currentIteration.score_review_threshold ?? null,
         score_block_and_review_threshold:
@@ -709,7 +731,11 @@ export function ScenarioEditPage({
       await queryClient.invalidateQueries({
         queryKey: ["decision-engine", "validation", tenantId, scenarioId, currentIteration?.id],
       });
-      setTriggerMessage(`Trigger conditions saved for v${iteration.version}.`);
+      setTriggerDraftState({
+        iterationId: currentIterationId,
+        groups: triggerConditionGroups,
+        message: `Trigger conditions saved for v${iteration.version}.`,
+      });
       pushToast({
         title: "Trigger conditions saved",
         description: `Version ${iteration.version} now uses the updated trigger formula.`,
@@ -719,7 +745,11 @@ export function ScenarioEditPage({
     onError: (error) => {
       const message =
         error instanceof Error ? error.message : "Failed to save trigger conditions.";
-      setTriggerMessage(message);
+      setTriggerDraftState({
+        iterationId: currentIterationId,
+        groups: triggerConditionGroups,
+        message,
+      });
       pushToast({
         title: "Failed to save trigger conditions",
         description: message,
@@ -866,32 +896,7 @@ export function ScenarioEditPage({
     });
   }, [pushToast, rulesQuery.error, rulesQuery.isError]);
 
-  useEffect(() => {
-    setReviewThresholdDraft(
-      currentIteration?.score_review_threshold != null
-        ? String(currentIteration.score_review_threshold)
-        : "1"
-    );
-    setBlockAndReviewThresholdDraft(
-      currentIteration?.score_block_and_review_threshold != null
-        ? String(currentIteration.score_block_and_review_threshold)
-        : "10"
-    );
-    setDeclineThresholdDraft(
-      currentIteration?.score_decline_threshold != null
-        ? String(currentIteration.score_decline_threshold)
-        : "20"
-    );
-    setDecisionMessage(null);
-  }, [
-    currentIteration?.id,
-    currentIteration?.score_block_and_review_threshold,
-    currentIteration?.score_decline_threshold,
-    currentIteration?.score_review_threshold,
-  ]);
-
   const description = scenario?.description || "No description provided";
-  const triggerObjectType = scenario?.trigger_object_type ?? "trigger";
   const isLiveSelectedIteration = currentIteration?.id === scenario?.live_iteration_id;
   const statusLabel = scenarioStatusLabel(
     currentIteration?.version,
@@ -901,65 +906,63 @@ export function ScenarioEditPage({
   const rules = rulesQuery.data?.rules ?? [];
   const isDraftIteration = currentIteration?.status === "draft";
   const isCommittedIteration = currentIteration?.status === "committed";
-  const scenarioDecisions = scenarioDecisionsQuery.data?.decisions ?? [];
-  const filteredScenarioDecisions = useMemo(
-    () =>
-      [...scenarioDecisions]
-        .filter((decision) =>
-          currentIteration ? decision.scenario_iteration_id === currentIteration.id : true
-        )
-        .filter((decision) => {
-          const normalizedSearch = decisionSearch.trim().toLowerCase();
-          if (!normalizedSearch) {
-            return true;
-          }
-
-          return [
-            decision.object_id,
-            decision.object_type,
-            decision.outcome,
-            String(decision.score),
-          ].some((value) => value.toLowerCase().includes(normalizedSearch));
-        })
-        .sort((left, right) => {
-          const leftTime = new Date(left.created_at).getTime();
-          const rightTime = new Date(right.created_at).getTime();
-          return rightTime - leftTime;
-        }),
-    [currentIteration, decisionSearch, scenarioDecisions]
-  );
-  const selectedDecision =
-    filteredScenarioDecisions.find((decision) => decision.id === selectedDecisionId) ??
-    filteredScenarioDecisions[0] ??
-    null;
-  useEffect(() => {
-    if (!filteredScenarioDecisions.length) {
-      if (selectedDecisionId !== null) {
-        setSelectedDecisionId(null);
+  const currentIterationId = currentIteration?.id ?? null;
+  const scenarioDecisions = scenarioDecisionsQuery.data?.decisions ?? EMPTY_DECISIONS;
+  const filteredScenarioDecisions = [...scenarioDecisions]
+    .filter((decision) =>
+      currentIterationId ? decision.scenario_iteration_id === currentIterationId : true
+    )
+    .filter((decision) => {
+      const normalizedSearch = decisionSearch.trim().toLowerCase();
+      if (!normalizedSearch) {
+        return true;
       }
-      return;
-    }
 
-    if (!selectedDecisionId) {
-      setSelectedDecisionId(filteredScenarioDecisions[0].id);
-      return;
-    }
-
-    if (!filteredScenarioDecisions.some((decision) => decision.id === selectedDecisionId)) {
-      setSelectedDecisionId(filteredScenarioDecisions[0].id);
-    }
-  }, [filteredScenarioDecisions, selectedDecisionId]);
+      return [
+        decision.object_id,
+        decision.object_type,
+        decision.outcome,
+        String(decision.score),
+      ].some((value) => value.toLowerCase().includes(normalizedSearch));
+    })
+    .sort((left, right) => {
+      const leftTime = new Date(left.created_at).getTime();
+      const rightTime = new Date(right.created_at).getTime();
+      return rightTime - leftTime;
+    });
+  const effectiveSelectedDecisionId = filteredScenarioDecisions.some(
+    (decision) => decision.id === selectedDecisionId
+  )
+    ? selectedDecisionId
+    : (filteredScenarioDecisions[0]?.id ?? null);
+  const decisionDetailQuery = useQuery({
+    queryKey: ["decision-engine", "decision", tenantId, effectiveSelectedDecisionId],
+    queryFn: () => decisionEngineApi.getDecision(tenantId, effectiveSelectedDecisionId!),
+    enabled: Boolean(activeTab === "Decision" && tenantId && effectiveSelectedDecisionId),
+  });
+  const selectedDecision =
+    filteredScenarioDecisions.find((decision) => decision.id === effectiveSelectedDecisionId) ??
+    null;
+  const selectedDecisionRequestBody =
+    effectiveSelectedDecisionId && selectedDecision?.id === effectiveSelectedDecisionId
+      ? decisionDetailQuery.data?.decision?.request_body
+      : undefined;
+  const selectedDecisionRequestEntries =
+    selectedDecisionRequestBody &&
+    typeof selectedDecisionRequestBody === "object" &&
+    !Array.isArray(selectedDecisionRequestBody)
+      ? Object.entries(selectedDecisionRequestBody)
+      : [];
   const triggerAccessorOptions = useMemo(
     () =>
       extractAccessorOptions(
         editorIdentifiersQuery.data?.payload_accessors ?? [],
         editorIdentifiersQuery.data?.database_accessors ?? []
       ),
-    [
-      editorIdentifiersQuery.data?.database_accessors,
-      editorIdentifiersQuery.data?.payload_accessors,
-    ]
+    [editorIdentifiersQuery.data?.database_accessors, editorIdentifiersQuery.data?.payload_accessors]
   );
+  const stableTriggerAccessorOptions =
+    triggerAccessorOptions.length > 0 ? triggerAccessorOptions : EMPTY_ACCESSOR_OPTIONS;
   const triggerTableFieldOptions = useMemo<FunctionVariableTableFieldOption[]>(
     () =>
       Object.values(assembledModelQuery.data?.data_model.tables ?? {})
@@ -977,12 +980,11 @@ export function ScenarioEditPage({
         ),
     [assembledModelQuery.data?.data_model.tables]
   );
-  const triggerAccessorLabelLookup = useMemo(
-    () => new Map(triggerAccessorOptions.map((option) => [option.id, option.label])),
-    [triggerAccessorOptions]
+  const triggerAccessorLabelLookup = new Map(
+    stableTriggerAccessorOptions.map((option) => [option.id, option.label])
   );
   const parsedTriggerConditionGroups = (
-    tryParseAstToConditionGroups(currentIteration?.trigger_formula, triggerAccessorOptions) ?? []
+    tryParseAstToConditionGroups(currentIteration?.trigger_formula, stableTriggerAccessorOptions) ?? []
   ).filter((group) =>
     group.conditions.some(
       (condition) =>
@@ -992,15 +994,55 @@ export function ScenarioEditPage({
         )
     )
   );
-  useEffect(() => {
-    const parsed =
-      tryParseAstToConditionGroups(currentIteration?.trigger_formula, triggerAccessorOptions) ?? [];
-    const nextGroups =
-      parsed.length > 0 ? parsed : [createSimpleRuleGroup()];
-
-    setTriggerConditionGroups(nextGroups);
-    setTriggerMessage(null);
-  }, [currentIteration?.id, currentIteration?.trigger_formula, triggerAccessorOptions]);
+  const triggerConditionGroups =
+    triggerDraftState.iterationId === currentIterationId
+      ? triggerDraftState.groups
+      : (parsedTriggerConditionGroups.length > 0 ? parsedTriggerConditionGroups : EMPTY_TRIGGER_GROUPS);
+  const triggerMessage =
+    triggerDraftState.iterationId === currentIterationId ? triggerDraftState.message : null;
+  const reviewThresholdDraft =
+    thresholdDrafts.iterationId === currentIterationId
+      ? thresholdDrafts.review
+      : (currentIteration?.score_review_threshold != null
+          ? String(currentIteration.score_review_threshold)
+          : "1");
+  const blockAndReviewThresholdDraft =
+    thresholdDrafts.iterationId === currentIterationId
+      ? thresholdDrafts.blockAndReview
+      : (currentIteration?.score_block_and_review_threshold != null
+          ? String(currentIteration.score_block_and_review_threshold)
+          : "10");
+  const declineThresholdDraft =
+    thresholdDrafts.iterationId === currentIterationId
+      ? thresholdDrafts.decline
+      : (currentIteration?.score_decline_threshold != null
+          ? String(currentIteration.score_decline_threshold)
+          : "20");
+  function updateThresholdDrafts(patch: Partial<Omit<typeof thresholdDrafts, "iterationId">>) {
+    setThresholdDrafts((current) => ({
+      iterationId: currentIterationId,
+      review:
+        patch.review ??
+        (current.iterationId === currentIterationId ? current.review : reviewThresholdDraft),
+      blockAndReview:
+        patch.blockAndReview ??
+        (current.iterationId === currentIterationId
+          ? current.blockAndReview
+          : blockAndReviewThresholdDraft),
+      decline:
+        patch.decline ??
+        (current.iterationId === currentIterationId ? current.decline : declineThresholdDraft),
+    }));
+  }
+  function updateTriggerDraftState(
+    patch: Partial<Pick<typeof triggerDraftState, "groups" | "message">>
+  ) {
+    setTriggerDraftState({
+      iterationId: currentIterationId,
+      groups: patch.groups ?? triggerConditionGroups,
+      message: patch.message ?? triggerMessage,
+    });
+  }
   const triggerRuleOperatorOptions = useMemo(() => {
     const availableFunctions = new Set(
       (ruleFunctionsQuery.data?.rule_functions ?? []).map((ruleFunction) => ruleFunction.name)
@@ -1174,8 +1216,10 @@ export function ScenarioEditPage({
   }
 
   function handleClearTriggerConditions() {
-    setTriggerConditionGroups([createSimpleRuleGroup()]);
-    setTriggerMessage("Trigger conditions cleared. Save to apply the default trigger.");
+    updateTriggerDraftState({
+      groups: [createSimpleRuleGroup()],
+      message: "Trigger conditions cleared. Save to apply the default trigger.",
+    });
   }
 
   return (
@@ -1654,8 +1698,8 @@ export function ScenarioEditPage({
                       ) : null}
                       <RuleBuilderSimple
                         groups={triggerConditionGroups}
-                        onChange={setTriggerConditionGroups}
-                        accessorOptions={triggerAccessorOptions}
+                        onChange={(groups) => updateTriggerDraftState({ groups, message: null })}
+                        accessorOptions={stableTriggerAccessorOptions}
                         operatorOptions={triggerRuleOperatorOptions}
                         customListOptions={triggerCustomLists}
                         triggerObjectType={scenario.trigger_object_type}
@@ -1978,7 +2022,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#e1f3ea] text-[#16a34a]"
                     text="When score <"
                     inputValue={reviewThresholdDraft}
-                    onInputChange={setReviewThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ review: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -1987,7 +2031,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#fef0c7] text-[#f59e0b]"
                     text="When 1 ≤ score <"
                     inputValue={blockAndReviewThresholdDraft}
-                    onInputChange={setBlockAndReviewThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ blockAndReview: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -1996,7 +2040,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#ffedd5] text-[#f97316]"
                     text="When 10 ≤ score <"
                     inputValue={declineThresholdDraft}
-                    onInputChange={setDeclineThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ decline: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -2018,7 +2062,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#e1f3ea] text-[#16a34a]"
                     text="When score <"
                     inputValue={reviewThresholdDraft}
-                    onInputChange={setReviewThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ review: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -2027,7 +2071,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#fef0c7] text-[#f59e0b]"
                     text={`When ${reviewThresholdDraft || "0"} <= score <`}
                     inputValue={blockAndReviewThresholdDraft}
-                    onInputChange={setBlockAndReviewThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ blockAndReview: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -2036,7 +2080,7 @@ export function ScenarioEditPage({
                     colorClassName="bg-[#ffedd5] text-[#f97316]"
                     text={`When ${blockAndReviewThresholdDraft || "0"} <= score <`}
                     inputValue={declineThresholdDraft}
-                    onInputChange={setDeclineThresholdDraft}
+                    onInputChange={(value) => updateThresholdDrafts({ decline: value })}
                     disabled={!isDraftIteration || updateDecisionThresholdsMutation.isPending}
                   />
                   <DecisionThresholdRow
@@ -2181,24 +2225,82 @@ export function ScenarioEditPage({
                               </p>
                             </div>
                             <div className="space-y-2">
+                              <p className="text-[13px] font-medium text-slate-950">
+                                Evaluated request body
+                              </p>
+                              {effectiveSelectedDecisionId === selectedDecision.id &&
+                              decisionDetailQuery.data?.decision ? (
+                                selectedDecisionRequestEntries.length > 0 ? (
+                                  <div className="space-y-3">
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      {selectedDecisionRequestEntries.map(([key, value]) => (
+                                        <div
+                                          key={key}
+                                          className={cn(
+                                            "rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3",
+                                            key === "fields" ? "sm:col-span-2" : ""
+                                          )}
+                                        >
+                                          <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                                            {key.replace(/_/g, " ")}
+                                          </div>
+                                          <div className="mt-1 whitespace-pre-wrap break-words text-[13px] text-slate-900">
+                                            {formatDecisionRequestField(value)}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <details className="rounded-xl border border-slate-200 bg-slate-50">
+                                      <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                                        View raw JSON
+                                      </summary>
+                                      <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                                        {formatExecutionRequestBody(
+                                          decisionDetailQuery.data.decision.request_body ?? null
+                                        )}
+                                      </pre>
+                                    </details>
+                                  </div>
+                                ) : (
+                                  <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-3 font-mono text-[12px] text-slate-800">
+                                    {formatExecutionRequestBody(
+                                      decisionDetailQuery.data.decision.request_body ?? null
+                                    )}
+                                  </pre>
+                                )
+                              ) : decisionDetailQuery.isLoading &&
+                                effectiveSelectedDecisionId === selectedDecision.id ? (
+                                <div className="rounded-xl border border-slate-200 px-3 py-3 text-[13px] text-slate-500">
+                                  Loading evaluated request body...
+                                </div>
+                              ) : decisionDetailQuery.isError &&
+                                effectiveSelectedDecisionId === selectedDecision.id ? (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-[13px] text-red-700">
+                                  {decisionDetailQuery.error instanceof Error
+                                    ? decisionDetailQuery.error.message
+                                    : "Failed to load evaluated request body."}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <p className="text-[13px] font-medium text-slate-950">
                                   Rule executions
                                 </p>
                                 {decisionDetailQuery.isLoading &&
-                                selectedDecisionId === selectedDecision.id ? (
+                                effectiveSelectedDecisionId === selectedDecision.id ? (
                                   <span className="text-[12px] text-slate-500">Loading...</span>
                                 ) : null}
                               </div>
                               {decisionDetailQuery.isError &&
-                              selectedDecisionId === selectedDecision.id ? (
+                              effectiveSelectedDecisionId === selectedDecision.id ? (
                                 <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-[13px] text-red-700">
                                   {decisionDetailQuery.error instanceof Error
                                     ? decisionDetailQuery.error.message
                                     : "Failed to load decision details."}
                                 </div>
                               ) : null}
-                              {selectedDecisionId === selectedDecision.id &&
+                              {effectiveSelectedDecisionId === selectedDecision.id &&
                               decisionDetailQuery.data?.rule_executions?.length ? (
                                 <div className="space-y-2">
                                   {decisionDetailQuery.data.rule_executions.map((ruleExecution) => (
@@ -2222,7 +2324,7 @@ export function ScenarioEditPage({
                                     </div>
                                   ))}
                                 </div>
-                              ) : selectedDecisionId === selectedDecision.id &&
+                              ) : effectiveSelectedDecisionId === selectedDecision.id &&
                                 !decisionDetailQuery.isLoading &&
                                 !decisionDetailQuery.isError ? (
                                 <div className="rounded-xl border border-slate-200 px-3 py-3 text-[13px] text-slate-500">

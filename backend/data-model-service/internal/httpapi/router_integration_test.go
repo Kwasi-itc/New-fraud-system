@@ -18,6 +18,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 )
@@ -701,6 +703,7 @@ func resetRouterIntegrationDatabase(t *testing.T, ctx context.Context, pool *pgx
 		t.Fatalf("drop schema_migrations: %v", err)
 	}
 	runRouterMetadataMigrations(t, databaseURL)
+	runRouterRiverMigrations(t, ctx, pool)
 }
 
 func runRouterMetadataMigrations(t *testing.T, databaseURL string) {
@@ -720,5 +723,17 @@ func runRouterMetadataMigrations(t *testing.T, databaseURL string) {
 	}()
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		t.Fatalf("migrate up: %v", err)
+	}
+}
+
+func runRouterRiverMigrations(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		t.Fatalf("create river migrator: %v", err)
+	}
+	if _, err := migrator.Migrate(ctx, rivermigrate.DirectionUp, nil); err != nil {
+		t.Fatalf("run river migrations: %v", err)
 	}
 }

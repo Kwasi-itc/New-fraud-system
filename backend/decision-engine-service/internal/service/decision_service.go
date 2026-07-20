@@ -27,6 +27,14 @@ type DecisionEvaluationRequest struct {
 	Fields     map[string]any `json:"fields"`
 }
 
+func (r DecisionEvaluationRequest) JSONBody() (json.RawMessage, error) {
+	return json.Marshal(map[string]any{
+		"object_id":   r.ObjectID,
+		"object_type": r.ObjectType,
+		"fields":      r.Fields,
+	})
+}
+
 type DecisionEvaluationResult struct {
 	Triggered      bool                     `json:"triggered"`
 	Decision       *decision.Decision       `json:"decision,omitempty"`
@@ -362,6 +370,11 @@ func (s DecisionService) evaluateScenario(
 		Triggered:           true,
 		CreatedAt:           now,
 	}
+	requestBody, err := req.JSONBody()
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	item.RequestBody = requestBody
 
 	var stored decision.Decision
 	var storedExecs []decision.RuleExecution

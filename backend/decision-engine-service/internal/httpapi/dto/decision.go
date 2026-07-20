@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
@@ -40,6 +41,20 @@ type DecisionResponse struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
+type DecisionDetailResponse struct {
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	ScenarioID          string          `json:"scenario_id"`
+	ScenarioIterationID string          `json:"scenario_iteration_id"`
+	ObjectID            string          `json:"object_id"`
+	ObjectType          string          `json:"object_type"`
+	RequestBody         json.RawMessage `json:"request_body"`
+	Outcome             string          `json:"outcome"`
+	Score               int             `json:"score"`
+	Triggered           bool            `json:"triggered"`
+	CreatedAt           time.Time       `json:"created_at"`
+}
+
 type RuleExecutionResponse struct {
 	ID            string    `json:"id"`
 	DecisionID    string    `json:"decision_id"`
@@ -69,6 +84,22 @@ func AdaptDecision(d decision.Decision) DecisionResponse {
 		ScenarioIterationID: d.ScenarioIterationID,
 		ObjectID:            d.ObjectID,
 		ObjectType:          d.ObjectType,
+		Outcome:             string(d.Outcome),
+		Score:               d.Score,
+		Triggered:           d.Triggered,
+		CreatedAt:           d.CreatedAt,
+	}
+}
+
+func AdaptDecisionDetail(d decision.Decision) DecisionDetailResponse {
+	return DecisionDetailResponse{
+		ID:                  d.ID,
+		TenantID:            d.TenantID,
+		ScenarioID:          d.ScenarioID,
+		ScenarioIterationID: d.ScenarioIterationID,
+		ObjectID:            d.ObjectID,
+		ObjectType:          d.ObjectType,
+		RequestBody:         d.RequestBody,
 		Outcome:             string(d.Outcome),
 		Score:               d.Score,
 		Triggered:           d.Triggered,

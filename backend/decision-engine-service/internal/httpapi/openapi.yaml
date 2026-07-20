@@ -750,7 +750,7 @@ paths:
     get:
       tags: [Decisions]
       summary: Get one decision and its rule executions
-      description: Returns one persisted decision plus the rule-execution records that contributed to it.
+      description: Returns one persisted decision plus the evaluated request body and the rule-execution records that contributed to it.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
@@ -3290,6 +3290,61 @@ components:
         score: 65
         triggered: true
         created_at: '2026-07-14T10:00:00Z'
+    DecisionDetailResponse:
+      type: object
+      description: Persisted decision detail including the evaluated request body used for this result.
+      properties:
+        id:
+          type: string
+          description: Stable decision identifier.
+        tenant_id:
+          type: string
+          description: Tenant that owns the decision.
+        scenario_id:
+          type: string
+          description: Scenario that produced the decision.
+        scenario_iteration_id:
+          type: string
+          description: Specific scenario iteration used for this evaluation.
+        object_id:
+          type: string
+          description: External record identifier for the evaluated object.
+        object_type:
+          type: string
+          description: Evaluated object type, matching the tenant model table name.
+        request_body:
+          $ref: '#/components/schemas/EvaluateDecisionRequest'
+        outcome:
+          type: string
+          description: Final scenario outcome, such as approve, review, block_and_review, or decline.
+        score:
+          type: integer
+          description: Final accumulated score for the evaluation.
+        triggered:
+          type: boolean
+          description: Whether the scenario actually triggered and produced a persisted decision result.
+        created_at:
+          type: string
+          format: date-time
+      required: [id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at]
+      example:
+        id: dec_01HZY90B4J4QWQ5TS9N5P7DZ9C
+        tenant_id: tenant_demo
+        scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
+        scenario_iteration_id: iter_01HZY8NXVYH7V3A6TQ1M2C8W4F
+        object_id: txn_100234
+        object_type: transactions
+        request_body:
+          object_id: txn_100234
+          object_type: transactions
+          fields:
+            amount: 12500
+            currency: USD
+            customer_id: cust_778
+        outcome: review
+        score: 65
+        triggered: true
+        created_at: '2026-07-14T10:00:00Z'
     RuleExecutionResponse:
       type: object
       description: Persisted execution record for one rule evaluated within a decision.
@@ -4798,7 +4853,7 @@ components:
       type: object
       properties:
         decision:
-          $ref: '#/components/schemas/DecisionResponse'
+          $ref: '#/components/schemas/DecisionDetailResponse'
         rule_executions:
           type: array
           items:

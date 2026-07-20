@@ -1,6 +1,9 @@
 package decision
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Outcome string
 
@@ -18,6 +21,7 @@ type Decision struct {
 	ScenarioIterationID string
 	ObjectID            string
 	ObjectType          string
+	RequestBody         json.RawMessage
 	Outcome             Outcome
 	Score               int
 	Triggered           bool

@@ -59,6 +59,7 @@ func (s stubFieldRepository) Update(context.Context, datamodel.Field) error { re
 
 type stubIndexJobRepository struct {
 	created []datamodel.IndexJob
+	jobs    []datamodel.IndexJob
 	job     datamodel.IndexJob
 	err     error
 	retried []uuid.UUID
@@ -66,6 +67,7 @@ type stubIndexJobRepository struct {
 
 func (s *stubIndexJobRepository) Create(_ context.Context, job datamodel.IndexJob) error {
 	s.created = append(s.created, job)
+	s.jobs = append(s.jobs, job)
 	s.job = job
 	return s.err
 }
@@ -73,6 +75,9 @@ func (s *stubIndexJobRepository) GetByID(context.Context, uuid.UUID) (datamodel.
 	return s.job, s.err
 }
 func (s *stubIndexJobRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.IndexJob, error) {
+	if s.jobs != nil {
+		return s.jobs, s.err
+	}
 	return nil, s.err
 }
 func (s *stubIndexJobRepository) StartAttempt(context.Context, uuid.UUID, time.Time) (datamodel.IndexJob, error) {
@@ -92,6 +97,13 @@ func (s *stubIndexJobRepository) Retry(_ context.Context, id uuid.UUID, schedule
 	s.job.Status = datamodel.IndexJobStatusPending
 	s.job.ScheduledAt = &scheduledAt
 	s.job.ErrorMessage = nil
+	for i := range s.jobs {
+		if s.jobs[i].ID == id {
+			s.jobs[i].Status = datamodel.IndexJobStatusPending
+			s.jobs[i].ScheduledAt = &scheduledAt
+			s.jobs[i].ErrorMessage = nil
+		}
+	}
 	return s.err
 }
 

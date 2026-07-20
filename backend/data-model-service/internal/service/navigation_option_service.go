@@ -9,18 +9,20 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type NavigationOptionService struct {
-	tableRepository       ports.TableRepository
-	fieldRepository       ports.FieldRepository
-	linkRepository        ports.LinkRepository
-	pivotRepository       ports.PivotRepository
-	navigationRepository  ports.NavigationOptionRepository
-	schemaChanges         ports.SchemaChangeRepository
-	txManager             ports.TransactionManager
-	idGenerator           ports.IDGenerator
-	clock                 ports.Clock
+	tableRepository      ports.TableRepository
+	fieldRepository      ports.FieldRepository
+	linkRepository       ports.LinkRepository
+	pivotRepository      ports.PivotRepository
+	navigationRepository ports.NavigationOptionRepository
+	schemaChanges        ports.SchemaChangeRepository
+	txManager            ports.TransactionManager
+	idGenerator          ports.IDGenerator
+	clock                ports.Clock
+	indexJobEnqueuer     riverjobs.IndexJobEnqueuer
 }
 
 type CreateNavigationOptionInput struct {
@@ -54,6 +56,14 @@ func NewNavigationOptionService(
 		idGenerator:          idGenerator,
 		clock:                clock,
 	}
+}
+
+func (s NavigationOptionService) WithIndexJobEnqueuer(enqueuer riverjobs.IndexJobEnqueuer) NavigationOptionService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
+	}
+	s.indexJobEnqueuer = enqueuer
+	return s
 }
 
 func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigationOptionInput) (datamodel.NavigationOption, error) {
@@ -148,24 +158,23 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		CreatedAt:         now,
 	}
 
-	indexJob := datamodel.IndexJob{
-		ID:                   s.idGenerator.New(),
-		TenantID:             input.TenantID,
-		TableID:              &targetTable.ID,
-		TableName:            targetTable.Name,
-		IndexType:            datamodel.IndexJobTypeNavigation,
-		Columns:              []string{filterField.Name, orderingField.Name},
-		Status:               datamodel.IndexJobStatusPending,
-		RequestedByOperation: "create_navigation_option",
-		RequestedAt:          now,
-		DedupeKey:            datamodel.BuildIndexJobDedupeKey(input.TenantID, targetTable.ID, datamodel.IndexJobTypeNavigation, []string{filterField.Name, orderingField.Name}),
-	}
-
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.NavigationOptions().Create(ctx, option); err != nil {
 			return err
 		}
-		if err := store.IndexJobs().Create(ctx, indexJob); err != nil {
+		indexJob, _, err := ensureManagedIndexJobTx(
+			ctx,
+			store,
+			s.indexJobEnqueuer,
+			s.idGenerator,
+			input.TenantID,
+			targetTable,
+			datamodel.IndexJobTypeNavigation,
+			[]string{filterField.Name, orderingField.Name},
+			"create_navigation_option",
+			now,
+		)
+		if err != nil {
 			return err
 		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(

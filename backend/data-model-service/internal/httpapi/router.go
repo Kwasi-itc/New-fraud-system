@@ -85,7 +85,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithIndexJobEnqueuer(indexJobEnqueuer)
 	fieldService := service.NewFieldService(
 		tenantRepository,
 		tableRepository,
@@ -146,7 +146,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithIndexJobEnqueuer(indexJobEnqueuer)
 	readService := service.NewDataModelReadService(
 		readRepository,
 		tenantRepository,
@@ -186,7 +186,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeHandler := handlers.NewSchemaChangeHandler(service.NewSchemaChangeService(schemaChangeRepository))
 	tenantSchemaMigrationHandler := handlers.NewTenantSchemaMigrationHandler(service.NewTenantSchemaMigrationService(tenantSchemaMigrationRepository))
 	indexJobHandler := handlers.NewIndexJobHandler(indexJobService)
-	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db))
+	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db, indexJobEnqueuer))
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{

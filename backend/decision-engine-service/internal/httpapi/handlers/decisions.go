@@ -129,7 +129,7 @@ func (h DecisionHandler) GetDecision(c *gin.Context) {
 		out[i] = dto.AdaptRuleExecution(rule)
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"decision":        dto.AdaptDecision(item),
+		"decision":        dto.AdaptDecisionDetail(item),
 		"rule_executions": out,
 	})
 	logHandlerSuccess(c, "get decision completed", "tenant_id", tenantID, "decision_id", decisionID, "rule_execution_count", len(out))

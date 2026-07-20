@@ -358,10 +358,22 @@ Optional or heavier secondary-index work is handled through `core.index_jobs` pl
 
 Current flow:
 
-- create navigation options or explicitly enqueue index jobs through the API
+- create navigation options, set a table `caption_field`, or explicitly enqueue index jobs through the API
 - run `go run ./cmd/worker` or `make run-worker`
 - the worker consumes River jobs that point at `core.index_jobs`, applies managed indexes, retries transient failures, marks jobs `applied` or `failed`, and records schema-change audit rows for each transition
 - `reconcile` detects missing managed indexes and schedules repair jobs automatically
+
+Automatic behaviors in the current service:
+
+- table creation creates the required `object_id` unique index immediately
+- field create and field uniqueness changes manage unique indexes immediately
+- navigation option creation auto-requests a background `navigation` index job
+- setting or changing `caption_field` auto-requests a background `search` index job for that field
+
+Current limitation:
+
+- clearing or changing `caption_field` does not retire old search indexes yet
+- reconcile does not yet infer expected search indexes from `caption_field`; it currently repairs navigation-managed indexes only
 
 HTTP:
 

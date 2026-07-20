@@ -9,6 +9,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type TableService struct {
@@ -22,6 +23,7 @@ type TableService struct {
 	txManager        ports.TransactionManager
 	idGenerator      ports.IDGenerator
 	clock            ports.Clock
+	indexJobEnqueuer riverjobs.IndexJobEnqueuer
 }
 
 type CreateTableInput struct {
@@ -64,6 +66,14 @@ func NewTableService(
 		idGenerator:      idGenerator,
 		clock:            clock,
 	}
+}
+
+func (s TableService) WithIndexJobEnqueuer(enqueuer riverjobs.IndexJobEnqueuer) TableService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
+	}
+	s.indexJobEnqueuer = enqueuer
+	return s
 }
 
 func (s TableService) Get(ctx context.Context, tableID uuid.UUID) (datamodel.Table, error) {
@@ -215,6 +225,33 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 		if err := store.Tables().Update(ctx, table); err != nil {
 			return err
 		}
+		details := map[string]any{
+			"description":   table.Description,
+			"alias":         table.Alias,
+			"semantic_type": table.SemanticType,
+			"caption_field": table.CaptionField,
+		}
+		if table.CaptionField != "" {
+			indexJob, requested, err := ensureManagedIndexJobTx(
+				ctx,
+				store,
+				s.indexJobEnqueuer,
+				s.idGenerator,
+				table.TenantID,
+				table,
+				datamodel.IndexJobTypeSearch,
+				[]string{table.CaptionField},
+				"update_table_caption_field",
+				table.UpdatedAt,
+			)
+			if err != nil {
+				return err
+			}
+			if requested {
+				details["search_index_job_id"] = indexJob.ID
+				details["search_index_requested"] = true
+			}
+		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
 			s.idGenerator.New(),
 			table.TenantID,
@@ -222,12 +259,7 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			"table",
 			table.ID,
 			table.UpdatedAt,
-			map[string]any{
-				"description":   table.Description,
-				"alias":         table.Alias,
-				"semantic_type": table.SemanticType,
-				"caption_field": table.CaptionField,
-			},
+			details,
 		))
 		return nil
 	}); err != nil {

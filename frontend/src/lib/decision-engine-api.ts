@@ -163,6 +163,10 @@ export type Decision = {
   created_at: string;
 };
 
+export type DecisionDetail = Decision & {
+  request_body?: JSONValue;
+};
+
 export type ListDecisionsRequest = {
   scenario_id?: string;
   object_type?: string;
@@ -945,7 +949,7 @@ export const decisionEngineApi = {
     );
   },
   getDecision: async (tenantId: string, decisionId: string) =>
-    decisionEngineFetch<{ decision: Decision; rule_executions: RuleExecution[] }>(
+    decisionEngineFetch<{ decision: DecisionDetail; rule_executions: RuleExecution[] }>(
       decisionEnginePaths.decision(tenantId, decisionId)
     ),
   evaluateIngestionEvent: async (tenantId: string, payload: IngestionTriggerRequest) =>

@@ -23,7 +23,7 @@ func main() {
 	}
 	defer db.Close()
 
-	report, err := reconcile.NewService(db).Run(context.Background())
+	report, err := reconcile.NewService(db, nil).Run(context.Background())
 	if err != nil {
 		log.Fatalf("run reconciliation: %v", err)
 	}

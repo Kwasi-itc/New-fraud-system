@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 )
 
@@ -72,10 +74,16 @@ func TestReconcileTenantSchedulesRepairJobsForMissingManagedIndexes(t *testing.T
 	tableID := uuid.New()
 	record := tenant.Tenant{ID: tenantID, Name: "Tenant A", SchemaName: "tenant_a"}
 	indexJobs := &stubIndexJobRepository{}
+	enqueuer := &stubReconcileIndexJobEnqueuer{}
 	service := Service{
 		tenants: stubTenantRepository{},
 		tables: stubTableRepository{
-			tables: []datamodel.Table{{ID: tableID, TenantID: record.ID, Name: "cases"}},
+			tables: []datamodel.Table{{
+				ID:           tableID,
+				TenantID:     record.ID,
+				Name:         "cases",
+				CaptionField: "status",
+			}},
 		},
 		fields: stubFieldRepository{
 			fields: []datamodel.Field{
@@ -97,6 +105,7 @@ func TestReconcileTenantSchedulesRepairJobsForMissingManagedIndexes(t *testing.T
 		schemaManager: stubSchemaManager{managedIndexExists: false},
 		idGenerator:   stubIDGenerator{value: uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")},
 		clock:         fixedTestClock{now: time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)},
+		enqueuer:      enqueuer,
 		introspect: stubIntrospector{
 			schemaExists: true,
 			tables:       []string{"cases"},
@@ -113,11 +122,48 @@ func TestReconcileTenantSchedulesRepairJobsForMissingManagedIndexes(t *testing.T
 	if report.SchemaHealthy {
 		t.Fatal("expected schema to be unhealthy when managed indexes are missing")
 	}
-	if report.RepairJobsScheduled != 1 {
-		t.Fatalf("expected 1 repair job scheduled, got %d", report.RepairJobsScheduled)
+	if report.RepairJobsScheduled != 2 {
+		t.Fatalf("expected 2 repair jobs scheduled, got %d", report.RepairJobsScheduled)
 	}
-	if len(indexJobs.created) != 1 || indexJobs.created[0].IndexType != datamodel.IndexJobTypeRepair {
+	if len(indexJobs.created) != 2 {
 		t.Fatalf("unexpected created jobs: %+v", indexJobs.created)
+	}
+	if indexJobs.created[0].IndexType != datamodel.IndexJobTypeRepair || indexJobs.created[1].IndexType != datamodel.IndexJobTypeRepair {
+		t.Fatalf("unexpected created jobs: %+v", indexJobs.created)
+	}
+	if len(enqueuer.jobIDs) != 2 {
+		t.Fatalf("unexpected enqueued job ids: %v", enqueuer.jobIDs)
+	}
+	if len(report.TableReports) != 1 {
+		t.Fatalf("expected 1 table report, got %d", len(report.TableReports))
+	}
+	if len(report.TableReports[0].MissingManagedIndexes) != 2 {
+		t.Fatalf("expected 2 managed index gaps, got %+v", report.TableReports[0].MissingManagedIndexes)
+	}
+}
+
+func TestExpectedManagedIndexesIncludeCaptionFieldSearchIndex(t *testing.T) {
+	t.Parallel()
+
+	tableID := uuid.New()
+	result := expectedManagedIndexesByTable(
+		[]datamodel.Table{{
+			ID:           tableID,
+			Name:         "cases",
+			CaptionField: "display_name",
+		}},
+		nil,
+	)
+
+	gaps := result[tableID]
+	if len(gaps) != 1 {
+		t.Fatalf("expected 1 managed index gap, got %+v", gaps)
+	}
+	if gaps[0].IndexType != string(datamodel.IndexJobTypeSearch) {
+		t.Fatalf("index type = %s, want %s", gaps[0].IndexType, datamodel.IndexJobTypeSearch)
+	}
+	if len(gaps[0].Columns) != 1 || gaps[0].Columns[0] != "display_name" {
+		t.Fatalf("columns = %v, want [display_name]", gaps[0].Columns)
 	}
 }
 
@@ -216,7 +262,21 @@ func (*stubIndexJobRepository) MarkFailed(context.Context, uuid.UUID, string, ti
 	return nil
 }
 func (*stubIndexJobRepository) MarkPendingRetry(context.Context, uuid.UUID, string) error { return nil }
-func (*stubIndexJobRepository) Retry(context.Context, uuid.UUID, time.Time) error { return nil }
+func (*stubIndexJobRepository) Retry(context.Context, uuid.UUID, time.Time) error         { return nil }
+
+type stubReconcileIndexJobEnqueuer struct {
+	jobIDs []uuid.UUID
+}
+
+func (s *stubReconcileIndexJobEnqueuer) Enqueue(_ context.Context, jobID uuid.UUID, _ *time.Time) error {
+	s.jobIDs = append(s.jobIDs, jobID)
+	return nil
+}
+
+func (s *stubReconcileIndexJobEnqueuer) EnqueueTx(_ context.Context, _ pgx.Tx, jobID uuid.UUID, _ *time.Time) error {
+	s.jobIDs = append(s.jobIDs, jobID)
+	return nil
+}
 
 type stubSchemaChangeRepository struct{}
 
@@ -273,3 +333,4 @@ type fixedTestClock struct {
 func (c fixedTestClock) Now() time.Time { return c.now }
 
 var _ = storepostgres.NewTenantRepository
+var _ riverjobs.IndexJobEnqueuer = (*stubReconcileIndexJobEnqueuer)(nil)

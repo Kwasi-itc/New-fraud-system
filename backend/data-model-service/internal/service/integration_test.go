@@ -16,6 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
@@ -424,6 +426,114 @@ func TestIntegrationCreateFieldWithInlineEnumValuesPersistsEverything(t *testing
 	statusField := model.Tables["cases"].Fields["status"]
 	if len(statusField.EnumValues) != 2 {
 		t.Fatalf("expected assembled enum values, got %d", len(statusField.EnumValues))
+	}
+}
+
+func TestIntegrationUpdateTableCaptionFieldCreatesSearchIndexJob(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantRepo := storepostgres.NewTenantRepository(pool)
+	tableRepo := storepostgres.NewTableRepository(pool)
+	fieldRepo := storepostgres.NewFieldRepository(pool)
+	fieldEnumValueRepo := storepostgres.NewFieldEnumValueRepository(pool)
+	linkRepo := storepostgres.NewLinkRepository(pool)
+	pivotRepo := storepostgres.NewPivotRepository(pool)
+	indexJobRepo := storepostgres.NewIndexJobRepository(pool)
+	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
+	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
+	txManager := storepostgres.NewTransactionManager(pool)
+
+	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
+	clock := fixedIntegrationClock{now: time.Date(2026, 7, 20, 9, 0, 0, 0, time.UTC)}
+	enqueuer := &stubIndexJobEnqueuer{}
+
+	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock).WithIndexJobEnqueuer(enqueuer)
+	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
+
+	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Caption Index Tenant"})
+	if err != nil {
+		t.Fatalf("create tenant: %v", err)
+	}
+	record, err = tenantService.Provision(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("provision tenant: %v", err)
+	}
+
+	table, err := tableService.Create(ctx, CreateTableInput{
+		TenantID:    record.ID,
+		Name:        "accounts",
+		Description: "Account records",
+	})
+	if err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+
+	_, err = fieldService.Create(ctx, CreateFieldInput{
+		TableID:     table.ID,
+		Name:        "display_name",
+		Description: "Friendly record label",
+		DataType:    datamodel.DataTypeString,
+		Nullable:    false,
+	})
+	if err != nil {
+		t.Fatalf("create caption field: %v", err)
+	}
+
+	captionField := "display_name"
+	table, err = tableService.Update(ctx, UpdateTableInput{
+		TableID:      table.ID,
+		CaptionField: &captionField,
+	})
+	if err != nil {
+		t.Fatalf("update caption field: %v", err)
+	}
+	if table.CaptionField != "display_name" {
+		t.Fatalf("caption field = %q, want display_name", table.CaptionField)
+	}
+
+	jobs, err := indexJobRepo.ListByTenant(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("list index jobs: %v", err)
+	}
+	if len(jobs) != 1 {
+		t.Fatalf("expected 1 index job, got %+v", jobs)
+	}
+	if jobs[0].IndexType != datamodel.IndexJobTypeSearch {
+		t.Fatalf("index type = %s, want %s", jobs[0].IndexType, datamodel.IndexJobTypeSearch)
+	}
+	if jobs[0].RequestedByOperation != "update_table_caption_field" {
+		t.Fatalf("requested_by_operation = %s, want update_table_caption_field", jobs[0].RequestedByOperation)
+	}
+	if len(jobs[0].Columns) != 1 || jobs[0].Columns[0] != "display_name" {
+		t.Fatalf("columns = %v, want [display_name]", jobs[0].Columns)
+	}
+	if len(enqueuer.jobIDs) != 1 || enqueuer.jobIDs[0] != jobs[0].ID {
+		t.Fatalf("enqueued ids = %v, want [%s]", enqueuer.jobIDs, jobs[0].ID)
+	}
+
+	_, err = tableService.Update(ctx, UpdateTableInput{
+		TableID:      table.ID,
+		CaptionField: &captionField,
+	})
+	if err != nil {
+		t.Fatalf("reapply caption field: %v", err)
+	}
+
+	jobs, err = indexJobRepo.ListByTenant(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("list index jobs after reapply: %v", err)
+	}
+	if len(jobs) != 1 {
+		t.Fatalf("expected deduped index jobs, got %+v", jobs)
+	}
+	if len(enqueuer.jobIDs) != 1 {
+		t.Fatalf("expected no extra enqueue on reapply, got %v", enqueuer.jobIDs)
 	}
 }
 
@@ -1004,6 +1114,7 @@ func resetIntegrationDatabase(t *testing.T, ctx context.Context, pool *pgxpool.P
 	}
 
 	runMetadataMigrations(t, databaseURL)
+	runRiverMigrations(t, ctx, pool)
 }
 
 func runMetadataMigrations(t *testing.T, databaseURL string) {
@@ -1026,6 +1137,18 @@ func runMetadataMigrations(t *testing.T, databaseURL string) {
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		t.Fatalf("migrate up: %v", err)
+	}
+}
+
+func runRiverMigrations(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		t.Fatalf("create river migrator: %v", err)
+	}
+	if _, err := migrator.Migrate(ctx, rivermigrate.DirectionUp, nil); err != nil {
+		t.Fatalf("run river migrations: %v", err)
 	}
 }
 
