@@ -121,6 +121,8 @@ const decisionOutcomes = [
   { label: "Decline", color: "bg-rose-300" },
 ];
 
+const DECISIONS_PAGE_SIZE = 25;
+
 function formatDecisionDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -654,14 +656,35 @@ function LiveDecisionsView({
   const [newFilterOpen, setNewFilterOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pageOffset, setPageOffset] = useState(0);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
     []
   );
   const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome"];
   const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
+  const selectedScenarioFilter = selectedFilters.find((item) => item.type === "Scenario")?.value;
+  const selectedObjectTypeFilter = selectedFilters.find(
+    (item) => item.type === "Trigger object"
+  )?.value;
+  const selectedObjectIDFilter = selectedFilters.find((item) => item.type === "Object ID")?.value;
   const decisionsQuery = useQuery({
-    queryKey: ["decision-engine", "decisions", tenantId],
-    queryFn: () => decisionEngineApi.listDecisions(tenantId),
+    queryKey: [
+      "decision-engine",
+      "decisions",
+      tenantId,
+      pageOffset,
+      selectedScenarioFilter ?? "",
+      selectedObjectTypeFilter ?? "",
+      selectedObjectIDFilter ?? "",
+    ],
+    queryFn: () =>
+      decisionEngineApi.listDecisions(tenantId, {
+        scenario_id: scenarioIdByName.get(selectedScenarioFilter ?? "") ?? undefined,
+        object_type: selectedObjectTypeFilter || undefined,
+        object_id: selectedObjectIDFilter || undefined,
+        limit: DECISIONS_PAGE_SIZE,
+        offset: pageOffset,
+      }),
     enabled: Boolean(tenantId),
   });
   const iterationQueries = useQueries({
@@ -677,6 +700,7 @@ function LiveDecisionsView({
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
     [scenarios]
   );
+  const scenarioIdByName = new Map(scenarios.map((scenario) => [scenario.name, scenario.id]));
   const liveVersionByScenarioId = useMemo(() => {
     const entries = scenarios
       .filter((scenario) => scenario.liveIterationId)
@@ -695,10 +719,7 @@ function LiveDecisionsView({
     [scenarios]
   );
   const decisions = useMemo(() => {
-    const items = [...(decisionsQuery.data?.decisions ?? [])].sort(
-      (left, right) =>
-        new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-    );
+    const items = decisionsQuery.data?.decisions ?? [];
 
     return items.filter((item) => {
       const scenarioName = scenarioNameById.get(item.scenario_id) ?? item.scenario_id;
@@ -730,8 +751,16 @@ function LiveDecisionsView({
       });
     });
   }, [decisionsQuery.data?.decisions, scenarioNameById, searchTerm, selectedFilters]);
+  const pagination = decisionsQuery.data?.pagination;
+  const canGoPrevious = pageOffset > 0;
+  const canGoNext = Boolean(pagination?.has_more);
+  const pageRangeLabel =
+    decisionsQuery.data?.decisions?.length && pagination
+      ? `${pagination.offset + 1}-${pagination.offset + decisionsQuery.data.decisions.length}`
+      : "0-0";
 
   function upsertFilter(type: string, value: string) {
+    setPageOffset(0);
     setSelectedFilters((current) => {
       const existing = current.find((item) => item.type === type);
       if (!existing) {
@@ -743,6 +772,7 @@ function LiveDecisionsView({
   }
 
   function removeFilter(type: string) {
+    setPageOffset(0);
     setSelectedFilters((current) => current.filter((item) => item.type !== type));
     setActiveFilterMenu((current) => (current === type ? null : current));
   }
@@ -772,7 +802,10 @@ function LiveDecisionsView({
               <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
               <Input
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setPageOffset(0);
+                  setSearchTerm(event.target.value);
+                }}
                 placeholder="Search by decision, object, or scenario"
                 className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
               />
@@ -919,6 +952,7 @@ function LiveDecisionsView({
             <Button
               variant="ghost"
               onClick={() => {
+                setPageOffset(0);
                 setSelectedFilters([]);
                 setActiveFilterMenu(null);
                 setNewFilterOpen(false);
@@ -1030,6 +1064,45 @@ function LiveDecisionsView({
                   </tbody>
                 </table>
               </div>
+              {pagination ? (
+                <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    Showing {pageRangeLabel}
+                    {searchTerm.trim() || selectedFilters.length > 0
+                      ? " on this page after filters"
+                      : ""}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={!canGoPrevious}
+                      onClick={() =>
+                        setPageOffset((current) =>
+                          Math.max(0, current - DECISIONS_PAGE_SIZE)
+                        )
+                      }
+                      className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
+                    >
+                      Previous
+                    </Button>
+                    <div className="rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700">
+                      Offset {pagination.offset}
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={!canGoNext}
+                      onClick={() =>
+                        setPageOffset(
+                          pagination.next_offset ?? pageOffset + DECISIONS_PAGE_SIZE
+                        )
+                      }
+                      className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         )}

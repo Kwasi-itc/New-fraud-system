@@ -106,8 +106,11 @@ type DecisionRepository interface {
 	Create(ctx context.Context, decision decision.Decision) (decision.Decision, error)
 	GetByID(ctx context.Context, tenantID, decisionID string) (decision.Decision, error)
 	ListByTenant(ctx context.Context, tenantID string) ([]decision.Decision, error)
+	ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]decision.Decision, error)
+	ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error)
 	ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error)
+	ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error)
 }
 
 type RuleExecutionRepository interface {

@@ -1044,12 +1044,43 @@ func (s DecisionService) ListByScenario(ctx context.Context, tenantID, scenarioI
 	return s.decisionRepo.ListByScenario(ctx, tenantID, scenarioID)
 }
 
+type DecisionPage struct {
+	Items   []decision.Decision
+	Limit   int
+	Offset  int
+	HasMore bool
+}
+
+func (s DecisionService) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByScenarioPage(ctx, tenantID, scenarioID, limit+1, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore}, nil
+}
+
 func (s DecisionService) ListByTenant(ctx context.Context, tenantID string) ([]decision.Decision, error) {
 	return s.decisionRepo.ListByTenant(ctx, tenantID)
 }
 
+func (s DecisionService) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByTenantPage(ctx, tenantID, limit+1, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore}, nil
+}
+
 func (s DecisionService) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
 	return s.decisionRepo.ListByObject(ctx, tenantID, objectType, objectID)
+}
+
+func (s DecisionService) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByObjectPage(ctx, tenantID, objectType, objectID, limit+1, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore}, nil
 }
 
 func (s DecisionService) EvaluateAllLiveScenarios(

@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
@@ -140,36 +142,74 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	scenarioID := c.Query("scenario_id")
 	objectType := c.Query("object_type")
 	objectID := c.Query("object_id")
+	limit, offset, paginationEnabled, ok := parseLimitOffset(c)
+	if !ok {
+		return
+	}
 
 	if scenarioID != "" {
-		items, err := h.decisionService.ListByScenario(c.Request.Context(), tenantID, scenarioID)
+		if paginationEnabled {
+			result, pageErr := h.decisionService.ListByScenarioPage(c.Request.Context(), tenantID, scenarioID, limit, offset)
+			if pageErr != nil {
+				logHandlerFailure(c, "list decisions by scenario failed", pageErr, "tenant_id", tenantID, "scenario_id", scenarioID)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": pageErr.Error()})
+				return
+			}
+			out := adaptDecisionList(result.Items)
+			pagination := buildPagination(limit, offset, result.HasMore)
+			logHandlerSuccess(c, "list decisions by scenario completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
+			c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
+			return
+		}
+		itemsUnpaged, err := h.decisionService.ListByScenario(c.Request.Context(), tenantID, scenarioID)
 		if err != nil {
 			logHandlerFailure(c, "list decisions by scenario failed", err, "tenant_id", tenantID, "scenario_id", scenarioID)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 			return
 		}
-		out := make([]dto.DecisionResponse, len(items))
-		for i, item := range items {
-			out[i] = dto.AdaptDecision(item)
-		}
+		out := adaptDecisionList(itemsUnpaged)
 		logHandlerSuccess(c, "list decisions by scenario completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
-		c.JSON(http.StatusOK, gin.H{"decisions": out})
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
 		return
 	}
 
 	if objectType != "" && objectID != "" {
+		if paginationEnabled {
+			result, err := h.decisionService.ListByObjectPage(c.Request.Context(), tenantID, objectType, objectID, limit, offset)
+			if err != nil {
+				logHandlerFailure(c, "list decisions by object failed", err, "tenant_id", tenantID, "object_type", objectType, "object_id", objectID)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
+				return
+			}
+			out := adaptDecisionList(result.Items)
+			pagination := buildPagination(limit, offset, result.HasMore)
+			logHandlerSuccess(c, "list decisions by object completed", "tenant_id", tenantID, "object_type", objectType, "object_id", objectID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
+			c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
+			return
+		}
 		items, err := h.decisionService.ListByObject(c.Request.Context(), tenantID, objectType, objectID)
 		if err != nil {
 			logHandlerFailure(c, "list decisions by object failed", err, "tenant_id", tenantID, "object_type", objectType, "object_id", objectID)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 			return
 		}
-		out := make([]dto.DecisionResponse, len(items))
-		for i, item := range items {
-			out[i] = dto.AdaptDecision(item)
-		}
+		out := adaptDecisionList(items)
 		logHandlerSuccess(c, "list decisions by object completed", "tenant_id", tenantID, "object_type", objectType, "object_id", objectID, "count", len(out))
-		c.JSON(http.StatusOK, gin.H{"decisions": out})
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+		return
+	}
+
+	if paginationEnabled {
+		result, err := h.decisionService.ListByTenantPage(c.Request.Context(), tenantID, limit, offset)
+		if err != nil {
+			logHandlerFailure(c, "list decisions by tenant failed", err, "tenant_id", tenantID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
+			return
+		}
+		out := adaptDecisionList(result.Items)
+		pagination := buildPagination(limit, offset, result.HasMore)
+		logHandlerSuccess(c, "list decisions by tenant completed", "tenant_id", tenantID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 		return
 	}
 
@@ -179,29 +219,92 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 		return
 	}
-	out := make([]dto.DecisionResponse, len(items))
-	for i, item := range items {
-		out[i] = dto.AdaptDecision(item)
-	}
+	out := adaptDecisionList(items)
 	logHandlerSuccess(c, "list decisions by tenant completed", "tenant_id", tenantID, "count", len(out))
-	c.JSON(http.StatusOK, gin.H{"decisions": out})
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
 }
 
 func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	scenarioID := c.Param("scenarioId")
+	limit, offset, paginationEnabled, ok := parseLimitOffset(c)
+	if !ok {
+		return
+	}
+	if paginationEnabled {
+		result, err := h.decisionService.ListByScenarioPage(c.Request.Context(), tenantID, scenarioID, limit, offset)
+		if err != nil {
+			logHandlerFailure(c, "list decisions by scenario path failed", err, "tenant_id", tenantID, "scenario_id", scenarioID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
+			return
+		}
+		out := adaptDecisionList(result.Items)
+		pagination := buildPagination(limit, offset, result.HasMore)
+		logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
+		return
+	}
 	items, err := h.decisionService.ListByScenario(c.Request.Context(), tenantID, scenarioID)
 	if err != nil {
 		logHandlerFailure(c, "list decisions by scenario path failed", err, "tenant_id", tenantID, "scenario_id", scenarioID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 		return
 	}
+	out := adaptDecisionList(items)
+	logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+}
+
+func adaptDecisionList(items []decision.Decision) []dto.DecisionResponse {
 	out := make([]dto.DecisionResponse, len(items))
 	for i, item := range items {
 		out[i] = dto.AdaptDecision(item)
 	}
-	logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
-	c.JSON(http.StatusOK, gin.H{"decisions": out})
+	return out
+}
+
+func buildPagination(limit, offset int, hasMore bool) dto.PaginationResponse {
+	var nextOffset *int
+	if hasMore {
+		value := offset + limit
+		nextOffset = &value
+	}
+	return dto.PaginationResponse{
+		Limit:      limit,
+		Offset:     offset,
+		HasMore:    hasMore,
+		NextOffset: nextOffset,
+	}
+}
+
+func parseLimitOffset(c *gin.Context) (limit int, offset int, enabled bool, ok bool) {
+	rawLimit := c.Query("limit")
+	rawOffset := c.Query("offset")
+	if rawLimit == "" && rawOffset == "" {
+		return 0, 0, false, true
+	}
+	limit = 50
+	offset = 0
+	if rawLimit != "" {
+		parsed, err := strconv.Atoi(rawLimit)
+		if err != nil || parsed <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_limit", "details": "limit must be a positive integer"})
+			return 0, 0, false, false
+		}
+		if parsed > 500 {
+			parsed = 500
+		}
+		limit = parsed
+	}
+	if rawOffset != "" {
+		parsed, err := strconv.Atoi(rawOffset)
+		if err != nil || parsed < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_offset", "details": "offset must be a non-negative integer"})
+			return 0, 0, false, false
+		}
+		offset = parsed
+	}
+	return limit, offset, true, true
 }
 
 func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {

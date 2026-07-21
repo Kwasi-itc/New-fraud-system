@@ -166,12 +166,24 @@ func (s stubDecisionRepo) ListByTenant(ctx context.Context, tenantID string) ([]
 	return s.items, nil
 }
 
+func (s stubDecisionRepo) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
 func (s stubDecisionRepo) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]decision.Decision, error) {
 	return nil, nil
 }
 
+func (s stubDecisionRepo) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+
 func (s stubDecisionRepo) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
 	return s.items, nil
+}
+
+func (s stubDecisionRepo) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
 }
 
 func mustFormula(t *testing.T, node domainast.Node) json.RawMessage {

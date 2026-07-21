@@ -308,11 +308,20 @@ func (nilDecisionRepository) GetByID(context.Context, string, string) (decision.
 func (nilDecisionRepository) ListByTenant(context.Context, string) ([]decision.Decision, error) {
 	return nil, nil
 }
+func (nilDecisionRepository) ListByTenantPage(context.Context, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
 func (nilDecisionRepository) ListByScenario(context.Context, string, string) ([]decision.Decision, error) {
 	return nil, nil
 }
+func (nilDecisionRepository) ListByScenarioPage(context.Context, string, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
 func (nilDecisionRepository) ListByObject(context.Context, string, string, string) ([]decision.Decision, error) {
 	return nil, nil
+}
+func (nilDecisionRepository) ListByObjectPage(context.Context, string, string, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
 }
 
 type nilRuleExecutionRepository []struct{}

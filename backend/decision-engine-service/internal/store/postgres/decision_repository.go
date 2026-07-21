@@ -44,22 +44,17 @@ func (r DecisionRepository) ListByTenant(ctx context.Context, tenantID string) (
 		from core.decisions where tenant_id = $1
 		order by created_at desc
 	`
-	rows, err := r.q.Query(ctx, stmt, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []decision.Decision
-	for rows.Next() {
-		var item decision.Decision
-		var outcome string
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &item.ObjectID, &item.ObjectType, &item.RequestBody, &outcome, &item.Score, &item.Triggered, &item.CreatedAt); err != nil {
-			return nil, err
-		}
-		item.Outcome = decision.Outcome(outcome)
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return r.list(ctx, stmt, tenantID)
+}
+
+func (r DecisionRepository) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error) {
+	const stmt = `
+		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
+		from core.decisions where tenant_id = $1
+		order by created_at desc
+		limit $2 offset $3
+	`
+	return r.listPage(ctx, stmt, tenantID, limit, offset)
 }
 
 func (r DecisionRepository) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]decision.Decision, error) {
@@ -68,11 +63,69 @@ func (r DecisionRepository) ListByScenario(ctx context.Context, tenantID, scenar
 		from core.decisions where tenant_id = $1 and scenario_id = $2
 		order by created_at desc
 	`
-	rows, err := r.q.Query(ctx, stmt, tenantID, scenarioID)
+	return r.list(ctx, stmt, tenantID, scenarioID)
+}
+
+func (r DecisionRepository) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error) {
+	const stmt = `
+		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
+		from core.decisions where tenant_id = $1 and scenario_id = $2
+		order by created_at desc
+		limit $3 offset $4
+	`
+	return r.listPage(ctx, stmt, tenantID, scenarioID, limit, offset)
+}
+
+func (r DecisionRepository) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
+	const stmt = `
+		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
+		from core.decisions where tenant_id = $1 and object_type = $2 and object_id = $3
+		order by created_at desc
+	`
+	return r.list(ctx, stmt, tenantID, objectType, objectID)
+}
+
+func (r DecisionRepository) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
+	const stmt = `
+		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
+		from core.decisions where tenant_id = $1 and object_type = $2 and object_id = $3
+		order by created_at desc
+		limit $4 offset $5
+	`
+	return r.listPage(ctx, stmt, tenantID, objectType, objectID, limit, offset)
+}
+
+func (r DecisionRepository) list(ctx context.Context, stmt string, args ...any) ([]decision.Decision, error) {
+	rows, err := r.q.Query(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	return scanDecisions(rows)
+}
+
+func (r DecisionRepository) listPage(ctx context.Context, stmt string, args ...any) ([]decision.Decision, bool, error) {
+	rows, err := r.q.Query(ctx, stmt, args...)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	items, err := scanDecisions(rows)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(items) == 0 {
+		return items, false, nil
+	}
+	limit, _ := args[len(args)-2].(int)
+	hasMore := len(items) > limit
+	if hasMore {
+		items = items[:limit]
+	}
+	return items, hasMore, nil
+}
+
+func scanDecisions(rows rowScanner) ([]decision.Decision, error) {
 	var items []decision.Decision
 	for rows.Next() {
 		var item decision.Decision
@@ -86,26 +139,8 @@ func (r DecisionRepository) ListByScenario(ctx context.Context, tenantID, scenar
 	return items, rows.Err()
 }
 
-func (r DecisionRepository) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
-	const stmt = `
-		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
-		from core.decisions where tenant_id = $1 and object_type = $2 and object_id = $3
-		order by created_at desc
-	`
-	rows, err := r.q.Query(ctx, stmt, tenantID, objectType, objectID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []decision.Decision
-	for rows.Next() {
-		var item decision.Decision
-		var outcome string
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.ScenarioIterationID, &item.ObjectID, &item.ObjectType, &item.RequestBody, &outcome, &item.Score, &item.Triggered, &item.CreatedAt); err != nil {
-			return nil, err
-		}
-		item.Outcome = decision.Outcome(outcome)
-		items = append(items, item)
-	}
-	return items, rows.Err()
+type rowScanner interface {
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
 }

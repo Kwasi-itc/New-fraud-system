@@ -55,6 +55,13 @@ type DecisionDetailResponse struct {
 	CreatedAt           time.Time       `json:"created_at"`
 }
 
+type PaginationResponse struct {
+	Limit      int  `json:"limit"`
+	Offset     int  `json:"offset"`
+	HasMore    bool `json:"has_more"`
+	NextOffset *int `json:"next_offset,omitempty"`
+}
+
 type RuleExecutionResponse struct {
 	ID            string    `json:"id"`
 	DecisionID    string    `json:"decision_id"`
@@ -74,6 +81,11 @@ type DecisionEvaluationResponse struct {
 type MultiDecisionEvaluationResponse struct {
 	ObjectID string                     `json:"object_id"`
 	Results  []DecisionEvaluationResponse `json:"results"`
+}
+
+type DecisionListEnvelope struct {
+	Decisions  []DecisionResponse  `json:"decisions"`
+	Pagination PaginationResponse `json:"pagination"`
 }
 
 func AdaptDecision(d decision.Decision) DecisionResponse {
