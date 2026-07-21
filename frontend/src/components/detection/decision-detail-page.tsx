@@ -10,6 +10,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { summarizeRuleFormula } from "@/lib/rule-builder";
 import { cn } from "@/lib/utils";
 import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { formatExecutionRequestBody } from "@/components/detection/scheduled-execution-shared";
+
+function formatDecisionField(value: unknown) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value);
+}
 
 function formatDecisionDate(value: string) {
   const date = new Date(value);
@@ -35,19 +46,6 @@ function formatDecisionOutcome(value: string) {
       return "Review";
     default:
       return value;
-  }
-}
-
-function outcomeBadgeClass(value: string) {
-  switch (value) {
-    case "approve":
-      return "bg-emerald-100 text-emerald-700";
-    case "block_and_review":
-      return "bg-orange-100 text-orange-700";
-    case "decline":
-      return "bg-rose-100 text-rose-700";
-    default:
-      return "bg-amber-100 text-amber-700";
   }
 }
 
@@ -102,6 +100,7 @@ function formatRuleSummaryForDisplay(summary: string) {
 export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const [detailOpen, setDetailOpen] = useState(true);
+  const [responseOpen, setResponseOpen] = useState(true);
   const [triggerObjectOpen, setTriggerObjectOpen] = useState(true);
   const [rulesOpen, setRulesOpen] = useState(true);
   const [workflowExecutionsOpen, setWorkflowExecutionsOpen] = useState(true);
@@ -182,7 +181,34 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
     return iteration?.version ?? null;
   }, [decision, iterationsQuery.data?.iterations]);
 
-  const ruleExecutions = decisionQuery.data?.rule_executions ?? [];
+  const ruleExecutions = useMemo(
+    () => decisionQuery.data?.rule_executions ?? [],
+    [decisionQuery.data?.rule_executions]
+  );
+  const requestBodyEntries =
+    decision?.request_body &&
+    typeof decision.request_body === "object" &&
+    !Array.isArray(decision.request_body)
+      ? Object.entries(decision.request_body)
+      : [];
+  const detectionResponse = useMemo(
+    () => ({
+      decision: {
+        id: decision.id,
+        tenant_id: decision.tenant_id,
+        scenario_id: decision.scenario_id,
+        scenario_iteration_id: decision.scenario_iteration_id,
+        object_id: decision.object_id,
+        object_type: decision.object_type,
+        outcome: decision.outcome,
+        score: decision.score,
+        triggered: decision.triggered,
+        created_at: decision.created_at,
+      },
+      rule_executions: ruleExecutions,
+    }),
+    [decision, ruleExecutions]
+  );
   const rulesById = useMemo(
     () =>
       new Map((rulesQuery.data?.rules ?? []).map((rule) => [rule.id, rule])),
@@ -190,7 +216,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   );
   const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
   const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
-  const scoringRequests = scoringRequestsQuery.data?.scoring_requests ?? [];
+  void scoringRequestsQuery.data?.scoring_requests;
 
   if (!tenantId) {
     return (
@@ -600,7 +626,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
             <CardContent className="p-0">
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
                 <h2 className="text-[18px] font-semibold text-slate-950">
-                  Trigger object metadata
+                  Evaluated request body
                 </h2>
                 <button
                   type="button"
@@ -616,25 +642,93 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
               </div>
               {triggerObjectOpen ? (
                 <div className="space-y-4 px-6 py-5">
-                  <p className="text-[13px] text-slate-500">
-                    The backend currently returns decision object identifiers and lifecycle metadata,
-                    not the full evaluated object snapshot.
-                  </p>
-                  <div className="grid gap-4 md:grid-cols-[130px_1fr]">
-                    {[
-                      ["object_type", decision.object_type],
-                      ["object_id", decision.object_id],
-                      ["scenario_id", decision.scenario_id],
-                      ["iteration_id", decision.scenario_iteration_id],
-                      ["triggered", decision.triggered ? "true" : "false"],
-                      ["created_at", formatDecisionDate(decision.created_at)],
-                    ].map(([label, value]) => (
-                      <div key={label} className="contents">
-                        <div className="text-[14px] font-semibold text-slate-950">{label}</div>
-                        <div className="text-[14px] text-slate-800">{value}</div>
+                  {requestBodyEntries.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {requestBodyEntries.map(([key, value]) => (
+                          <div
+                            key={key}
+                            className={cn(
+                              "rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3",
+                              key === "fields" ? "sm:col-span-2" : ""
+                            )}
+                          >
+                            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                              {key.replace(/_/g, " ")}
+                            </div>
+                            <div className="mt-1 whitespace-pre-wrap break-words text-[13px] text-slate-900">
+                              {formatDecisionField(value)}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                      <details className="rounded-xl border border-slate-200 bg-slate-50">
+                        <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                          View raw JSON
+                        </summary>
+                        <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                          {formatExecutionRequestBody(decision.request_body ?? null)}
+                        </pre>
+                      </details>
+                    </div>
+                  ) : (
+                    <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-3 font-mono text-[12px] text-slate-800">
+                      {formatExecutionRequestBody(decision.request_body ?? null)}
+                    </pre>
+                  )}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border border-slate-200 shadow-none">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+                <h2 className="text-[18px] font-semibold text-slate-950">
+                  Detection response
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setResponseOpen((current) => !current)}
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
+                >
+                  {responseOpen ? (
+                    <ChevronUp className="size-4" />
+                  ) : (
+                    <ChevronDown className="size-4" />
+                  )}
+                </button>
+              </div>
+              {responseOpen ? (
+                <div className="space-y-4 px-6 py-5">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 px-3 py-3">
+                      <p className="text-[12px] text-slate-500">Outcome</p>
+                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
+                        {formatDecisionOutcome(decision.outcome)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 px-3 py-3">
+                      <p className="text-[12px] text-slate-500">Score</p>
+                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
+                        {decision.score}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 px-3 py-3">
+                      <p className="text-[12px] text-slate-500">Triggered</p>
+                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
+                        {decision.triggered ? "Yes" : "No"}
+                      </p>
+                    </div>
                   </div>
+                  <details className="rounded-xl border border-slate-200 bg-slate-50" open>
+                    <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                      View response JSON
+                    </summary>
+                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                      {JSON.stringify(detectionResponse, null, 2)}
+                    </pre>
+                  </details>
                 </div>
               ) : null}
             </CardContent>
