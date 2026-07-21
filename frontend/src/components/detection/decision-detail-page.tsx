@@ -192,21 +192,24 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
       ? Object.entries(decision.request_body)
       : [];
   const detectionResponse = useMemo(
-    () => ({
-      decision: {
-        id: decision.id,
-        tenant_id: decision.tenant_id,
-        scenario_id: decision.scenario_id,
-        scenario_iteration_id: decision.scenario_iteration_id,
-        object_id: decision.object_id,
-        object_type: decision.object_type,
-        outcome: decision.outcome,
-        score: decision.score,
-        triggered: decision.triggered,
-        created_at: decision.created_at,
-      },
-      rule_executions: ruleExecutions,
-    }),
+    () =>
+      decision
+        ? {
+            decision: {
+              id: decision.id,
+              tenant_id: decision.tenant_id,
+              scenario_id: decision.scenario_id,
+              scenario_iteration_id: decision.scenario_iteration_id,
+              object_id: decision.object_id,
+              object_type: decision.object_type,
+              outcome: decision.outcome,
+              score: decision.score,
+              triggered: decision.triggered,
+              created_at: decision.created_at,
+            },
+            rule_executions: ruleExecutions,
+          }
+        : null,
     [decision, ruleExecutions]
   );
   const rulesById = useMemo(
