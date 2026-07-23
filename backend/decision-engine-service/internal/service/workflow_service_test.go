@@ -336,6 +336,16 @@ func (nilDecisionRepository) CountByObject(context.Context, string, string, stri
 	return 0, nil
 }
 
+func (nilDecisionRepository) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
+	return nil, nil
+}
+func (nilDecisionRepository) ListFilteredPage(context.Context, string, ports.DecisionListFilter, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+func (nilDecisionRepository) CountFiltered(context.Context, string, ports.DecisionListFilter) (int, error) {
+	return 0, nil
+}
+
 type nilRuleExecutionRepository []struct{}
 
 func (nilRuleExecutionRepository) CreateMany(context.Context, []decision.RuleExecution) ([]decision.RuleExecution, error) {

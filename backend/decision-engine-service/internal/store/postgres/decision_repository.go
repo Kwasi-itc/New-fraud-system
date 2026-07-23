@@ -2,8 +2,11 @@ package postgres
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
 type DecisionRepository struct{ q queryable }
@@ -110,6 +113,21 @@ func (r DecisionRepository) ListByObjectPage(ctx context.Context, tenantID, obje
 	return r.listPage(ctx, stmt, tenantID, objectType, objectID, limit, offset)
 }
 
+func (r DecisionRepository) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
+	stmt, args := buildFilteredDecisionQuery(filter, false)
+	return r.list(ctx, stmt, append([]any{tenantID}, args...)...)
+}
+
+func (r DecisionRepository) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error) {
+	stmt, args := buildFilteredDecisionQuery(filter, true)
+	return r.listPage(ctx, stmt, append([]any{tenantID}, append(args, limit, offset)...)...)
+}
+
+func (r DecisionRepository) CountFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) (int, error) {
+	stmt, args := buildFilteredDecisionCountQuery(filter)
+	return r.count(ctx, stmt, append([]any{tenantID}, args...)...)
+}
+
 func (r DecisionRepository) list(ctx context.Context, stmt string, args ...any) ([]decision.Decision, error) {
 	rows, err := r.q.Query(ctx, stmt, args...)
 	if err != nil {
@@ -162,6 +180,68 @@ func (r DecisionRepository) count(ctx context.Context, stmt string, args ...any)
 		return 0, err
 	}
 	return total, nil
+}
+
+func buildFilteredDecisionQuery(filter ports.DecisionListFilter, paged bool) (string, []any) {
+	whereSQL, args := buildDecisionFilterWhereClause(filter, 2)
+	stmt := fmt.Sprintf(`
+		select d.id, d.tenant_id, d.scenario_id, d.scenario_iteration_id, d.object_id, d.object_type, d.request_body, d.outcome, d.score, d.triggered, d.created_at
+		from core.decisions d
+		left join core.scenarios s on s.tenant_id = d.tenant_id and s.id = d.scenario_id
+		where d.tenant_id = $1%s
+		order by d.created_at desc
+	`, whereSQL)
+	if paged {
+		stmt += fmt.Sprintf(" limit $%d offset $%d", len(args)+2, len(args)+3)
+	}
+	return stmt, args
+}
+
+func buildFilteredDecisionCountQuery(filter ports.DecisionListFilter) (string, []any) {
+	whereSQL, args := buildDecisionFilterWhereClause(filter, 2)
+	stmt := fmt.Sprintf(`
+		select count(*)
+		from core.decisions d
+		left join core.scenarios s on s.tenant_id = d.tenant_id and s.id = d.scenario_id
+		where d.tenant_id = $1%s
+	`, whereSQL)
+	return stmt, args
+}
+
+func buildDecisionFilterWhereClause(filter ports.DecisionListFilter, nextArg int) (string, []any) {
+	clauses := make([]string, 0, 5)
+	args := make([]any, 0, 5)
+	if filter.ScenarioID != "" {
+		clauses = append(clauses, fmt.Sprintf("d.scenario_id = $%d", nextArg))
+		args = append(args, filter.ScenarioID)
+		nextArg++
+	}
+	if filter.ObjectType != "" {
+		clauses = append(clauses, fmt.Sprintf("d.object_type ilike $%d", nextArg))
+		args = append(args, "%"+filter.ObjectType+"%")
+		nextArg++
+	}
+	if filter.ObjectID != "" {
+		clauses = append(clauses, fmt.Sprintf("d.object_id ilike $%d", nextArg))
+		args = append(args, "%"+filter.ObjectID+"%")
+		nextArg++
+	}
+	if filter.Outcome != "" {
+		clauses = append(clauses, fmt.Sprintf("d.outcome = $%d", nextArg))
+		args = append(args, filter.Outcome)
+		nextArg++
+	}
+	if filter.Search != "" {
+		clauses = append(
+			clauses,
+			fmt.Sprintf("(d.id ilike $%d or d.object_id ilike $%d or d.object_type ilike $%d or coalesce(s.name, '') ilike $%d)", nextArg, nextArg, nextArg, nextArg),
+		)
+		args = append(args, "%"+filter.Search+"%")
+	}
+	if len(clauses) == 0 {
+		return "", nil
+	}
+	return "\n\t\tand " + strings.Join(clauses, "\n\t\tand "), args
 }
 
 type rowScanner interface {

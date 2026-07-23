@@ -198,6 +198,18 @@ func (s stubDecisionRepo) CountByObject(ctx context.Context, tenantID, objectTyp
 	return len(s.items), nil
 }
 
+func (s stubDecisionRepo) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s stubDecisionRepo) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
+func (s stubDecisionRepo) CountFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) (int, error) {
+	return len(s.items), nil
+}
+
 func mustFormula(t *testing.T, node domainast.Node) json.RawMessage {
 	t.Helper()
 	payload, err := json.Marshal(node)

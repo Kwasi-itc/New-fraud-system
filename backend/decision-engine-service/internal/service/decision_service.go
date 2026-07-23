@@ -1730,11 +1730,17 @@ func (s DecisionService) ListByScenario(ctx context.Context, tenantID, scenarioI
 	return s.decisionRepo.ListByScenario(ctx, tenantID, scenarioID)
 }
 
+func (s DecisionService) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
+	return s.decisionRepo.ListFiltered(ctx, tenantID, filter)
+}
+
+type DecisionListFilter = ports.DecisionListFilter
+
 type DecisionPage struct {
-	Items   []decision.Decision
-	Limit   int
-	Offset  int
-	HasMore bool
+	Items      []decision.Decision
+	Limit      int
+	Offset     int
+	HasMore    bool
 	TotalCount int
 }
 
@@ -1744,6 +1750,18 @@ func (s DecisionService) ListByScenarioPage(ctx context.Context, tenantID, scena
 		return DecisionPage{}, err
 	}
 	totalCount, err := s.decisionRepo.CountByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
+func (s DecisionService) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListFilteredPage(ctx, tenantID, filter, limit, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	totalCount, err := s.decisionRepo.CountFiltered(ctx, tenantID, filter)
 	if err != nil {
 		return DecisionPage{}, err
 	}

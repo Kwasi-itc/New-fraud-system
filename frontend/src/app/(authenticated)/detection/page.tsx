@@ -188,6 +188,21 @@ function outcomeBadgeClass(value: string) {
   }
 }
 
+function outcomeFilterToApiValue(value: string) {
+  switch (value) {
+    case "Approve":
+      return "approve";
+    case "Block and Review":
+      return "block_and_review";
+    case "Decline":
+      return "decline";
+    case "Review":
+      return "review";
+    default:
+      return value.toLowerCase().replace(/\s+/g, "_");
+  }
+}
+
 function TabButton({
   tab,
   activeTab,
@@ -692,21 +707,29 @@ function LiveDecisionsView({
     (item) => item.type === "Trigger object"
   )?.value;
   const selectedObjectIDFilter = selectedFilters.find((item) => item.type === "Object ID")?.value;
+  const selectedOutcomeFilter = selectedFilters.find((item) => item.type === "Outcome")?.value;
+  const trimmedSearchTerm = searchTerm.trim();
   const decisionsQuery = useQuery({
     queryKey: [
       "decision-engine",
       "decisions",
       tenantId,
       pageOffset,
+      trimmedSearchTerm,
       selectedScenarioFilter ?? "",
       selectedObjectTypeFilter ?? "",
       selectedObjectIDFilter ?? "",
+      selectedOutcomeFilter ?? "",
     ],
     queryFn: () =>
       decisionEngineApi.listDecisions(tenantId, {
         scenario_id: scenarioIdByName.get(selectedScenarioFilter ?? "") ?? undefined,
         object_type: selectedObjectTypeFilter || undefined,
         object_id: selectedObjectIDFilter || undefined,
+        outcome: selectedOutcomeFilter
+          ? outcomeFilterToApiValue(selectedOutcomeFilter)
+          : undefined,
+        search: trimmedSearchTerm || undefined,
         limit: DECISIONS_PAGE_SIZE,
         offset: pageOffset,
       }),
@@ -743,39 +766,7 @@ function LiveDecisionsView({
     () => scenarios.map((scenario) => scenario.name).sort((a, b) => a.localeCompare(b)),
     [scenarios]
   );
-  const decisions = useMemo(() => {
-    const items = decisionsQuery.data?.decisions ?? [];
-
-    return items.filter((item) => {
-      const scenarioName = scenarioNameById.get(item.scenario_id) ?? item.scenario_id;
-      const outcomeLabel = formatDecisionOutcome(item.outcome);
-      const matchesSearch =
-        searchTerm.trim().length === 0 ||
-        [item.id, item.object_id, item.object_type, scenarioName]
-          .join(" ")
-          .toLowerCase()
-          .includes(searchTerm.trim().toLowerCase());
-
-      if (!matchesSearch) {
-        return false;
-      }
-
-      return selectedFilters.every((filter) => {
-        switch (filter.type) {
-          case "Scenario":
-            return scenarioName === filter.value;
-          case "Trigger object":
-            return item.object_type.toLowerCase().includes(filter.value.toLowerCase());
-          case "Object ID":
-            return item.object_id.toLowerCase().includes(filter.value.toLowerCase());
-          case "Outcome":
-            return outcomeLabel === filter.value;
-          default:
-            return true;
-        }
-      });
-    });
-  }, [decisionsQuery.data?.decisions, scenarioNameById, searchTerm, selectedFilters]);
+  const decisions = decisionsQuery.data?.decisions ?? [];
   const pagination = decisionsQuery.data?.pagination;
   const canGoPrevious = pageOffset > 0;
   const totalRecords = pagination?.total_count ?? 0;
@@ -1098,8 +1089,8 @@ function LiveDecisionsView({
                   <div>
                     Showing {pageRangeLabel}
                     {pagination ? ` of ${totalRecords}` : ""}
-                    {searchTerm.trim() || selectedFilters.length > 0
-                      ? " on this page after filters"
+                    {trimmedSearchTerm || selectedFilters.length > 0
+                      ? " matching current filters"
                       : ""}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

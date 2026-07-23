@@ -146,6 +146,18 @@ func (s *pagingDecisionRepoSpy) CountByObject(context.Context, string, string, s
 	return s.totalCount, nil
 }
 
+func (s *pagingDecisionRepoSpy) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListFilteredPage(_ context.Context, tenantID string, _ ports.DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.ListByTenantPage(context.Background(), tenantID, limit, offset)
+}
+
+func (s *pagingDecisionRepoSpy) CountFiltered(context.Context, string, ports.DecisionListFilter) (int, error) {
+	return s.totalCount, nil
+}
+
 func TestDecisionServiceListByTenantPagePassesRequestedLimit(t *testing.T) {
 	t.Parallel()
 

@@ -171,6 +171,8 @@ export type ListDecisionsRequest = {
   scenario_id?: string;
   object_type?: string;
   object_id?: string;
+  outcome?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 };
@@ -965,6 +967,12 @@ export const decisionEngineApi = {
     }
     if (filters?.object_id) {
       params.set("object_id", filters.object_id);
+    }
+    if (filters?.outcome) {
+      params.set("outcome", filters.outcome);
+    }
+    if (filters?.search) {
+      params.set("search", filters.search);
     }
     if (filters?.limit != null) {
       params.set("limit", String(filters.limit));
