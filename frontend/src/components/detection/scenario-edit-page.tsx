@@ -70,6 +70,35 @@ function formatDecisionRequestField(value: unknown) {
   return JSON.stringify(value);
 }
 
+function renderDecisionRequestValue(key: string, value: unknown) {
+  if (
+    key === "fields" &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right));
+    return (
+      <div className="grid gap-2 sm:grid-cols-2">
+        {entries.map(([fieldName, fieldValue]) => (
+          <div
+            key={fieldName}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+          >
+            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+              {fieldName.replace(/_/g, " ")}
+            </div>
+            <div className="mt-1 whitespace-pre-wrap break-words text-[13px] text-slate-900">
+              {formatDecisionRequestField(fieldValue)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return formatDecisionRequestField(value);
+}
+
 function scenarioStatusLabel(version?: number, live = false, status?: string) {
   if (!version) {
     return live ? "Live" : "Draft";
@@ -2245,7 +2274,7 @@ export function ScenarioEditPage({
                                             {key.replace(/_/g, " ")}
                                           </div>
                                           <div className="mt-1 whitespace-pre-wrap break-words text-[13px] text-slate-900">
-                                            {formatDecisionRequestField(value)}
+                                            {renderDecisionRequestValue(key, value)}
                                           </div>
                                         </div>
                                       ))}

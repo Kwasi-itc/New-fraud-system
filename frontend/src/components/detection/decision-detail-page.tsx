@@ -22,6 +22,35 @@ function formatDecisionField(value: unknown) {
   return JSON.stringify(value);
 }
 
+function renderDecisionRequestValue(key: string, value: unknown) {
+  if (
+    key === "fields" &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right));
+    return (
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        {entries.map(([fieldName, fieldValue]) => (
+          <div
+            key={fieldName}
+            className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4"
+          >
+            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+              {fieldName.replace(/_/g, " ")}
+            </div>
+            <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
+              {formatDecisionField(fieldValue)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return formatDecisionField(value);
+}
+
 function formatDecisionDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -191,26 +220,19 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
     !Array.isArray(decision.request_body)
       ? Object.entries(decision.request_body)
       : [];
-  const detectionResponse = useMemo(
-    () =>
-      decision
-        ? {
-            decision: {
-              id: decision.id,
-              tenant_id: decision.tenant_id,
-              scenario_id: decision.scenario_id,
-              scenario_iteration_id: decision.scenario_iteration_id,
-              object_id: decision.object_id,
-              object_type: decision.object_type,
-              outcome: decision.outcome,
-              score: decision.score,
-              triggered: decision.triggered,
-              created_at: decision.created_at,
-            },
-            rule_executions: ruleExecutions,
-          }
-        : null,
-    [decision, ruleExecutions]
+  const requestBodyFields =
+    decision?.request_body &&
+    typeof decision.request_body === "object" &&
+    !Array.isArray(decision.request_body) &&
+    decision.request_body.fields &&
+    typeof decision.request_body.fields === "object" &&
+    !Array.isArray(decision.request_body.fields)
+      ? Object.entries(decision.request_body.fields).sort(([left], [right]) =>
+          left.localeCompare(right)
+        )
+      : [];
+  const requestBodyMetaEntries = requestBodyEntries.filter(
+    ([key]) => key !== "fields" && key !== "object_id" && key !== "object_type"
   );
   const rulesById = useMemo(
     () =>
@@ -310,6 +332,81 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border border-slate-200 shadow-none">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+                <h2 className="text-[18px] font-semibold text-slate-950">
+                  Evaluated request body
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setTriggerObjectOpen((current) => !current)}
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
+                >
+                  {triggerObjectOpen ? (
+                    <ChevronUp className="size-4" />
+                  ) : (
+                    <ChevronDown className="size-4" />
+                  )}
+                </button>
+              </div>
+              {triggerObjectOpen ? (
+                <div className="space-y-4 px-6 py-5">
+                  {requestBodyEntries.length > 0 ? (
+                    <div className="space-y-3">
+                      {requestBodyFields.length > 0 ? (
+                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70">
+                          {requestBodyFields.map(([fieldName, fieldValue]) => (
+                            <div
+                              key={fieldName}
+                              className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[220px_minmax(0,1fr)] sm:gap-4"
+                            >
+                              <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                                {fieldName.replace(/_/g, " ")}
+                              </div>
+                              <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
+                                {formatDecisionField(fieldValue)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {requestBodyMetaEntries.length > 0 ? (
+                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          {requestBodyMetaEntries.map(([key, value]) => (
+                            <div
+                              key={key}
+                              className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4"
+                            >
+                              <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                                {key.replace(/_/g, " ")}
+                              </div>
+                              <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
+                                {renderDecisionRequestValue(key, value)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      <details className="rounded-xl border border-slate-200 bg-slate-50">
+                        <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                          View raw JSON
+                        </summary>
+                        <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                          {formatExecutionRequestBody(decision.request_body ?? null)}
+                        </pre>
+                      </details>
+                    </div>
+                  ) : (
+                    <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-3 font-mono text-[12px] text-slate-800">
+                      {formatExecutionRequestBody(decision.request_body ?? null)}
+                    </pre>
+                  )}
                 </div>
               ) : null}
             </CardContent>
@@ -599,6 +696,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
             </Card>
 
           </div>
+
         </div>
 
         <div className="space-y-5">
@@ -624,65 +722,6 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
               </div>
             </div>
           </div>
-
-          <Card className="rounded-2xl border border-slate-200 shadow-none">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <h2 className="text-[18px] font-semibold text-slate-950">
-                  Evaluated request body
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setTriggerObjectOpen((current) => !current)}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                >
-                  {triggerObjectOpen ? (
-                    <ChevronUp className="size-4" />
-                  ) : (
-                    <ChevronDown className="size-4" />
-                  )}
-                </button>
-              </div>
-              {triggerObjectOpen ? (
-                <div className="space-y-4 px-6 py-5">
-                  {requestBodyEntries.length > 0 ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {requestBodyEntries.map(([key, value]) => (
-                          <div
-                            key={key}
-                            className={cn(
-                              "rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3",
-                              key === "fields" ? "sm:col-span-2" : ""
-                            )}
-                          >
-                            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
-                              {key.replace(/_/g, " ")}
-                            </div>
-                            <div className="mt-1 whitespace-pre-wrap break-words text-[13px] text-slate-900">
-                              {formatDecisionField(value)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <details className="rounded-xl border border-slate-200 bg-slate-50">
-                        <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
-                          View raw JSON
-                        </summary>
-                        <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
-                          {formatExecutionRequestBody(decision.request_body ?? null)}
-                        </pre>
-                      </details>
-                    </div>
-                  ) : (
-                    <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-3 font-mono text-[12px] text-slate-800">
-                      {formatExecutionRequestBody(decision.request_body ?? null)}
-                    </pre>
-                  )}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
 
           <Card className="rounded-2xl border border-slate-200 shadow-none">
             <CardContent className="p-0">
@@ -724,14 +763,6 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       </p>
                     </div>
                   </div>
-                  <details className="rounded-xl border border-slate-200 bg-slate-50" open>
-                    <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
-                      View response JSON
-                    </summary>
-                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
-                      {JSON.stringify(detectionResponse, null, 2)}
-                    </pre>
-                  </details>
                 </div>
               ) : null}
             </CardContent>
