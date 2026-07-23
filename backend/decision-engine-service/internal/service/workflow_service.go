@@ -10,12 +10,13 @@ import (
 )
 
 type WorkflowService struct {
-	txManager     ports.TransactionManager
-	idGen         ports.IDGenerator
-	clock         ports.Clock
-	scenarioRepo  ports.ScenarioRepository
-	workflowRepo  ports.WorkflowRepository
-	executionRepo ports.WorkflowExecutionRepository
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	scenarioRepo     ports.ScenarioRepository
+	workflowRepo     ports.WorkflowRepository
+	executionRepo    ports.WorkflowExecutionRepository
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewWorkflowService(
@@ -34,6 +35,10 @@ func NewWorkflowService(
 		workflowRepo:  workflowRepo,
 		executionRepo: executionRepo,
 	}
+}
+
+func (s *WorkflowService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s WorkflowService) Create(
@@ -82,6 +87,9 @@ func (s WorkflowService) Create(
 		created, err = store.Workflows().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveWorkflows(ctx, tenantID, scenarioID)
+	}
 	return created, err
 }
 
@@ -122,13 +130,20 @@ func (s WorkflowService) Update(
 		updated, runErr = store.Workflows().Update(ctx, current)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveWorkflows(ctx, tenantID, scenarioID)
+	}
 	return updated, err
 }
 
 func (s WorkflowService) Delete(ctx context.Context, tenantID, scenarioID, workflowID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.Workflows().Delete(ctx, tenantID, scenarioID, workflowID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveWorkflows(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s WorkflowService) Reorder(ctx context.Context, tenantID, scenarioID string, orderedIDs []string) error {
@@ -155,9 +170,13 @@ func (s WorkflowService) Reorder(ctx context.Context, tenantID, scenarioID strin
 		seen[id] = struct{}{}
 	}
 
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.Workflows().Reorder(ctx, tenantID, scenarioID, orderedIDs, s.clock.Now())
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveWorkflows(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s WorkflowService) ListExecutionsByDecision(ctx context.Context, tenantID, decisionID string) ([]workflow.Execution, error) {

@@ -179,6 +179,8 @@ export type Pagination = {
   limit: number;
   offset: number;
   has_more: boolean;
+  total_count: number;
+  total_pages: number;
   next_offset?: number;
 };
 

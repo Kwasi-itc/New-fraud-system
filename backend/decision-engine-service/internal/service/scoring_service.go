@@ -11,13 +11,14 @@ import (
 )
 
 type ScoringService struct {
-	txManager    ports.TransactionManager
-	idGen        ports.IDGenerator
-	clock        ports.Clock
-	scenarioRepo ports.ScenarioRepository
-	configRepo   ports.ScoringConfigRepository
-	requestRepo  ports.ScoringRequestRepository
-	enqueuer     riverjobs.ScoringRequestEnqueuer
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	scenarioRepo     ports.ScenarioRepository
+	configRepo       ports.ScoringConfigRepository
+	requestRepo      ports.ScoringRequestRepository
+	enqueuer         riverjobs.ScoringRequestEnqueuer
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScoringConfigRepository, requestRepo ports.ScoringRequestRepository, enqueuer riverjobs.ScoringRequestEnqueuer) ScoringService {
@@ -25,6 +26,10 @@ func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerat
 		enqueuer = riverjobs.NoopScoringRequestEnqueuer{}
 	}
 	return ScoringService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, requestRepo: requestRepo, enqueuer: enqueuer}
+}
+
+func (s *ScoringService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s ScoringService) CreateConfig(ctx context.Context, tenantID, scenarioID, name string, allowedOutcomes []string, rulesetRef string, configJSON json.RawMessage, active bool) (scoring.Config, error) {
@@ -53,6 +58,9 @@ func (s ScoringService) CreateConfig(ctx context.Context, tenantID, scenarioID, 
 		created, err = store.ScoringConfigs().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScoringConfigs(ctx, tenantID, scenarioID)
+	}
 	return created, err
 }
 
@@ -84,13 +92,20 @@ func (s ScoringService) UpdateConfig(ctx context.Context, tenantID, scenarioID, 
 		updated, runErr = store.ScoringConfigs().Update(ctx, current)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScoringConfigs(ctx, tenantID, scenarioID)
+	}
 	return updated, err
 }
 
 func (s ScoringService) DeleteConfig(ctx context.Context, tenantID, scenarioID, configID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.ScoringConfigs().Delete(ctx, tenantID, scenarioID, configID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScoringConfigs(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s ScoringService) ListRequestsByDecision(ctx context.Context, tenantID, decisionID string) ([]scoring.Request, error) {

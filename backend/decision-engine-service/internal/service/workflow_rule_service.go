@@ -21,6 +21,7 @@ type WorkflowRuleService struct {
 	workflowRuleRepo ports.WorkflowRuleRepository
 	conditionRepo    ports.WorkflowConditionRepository
 	actionRepo       ports.WorkflowActionRepository
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewWorkflowRuleService(
@@ -43,6 +44,10 @@ func NewWorkflowRuleService(
 		conditionRepo:    conditionRepo,
 		actionRepo:       actionRepo,
 	}
+}
+
+func (s *WorkflowRuleService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s WorkflowRuleService) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]workflow.StructuredRule, error) {
@@ -102,6 +107,9 @@ func (s WorkflowRuleService) CreateRule(ctx context.Context, tenantID, scenarioI
 	if err != nil {
 		return workflow.StructuredRule{}, err
 	}
+	if s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return workflow.StructuredRule{Rule: created}, nil
 }
 
@@ -125,13 +133,20 @@ func (s WorkflowRuleService) UpdateRule(ctx context.Context, tenantID, scenarioI
 	if err != nil {
 		return workflow.StructuredRule{}, err
 	}
+	if s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return s.GetByID(ctx, tenantID, scenarioID, updated.ID)
 }
 
 func (s WorkflowRuleService) DeleteRule(ctx context.Context, tenantID, scenarioID, ruleID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.WorkflowRules().Delete(ctx, tenantID, scenarioID, ruleID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s WorkflowRuleService) ReorderRules(ctx context.Context, tenantID, scenarioID string, orderedIDs []string) error {
@@ -155,9 +170,13 @@ func (s WorkflowRuleService) ReorderRules(ctx context.Context, tenantID, scenari
 	if len(expected) != 0 {
 		return fmt.Errorf("workflow_rule_ids must include every workflow rule exactly once")
 	}
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.WorkflowRules().Reorder(ctx, tenantID, scenarioID, orderedIDs, s.clock.Now())
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s WorkflowRuleService) CreateCondition(ctx context.Context, tenantID, scenarioID, ruleID, function string, params json.RawMessage) (workflow.Condition, error) {
@@ -182,6 +201,9 @@ func (s WorkflowRuleService) CreateCondition(ctx context.Context, tenantID, scen
 		created, runErr = store.WorkflowConditions().Create(ctx, item)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return created, err
 }
 
@@ -202,13 +224,24 @@ func (s WorkflowRuleService) UpdateCondition(ctx context.Context, tenantID, scen
 		updated, runErr = store.WorkflowConditions().Update(ctx, item)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return updated, err
 }
 
 func (s WorkflowRuleService) DeleteCondition(ctx context.Context, tenantID, ruleID, conditionID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	scenarioID, err := s.scenarioIDForWorkflowRule(ctx, tenantID, ruleID)
+	if err != nil {
+		return err
+	}
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.WorkflowConditions().Delete(ctx, tenantID, ruleID, conditionID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s WorkflowRuleService) CreateAction(ctx context.Context, tenantID, scenarioID, ruleID, actionType string, actionConfig json.RawMessage) (workflow.Action, error) {
@@ -233,10 +266,17 @@ func (s WorkflowRuleService) CreateAction(ctx context.Context, tenantID, scenari
 		created, runErr = store.WorkflowActions().Create(ctx, item)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return created, err
 }
 
 func (s WorkflowRuleService) UpdateAction(ctx context.Context, tenantID, ruleID, actionID, actionType string, actionConfig json.RawMessage) (workflow.Action, error) {
+	scenarioID, err := s.scenarioIDForWorkflowRule(ctx, tenantID, ruleID)
+	if err != nil {
+		return workflow.Action{}, err
+	}
 	item, err := s.actionRepo.GetByID(ctx, tenantID, ruleID, actionID)
 	if err != nil {
 		return workflow.Action{}, err
@@ -253,13 +293,43 @@ func (s WorkflowRuleService) UpdateAction(ctx context.Context, tenantID, ruleID,
 		updated, runErr = store.WorkflowActions().Update(ctx, item)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
 	return updated, err
 }
 
 func (s WorkflowRuleService) DeleteAction(ctx context.Context, tenantID, ruleID, actionID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	scenarioID, err := s.scenarioIDForWorkflowRule(ctx, tenantID, ruleID)
+	if err != nil {
+		return err
+	}
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.WorkflowActions().Delete(ctx, tenantID, ruleID, actionID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateWorkflowRules(ctx, tenantID, scenarioID)
+	}
+	return err
+}
+
+func (s WorkflowRuleService) scenarioIDForWorkflowRule(ctx context.Context, tenantID, ruleID string) (string, error) {
+	scenarios, err := s.scenarioRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return "", err
+	}
+	for _, scenarioItem := range scenarios {
+		rules, listErr := s.workflowRuleRepo.ListByScenario(ctx, tenantID, scenarioItem.ID)
+		if listErr != nil {
+			return "", listErr
+		}
+		for _, rule := range rules {
+			if rule.ID == ruleID {
+				return scenarioItem.ID, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("workflow rule %q not found", ruleID)
 }
 
 func (s WorkflowRuleService) aggregate(ctx context.Context, tenantID string, rules []workflow.Rule) ([]workflow.StructuredRule, error) {

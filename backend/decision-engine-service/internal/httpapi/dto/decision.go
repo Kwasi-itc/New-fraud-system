@@ -59,6 +59,8 @@ type PaginationResponse struct {
 	Limit      int  `json:"limit"`
 	Offset     int  `json:"offset"`
 	HasMore    bool `json:"has_more"`
+	TotalCount int  `json:"total_count"`
+	TotalPages int  `json:"total_pages"`
 	NextOffset *int `json:"next_offset,omitempty"`
 }
 

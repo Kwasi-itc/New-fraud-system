@@ -47,6 +47,11 @@ func (r DecisionRepository) ListByTenant(ctx context.Context, tenantID string) (
 	return r.list(ctx, stmt, tenantID)
 }
 
+func (r DecisionRepository) CountByTenant(ctx context.Context, tenantID string) (int, error) {
+	const stmt = `select count(*) from core.decisions where tenant_id = $1`
+	return r.count(ctx, stmt, tenantID)
+}
+
 func (r DecisionRepository) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error) {
 	const stmt = `
 		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
@@ -66,6 +71,11 @@ func (r DecisionRepository) ListByScenario(ctx context.Context, tenantID, scenar
 	return r.list(ctx, stmt, tenantID, scenarioID)
 }
 
+func (r DecisionRepository) CountByScenario(ctx context.Context, tenantID, scenarioID string) (int, error) {
+	const stmt = `select count(*) from core.decisions where tenant_id = $1 and scenario_id = $2`
+	return r.count(ctx, stmt, tenantID, scenarioID)
+}
+
 func (r DecisionRepository) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error) {
 	const stmt = `
 		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, request_body, outcome, score, triggered, created_at
@@ -83,6 +93,11 @@ func (r DecisionRepository) ListByObject(ctx context.Context, tenantID, objectTy
 		order by created_at desc
 	`
 	return r.list(ctx, stmt, tenantID, objectType, objectID)
+}
+
+func (r DecisionRepository) CountByObject(ctx context.Context, tenantID, objectType, objectID string) (int, error) {
+	const stmt = `select count(*) from core.decisions where tenant_id = $1 and object_type = $2 and object_id = $3`
+	return r.count(ctx, stmt, tenantID, objectType, objectID)
 }
 
 func (r DecisionRepository) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
@@ -105,7 +120,10 @@ func (r DecisionRepository) list(ctx context.Context, stmt string, args ...any) 
 }
 
 func (r DecisionRepository) listPage(ctx context.Context, stmt string, args ...any) ([]decision.Decision, bool, error) {
-	rows, err := r.q.Query(ctx, stmt, args...)
+	limit, _ := args[len(args)-2].(int)
+	queryArgs := append([]any(nil), args...)
+	queryArgs[len(queryArgs)-2] = limit + 1
+	rows, err := r.q.Query(ctx, stmt, queryArgs...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -117,7 +135,6 @@ func (r DecisionRepository) listPage(ctx context.Context, stmt string, args ...a
 	if len(items) == 0 {
 		return items, false, nil
 	}
-	limit, _ := args[len(args)-2].(int)
 	hasMore := len(items) > limit
 	if hasMore {
 		items = items[:limit]
@@ -137,6 +154,14 @@ func scanDecisions(rows rowScanner) ([]decision.Decision, error) {
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (r DecisionRepository) count(ctx context.Context, stmt string, args ...any) (int, error) {
+	var total int
+	if err := r.q.QueryRow(ctx, stmt, args...).Scan(&total); err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 type rowScanner interface {

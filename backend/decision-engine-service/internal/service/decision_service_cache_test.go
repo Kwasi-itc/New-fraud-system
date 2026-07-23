@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
@@ -73,3 +74,98 @@ func TestDecisionServiceGetTenantModelCachesWithinTTL(t *testing.T) {
 	}
 }
 
+type pagingDecisionRepoSpy struct {
+	limit      int
+	offset     int
+	tenantID   string
+	scenarioID string
+	objectType string
+	objectID   string
+	called     string
+	items      []decision.Decision
+	hasMore    bool
+	totalCount int
+}
+
+func (s *pagingDecisionRepoSpy) Create(context.Context, decision.Decision) (decision.Decision, error) {
+	return decision.Decision{}, nil
+}
+
+func (s *pagingDecisionRepoSpy) GetByID(context.Context, string, string) (decision.Decision, error) {
+	return decision.Decision{}, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByTenant(context.Context, string) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByTenantPage(_ context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error) {
+	s.called = "tenant"
+	s.tenantID = tenantID
+	s.limit = limit
+	s.offset = offset
+	return s.items, s.hasMore, nil
+}
+
+func (s *pagingDecisionRepoSpy) CountByTenant(context.Context, string) (int, error) {
+	return s.totalCount, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByScenario(context.Context, string, string) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByScenarioPage(_ context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error) {
+	s.called = "scenario"
+	s.tenantID = tenantID
+	s.scenarioID = scenarioID
+	s.limit = limit
+	s.offset = offset
+	return s.items, s.hasMore, nil
+}
+
+func (s *pagingDecisionRepoSpy) CountByScenario(context.Context, string, string) (int, error) {
+	return s.totalCount, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByObject(context.Context, string, string, string) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s *pagingDecisionRepoSpy) ListByObjectPage(_ context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
+	s.called = "object"
+	s.tenantID = tenantID
+	s.objectType = objectType
+	s.objectID = objectID
+	s.limit = limit
+	s.offset = offset
+	return s.items, s.hasMore, nil
+}
+
+func (s *pagingDecisionRepoSpy) CountByObject(context.Context, string, string, string) (int, error) {
+	return s.totalCount, nil
+}
+
+func TestDecisionServiceListByTenantPagePassesRequestedLimit(t *testing.T) {
+	t.Parallel()
+
+	repo := &pagingDecisionRepoSpy{hasMore: true, totalCount: 125}
+	service := DecisionService{decisionRepo: repo}
+
+	page, err := service.ListByTenantPage(context.Background(), "tenant-1", 25, 50)
+	if err != nil {
+		t.Fatalf("ListByTenantPage() error = %v", err)
+	}
+	if repo.called != "tenant" {
+		t.Fatalf("repo called = %q, want tenant", repo.called)
+	}
+	if repo.limit != 25 {
+		t.Fatalf("repo limit = %d, want 25", repo.limit)
+	}
+	if repo.offset != 50 {
+		t.Fatalf("repo offset = %d, want 50", repo.offset)
+	}
+	if !page.HasMore || page.Limit != 25 || page.Offset != 50 || page.TotalCount != 125 {
+		t.Fatalf("page = %+v, want hasMore=true limit=25 offset=50 totalCount=125", page)
+	}
+}

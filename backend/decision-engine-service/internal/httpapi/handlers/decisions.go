@@ -156,7 +156,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 				return
 			}
 			out := adaptDecisionList(result.Items)
-			pagination := buildPagination(limit, offset, result.HasMore)
+			pagination := buildPagination(limit, offset, len(out), result.TotalCount)
 			logHandlerSuccess(c, "list decisions by scenario completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
 			c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 			return
@@ -169,7 +169,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 		}
 		out := adaptDecisionList(itemsUnpaged)
 		logHandlerSuccess(c, "list decisions by scenario completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
-		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
 		return
 	}
 
@@ -182,7 +182,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 				return
 			}
 			out := adaptDecisionList(result.Items)
-			pagination := buildPagination(limit, offset, result.HasMore)
+			pagination := buildPagination(limit, offset, len(out), result.TotalCount)
 			logHandlerSuccess(c, "list decisions by object completed", "tenant_id", tenantID, "object_type", objectType, "object_id", objectID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
 			c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 			return
@@ -195,7 +195,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 		}
 		out := adaptDecisionList(items)
 		logHandlerSuccess(c, "list decisions by object completed", "tenant_id", tenantID, "object_type", objectType, "object_id", objectID, "count", len(out))
-		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
 		return
 	}
 
@@ -207,7 +207,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 			return
 		}
 		out := adaptDecisionList(result.Items)
-		pagination := buildPagination(limit, offset, result.HasMore)
+		pagination := buildPagination(limit, offset, len(out), result.TotalCount)
 		logHandlerSuccess(c, "list decisions by tenant completed", "tenant_id", tenantID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
 		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 		return
@@ -221,7 +221,7 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	}
 	out := adaptDecisionList(items)
 	logHandlerSuccess(c, "list decisions by tenant completed", "tenant_id", tenantID, "count", len(out))
-	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
 }
 
 func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
@@ -239,7 +239,7 @@ func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
 			return
 		}
 		out := adaptDecisionList(result.Items)
-		pagination := buildPagination(limit, offset, result.HasMore)
+		pagination := buildPagination(limit, offset, len(out), result.TotalCount)
 		logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
 		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 		return
@@ -252,7 +252,7 @@ func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
 	}
 	out := adaptDecisionList(items)
 	logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
-	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, false)})
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
 }
 
 func adaptDecisionList(items []decision.Decision) []dto.DecisionResponse {
@@ -263,16 +263,23 @@ func adaptDecisionList(items []decision.Decision) []dto.DecisionResponse {
 	return out
 }
 
-func buildPagination(limit, offset int, hasMore bool) dto.PaginationResponse {
+func buildPagination(limit, offset, itemCount, totalCount int) dto.PaginationResponse {
+	hasMore := offset+itemCount < totalCount
 	var nextOffset *int
 	if hasMore {
 		value := offset + limit
 		nextOffset = &value
 	}
+	totalPages := 0
+	if limit > 0 {
+		totalPages = (totalCount + limit - 1) / limit
+	}
 	return dto.PaginationResponse{
 		Limit:      limit,
 		Offset:     offset,
 		HasMore:    hasMore,
+		TotalCount: totalCount,
+		TotalPages: totalPages,
 		NextOffset: nextOffset,
 	}
 }

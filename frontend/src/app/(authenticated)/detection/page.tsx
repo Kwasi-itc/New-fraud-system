@@ -123,6 +123,31 @@ const decisionOutcomes = [
 
 const DECISIONS_PAGE_SIZE = 25;
 
+type DecisionPaginationToken =
+  | { type: "page"; page: number }
+  | { type: "ellipsis"; key: string };
+
+function buildDecisionPaginationTokens(
+  currentPage: number,
+  totalPages: number
+): DecisionPaginationToken[] {
+  const pages = new Set<number>([1, currentPage - 1, currentPage, currentPage + 1, totalPages]);
+  const visiblePages = Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((left, right) => left - right);
+
+  const tokens: DecisionPaginationToken[] = [];
+  for (let index = 0; index < visiblePages.length; index += 1) {
+    const page = visiblePages[index];
+    const previousPage = visiblePages[index - 1];
+    if (previousPage != null && page-previousPage > 1) {
+      tokens.push({ type: "ellipsis", key: `gap-${previousPage}-${page}` });
+    }
+    tokens.push({ type: "page", page });
+  }
+  return tokens;
+}
+
 function formatDecisionDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -753,7 +778,11 @@ function LiveDecisionsView({
   }, [decisionsQuery.data?.decisions, scenarioNameById, searchTerm, selectedFilters]);
   const pagination = decisionsQuery.data?.pagination;
   const canGoPrevious = pageOffset > 0;
-  const canGoNext = Boolean(pagination?.has_more);
+  const totalRecords = pagination?.total_count ?? 0;
+  const totalPages = pagination?.total_pages ?? 0;
+  const canGoNext = pagination ? pageOffset + DECISIONS_PAGE_SIZE < totalRecords : false;
+  const currentPage = Math.floor(pageOffset / DECISIONS_PAGE_SIZE) + 1;
+  const paginationTokens = totalPages > 0 ? buildDecisionPaginationTokens(currentPage, totalPages) : [];
   const pageRangeLabel =
     decisionsQuery.data?.decisions?.length && pagination
       ? `${pagination.offset + 1}-${pagination.offset + decisionsQuery.data.decisions.length}`
@@ -1068,11 +1097,12 @@ function LiveDecisionsView({
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     Showing {pageRangeLabel}
+                    {pagination ? ` of ${totalRecords}` : ""}
                     {searchTerm.trim() || selectedFilters.length > 0
                       ? " on this page after filters"
                       : ""}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
                       disabled={!canGoPrevious}
@@ -1083,22 +1113,44 @@ function LiveDecisionsView({
                       }
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
                     >
-                      Previous
+                      <ChevronLeft className="size-4" />
                     </Button>
-                    <div className="rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700">
-                      Offset {pagination.offset}
+                    <div className="flex items-center gap-1">
+                      {paginationTokens.map((token) =>
+                        token.type === "ellipsis" ? (
+                          <div
+                            key={token.key}
+                            className="flex h-9 min-w-9 items-center justify-center px-1 text-[13px] text-slate-400"
+                          >
+                            ...
+                          </div>
+                        ) : (
+                          <Button
+                            key={token.page}
+                            variant="outline"
+                            onClick={() => setPageOffset((token.page - 1) * DECISIONS_PAGE_SIZE)}
+                            disabled={token.page === currentPage}
+                            className={cn(
+                              "h-9 min-w-9 rounded-xl border px-3 text-[13px] shadow-none",
+                              token.page === currentPage
+                                ? "border-[#2d63b8] bg-[#2d63b8] text-white hover:bg-[#2d63b8]"
+                                : "border-slate-200 bg-white text-slate-700"
+                            )}
+                          >
+                            {token.page}
+                          </Button>
+                        )
+                      )}
                     </div>
                     <Button
                       variant="outline"
                       disabled={!canGoNext}
                       onClick={() =>
-                        setPageOffset(
-                          pagination.next_offset ?? pageOffset + DECISIONS_PAGE_SIZE
-                        )
+                        setPageOffset(pageOffset + DECISIONS_PAGE_SIZE)
                       }
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
                     >
-                      Next
+                      <ChevronRight className="size-4" />
                     </Button>
                   </div>
                 </div>
