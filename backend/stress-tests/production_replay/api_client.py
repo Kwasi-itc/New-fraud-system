@@ -170,6 +170,37 @@ class ServiceClients:
             json={"object_id": object_id, "object_type": "transactions", "fields": fields, "source": "production_replay"},
         )
 
+    async def create_async_decision_execution(
+        self,
+        tenant_id: str,
+        object_id: str,
+        fields: dict[str, Any],
+        idempotency_key: str,
+        wait_timeout_ms: int = 0,
+        callback_url: str = "",
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "object_type": "transactions",
+            "idempotency_key": idempotency_key,
+            "wait_timeout_ms": wait_timeout_ms,
+            "items": [
+                {
+                    "object_id": object_id,
+                    "object_type": "transactions",
+                    "fields": fields,
+                }
+            ],
+        }
+        if callback_url:
+            payload["callback_url"] = callback_url
+        return await self.request(
+            self.decision_engine,
+            "POST",
+            f"/v1/tenants/{tenant_id}/async-decision-executions",
+            201,
+            json=payload,
+        )
+
 
 def _response_detail(response: httpx.Response) -> str:
     text = response.text.replace("\n", " ").strip()

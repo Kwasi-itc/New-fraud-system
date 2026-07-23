@@ -77,6 +77,44 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(metrics.decision_failures, 1)
         self.assertEqual(metrics.summary(multiplier=1, source_start=None, source_end=None)["status"], "completed_with_errors")
 
+    async def test_async_decision_mode_uses_async_execution_endpoint(self) -> None:
+        class FakeClients:
+            def __init__(self) -> None:
+                self.calls: list[str] = []
+                self.async_wait_timeout_ms = -1
+                self.async_idempotency_key = ""
+                self.async_callback_url = ""
+
+            async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
+                self.calls.append("ingest")
+                return {}, 1
+
+            async def create_async_decision_execution(self, *_args: Any, **kwargs: Any) -> dict[str, Any]:
+                self.calls.append("async_decision")
+                self.async_wait_timeout_ms = int(kwargs["wait_timeout_ms"])
+                self.async_callback_url = str(kwargs["callback_url"])
+                self.async_idempotency_key = str(_args[3])
+                return {"async_decision_execution": {"status": "queued"}}
+
+        clients = FakeClients()
+        metrics = ReplayMetrics()
+        chain = TransactionChain(
+            clients,
+            "tenant",
+            metrics,
+            1,
+            decision_mode="async",
+            async_wait_timeout_ms=25,
+            async_callback_url="https://callbacks.example/async",
+        )  # type: ignore[arg-type]
+        await chain(event("tx", datetime.now(timezone.utc)), 0.0)
+        self.assertEqual(clients.calls, ["ingest", "async_decision"])
+        self.assertEqual(clients.async_wait_timeout_ms, 25)
+        self.assertEqual(clients.async_callback_url, "https://callbacks.example/async")
+        self.assertTrue(clients.async_idempotency_key.startswith("production-replay-async:"))
+        self.assertEqual(metrics.decision_successes, 1)
+        self.assertEqual(metrics.completed, 1)
+
     async def test_resume_cursor_starts_after_a_drained_checkpoint(self) -> None:
         at = datetime(2026, 1, 1, tzinfo=timezone.utc)
         events = [event("first", at, 0), event("second", at + timedelta(seconds=1), 1), event("third", at + timedelta(seconds=2), 2)]

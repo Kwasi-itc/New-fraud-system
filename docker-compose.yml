@@ -311,11 +311,11 @@ services:
       args:
         NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
         NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
-        NEXT_PUBLIC_DATA_MODEL_TENANT_ID:  65cb3260-cfd4-4a72-9d32-d23356109469
+        NEXT_PUBLIC_DATA_MODEL_TENANT_ID:  d8836c7a-2616-4842-9e0d-fd525256d6ec
     environment:
       NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
       NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
-      NEXT_PUBLIC_DATA_MODEL_TENANT_ID:  65cb3260-cfd4-4a72-9d32-d23356109469
+      NEXT_PUBLIC_DATA_MODEL_TENANT_ID:  d8836c7a-2616-4842-9e0d-fd525256d6ec
     depends_on:
       data-model-service:
         condition: service_started

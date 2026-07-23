@@ -16,6 +16,7 @@ The Make target accepts the common replay parameters:
 make production-replay TRANSACTIONS=2000 MULTIPLIER=3
 make production-replay TRANSACTIONS=3000 MULTIPLIER=4x
 make production-replay TRANSACTIONS=all MULTIPLIER=360x
+make production-replay-async TRANSACTIONS=1000 MULTIPLIER=360x
 ```
 
 You can replay a source-time window instead of choosing a transaction count:
@@ -30,6 +31,28 @@ make production-replay DURATION=12h MULTIPLIER=360x
 When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ignored. The duration sample starts at the earliest source transaction timestamp and includes all configured streams up to that source-time cutoff.
 
 `MULTIPLIER` also accepts a `*` suffix, for example `MULTIPLIER='360*'`. Quote it in your shell so it is not treated as a filename pattern.
+
+The `production-replay-async` target uses the same ingestion flow, then submits each event to `POST /v1/tenants/{tenant_id}/async-decision-executions` instead of the direct ingestion callback decision endpoint. For EC2, use:
+
+```bash
+make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x
+```
+
+For local async replay, the wrapper starts a small host callback receiver automatically when `ASYNC_CALLBACK_URL` is not provided:
+
+```bash
+make production-replay-async TRANSACTIONS=1000 MULTIPLIER=360x
+```
+
+The local receiver is passed to Docker workers as `http://host.docker.internal:8099/callbacks/async-decision`. The replay output directory includes `async-decisions.ndjson` and `async-callback-summary.json`. The summary reports how many async endpoint requests completed inline versus how many were deferred, plus per-deferred-execution callback timing.
+
+Both async targets accept `ASYNC_WAIT_TIMEOUT_MS=<milliseconds>`. When omitted, the service default async wait window is used. Local async replay also accepts `ASYNC_CALLBACK_PORT=<port>` and `ASYNC_CALLBACK_WAIT_TIMEOUT=<seconds>`.
+
+To ask the decision engine to call back after each async execution completes or fails, pass a callback URL that is reachable from the decision-engine worker:
+
+```bash
+make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x ASYNC_CALLBACK_URL=https://example.com/fraud/async-callback
+```
 
 You can still run the wrapper directly:
 
@@ -133,6 +156,9 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
   --multiplier 10 \
   --max-in-flight 500 \
   --checkpoint-every 10000 \
+  --decision-mode async \
+  --async-wait-timeout-ms 0 \
+  --async-callback-url "$ASYNC_CALLBACK_URL" \
   --data-model-url "$DATA_MODEL_URL" \
   --ingestion-url "$INGESTION_URL" \
   --decision-engine-url "$DECISION_ENGINE_URL"
