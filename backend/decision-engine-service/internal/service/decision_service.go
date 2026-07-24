@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
@@ -19,6 +20,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 type DecisionEvaluationRequest struct {
@@ -98,7 +100,83 @@ type DecisionService struct {
 	ruleEvaluationConcurrency     int
 	scenarioEvaluationConcurrency int
 	evaluationCache               *decisionEvaluationCache
+	metadataLoadGroup             *singleflight.Group
 	dbPoolStatsProvider           DBPoolStatsProvider
+}
+
+type cacheMetricCounters struct {
+	hits          uint64
+	misses        uint64
+	loads         uint64
+	sharedResults uint64
+	invalidations uint64
+}
+
+type cacheMetricSnapshot struct {
+	Hits          uint64
+	Misses        uint64
+	Loads         uint64
+	SharedResults uint64
+	Invalidations uint64
+}
+
+type decisionCacheStatsSnapshot struct {
+	Scenario         cacheMetricSnapshot
+	LiveScenarios    cacheMetricSnapshot
+	Iteration        cacheMetricSnapshot
+	Rules            cacheMetricSnapshot
+	TenantModel      cacheMetricSnapshot
+	WorkflowRules    cacheMetricSnapshot
+	ActiveWorkflows  cacheMetricSnapshot
+	ActiveScreenings cacheMetricSnapshot
+	ActiveScorings   cacheMetricSnapshot
+}
+
+func (s decisionCacheStatsSnapshot) total() cacheMetricSnapshot {
+	snapshots := []cacheMetricSnapshot{
+		s.Scenario,
+		s.LiveScenarios,
+		s.Iteration,
+		s.Rules,
+		s.TenantModel,
+		s.WorkflowRules,
+		s.ActiveWorkflows,
+		s.ActiveScreenings,
+		s.ActiveScorings,
+	}
+	var total cacheMetricSnapshot
+	for _, snapshot := range snapshots {
+		total.Hits += snapshot.Hits
+		total.Misses += snapshot.Misses
+		total.Loads += snapshot.Loads
+		total.SharedResults += snapshot.SharedResults
+		total.Invalidations += snapshot.Invalidations
+	}
+	return total
+}
+
+func (s decisionCacheStatsSnapshot) diff(previous decisionCacheStatsSnapshot) decisionCacheStatsSnapshot {
+	return decisionCacheStatsSnapshot{
+		Scenario:         s.Scenario.diff(previous.Scenario),
+		LiveScenarios:    s.LiveScenarios.diff(previous.LiveScenarios),
+		Iteration:        s.Iteration.diff(previous.Iteration),
+		Rules:            s.Rules.diff(previous.Rules),
+		TenantModel:      s.TenantModel.diff(previous.TenantModel),
+		WorkflowRules:    s.WorkflowRules.diff(previous.WorkflowRules),
+		ActiveWorkflows:  s.ActiveWorkflows.diff(previous.ActiveWorkflows),
+		ActiveScreenings: s.ActiveScreenings.diff(previous.ActiveScreenings),
+		ActiveScorings:   s.ActiveScorings.diff(previous.ActiveScorings),
+	}
+}
+
+func (s cacheMetricSnapshot) diff(previous cacheMetricSnapshot) cacheMetricSnapshot {
+	return cacheMetricSnapshot{
+		Hits:          s.Hits - previous.Hits,
+		Misses:        s.Misses - previous.Misses,
+		Loads:         s.Loads - previous.Loads,
+		SharedResults: s.SharedResults - previous.SharedResults,
+		Invalidations: s.Invalidations - previous.Invalidations,
+	}
 }
 
 func NewDecisionService(
@@ -184,6 +262,7 @@ func NewDecisionService(
 		ruleEvaluationConcurrency:     ruleEvaluationConcurrency,
 		scenarioEvaluationConcurrency: scenarioEvaluationConcurrency,
 		evaluationCache:               newDecisionEvaluationCache(decisionEvaluationCacheTTL),
+		metadataLoadGroup:             &singleflight.Group{},
 		dbPoolStatsProvider:           dbPoolStatsProvider,
 	}
 }
@@ -208,6 +287,7 @@ func (s DecisionService) evaluateScenario(
 	timings := make(map[string]int64, 20)
 	currentStage := "scenario_get"
 	poolStatsBefore, hasPoolStats := s.snapshotDBPoolStats()
+	cacheStatsBefore, hasCacheStats := s.snapshotCacheStats()
 	markTiming := func(stage string) {
 		now := time.Now()
 		timings[stage+"_us"] = now.Sub(stageStartedAt).Microseconds()
@@ -236,7 +316,7 @@ func (s DecisionService) evaluateScenario(
 					"failed_stage", currentStage,
 					"error", err.Error(),
 				},
-				s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+				append(cacheStatsAttrs(s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)), s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...)...,
 			)...,
 		)
 	}()
@@ -508,7 +588,7 @@ func (s DecisionService) evaluateScenario(
 		len(storedScreeningExecs),
 		len(storedScoringReqs),
 		outboxEventCount,
-		s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
+		append(cacheStatsAttrs(s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)), s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...)...,
 	)
 
 	return DecisionEvaluationResult{
@@ -555,11 +635,67 @@ func logDecisionEvaluationTimings(
 	slog.Default().Debug("decision evaluation timings", attrs...)
 }
 
+func cacheStatsAttrs(delta decisionCacheStatsSnapshot) []any {
+	total := delta.total()
+	return []any{
+		"cache_total_hits", total.Hits,
+		"cache_total_misses", total.Misses,
+		"cache_total_loads", total.Loads,
+		"cache_total_shared_results", total.SharedResults,
+		"cache_total_invalidations", total.Invalidations,
+		"cache_scenario_hits", delta.Scenario.Hits,
+		"cache_scenario_misses", delta.Scenario.Misses,
+		"cache_scenario_loads", delta.Scenario.Loads,
+		"cache_iteration_hits", delta.Iteration.Hits,
+		"cache_iteration_misses", delta.Iteration.Misses,
+		"cache_iteration_loads", delta.Iteration.Loads,
+		"cache_rules_hits", delta.Rules.Hits,
+		"cache_rules_misses", delta.Rules.Misses,
+		"cache_rules_loads", delta.Rules.Loads,
+		"cache_tenant_model_hits", delta.TenantModel.Hits,
+		"cache_tenant_model_misses", delta.TenantModel.Misses,
+		"cache_tenant_model_loads", delta.TenantModel.Loads,
+		"cache_workflow_rules_hits", delta.WorkflowRules.Hits,
+		"cache_workflow_rules_misses", delta.WorkflowRules.Misses,
+		"cache_active_workflows_hits", delta.ActiveWorkflows.Hits,
+		"cache_active_workflows_misses", delta.ActiveWorkflows.Misses,
+		"cache_active_screenings_hits", delta.ActiveScreenings.Hits,
+		"cache_active_screenings_misses", delta.ActiveScreenings.Misses,
+		"cache_active_scorings_hits", delta.ActiveScorings.Hits,
+		"cache_active_scorings_misses", delta.ActiveScorings.Misses,
+	}
+}
+
+func liveScenarioCacheStatsAttrs(delta decisionCacheStatsSnapshot) []any {
+	return []any{
+		"cache_live_scenarios_hits", delta.LiveScenarios.Hits,
+		"cache_live_scenarios_misses", delta.LiveScenarios.Misses,
+		"cache_live_scenarios_loads", delta.LiveScenarios.Loads,
+		"cache_live_scenarios_shared_results", delta.LiveScenarios.SharedResults,
+		"cache_live_scenarios_invalidations", delta.LiveScenarios.Invalidations,
+	}
+}
+
 func (s DecisionService) snapshotDBPoolStats() (DBPoolStats, bool) {
 	if s.dbPoolStatsProvider == nil {
 		return DBPoolStats{}, false
 	}
 	return s.dbPoolStatsProvider(), true
+}
+
+func (s DecisionService) snapshotCacheStats() (decisionCacheStatsSnapshot, bool) {
+	if s.evaluationCache == nil {
+		return decisionCacheStatsSnapshot{}, false
+	}
+	return s.evaluationCache.snapshotStats(), true
+}
+
+func (s DecisionService) snapshotCacheStatsOrZero(before decisionCacheStatsSnapshot, ok bool) decisionCacheStatsSnapshot {
+	if !ok || s.evaluationCache == nil {
+		return decisionCacheStatsSnapshot{}
+	}
+	after := s.evaluationCache.snapshotStats()
+	return after.diff(before)
 }
 
 func (s DecisionService) dbPoolStatsAttrs(before DBPoolStats, ok bool) []any {
@@ -585,142 +721,475 @@ func (s DecisionService) getScenario(ctx context.Context, tenantID, scenarioID s
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if item, ok := s.evaluationCache.getScenario(tenantID, scenarioID, now); ok {
+			s.evaluationCache.recordScenarioHit()
 			return item, nil
 		}
+		s.evaluationCache.recordScenarioMiss()
 	}
-	item, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+	if s.metadataLoadGroup == nil {
+		item, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+		if err != nil {
+			return scenarioDomain.Scenario{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordScenarioLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setScenario(tenantID, scenarioID, item, now)
+		}
+		return item, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("scenario:"+scenarioCacheKey(tenantID, scenarioID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if item, ok := s.evaluationCache.getScenario(tenantID, scenarioID, loadNow); ok {
+				return item, nil
+			}
+		}
+		item, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+		if err != nil {
+			return scenarioDomain.Scenario{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordScenarioLoad()
+			s.evaluationCache.setScenario(tenantID, scenarioID, item, loadNow)
+		}
+		return cloneScenario(item), nil
+	})
 	if err != nil {
 		return scenarioDomain.Scenario{}, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setScenario(tenantID, scenarioID, item, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordScenarioShared()
 	}
-	return item, nil
+	item, ok := value.(scenarioDomain.Scenario)
+	if !ok {
+		return scenarioDomain.Scenario{}, fmt.Errorf("unexpected scenario cache load type %T", value)
+	}
+	return cloneScenario(item), nil
 }
 
 func (s DecisionService) getIteration(ctx context.Context, tenantID, scenarioID, iterationID string) (scenarioDomain.Iteration, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if item, ok := s.evaluationCache.getIteration(tenantID, scenarioID, iterationID, now); ok {
+			s.evaluationCache.recordIterationHit()
 			return item, nil
 		}
+		s.evaluationCache.recordIterationMiss()
 	}
-	item, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
+	if s.metadataLoadGroup == nil {
+		item, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
+		if err != nil {
+			return scenarioDomain.Iteration{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordIterationLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setIteration(tenantID, scenarioID, iterationID, item, now)
+		}
+		return item, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("iteration:"+iterationCacheKey(tenantID, scenarioID, iterationID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if item, ok := s.evaluationCache.getIteration(tenantID, scenarioID, iterationID, loadNow); ok {
+				return item, nil
+			}
+		}
+		item, err := s.iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
+		if err != nil {
+			return scenarioDomain.Iteration{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordIterationLoad()
+			s.evaluationCache.setIteration(tenantID, scenarioID, iterationID, item, loadNow)
+		}
+		return cloneIteration(item), nil
+	})
 	if err != nil {
 		return scenarioDomain.Iteration{}, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setIteration(tenantID, scenarioID, iterationID, item, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordIterationShared()
 	}
-	return item, nil
+	item, ok := value.(scenarioDomain.Iteration)
+	if !ok {
+		return scenarioDomain.Iteration{}, fmt.Errorf("unexpected iteration cache load type %T", value)
+	}
+	return cloneIteration(item), nil
 }
 
 func (s DecisionService) getRules(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenarioDomain.Rule, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if items, ok := s.evaluationCache.getRules(tenantID, scenarioID, iterationID, now); ok {
+			s.evaluationCache.recordRulesHit()
 			return items, nil
 		}
+		s.evaluationCache.recordRulesMiss()
 	}
-	items, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
+	if s.metadataLoadGroup == nil {
+		items, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordRulesLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setRules(tenantID, scenarioID, iterationID, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("rules:"+iterationCacheKey(tenantID, scenarioID, iterationID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getRules(tenantID, scenarioID, iterationID, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordRulesLoad()
+			s.evaluationCache.setRules(tenantID, scenarioID, iterationID, items, loadNow)
+		}
+		return cloneScenarioRules(items), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setRules(tenantID, scenarioID, iterationID, items, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordRulesShared()
 	}
-	return items, nil
+	items, ok := value.([]scenarioDomain.Rule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected rules cache load type %T", value)
+	}
+	return cloneScenarioRules(items), nil
 }
 
 func (s DecisionService) getTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if item, ok := s.evaluationCache.getTenantModel(tenantID, now); ok {
+			s.evaluationCache.recordTenantModelHit()
 			return item, nil
 		}
+		s.evaluationCache.recordTenantModelMiss()
 	}
-	item, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	if s.metadataLoadGroup == nil {
+		item, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+		if err != nil {
+			return ports.TenantModel{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordTenantModelLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setTenantModel(tenantID, item, now)
+		}
+		return item, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("tenant-model:"+tenantID, func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if item, ok := s.evaluationCache.getTenantModel(tenantID, loadNow); ok {
+				return item, nil
+			}
+		}
+		item, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+		if err != nil {
+			return ports.TenantModel{}, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordTenantModelLoad()
+			s.evaluationCache.setTenantModel(tenantID, item, loadNow)
+		}
+		return cloneTenantModel(item), nil
+	})
 	if err != nil {
 		return ports.TenantModel{}, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setTenantModel(tenantID, item, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordTenantModelShared()
 	}
-	return item, nil
+	item, ok := value.(ports.TenantModel)
+	if !ok {
+		return ports.TenantModel{}, fmt.Errorf("unexpected tenant model cache load type %T", value)
+	}
+	return cloneTenantModel(item), nil
 }
 
 func (s DecisionService) getWorkflowRules(ctx context.Context, tenantID, scenarioID string) ([]workflow.Rule, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if items, ok := s.evaluationCache.getWorkflowRules(tenantID, scenarioID, now); ok {
+			s.evaluationCache.recordWorkflowRulesHit()
 			return items, nil
 		}
+		s.evaluationCache.recordWorkflowRulesMiss()
 	}
-	items, err := s.workflowRuleRepo.ListByScenario(ctx, tenantID, scenarioID)
+	if s.metadataLoadGroup == nil {
+		items, err := s.workflowRuleRepo.ListByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordWorkflowRulesLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setWorkflowRules(tenantID, scenarioID, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("workflow-rules:"+scenarioCacheKey(tenantID, scenarioID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getWorkflowRules(tenantID, scenarioID, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.workflowRuleRepo.ListByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordWorkflowRulesLoad()
+			s.evaluationCache.setWorkflowRules(tenantID, scenarioID, items, loadNow)
+		}
+		return cloneWorkflowRules(items), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setWorkflowRules(tenantID, scenarioID, items, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordWorkflowRulesShared()
 	}
-	return items, nil
+	items, ok := value.([]workflow.Rule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected workflow rules cache load type %T", value)
+	}
+	return cloneWorkflowRules(items), nil
 }
 
 func (s DecisionService) getActiveWorkflows(ctx context.Context, tenantID, scenarioID string) ([]workflow.Definition, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if items, ok := s.evaluationCache.getActiveWorkflows(tenantID, scenarioID, now); ok {
+			s.evaluationCache.recordActiveWorkflowsHit()
 			return items, nil
 		}
+		s.evaluationCache.recordActiveWorkflowsMiss()
 	}
-	items, err := s.workflowRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if s.metadataLoadGroup == nil {
+		items, err := s.workflowRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveWorkflowsLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setActiveWorkflows(tenantID, scenarioID, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("active-workflows:"+scenarioCacheKey(tenantID, scenarioID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getActiveWorkflows(tenantID, scenarioID, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.workflowRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveWorkflowsLoad()
+			s.evaluationCache.setActiveWorkflows(tenantID, scenarioID, items, loadNow)
+		}
+		return cloneWorkflowDefinitions(items), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setActiveWorkflows(tenantID, scenarioID, items, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordActiveWorkflowsShared()
 	}
-	return items, nil
+	items, ok := value.([]workflow.Definition)
+	if !ok {
+		return nil, fmt.Errorf("unexpected workflows cache load type %T", value)
+	}
+	return cloneWorkflowDefinitions(items), nil
 }
 
 func (s DecisionService) getActiveScreeningConfigs(ctx context.Context, tenantID, scenarioID string) ([]screening.Config, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if items, ok := s.evaluationCache.getActiveScreeningConfigs(tenantID, scenarioID, now); ok {
+			s.evaluationCache.recordActiveScreeningsHit()
 			return items, nil
 		}
+		s.evaluationCache.recordActiveScreeningsMiss()
 	}
-	items, err := s.screeningConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if s.metadataLoadGroup == nil {
+		items, err := s.screeningConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveScreeningsLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setActiveScreeningConfigs(tenantID, scenarioID, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("active-screening:"+scenarioCacheKey(tenantID, scenarioID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getActiveScreeningConfigs(tenantID, scenarioID, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.screeningConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveScreeningsLoad()
+			s.evaluationCache.setActiveScreeningConfigs(tenantID, scenarioID, items, loadNow)
+		}
+		return cloneScreeningConfigs(items), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setActiveScreeningConfigs(tenantID, scenarioID, items, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordActiveScreeningsShared()
 	}
-	return items, nil
+	items, ok := value.([]screening.Config)
+	if !ok {
+		return nil, fmt.Errorf("unexpected screening configs cache load type %T", value)
+	}
+	return cloneScreeningConfigs(items), nil
 }
 
 func (s DecisionService) getActiveScoringConfigs(ctx context.Context, tenantID, scenarioID string) ([]scoring.Config, error) {
 	now := time.Now()
 	if s.evaluationCache != nil {
 		if items, ok := s.evaluationCache.getActiveScoringConfigs(tenantID, scenarioID, now); ok {
+			s.evaluationCache.recordActiveScoringsHit()
 			return items, nil
 		}
+		s.evaluationCache.recordActiveScoringsMiss()
 	}
-	items, err := s.scoringConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+	if s.metadataLoadGroup == nil {
+		items, err := s.scoringConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveScoringsLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setActiveScoringConfigs(tenantID, scenarioID, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("active-scoring:"+scenarioCacheKey(tenantID, scenarioID), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getActiveScoringConfigs(tenantID, scenarioID, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.scoringConfigRepo.ListActiveByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordActiveScoringsLoad()
+			s.evaluationCache.setActiveScoringConfigs(tenantID, scenarioID, items, loadNow)
+		}
+		return cloneScoringConfigs(items), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if s.evaluationCache != nil {
-		s.evaluationCache.setActiveScoringConfigs(tenantID, scenarioID, items, now)
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordActiveScoringsShared()
 	}
-	return items, nil
+	items, ok := value.([]scoring.Config)
+	if !ok {
+		return nil, fmt.Errorf("unexpected scoring configs cache load type %T", value)
+	}
+	return cloneScoringConfigs(items), nil
+}
+
+func (s DecisionService) getLiveScenariosByTriggerObject(ctx context.Context, tenantID, objectType string) ([]scenarioDomain.Scenario, error) {
+	now := time.Now()
+	if s.evaluationCache != nil {
+		if items, ok := s.evaluationCache.getLiveScenariosByTriggerObject(tenantID, objectType, now); ok {
+			s.evaluationCache.recordLiveScenariosHit()
+			return items, nil
+		}
+		s.evaluationCache.recordLiveScenariosMiss()
+	}
+	if s.metadataLoadGroup == nil {
+		items, err := s.scenarioRepo.ListLiveByTriggerObject(ctx, tenantID, objectType)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordLiveScenariosLoad()
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.setLiveScenariosByTriggerObject(tenantID, objectType, items, now)
+		}
+		return items, nil
+	}
+	value, err, shared := s.metadataLoadGroup.Do("live-scenarios:"+liveScenarioCacheKey(tenantID, objectType), func() (interface{}, error) {
+		loadNow := time.Now()
+		if s.evaluationCache != nil {
+			if items, ok := s.evaluationCache.getLiveScenariosByTriggerObject(tenantID, objectType, loadNow); ok {
+				return items, nil
+			}
+		}
+		items, err := s.scenarioRepo.ListLiveByTriggerObject(ctx, tenantID, objectType)
+		if err != nil {
+			return nil, err
+		}
+		if s.evaluationCache != nil {
+			s.evaluationCache.recordLiveScenariosLoad()
+			s.evaluationCache.setLiveScenariosByTriggerObject(tenantID, objectType, items, loadNow)
+		}
+		return cloneScenarios(items), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if s.evaluationCache != nil && shared {
+		s.evaluationCache.recordLiveScenariosShared()
+	}
+	items, ok := value.([]scenarioDomain.Scenario)
+	if !ok {
+		return nil, fmt.Errorf("unexpected live scenarios cache load type %T", value)
+	}
+	return cloneScenarios(items), nil
 }
 
 type decisionEvaluationCache struct {
 	mu                     sync.RWMutex
 	ttl                    time.Duration
 	scenarios              map[string]cachedScenario
+	liveScenarios          map[string]cachedScenarios
 	iterations             map[string]cachedIteration
 	rules                  map[string]cachedRules
 	tenantModels           map[string]cachedTenantModel
@@ -728,10 +1197,24 @@ type decisionEvaluationCache struct {
 	activeWorkflows        map[string]cachedWorkflows
 	activeScreeningConfigs map[string]cachedScreeningConfigs
 	activeScoringConfigs   map[string]cachedScoringConfigs
+	scenarioStats          cacheMetricCounters
+	liveScenarioStats      cacheMetricCounters
+	iterationStats         cacheMetricCounters
+	ruleStats              cacheMetricCounters
+	tenantModelStats       cacheMetricCounters
+	workflowRuleStats      cacheMetricCounters
+	activeWorkflowStats    cacheMetricCounters
+	activeScreeningStats   cacheMetricCounters
+	activeScoringStats     cacheMetricCounters
 }
 
 type cachedScenario struct {
 	item      scenarioDomain.Scenario
+	expiresAt time.Time
+}
+
+type cachedScenarios struct {
+	items     []scenarioDomain.Scenario
 	expiresAt time.Time
 }
 
@@ -774,6 +1257,7 @@ func newDecisionEvaluationCache(ttl time.Duration) *decisionEvaluationCache {
 	return &decisionEvaluationCache{
 		ttl:                    ttl,
 		scenarios:              map[string]cachedScenario{},
+		liveScenarios:          map[string]cachedScenarios{},
 		iterations:             map[string]cachedIteration{},
 		rules:                  map[string]cachedRules{},
 		tenantModels:           map[string]cachedTenantModel{},
@@ -782,6 +1266,116 @@ func newDecisionEvaluationCache(ttl time.Duration) *decisionEvaluationCache {
 		activeScreeningConfigs: map[string]cachedScreeningConfigs{},
 		activeScoringConfigs:   map[string]cachedScoringConfigs{},
 	}
+}
+
+func (s DecisionService) CacheInvalidator() DecisionMetadataCacheInvalidator {
+	return s.evaluationCache
+}
+
+func (c *decisionEvaluationCache) snapshotStats() decisionCacheStatsSnapshot {
+	if c == nil {
+		return decisionCacheStatsSnapshot{}
+	}
+	return decisionCacheStatsSnapshot{
+		Scenario:         c.scenarioStats.snapshot(),
+		LiveScenarios:    c.liveScenarioStats.snapshot(),
+		Iteration:        c.iterationStats.snapshot(),
+		Rules:            c.ruleStats.snapshot(),
+		TenantModel:      c.tenantModelStats.snapshot(),
+		WorkflowRules:    c.workflowRuleStats.snapshot(),
+		ActiveWorkflows:  c.activeWorkflowStats.snapshot(),
+		ActiveScreenings: c.activeScreeningStats.snapshot(),
+		ActiveScorings:   c.activeScoringStats.snapshot(),
+	}
+}
+
+func (c *decisionEvaluationCache) recordScenarioHit()          { c.scenarioStats.recordHit() }
+func (c *decisionEvaluationCache) recordScenarioMiss()         { c.scenarioStats.recordMiss() }
+func (c *decisionEvaluationCache) recordScenarioLoad()         { c.scenarioStats.recordLoad() }
+func (c *decisionEvaluationCache) recordScenarioShared()       { c.scenarioStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordScenarioInvalidation() { c.scenarioStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordLiveScenariosHit()          { c.liveScenarioStats.recordHit() }
+func (c *decisionEvaluationCache) recordLiveScenariosMiss()         { c.liveScenarioStats.recordMiss() }
+func (c *decisionEvaluationCache) recordLiveScenariosLoad()         { c.liveScenarioStats.recordLoad() }
+func (c *decisionEvaluationCache) recordLiveScenariosShared()       { c.liveScenarioStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordLiveScenariosInvalidation() { c.liveScenarioStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordIterationHit()          { c.iterationStats.recordHit() }
+func (c *decisionEvaluationCache) recordIterationMiss()         { c.iterationStats.recordMiss() }
+func (c *decisionEvaluationCache) recordIterationLoad()         { c.iterationStats.recordLoad() }
+func (c *decisionEvaluationCache) recordIterationShared()       { c.iterationStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordIterationInvalidation() { c.iterationStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordRulesHit()          { c.ruleStats.recordHit() }
+func (c *decisionEvaluationCache) recordRulesMiss()         { c.ruleStats.recordMiss() }
+func (c *decisionEvaluationCache) recordRulesLoad()         { c.ruleStats.recordLoad() }
+func (c *decisionEvaluationCache) recordRulesShared()       { c.ruleStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordRulesInvalidation() { c.ruleStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordTenantModelHit()          { c.tenantModelStats.recordHit() }
+func (c *decisionEvaluationCache) recordTenantModelMiss()         { c.tenantModelStats.recordMiss() }
+func (c *decisionEvaluationCache) recordTenantModelLoad()         { c.tenantModelStats.recordLoad() }
+func (c *decisionEvaluationCache) recordTenantModelShared()       { c.tenantModelStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordTenantModelInvalidation() { c.tenantModelStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordWorkflowRulesHit()          { c.workflowRuleStats.recordHit() }
+func (c *decisionEvaluationCache) recordWorkflowRulesMiss()         { c.workflowRuleStats.recordMiss() }
+func (c *decisionEvaluationCache) recordWorkflowRulesLoad()         { c.workflowRuleStats.recordLoad() }
+func (c *decisionEvaluationCache) recordWorkflowRulesShared()       { c.workflowRuleStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordWorkflowRulesInvalidation() { c.workflowRuleStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordActiveWorkflowsHit()          { c.activeWorkflowStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsMiss()         { c.activeWorkflowStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsLoad()         { c.activeWorkflowStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsShared()       { c.activeWorkflowStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsInvalidation() { c.activeWorkflowStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordActiveScreeningsHit()          { c.activeScreeningStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveScreeningsMiss()         { c.activeScreeningStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveScreeningsLoad()         { c.activeScreeningStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveScreeningsShared()       { c.activeScreeningStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordActiveScreeningsInvalidation() { c.activeScreeningStats.recordInvalidation() }
+
+func (c *decisionEvaluationCache) recordActiveScoringsHit()          { c.activeScoringStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveScoringsMiss()         { c.activeScoringStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveScoringsLoad()         { c.activeScoringStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveScoringsShared()       { c.activeScoringStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordActiveScoringsInvalidation() { c.activeScoringStats.recordInvalidation() }
+
+func (c *cacheMetricCounters) recordHit()          { atomic.AddUint64(&c.hits, 1) }
+func (c *cacheMetricCounters) recordMiss()         { atomic.AddUint64(&c.misses, 1) }
+func (c *cacheMetricCounters) recordLoad()         { atomic.AddUint64(&c.loads, 1) }
+func (c *cacheMetricCounters) recordSharedResult() { atomic.AddUint64(&c.sharedResults, 1) }
+func (c *cacheMetricCounters) recordInvalidation() { atomic.AddUint64(&c.invalidations, 1) }
+
+func (c *cacheMetricCounters) snapshot() cacheMetricSnapshot {
+	return cacheMetricSnapshot{
+		Hits:          atomic.LoadUint64(&c.hits),
+		Misses:        atomic.LoadUint64(&c.misses),
+		Loads:         atomic.LoadUint64(&c.loads),
+		SharedResults: atomic.LoadUint64(&c.sharedResults),
+		Invalidations: atomic.LoadUint64(&c.invalidations),
+	}
+}
+
+func (c *decisionEvaluationCache) getLiveScenariosByTriggerObject(tenantID, objectType string, now time.Time) ([]scenarioDomain.Scenario, bool) {
+	c.mu.RLock()
+	entry, ok := c.liveScenarios[liveScenarioCacheKey(tenantID, objectType)]
+	c.mu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneScenarios(entry.items), true
+}
+
+func (c *decisionEvaluationCache) setLiveScenariosByTriggerObject(tenantID, objectType string, items []scenarioDomain.Scenario, now time.Time) {
+	c.mu.Lock()
+	c.liveScenarios[liveScenarioCacheKey(tenantID, objectType)] = cachedScenarios{
+		items:     cloneScenarios(items),
+		expiresAt: now.Add(c.ttl),
+	}
+	c.mu.Unlock()
 }
 
 func (c *decisionEvaluationCache) getScenario(tenantID, scenarioID string, now time.Time) (scenarioDomain.Scenario, bool) {
@@ -940,8 +1534,20 @@ func scenarioCacheKey(tenantID, scenarioID string) string {
 	return tenantID + "\x00" + scenarioID
 }
 
+func liveScenarioCacheKey(tenantID, objectType string) string {
+	return tenantID + "\x00live\x00" + objectType
+}
+
 func iterationCacheKey(tenantID, scenarioID, iterationID string) string {
 	return tenantID + "\x00" + scenarioID + "\x00" + iterationID
+}
+
+func cloneScenarios(items []scenarioDomain.Scenario) []scenarioDomain.Scenario {
+	out := make([]scenarioDomain.Scenario, len(items))
+	for i, item := range items {
+		out[i] = cloneScenario(item)
+	}
+	return out
 }
 
 func cloneScenario(item scenarioDomain.Scenario) scenarioDomain.Scenario {
@@ -1028,6 +1634,86 @@ func cloneRawMessage(value json.RawMessage) json.RawMessage {
 	return append(json.RawMessage(nil), value...)
 }
 
+func (c *decisionEvaluationCache) InvalidateScenario(_ context.Context, tenantID, scenarioID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.scenarios, scenarioCacheKey(tenantID, scenarioID))
+	c.mu.Unlock()
+	c.recordScenarioInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateIteration(_ context.Context, tenantID, scenarioID, iterationID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.iterations, iterationCacheKey(tenantID, scenarioID, iterationID))
+	c.mu.Unlock()
+	c.recordIterationInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateRules(_ context.Context, tenantID, scenarioID, iterationID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.rules, iterationCacheKey(tenantID, scenarioID, iterationID))
+	c.mu.Unlock()
+	c.recordRulesInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateLiveScenariosByTriggerObject(_ context.Context, tenantID, objectType string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.liveScenarios, liveScenarioCacheKey(tenantID, objectType))
+	c.mu.Unlock()
+	c.recordLiveScenariosInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateWorkflowRules(_ context.Context, tenantID, scenarioID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.workflowRules, scenarioCacheKey(tenantID, scenarioID))
+	c.mu.Unlock()
+	c.recordWorkflowRulesInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateActiveWorkflows(_ context.Context, tenantID, scenarioID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.activeWorkflows, scenarioCacheKey(tenantID, scenarioID))
+	c.mu.Unlock()
+	c.recordActiveWorkflowsInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateActiveScreeningConfigs(_ context.Context, tenantID, scenarioID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.activeScreeningConfigs, scenarioCacheKey(tenantID, scenarioID))
+	c.mu.Unlock()
+	c.recordActiveScreeningsInvalidation()
+}
+
+func (c *decisionEvaluationCache) InvalidateActiveScoringConfigs(_ context.Context, tenantID, scenarioID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	delete(c.activeScoringConfigs, scenarioCacheKey(tenantID, scenarioID))
+	c.mu.Unlock()
+	c.recordActiveScoringsInvalidation()
+}
+
 func (s DecisionService) GetDecision(ctx context.Context, tenantID, decisionID string) (decision.Decision, []decision.RuleExecution, error) {
 	item, err := s.decisionRepo.GetByID(ctx, tenantID, decisionID)
 	if err != nil {
@@ -1044,12 +1730,74 @@ func (s DecisionService) ListByScenario(ctx context.Context, tenantID, scenarioI
 	return s.decisionRepo.ListByScenario(ctx, tenantID, scenarioID)
 }
 
+func (s DecisionService) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
+	return s.decisionRepo.ListFiltered(ctx, tenantID, filter)
+}
+
+type DecisionListFilter = ports.DecisionListFilter
+
+type DecisionPage struct {
+	Items      []decision.Decision
+	Limit      int
+	Offset     int
+	HasMore    bool
+	TotalCount int
+}
+
+func (s DecisionService) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByScenarioPage(ctx, tenantID, scenarioID, limit, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	totalCount, err := s.decisionRepo.CountByScenario(ctx, tenantID, scenarioID)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
+func (s DecisionService) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListFilteredPage(ctx, tenantID, filter, limit, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	totalCount, err := s.decisionRepo.CountFiltered(ctx, tenantID, filter)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
 func (s DecisionService) ListByTenant(ctx context.Context, tenantID string) ([]decision.Decision, error) {
 	return s.decisionRepo.ListByTenant(ctx, tenantID)
 }
 
+func (s DecisionService) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByTenantPage(ctx, tenantID, limit, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	totalCount, err := s.decisionRepo.CountByTenant(ctx, tenantID)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
 func (s DecisionService) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
 	return s.decisionRepo.ListByObject(ctx, tenantID, objectType, objectID)
+}
+
+func (s DecisionService) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListByObjectPage(ctx, tenantID, objectType, objectID, limit, offset)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	totalCount, err := s.decisionRepo.CountByObject(ctx, tenantID, objectType, objectID)
+	if err != nil {
+		return DecisionPage{}, err
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
 }
 
 func (s DecisionService) EvaluateAllLiveScenarios(
@@ -1057,7 +1805,9 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	tenantID string,
 	req DecisionEvaluationRequest,
 ) (MultiScenarioEvaluationResult, error) {
-	scenarios, err := s.scenarioRepo.ListLiveByTriggerObject(ctx, tenantID, req.ObjectType)
+	startedAt := time.Now()
+	cacheStatsBefore, hasCacheStats := s.snapshotCacheStats()
+	scenarios, err := s.getLiveScenariosByTriggerObject(ctx, tenantID, req.ObjectType)
 	if err != nil {
 		return MultiScenarioEvaluationResult{}, err
 	}
@@ -1085,6 +1835,19 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	}
 	if err := group.Wait(); err != nil {
 		return MultiScenarioEvaluationResult{}, err
+	}
+	if hasCacheStats {
+		cacheDelta := s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)
+		attrs := []any{
+			"tenant_id", tenantID,
+			"object_id", req.ObjectID,
+			"object_type", req.ObjectType,
+			"scenario_count", len(scenarios),
+			"result_count", len(results.Results),
+			"total_us", time.Since(startedAt).Microseconds(),
+		}
+		attrs = append(attrs, liveScenarioCacheStatsAttrs(cacheDelta)...)
+		slog.Default().Debug("multi-scenario evaluation timings", attrs...)
 	}
 	return results, nil
 }

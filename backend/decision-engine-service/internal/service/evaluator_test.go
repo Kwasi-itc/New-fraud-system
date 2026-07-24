@@ -166,12 +166,48 @@ func (s stubDecisionRepo) ListByTenant(ctx context.Context, tenantID string) ([]
 	return s.items, nil
 }
 
+func (s stubDecisionRepo) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
+func (s stubDecisionRepo) CountByTenant(ctx context.Context, tenantID string) (int, error) {
+	return len(s.items), nil
+}
+
 func (s stubDecisionRepo) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]decision.Decision, error) {
 	return nil, nil
 }
 
+func (s stubDecisionRepo) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+
+func (s stubDecisionRepo) CountByScenario(ctx context.Context, tenantID, scenarioID string) (int, error) {
+	return 0, nil
+}
+
 func (s stubDecisionRepo) ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error) {
 	return s.items, nil
+}
+
+func (s stubDecisionRepo) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
+func (s stubDecisionRepo) CountByObject(ctx context.Context, tenantID, objectType, objectID string) (int, error) {
+	return len(s.items), nil
+}
+
+func (s stubDecisionRepo) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
+	return s.items, nil
+}
+
+func (s stubDecisionRepo) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
+func (s stubDecisionRepo) CountFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) (int, error) {
+	return len(s.items), nil
 }
 
 func mustFormula(t *testing.T, node domainast.Node) json.RawMessage {

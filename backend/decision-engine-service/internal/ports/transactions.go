@@ -106,8 +106,25 @@ type DecisionRepository interface {
 	Create(ctx context.Context, decision decision.Decision) (decision.Decision, error)
 	GetByID(ctx context.Context, tenantID, decisionID string) (decision.Decision, error)
 	ListByTenant(ctx context.Context, tenantID string) ([]decision.Decision, error)
+	ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) ([]decision.Decision, bool, error)
+	CountByTenant(ctx context.Context, tenantID string) (int, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]decision.Decision, error)
+	ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) ([]decision.Decision, bool, error)
+	CountByScenario(ctx context.Context, tenantID, scenarioID string) (int, error)
 	ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error)
+	ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error)
+	CountByObject(ctx context.Context, tenantID, objectType, objectID string) (int, error)
+	ListFiltered(ctx context.Context, tenantID string, filter DecisionListFilter) ([]decision.Decision, error)
+	ListFilteredPage(ctx context.Context, tenantID string, filter DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error)
+	CountFiltered(ctx context.Context, tenantID string, filter DecisionListFilter) (int, error)
+}
+
+type DecisionListFilter struct {
+	ScenarioID string
+	ObjectType string
+	ObjectID   string
+	Outcome    string
+	Search     string
 }
 
 type RuleExecutionRepository interface {

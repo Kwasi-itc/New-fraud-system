@@ -659,10 +659,23 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by scenario
-      description: Lists persisted decisions previously produced by one scenario.
+      description: Lists persisted decisions previously produced by one scenario. Use `limit` and `offset` for paged browsing when the scenario has many decisions.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
+        - name: limit
+          in: query
+          description: Maximum number of decisions to return. When omitted, the full list is returned for backward compatibility.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: offset
+          in: query
+          description: Number of matching decisions to skip before collecting results.
+          schema:
+            type: integer
+            minimum: 0
       responses:
         '200':
           description: Decision list
@@ -676,7 +689,7 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by tenant with optional filters
-      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object.
+      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object, and use `limit` plus `offset` for paged browsing.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: scenario_id
@@ -694,6 +707,19 @@ paths:
           description: Restrict results to decisions for one external record identifier. Use with `object_type`.
           schema:
             type: string
+        - name: limit
+          in: query
+          description: Maximum number of decisions to return. When omitted, the full list is returned for backward compatibility.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: offset
+          in: query
+          description: Number of matching decisions to skip before collecting results.
+          schema:
+            type: integer
+            minimum: 0
       responses:
         '200':
           description: Decision list
@@ -4878,7 +4904,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DecisionResponse'
-      required: [decisions]
+        pagination:
+          $ref: '#/components/schemas/PaginationResponse'
+      required: [decisions, pagination]
+    PaginationResponse:
+      type: object
+      properties:
+        limit:
+          type: integer
+          example: 50
+        offset:
+          type: integer
+          example: 0
+        has_more:
+          type: boolean
+          example: true
+        next_offset:
+          type: integer
+          nullable: true
+          example: 50
+      required: [limit, offset, has_more]
     TestRunEnvelope:
       type: object
       properties:

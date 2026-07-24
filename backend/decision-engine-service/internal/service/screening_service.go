@@ -13,13 +13,14 @@ import (
 )
 
 type ScreeningService struct {
-	txManager    ports.TransactionManager
-	idGen        ports.IDGenerator
-	clock        ports.Clock
-	scenarioRepo ports.ScenarioRepository
-	configRepo   ports.ScreeningConfigRepository
-	execRepo     ports.ScreeningExecutionRepository
-	enqueuer     riverjobs.ScreeningExecutionEnqueuer
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	scenarioRepo     ports.ScenarioRepository
+	configRepo       ports.ScreeningConfigRepository
+	execRepo         ports.ScreeningExecutionRepository
+	enqueuer         riverjobs.ScreeningExecutionEnqueuer
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScreeningConfigRepository, execRepo ports.ScreeningExecutionRepository, enqueuer riverjobs.ScreeningExecutionEnqueuer) ScreeningService {
@@ -27,6 +28,10 @@ func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGener
 		enqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
 	}
 	return ScreeningService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, execRepo: execRepo, enqueuer: enqueuer}
+}
+
+func (s *ScreeningService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s ScreeningService) CreateConfig(ctx context.Context, tenantID, scenarioID, name string, allowedOutcomes []string, provider string, configJSON json.RawMessage, active bool) (screening.Config, error) {
@@ -55,6 +60,9 @@ func (s ScreeningService) CreateConfig(ctx context.Context, tenantID, scenarioID
 		created, err = store.ScreeningConfigs().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScreeningConfigs(ctx, tenantID, scenarioID)
+	}
 	return created, err
 }
 
@@ -86,13 +94,20 @@ func (s ScreeningService) UpdateConfig(ctx context.Context, tenantID, scenarioID
 		updated, runErr = store.ScreeningConfigs().Update(ctx, current)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScreeningConfigs(ctx, tenantID, scenarioID)
+	}
 	return updated, err
 }
 
 func (s ScreeningService) DeleteConfig(ctx context.Context, tenantID, scenarioID, configID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.ScreeningConfigs().Delete(ctx, tenantID, scenarioID, configID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateActiveScreeningConfigs(ctx, tenantID, scenarioID)
+	}
+	return err
 }
 
 func (s ScreeningService) ListExecutionsByDecision(ctx context.Context, tenantID, decisionID string) ([]screening.Execution, error) {

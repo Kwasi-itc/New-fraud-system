@@ -13,14 +13,15 @@ import (
 )
 
 type PublicationService struct {
-	txManager       ports.TransactionManager
-	idGen           ports.IDGenerator
-	clock           ports.Clock
-	publicationRepo ports.ScenarioPublicationRepository
-	scenarioRepo    ports.ScenarioRepository
-	iterationRepo   ports.ScenarioIterationRepository
-	ruleRepo        ports.RuleRepository
-	dataModelReader ports.DataModelReader
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	publicationRepo  ports.ScenarioPublicationRepository
+	scenarioRepo     ports.ScenarioRepository
+	iterationRepo    ports.ScenarioIterationRepository
+	ruleRepo         ports.RuleRepository
+	dataModelReader  ports.DataModelReader
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewPublicationService(
@@ -45,13 +46,19 @@ func NewPublicationService(
 	}
 }
 
+func (s *PublicationService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
+}
+
 func (s PublicationService) Publish(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Publication, error) {
 	var events []scenario.Publication
+	var triggerObjectType string
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		scn, err := store.Scenarios().GetByID(ctx, tenantID, scenarioID)
 		if err != nil {
 			return err
 		}
+		triggerObjectType = scn.TriggerObjectType
 		iteration, err := store.Iterations().GetByID(ctx, tenantID, scenarioID, iterationID)
 		if err != nil {
 			return err
@@ -104,16 +111,23 @@ func (s PublicationService) Publish(ctx context.Context, tenantID, scenarioID, i
 		events = append(events, pub)
 		return nil
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateScenario(ctx, tenantID, scenarioID)
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, iterationID)
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, triggerObjectType)
+	}
 	return events, err
 }
 
 func (s PublicationService) Unpublish(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Publication, error) {
 	var events []scenario.Publication
+	var triggerObjectType string
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		scn, err := store.Scenarios().GetByID(ctx, tenantID, scenarioID)
 		if err != nil {
 			return err
 		}
+		triggerObjectType = scn.TriggerObjectType
 		if scn.LiveIterationID == nil || *scn.LiveIterationID != iterationID {
 			return scenarioError("iteration is not currently live")
 		}
@@ -135,6 +149,11 @@ func (s PublicationService) Unpublish(ctx context.Context, tenantID, scenarioID,
 		events = append(events, pub)
 		return nil
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateScenario(ctx, tenantID, scenarioID)
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, iterationID)
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, triggerObjectType)
+	}
 	return events, err
 }
 

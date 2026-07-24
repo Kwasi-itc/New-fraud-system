@@ -121,6 +121,33 @@ const decisionOutcomes = [
   { label: "Decline", color: "bg-rose-300" },
 ];
 
+const DECISIONS_PAGE_SIZE = 25;
+
+type DecisionPaginationToken =
+  | { type: "page"; page: number }
+  | { type: "ellipsis"; key: string };
+
+function buildDecisionPaginationTokens(
+  currentPage: number,
+  totalPages: number
+): DecisionPaginationToken[] {
+  const pages = new Set<number>([1, currentPage - 1, currentPage, currentPage + 1, totalPages]);
+  const visiblePages = Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((left, right) => left - right);
+
+  const tokens: DecisionPaginationToken[] = [];
+  for (let index = 0; index < visiblePages.length; index += 1) {
+    const page = visiblePages[index];
+    const previousPage = visiblePages[index - 1];
+    if (previousPage != null && page-previousPage > 1) {
+      tokens.push({ type: "ellipsis", key: `gap-${previousPage}-${page}` });
+    }
+    tokens.push({ type: "page", page });
+  }
+  return tokens;
+}
+
 function formatDecisionDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -158,6 +185,21 @@ function outcomeBadgeClass(value: string) {
       return "bg-rose-100 text-rose-700";
     default:
       return "bg-amber-100 text-amber-700";
+  }
+}
+
+function outcomeFilterToApiValue(value: string) {
+  switch (value) {
+    case "Approve":
+      return "approve";
+    case "Block and Review":
+      return "block_and_review";
+    case "Decline":
+      return "decline";
+    case "Review":
+      return "review";
+    default:
+      return value.toLowerCase().replace(/\s+/g, "_");
   }
 }
 
@@ -654,14 +696,43 @@ function LiveDecisionsView({
   const [newFilterOpen, setNewFilterOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pageOffset, setPageOffset] = useState(0);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
     []
   );
   const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome"];
   const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
+  const selectedScenarioFilter = selectedFilters.find((item) => item.type === "Scenario")?.value;
+  const selectedObjectTypeFilter = selectedFilters.find(
+    (item) => item.type === "Trigger object"
+  )?.value;
+  const selectedObjectIDFilter = selectedFilters.find((item) => item.type === "Object ID")?.value;
+  const selectedOutcomeFilter = selectedFilters.find((item) => item.type === "Outcome")?.value;
+  const trimmedSearchTerm = searchTerm.trim();
   const decisionsQuery = useQuery({
-    queryKey: ["decision-engine", "decisions", tenantId],
-    queryFn: () => decisionEngineApi.listDecisions(tenantId),
+    queryKey: [
+      "decision-engine",
+      "decisions",
+      tenantId,
+      pageOffset,
+      trimmedSearchTerm,
+      selectedScenarioFilter ?? "",
+      selectedObjectTypeFilter ?? "",
+      selectedObjectIDFilter ?? "",
+      selectedOutcomeFilter ?? "",
+    ],
+    queryFn: () =>
+      decisionEngineApi.listDecisions(tenantId, {
+        scenario_id: scenarioIdByName.get(selectedScenarioFilter ?? "") ?? undefined,
+        object_type: selectedObjectTypeFilter || undefined,
+        object_id: selectedObjectIDFilter || undefined,
+        outcome: selectedOutcomeFilter
+          ? outcomeFilterToApiValue(selectedOutcomeFilter)
+          : undefined,
+        search: trimmedSearchTerm || undefined,
+        limit: DECISIONS_PAGE_SIZE,
+        offset: pageOffset,
+      }),
     enabled: Boolean(tenantId),
   });
   const iterationQueries = useQueries({
@@ -677,6 +748,7 @@ function LiveDecisionsView({
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
     [scenarios]
   );
+  const scenarioIdByName = new Map(scenarios.map((scenario) => [scenario.name, scenario.id]));
   const liveVersionByScenarioId = useMemo(() => {
     const entries = scenarios
       .filter((scenario) => scenario.liveIterationId)
@@ -694,44 +766,21 @@ function LiveDecisionsView({
     () => scenarios.map((scenario) => scenario.name).sort((a, b) => a.localeCompare(b)),
     [scenarios]
   );
-  const decisions = useMemo(() => {
-    const items = [...(decisionsQuery.data?.decisions ?? [])].sort(
-      (left, right) =>
-        new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-    );
-
-    return items.filter((item) => {
-      const scenarioName = scenarioNameById.get(item.scenario_id) ?? item.scenario_id;
-      const outcomeLabel = formatDecisionOutcome(item.outcome);
-      const matchesSearch =
-        searchTerm.trim().length === 0 ||
-        [item.id, item.object_id, item.object_type, scenarioName]
-          .join(" ")
-          .toLowerCase()
-          .includes(searchTerm.trim().toLowerCase());
-
-      if (!matchesSearch) {
-        return false;
-      }
-
-      return selectedFilters.every((filter) => {
-        switch (filter.type) {
-          case "Scenario":
-            return scenarioName === filter.value;
-          case "Trigger object":
-            return item.object_type.toLowerCase().includes(filter.value.toLowerCase());
-          case "Object ID":
-            return item.object_id.toLowerCase().includes(filter.value.toLowerCase());
-          case "Outcome":
-            return outcomeLabel === filter.value;
-          default:
-            return true;
-        }
-      });
-    });
-  }, [decisionsQuery.data?.decisions, scenarioNameById, searchTerm, selectedFilters]);
+  const decisions = decisionsQuery.data?.decisions ?? [];
+  const pagination = decisionsQuery.data?.pagination;
+  const canGoPrevious = pageOffset > 0;
+  const totalRecords = pagination?.total_count ?? 0;
+  const totalPages = pagination?.total_pages ?? 0;
+  const canGoNext = pagination ? pageOffset + DECISIONS_PAGE_SIZE < totalRecords : false;
+  const currentPage = Math.floor(pageOffset / DECISIONS_PAGE_SIZE) + 1;
+  const paginationTokens = totalPages > 0 ? buildDecisionPaginationTokens(currentPage, totalPages) : [];
+  const pageRangeLabel =
+    decisionsQuery.data?.decisions?.length && pagination
+      ? `${pagination.offset + 1}-${pagination.offset + decisionsQuery.data.decisions.length}`
+      : "0-0";
 
   function upsertFilter(type: string, value: string) {
+    setPageOffset(0);
     setSelectedFilters((current) => {
       const existing = current.find((item) => item.type === type);
       if (!existing) {
@@ -743,6 +792,7 @@ function LiveDecisionsView({
   }
 
   function removeFilter(type: string) {
+    setPageOffset(0);
     setSelectedFilters((current) => current.filter((item) => item.type !== type));
     setActiveFilterMenu((current) => (current === type ? null : current));
   }
@@ -772,7 +822,10 @@ function LiveDecisionsView({
               <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
               <Input
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setPageOffset(0);
+                  setSearchTerm(event.target.value);
+                }}
                 placeholder="Search by decision, object, or scenario"
                 className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
               />
@@ -919,6 +972,7 @@ function LiveDecisionsView({
             <Button
               variant="ghost"
               onClick={() => {
+                setPageOffset(0);
                 setSelectedFilters([]);
                 setActiveFilterMenu(null);
                 setNewFilterOpen(false);
@@ -1030,6 +1084,68 @@ function LiveDecisionsView({
                   </tbody>
                 </table>
               </div>
+              {pagination ? (
+                <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    Showing {pageRangeLabel}
+                    {pagination ? ` of ${totalRecords}` : ""}
+                    {trimmedSearchTerm || selectedFilters.length > 0
+                      ? " matching current filters"
+                      : ""}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={!canGoPrevious}
+                      onClick={() =>
+                        setPageOffset((current) =>
+                          Math.max(0, current - DECISIONS_PAGE_SIZE)
+                        )
+                      }
+                      className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {paginationTokens.map((token) =>
+                        token.type === "ellipsis" ? (
+                          <div
+                            key={token.key}
+                            className="flex h-9 min-w-9 items-center justify-center px-1 text-[13px] text-slate-400"
+                          >
+                            ...
+                          </div>
+                        ) : (
+                          <Button
+                            key={token.page}
+                            variant="outline"
+                            onClick={() => setPageOffset((token.page - 1) * DECISIONS_PAGE_SIZE)}
+                            disabled={token.page === currentPage}
+                            className={cn(
+                              "h-9 min-w-9 rounded-xl border px-3 text-[13px] shadow-none",
+                              token.page === currentPage
+                                ? "border-[#2d63b8] bg-[#2d63b8] text-white hover:bg-[#2d63b8]"
+                                : "border-slate-200 bg-white text-slate-700"
+                            )}
+                          >
+                            {token.page}
+                          </Button>
+                        )
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={!canGoNext}
+                      onClick={() =>
+                        setPageOffset(pageOffset + DECISIONS_PAGE_SIZE)
+                      }
+                      className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
+                    >
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         )}

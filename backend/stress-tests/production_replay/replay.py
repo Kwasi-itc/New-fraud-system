@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Awaitable
 
 from .api_client import APIError, ServiceClients
@@ -203,13 +205,30 @@ class ReplayMetrics:
 
 
 class TransactionChain:
-    def __init__(self, clients: ServiceClients, tenant_id: str, metrics: ReplayMetrics, max_in_flight: int) -> None:
+    def __init__(
+        self,
+        clients: ServiceClients,
+        tenant_id: str,
+        metrics: ReplayMetrics,
+        max_in_flight: int,
+        decision_mode: str = "sync",
+        async_wait_timeout_ms: int = 0,
+        async_callback_url: str = "",
+        async_tracking_path: Path | None = None,
+    ) -> None:
+        if decision_mode not in {"sync", "async"}:
+            raise ValueError("decision_mode must be 'sync' or 'async'")
         self.clients = clients
         self.tenant_id = tenant_id
         self.metrics = metrics
         self.semaphore = asyncio.Semaphore(max_in_flight)
+        self.decision_mode = decision_mode
+        self.async_wait_timeout_ms = async_wait_timeout_ms
+        self.async_callback_url = async_callback_url
+        self.async_tracking_path = async_tracking_path
         self._active = 0
         self._lock = asyncio.Lock()
+        self._tracking_lock = asyncio.Lock()
 
     async def __call__(self, event: TransactionEvent, schedule_lag_ms: float) -> None:
         async with self.semaphore:
@@ -242,7 +261,19 @@ class TransactionChain:
 
                 decision_started = time.perf_counter()
                 try:
-                    await self.clients.decide_once(self.tenant_id, event.object_id, event.fields)
+                    if self.decision_mode == "async":
+                        request_started_at = _now_iso()
+                        response = await self.clients.create_async_decision_execution(
+                            self.tenant_id,
+                            event.object_id,
+                            event.fields,
+                            _async_decision_idempotency_key(self.tenant_id, event.object_id),
+                            wait_timeout_ms=self.async_wait_timeout_ms,
+                            callback_url=self.async_callback_url,
+                        )
+                        await self._record_async_submission(event, response, request_started_at, decision_started)
+                    else:
+                        await self.clients.decide_once(self.tenant_id, event.object_id, event.fields)
                     self.metrics.decision_successes += 1
                     stream_metrics["decision_successes"] += 1
                     self.metrics.decision_latencies_ms.add((time.perf_counter() - decision_started) * 1_000)
@@ -256,6 +287,38 @@ class TransactionChain:
                 self.metrics.end_to_end_latencies_ms.add((time.perf_counter() - started) * 1_000)
                 async with self._lock:
                     self._active -= 1
+
+    async def _record_async_submission(
+        self,
+        event: TransactionEvent,
+        response: dict[str, Any],
+        request_started_at: str,
+        decision_started: float,
+    ) -> None:
+        if self.async_tracking_path is None:
+            return
+        execution = response.get("async_decision_execution")
+        if not isinstance(execution, dict):
+            execution = {}
+        record = {
+            "request_started_at": request_started_at,
+            "response_received_at": _now_iso(),
+            "decision_request_latency_ms": round((time.perf_counter() - decision_started) * 1_000, 2),
+            "tenant_id": self.tenant_id,
+            "object_id": event.object_id,
+            "stream_id": event.stream_id,
+            "source_file": event.source_file.name,
+            "row_number": event.row_number,
+            "execution_id": str(execution.get("id") or ""),
+            "completed_inline": bool(response.get("completed_inline")),
+            "status": str(execution.get("status") or ""),
+            "callback_url": self.async_callback_url or None,
+        }
+        line = json.dumps(record, sort_keys=True) + "\n"
+        async with self._tracking_lock:
+            self.async_tracking_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.async_tracking_path.open("a", encoding="utf-8") as handle:
+                handle.write(line)
 
     def _sample_error(self, event: TransactionEvent, stage: str, error: Exception) -> None:
         if len(self.metrics.errors) >= 100:
@@ -355,6 +418,11 @@ def _event_idempotency_key(tenant_id: str, object_id: str) -> str:
     return f"production-replay:{digest}"
 
 
+def _async_decision_idempotency_key(tenant_id: str, object_id: str) -> str:
+    digest = hashlib.sha256(f"async:{tenant_id}:{object_id}".encode()).hexdigest()
+    return f"production-replay-async:{digest}"
+
+
 def _events_after_cursor(
     events: Iterable[TransactionEvent], cursor: ReplayCursor | None
 ) -> Iterable[TransactionEvent]:
@@ -393,3 +461,7 @@ def _optional_float(value: Any) -> float | None:
 
 def _iso(value: datetime | None) -> str | None:
     return value.isoformat().replace("+00:00", "Z") if value else None
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

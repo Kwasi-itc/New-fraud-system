@@ -9,11 +9,12 @@ import (
 )
 
 type RuleService struct {
-	txManager ports.TransactionManager
-	idGen     ports.IDGenerator
-	clock     ports.Clock
-	ruleRepo  ports.RuleRepository
-	iterRepo  ports.ScenarioIterationRepository
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	ruleRepo         ports.RuleRepository
+	iterRepo         ports.ScenarioIterationRepository
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewRuleService(
@@ -30,6 +31,10 @@ func NewRuleService(
 		ruleRepo:  ruleRepo,
 		iterRepo:  iterRepo,
 	}
+}
+
+func (s *RuleService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s RuleService) ListByIteration(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Rule, error) {
@@ -83,6 +88,9 @@ func (s RuleService) Create(
 		created, err = store.Rules().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateRules(ctx, tenantID, scenarioID, iterationID)
+	}
 	return created, err
 }
 
@@ -126,11 +134,14 @@ func (s RuleService) Update(
 		updated, err = store.Rules().Update(ctx, existing)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateRules(ctx, tenantID, scenarioID, iterationID)
+	}
 	return updated, err
 }
 
 func (s RuleService) Delete(ctx context.Context, tenantID, scenarioID, iterationID, ruleID string) error {
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		iteration, err := store.Iterations().GetByID(ctx, tenantID, scenarioID, iterationID)
 		if err != nil {
 			return err
@@ -140,4 +151,8 @@ func (s RuleService) Delete(ctx context.Context, tenantID, scenarioID, iteration
 		}
 		return store.Rules().Delete(ctx, tenantID, scenarioID, iterationID, ruleID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateRules(ctx, tenantID, scenarioID, iterationID)
+	}
+	return err
 }

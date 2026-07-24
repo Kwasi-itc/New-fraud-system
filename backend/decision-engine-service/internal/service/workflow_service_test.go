@@ -308,11 +308,42 @@ func (nilDecisionRepository) GetByID(context.Context, string, string) (decision.
 func (nilDecisionRepository) ListByTenant(context.Context, string) ([]decision.Decision, error) {
 	return nil, nil
 }
+func (nilDecisionRepository) ListByTenantPage(context.Context, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+
+func (nilDecisionRepository) CountByTenant(context.Context, string) (int, error) {
+	return 0, nil
+}
 func (nilDecisionRepository) ListByScenario(context.Context, string, string) ([]decision.Decision, error) {
 	return nil, nil
 }
+func (nilDecisionRepository) ListByScenarioPage(context.Context, string, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+
+func (nilDecisionRepository) CountByScenario(context.Context, string, string) (int, error) {
+	return 0, nil
+}
 func (nilDecisionRepository) ListByObject(context.Context, string, string, string) ([]decision.Decision, error) {
 	return nil, nil
+}
+func (nilDecisionRepository) ListByObjectPage(context.Context, string, string, string, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+
+func (nilDecisionRepository) CountByObject(context.Context, string, string, string) (int, error) {
+	return 0, nil
+}
+
+func (nilDecisionRepository) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
+	return nil, nil
+}
+func (nilDecisionRepository) ListFilteredPage(context.Context, string, ports.DecisionListFilter, int, int) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
+func (nilDecisionRepository) CountFiltered(context.Context, string, ports.DecisionListFilter) (int, error) {
+	return 0, nil
 }
 
 type nilRuleExecutionRepository []struct{}

@@ -19,6 +19,7 @@ type ScenarioService struct {
 	workflowRuleRepo   ports.WorkflowRuleRepository
 	workflowCondRepo   ports.WorkflowConditionRepository
 	workflowActionRepo ports.WorkflowActionRepository
+	cacheInvalidator   DecisionMetadataCacheInvalidator
 }
 
 func NewScenarioService(
@@ -47,6 +48,10 @@ func NewScenarioService(
 	}
 }
 
+func (s *ScenarioService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
+}
+
 func (s ScenarioService) Create(ctx context.Context, tenantID, name, description, triggerObjectType string) (scenario.Scenario, error) {
 	now := s.clock.Now()
 	item := scenario.Scenario{
@@ -71,6 +76,9 @@ func (s ScenarioService) Create(ctx context.Context, tenantID, name, description
 		created, err = store.Scenarios().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, triggerObjectType)
+	}
 	return created, err
 }
 
@@ -87,6 +95,7 @@ func (s ScenarioService) Update(ctx context.Context, tenantID, scenarioID, name,
 	if err != nil {
 		return scenario.Scenario{}, err
 	}
+	previousTriggerObjectType := current.TriggerObjectType
 	current.Name = name
 	current.Description = description
 	current.TriggerObjectType = triggerObjectType
@@ -104,6 +113,11 @@ func (s ScenarioService) Update(ctx context.Context, tenantID, scenarioID, name,
 		updated, runErr = store.Scenarios().Update(ctx, current)
 		return runErr
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateScenario(ctx, tenantID, scenarioID)
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, previousTriggerObjectType)
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, triggerObjectType)
+	}
 	return updated, err
 }
 
@@ -239,16 +253,25 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 		}
 		return nil
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, created.TriggerObjectType)
+	}
 	return created, err
 }
 
 func (s ScenarioService) Delete(ctx context.Context, tenantID, scenarioID string) error {
-	if _, err := s.readRepo.GetByID(ctx, tenantID, scenarioID); err != nil {
+	current, err := s.readRepo.GetByID(ctx, tenantID, scenarioID)
+	if err != nil {
 		return err
 	}
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		return store.Scenarios().Delete(ctx, tenantID, scenarioID)
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateScenario(ctx, tenantID, scenarioID)
+		s.cacheInvalidator.InvalidateLiveScenariosByTriggerObject(ctx, tenantID, current.TriggerObjectType)
+	}
+	return err
 }
 
 func (s ScenarioService) ListLatestRules(ctx context.Context, tenantID, scenarioID string) ([]scenario.Rule, error) {

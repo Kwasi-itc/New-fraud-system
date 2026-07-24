@@ -51,6 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--max-in-flight", type=int, default=500)
     run.add_argument("--sort-chunk-size", type=int, default=100_000)
     run.add_argument("--checkpoint-every", type=int, default=10_000)
+    run.add_argument("--decision-mode", choices=("sync", "async"), default="sync")
+    run.add_argument("--async-wait-timeout-ms", type=int, default=0)
+    run.add_argument("--async-callback-url", default="")
+    run.add_argument("--async-tracking-output", default="")
     run.add_argument("--resume-from", help="Checkpoint JSON from an interrupted replay")
     run.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
     return parser
@@ -175,6 +179,8 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
         raise ValueError("--sort-chunk-size must be positive")
     if args.checkpoint_every <= 0:
         raise ValueError("--checkpoint-every must be positive")
+    if args.async_wait_timeout_ms < 0:
+        raise ValueError("--async-wait-timeout-ms must be greater than or equal to zero")
 
     checkpoint_state: dict[str, Any] | None = None
     resume_cursor: ReplayCursor | None = None
@@ -189,6 +195,8 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             raise ValueError("checkpoint multiplier does not match --multiplier")
         if checkpoint_state.get("source_fingerprint") != profile.get("source_fingerprint"):
             raise ValueError("checkpoint source fingerprint does not match the current manifest and files")
+        if checkpoint_state.get("decision_mode", "sync") != args.decision_mode:
+            raise ValueError("checkpoint decision mode does not match --decision-mode")
         cursor_value = checkpoint_state.get("cursor")
         resume_cursor = ReplayCursor.from_dict(cursor_value) if isinstance(cursor_value, dict) else None
         run_dir = checkpoint_path.parent
@@ -206,6 +214,10 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             "max_in_flight": args.max_in_flight,
             "sort_chunk_size": args.sort_chunk_size,
             "checkpoint_every": args.checkpoint_every,
+            "decision_mode": args.decision_mode,
+            "async_wait_timeout_ms": args.async_wait_timeout_ms,
+            "async_callback_url": args.async_callback_url or None,
+            "async_tracking_output": args.async_tracking_output or None,
             "resume_from": str(Path(args.resume_from).expanduser().resolve()) if args.resume_from else None,
             "service_urls": {
                 "data_model": args.data_model_url,
@@ -234,11 +246,27 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             )
         if manifest.source_fingerprint() != profile["source_fingerprint"]:
             raise ValueError("source files changed between profiling and replay preparation")
-        print(f"replaying {sort_result.event_count} events at {args.multiplier:g}x...")
+        print(f"replaying {sort_result.event_count} events at {args.multiplier:g}x with {args.decision_mode} decisions...")
+        async_tracking_path = (
+            Path(args.async_tracking_output).expanduser().resolve()
+            if args.async_tracking_output
+            else (run_dir / "async-decisions.ndjson" if args.decision_mode == "async" else None)
+        )
+        if async_tracking_path is not None and checkpoint_state is None:
+            async_tracking_path.write_text("", encoding="utf-8")
         async with ServiceClients(_services(args)) as clients:
             await clients.wait_until_ready()
             await _verify_replay_tenant(clients, manifest, args.tenant_id)
-            chain = TransactionChain(clients, args.tenant_id, metrics, args.max_in_flight)
+            chain = TransactionChain(
+                clients,
+                args.tenant_id,
+                metrics,
+                args.max_in_flight,
+                decision_mode=args.decision_mode,
+                async_wait_timeout_ms=args.async_wait_timeout_ms,
+                async_callback_url=args.async_callback_url,
+                async_tracking_path=async_tracking_path,
+            )
 
             async def save_checkpoint(cursor: ReplayCursor, batch_start: datetime, batch_end: datetime) -> None:
                 nonlocal original_source_start, original_source_end
@@ -255,6 +283,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                     source_start=original_source_start,
                     source_end=original_source_end,
                     expected_events=sort_result.event_count,
+                    decision_mode=args.decision_mode,
                 )
                 print(f"checkpoint: {metrics.completed} / {sort_result.event_count} completed")
 
@@ -270,6 +299,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                     source_start=None,
                     source_end=None,
                     expected_events=sort_result.event_count,
+                    decision_mode=args.decision_mode,
                 )
             resumed_start, resumed_end = await schedule_events(
                 iter_merged_events(sort_result.chunk_paths),
@@ -288,6 +318,9 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["tenant_id"] = args.tenant_id
     summary["manifest"] = str(manifest.path)
     summary["source_fingerprint"] = profile["source_fingerprint"]
+    summary["decision_mode"] = args.decision_mode
+    summary["async_callback_url"] = args.async_callback_url or None
+    summary["async_tracking_output"] = str(async_tracking_path) if args.decision_mode == "async" and async_tracking_path else None
     summary["resumed"] = checkpoint_state is not None
     summary["checkpoint"] = str(checkpoint_path)
     _write_json(run_dir / "summary.json", summary)
@@ -312,6 +345,7 @@ def _write_replay_checkpoint(
     source_start: datetime | None,
     source_end: datetime | None,
     expected_events: int,
+    decision_mode: str,
 ) -> None:
     _write_json_atomic(
         path,
@@ -323,6 +357,7 @@ def _write_replay_checkpoint(
             "tenant_id": tenant_id,
             "multiplier": multiplier,
             "expected_events": expected_events,
+            "decision_mode": decision_mode,
             "cursor": vars(cursor) if cursor is not None else None,
             "source_start": _iso(source_start),
             "source_end": _iso(source_end),

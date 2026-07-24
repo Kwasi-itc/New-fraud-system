@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from decision_rule_complexity_scaling import pg_type
 from decision_throughput_limit import Config as BaseConfig
@@ -327,42 +328,96 @@ class AdditionalScenarioDemoHarness(ThroughputHarness):
         from psycopg import sql
 
         schema_name = "tenant_" + self.tenant_id.replace("-", "")
-        with psycopg.connect(database_url) as conn:
-            with conn.cursor() as cur:
-                cur.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(schema_name)))
-                for table_name, fields in self.model_fields_by_table.items():
-                    table_ident = sql.Identifier(schema_name, table_name)
-                    cur.execute(sql.SQL("""
-                        CREATE TABLE IF NOT EXISTS {} (
-                            id UUID NOT NULL PRIMARY KEY,
-                            object_id TEXT NOT NULL,
-                            updated_at TIMESTAMPTZ NOT NULL,
-                            valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                            valid_until TIMESTAMPTZ NOT NULL DEFAULT 'INFINITY'
-                        )
-                    """).format(table_ident))
-                    for field_def in fields:
-                        cur.execute(sql.SQL("ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {}").format(
-                            table_ident, sql.Identifier(field_def["name"]), sql.SQL(pg_type(field_def["data_type"]))
-                        ))
-                    cur.execute(sql.SQL("CREATE UNIQUE INDEX IF NOT EXISTS {} ON {} ({})").format(
-                        sql.Identifier(f"{table_name}_object_id_uidx"), table_ident, sql.Identifier("object_id")
-                    ))
-                    for field_def in fields:
-                        if field_def.get("is_unique"):
+        last_error: Exception | None = None
+        for candidate_url in self.ingestion_database_url_candidates(database_url):
+            try:
+                with psycopg.connect(candidate_url) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(schema_name)))
+                        for table_name, fields in self.model_fields_by_table.items():
+                            table_ident = sql.Identifier(schema_name, table_name)
+                            cur.execute(sql.SQL("""
+                                CREATE TABLE IF NOT EXISTS {} (
+                                    id UUID NOT NULL PRIMARY KEY,
+                                    object_id TEXT NOT NULL,
+                                    updated_at TIMESTAMPTZ NOT NULL,
+                                    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                                    valid_until TIMESTAMPTZ NOT NULL DEFAULT 'INFINITY'
+                                )
+                            """).format(table_ident))
+                            for field_def in fields:
+                                cur.execute(sql.SQL("ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {}").format(
+                                    table_ident, sql.Identifier(field_def["name"]), sql.SQL(pg_type(field_def["data_type"]))
+                                ))
                             cur.execute(sql.SQL("CREATE UNIQUE INDEX IF NOT EXISTS {} ON {} ({})").format(
-                                sql.Identifier(f"{table_name}_{field_def['name']}_uidx"), table_ident, sql.Identifier(field_def["name"])
+                                sql.Identifier(f"{table_name}_object_id_uidx"), table_ident, sql.Identifier("object_id")
                             ))
-                    if table_name == self.object_type:
-                        for suffix, columns in {
-                            "account_date_idx": ["account_ref", "date"],
-                            "merchant_date_idx": ["merchant_id", "date"],
-                            "ip_date_idx": ["ip", "date"],
-                        }.items():
-                            cur.execute(sql.SQL("CREATE INDEX IF NOT EXISTS {} ON {} ({})").format(
-                                sql.Identifier(f"{table_name}_{suffix}"), table_ident, sql.SQL(", ").join(sql.Identifier(c) for c in columns)
-                            ))
-            conn.commit()
+                            for field_def in fields:
+                                if field_def.get("is_unique"):
+                                    cur.execute(sql.SQL("CREATE UNIQUE INDEX IF NOT EXISTS {} ON {} ({})").format(
+                                        sql.Identifier(f"{table_name}_{field_def['name']}_uidx"), table_ident, sql.Identifier(field_def["name"])
+                                    ))
+                            if table_name == self.object_type:
+                                for suffix, columns in {
+                                    "account_date_idx": ["account_ref", "date"],
+                                    "merchant_date_idx": ["merchant_id", "date"],
+                                    "ip_date_idx": ["ip", "date"],
+                                }.items():
+                                    cur.execute(sql.SQL("CREATE INDEX IF NOT EXISTS {} ON {} ({})").format(
+                                        sql.Identifier(f"{table_name}_{suffix}"), table_ident, sql.SQL(", ").join(sql.Identifier(c) for c in columns)
+                                    ))
+                    conn.commit()
+                if candidate_url != database_url:
+                    print(
+                        "materialized ingestion schema using fallback database URL "
+                        f"{self.redact_database_url(candidate_url)}",
+                        file=sys.stderr,
+                    )
+                return
+            except psycopg.OperationalError as exc:
+                last_error = exc
+                continue
+        assert last_error is not None
+        raise RuntimeError(
+            "failed to connect to ingestion database for schema materialization. "
+            f"Tried: {', '.join(self.redact_database_url(url) for url in self.ingestion_database_url_candidates(database_url))}. "
+            f"Last error: {last_error}"
+        ) from last_error
+
+    def ingestion_database_url_candidates(self, database_url: str) -> list[str]:
+        candidates = [database_url]
+        parsed = urlsplit(database_url)
+        host = (parsed.hostname or "").lower()
+        db_name = parsed.path.lstrip("/")
+        if host not in {"127.0.0.1", "localhost"} or db_name != "ingestion":
+            return candidates
+
+        fallback_specs = [
+            ("fraud", "fraud", 5432),
+            ("ingestion", "ingestion", 5435),
+        ]
+        for user, password, port in fallback_specs:
+            candidate = self.replace_database_url_credentials(database_url, user, password, port)
+            if candidate not in candidates:
+                candidates.append(candidate)
+        return candidates
+
+    @staticmethod
+    def replace_database_url_credentials(database_url: str, username: str, password: str, port: int) -> str:
+        parsed = urlsplit(database_url)
+        host = parsed.hostname or "localhost"
+        netloc = f"{username}:{password}@{host}:{port}"
+        return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+
+    @staticmethod
+    def redact_database_url(database_url: str) -> str:
+        parsed = urlsplit(database_url)
+        query = urlencode(parse_qsl(parsed.query, keep_blank_values=True))
+        username = parsed.username or ""
+        host = parsed.hostname or ""
+        port = f":{parsed.port}" if parsed.port is not None else ""
+        auth = f"{username}:***@" if username else ""
+        return urlunsplit((parsed.scheme, f"{auth}{host}{port}", parsed.path, query, parsed.fragment))
 
     async def seed_reference_data(self) -> None:
         account_specs = {

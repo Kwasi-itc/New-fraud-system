@@ -171,6 +171,19 @@ export type ListDecisionsRequest = {
   scenario_id?: string;
   object_type?: string;
   object_id?: string;
+  outcome?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type Pagination = {
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  total_count: number;
+  total_pages: number;
+  next_offset?: number;
 };
 
 export type RuleExecution = {
@@ -926,10 +939,23 @@ export const decisionEngineApi = {
         body: JSON.stringify(payload),
       }
     ),
-  listScenarioDecisions: async (tenantId: string, scenarioId: string) =>
-    decisionEngineFetch<{ decisions: Decision[] }>(
-      decisionEnginePaths.scenarioDecisions(tenantId, scenarioId)
-    ),
+  listScenarioDecisions: async (
+    tenantId: string,
+    scenarioId: string,
+    pagination?: Pick<ListDecisionsRequest, "limit" | "offset">
+  ) => {
+    const params = new URLSearchParams();
+    if (pagination?.limit != null) {
+      params.set("limit", String(pagination.limit));
+    }
+    if (pagination?.offset != null) {
+      params.set("offset", String(pagination.offset));
+    }
+    const query = params.toString();
+    return decisionEngineFetch<{ decisions: Decision[]; pagination: Pagination }>(
+      `${decisionEnginePaths.scenarioDecisions(tenantId, scenarioId)}${query ? `?${query}` : ""}`
+    );
+  },
   listDecisions: async (tenantId: string, filters?: ListDecisionsRequest) => {
     const params = new URLSearchParams();
 
@@ -942,9 +968,21 @@ export const decisionEngineApi = {
     if (filters?.object_id) {
       params.set("object_id", filters.object_id);
     }
+    if (filters?.outcome) {
+      params.set("outcome", filters.outcome);
+    }
+    if (filters?.search) {
+      params.set("search", filters.search);
+    }
+    if (filters?.limit != null) {
+      params.set("limit", String(filters.limit));
+    }
+    if (filters?.offset != null) {
+      params.set("offset", String(filters.offset));
+    }
 
     const query = params.toString();
-    return decisionEngineFetch<{ decisions: Decision[] }>(
+    return decisionEngineFetch<{ decisions: Decision[]; pagination: Pagination }>(
       `${decisionEnginePaths.decisions(tenantId)}${query ? `?${query}` : ""}`
     );
   },

@@ -9,12 +9,13 @@ import (
 )
 
 type IterationService struct {
-	txManager ports.TransactionManager
-	idGen     ports.IDGenerator
-	clock     ports.Clock
-	readRepo  ports.ScenarioIterationRepository
-	ruleRepo  ports.RuleRepository
-	validator IterationValidator
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	readRepo         ports.ScenarioIterationRepository
+	ruleRepo         ports.RuleRepository
+	validator        IterationValidator
+	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
 func NewIterationService(
@@ -33,6 +34,10 @@ func NewIterationService(
 		ruleRepo:  ruleRepo,
 		validator: validator,
 	}
+}
+
+func (s *IterationService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
+	s.cacheInvalidator = invalidator
 }
 
 func (s IterationService) CreateDraft(ctx context.Context, tenantID, scenarioID string) (scenario.Iteration, error) {
@@ -60,6 +65,9 @@ func (s IterationService) CreateDraft(ctx context.Context, tenantID, scenarioID 
 		created, err = store.Iterations().Create(ctx, item)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, created.ID)
+	}
 	return created, err
 }
 
@@ -113,6 +121,11 @@ func (s IterationService) CreateDraftFromIteration(ctx context.Context, tenantID
 		}
 		return nil
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, iterationID)
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, created.ID)
+		s.cacheInvalidator.InvalidateRules(ctx, tenantID, scenarioID, created.ID)
+	}
 	return created, err
 }
 
@@ -143,6 +156,9 @@ func (s IterationService) UpdateDraft(
 		updated, err = store.Iterations().Update(ctx, current)
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, iterationID)
+	}
 	return updated, err
 }
 
@@ -169,6 +185,9 @@ func (s IterationService) Commit(ctx context.Context, tenantID, scenarioID, iter
 		committed, err = store.Iterations().Commit(ctx, tenantID, scenarioID, iterationID, s.clock.Now())
 		return err
 	})
+	if err == nil && s.cacheInvalidator != nil {
+		s.cacheInvalidator.InvalidateIteration(ctx, tenantID, scenarioID, iterationID)
+	}
 	return committed, err
 }
 
