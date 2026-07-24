@@ -38,6 +38,7 @@ production-replay:
 	PRODUCTION_REPLAY_HOURS="$(HOURS)" \
 	PRODUCTION_REPLAY_DAYS="$(DAYS)" \
 	PRODUCTION_REPLAY_WEEKS="$(WEEKS)" \
+	PRODUCTION_REPLAY_TENANT_ID="$(TENANT_ID)" \
 	./backend/stress-tests/production_replay/run_local_replay.sh
 
 replay-production: production-replay
