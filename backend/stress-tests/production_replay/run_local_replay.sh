@@ -20,6 +20,7 @@ DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
 HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
 DAYS="${PRODUCTION_REPLAY_DAYS:-${DAYS:-}}"
 WEEKS="${PRODUCTION_REPLAY_WEEKS:-${WEEKS:-}}"
+TENANT_ID="${PRODUCTION_REPLAY_TENANT_ID:-${TENANT_ID:-}}"
 SMOKE_MANIFEST="/tmp/fraud-data-local-smoke.json"
 SAMPLE_DIR="/tmp/fraud-data-local-sample"
 SETUP_LOG="/tmp/fraud-data-local-setup.log"
@@ -99,6 +100,11 @@ wait_for_service() {
 require_command curl
 require_command docker
 require_command python3
+
+if [[ -z "$TENANT_ID" ]]; then
+  printf 'error: TENANT_ID is required; pass TENANT_ID=<existing-tenant-id> to make production-replay\n' >&2
+  exit 1
+fi
 
 if [[ ! -d "$DATA_ROOT" ]]; then
   printf 'error: fraud data directory does not exist: %s\n' "$DATA_ROOT" >&2
@@ -220,6 +226,7 @@ printf 'Creating a local replay tenant and loading reference data...\n'
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay setup \
     --manifest "$SMOKE_MANIFEST" \
     --execute \
+    --tenant-id "$TENANT_ID" \
     --tenant-name "Local Production Replay Smoke Test" \
     --publication-timeout 900
 ) | tee "$SETUP_LOG"
@@ -234,7 +241,7 @@ printf 'Building the frontend for replay tenant %s...\n' "$TENANT_ID"
 export NEXT_PUBLIC_DATA_MODEL_TENANT_ID="$TENANT_ID"
 compose build frontend
 compose up -d --no-deps frontend
-printf 'Frontend is available at http://127.0.0.1:3000 for tenant %s\n' "$TENANT_ID"
+printf 'Frontend is available at http://127.0.0.1:5118 for tenant %s\n' "$TENANT_ID"
 
 if [[ -n "$REPLAY_DURATION" ]]; then
   printf 'Replaying production-format transactions from the first %s of source time...\n' "$REPLAY_DURATION"
