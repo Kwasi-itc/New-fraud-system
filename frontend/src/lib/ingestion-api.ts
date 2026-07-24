@@ -1,3 +1,5 @@
+import { resolveServiceUrl } from "@/lib/service-url";
+
 export type IngestionApiErrorEnvelope = {
   error: {
     code: string;
@@ -22,8 +24,8 @@ export type UploadLog = {
 
 export type IngestedRecord = Record<string, unknown>;
 
-const ingestionServiceBaseUrl =
-  process.env.NEXT_PUBLIC_INGESTION_SERVICE_URL ?? "http://localhost:8081";
+const configuredIngestionServiceBaseUrl =
+  process.env.NEXT_PUBLIC_INGESTION_SERVICE_URL;
 const ingestionServiceToken = process.env.NEXT_PUBLIC_INGESTION_SERVICE_TOKEN;
 
 async function ingestionFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,10 +40,13 @@ async function ingestionFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Authorization", `Bearer ${ingestionServiceToken}`);
   }
 
-  const response = await fetch(`${ingestionServiceBaseUrl}${path}`, {
+  const response = await fetch(
+    `${resolveServiceUrl(configuredIngestionServiceBaseUrl, 8081)}${path}`,
+    {
     ...init,
     headers,
-  });
+    }
+  );
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as

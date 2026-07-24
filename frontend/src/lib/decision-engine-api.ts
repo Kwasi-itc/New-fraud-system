@@ -1,3 +1,5 @@
+import { resolveServiceUrl } from "@/lib/service-url";
+
 export type DecisionEngineApiErrorEnvelope = {
   error?: {
     code?: string;
@@ -591,8 +593,8 @@ export type OutboxEvent = {
   created_at: string;
 };
 
-const decisionEngineServiceBaseUrl =
-  process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL ?? "http://localhost:8082";
+const configuredDecisionEngineServiceBaseUrl =
+  process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL;
 const decisionEngineServiceToken =
   process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_TOKEN;
 
@@ -611,10 +613,13 @@ async function decisionEngineFetch<T>(
     headers.set("Authorization", `Bearer ${decisionEngineServiceToken}`);
   }
 
-  const response = await fetch(`${decisionEngineServiceBaseUrl}${path}`, {
+  const response = await fetch(
+    `${resolveServiceUrl(configuredDecisionEngineServiceBaseUrl, 8082)}${path}`,
+    {
     ...init,
     headers,
-  });
+    }
+  );
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as

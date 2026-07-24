@@ -1,3 +1,5 @@
+import { resolveServiceUrl } from "@/lib/service-url";
+
 export type ApiErrorEnvelope = {
   error: {
     code: string;
@@ -310,8 +312,8 @@ export type IndexJob = {
   updated_at: string;
 };
 
-const serviceBaseUrl =
-  process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_URL ?? "http://localhost:8080";
+const configuredServiceBaseUrl =
+  process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_URL;
 const serviceToken = process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_TOKEN;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -326,7 +328,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Authorization", `Bearer ${serviceToken}`);
   }
 
-  const response = await fetch(`${serviceBaseUrl}${path}`, {
+  const response = await fetch(`${resolveServiceUrl(configuredServiceBaseUrl, 8080)}${path}`, {
     ...init,
     headers,
   });
