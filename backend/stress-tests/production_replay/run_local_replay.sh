@@ -230,6 +230,12 @@ if [[ -z "$TENANT_ID" ]]; then
   exit 1
 fi
 
+printf 'Building the frontend for replay tenant %s...\n' "$TENANT_ID"
+export NEXT_PUBLIC_DATA_MODEL_TENANT_ID="$TENANT_ID"
+compose build frontend
+compose up -d --no-deps frontend
+printf 'Frontend is available at http://127.0.0.1:3000 for tenant %s\n' "$TENANT_ID"
+
 if [[ -n "$REPLAY_DURATION" ]]; then
   printf 'Replaying production-format transactions from the first %s of source time...\n' "$REPLAY_DURATION"
 elif [[ "$TRANSACTIONS" == "all" ]]; then
