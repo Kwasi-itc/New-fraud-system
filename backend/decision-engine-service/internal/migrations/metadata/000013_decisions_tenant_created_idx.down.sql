@@ -1,1 +1,1 @@
-DROP INDEX CONCURRENTLY IF EXISTS decisions_tenant_created_idx;
+DROP INDEX IF EXISTS decisions_tenant_created_idx;
