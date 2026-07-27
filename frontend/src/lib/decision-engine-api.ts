@@ -170,21 +170,26 @@ export type DecisionDetail = Decision & {
 };
 
 export type ListDecisionsRequest = {
+  decision_id?: string;
   scenario_id?: string;
+  object_id_prefix?: string;
   object_type?: string;
   object_id?: string;
   outcome?: string;
   search?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
+  include_total_count?: boolean;
 };
 
 export type Pagination = {
   limit: number;
   offset: number;
   has_more: boolean;
-  total_count: number;
-  total_pages: number;
+  next_cursor?: string;
+  total_count?: number;
+  total_pages?: number;
   next_offset?: number;
 };
 
@@ -947,7 +952,7 @@ export const decisionEngineApi = {
   listScenarioDecisions: async (
     tenantId: string,
     scenarioId: string,
-    pagination?: Pick<ListDecisionsRequest, "limit" | "offset">
+    pagination?: Pick<ListDecisionsRequest, "limit" | "offset" | "cursor" | "include_total_count">
   ) => {
     const params = new URLSearchParams();
     if (pagination?.limit != null) {
@@ -955,6 +960,12 @@ export const decisionEngineApi = {
     }
     if (pagination?.offset != null) {
       params.set("offset", String(pagination.offset));
+    }
+    if (pagination?.cursor) {
+      params.set("cursor", pagination.cursor);
+    }
+    if (pagination?.include_total_count != null) {
+      params.set("include_total_count", String(pagination.include_total_count));
     }
     const query = params.toString();
     return decisionEngineFetch<{ decisions: Decision[]; pagination: Pagination }>(
@@ -966,6 +977,12 @@ export const decisionEngineApi = {
 
     if (filters?.scenario_id) {
       params.set("scenario_id", filters.scenario_id);
+    }
+    if (filters?.decision_id) {
+      params.set("decision_id", filters.decision_id);
+    }
+    if (filters?.object_id_prefix) {
+      params.set("object_id_prefix", filters.object_id_prefix);
     }
     if (filters?.object_type) {
       params.set("object_type", filters.object_type);
@@ -984,6 +1001,12 @@ export const decisionEngineApi = {
     }
     if (filters?.offset != null) {
       params.set("offset", String(filters.offset));
+    }
+    if (filters?.cursor) {
+      params.set("cursor", filters.cursor);
+    }
+    if (filters?.include_total_count != null) {
+      params.set("include_total_count", String(filters.include_total_count));
     }
 
     const query = params.toString();

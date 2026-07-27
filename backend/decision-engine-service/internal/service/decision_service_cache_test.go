@@ -82,6 +82,7 @@ type pagingDecisionRepoSpy struct {
 	objectType string
 	objectID   string
 	called     string
+	cursor     *ports.DecisionListCursor
 	items      []decision.Decision
 	hasMore    bool
 	totalCount int
@@ -154,6 +155,14 @@ func (s *pagingDecisionRepoSpy) ListFilteredPage(_ context.Context, tenantID str
 	return s.ListByTenantPage(context.Background(), tenantID, limit, offset)
 }
 
+func (s *pagingDecisionRepoSpy) ListFilteredCursor(_ context.Context, tenantID string, _ ports.DecisionListFilter, limit int, cursor *ports.DecisionListCursor) ([]decision.Decision, bool, error) {
+	s.called = "cursor"
+	s.tenantID = tenantID
+	s.limit = limit
+	s.cursor = cursor
+	return s.items, s.hasMore, nil
+}
+
 func (s *pagingDecisionRepoSpy) CountFiltered(context.Context, string, ports.DecisionListFilter) (int, error) {
 	return s.totalCount, nil
 }
@@ -164,7 +173,7 @@ func TestDecisionServiceListByTenantPagePassesRequestedLimit(t *testing.T) {
 	repo := &pagingDecisionRepoSpy{hasMore: true, totalCount: 125}
 	service := DecisionService{decisionRepo: repo}
 
-	page, err := service.ListByTenantPage(context.Background(), "tenant-1", 25, 50)
+	page, err := service.ListByTenantPage(context.Background(), "tenant-1", 25, 50, true)
 	if err != nil {
 		t.Fatalf("ListByTenantPage() error = %v", err)
 	}
@@ -177,7 +186,51 @@ func TestDecisionServiceListByTenantPagePassesRequestedLimit(t *testing.T) {
 	if repo.offset != 50 {
 		t.Fatalf("repo offset = %d, want 50", repo.offset)
 	}
-	if !page.HasMore || page.Limit != 25 || page.Offset != 50 || page.TotalCount != 125 {
+	if !page.HasMore || page.Limit != 25 || page.Offset != 50 || page.TotalCount == nil || *page.TotalCount != 125 {
 		t.Fatalf("page = %+v, want hasMore=true limit=25 offset=50 totalCount=125", page)
+	}
+}
+
+func TestDecisionServiceListByTenantPageSkipsCountWhenNotRequested(t *testing.T) {
+	t.Parallel()
+
+	repo := &pagingDecisionRepoSpy{hasMore: true, totalCount: 125}
+	service := DecisionService{decisionRepo: repo}
+
+	page, err := service.ListByTenantPage(context.Background(), "tenant-1", 25, 50, false)
+	if err != nil {
+		t.Fatalf("ListByTenantPage() error = %v", err)
+	}
+	if page.TotalCount != nil {
+		t.Fatalf("page.TotalCount = %v, want nil", *page.TotalCount)
+	}
+}
+
+func TestDecisionServiceListFilteredCursorBuildsNextCursor(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
+	repo := &pagingDecisionRepoSpy{
+		hasMore: true,
+		items: []decision.Decision{
+			{ID: "11111111-1111-1111-1111-111111111111", CreatedAt: createdAt},
+			{ID: "22222222-2222-2222-2222-222222222222", CreatedAt: createdAt.Add(-time.Minute)},
+		},
+	}
+	svc := DecisionService{decisionRepo: repo}
+	cursor := &ports.DecisionListCursor{CreatedAt: createdAt.Add(time.Minute), ID: "33333333-3333-3333-3333-333333333333"}
+
+	page, err := svc.ListFilteredCursor(context.Background(), "tenant-1", ports.DecisionListFilter{}, 25, cursor, false)
+	if err != nil {
+		t.Fatalf("ListFilteredCursor() error = %v", err)
+	}
+	if repo.called != "cursor" {
+		t.Fatalf("repo called = %q, want cursor", repo.called)
+	}
+	if repo.cursor == nil || repo.cursor.ID != cursor.ID {
+		t.Fatalf("repo cursor = %+v, want %+v", repo.cursor, cursor)
+	}
+	if page.NextCursor == nil || *page.NextCursor == "" {
+		t.Fatalf("page.NextCursor = %v, want non-empty cursor", page.NextCursor)
 	}
 }

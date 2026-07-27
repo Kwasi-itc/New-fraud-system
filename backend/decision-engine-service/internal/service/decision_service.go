@@ -1295,17 +1295,23 @@ func (c *decisionEvaluationCache) recordScenarioLoad()         { c.scenarioStats
 func (c *decisionEvaluationCache) recordScenarioShared()       { c.scenarioStats.recordSharedResult() }
 func (c *decisionEvaluationCache) recordScenarioInvalidation() { c.scenarioStats.recordInvalidation() }
 
-func (c *decisionEvaluationCache) recordLiveScenariosHit()          { c.liveScenarioStats.recordHit() }
-func (c *decisionEvaluationCache) recordLiveScenariosMiss()         { c.liveScenarioStats.recordMiss() }
-func (c *decisionEvaluationCache) recordLiveScenariosLoad()         { c.liveScenarioStats.recordLoad() }
-func (c *decisionEvaluationCache) recordLiveScenariosShared()       { c.liveScenarioStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordLiveScenariosInvalidation() { c.liveScenarioStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordLiveScenariosHit()  { c.liveScenarioStats.recordHit() }
+func (c *decisionEvaluationCache) recordLiveScenariosMiss() { c.liveScenarioStats.recordMiss() }
+func (c *decisionEvaluationCache) recordLiveScenariosLoad() { c.liveScenarioStats.recordLoad() }
+func (c *decisionEvaluationCache) recordLiveScenariosShared() {
+	c.liveScenarioStats.recordSharedResult()
+}
+func (c *decisionEvaluationCache) recordLiveScenariosInvalidation() {
+	c.liveScenarioStats.recordInvalidation()
+}
 
-func (c *decisionEvaluationCache) recordIterationHit()          { c.iterationStats.recordHit() }
-func (c *decisionEvaluationCache) recordIterationMiss()         { c.iterationStats.recordMiss() }
-func (c *decisionEvaluationCache) recordIterationLoad()         { c.iterationStats.recordLoad() }
-func (c *decisionEvaluationCache) recordIterationShared()       { c.iterationStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordIterationInvalidation() { c.iterationStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordIterationHit()    { c.iterationStats.recordHit() }
+func (c *decisionEvaluationCache) recordIterationMiss()   { c.iterationStats.recordMiss() }
+func (c *decisionEvaluationCache) recordIterationLoad()   { c.iterationStats.recordLoad() }
+func (c *decisionEvaluationCache) recordIterationShared() { c.iterationStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordIterationInvalidation() {
+	c.iterationStats.recordInvalidation()
+}
 
 func (c *decisionEvaluationCache) recordRulesHit()          { c.ruleStats.recordHit() }
 func (c *decisionEvaluationCache) recordRulesMiss()         { c.ruleStats.recordMiss() }
@@ -1313,35 +1319,53 @@ func (c *decisionEvaluationCache) recordRulesLoad()         { c.ruleStats.record
 func (c *decisionEvaluationCache) recordRulesShared()       { c.ruleStats.recordSharedResult() }
 func (c *decisionEvaluationCache) recordRulesInvalidation() { c.ruleStats.recordInvalidation() }
 
-func (c *decisionEvaluationCache) recordTenantModelHit()          { c.tenantModelStats.recordHit() }
-func (c *decisionEvaluationCache) recordTenantModelMiss()         { c.tenantModelStats.recordMiss() }
-func (c *decisionEvaluationCache) recordTenantModelLoad()         { c.tenantModelStats.recordLoad() }
-func (c *decisionEvaluationCache) recordTenantModelShared()       { c.tenantModelStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordTenantModelInvalidation() { c.tenantModelStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordTenantModelHit()    { c.tenantModelStats.recordHit() }
+func (c *decisionEvaluationCache) recordTenantModelMiss()   { c.tenantModelStats.recordMiss() }
+func (c *decisionEvaluationCache) recordTenantModelLoad()   { c.tenantModelStats.recordLoad() }
+func (c *decisionEvaluationCache) recordTenantModelShared() { c.tenantModelStats.recordSharedResult() }
+func (c *decisionEvaluationCache) recordTenantModelInvalidation() {
+	c.tenantModelStats.recordInvalidation()
+}
 
-func (c *decisionEvaluationCache) recordWorkflowRulesHit()          { c.workflowRuleStats.recordHit() }
-func (c *decisionEvaluationCache) recordWorkflowRulesMiss()         { c.workflowRuleStats.recordMiss() }
-func (c *decisionEvaluationCache) recordWorkflowRulesLoad()         { c.workflowRuleStats.recordLoad() }
-func (c *decisionEvaluationCache) recordWorkflowRulesShared()       { c.workflowRuleStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordWorkflowRulesInvalidation() { c.workflowRuleStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordWorkflowRulesHit()  { c.workflowRuleStats.recordHit() }
+func (c *decisionEvaluationCache) recordWorkflowRulesMiss() { c.workflowRuleStats.recordMiss() }
+func (c *decisionEvaluationCache) recordWorkflowRulesLoad() { c.workflowRuleStats.recordLoad() }
+func (c *decisionEvaluationCache) recordWorkflowRulesShared() {
+	c.workflowRuleStats.recordSharedResult()
+}
+func (c *decisionEvaluationCache) recordWorkflowRulesInvalidation() {
+	c.workflowRuleStats.recordInvalidation()
+}
 
-func (c *decisionEvaluationCache) recordActiveWorkflowsHit()          { c.activeWorkflowStats.recordHit() }
-func (c *decisionEvaluationCache) recordActiveWorkflowsMiss()         { c.activeWorkflowStats.recordMiss() }
-func (c *decisionEvaluationCache) recordActiveWorkflowsLoad()         { c.activeWorkflowStats.recordLoad() }
-func (c *decisionEvaluationCache) recordActiveWorkflowsShared()       { c.activeWorkflowStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordActiveWorkflowsInvalidation() { c.activeWorkflowStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsHit()  { c.activeWorkflowStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsMiss() { c.activeWorkflowStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsLoad() { c.activeWorkflowStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveWorkflowsShared() {
+	c.activeWorkflowStats.recordSharedResult()
+}
+func (c *decisionEvaluationCache) recordActiveWorkflowsInvalidation() {
+	c.activeWorkflowStats.recordInvalidation()
+}
 
-func (c *decisionEvaluationCache) recordActiveScreeningsHit()          { c.activeScreeningStats.recordHit() }
-func (c *decisionEvaluationCache) recordActiveScreeningsMiss()         { c.activeScreeningStats.recordMiss() }
-func (c *decisionEvaluationCache) recordActiveScreeningsLoad()         { c.activeScreeningStats.recordLoad() }
-func (c *decisionEvaluationCache) recordActiveScreeningsShared()       { c.activeScreeningStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordActiveScreeningsInvalidation() { c.activeScreeningStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordActiveScreeningsHit()  { c.activeScreeningStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveScreeningsMiss() { c.activeScreeningStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveScreeningsLoad() { c.activeScreeningStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveScreeningsShared() {
+	c.activeScreeningStats.recordSharedResult()
+}
+func (c *decisionEvaluationCache) recordActiveScreeningsInvalidation() {
+	c.activeScreeningStats.recordInvalidation()
+}
 
-func (c *decisionEvaluationCache) recordActiveScoringsHit()          { c.activeScoringStats.recordHit() }
-func (c *decisionEvaluationCache) recordActiveScoringsMiss()         { c.activeScoringStats.recordMiss() }
-func (c *decisionEvaluationCache) recordActiveScoringsLoad()         { c.activeScoringStats.recordLoad() }
-func (c *decisionEvaluationCache) recordActiveScoringsShared()       { c.activeScoringStats.recordSharedResult() }
-func (c *decisionEvaluationCache) recordActiveScoringsInvalidation() { c.activeScoringStats.recordInvalidation() }
+func (c *decisionEvaluationCache) recordActiveScoringsHit()  { c.activeScoringStats.recordHit() }
+func (c *decisionEvaluationCache) recordActiveScoringsMiss() { c.activeScoringStats.recordMiss() }
+func (c *decisionEvaluationCache) recordActiveScoringsLoad() { c.activeScoringStats.recordLoad() }
+func (c *decisionEvaluationCache) recordActiveScoringsShared() {
+	c.activeScoringStats.recordSharedResult()
+}
+func (c *decisionEvaluationCache) recordActiveScoringsInvalidation() {
+	c.activeScoringStats.recordInvalidation()
+}
 
 func (c *cacheMetricCounters) recordHit()          { atomic.AddUint64(&c.hits, 1) }
 func (c *cacheMetricCounters) recordMiss()         { atomic.AddUint64(&c.misses, 1) }
@@ -1741,45 +1765,75 @@ type DecisionPage struct {
 	Limit      int
 	Offset     int
 	HasMore    bool
-	TotalCount int
+	NextCursor *string
+	TotalCount *int
 }
 
-func (s DecisionService) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int) (DecisionPage, error) {
+func (s DecisionService) ListByScenarioPage(ctx context.Context, tenantID, scenarioID string, limit, offset int, includeTotalCount bool) (DecisionPage, error) {
 	items, hasMore, err := s.decisionRepo.ListByScenarioPage(ctx, tenantID, scenarioID, limit, offset)
 	if err != nil {
 		return DecisionPage{}, err
 	}
-	totalCount, err := s.decisionRepo.CountByScenario(ctx, tenantID, scenarioID)
-	if err != nil {
-		return DecisionPage{}, err
+	var totalCount *int
+	if includeTotalCount {
+		value, err := s.decisionRepo.CountByScenario(ctx, tenantID, scenarioID)
+		if err != nil {
+			return DecisionPage{}, err
+		}
+		totalCount = &value
 	}
 	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
 }
 
-func (s DecisionService) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int) (DecisionPage, error) {
+func (s DecisionService) ListFilteredPage(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit, offset int, includeTotalCount bool) (DecisionPage, error) {
 	items, hasMore, err := s.decisionRepo.ListFilteredPage(ctx, tenantID, filter, limit, offset)
 	if err != nil {
 		return DecisionPage{}, err
 	}
-	totalCount, err := s.decisionRepo.CountFiltered(ctx, tenantID, filter)
+	var totalCount *int
+	if includeTotalCount {
+		value, err := s.decisionRepo.CountFiltered(ctx, tenantID, filter)
+		if err != nil {
+			return DecisionPage{}, err
+		}
+		totalCount = &value
+	}
+	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
+func (s DecisionService) ListFilteredCursor(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit int, cursor *ports.DecisionListCursor, includeTotalCount bool) (DecisionPage, error) {
+	items, hasMore, err := s.decisionRepo.ListFilteredCursor(ctx, tenantID, filter, limit, cursor)
 	if err != nil {
 		return DecisionPage{}, err
 	}
-	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+	var totalCount *int
+	if includeTotalCount {
+		value, err := s.decisionRepo.CountFiltered(ctx, tenantID, filter)
+		if err != nil {
+			return DecisionPage{}, err
+		}
+		totalCount = &value
+	}
+	nextCursor := buildDecisionNextCursor(items, hasMore)
+	return DecisionPage{Items: items, Limit: limit, HasMore: hasMore, NextCursor: nextCursor, TotalCount: totalCount}, nil
 }
 
 func (s DecisionService) ListByTenant(ctx context.Context, tenantID string) ([]decision.Decision, error) {
 	return s.decisionRepo.ListByTenant(ctx, tenantID)
 }
 
-func (s DecisionService) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int) (DecisionPage, error) {
+func (s DecisionService) ListByTenantPage(ctx context.Context, tenantID string, limit, offset int, includeTotalCount bool) (DecisionPage, error) {
 	items, hasMore, err := s.decisionRepo.ListByTenantPage(ctx, tenantID, limit, offset)
 	if err != nil {
 		return DecisionPage{}, err
 	}
-	totalCount, err := s.decisionRepo.CountByTenant(ctx, tenantID)
-	if err != nil {
-		return DecisionPage{}, err
+	var totalCount *int
+	if includeTotalCount {
+		value, err := s.decisionRepo.CountByTenant(ctx, tenantID)
+		if err != nil {
+			return DecisionPage{}, err
+		}
+		totalCount = &value
 	}
 	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
 }
@@ -1788,16 +1842,28 @@ func (s DecisionService) ListByObject(ctx context.Context, tenantID, objectType,
 	return s.decisionRepo.ListByObject(ctx, tenantID, objectType, objectID)
 }
 
-func (s DecisionService) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) (DecisionPage, error) {
+func (s DecisionService) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int, includeTotalCount bool) (DecisionPage, error) {
 	items, hasMore, err := s.decisionRepo.ListByObjectPage(ctx, tenantID, objectType, objectID, limit, offset)
 	if err != nil {
 		return DecisionPage{}, err
 	}
-	totalCount, err := s.decisionRepo.CountByObject(ctx, tenantID, objectType, objectID)
-	if err != nil {
-		return DecisionPage{}, err
+	var totalCount *int
+	if includeTotalCount {
+		value, err := s.decisionRepo.CountByObject(ctx, tenantID, objectType, objectID)
+		if err != nil {
+			return DecisionPage{}, err
+		}
+		totalCount = &value
 	}
 	return DecisionPage{Items: items, Limit: limit, Offset: offset, HasMore: hasMore, TotalCount: totalCount}, nil
+}
+
+func buildDecisionNextCursor(items []decision.Decision, hasMore bool) *string {
+	if !hasMore || len(items) == 0 {
+		return nil
+	}
+	value := EncodeDecisionCursor(items[len(items)-1].CreatedAt, items[len(items)-1].ID)
+	return &value
 }
 
 func (s DecisionService) EvaluateAllLiveScenarios(

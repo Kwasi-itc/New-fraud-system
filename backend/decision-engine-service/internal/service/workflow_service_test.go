@@ -342,6 +342,9 @@ func (nilDecisionRepository) ListFiltered(context.Context, string, ports.Decisio
 func (nilDecisionRepository) ListFilteredPage(context.Context, string, ports.DecisionListFilter, int, int) ([]decision.Decision, bool, error) {
 	return nil, false, nil
 }
+func (nilDecisionRepository) ListFilteredCursor(context.Context, string, ports.DecisionListFilter, int, *ports.DecisionListCursor) ([]decision.Decision, bool, error) {
+	return nil, false, nil
+}
 func (nilDecisionRepository) CountFiltered(context.Context, string, ports.DecisionListFilter) (int, error) {
 	return 0, nil
 }

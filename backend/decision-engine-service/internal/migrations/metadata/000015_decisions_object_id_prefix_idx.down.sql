@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS decisions_tenant_object_id_prefix_idx;

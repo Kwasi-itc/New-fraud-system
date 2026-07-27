@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
 
@@ -141,26 +142,49 @@ func (h DecisionHandler) GetDecision(c *gin.Context) {
 func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	filter := service.DecisionListFilter{
-		ScenarioID: c.Query("scenario_id"),
-		ObjectType: c.Query("object_type"),
-		ObjectID:   c.Query("object_id"),
-		Outcome:    normalizeDecisionOutcomeFilter(c.Query("outcome")),
-		Search:     strings.TrimSpace(c.Query("search")),
+		DecisionID:     c.Query("decision_id"),
+		ScenarioID:     c.Query("scenario_id"),
+		ObjectIDPrefix: c.Query("object_id_prefix"),
+		ObjectType:     c.Query("object_type"),
+		ObjectID:       c.Query("object_id"),
+		Outcome:        normalizeDecisionOutcomeFilter(c.Query("outcome")),
+		Search:         strings.TrimSpace(c.Query("search")),
 	}
 	limit, offset, paginationEnabled, ok := parseLimitOffset(c)
 	if !ok {
 		return
 	}
+	includeTotalCount := parseIncludeTotalCount(c)
+	cursor, hasCursor, ok := parseDecisionCursor(c)
+	if !ok {
+		return
+	}
+	if hasCursor && limit == 0 {
+		limit = 50
+	}
 
-	if paginationEnabled {
-		result, err := h.decisionService.ListFilteredPage(c.Request.Context(), tenantID, filter, limit, offset)
+	if hasCursor {
+		result, err := h.decisionService.ListFilteredCursor(c.Request.Context(), tenantID, filter, limit, cursor, includeTotalCount)
 		if err != nil {
 			logHandlerFailure(c, "list decisions failed", err, "tenant_id", tenantID)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 			return
 		}
 		out := adaptDecisionList(result.Items)
-		pagination := buildPagination(limit, offset, len(out), result.TotalCount)
+		pagination := buildPagination(limit, 0, len(out), result.HasMore, result.NextCursor, result.TotalCount)
+		logHandlerSuccess(c, "list decisions completed", "tenant_id", tenantID, "count", len(out), "limit", limit, "cursor_mode", true, "has_more", result.HasMore, "scenario_id", filter.ScenarioID, "object_type", filter.ObjectType, "object_id", filter.ObjectID, "outcome", filter.Outcome, "search", filter.Search)
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
+		return
+	}
+	if paginationEnabled {
+		result, err := h.decisionService.ListFilteredPage(c.Request.Context(), tenantID, filter, limit, offset, includeTotalCount)
+		if err != nil {
+			logHandlerFailure(c, "list decisions failed", err, "tenant_id", tenantID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
+			return
+		}
+		out := adaptDecisionList(result.Items)
+		pagination := buildPagination(limit, offset, len(out), result.HasMore, nil, result.TotalCount)
 		logHandlerSuccess(c, "list decisions completed", "tenant_id", tenantID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore, "scenario_id", filter.ScenarioID, "object_type", filter.ObjectType, "object_id", filter.ObjectID, "outcome", filter.Outcome, "search", filter.Search)
 		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 		return
@@ -174,7 +198,8 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	}
 	out := adaptDecisionList(items)
 	logHandlerSuccess(c, "list decisions completed", "tenant_id", tenantID, "count", len(out), "scenario_id", filter.ScenarioID, "object_type", filter.ObjectType, "object_id", filter.ObjectID, "outcome", filter.Outcome, "search", filter.Search)
-	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
+	totalCount := len(out)
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), false, nil, &totalCount)})
 }
 
 func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
@@ -184,15 +209,36 @@ func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if paginationEnabled {
-		result, err := h.decisionService.ListByScenarioPage(c.Request.Context(), tenantID, scenarioID, limit, offset)
+	includeTotalCount := parseIncludeTotalCount(c)
+	cursor, hasCursor, ok := parseDecisionCursor(c)
+	if !ok {
+		return
+	}
+	if hasCursor && limit == 0 {
+		limit = 50
+	}
+	if hasCursor {
+		result, err := h.decisionService.ListFilteredCursor(c.Request.Context(), tenantID, service.DecisionListFilter{ScenarioID: scenarioID}, limit, cursor, includeTotalCount)
 		if err != nil {
 			logHandlerFailure(c, "list decisions by scenario path failed", err, "tenant_id", tenantID, "scenario_id", scenarioID)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
 			return
 		}
 		out := adaptDecisionList(result.Items)
-		pagination := buildPagination(limit, offset, len(out), result.TotalCount)
+		pagination := buildPagination(limit, 0, len(out), result.HasMore, result.NextCursor, result.TotalCount)
+		logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "cursor_mode", true, "has_more", result.HasMore)
+		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
+		return
+	}
+	if paginationEnabled {
+		result, err := h.decisionService.ListByScenarioPage(c.Request.Context(), tenantID, scenarioID, limit, offset, includeTotalCount)
+		if err != nil {
+			logHandlerFailure(c, "list decisions by scenario path failed", err, "tenant_id", tenantID, "scenario_id", scenarioID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "list_decisions_failed", "details": err.Error()})
+			return
+		}
+		out := adaptDecisionList(result.Items)
+		pagination := buildPagination(limit, offset, len(out), result.HasMore, nil, result.TotalCount)
 		logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out), "limit", limit, "offset", offset, "has_more", result.HasMore)
 		c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: pagination})
 		return
@@ -205,7 +251,8 @@ func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
 	}
 	out := adaptDecisionList(items)
 	logHandlerSuccess(c, "list decisions by scenario path completed", "tenant_id", tenantID, "scenario_id", scenarioID, "count", len(out))
-	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), len(out))})
+	totalCount := len(out)
+	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), false, nil, &totalCount)})
 }
 
 func adaptDecisionList(items []decision.Decision) []dto.DecisionResponse {
@@ -216,25 +263,52 @@ func adaptDecisionList(items []decision.Decision) []dto.DecisionResponse {
 	return out
 }
 
-func buildPagination(limit, offset, itemCount, totalCount int) dto.PaginationResponse {
-	hasMore := offset+itemCount < totalCount
+func buildPagination(limit, offset, itemCount int, hasMore bool, nextCursor *string, totalCount *int) dto.PaginationResponse {
 	var nextOffset *int
-	if hasMore {
+	if hasMore && nextCursor == nil {
 		value := offset + limit
 		nextOffset = &value
 	}
-	totalPages := 0
-	if limit > 0 {
-		totalPages = (totalCount + limit - 1) / limit
+	var totalPages *int
+	if totalCount != nil && limit > 0 {
+		value := (*totalCount + limit - 1) / limit
+		totalPages = &value
 	}
 	return dto.PaginationResponse{
 		Limit:      limit,
 		Offset:     offset,
 		HasMore:    hasMore,
+		NextCursor: nextCursor,
 		TotalCount: totalCount,
 		TotalPages: totalPages,
 		NextOffset: nextOffset,
 	}
+}
+
+func parseIncludeTotalCount(c *gin.Context) bool {
+	switch strings.ToLower(strings.TrimSpace(c.Query("include_total_count"))) {
+	case "1", "true", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseDecisionCursor(c *gin.Context) (*ports.DecisionListCursor, bool, bool) {
+	rawCursor := strings.TrimSpace(c.Query("cursor"))
+	if rawCursor == "" {
+		return nil, false, true
+	}
+	if strings.TrimSpace(c.Query("offset")) != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_pagination", "details": "cursor and offset cannot be used together"})
+		return nil, false, false
+	}
+	cursor, err := service.DecodeDecisionCursor(rawCursor)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_cursor", "details": err.Error()})
+		return nil, false, false
+	}
+	return cursor, true, true
 }
 
 func parseLimitOffset(c *gin.Context) (limit int, offset int, enabled bool, ok bool) {

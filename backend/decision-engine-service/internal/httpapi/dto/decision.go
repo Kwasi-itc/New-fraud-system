@@ -56,12 +56,13 @@ type DecisionDetailResponse struct {
 }
 
 type PaginationResponse struct {
-	Limit      int  `json:"limit"`
-	Offset     int  `json:"offset"`
-	HasMore    bool `json:"has_more"`
-	TotalCount int  `json:"total_count"`
-	TotalPages int  `json:"total_pages"`
-	NextOffset *int `json:"next_offset,omitempty"`
+	Limit      int     `json:"limit"`
+	Offset     int     `json:"offset"`
+	HasMore    bool    `json:"has_more"`
+	NextCursor *string `json:"next_cursor,omitempty"`
+	TotalCount *int    `json:"total_count,omitempty"`
+	TotalPages *int    `json:"total_pages,omitempty"`
+	NextOffset *int    `json:"next_offset,omitempty"`
 }
 
 type RuleExecutionResponse struct {
@@ -75,18 +76,18 @@ type RuleExecutionResponse struct {
 }
 
 type DecisionEvaluationResponse struct {
-	Triggered      bool                  `json:"triggered"`
-	Decision       *DecisionResponse     `json:"decision,omitempty"`
+	Triggered      bool                    `json:"triggered"`
+	Decision       *DecisionResponse       `json:"decision,omitempty"`
 	RuleExecutions []RuleExecutionResponse `json:"rule_executions,omitempty"`
 }
 
 type MultiDecisionEvaluationResponse struct {
-	ObjectID string                     `json:"object_id"`
+	ObjectID string                       `json:"object_id"`
 	Results  []DecisionEvaluationResponse `json:"results"`
 }
 
 type DecisionListEnvelope struct {
-	Decisions  []DecisionResponse  `json:"decisions"`
+	Decisions  []DecisionResponse `json:"decisions"`
 	Pagination PaginationResponse `json:"pagination"`
 }
 
