@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, type ReactNode, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,6 +43,17 @@ const tabs = [
 ] as const;
 
 type DetectionTab = (typeof tabs)[number];
+
+function parseDetectionTab(value: string | null): DetectionTab {
+  switch (value) {
+    case "Lists":
+      return "Lists";
+    case "Decisions":
+      return "Decisions";
+    default:
+      return "Scenarios";
+  }
+}
 
 type DetectionScenario = {
   id: string;
@@ -1059,7 +1070,7 @@ function LiveDecisionsView({
                         </td>
                         <td className="px-4 py-3">
                           <Link
-                            href={`/detection/decisions/${item.id}`}
+                            href={`/detection/decisions/${item.id}?fromTab=Decisions`}
                             className="font-medium text-slate-950 transition hover:text-[#2d63b8]"
                           >
                             {scenarioNameById.get(item.scenario_id) ?? item.scenario_id}
@@ -1746,12 +1757,13 @@ function NewListModal({
   );
 }
 
-export default function DetectionPage() {
+function DetectionPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
-  const [activeTab, setActiveTab] = useState<DetectionTab>("Scenarios");
+  const activeTab = parseDetectionTab(searchParams.get("tab"));
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createListModalOpen, setCreateListModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -1941,6 +1953,17 @@ export default function DetectionPage() {
     return "New Scenario";
   }, [activeTab]);
 
+  function handleTabChange(tab: DetectionTab) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "Scenarios") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    router.replace(`/detection${query ? `?${query}` : ""}`, { scroll: false });
+  }
+
   function openScenarioModal() {
     setScenarioName("");
     setScenarioDescription("");
@@ -1994,7 +2017,7 @@ export default function DetectionPage() {
       <div className="space-y-5">
         <PageHeader
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           action={
             <Button
               variant="accent"
@@ -2198,5 +2221,13 @@ export default function DetectionPage() {
         onSave={handleSaveList}
       />
     </>
+  );
+}
+
+export default function DetectionPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading detection workspace...</div>}>
+      <DetectionPageContent />
+    </Suspense>
   );
 }

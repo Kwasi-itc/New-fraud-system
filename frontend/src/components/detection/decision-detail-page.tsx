@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronUp, Copy } from "lucide-react";
 
@@ -128,6 +129,7 @@ function formatRuleSummaryForDisplay(summary: string) {
 
 export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const searchParams = useSearchParams();
   const [detailOpen, setDetailOpen] = useState(true);
   const [responseOpen, setResponseOpen] = useState(true);
   const [triggerObjectOpen, setTriggerObjectOpen] = useState(true);
@@ -242,6 +244,8 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
   const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
   void scoringRequestsQuery.data?.scoring_requests;
+  const returnTab = searchParams.get("fromTab") ?? "Decisions";
+  const backHref = `/detection?tab=${encodeURIComponent(returnTab)}`;
 
   if (!tenantId) {
     return (
@@ -278,7 +282,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
       <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/detection"
+            href={backHref}
             className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900"
           >
             <ChevronLeft className="size-4" />

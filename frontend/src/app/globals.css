@@ -5,6 +5,13 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
+  --font-inter:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
   --card: #ffffff;
   --card-foreground: #111111;
   --muted: #f3f4f6;
@@ -66,7 +73,7 @@ html {
 
 body {
   color: var(--foreground);
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter);
 }
 
 a,
