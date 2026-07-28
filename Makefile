@@ -1,4 +1,4 @@
-.PHONY: production-replay replay-production production-replay-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async callback-server
+.PHONY: production-replay replay-production production-replay-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async callback-server create-decisions create-async-decisions consolidate-postgres-db
 
 TRANSACTIONS ?= 1000
 MULTIPLIER ?= 3600
@@ -7,13 +7,18 @@ MAX_IN_FLIGHT ?= 50
 CHECKPOINT_EVERY ?= 100
 DECISION_MODE ?= sync
 ASYNC_WAIT_TIMEOUT_MS ?= 0
-ASYNC_CALLBACK_URL ?=
 ASYNC_CALLBACK_PORT ?= 8099
+ASYNC_CALLBACK_URL ?= http://host.docker.internal:$(ASYNC_CALLBACK_PORT)/callbacks/async-decisions
 ASYNC_CALLBACK_WAIT_TIMEOUT ?= 120
 CALLBACK_HOST ?= 0.0.0.0
 CALLBACK_PORT ?= $(ASYNC_CALLBACK_PORT)
 CALLBACK_OUTPUT ?= /tmp/fraud-data-local-async-callbacks.ndjson
 CALLBACK_LOG ?= /tmp/fraud-data-local-callback-server.log
+COUNT ?= 100
+PROGRESS_EVERY ?= 100
+DECISION_CREATE_OUTPUT ?= /tmp/fraud-decision-create-results.ndjson
+DECISION_CREATE_EVENT_DATE ?=
+DECISION_CREATE_RAW_TIMESTAMP ?=
 DURATION ?=
 HOURS ?=
 DAYS ?=
@@ -22,10 +27,17 @@ BASE_URL ?= http://ec2-54-246-247-31.eu-west-1.compute.amazonaws.com
 DATA_MODEL_URL ?=
 INGESTION_URL ?=
 DECISION_ENGINE_URL ?=
+DECISION_CREATE_URL ?= http://127.0.0.1:8082
 TENANT_ID ?=
+SCENARIO_ID ?=
 TENANT_NAME ?= EC2 Production Replay Smoke Test
 PUBLICATION_TIMEOUT ?= 900
 SERVICE_AUTH_TOKEN ?=
+TARGET_DB ?= fraud
+BACKUP_DIR ?=
+REUSE_DUMPS ?= true
+DROP_LEGACY_DBS ?= true
+ALLOW_EXISTING_TARGET ?= 0
 
 production-replay:
 	FRAUD_DATA_ROOT="$(DATA_ROOT)" \
@@ -88,3 +100,26 @@ callback-server:
 		--port "$(CALLBACK_PORT)" \
 		--output "$(CALLBACK_OUTPUT)" \
 		2>&1 | tee -a "$(CALLBACK_LOG)"
+
+create-decisions:
+	DECISION_CREATE_EVENT_DATE="$(DECISION_CREATE_EVENT_DATE)" \
+	DECISION_CREATE_RAW_TIMESTAMP="$(DECISION_CREATE_RAW_TIMESTAMP)" \
+	PYTHONPATH=backend/stress-tests python3 -m production_replay.create_decisions \
+		--decision-engine-url "$(if $(DECISION_ENGINE_URL),$(DECISION_ENGINE_URL),$(DECISION_CREATE_URL))" \
+		--tenant-id "$(TENANT_ID)" \
+		--scenario-id "$(SCENARIO_ID)" \
+		--count "$(COUNT)" \
+		--wait-timeout-ms "$(ASYNC_WAIT_TIMEOUT_MS)" \
+		--callback-url "$(ASYNC_CALLBACK_URL)" \
+		--progress-every "$(PROGRESS_EVERY)" \
+		--output "$(DECISION_CREATE_OUTPUT)"
+
+create-async-decisions: create-decisions
+
+consolidate-postgres-db:
+	TARGET_DB="$(TARGET_DB)" \
+	BACKUP_DIR="$(BACKUP_DIR)" \
+	REUSE_DUMPS="$(REUSE_DUMPS)" \
+	DROP_LEGACY_DBS="$(DROP_LEGACY_DBS)" \
+	ALLOW_EXISTING_TARGET="$(ALLOW_EXISTING_TARGET)" \
+	bash ./backend/tools/db_consolidation/consolidate_to_fraud_db.sh

@@ -1,4 +1,2 @@
-CREATE DATABASE ingestion;
-CREATE DATABASE decision_engine;
-CREATE DATABASE screening;
-CREATE DATABASE case_manager;
+-- The primary fraud database is created by POSTGRES_DB=fraud in docker-compose.yml.
+-- Service isolation is handled by schemas inside that single database.

@@ -21,7 +21,7 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: datamodel
+      POSTGRES_DB: fraud
       POSTGRES_USER: fraud
       POSTGRES_PASSWORD: fraud
     ports:
@@ -30,7 +30,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fraud -d datamodel"]
+      test: ["CMD-SHELL", "pg_isready -U fraud -d fraud"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -43,7 +43,7 @@ services:
     command: ["up"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,7 +57,7 @@ services:
     command: ["up"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
     depends_on:
       postgres:
@@ -72,7 +72,7 @@ services:
     command: ["up"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
     depends_on:
@@ -88,7 +88,7 @@ services:
     command: ["up"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,7 +102,7 @@ services:
   #   command: ["up"]
   #   environment:
   #     <<: *backend-common
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
@@ -115,7 +115,7 @@ services:
     environment:
       <<: *backend-common
       PORT: 8080
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       SERVICE_ALLOWED_ORIGINS: http://localhost:3000
       INDEX_WORKER_POLL_INTERVAL: 2s
       INDEX_WORKER_MAX_ATTEMPTS: 5
@@ -132,7 +132,7 @@ services:
     environment:
       <<: *backend-common
       PORT: 8081
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/ingestion?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       WORKER_POLL_INTERVAL: 5s
       WORKER_MAX_ATTEMPTS: 3
@@ -147,7 +147,7 @@ services:
     environment:
       <<: *backend-common
       PORT: 8082
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
@@ -157,7 +157,7 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
       AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
     depends_on: *depends-on-migrations
     ports:
       - "8082:8082"
@@ -169,7 +169,7 @@ services:
     environment:
       <<: *backend-common
       PORT: 8085
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       DECISION_ENGINE_URL: http://decision-engine-service:8082
       # INBOX_SERVICE_URL: http://case-manager-service:8086
@@ -188,7 +188,7 @@ services:
   #   environment:
   #     <<: *backend-common
   #     PORT: 8086
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
   #     DECISION_ENGINE_URL: http://decision-engine-service:8082
   #     SCREENING_SERVICE_URL: http://screening-service:8085
   #     INGESTION_SERVICE_URL: http://ingestion-service:8081
@@ -207,7 +207,7 @@ services:
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INDEX_WORKER_POLL_INTERVAL: 2s
       INDEX_WORKER_MAX_ATTEMPTS: 5
       INDEX_WORKER_RETRY_BASE_DELAY: 5s
@@ -221,7 +221,7 @@ services:
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/datamodel?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       WORKER_POLL_INTERVAL: 5s
       WORKER_MAX_ATTEMPTS: 3
@@ -237,7 +237,7 @@ services:
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/decision_engine?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
@@ -246,7 +246,7 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
       AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
     depends_on:
       <<: *depends-on-migrations
       data-model-service:
@@ -267,7 +267,7 @@ services:
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
-      DATABASE_URL: postgres://fraud:fraud@postgres:5432/screening?sslmode=disable
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       DECISION_ENGINE_URL: http://decision-engine-service:8082
       # INBOX_SERVICE_URL: http://case-manager-service:8086
@@ -291,7 +291,7 @@ services:
   #   entrypoint: ["/app/worker"]
   #   environment:
   #     <<: *backend-common
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/case_manager?sslmode=disable
+  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
   #     DECISION_ENGINE_URL: http://decision-engine-service:8082
   #     SCREENING_SERVICE_URL: http://screening-service:8085
   #     INGESTION_SERVICE_URL: http://ingestion-service:8081
