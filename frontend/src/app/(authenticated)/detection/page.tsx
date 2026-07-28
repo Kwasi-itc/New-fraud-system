@@ -832,19 +832,39 @@ function LiveDecisionsView({
     <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex w-full max-w-md gap-1.5">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
-              <Input
-                value={searchTerm}
+          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex w-full max-w-md gap-1.5">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setPageOffset(0);
+                    setSearchTerm(event.target.value);
+                  }}
+                  placeholder="Search by decision, object, or scenario"
+                  className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-[13px] text-slate-600">
+              <span>Rows per page</span>
+              <select
+                value={pageSize}
                 onChange={(event) => {
                   setPageOffset(0);
-                  setSearchTerm(event.target.value);
+                  setPageSize(Number(event.target.value));
                 }}
-                placeholder="Search by decision, object, or scenario"
-                className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
-              />
-            </div>
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 shadow-none outline-none focus:border-slate-300"
+              >
+                {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="relative flex gap-3">
@@ -1101,31 +1121,12 @@ function LiveDecisionsView({
               </div>
               {pagination ? (
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                    <label className="flex items-center gap-2 text-[13px] text-slate-600">
-                      <span>Rows per page</span>
-                      <select
-                        value={pageSize}
-                        onChange={(event) => {
-                          setPageOffset(0);
-                          setPageSize(Number(event.target.value));
-                        }}
-                        className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 shadow-none outline-none focus:border-slate-300"
-                      >
-                        {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div>
-                      Showing {pageRangeLabel}
-                      {pagination ? ` of ${totalRecords}` : ""}
-                      {trimmedSearchTerm || selectedFilters.length > 0
-                        ? " matching current filters"
-                        : ""}
-                    </div>
+                  <div>
+                    Showing {pageRangeLabel}
+                    {pagination ? ` of ${totalRecords}` : ""}
+                    {trimmedSearchTerm || selectedFilters.length > 0
+                      ? " matching current filters"
+                      : ""}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button

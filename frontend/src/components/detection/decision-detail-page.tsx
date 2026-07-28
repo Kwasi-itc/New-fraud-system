@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronUp, Copy } from "lucide-react";
 
@@ -236,6 +236,11 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const requestBodyMetaEntries = requestBodyEntries.filter(
     ([key]) => key !== "fields" && key !== "object_id" && key !== "object_type"
   );
+  const fromTab = searchParams.get("fromTab");
+  const backHref =
+    fromTab === "Decisions" || fromTab === "Lists" || fromTab === "Scenarios"
+      ? `/detection?tab=${encodeURIComponent(fromTab)}`
+      : "/detection";
   const rulesById = useMemo(
     () =>
       new Map((rulesQuery.data?.rules ?? []).map((rule) => [rule.id, rule])),
@@ -244,8 +249,6 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
   const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
   void scoringRequestsQuery.data?.scoring_requests;
-  const returnTab = searchParams.get("fromTab") ?? "Decisions";
-  const backHref = `/detection?tab=${encodeURIComponent(returnTab)}`;
 
   if (!tenantId) {
     return (
