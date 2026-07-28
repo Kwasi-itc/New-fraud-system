@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronUp, Copy } from "lucide-react";
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { summarizeRuleFormula } from "@/lib/rule-builder";
 import { cn } from "@/lib/utils";
-import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { type RuleEvaluationNode, decisionEngineApi } from "@/lib/decision-engine-api";
 import { formatExecutionRequestBody } from "@/components/detection/scheduled-execution-shared";
 
 function formatDecisionField(value: unknown) {
@@ -20,6 +21,86 @@ function formatDecisionField(value: unknown) {
     return value;
   }
   return JSON.stringify(value);
+}
+
+type EvaluationEvidenceRow = {
+  key: string;
+  expression: string;
+  result: boolean;
+};
+
+const comparisonOperatorLabels: Record<string, string> = {
+  eq: "=",
+  neq: "!=",
+  gt: ">",
+  gte: ">=",
+  lt: "<",
+  lte: "<=",
+  contains: "contains",
+  in: "in",
+  starts_with: "starts with",
+  ends_with: "ends with",
+};
+
+function normalizeFunctionName(value: string | undefined) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function ruleOutcomeBadgeClass(outcome: string) {
+  switch (normalizeFunctionName(outcome)) {
+    case "hit":
+      return "border-rose-200 bg-rose-50 text-rose-600";
+    case "snoozed":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "error":
+      return "border-slate-300 bg-slate-100 text-slate-700";
+    case "no_hit":
+      return "border-emerald-200 bg-emerald-50 text-emerald-600";
+    default:
+      return "border-slate-200 bg-white text-slate-700";
+  }
+}
+
+function formatEvaluationExpression(node: RuleEvaluationNode) {
+  const functionName = normalizeFunctionName(node.function);
+  if (
+    !(functionName in comparisonOperatorLabels) ||
+    !node.children ||
+    node.children.length !== 2
+  ) {
+    return null;
+  }
+  const [left, right] = node.children;
+  return `${formatDecisionField(left.return_value)} ${comparisonOperatorLabels[functionName]} ${formatDecisionField(right.return_value)}`;
+}
+
+function collectEvaluationEvidence(
+  node: RuleEvaluationNode | null | undefined,
+  path: string[] = []
+): EvaluationEvidenceRow[] {
+  if (!node || node.skipped) {
+    return [];
+  }
+
+  const rows: EvaluationEvidenceRow[] = [];
+  const expression = formatEvaluationExpression(node);
+  if (expression && typeof node.return_value === "boolean") {
+    rows.push({
+      key: [...path, normalizeFunctionName(node.function) || "node"].join("."),
+      expression,
+      result: node.return_value,
+    });
+  }
+
+  node.children?.forEach((child, index) => {
+    rows.push(...collectEvaluationEvidence(child, [...path, `children.${index}`]));
+  });
+
+  Object.entries(node.named_children ?? {}).forEach(([name, child]) => {
+    rows.push(...collectEvaluationEvidence(child, [...path, `named.${name}`]));
+  });
+
+  return rows;
 }
 
 function renderDecisionRequestValue(key: string, value: unknown) {
@@ -128,6 +209,7 @@ function formatRuleSummaryForDisplay(summary: string) {
 
 export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const searchParams = useSearchParams();
   const [detailOpen, setDetailOpen] = useState(true);
   const [responseOpen, setResponseOpen] = useState(true);
   const [triggerObjectOpen, setTriggerObjectOpen] = useState(true);
@@ -234,6 +316,11 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
   const requestBodyMetaEntries = requestBodyEntries.filter(
     ([key]) => key !== "fields" && key !== "object_id" && key !== "object_type"
   );
+  const fromTab = searchParams.get("fromTab");
+  const backHref =
+    fromTab === "Decisions" || fromTab === "Lists" || fromTab === "Scenarios"
+      ? `/detection?tab=${encodeURIComponent(fromTab)}`
+      : "/detection";
   const rulesById = useMemo(
     () =>
       new Map((rulesQuery.data?.rules ?? []).map((rule) => [rule.id, rule])),
@@ -278,7 +365,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
       <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/detection"
+            href={backHref}
             className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900"
           >
             <ChevronLeft className="size-4" />
@@ -440,6 +527,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       const formattedRuleSummary = ruleSummary
                         ? formatRuleSummaryForDisplay(ruleSummary)
                         : null;
+                      const evidenceRows = collectEvaluationEvidence(item.evaluation);
                       return (
                         <div key={item.id} className="rounded-xl border border-slate-200 bg-white">
                           <button
@@ -471,9 +559,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                               <span
                                 className={cn(
                                   "rounded-full border px-3 py-1 text-[13px] font-medium",
-                                  item.outcome.toLowerCase() === "hit"
-                                    ? "border-rose-200 text-rose-600"
-                                    : "border-emerald-200 text-emerald-600"
+                                  ruleOutcomeBadgeClass(item.outcome)
                                 )}
                               >
                                 {item.outcome}
@@ -541,6 +627,61 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                     </pre>
                                   </div>
                                 </div>
+                                {item.evaluation ? (
+                                  <div className="space-y-3">
+                                    <div className="text-[12px] font-medium text-slate-500">
+                                      Evaluation evidence
+                                    </div>
+                                    {evidenceRows.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {evidenceRows.map((row) => (
+                                          <div
+                                            key={row.key}
+                                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
+                                          >
+                                            <div className="font-mono text-[13px] text-slate-800">
+                                              {row.expression}
+                                            </div>
+                                            <span
+                                              className={cn(
+                                                "rounded-full border px-2.5 py-0.5 text-[12px] font-medium",
+                                                row.result
+                                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                                  : "border-rose-200 bg-rose-50 text-rose-700"
+                                              )}
+                                            >
+                                              {String(row.result)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                        Structured evidence is recorded for this rule, but there is no simple comparison summary to display.
+                                      </div>
+                                    )}
+                                    <details className="rounded-xl border border-slate-200 bg-white">
+                                      <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                                        View raw evaluation trace
+                                      </summary>
+                                      <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                                        {JSON.stringify(item.evaluation, null, 2)}
+                                      </pre>
+                                    </details>
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "no_hit" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    No evaluation snapshot is stored for non-hit rule executions.
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "snoozed" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    This rule was snoozed, so it did not contribute to the decision score and no evidence snapshot was stored.
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "error" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    This rule execution ended in an error state. No structured evidence snapshot is currently available for that case.
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           ) : null}

@@ -423,7 +423,13 @@ func (s DecisionService) evaluateScenario(
 	score := 0
 	ruleExecs := make([]decision.RuleExecution, 0, len(evaluatedRules))
 	for _, evaluatedRule := range evaluatedRules {
-		exec := newRuleExecution(now, decisionID, evaluatedRule.Rule, evaluatedRule.Matched)
+		exec := newRuleExecution(
+			now,
+			decisionID,
+			evaluatedRule.Rule,
+			evaluatedRule.Matched,
+			evaluatedRule.Evaluation,
+		)
 		exec.ID = s.idGen.New().String()
 		if evaluatedRule.Snoozed {
 			exec.Outcome = "snoozed"

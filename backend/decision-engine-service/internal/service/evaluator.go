@@ -3,6 +3,7 @@ package service
 import (
 	"time"
 
+	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 )
@@ -20,10 +21,18 @@ func outcomeFromScore(score int, iteration scenario.Iteration) decision.Outcome 
 	return decision.OutcomeApprove
 }
 
-func newRuleExecution(now time.Time, decisionID string, rule scenario.Rule, matched bool) decision.RuleExecution {
+func newRuleExecution(
+	now time.Time,
+	decisionID string,
+	rule scenario.Rule,
+	matched bool,
+	evaluation *domainast.EvaluationNode,
+) decision.RuleExecution {
 	outcome := "no_hit"
 	if matched {
 		outcome = "hit"
+	} else {
+		evaluation = nil
 	}
 	return decision.RuleExecution{
 		ID:            "",
@@ -32,6 +41,7 @@ func newRuleExecution(now time.Time, decisionID string, rule scenario.Rule, matc
 		RuleName:      rule.Name,
 		Outcome:       outcome,
 		ScoreModifier: rule.ScoreModifier,
+		Evaluation:    evaluation,
 		CreatedAt:     now,
 	}
 }

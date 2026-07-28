@@ -55,11 +55,23 @@ func TestEvaluateRulesPreservesOrderAndSnoozes(t *testing.T) {
 	if results[0].Rule.ID != "rule-1" || !results[0].Matched || results[0].Snoozed {
 		t.Fatalf("unexpected result[0] = %#v", results[0])
 	}
+	if results[0].Evaluation == nil {
+		t.Fatalf("result[0].Evaluation = nil, want captured evidence")
+	}
+	if got := results[0].Evaluation.ReturnValue; got != true {
+		t.Fatalf("result[0].Evaluation.ReturnValue = %#v, want true", got)
+	}
 	if results[1].Rule.ID != "rule-2" || results[1].Matched || !results[1].Snoozed {
 		t.Fatalf("unexpected result[1] = %#v", results[1])
 	}
+	if results[1].Evaluation != nil {
+		t.Fatalf("result[1].Evaluation = %#v, want nil for snoozed rule", results[1].Evaluation)
+	}
 	if results[2].Rule.ID != "rule-3" || results[2].Matched || results[2].Snoozed {
 		t.Fatalf("unexpected result[2] = %#v", results[2])
+	}
+	if results[2].Evaluation != nil {
+		t.Fatalf("result[2].Evaluation = %#v, want nil for no-hit rule", results[2].Evaluation)
 	}
 }
 
@@ -197,6 +209,9 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 	}
 	if len(result.RuleExecutions) != 1 || result.RuleExecutions[0].Outcome != "hit" {
 		t.Fatalf("evaluateScenarioByIteration() rule executions = %#v", result.RuleExecutions)
+	}
+	if result.RuleExecutions[0].Evaluation == nil {
+		t.Fatalf("evaluateScenarioByIteration() Evaluation = nil")
 	}
 }
 

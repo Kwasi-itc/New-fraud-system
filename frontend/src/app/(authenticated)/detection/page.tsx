@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, type ReactNode, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,6 +43,17 @@ const tabs = [
 ] as const;
 
 type DetectionTab = (typeof tabs)[number];
+
+function parseDetectionTab(value: string | null): DetectionTab {
+  switch (value) {
+    case "Lists":
+      return "Lists";
+    case "Decisions":
+      return "Decisions";
+    default:
+      return "Scenarios";
+  }
+}
 
 type DetectionScenario = {
   id: string;
@@ -121,7 +132,8 @@ const decisionOutcomes = [
   { label: "Decline", color: "bg-rose-300" },
 ];
 
-const DECISIONS_PAGE_SIZE = 25;
+const DEFAULT_DECISIONS_PAGE_SIZE = 25;
+const DECISIONS_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 type DecisionPaginationToken =
   | { type: "page"; page: number }
@@ -697,6 +709,7 @@ function LiveDecisionsView({
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [pageOffset, setPageOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_DECISIONS_PAGE_SIZE);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
     []
   );
@@ -714,6 +727,7 @@ function LiveDecisionsView({
       "decision-engine",
       "decisions",
       tenantId,
+      pageSize,
       pageOffset,
       trimmedSearchTerm,
       selectedScenarioFilter ?? "",
@@ -730,8 +744,9 @@ function LiveDecisionsView({
           ? outcomeFilterToApiValue(selectedOutcomeFilter)
           : undefined,
         search: trimmedSearchTerm || undefined,
-        limit: DECISIONS_PAGE_SIZE,
+        limit: pageSize,
         offset: pageOffset,
+        include_total_count: true,
       }),
     enabled: Boolean(tenantId),
   });
@@ -771,8 +786,8 @@ function LiveDecisionsView({
   const canGoPrevious = pageOffset > 0;
   const totalRecords = pagination?.total_count ?? 0;
   const totalPages = pagination?.total_pages ?? 0;
-  const canGoNext = pagination ? pageOffset + DECISIONS_PAGE_SIZE < totalRecords : false;
-  const currentPage = Math.floor(pageOffset / DECISIONS_PAGE_SIZE) + 1;
+  const canGoNext = pagination ? pageOffset + pageSize < totalRecords : false;
+  const currentPage = Math.floor(pageOffset / pageSize) + 1;
   const paginationTokens = totalPages > 0 ? buildDecisionPaginationTokens(currentPage, totalPages) : [];
   const pageRangeLabel =
     decisionsQuery.data?.decisions?.length && pagination
@@ -817,19 +832,39 @@ function LiveDecisionsView({
     <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex w-full max-w-md gap-1.5">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
-              <Input
-                value={searchTerm}
+          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex w-full max-w-md gap-1.5">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setPageOffset(0);
+                    setSearchTerm(event.target.value);
+                  }}
+                  placeholder="Search by decision, object, or scenario"
+                  className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-[13px] text-slate-600">
+              <span>Rows per page</span>
+              <select
+                value={pageSize}
                 onChange={(event) => {
                   setPageOffset(0);
-                  setSearchTerm(event.target.value);
+                  setPageSize(Number(event.target.value));
                 }}
-                placeholder="Search by decision, object, or scenario"
-                className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
-              />
-            </div>
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 shadow-none outline-none focus:border-slate-300"
+              >
+                {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="relative flex gap-3">
@@ -1055,7 +1090,7 @@ function LiveDecisionsView({
                         </td>
                         <td className="px-4 py-3">
                           <Link
-                            href={`/detection/decisions/${item.id}`}
+                            href={`/detection/decisions/${item.id}?fromTab=Decisions`}
                             className="font-medium text-slate-950 transition hover:text-[#2d63b8]"
                           >
                             {scenarioNameById.get(item.scenario_id) ?? item.scenario_id}
@@ -1099,7 +1134,7 @@ function LiveDecisionsView({
                       disabled={!canGoPrevious}
                       onClick={() =>
                         setPageOffset((current) =>
-                          Math.max(0, current - DECISIONS_PAGE_SIZE)
+                          Math.max(0, current - pageSize)
                         )
                       }
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
@@ -1119,7 +1154,7 @@ function LiveDecisionsView({
                           <Button
                             key={token.page}
                             variant="outline"
-                            onClick={() => setPageOffset((token.page - 1) * DECISIONS_PAGE_SIZE)}
+                            onClick={() => setPageOffset((token.page - 1) * pageSize)}
                             disabled={token.page === currentPage}
                             className={cn(
                               "h-9 min-w-9 rounded-xl border px-3 text-[13px] shadow-none",
@@ -1136,9 +1171,7 @@ function LiveDecisionsView({
                     <Button
                       variant="outline"
                       disabled={!canGoNext}
-                      onClick={() =>
-                        setPageOffset(pageOffset + DECISIONS_PAGE_SIZE)
-                      }
+                      onClick={() => setPageOffset(pageOffset + pageSize)}
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
                     >
                       <ChevronRight className="size-4" />
@@ -1725,12 +1758,13 @@ function NewListModal({
   );
 }
 
-export default function DetectionPage() {
+function DetectionPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
-  const [activeTab, setActiveTab] = useState<DetectionTab>("Scenarios");
+  const activeTab = parseDetectionTab(searchParams.get("tab"));
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createListModalOpen, setCreateListModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -1920,6 +1954,17 @@ export default function DetectionPage() {
     return "New Scenario";
   }, [activeTab]);
 
+  function handleTabChange(tab: DetectionTab) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "Scenarios") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    router.replace(`/detection${query ? `?${query}` : ""}`, { scroll: false });
+  }
+
   function openScenarioModal() {
     setScenarioName("");
     setScenarioDescription("");
@@ -1973,7 +2018,7 @@ export default function DetectionPage() {
       <div className="space-y-5">
         <PageHeader
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           action={
             <Button
               variant="accent"
@@ -2177,5 +2222,13 @@ export default function DetectionPage() {
         onSave={handleSaveList}
       />
     </>
+  );
+}
+
+export default function DetectionPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading detection workspace...</div>}>
+      <DetectionPageContent />
+    </Suspense>
   );
 }
