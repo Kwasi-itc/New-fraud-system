@@ -64,6 +64,24 @@ def build_handler(recorder: CallbackRecorder) -> type[BaseHTTPRequestHandler]:
                     "body": body,
                 }
             )
+            execution_id = ""
+            if isinstance(body, dict):
+                execution_id = str(body.get("execution_id") or "")
+            if not execution_id:
+                execution_id = self.headers.get("X-Async-Execution-ID", "")
+            print(
+                json.dumps(
+                    {
+                        "event": "callback_received",
+                        "received_at": now_iso(),
+                        "path": self.path,
+                        "execution_id": execution_id,
+                        "callbacks_received": recorder.count,
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
             self.send_response(204)
             self.end_headers()
 
@@ -85,6 +103,7 @@ def main() -> None:
     recorder = CallbackRecorder(args.output)
     server = ThreadingHTTPServer((args.host, args.port), build_handler(recorder))
     print(f"callback server listening on http://{args.host}:{args.port}", flush=True)
+    print(f"callback output: {args.output}", flush=True)
     server.serve_forever()
 
 

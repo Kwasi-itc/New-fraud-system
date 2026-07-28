@@ -1,4 +1,4 @@
-.PHONY: production-replay replay-production production-replay-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async
+.PHONY: production-replay replay-production production-replay-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async callback-server
 
 TRANSACTIONS ?= 1000
 MULTIPLIER ?= 3600
@@ -10,6 +10,10 @@ ASYNC_WAIT_TIMEOUT_MS ?= 0
 ASYNC_CALLBACK_URL ?=
 ASYNC_CALLBACK_PORT ?= 8099
 ASYNC_CALLBACK_WAIT_TIMEOUT ?= 120
+CALLBACK_HOST ?= 0.0.0.0
+CALLBACK_PORT ?= $(ASYNC_CALLBACK_PORT)
+CALLBACK_OUTPUT ?= /tmp/fraud-data-local-async-callbacks.ndjson
+CALLBACK_LOG ?= /tmp/fraud-data-local-callback-server.log
 DURATION ?=
 HOURS ?=
 DAYS ?=
@@ -72,3 +76,14 @@ replay-production-ec2: production-replay-ec2
 
 production-replay-ec2-async: DECISION_MODE=async
 production-replay-ec2-async: production-replay-ec2
+
+callback-server:
+	@mkdir -p "$$(dirname "$(CALLBACK_OUTPUT)")" "$$(dirname "$(CALLBACK_LOG)")"
+	@echo "callback server: http://$(CALLBACK_HOST):$(CALLBACK_PORT)"
+	@echo "callback output: $(CALLBACK_OUTPUT)"
+	@echo "callback log: $(CALLBACK_LOG)"
+	PYTHONPATH=backend/stress-tests python3 -m production_replay.callback_server \
+		--host "$(CALLBACK_HOST)" \
+		--port "$(CALLBACK_PORT)" \
+		--output "$(CALLBACK_OUTPUT)" \
+		2>&1 | tee -a "$(CALLBACK_LOG)"
