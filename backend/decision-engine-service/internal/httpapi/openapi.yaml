@@ -659,7 +659,7 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by scenario
-      description: Lists persisted decisions previously produced by one scenario. Use `limit` and `offset` for paged browsing when the scenario has many decisions.
+      description: Lists persisted decisions previously produced by one scenario. Use `limit` plus either `cursor` or `offset` for paged browsing when the scenario has many decisions. Cursor pagination is preferred for deep paging.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
@@ -672,10 +672,20 @@ paths:
             maximum: 500
         - name: offset
           in: query
-          description: Number of matching decisions to skip before collecting results.
+          description: Number of matching decisions to skip before collecting results. Do not combine with `cursor`.
           schema:
             type: integer
             minimum: 0
+        - name: cursor
+          in: query
+          description: Opaque pagination cursor returned as `pagination.next_cursor` from a prior response. Do not combine with `offset`.
+          schema:
+            type: string
+        - name: include_total_count
+          in: query
+          description: When `true`, compute and return `pagination.total_count` and `pagination.total_pages`. This is omitted by default for performance.
+          schema:
+            type: boolean
       responses:
         '200':
           description: Decision list
@@ -689,7 +699,7 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by tenant with optional filters
-      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object, and use `limit` plus `offset` for paged browsing.
+      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object, and use `limit` plus either `cursor` or `offset` for paged browsing. Cursor pagination is preferred for deep paging.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: scenario_id
@@ -697,14 +707,25 @@ paths:
           description: Restrict results to decisions produced by one scenario.
           schema:
             type: string
+        - name: decision_id
+          in: query
+          description: Restrict results to one decision id using exact match.
+          schema:
+            type: string
+            format: uuid
+        - name: object_id_prefix
+          in: query
+          description: Restrict results to decisions whose object id starts with the supplied prefix.
+          schema:
+            type: string
         - name: object_type
           in: query
-          description: Restrict results to decisions for one object type. This matches the tenant data-model table name.
+          description: Restrict results to decisions for one object type using exact match. This matches the tenant data-model table name.
           schema:
             type: string
         - name: object_id
           in: query
-          description: Restrict results to decisions for one external record identifier. Use with `object_type`.
+          description: Restrict results to decisions for one external record identifier using exact match. Use with `object_type`.
           schema:
             type: string
         - name: limit
@@ -716,10 +737,20 @@ paths:
             maximum: 500
         - name: offset
           in: query
-          description: Number of matching decisions to skip before collecting results.
+          description: Number of matching decisions to skip before collecting results. Do not combine with `cursor`.
           schema:
             type: integer
             minimum: 0
+        - name: cursor
+          in: query
+          description: Opaque pagination cursor returned as `pagination.next_cursor` from a prior response. Do not combine with `offset`.
+          schema:
+            type: string
+        - name: include_total_count
+          in: query
+          description: When `true`, compute and return `pagination.total_count` and `pagination.total_pages`. This is omitted by default for performance.
+          schema:
+            type: boolean
       responses:
         '200':
           description: Decision list
@@ -4919,10 +4950,22 @@ components:
         has_more:
           type: boolean
           example: true
+        next_cursor:
+          type: string
+          nullable: true
+          description: Opaque cursor for the next page when cursor pagination is used.
         next_offset:
           type: integer
           nullable: true
           example: 50
+        total_count:
+          type: integer
+          nullable: true
+          description: Exact total count when explicitly requested with `include_total_count=true`.
+        total_pages:
+          type: integer
+          nullable: true
+          description: Exact total page count when explicitly requested with `include_total_count=true`.
       required: [limit, offset, has_more]
     TestRunEnvelope:
       type: object

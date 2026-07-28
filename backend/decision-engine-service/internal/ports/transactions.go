@@ -116,15 +116,23 @@ type DecisionRepository interface {
 	CountByObject(ctx context.Context, tenantID, objectType, objectID string) (int, error)
 	ListFiltered(ctx context.Context, tenantID string, filter DecisionListFilter) ([]decision.Decision, error)
 	ListFilteredPage(ctx context.Context, tenantID string, filter DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error)
+	ListFilteredCursor(ctx context.Context, tenantID string, filter DecisionListFilter, limit int, cursor *DecisionListCursor) ([]decision.Decision, bool, error)
 	CountFiltered(ctx context.Context, tenantID string, filter DecisionListFilter) (int, error)
 }
 
 type DecisionListFilter struct {
-	ScenarioID string
-	ObjectType string
-	ObjectID   string
-	Outcome    string
-	Search     string
+	DecisionID     string
+	ScenarioID     string
+	ObjectIDPrefix string
+	ObjectType     string
+	ObjectID       string
+	Outcome        string
+	Search         string
+}
+
+type DecisionListCursor struct {
+	CreatedAt time.Time
+	ID        string
 }
 
 type RuleExecutionRepository interface {

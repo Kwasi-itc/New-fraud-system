@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS decisions_tenant_object_lookup_created_idx;
+DROP INDEX IF EXISTS decisions_tenant_outcome_created_idx;

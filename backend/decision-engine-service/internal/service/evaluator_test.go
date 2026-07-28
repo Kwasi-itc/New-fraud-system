@@ -206,6 +206,10 @@ func (s stubDecisionRepo) ListFilteredPage(ctx context.Context, tenantID string,
 	return s.items, false, nil
 }
 
+func (s stubDecisionRepo) ListFilteredCursor(ctx context.Context, tenantID string, filter ports.DecisionListFilter, limit int, cursor *ports.DecisionListCursor) ([]decision.Decision, bool, error) {
+	return s.items, false, nil
+}
+
 func (s stubDecisionRepo) CountFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) (int, error) {
 	return len(s.items), nil
 }
