@@ -55,10 +55,10 @@ Add Marble-style per-rule evaluation evidence to the new decision-engine service
 - [x] Update frontend API types in `new/frontend/src/lib/decision-engine-api.ts`
 - [x] Render rule-hit evidence in the decision detail page
 - [x] Add frontend test coverage or manual verification notes
-- [ ] Verify non-hit, snoozed, and error rule states still render correctly
-- [ ] Check payload size impact for decisions with many rules
+- [x] Verify non-hit, snoozed, and error rule states still render correctly
+- [x] Check payload size impact for decisions with many rules
 - [x] Decide whether decision list endpoints should remain summary-only
-- [ ] Document the final response shape and behavior
+- [x] Document the final response shape and behavior
 
 ## Recommended Sequence
 
@@ -84,6 +84,7 @@ Add Marble-style per-rule evaluation evidence to the new decision-engine service
 - The legacy Marble API stores and exposes per-rule evaluation data.
 - The main design decision is whether the new API should expose raw evaluation trees, merged definition/evaluation trees, or both.
 - Implemented approach: persist a merged evaluation snapshot on each rule execution so decision reads do not need to reconstruct evidence from current rule definitions.
+- Payload-size control: store and return evaluation snapshots only for `hit` rule executions. `no_hit` and `snoozed` executions remain summary-only.
 - Verification run:
   - `go test ./internal/service ./internal/runtime/ast_eval ./internal/httpapi/handlers ./internal/store/postgres`
   - `cmd /c npm.cmd exec tsc --noEmit`

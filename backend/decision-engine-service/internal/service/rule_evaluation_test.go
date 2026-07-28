@@ -70,11 +70,8 @@ func TestEvaluateRulesPreservesOrderAndSnoozes(t *testing.T) {
 	if results[2].Rule.ID != "rule-3" || results[2].Matched || results[2].Snoozed {
 		t.Fatalf("unexpected result[2] = %#v", results[2])
 	}
-	if results[2].Evaluation == nil {
-		t.Fatalf("result[2].Evaluation = nil, want captured evidence")
-	}
-	if got := results[2].Evaluation.ReturnValue; got != false {
-		t.Fatalf("result[2].Evaluation.ReturnValue = %#v, want false", got)
+	if results[2].Evaluation != nil {
+		t.Fatalf("result[2].Evaluation = %#v, want nil for no-hit rule", results[2].Evaluation)
 	}
 }
 

@@ -3424,10 +3424,39 @@ components:
         score_modifier:
           type: integer
           description: Score contribution applied by this rule execution.
+        evaluation:
+          allOf:
+            - $ref: '#/components/schemas/EvaluationNode'
+          nullable: true
+          description: Structured evaluation evidence snapshot. Present for `hit` executions, omitted for `no_hit` and `snoozed` executions to limit payload size.
         created_at:
           type: string
           format: date-time
       required: [id, decision_id, rule_id, rule_name, outcome, score_modifier, created_at]
+    EvaluationNode:
+      type: object
+      description: Recursive evaluation snapshot for one AST node used to explain a rule hit.
+      properties:
+        function:
+          type: string
+          description: Function or operator name for this node.
+        constant:
+          nullable: true
+          description: Constant value embedded in the AST node when present.
+        return_value:
+          nullable: true
+          description: Runtime value produced by this node during evaluation.
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluationNode'
+        named_children:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/EvaluationNode'
+        skipped:
+          type: boolean
+          description: Whether this node was skipped because of short-circuit evaluation.
     DecisionEvaluationResponse:
       type: object
       description: Immediate evaluation result returned by the live decisioning API.

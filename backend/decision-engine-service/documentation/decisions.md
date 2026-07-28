@@ -159,10 +159,23 @@ How it should be used:
 What it does:
 
 - loads one decision plus its rule executions
+- returns structured rule-evaluation evidence on `rule_executions[].evaluation` for `hit` outcomes
+- keeps list endpoints summary-only and does not return rule evidence there
 
 How it should be used:
 
 - drill into why a specific decision scored or resolved the way it did
+
+Response behavior notes:
+
+- `hit`
+  - includes an `evaluation` snapshot that can be used to explain why the rule matched
+- `no_hit`
+  - returns the rule execution summary without an `evaluation` snapshot to limit payload size
+- `snoozed`
+  - returns the rule execution summary without an `evaluation` snapshot because the rule did not execute to completion for scoring
+- `error`
+  - the frontend handles this state defensively, but the current service path does not yet persist structured per-rule error evidence
 
 ### `POST /v1/tenants/:tenantId/decisions`
 

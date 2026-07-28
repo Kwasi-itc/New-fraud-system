@@ -46,6 +46,21 @@ function normalizeFunctionName(value: string | undefined) {
   return value?.trim().toLowerCase() ?? "";
 }
 
+function ruleOutcomeBadgeClass(outcome: string) {
+  switch (normalizeFunctionName(outcome)) {
+    case "hit":
+      return "border-rose-200 bg-rose-50 text-rose-600";
+    case "snoozed":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "error":
+      return "border-slate-300 bg-slate-100 text-slate-700";
+    case "no_hit":
+      return "border-emerald-200 bg-emerald-50 text-emerald-600";
+    default:
+      return "border-slate-200 bg-white text-slate-700";
+  }
+}
+
 function formatEvaluationExpression(node: RuleEvaluationNode) {
   const functionName = normalizeFunctionName(node.function);
   if (
@@ -544,9 +559,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                               <span
                                 className={cn(
                                   "rounded-full border px-3 py-1 text-[13px] font-medium",
-                                  item.outcome.toLowerCase() === "hit"
-                                    ? "border-rose-200 text-rose-600"
-                                    : "border-emerald-200 text-emerald-600"
+                                  ruleOutcomeBadgeClass(item.outcome)
                                 )}
                               >
                                 {item.outcome}
@@ -655,6 +668,18 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                         {JSON.stringify(item.evaluation, null, 2)}
                                       </pre>
                                     </details>
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "no_hit" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    No evaluation snapshot is stored for non-hit rule executions.
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "snoozed" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    This rule was snoozed, so it did not contribute to the decision score and no evidence snapshot was stored.
+                                  </div>
+                                ) : item.outcome.toLowerCase() === "error" ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                    This rule execution ended in an error state. No structured evidence snapshot is currently available for that case.
                                   </div>
                                 ) : null}
                               </div>
