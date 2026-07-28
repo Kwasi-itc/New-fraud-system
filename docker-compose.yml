@@ -4,6 +4,8 @@ x-backend-common: &backend-common
   LOG_LEVEL: info
   GIN_MODE: debug
   HTTP_CLIENT_TIMEOUT: 10s
+  SERVICE_ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
+  ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
 
 x-depends-on-migrations: &depends-on-migrations
   data-model-migrate:
@@ -25,7 +27,7 @@ services:
       POSTGRES_USER: fraud
       POSTGRES_PASSWORD: fraud
     ports:
-      - "5432:5432"
+      - "${POSTGRES_FORWARDED_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -116,14 +118,13 @@ services:
       <<: *backend-common
       PORT: 8080
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-      SERVICE_ALLOWED_ORIGINS: http://localhost:3000
       INDEX_WORKER_POLL_INTERVAL: 2s
       INDEX_WORKER_MAX_ATTEMPTS: 5
       INDEX_WORKER_RETRY_BASE_DELAY: 5s
       INDEX_WORKER_RETRY_MAX_DELAY: 2m
     depends_on: *depends-on-migrations
     ports:
-      - "8080:8080"
+      - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
 
   ingestion-service:
     build:
@@ -138,7 +139,7 @@ services:
       WORKER_MAX_ATTEMPTS: 3
     depends_on: *depends-on-migrations
     ports:
-      - "8081:8081"
+      - "${INGESTION_FORWARDED_PORT:-8081}:8081"
 
   decision-engine-service:
     build:
@@ -160,7 +161,7 @@ services:
       AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
     depends_on: *depends-on-migrations
     ports:
-      - "8082:8082"
+      - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
 
   screening-service:
     build:
@@ -179,7 +180,7 @@ services:
       WORKER_BATCH_LIMIT: 100
     depends_on: *depends-on-migrations
     ports:
-      - "8085:8085"
+      - "${SCREENING_FORWARDED_PORT:-8085}:8085"
 
   # case-manager-service:
   #   build:
@@ -309,20 +310,24 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
-        NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
+        NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DATA_MODEL_FORWARDED_PORT:-8080}
+        NEXT_PUBLIC_INGESTION_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${INGESTION_FORWARDED_PORT:-8081}
+        NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}
         NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
     environment:
-      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: http://localhost:8080
-      NEXT_PUBLIC_INGESTION_SERVICE_URL: http://localhost:8081
+      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DATA_MODEL_FORWARDED_PORT:-8080}
+      NEXT_PUBLIC_INGESTION_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${INGESTION_FORWARDED_PORT:-8081}
+      NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}
       NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
     depends_on:
       data-model-service:
         condition: service_started
       ingestion-service:
         condition: service_started
+      decision-engine-service:
+        condition: service_started
     ports:
-      - "3000:3000"
+      - "${FRONTEND_FORWARDED_PORT:-3000}:3000"
 
 volumes:
   postgres_data:
