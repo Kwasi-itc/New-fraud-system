@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"golang.org/x/sync/errgroup"
@@ -13,9 +14,10 @@ import (
 const defaultRuleEvaluationConcurrency = 8
 
 type evaluatedRule struct {
-	Rule    scenario.Rule
-	Matched bool
-	Snoozed bool
+	Rule       scenario.Rule
+	Matched    bool
+	Snoozed    bool
+	Evaluation *domainast.EvaluationNode
 }
 
 func evaluateRules(
@@ -46,12 +48,13 @@ func evaluateRules(
 				}
 			}
 
-			matched, err := asteval.EvaluateFormula(groupCtx, rule.Formula, runtimeCtx)
+			matched, evaluation, err := asteval.EvaluateFormulaWithEvidence(groupCtx, rule.Formula, runtimeCtx)
 			if err != nil {
 				return fmt.Errorf("evaluate rule %q: %w", rule.Name, err)
 			}
 
 			result.Matched = matched
+			result.Evaluation = evaluation
 			results[i] = result
 			return nil
 		})

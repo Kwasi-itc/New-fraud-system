@@ -3,6 +3,8 @@ package decision
 import (
 	"encoding/json"
 	"time"
+
+	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 )
 
 type Outcome string
@@ -35,5 +37,6 @@ type RuleExecution struct {
 	RuleName      string
 	Outcome       string
 	ScoreModifier int
+	Evaluation    *domainast.EvaluationNode
 	CreatedAt     time.Time
 }

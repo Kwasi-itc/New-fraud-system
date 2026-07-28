@@ -364,7 +364,13 @@ func evaluateScenarioByIteration(
 		if evaluatedRule.Matched {
 			score += evaluatedRule.Rule.ScoreModifier
 		}
-		exec := newRuleExecution(now, decisionID, evaluatedRule.Rule, evaluatedRule.Matched)
+		exec := newRuleExecution(
+			now,
+			decisionID,
+			evaluatedRule.Rule,
+			evaluatedRule.Matched,
+			evaluatedRule.Evaluation,
+		)
 		exec.ID = idGen.New().String()
 		ruleExecs = append(ruleExecs, exec)
 	}

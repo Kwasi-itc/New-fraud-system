@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
@@ -66,13 +67,14 @@ type PaginationResponse struct {
 }
 
 type RuleExecutionResponse struct {
-	ID            string    `json:"id"`
-	DecisionID    string    `json:"decision_id"`
-	RuleID        string    `json:"rule_id"`
-	RuleName      string    `json:"rule_name"`
-	Outcome       string    `json:"outcome"`
-	ScoreModifier int       `json:"score_modifier"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string                    `json:"id"`
+	DecisionID    string                    `json:"decision_id"`
+	RuleID        string                    `json:"rule_id"`
+	RuleName      string                    `json:"rule_name"`
+	Outcome       string                    `json:"outcome"`
+	ScoreModifier int                       `json:"score_modifier"`
+	Evaluation    *domainast.EvaluationNode `json:"evaluation,omitempty"`
+	CreatedAt     time.Time                 `json:"created_at"`
 }
 
 type DecisionEvaluationResponse struct {
@@ -130,6 +132,7 @@ func AdaptRuleExecution(r decision.RuleExecution) RuleExecutionResponse {
 		RuleName:      r.RuleName,
 		Outcome:       r.Outcome,
 		ScoreModifier: r.ScoreModifier,
+		Evaluation:    r.Evaluation,
 		CreatedAt:     r.CreatedAt,
 	}
 }

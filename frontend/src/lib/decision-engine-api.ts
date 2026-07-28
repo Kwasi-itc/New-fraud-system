@@ -200,7 +200,17 @@ export type RuleExecution = {
   rule_name: string;
   outcome: string;
   score_modifier: number;
+  evaluation?: RuleEvaluationNode;
   created_at: string;
+};
+
+export type RuleEvaluationNode = {
+  function?: string;
+  constant?: JSONValue;
+  return_value?: JSONValue;
+  children?: RuleEvaluationNode[];
+  named_children?: Record<string, RuleEvaluationNode>;
+  skipped?: boolean;
 };
 
 export type DecisionEvaluationResult = {

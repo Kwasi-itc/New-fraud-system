@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { summarizeRuleFormula } from "@/lib/rule-builder";
 import { cn } from "@/lib/utils";
-import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { type RuleEvaluationNode, decisionEngineApi } from "@/lib/decision-engine-api";
 import { formatExecutionRequestBody } from "@/components/detection/scheduled-execution-shared";
 
 function formatDecisionField(value: unknown) {
@@ -21,6 +21,71 @@ function formatDecisionField(value: unknown) {
     return value;
   }
   return JSON.stringify(value);
+}
+
+type EvaluationEvidenceRow = {
+  key: string;
+  expression: string;
+  result: boolean;
+};
+
+const comparisonOperatorLabels: Record<string, string> = {
+  eq: "=",
+  neq: "!=",
+  gt: ">",
+  gte: ">=",
+  lt: "<",
+  lte: "<=",
+  contains: "contains",
+  in: "in",
+  starts_with: "starts with",
+  ends_with: "ends with",
+};
+
+function normalizeFunctionName(value: string | undefined) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function formatEvaluationExpression(node: RuleEvaluationNode) {
+  const functionName = normalizeFunctionName(node.function);
+  if (
+    !(functionName in comparisonOperatorLabels) ||
+    !node.children ||
+    node.children.length !== 2
+  ) {
+    return null;
+  }
+  const [left, right] = node.children;
+  return `${formatDecisionField(left.return_value)} ${comparisonOperatorLabels[functionName]} ${formatDecisionField(right.return_value)}`;
+}
+
+function collectEvaluationEvidence(
+  node: RuleEvaluationNode | null | undefined,
+  path: string[] = []
+): EvaluationEvidenceRow[] {
+  if (!node || node.skipped) {
+    return [];
+  }
+
+  const rows: EvaluationEvidenceRow[] = [];
+  const expression = formatEvaluationExpression(node);
+  if (expression && typeof node.return_value === "boolean") {
+    rows.push({
+      key: [...path, normalizeFunctionName(node.function) || "node"].join("."),
+      expression,
+      result: node.return_value,
+    });
+  }
+
+  node.children?.forEach((child, index) => {
+    rows.push(...collectEvaluationEvidence(child, [...path, `children.${index}`]));
+  });
+
+  Object.entries(node.named_children ?? {}).forEach(([name, child]) => {
+    rows.push(...collectEvaluationEvidence(child, [...path, `named.${name}`]));
+  });
+
+  return rows;
 }
 
 function renderDecisionRequestValue(key: string, value: unknown) {
@@ -447,6 +512,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       const formattedRuleSummary = ruleSummary
                         ? formatRuleSummaryForDisplay(ruleSummary)
                         : null;
+                      const evidenceRows = collectEvaluationEvidence(item.evaluation);
                       return (
                         <div key={item.id} className="rounded-xl border border-slate-200 bg-white">
                           <button
@@ -548,6 +614,49 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                     </pre>
                                   </div>
                                 </div>
+                                {item.evaluation ? (
+                                  <div className="space-y-3">
+                                    <div className="text-[12px] font-medium text-slate-500">
+                                      Evaluation evidence
+                                    </div>
+                                    {evidenceRows.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {evidenceRows.map((row) => (
+                                          <div
+                                            key={row.key}
+                                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
+                                          >
+                                            <div className="font-mono text-[13px] text-slate-800">
+                                              {row.expression}
+                                            </div>
+                                            <span
+                                              className={cn(
+                                                "rounded-full border px-2.5 py-0.5 text-[12px] font-medium",
+                                                row.result
+                                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                                  : "border-rose-200 bg-rose-50 text-rose-700"
+                                              )}
+                                            >
+                                              {String(row.result)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
+                                        Structured evidence is recorded for this rule, but there is no simple comparison summary to display.
+                                      </div>
+                                    )}
+                                    <details className="rounded-xl border border-slate-200 bg-white">
+                                      <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
+                                        View raw evaluation trace
+                                      </summary>
+                                      <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
+                                        {JSON.stringify(item.evaluation, null, 2)}
+                                      </pre>
+                                    </details>
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           ) : null}
