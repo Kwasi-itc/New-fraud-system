@@ -665,7 +665,7 @@ paths:
         - $ref: '#/components/parameters/ScenarioId'
         - name: limit
           in: query
-          description: Maximum number of decisions to return. When omitted, the full list is returned for backward compatibility.
+          description: Maximum number of decisions to return for the current page. Use this as the records-per-page control in paged UIs. When omitted, the full list is returned for backward compatibility.
           schema:
             type: integer
             minimum: 1

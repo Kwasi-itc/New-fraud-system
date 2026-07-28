@@ -121,7 +121,8 @@ const decisionOutcomes = [
   { label: "Decline", color: "bg-rose-300" },
 ];
 
-const DECISIONS_PAGE_SIZE = 25;
+const DEFAULT_DECISIONS_PAGE_SIZE = 25;
+const DECISIONS_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 type DecisionPaginationToken =
   | { type: "page"; page: number }
@@ -697,6 +698,7 @@ function LiveDecisionsView({
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [pageOffset, setPageOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_DECISIONS_PAGE_SIZE);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
     []
   );
@@ -714,6 +716,7 @@ function LiveDecisionsView({
       "decision-engine",
       "decisions",
       tenantId,
+      pageSize,
       pageOffset,
       trimmedSearchTerm,
       selectedScenarioFilter ?? "",
@@ -730,8 +733,9 @@ function LiveDecisionsView({
           ? outcomeFilterToApiValue(selectedOutcomeFilter)
           : undefined,
         search: trimmedSearchTerm || undefined,
-        limit: DECISIONS_PAGE_SIZE,
+        limit: pageSize,
         offset: pageOffset,
+        include_total_count: true,
       }),
     enabled: Boolean(tenantId),
   });
@@ -771,8 +775,8 @@ function LiveDecisionsView({
   const canGoPrevious = pageOffset > 0;
   const totalRecords = pagination?.total_count ?? 0;
   const totalPages = pagination?.total_pages ?? 0;
-  const canGoNext = pagination ? pageOffset + DECISIONS_PAGE_SIZE < totalRecords : false;
-  const currentPage = Math.floor(pageOffset / DECISIONS_PAGE_SIZE) + 1;
+  const canGoNext = pagination ? pageOffset + pageSize < totalRecords : false;
+  const currentPage = Math.floor(pageOffset / pageSize) + 1;
   const paginationTokens = totalPages > 0 ? buildDecisionPaginationTokens(currentPage, totalPages) : [];
   const pageRangeLabel =
     decisionsQuery.data?.decisions?.length && pagination
@@ -1086,12 +1090,31 @@ function LiveDecisionsView({
               </div>
               {pagination ? (
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    Showing {pageRangeLabel}
-                    {pagination ? ` of ${totalRecords}` : ""}
-                    {trimmedSearchTerm || selectedFilters.length > 0
-                      ? " matching current filters"
-                      : ""}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <label className="flex items-center gap-2 text-[13px] text-slate-600">
+                      <span>Rows per page</span>
+                      <select
+                        value={pageSize}
+                        onChange={(event) => {
+                          setPageOffset(0);
+                          setPageSize(Number(event.target.value));
+                        }}
+                        className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 shadow-none outline-none focus:border-slate-300"
+                      >
+                        {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div>
+                      Showing {pageRangeLabel}
+                      {pagination ? ` of ${totalRecords}` : ""}
+                      {trimmedSearchTerm || selectedFilters.length > 0
+                        ? " matching current filters"
+                        : ""}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
@@ -1099,7 +1122,7 @@ function LiveDecisionsView({
                       disabled={!canGoPrevious}
                       onClick={() =>
                         setPageOffset((current) =>
-                          Math.max(0, current - DECISIONS_PAGE_SIZE)
+                          Math.max(0, current - pageSize)
                         )
                       }
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
@@ -1119,7 +1142,7 @@ function LiveDecisionsView({
                           <Button
                             key={token.page}
                             variant="outline"
-                            onClick={() => setPageOffset((token.page - 1) * DECISIONS_PAGE_SIZE)}
+                            onClick={() => setPageOffset((token.page - 1) * pageSize)}
                             disabled={token.page === currentPage}
                             className={cn(
                               "h-9 min-w-9 rounded-xl border px-3 text-[13px] shadow-none",
@@ -1136,9 +1159,7 @@ function LiveDecisionsView({
                     <Button
                       variant="outline"
                       disabled={!canGoNext}
-                      onClick={() =>
-                        setPageOffset(pageOffset + DECISIONS_PAGE_SIZE)
-                      }
+                      onClick={() => setPageOffset(pageOffset + pageSize)}
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
                     >
                       <ChevronRight className="size-4" />
