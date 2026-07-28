@@ -699,7 +699,7 @@ paths:
     get:
       tags: [Decisions]
       summary: List decisions by tenant with optional filters
-      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object, and use `limit` plus either `cursor` or `offset` for paged browsing. Cursor pagination is preferred for deep paging.
+      description: Lists persisted decisions for the tenant. Use query filters to narrow by scenario or by the evaluated object, and use `limit` plus either `cursor` or `offset` for paged browsing. Cursor pagination is preferred for deep paging. Total counts are omitted by default for performance and can be requested explicitly or loaded through the dedicated count endpoint.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - name: scenario_id
@@ -781,6 +781,58 @@ paths:
                 $ref: '#/components/schemas/DecisionEvaluationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/tenants/{tenantId}/decisions/count:
+    get:
+      tags: [Decisions]
+      summary: Count decisions by tenant with optional filters
+      description: Returns only the exact number of persisted decisions matching the same filter and search parameters accepted by `GET /v1/tenants/{tenantId}/decisions`. Use this as a secondary async query when rows should render before totals.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: scenario_id
+          in: query
+          description: Restrict results to decisions produced by one scenario.
+          schema:
+            type: string
+        - name: decision_id
+          in: query
+          description: Restrict results to one decision id using exact match.
+          schema:
+            type: string
+            format: uuid
+        - name: object_id_prefix
+          in: query
+          description: Restrict results to decisions whose object id starts with the supplied prefix.
+          schema:
+            type: string
+        - name: object_type
+          in: query
+          description: Restrict results to decisions for one object type using exact match. This matches the tenant data-model table name.
+          schema:
+            type: string
+        - name: object_id
+          in: query
+          description: Restrict results to decisions for one external record identifier using exact match. Use with `object_type`.
+          schema:
+            type: string
+        - name: outcome
+          in: query
+          description: Restrict results to one persisted decision outcome.
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Case-insensitive search across indexed decision fields supported by the service.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exact count for the supplied filter set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionCountEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/decisions/all:
     post:
       tags: [Decisions]
@@ -4967,6 +5019,14 @@ components:
         pagination:
           $ref: '#/components/schemas/PaginationResponse'
       required: [decisions, pagination]
+    DecisionCountEnvelope:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Exact number of persisted decisions matching the supplied filters.
+          example: 128
+      required: [count]
     PaginationResponse:
       type: object
       properties:

@@ -7,6 +7,7 @@ This document explains live evaluation, decision creation, decision reads, and i
 - `POST /v1/tenants/:tenantId/scenarios/:scenarioId/evaluate`
 - `GET /v1/tenants/:tenantId/scenarios/:scenarioId/decisions`
 - `GET /v1/tenants/:tenantId/decisions`
+- `GET /v1/tenants/:tenantId/decisions/count`
 - `GET /v1/tenants/:tenantId/decisions/:decisionId`
 - `POST /v1/tenants/:tenantId/decisions`
 - `POST /v1/tenants/:tenantId/decisions/all`
@@ -57,6 +58,13 @@ Parameters:
 
 - `tenantId`
   - returns tenant-level decision history across scenarios
+
+### `GET /decisions/count`
+
+Parameters:
+
+- `tenantId`
+  - returns only the count of tenant-level decisions matching the supplied filters
 
 ### `GET /decisions/:decisionId`
 
@@ -148,11 +156,38 @@ How it should be used:
 What it does:
 
 - returns decision history across the tenant
+- remains the primary record-fetch endpoint for UI tables
+- supports `include_total_count=true` when a caller explicitly wants count metadata on the same response
 
 How it should be used:
 
 - tenant-wide review views
 - admin dashboards and operational inspection
+- primary rows query for async frontend loading
+
+Response behavior notes:
+
+- default behavior omits `pagination.total_count` and `pagination.total_pages`
+- this keeps record fetches fast for search, filters, and deep paging
+- use cursor pagination when possible for large result sets
+
+### `GET /v1/tenants/:tenantId/decisions/count`
+
+What it does:
+
+- returns only `{ count: number }` for the same tenant-level filters supported by `GET /decisions`
+
+How it should be used:
+
+- run separately from the main decision rows request
+- update result totals asynchronously after rows have rendered
+- keep totals accurate for the active filter and search state without blocking the initial list paint
+
+Response behavior notes:
+
+- accepts the same filtering shape used by `GET /decisions`
+- does not return decision rows or pagination metadata
+- intended for secondary UI data such as `N results`
 
 ### `GET /v1/tenants/:tenantId/decisions/:decisionId`
 

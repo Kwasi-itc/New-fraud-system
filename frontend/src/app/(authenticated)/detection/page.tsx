@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, type ReactNode, useMemo, useState } from "react";
+import { Suspense, type ReactNode, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -704,10 +704,12 @@ function LiveDecisionsView({
   tenantId: string;
   scenarios: DetectionScenario[];
 }) {
+  const queryClient = useQueryClient();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [newFilterOpen, setNewFilterOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [pageOffset, setPageOffset] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_DECISIONS_PAGE_SIZE);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
@@ -721,33 +723,79 @@ function LiveDecisionsView({
   )?.value;
   const selectedObjectIDFilter = selectedFilters.find((item) => item.type === "Object ID")?.value;
   const selectedOutcomeFilter = selectedFilters.find((item) => item.type === "Outcome")?.value;
-  const trimmedSearchTerm = searchTerm.trim();
-  const decisionsQuery = useQuery({
-    queryKey: [
+  const scenarioNameById = useMemo(
+    () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
+    [scenarios]
+  );
+  const scenarioIdByName = useMemo(
+    () => new Map(scenarios.map((scenario) => [scenario.name, scenario.id])),
+    [scenarios]
+  );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const decisionListFilters = useMemo(
+    () => ({
+      scenario_id: scenarioIdByName.get(selectedScenarioFilter ?? "") ?? undefined,
+      object_type: selectedObjectTypeFilter || undefined,
+      object_id: selectedObjectIDFilter || undefined,
+      outcome: selectedOutcomeFilter
+        ? outcomeFilterToApiValue(selectedOutcomeFilter)
+        : undefined,
+      search: debouncedSearchTerm || undefined,
+    }),
+    [
+      debouncedSearchTerm,
+      scenarioIdByName,
+      selectedObjectIDFilter,
+      selectedObjectTypeFilter,
+      selectedOutcomeFilter,
+      selectedScenarioFilter,
+    ]
+  );
+  const decisionsQueryKey = useMemo(
+    () => [
       "decision-engine",
       "decisions",
       tenantId,
       pageSize,
       pageOffset,
-      trimmedSearchTerm,
-      selectedScenarioFilter ?? "",
-      selectedObjectTypeFilter ?? "",
-      selectedObjectIDFilter ?? "",
-      selectedOutcomeFilter ?? "",
+      decisionListFilters.scenario_id ?? "",
+      decisionListFilters.object_type ?? "",
+      decisionListFilters.object_id ?? "",
+      decisionListFilters.outcome ?? "",
+      decisionListFilters.search ?? "",
     ],
+    [pageOffset, pageSize, tenantId, decisionListFilters]
+  );
+  const decisionsQuery = useQuery({
+    queryKey: decisionsQueryKey,
     queryFn: () =>
       decisionEngineApi.listDecisions(tenantId, {
-        scenario_id: scenarioIdByName.get(selectedScenarioFilter ?? "") ?? undefined,
-        object_type: selectedObjectTypeFilter || undefined,
-        object_id: selectedObjectIDFilter || undefined,
-        outcome: selectedOutcomeFilter
-          ? outcomeFilterToApiValue(selectedOutcomeFilter)
-          : undefined,
-        search: trimmedSearchTerm || undefined,
+        ...decisionListFilters,
         limit: pageSize,
         offset: pageOffset,
-        include_total_count: true,
       }),
+    enabled: Boolean(tenantId),
+    placeholderData: (previous) => previous,
+  });
+  const decisionsCountQuery = useQuery({
+    queryKey: [
+      "decision-engine",
+      "decisions-count",
+      tenantId,
+      decisionListFilters.scenario_id ?? "",
+      decisionListFilters.object_type ?? "",
+      decisionListFilters.object_id ?? "",
+      decisionListFilters.outcome ?? "",
+      decisionListFilters.search ?? "",
+    ],
+    queryFn: () => decisionEngineApi.countDecisions(tenantId, decisionListFilters),
     enabled: Boolean(tenantId),
   });
   const iterationQueries = useQueries({
@@ -759,11 +807,6 @@ function LiveDecisionsView({
         enabled: Boolean(tenantId),
       })),
   });
-  const scenarioNameById = useMemo(
-    () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
-    [scenarios]
-  );
-  const scenarioIdByName = new Map(scenarios.map((scenario) => [scenario.name, scenario.id]));
   const liveVersionByScenarioId = useMemo(() => {
     const entries = scenarios
       .filter((scenario) => scenario.liveIterationId)
@@ -784,15 +827,44 @@ function LiveDecisionsView({
   const decisions = decisionsQuery.data?.decisions ?? [];
   const pagination = decisionsQuery.data?.pagination;
   const canGoPrevious = pageOffset > 0;
-  const totalRecords = pagination?.total_count ?? 0;
-  const totalPages = pagination?.total_pages ?? 0;
-  const canGoNext = pagination ? pageOffset + pageSize < totalRecords : false;
+  const totalRecords = decisionsCountQuery.data?.count;
+  const totalPages = totalRecords != null ? Math.ceil(totalRecords / pageSize) : 0;
+  const canGoNext = pagination?.has_more ?? false;
   const currentPage = Math.floor(pageOffset / pageSize) + 1;
   const paginationTokens = totalPages > 0 ? buildDecisionPaginationTokens(currentPage, totalPages) : [];
   const pageRangeLabel =
-    decisionsQuery.data?.decisions?.length && pagination
-      ? `${pagination.offset + 1}-${pagination.offset + decisionsQuery.data.decisions.length}`
+    decisions.length > 0
+      ? `${pageOffset + 1}-${pageOffset + decisions.length}`
       : "0-0";
+
+  useEffect(() => {
+    if (!tenantId || !pagination?.has_more) {
+      return;
+    }
+
+    const nextOffset = pageOffset + pageSize;
+    void queryClient.prefetchQuery({
+      queryKey: [
+        "decision-engine",
+        "decisions",
+        tenantId,
+        pageSize,
+        nextOffset,
+        decisionListFilters.scenario_id ?? "",
+        decisionListFilters.object_type ?? "",
+        decisionListFilters.object_id ?? "",
+        decisionListFilters.outcome ?? "",
+        decisionListFilters.search ?? "",
+      ],
+      queryFn: () =>
+        decisionEngineApi.listDecisions(tenantId, {
+          ...decisionListFilters,
+          limit: pageSize,
+          offset: nextOffset,
+        }),
+      staleTime: 30_000,
+    });
+  }, [decisionListFilters, pageOffset, pageSize, pagination?.has_more, queryClient, tenantId]);
 
   function upsertFilter(type: string, value: string) {
     setPageOffset(0);
@@ -1123,8 +1195,12 @@ function LiveDecisionsView({
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     Showing {pageRangeLabel}
-                    {pagination ? ` of ${totalRecords}` : ""}
-                    {trimmedSearchTerm || selectedFilters.length > 0
+                    {totalRecords != null
+                      ? ` of ${totalRecords}`
+                      : decisionsCountQuery.isFetching
+                        ? " of ..."
+                        : ""}
+                    {debouncedSearchTerm || selectedFilters.length > 0
                       ? " matching current filters"
                       : ""}
                   </div>

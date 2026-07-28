@@ -1764,6 +1764,10 @@ func (s DecisionService) ListFiltered(ctx context.Context, tenantID string, filt
 	return s.decisionRepo.ListFiltered(ctx, tenantID, filter)
 }
 
+func (s DecisionService) CountFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) (int, error) {
+	return s.decisionRepo.CountFiltered(ctx, tenantID, filter)
+}
+
 type DecisionListFilter = ports.DecisionListFilter
 
 type DecisionPage struct {

@@ -141,15 +141,7 @@ func (h DecisionHandler) GetDecision(c *gin.Context) {
 
 func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	tenantID := c.Param("tenantId")
-	filter := service.DecisionListFilter{
-		DecisionID:     c.Query("decision_id"),
-		ScenarioID:     c.Query("scenario_id"),
-		ObjectIDPrefix: c.Query("object_id_prefix"),
-		ObjectType:     c.Query("object_type"),
-		ObjectID:       c.Query("object_id"),
-		Outcome:        normalizeDecisionOutcomeFilter(c.Query("outcome")),
-		Search:         strings.TrimSpace(c.Query("search")),
-	}
+	filter := decisionListFilterFromQuery(c)
 	limit, offset, paginationEnabled, ok := parseLimitOffset(c)
 	if !ok {
 		return
@@ -200,6 +192,19 @@ func (h DecisionHandler) ListDecisions(c *gin.Context) {
 	logHandlerSuccess(c, "list decisions completed", "tenant_id", tenantID, "count", len(out), "scenario_id", filter.ScenarioID, "object_type", filter.ObjectType, "object_id", filter.ObjectID, "outcome", filter.Outcome, "search", filter.Search)
 	totalCount := len(out)
 	c.JSON(http.StatusOK, dto.DecisionListEnvelope{Decisions: out, Pagination: buildPagination(len(out), 0, len(out), false, nil, &totalCount)})
+}
+
+func (h DecisionHandler) CountDecisions(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	filter := decisionListFilterFromQuery(c)
+	count, err := h.decisionService.CountFiltered(c.Request.Context(), tenantID, filter)
+	if err != nil {
+		logHandlerFailure(c, "count decisions failed", err, "tenant_id", tenantID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "count_decisions_failed", "details": err.Error()})
+		return
+	}
+	logHandlerSuccess(c, "count decisions completed", "tenant_id", tenantID, "count", count, "scenario_id", filter.ScenarioID, "object_type", filter.ObjectType, "object_id", filter.ObjectID, "outcome", filter.Outcome, "search", filter.Search)
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
 func (h DecisionHandler) ListDecisionsByScenario(c *gin.Context) {
@@ -291,6 +296,18 @@ func parseIncludeTotalCount(c *gin.Context) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func decisionListFilterFromQuery(c *gin.Context) service.DecisionListFilter {
+	return service.DecisionListFilter{
+		DecisionID:     c.Query("decision_id"),
+		ScenarioID:     c.Query("scenario_id"),
+		ObjectIDPrefix: c.Query("object_id_prefix"),
+		ObjectType:     c.Query("object_type"),
+		ObjectID:       c.Query("object_id"),
+		Outcome:        normalizeDecisionOutcomeFilter(c.Query("outcome")),
+		Search:         strings.TrimSpace(c.Query("search")),
 	}
 }
 

@@ -282,6 +282,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate", validationHandler.ValidateIteration)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/evaluate", decisionHandler.EvaluateScenario)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/decisions", decisionHandler.ListDecisionsByScenario)
+	v1.GET("/tenants/:tenantId/decisions/count", decisionHandler.CountDecisions)
 	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/test-runs", testRunHandler.ListByScenario)
 	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/test-runs", testRunHandler.Create)
 	v1.GET("/tenants/:tenantId/test-runs/:testRunId", testRunHandler.Get)

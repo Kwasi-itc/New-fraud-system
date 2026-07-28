@@ -193,6 +193,10 @@ export type Pagination = {
   next_offset?: number;
 };
 
+export type DecisionCountResponse = {
+  count: number;
+};
+
 export type RuleExecution = {
   id: string;
   decision_id: string;
@@ -608,6 +612,33 @@ export type OutboxEvent = {
   created_at: string;
 };
 
+function appendDecisionListFilterParams(
+  params: URLSearchParams,
+  filters?: Partial<ListDecisionsRequest>
+) {
+  if (filters?.scenario_id) {
+    params.set("scenario_id", filters.scenario_id);
+  }
+  if (filters?.decision_id) {
+    params.set("decision_id", filters.decision_id);
+  }
+  if (filters?.object_id_prefix) {
+    params.set("object_id_prefix", filters.object_id_prefix);
+  }
+  if (filters?.object_type) {
+    params.set("object_type", filters.object_type);
+  }
+  if (filters?.object_id) {
+    params.set("object_id", filters.object_id);
+  }
+  if (filters?.outcome) {
+    params.set("outcome", filters.outcome);
+  }
+  if (filters?.search) {
+    params.set("search", filters.search);
+  }
+}
+
 const configuredDecisionEngineServiceBaseUrl =
   process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL;
 const decisionEngineServiceToken =
@@ -691,6 +722,7 @@ export const decisionEnginePaths = {
   scenarioDecisions: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/decisions`,
   decisions: (tenantId: string) => `/v1/tenants/${tenantId}/decisions`,
+  decisionsCount: (tenantId: string) => `/v1/tenants/${tenantId}/decisions/count`,
   decision: (tenantId: string, decisionId: string) =>
     `/v1/tenants/${tenantId}/decisions/${decisionId}`,
   recordIngested: (tenantId: string) =>
@@ -984,28 +1016,7 @@ export const decisionEngineApi = {
   },
   listDecisions: async (tenantId: string, filters?: ListDecisionsRequest) => {
     const params = new URLSearchParams();
-
-    if (filters?.scenario_id) {
-      params.set("scenario_id", filters.scenario_id);
-    }
-    if (filters?.decision_id) {
-      params.set("decision_id", filters.decision_id);
-    }
-    if (filters?.object_id_prefix) {
-      params.set("object_id_prefix", filters.object_id_prefix);
-    }
-    if (filters?.object_type) {
-      params.set("object_type", filters.object_type);
-    }
-    if (filters?.object_id) {
-      params.set("object_id", filters.object_id);
-    }
-    if (filters?.outcome) {
-      params.set("outcome", filters.outcome);
-    }
-    if (filters?.search) {
-      params.set("search", filters.search);
-    }
+    appendDecisionListFilterParams(params, filters);
     if (filters?.limit != null) {
       params.set("limit", String(filters.limit));
     }
@@ -1022,6 +1033,17 @@ export const decisionEngineApi = {
     const query = params.toString();
     return decisionEngineFetch<{ decisions: Decision[]; pagination: Pagination }>(
       `${decisionEnginePaths.decisions(tenantId)}${query ? `?${query}` : ""}`
+    );
+  },
+  countDecisions: async (
+    tenantId: string,
+    filters?: Omit<ListDecisionsRequest, "limit" | "offset" | "cursor" | "include_total_count">
+  ) => {
+    const params = new URLSearchParams();
+    appendDecisionListFilterParams(params, filters);
+    const query = params.toString();
+    return decisionEngineFetch<DecisionCountResponse>(
+      `${decisionEnginePaths.decisionsCount(tenantId)}${query ? `?${query}` : ""}`
     );
   },
   getDecision: async (tenantId: string, decisionId: string) =>

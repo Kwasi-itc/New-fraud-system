@@ -387,3 +387,34 @@ func TestDecisionHandlerGetDecisionIncludesRuleEvaluationEvidence(t *testing.T) 
 		t.Fatalf("len(evaluation.children) = %d, want 2", len(evaluation.Children))
 	}
 }
+
+func TestDecisionHandlerCountDecisionsReturnsCountOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &decisionHandlerRepoStub{totalCount: 37}
+	handler := newDecisionHandlerForTests(repo)
+	router := gin.New()
+	router.GET("/v1/tenants/:tenantId/decisions/count", handler.CountDecisions)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/tenants/tenant-1/decisions/count?search=merchant&outcome=review",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if got, ok := payload["count"].(float64); !ok || int(got) != 37 {
+		t.Fatalf("count = %#v, want 37", payload["count"])
+	}
+	if repo.countFiltered != 1 {
+		t.Fatalf("countFiltered = %d, want 1", repo.countFiltered)
+	}
+}
