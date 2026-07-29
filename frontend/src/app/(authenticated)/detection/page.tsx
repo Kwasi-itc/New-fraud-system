@@ -15,6 +15,7 @@ import {
   Filter,
   Info,
   Lightbulb,
+  Loader2,
   Pencil,
   Plus,
   Search,
@@ -826,6 +827,10 @@ function LiveDecisionsView({
   );
   const decisions = decisionsQuery.data?.decisions ?? [];
   const pagination = decisionsQuery.data?.pagination;
+  const isInitialDecisionLoad = decisionsQuery.isLoading && !decisionsQuery.data;
+  const isDecisionListRefreshing = decisionsQuery.isFetching && !isInitialDecisionLoad;
+  const isDecisionCountRefreshing =
+    decisionsCountQuery.isFetching && !decisionsCountQuery.isLoading;
   const canGoPrevious = pageOffset > 0;
   const totalRecords = decisionsCountQuery.data?.count;
   const totalPages = totalRecords != null ? Math.ceil(totalRecords / pageSize) : 0;
@@ -1117,9 +1122,12 @@ function LiveDecisionsView({
           </div>
         ) : null}
 
-        {decisionsQuery.isLoading ? (
+        {isInitialDecisionLoad ? (
           <Card className="rounded-xl border border-slate-200 shadow-none">
-            <CardContent className="p-6 text-sm text-slate-600">Loading decisions...</CardContent>
+            <CardContent className="flex items-center gap-2 p-6 text-sm text-slate-600">
+              <Loader2 className="size-4 animate-spin text-slate-400" />
+              Loading decisions...
+            </CardContent>
           </Card>
         ) : decisionsQuery.isError ? (
           <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
@@ -1136,9 +1144,25 @@ function LiveDecisionsView({
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
+          <Card className="relative overflow-hidden rounded-xl border border-slate-200 shadow-none">
+            {isDecisionListRefreshing ? (
+              <>
+                <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[2px]" />
+                <div className="absolute inset-0 z-30 flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-medium text-slate-700 shadow-sm">
+                    <Loader2 className="size-4 animate-spin text-[#2d63b8]" />
+                    Loading new page...
+                  </div>
+                </div>
+              </>
+            ) : null}
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div
+                className={cn(
+                  "overflow-x-auto transition-opacity",
+                  isDecisionListRefreshing && "pointer-events-none select-none opacity-25"
+                )}
+              >
                 <table className="min-w-full text-left">
                   <thead>
                     <tr className="border-b border-slate-200 bg-white text-[13px] font-semibold text-slate-950">
@@ -1193,7 +1217,7 @@ function LiveDecisionsView({
               </div>
               {pagination ? (
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                  <div className="flex items-center gap-2">
                     Showing {pageRangeLabel}
                     {totalRecords != null
                       ? ` of ${totalRecords}`
@@ -1203,11 +1227,17 @@ function LiveDecisionsView({
                     {debouncedSearchTerm || selectedFilters.length > 0
                       ? " matching current filters"
                       : ""}
+                    {isDecisionCountRefreshing ? (
+                      <span className="inline-flex items-center gap-1 text-slate-500">
+                        <Loader2 className="size-3 animate-spin" />
+                        Updating total...
+                      </span>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
-                      disabled={!canGoPrevious}
+                      disabled={!canGoPrevious || isDecisionListRefreshing}
                       onClick={() =>
                         setPageOffset((current) =>
                           Math.max(0, current - pageSize)
@@ -1231,7 +1261,7 @@ function LiveDecisionsView({
                             key={token.page}
                             variant="outline"
                             onClick={() => setPageOffset((token.page - 1) * pageSize)}
-                            disabled={token.page === currentPage}
+                            disabled={token.page === currentPage || isDecisionListRefreshing}
                             className={cn(
                               "h-9 min-w-9 rounded-xl border px-3 text-[13px] shadow-none",
                               token.page === currentPage
@@ -1246,7 +1276,7 @@ function LiveDecisionsView({
                     </div>
                     <Button
                       variant="outline"
-                      disabled={!canGoNext}
+                      disabled={!canGoNext || isDecisionListRefreshing}
                       onClick={() => setPageOffset(pageOffset + pageSize)}
                       className="h-9 rounded-xl border-slate-200 bg-white px-3 text-[13px] shadow-none"
                     >
