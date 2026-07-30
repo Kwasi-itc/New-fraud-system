@@ -26,6 +26,7 @@ type RouterConfig struct {
 	HTTPClientTimeout   time.Duration
 	WorkerMaxAttempts   int
 	UploadLogQueueName  string
+	IngestWriteTimeout  time.Duration
 }
 
 type uuidGenerator struct{}
@@ -68,7 +69,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		txManager,
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithWriteTimeout(cfg.IngestWriteTimeout)
 	ingestHandler := handlers.NewIngestHandler(ingestService)
 	uploadLogService := service.NewUploadLogService(
 		uploadLogRepository,

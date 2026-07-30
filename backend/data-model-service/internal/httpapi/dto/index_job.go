@@ -14,6 +14,13 @@ type CreateIndexJobRequest struct {
 	Columns              []string   `json:"columns" binding:"required"`
 	RequestedByOperation string     `json:"requested_by_operation"`
 	ScheduledAt          *time.Time `json:"scheduled_at"`
+	Method               string     `json:"method"`
+	IsUnique             bool       `json:"is_unique"`
+	IncludeColumns       []string   `json:"include_columns"`
+	OwnerService         string     `json:"owner_service"`
+	SubmittedByService   string     `json:"submitted_by_service"`
+	Purpose              string     `json:"purpose"`
+	ModelRevision        string     `json:"model_revision"`
 }
 
 type IndexJobResponse struct {
@@ -32,6 +39,15 @@ type IndexJobResponse struct {
 	CompletedAt          *time.Time `json:"completed_at,omitempty"`
 	ScheduledAt          *time.Time `json:"scheduled_at,omitempty"`
 	DedupeKey            string     `json:"dedupe_key"`
+	Method               string     `json:"method"`
+	IsUnique             bool       `json:"is_unique"`
+	IncludeColumns       []string   `json:"include_columns"`
+	OwnerService         string     `json:"owner_service"`
+	SubmittedByService   string     `json:"submitted_by_service"`
+	Purpose              string     `json:"purpose"`
+	ModelRevision        string     `json:"model_revision"`
+	SpecHash             string     `json:"spec_hash"`
+	IndexName            string     `json:"index_name"`
 }
 
 func AdaptIndexJob(job datamodel.IndexJob) IndexJobResponse {
@@ -51,5 +67,14 @@ func AdaptIndexJob(job datamodel.IndexJob) IndexJobResponse {
 		CompletedAt:          job.CompletedAt,
 		ScheduledAt:          job.ScheduledAt,
 		DedupeKey:            job.DedupeKey,
+		Method:               job.Method,
+		IsUnique:             job.IsUnique,
+		IncludeColumns:       append([]string(nil), job.IncludeColumns...),
+		OwnerService:         job.OwnerService,
+		SubmittedByService:   job.SubmittedByService,
+		Purpose:              job.Purpose,
+		ModelRevision:        job.ModelRevision,
+		SpecHash:             job.SpecHash,
+		IndexName:            job.IndexName,
 	}
 }

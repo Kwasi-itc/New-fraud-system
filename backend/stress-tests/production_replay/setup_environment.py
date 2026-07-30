@@ -107,15 +107,17 @@ class EnvironmentSetup:
         await self._ensure_tenant()
         await self._ensure_no_scenario_collisions()
         await self._ensure_model()
+        logical_buckets = await self._ensure_logical_buckets(publication_timeout_seconds)
         references = await self._load_reference_data()
         lists = await self._ensure_reference_lists(references[2])
         scenarios = await self._create_scenarios(publication_timeout_seconds)
         return {
-            "setup_version": 1,
+            "setup_version": 2,
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "tenant_id": self.tenant_id,
             "tenant_name": self.tenant_name,
             "object_types": list(TABLE_FIELDS),
+            "logical_buckets": logical_buckets,
             "reference_data": {
                 "merchants": asdict(references[0].stats),
                 "merchant_products": asdict(references[1].stats),
@@ -140,6 +142,7 @@ class EnvironmentSetup:
             "scenarios": scenarios,
             "notes": [
                 "Reference records were sent through ingestion in batches of at most 500.",
+                "Transaction aggregates use a daily logical bucket on transactions.date.",
                 "The harness calls the decision endpoint directly during replay, so ingestion outbox depth must be monitored externally.",
             ],
         }
@@ -224,6 +227,128 @@ class EnvironmentSetup:
         await self.clients.request(
             self.clients.data_model, "GET", f"/v1/tenants/{self.tenant_id}/data-model", 200
         )
+
+    async def _ensure_logical_buckets(self, timeout_seconds: float) -> dict[str, Any]:
+        definition = await self._ensure_logical_bucket(
+            table_name="transactions",
+            field_name="date",
+            timezone_name=self.manifest.timezone,
+            timeout_seconds=timeout_seconds,
+        )
+        return {"transactions.date": definition}
+
+    async def _ensure_logical_bucket(
+        self,
+        *,
+        table_name: str,
+        field_name: str,
+        timezone_name: str,
+        timeout_seconds: float,
+    ) -> dict[str, Any]:
+        table = self.tables[table_name]
+        field = self.fields[table_name][field_name]
+        path = f"/v1/tables/{table['id']}/logical-buckets"
+
+        response = await self.clients.request(self.clients.data_model, "GET", path, 200)
+        definitions = response.get("logical_buckets", [])
+        current = self._current_bucket_for_field(definitions, field["id"])
+        if current is not None and current.get("timezone") != timezone_name:
+            raise APIError(
+                f"logical bucket {table_name}.{field_name} uses timezone {current.get('timezone')!r}; "
+                f"the replay manifest requires {timezone_name!r}. Retire the existing definition first."
+            )
+
+        if current is None:
+            try:
+                current = (
+                    await self.clients.request(
+                        self.clients.data_model,
+                        "POST",
+                        f"/v1/tenants/{self.tenant_id}/tables/{table['id']}/logical-buckets",
+                        201,
+                        json={
+                            "timestamp_field_id": field["id"],
+                            "timezone": timezone_name,
+                        },
+                    )
+                )["logical_bucket"]
+            except APIError:
+                response = await self.clients.request(self.clients.data_model, "GET", path, 200)
+                current = self._current_bucket_for_field(
+                    response.get("logical_buckets", []), field["id"]
+                )
+                if current is None:
+                    raise
+
+        definition_id = current["id"]
+        deadline = time.monotonic() + timeout_seconds
+        last_status = str(current.get("status") or "unknown")
+        reported_status = ""
+        while True:
+            response = await self.clients.request(self.clients.data_model, "GET", path, 200)
+            current = next(
+                (
+                    item
+                    for item in response.get("logical_buckets", [])
+                    if item.get("id") == definition_id
+                ),
+                None,
+            )
+            if current is None:
+                raise APIError(
+                    f"logical bucket {table_name}.{field_name} disappeared during activation"
+                )
+
+            last_status = str(current.get("status") or "unknown")
+            if last_status != reported_status:
+                print(
+                    f"logical bucket {table_name}.{field_name}: {last_status}"
+                )
+                reported_status = last_status
+            if last_status == "active":
+                return {
+                    "id": current["id"],
+                    "table": table_name,
+                    "timestamp_field": field_name,
+                    "timezone": current["timezone"],
+                    "grain": current["grain"],
+                    "status": current["status"],
+                    "definition_version": current["definition_version"],
+                    "cache_eligible_at": current.get("cache_eligible_at"),
+                    "index_job_id": current.get("index_job_id"),
+                }
+            if last_status == "blocked_data":
+                raise APIError(
+                    f"logical bucket {table_name}.{field_name} is blocked because existing rows contain null timestamps"
+                )
+            if last_status in {"retiring", "retired"}:
+                raise APIError(
+                    f"logical bucket {table_name}.{field_name} entered unexpected state {last_status!r}"
+                )
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise APIError(
+                    f"logical bucket {table_name}.{field_name} did not become active within "
+                    f"{timeout_seconds:g}s; last status was {last_status!r}. "
+                    "Confirm the data-model index worker is running."
+                )
+            await asyncio.sleep(min(1.0, remaining))
+
+    @staticmethod
+    def _current_bucket_for_field(
+        definitions: list[dict[str, Any]], field_id: str
+    ) -> dict[str, Any] | None:
+        current_statuses = {"pending_index", "activating", "active", "blocked_data"}
+        matches = [
+            item
+            for item in definitions
+            if item.get("timestamp_field_id") == field_id
+            and item.get("status") in current_statuses
+        ]
+        if len(matches) > 1:
+            raise APIError("multiple current logical bucket definitions exist for one timestamp field")
+        return matches[0] if matches else None
 
     async def _ensure_links(self) -> None:
         response = await self.clients.request(

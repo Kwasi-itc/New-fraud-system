@@ -166,6 +166,10 @@ Relevant optional downstream variables:
 - `SERVICE_AUTH_TOKEN`
 - `AGGREGATE_PUSHDOWN_MODE`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
+- `AGGREGATE_EXECUTION_MODE`
+- `AGGREGATE_QUERY_TIMEOUT`
+- `AGGREGATE_DB_CONCURRENCY`
+- `REDIS_URL`
 - `SCHEDULED_EXECUTION_QUEUE_NAME`
 - `SCHEDULED_EXECUTION_QUEUE_WORKERS`
 - `ASYNC_EXECUTION_QUEUE_NAME`
@@ -173,16 +177,20 @@ Relevant optional downstream variables:
 
 `SCREENING_SERVICE_URL` is the preferred screening dispatch target for the worker. `SCREENING_PROVIDER_URL` remains as a fallback compatibility variable.
 
-## Aggregate Pushdown
+## Aggregate Execution
 
-Aggregate-heavy Marble `Aggregator(...)` rules can now be pushed down to `ingestion-service` instead of pulling record sets back into the decision engine first.
+Aggregate-heavy Marble `Aggregator(...)` rules compile to bounded SQL executed directly by the decision engine against the merged PostgreSQL database.
 
 Current behavior:
 
-- the decision engine compiles supported aggregate AST into a logical aggregate query
-- `ingestion-service` executes the aggregate close to the tenant data tables
-- unsupported shapes fall back to local in-memory aggregation when pushdown mode allows fallback
-- strict mode fails fast instead of silently falling back
+- ordinary record reads still use `ingestion-service`
+- `AGGREGATE_EXECUTION_MODE=legacy` retains the ingestion HTTP aggregate endpoint for rollback
+- `direct` executes complete PostgreSQL aggregates and prohibits the 5,000-row local fallback
+- `direct_cached` additionally caches complete, sealed daily bucket components in Redis
+- cache keys include model revision, bucket definition version, and the durable ingestion generation
+- Redis errors are cache misses; PostgreSQL errors fail rule evaluation
+- cache entries have no TTL and Redis uses bounded-memory LFU eviction
+- `count_distinct` is rejected in direct modes because distinct values cannot be safely merged from scalar bucket results
 
 Current configuration:
 
@@ -192,14 +200,21 @@ Current configuration:
   - `strict`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
   - comma-separated allow-list for remote pushdown
-  - default: `count`
-  - example expanded rollout: `count,sum,avg,min,max`
+  - default: `count,sum,avg,min,max`
+- `AGGREGATE_EXECUTION_MODE`
+  - `legacy`, `direct`, or `direct_cached`
+  - default: `legacy`
+- `AGGREGATE_QUERY_TIMEOUT`
+  - deadline for model lookup, generation reads, cache calls, and aggregate SQL
+- `AGGREGATE_DB_CONCURRENCY`
+  - per-process upper bound for concurrent direct aggregate calls
+- `REDIS_URL`
+  - required only for `direct_cached`
 
 Current V1 pushdown scope:
 
-- supported aggregates:
+- supported direct aggregates:
   - `count`
-  - `count_distinct`
   - `sum`
   - `avg`
   - `min`

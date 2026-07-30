@@ -1230,7 +1230,7 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 					"aggregate", compileResult.Query.Aggregate,
 					"mode", runtime.aggregatePushdownMode(),
 				)
-				if runtime.aggregatePushdownStrict() {
+				if runtime.aggregatePushdownStrict() || !runtime.aggregateLocalFallbackAllowed() {
 					return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
 				}
 				recordAggregatePushdownFallback()
@@ -1250,12 +1250,12 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 					"mode", runtime.aggregatePushdownMode(),
 					"error", err,
 				)
-				if runtime.aggregatePushdownStrict() {
+				if runtime.aggregatePushdownStrict() || !runtime.aggregateLocalFallbackAllowed() {
 					return nil, fmt.Errorf("aggregate pushdown failed: %w", err)
 				}
 				recordAggregatePushdownFallback()
 			}
-		} else if runtime.aggregatePushdownStrict() {
+		} else if runtime.aggregatePushdownStrict() || !runtime.aggregateLocalFallbackAllowed() {
 			recordAggregatePushdownCompile(false)
 			slog.Default().Warn("aggregate pushdown unsupported",
 				"tenant_id", runtime.TenantID,
@@ -1276,6 +1276,9 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 				"reason", compileResult.UnsupportedReason,
 			)
 		}
+	}
+	if !runtime.aggregateLocalFallbackAllowed() {
+		return nil, fmt.Errorf("direct aggregate execution requires a supported pushdown query")
 	}
 	records, err := runtime.TenantDataReader.ListRecords(ctx, runtime.TenantID, tableName, 5000)
 	if err != nil {

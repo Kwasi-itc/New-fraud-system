@@ -37,6 +37,7 @@ func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore
 		schemaChanges:          NewSchemaChangeRepository(tx),
 		tenantSchemaMigrations: NewTenantSchemaMigrationRepository(tx),
 		indexJobs:              NewIndexJobRepository(tx),
+		logicalBuckets:         NewLogicalBucketRepository(tx),
 		schemaManager:          tenantdbpostgres.NewSchemaManager(tx),
 		rawTx:                  tx,
 	}
@@ -65,6 +66,7 @@ type mutationStore struct {
 	schemaChanges          ports.SchemaChangeRepository
 	tenantSchemaMigrations ports.TenantSchemaMigrationRepository
 	indexJobs              ports.IndexJobRepository
+	logicalBuckets         ports.LogicalBucketRepository
 	schemaManager          ports.SchemaManager
 	rawTx                  pgx.Tx
 }
@@ -86,5 +88,8 @@ func (s mutationStore) TenantSchemaMigrations() ports.TenantSchemaMigrationRepos
 	return s.tenantSchemaMigrations
 }
 func (s mutationStore) IndexJobs() ports.IndexJobRepository { return s.indexJobs }
-func (s mutationStore) SchemaManager() ports.SchemaManager  { return s.schemaManager }
-func (s mutationStore) RawTx() pgx.Tx                       { return s.rawTx }
+func (s mutationStore) LogicalBuckets() ports.LogicalBucketRepository {
+	return s.logicalBuckets
+}
+func (s mutationStore) SchemaManager() ports.SchemaManager { return s.schemaManager }
+func (s mutationStore) RawTx() pgx.Tx                      { return s.rawTx }

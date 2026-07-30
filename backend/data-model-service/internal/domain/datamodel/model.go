@@ -3,6 +3,7 @@ package datamodel
 import (
 	"cmp"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"maps"
@@ -143,8 +144,9 @@ type NavigationOption struct {
 }
 
 type AssembledDataModel struct {
-	Tables map[string]AssembledTable
-	Pivots []AssembledPivot
+	Tables         map[string]AssembledTable
+	Pivots         []AssembledPivot
+	LogicalBuckets []LogicalBucketDefinition
 }
 
 type AssembledTable struct {
@@ -228,9 +230,12 @@ type TenantSchemaMigration struct {
 type IndexJobType string
 
 const (
-	IndexJobTypeNavigation IndexJobType = "navigation"
-	IndexJobTypeSearch     IndexJobType = "search"
-	IndexJobTypeRepair     IndexJobType = "repair"
+	IndexJobTypeNavigation    IndexJobType = "navigation"
+	IndexJobTypeSearch        IndexJobType = "search"
+	IndexJobTypeRepair        IndexJobType = "repair"
+	IndexJobTypeLogicalBucket IndexJobType = "logical_bucket"
+	IndexJobTypeAggregate     IndexJobType = "aggregate"
+	IndexJobTypeUnique        IndexJobType = "unique"
 )
 
 type IndexJobStatus string
@@ -259,11 +264,66 @@ type IndexJob struct {
 	CompletedAt          *time.Time
 	ScheduledAt          *time.Time
 	DedupeKey            string
+	Method               string
+	IsUnique             bool
+	IncludeColumns       []string
+	OwnerService         string
+	SubmittedByService   string
+	Purpose              string
+	ModelRevision        string
+	SpecHash             string
+	IndexName            string
+}
+
+type IndexIntent struct {
+	ID                 uuid.UUID
+	IndexJobID         uuid.UUID
+	TenantID           uuid.UUID
+	OwnerService       string
+	SubmittedByService string
+	Purpose            string
+	ModelRevision      string
+	Active             bool
+	RequestedAt        time.Time
+	RetiredAt          *time.Time
 }
 
 type ManagedIndexState struct {
-	Name   string
-	Exists bool
+	Name          string
+	Exists        bool
+	Valid         bool
+	Ready         bool
+	ValidityKnown bool
+}
+
+type LogicalBucketStatus string
+
+const (
+	LogicalBucketStatusPendingIndex LogicalBucketStatus = "pending_index"
+	LogicalBucketStatusActivating   LogicalBucketStatus = "activating"
+	LogicalBucketStatusActive       LogicalBucketStatus = "active"
+	LogicalBucketStatusBlockedData  LogicalBucketStatus = "blocked_data"
+	LogicalBucketStatusRetiring     LogicalBucketStatus = "retiring"
+	LogicalBucketStatusRetired      LogicalBucketStatus = "retired"
+)
+
+type LogicalBucketDefinition struct {
+	ID                 uuid.UUID
+	TenantID           uuid.UUID
+	TableID            uuid.UUID
+	TimestampFieldID   uuid.UUID
+	TimestampFieldName string
+	Grain              string
+	Timezone           string
+	SealDelay          time.Duration
+	DefinitionVersion  int
+	Status             LogicalBucketStatus
+	IndexJobID         *uuid.UUID
+	CacheEligibleAt    *time.Time
+	MaintenanceUntil   *time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	RetiredAt          *time.Time
 }
 
 func NewDeleteReport() DeleteReport {
@@ -282,7 +342,8 @@ func NormalizeName(value string) string {
 func ParseIndexJobType(value string) (IndexJobType, error) {
 	jobType := IndexJobType(strings.TrimSpace(value))
 	switch jobType {
-	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair:
+	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair,
+		IndexJobTypeLogicalBucket, IndexJobTypeAggregate, IndexJobTypeUnique:
 		return jobType, nil
 	default:
 		return "", fmt.Errorf("unsupported index job type: %s", value)
@@ -291,7 +352,8 @@ func ParseIndexJobType(value string) (IndexJobType, error) {
 
 func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
 	switch jobType {
-	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair:
+	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair,
+		IndexJobTypeLogicalBucket, IndexJobTypeAggregate, IndexJobTypeUnique:
 	default:
 		return fmt.Errorf("unsupported index job type: %s", jobType)
 	}
@@ -317,6 +379,24 @@ func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
 
 func BuildIndexJobDedupeKey(tenantID, tableID uuid.UUID, indexType IndexJobType, columns []string) string {
 	sum := sha1.Sum([]byte(tenantID.String() + ":" + tableID.String() + ":" + string(indexType) + ":" + strings.Join(columns, ",")))
+	return hex.EncodeToString(sum[:])
+}
+
+func BuildPhysicalIndexSpecHash(
+	tenantID, tableID uuid.UUID,
+	method string,
+	unique bool,
+	columns, includeColumns []string,
+) string {
+	payload := strings.Join([]string{
+		tenantID.String(),
+		tableID.String(),
+		strings.ToLower(strings.TrimSpace(method)),
+		strconv.FormatBool(unique),
+		strings.Join(columns, ","),
+		strings.Join(includeColumns, ","),
+	}, ":")
+	sum := sha256.Sum256([]byte(payload))
 	return hex.EncodeToString(sum[:])
 }
 

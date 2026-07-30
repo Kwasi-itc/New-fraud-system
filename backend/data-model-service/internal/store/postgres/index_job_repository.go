@@ -23,14 +23,19 @@ func (r IndexJobRepository) Create(ctx context.Context, job datamodel.IndexJob) 
 		INSERT INTO core.index_jobs (
 			id, tenant_id, table_id, table_name, index_type, columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
-			started_at, completed_at, scheduled_at, dedupe_key
+			started_at, completed_at, scheduled_at, dedupe_key, method, is_unique,
+			include_columns, owner_service, submitted_by_service, purpose,
+			model_revision, spec_hash, index_name
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
 	`
 	if _, err := r.db.Exec(ctx, query,
 		job.ID, job.TenantID, job.TableID, job.TableName, job.IndexType, job.Columns, job.Status,
 		job.RequestedByOperation, job.ErrorMessage, job.AttemptCount, job.RequestedAt,
 		job.StartedAt, job.CompletedAt, job.ScheduledAt, job.DedupeKey,
+		job.Method, job.IsUnique, job.IncludeColumns, job.OwnerService,
+		job.SubmittedByService, job.Purpose, job.ModelRevision, job.SpecHash,
+		job.IndexName,
 	); err != nil {
 		return fmt.Errorf("insert index job: %w", err)
 	}
@@ -41,18 +46,35 @@ func (r IndexJobRepository) GetByID(ctx context.Context, id uuid.UUID) (datamode
 	query := `
 		SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
-			started_at, completed_at, scheduled_at, dedupe_key
+			started_at, completed_at, scheduled_at, dedupe_key, method, is_unique,
+			include_columns, owner_service, submitted_by_service, purpose,
+			model_revision, spec_hash, index_name
 		FROM core.index_jobs
 		WHERE id = $1
 	`
 	return scanIndexJob(r.db.QueryRow(ctx, query, id))
 }
 
+func (r IndexJobRepository) GetBySpecHash(ctx context.Context, specHash string) (datamodel.IndexJob, error) {
+	query := `
+		SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
+			requested_by_operation, error_message, attempt_count, requested_at,
+			started_at, completed_at, scheduled_at, dedupe_key, method, is_unique,
+			include_columns, owner_service, submitted_by_service, purpose,
+			model_revision, spec_hash, index_name
+		FROM core.index_jobs
+		WHERE spec_hash = $1
+	`
+	return scanIndexJob(r.db.QueryRow(ctx, query, specHash))
+}
+
 func (r IndexJobRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.IndexJob, error) {
 	query := `
 		SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
-			started_at, completed_at, scheduled_at, dedupe_key
+			started_at, completed_at, scheduled_at, dedupe_key, method, is_unique,
+			include_columns, owner_service, submitted_by_service, purpose,
+			model_revision, spec_hash, index_name
 		FROM core.index_jobs
 		WHERE tenant_id = $1
 		ORDER BY requested_at DESC, id DESC
@@ -77,6 +99,28 @@ func (r IndexJobRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID
 	return jobs, nil
 }
 
+func (r IndexJobRepository) CreateIntent(ctx context.Context, intent datamodel.IndexIntent) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO core.index_intents (
+			id, index_job_id, tenant_id, owner_service, submitted_by_service,
+			purpose, model_revision, active, requested_at, retired_at
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		ON CONFLICT (index_job_id, owner_service, purpose)
+		DO UPDATE SET
+			submitted_by_service = EXCLUDED.submitted_by_service,
+			model_revision = EXCLUDED.model_revision,
+			active = TRUE,
+			retired_at = NULL
+	`, intent.ID, intent.IndexJobID, intent.TenantID, intent.OwnerService,
+		intent.SubmittedByService, intent.Purpose, intent.ModelRevision,
+		intent.Active, intent.RequestedAt, intent.RetiredAt)
+	if err != nil {
+		return fmt.Errorf("insert index intent: %w", err)
+	}
+	return nil
+}
+
 func (r IndexJobRepository) StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (datamodel.IndexJob, error) {
 	query := `
 		UPDATE core.index_jobs
@@ -88,7 +132,9 @@ func (r IndexJobRepository) StartAttempt(ctx context.Context, id uuid.UUID, star
 		WHERE id = $1
 		RETURNING id, tenant_id, table_id, table_name, index_type, columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
-			started_at, completed_at, scheduled_at, dedupe_key
+			started_at, completed_at, scheduled_at, dedupe_key, method, is_unique,
+			include_columns, owner_service, submitted_by_service, purpose,
+			model_revision, spec_hash, index_name
 	`
 	job, err := scanIndexJob(r.db.QueryRow(ctx, query, id, datamodel.IndexJobStatusRunning, startedAt))
 	if err != nil {
@@ -178,6 +224,15 @@ func scanIndexJob(scanner indexJobScanner) (datamodel.IndexJob, error) {
 		&completedAt,
 		&scheduledAt,
 		&job.DedupeKey,
+		&job.Method,
+		&job.IsUnique,
+		&job.IncludeColumns,
+		&job.OwnerService,
+		&job.SubmittedByService,
+		&job.Purpose,
+		&job.ModelRevision,
+		&job.SpecHash,
+		&job.IndexName,
 	); err != nil {
 		return datamodel.IndexJob{}, err
 	}

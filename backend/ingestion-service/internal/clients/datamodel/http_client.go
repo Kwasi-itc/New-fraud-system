@@ -62,6 +62,18 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 		PartialUpdates:      payload.DataModel.IngestionContract.PartialUpdates,
 		ManagedSystemFields: append([]string(nil), payload.DataModel.IngestionContract.ManagedSystemFields...),
 		Tables:              make(map[string]ingestion.ObjectSchema, len(payload.DataModel.Tables)),
+		PhysicalSchemaName:  payload.DataModel.PhysicalSchemaName,
+	}
+	model.LogicalBuckets = make([]ingestion.LogicalBucketDefinition, len(payload.DataModel.LogicalBuckets))
+	for i, item := range payload.DataModel.LogicalBuckets {
+		model.LogicalBuckets[i] = ingestion.LogicalBucketDefinition{
+			ID: item.ID, TableID: item.TableID, TimestampFieldID: item.TimestampFieldID,
+			TimestampFieldName: item.TimestampFieldName, Grain: item.Grain,
+			Timezone:          item.Timezone,
+			SealDelay:         time.Duration(item.SealDelaySeconds) * time.Second,
+			DefinitionVersion: item.DefinitionVersion, Status: item.Status,
+			CacheEligibleAt: item.CacheEligibleAt, MaintenanceUntil: item.MaintenanceUntil,
+		}
 	}
 
 	for key, table := range payload.DataModel.Tables {
@@ -109,9 +121,25 @@ type getDataModelResponse struct {
 }
 
 type publishedDataModelResponse struct {
-	RevisionID        string                            `json:"revision_id"`
-	IngestionContract ingestionContractResponse         `json:"ingestion_contract"`
-	Tables            map[string]assembledTableResponse `json:"tables"`
+	RevisionID         string                            `json:"revision_id"`
+	PhysicalSchemaName string                            `json:"physical_schema_name"`
+	IngestionContract  ingestionContractResponse         `json:"ingestion_contract"`
+	Tables             map[string]assembledTableResponse `json:"tables"`
+	LogicalBuckets     []logicalBucketResponse           `json:"logical_bucket_definitions"`
+}
+
+type logicalBucketResponse struct {
+	ID                 uuid.UUID  `json:"id"`
+	TableID            uuid.UUID  `json:"table_id"`
+	TimestampFieldID   uuid.UUID  `json:"timestamp_field_id"`
+	TimestampFieldName string     `json:"timestamp_field_name"`
+	Grain              string     `json:"grain"`
+	Timezone           string     `json:"timezone"`
+	SealDelaySeconds   int64      `json:"seal_delay_seconds"`
+	DefinitionVersion  int        `json:"definition_version"`
+	Status             string     `json:"status"`
+	CacheEligibleAt    *time.Time `json:"cache_eligible_at"`
+	MaintenanceUntil   *time.Time `json:"maintenance_until"`
 }
 
 type ingestionContractResponse struct {

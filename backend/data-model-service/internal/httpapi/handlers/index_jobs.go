@@ -40,6 +40,13 @@ func (h IndexJobHandler) Create(c *gin.Context) {
 		Columns:              request.Columns,
 		RequestedByOperation: request.RequestedByOperation,
 		ScheduledAt:          request.ScheduledAt,
+		Method:               request.Method,
+		IsUnique:             request.IsUnique,
+		IncludeColumns:       request.IncludeColumns,
+		OwnerService:         request.OwnerService,
+		SubmittedByService:   request.SubmittedByService,
+		Purpose:              request.Purpose,
+		ModelRevision:        request.ModelRevision,
 	})
 	if err != nil {
 		writeError(c, err)

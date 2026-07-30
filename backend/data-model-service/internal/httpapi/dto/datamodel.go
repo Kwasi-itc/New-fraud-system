@@ -285,10 +285,12 @@ func AdaptDeleteReport(report datamodel.DeleteReport) DeleteReportResponse {
 }
 
 type AssembledDataModelResponse struct {
-	RevisionID        string                            `json:"revision_id"`
-	IngestionContract IngestionContractResponse         `json:"ingestion_contract"`
-	Tables            map[string]AssembledTableResponse `json:"tables"`
-	Pivots            []AssembledPivotResponse          `json:"pivots"`
+	RevisionID         string                            `json:"revision_id"`
+	PhysicalSchemaName string                            `json:"physical_schema_name"`
+	IngestionContract  IngestionContractResponse         `json:"ingestion_contract"`
+	Tables             map[string]AssembledTableResponse `json:"tables"`
+	Pivots             []AssembledPivotResponse          `json:"pivots"`
+	LogicalBuckets     []LogicalBucketResponse           `json:"logical_bucket_definitions"`
 }
 
 type PortableImportRequest struct {
@@ -314,8 +316,8 @@ type PortableImportSummary struct {
 }
 
 type PortableDataModelDocument struct {
-	Version    string                 `json:"version"`
-	RevisionID string                 `json:"revision_id,omitempty"`
+	Version    string                  `json:"version"`
+	RevisionID string                  `json:"revision_id,omitempty"`
 	Tables     []PortableTableDocument `json:"tables"`
 	Links      []PortableLinkDocument  `json:"links"`
 	Pivots     []PortablePivotDocument `json:"pivots"`
@@ -425,7 +427,12 @@ type AssembledPivotResponse struct {
 	PathLinks   []string    `json:"path_links"`
 }
 
-func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID string, tenantStatus tenant.Status) AssembledDataModelResponse {
+func AdaptAssembledDataModel(
+	model datamodel.AssembledDataModel,
+	revisionID string,
+	tenantStatus tenant.Status,
+	physicalSchemaName ...string,
+) AssembledDataModelResponse {
 	response := AssembledDataModelResponse{
 		RevisionID: revisionID,
 		IngestionContract: IngestionContractResponse{
@@ -435,8 +442,12 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 			RecordLookupField:   "object_id",
 			PartialUpdates:      true,
 		},
-		Tables: make(map[string]AssembledTableResponse, len(model.Tables)),
-		Pivots: make([]AssembledPivotResponse, len(model.Pivots)),
+		Tables:         make(map[string]AssembledTableResponse, len(model.Tables)),
+		Pivots:         make([]AssembledPivotResponse, len(model.Pivots)),
+		LogicalBuckets: make([]LogicalBucketResponse, len(model.LogicalBuckets)),
+	}
+	if len(physicalSchemaName) > 0 {
+		response.PhysicalSchemaName = physicalSchemaName[0]
 	}
 	for key, table := range model.Tables {
 		var options *TableOptionsResponse
@@ -510,6 +521,9 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 			PathLinkIDs: pivot.PathLinkIDs,
 			PathLinks:   pivot.PathLinks,
 		}
+	}
+	for i, bucket := range model.LogicalBuckets {
+		response.LogicalBuckets[i] = AdaptLogicalBucket(bucket)
 	}
 	return response
 }

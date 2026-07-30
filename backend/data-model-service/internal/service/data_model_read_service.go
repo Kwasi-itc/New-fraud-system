@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -17,6 +19,17 @@ type DataModelReadService struct {
 	repository       ports.DataModelReadRepository
 	tenantRepository ports.TenantRepository
 	migrationRepo    ports.TenantSchemaMigrationRepository
+	logicalBuckets   ports.LogicalBucketRepository
+	clock            ports.Clock
+}
+
+func (s DataModelReadService) WithLogicalBuckets(
+	repository ports.LogicalBucketRepository,
+	clock ports.Clock,
+) DataModelReadService {
+	s.logicalBuckets = repository
+	s.clock = clock
+	return s
 }
 
 type PublishedAssembledDataModel struct {
@@ -47,6 +60,19 @@ func (s DataModelReadService) Get(ctx context.Context, tenantID uuid.UUID) (Publ
 	if err != nil {
 		return PublishedAssembledDataModel{}, err
 	}
+	if s.logicalBuckets != nil {
+		now := time.Now().UTC()
+		if s.clock != nil {
+			now = s.clock.Now()
+		}
+		if err := s.logicalBuckets.PromoteLifecycle(ctx, now); err != nil {
+			return PublishedAssembledDataModel{}, err
+		}
+		model.LogicalBuckets, err = s.logicalBuckets.ListByTenant(ctx, tenantID)
+		if err != nil {
+			return PublishedAssembledDataModel{}, err
+		}
+	}
 
 	migrations, err := s.migrationRepo.ListByTenant(ctx, tenantID)
 	if err != nil {
@@ -54,10 +80,40 @@ func (s DataModelReadService) Get(ctx context.Context, tenantID uuid.UUID) (Publ
 	}
 
 	return PublishedAssembledDataModel{
-		RevisionID: buildRevisionID(record, migrations),
+		RevisionID: buildPublishedRevisionID(buildRevisionID(record, migrations), model.LogicalBuckets),
 		Tenant:     record,
 		Model:      model,
 	}, nil
+}
+
+func buildPublishedRevisionID(base string, buckets []datamodel.LogicalBucketDefinition) string {
+	if len(buckets) == 0 {
+		return base
+	}
+	items := append([]datamodel.LogicalBucketDefinition(nil), buckets...)
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].ID == items[j].ID {
+			return items[i].DefinitionVersion < items[j].DefinitionVersion
+		}
+		return items[i].ID.String() < items[j].ID.String()
+	})
+	h := sha1.New()
+	h.Write([]byte(base))
+	for _, item := range items {
+		h.Write([]byte("|" + item.ID.String()))
+		h.Write([]byte("|" + item.TimestampFieldID.String()))
+		h.Write([]byte("|" + item.Grain))
+		h.Write([]byte("|" + item.Timezone))
+		h.Write([]byte("|" + string(item.Status)))
+		h.Write([]byte(fmt.Sprintf("|%d|%d", item.DefinitionVersion, int64(item.SealDelay/time.Second))))
+		if item.CacheEligibleAt != nil {
+			h.Write([]byte("|" + item.CacheEligibleAt.UTC().Format(time.RFC3339Nano)))
+		}
+		if item.MaintenanceUntil != nil {
+			h.Write([]byte("|" + item.MaintenanceUntil.UTC().Format(time.RFC3339Nano)))
+		}
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func buildRevisionID(record tenant.Tenant, migrations []datamodel.TenantSchemaMigration) string {

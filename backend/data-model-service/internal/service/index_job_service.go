@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
@@ -33,6 +34,13 @@ type CreateIndexJobInput struct {
 	Columns              []string
 	RequestedByOperation string
 	ScheduledAt          *time.Time
+	Method               string
+	IsUnique             bool
+	IncludeColumns       []string
+	OwnerService         string
+	SubmittedByService   string
+	Purpose              string
+	ModelRevision        string
 }
 
 func NewIndexJobService(
@@ -100,6 +108,67 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 		}
 		normalizedColumns[i] = normalized
 	}
+	normalizedIncludes := make([]string, len(input.IncludeColumns))
+	for i, column := range input.IncludeColumns {
+		normalized := datamodel.NormalizeName(column)
+		if _, ok := fieldNames[normalized]; !ok {
+			return datamodel.IndexJob{}, fmt.Errorf("include field does not exist on table: %s", column)
+		}
+		normalizedIncludes[i] = normalized
+	}
+
+	method := strings.ToLower(strings.TrimSpace(input.Method))
+	if method == "" {
+		method = "btree"
+	}
+	if method != "btree" {
+		return datamodel.IndexJob{}, fmt.Errorf("only btree managed indexes are supported")
+	}
+	ownerService := strings.TrimSpace(input.OwnerService)
+	if ownerService == "" {
+		ownerService = "legacy"
+	}
+	submittedByService := strings.TrimSpace(input.SubmittedByService)
+	if submittedByService == "" {
+		submittedByService = ownerService
+	}
+	purpose := strings.TrimSpace(input.Purpose)
+	if purpose == "" {
+		purpose = strings.TrimSpace(input.RequestedByOperation)
+	}
+	if purpose == "" {
+		purpose = string(input.IndexType)
+	}
+	isUnique := input.IsUnique || input.IndexType == datamodel.IndexJobTypeUnique
+	specHash := datamodel.BuildPhysicalIndexSpecHash(
+		input.TenantID,
+		table.ID,
+		method,
+		isUnique,
+		normalizedColumns,
+		normalizedIncludes,
+	)
+
+	canonicalRepo, canonicalSupported := s.indexJobs.(ports.CanonicalIndexJobRepository)
+	if existing, err := getExistingIndexJob(ctx, canonicalRepo, canonicalSupported, specHash); err == nil {
+		intent := datamodel.IndexIntent{
+			ID:                 s.idGenerator.New(),
+			IndexJobID:         existing.ID,
+			TenantID:           input.TenantID,
+			OwnerService:       ownerService,
+			SubmittedByService: submittedByService,
+			Purpose:            purpose,
+			ModelRevision:      strings.TrimSpace(input.ModelRevision),
+			Active:             true,
+			RequestedAt:        s.clock.Now(),
+		}
+		if err := canonicalRepo.CreateIntent(ctx, intent); err != nil {
+			return datamodel.IndexJob{}, err
+		}
+		return existing, nil
+	} else if err != pgx.ErrNoRows {
+		return datamodel.IndexJob{}, err
+	}
 
 	now := s.clock.Now()
 	job := datamodel.IndexJob{
@@ -114,12 +183,37 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 		AttemptCount:         0,
 		RequestedAt:          now,
 		ScheduledAt:          input.ScheduledAt,
-		DedupeKey:            datamodel.BuildIndexJobDedupeKey(input.TenantID, table.ID, input.IndexType, normalizedColumns),
+		DedupeKey:            specHash,
+		Method:               method,
+		IsUnique:             isUnique,
+		IncludeColumns:       normalizedIncludes,
+		OwnerService:         ownerService,
+		SubmittedByService:   submittedByService,
+		Purpose:              purpose,
+		ModelRevision:        strings.TrimSpace(input.ModelRevision),
+		SpecHash:             specHash,
+	}
+	job.IndexName = managedIndexName(table.Name, specHash, isUnique)
+	intent := datamodel.IndexIntent{
+		ID:                 s.idGenerator.New(),
+		IndexJobID:         job.ID,
+		TenantID:           input.TenantID,
+		OwnerService:       ownerService,
+		SubmittedByService: submittedByService,
+		Purpose:            purpose,
+		ModelRevision:      job.ModelRevision,
+		Active:             true,
+		RequestedAt:        now,
 	}
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.IndexJobs().Create(ctx, job); err != nil {
 			return err
+		}
+		if repo, ok := store.IndexJobs().(ports.CanonicalIndexJobRepository); ok {
+			if err := repo.CreateIntent(ctx, intent); err != nil {
+				return err
+			}
 		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
 			s.idGenerator.New(),
@@ -134,6 +228,9 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 				"index_type":             job.IndexType,
 				"columns":                job.Columns,
 				"requested_by_operation": job.RequestedByOperation,
+				"owner_service":          job.OwnerService,
+				"purpose":                job.Purpose,
+				"spec_hash":              job.SpecHash,
 			},
 		))
 		if err := s.enqueuer.EnqueueTx(ctx, store.RawTx(), job.ID, job.ScheduledAt); err != nil {
@@ -145,6 +242,30 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 	}
 
 	return job, nil
+}
+
+func getExistingIndexJob(
+	ctx context.Context,
+	repository ports.CanonicalIndexJobRepository,
+	supported bool,
+	specHash string,
+) (datamodel.IndexJob, error) {
+	if !supported {
+		return datamodel.IndexJob{}, pgx.ErrNoRows
+	}
+	return repository.GetBySpecHash(ctx, specHash)
+}
+
+func managedIndexName(tableName, specHash string, unique bool) string {
+	prefix := "idx"
+	if unique {
+		prefix = "uniq"
+	}
+	hash := specHash
+	if len(hash) > 12 {
+		hash = hash[:12]
+	}
+	return fmt.Sprintf("%s_%s_%s", prefix, tableName, hash)
 }
 
 func (s IndexJobService) Get(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error) {
@@ -160,8 +281,8 @@ func (s IndexJobService) Retry(ctx context.Context, id uuid.UUID) (datamodel.Ind
 	if err != nil {
 		return datamodel.IndexJob{}, err
 	}
-	if job.Status != datamodel.IndexJobStatusFailed {
-		return datamodel.IndexJob{}, fmt.Errorf("only failed index jobs can be retried")
+	if job.Status != datamodel.IndexJobStatusFailed && job.Status != datamodel.IndexJobStatusCancelled {
+		return datamodel.IndexJob{}, fmt.Errorf("only failed or cancelled index jobs can be retried")
 	}
 	scheduledAt := s.clock.Now()
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {

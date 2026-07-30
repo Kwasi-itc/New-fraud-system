@@ -21,6 +21,8 @@ The service manages:
 - navigation-option metadata
 - schema change audit logging
 - async secondary index job orchestration
+- canonical physical index specifications with many-to-one service intents
+- daily logical aggregate bucket definition lifecycle
 - schema drift reconciliation
 
 The service does not yet manage:
@@ -138,6 +140,8 @@ The metadata database currently contains these primary tables:
 - `core.schema_change_log`
 - `core.tenant_schema_migrations`
 - `core.index_jobs`
+- `core.index_intents`
+- `core.logical_bucket_definitions`
 
 ## Tenant physical schema model
 
@@ -196,7 +200,18 @@ Authenticated `/v1` routes:
 - `GET /v1/tenants/:tenantId/index-jobs`
 - `GET /v1/index-jobs/:jobId`
 - `POST /v1/index-jobs/:jobId/retry`
+- `GET /v1/tables/:tableId/logical-buckets`
+- `POST /v1/tenants/:tenantId/tables/:tableId/logical-buckets`
+- `GET /v1/logical-buckets/:logicalBucketId`
+- `DELETE /v1/logical-buckets/:logicalBucketId`
+- `POST /v1/logical-buckets/:logicalBucketId/retry-activation`
 - `GET /v1/admin/reconcile`
+
+Logical bucket definitions are initially daily only, use a user-selected IANA timezone,
+have a global 48-hour seal delay, and are limited to three active definitions per
+table with at most one per timestamp field. The definition becomes cache eligible
+only after its canonical timestamp index is valid and the activation grace period
+has elapsed.
 
 ## Auth
 

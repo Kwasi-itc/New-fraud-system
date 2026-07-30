@@ -45,7 +45,7 @@ func main() {
 		storepostgres.NewTransactionManager(db),
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithWriteTimeout(cfg.IngestWriteTimeout)
 	uploadLogService := service.NewUploadLogService(
 		storepostgres.NewUploadLogRepository(db),
 		ingestService,

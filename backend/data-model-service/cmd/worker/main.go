@@ -46,14 +46,14 @@ func main() {
 		app.UUIDGenerator{},
 		app.SystemClock{},
 		cfg.IndexWorkerMaxAttempts,
-	)
+	).WithLogicalBuckets(postgres.NewLogicalBucketRepository(db), cfg.BucketActivationGrace)
 
 	logger.Info("starting index job worker",
 		"max_attempts", cfg.IndexWorkerMaxAttempts,
 	)
 
 	workers := river.NewWorkers()
-	indexWorker := riverjobs.NewIndexJobWorker(runner)
+	indexWorker := riverjobs.NewIndexJobWorker(runner, cfg.IndexWorkerTimeout)
 	river.AddWorker(workers, &indexWorker)
 
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{

@@ -1,6 +1,6 @@
 # Production Replay Harness
 
-This standalone Python harness profiles internal reference and transaction dumps, prepares one isolated tenant, and replays all configured transaction streams against the existing ingestion and decision-engine APIs. It does not require changes to any service.
+This standalone Python harness profiles internal reference and transaction dumps, prepares one isolated tenant, and replays all configured transaction streams against the existing ingestion and decision-engine APIs. Setup configures the replay tenant for direct, bucket-aware aggregate execution.
 
 ## One-Command Local Test
 
@@ -60,7 +60,7 @@ You can still run the wrapper directly:
 ./backend/stress-tests/production_replay/run_local_replay.sh
 ```
 
-This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, prepares the requested local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, rebuilds and starts the frontend with the replay tenant ID, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
+This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, prepares the requested local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, rebuilds and starts the frontend with the replay tenant ID, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. Tenant preparation creates a daily logical bucket for `transactions.date` in the manifest timezone and waits for its supporting index and activation grace period before publishing scenarios. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
 
 ## Safety Model
 
@@ -137,12 +137,13 @@ Use `--tenant-id <uuid>` to prepare an existing clean tenant. Existing compatibl
 Setup creates:
 
 - `merchants`, `merchant_products`, and `transactions` object types and their links
+- one active daily logical bucket on `transactions.date`, using the manifest timezone
 - deduplicated merchant and merchant-product reference records
 - normalized staff-number, email, MSISDN, and merchant-name custom lists
 - only the scenario-catalog rules supported by the transaction fields and configured streams
 - publication index jobs, with a default 15-minute preparation timeout
 
-The setup output includes the tenant ID needed for replay.
+The setup output includes the tenant ID and activated logical-bucket metadata needed for replay. The same timeout covers logical-bucket activation; setup fails rather than starting an unoptimized replay when the data-model index worker is unavailable.
 
 ## 3. Replay
 
@@ -164,13 +165,13 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
   --decision-engine-url "$DECISION_ENGINE_URL"
 ```
 
-For every transaction, the harness calls ingestion and waits for success before calling the decision callback. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling.
+For every transaction, the harness calls ingestion and waits for success before calling the decision callback. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling. Replay aggregate rules include both a relative lower bound and the current event timestamp as an upper bound. This lets the decision engine split historical windows into sealed daily buckets, reuse generation-keyed Redis entries, and query the current partial day directly.
 
 The six configured streams are `genpay` inflow, `genpayv2` inflow, and `uniwallet`/`uniwalletv2` inflow and outflow. They all use the shared final CSV schema. Inflow maps to `incoming`, outflow maps to `outgoing`, and the retained source fields identify the concrete processor and payment source.
 
 Every source row receives a deterministic object ID derived from its stream, file, row number, and source transaction identifier. Repeated source transaction identifiers are therefore versioned rather than overwritten, while rerunning the same source row reuses the same ingestion idempotency key.
 
-Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors and leaves acceptance thresholds unset until they are defined.
+Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. Before scheduling any events, replay verifies that the tenant still has an active daily `transactions.date` definition in the manifest timezone. The summary records that definition alongside ingestion and decision results.
 
 Use a fresh setup tenant for each independent measured run. Ingestion itself is idempotent for a repeated source event, but the direct decision callback is intentionally not retried or deduplicated by this harness.
 

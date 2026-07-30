@@ -113,9 +113,11 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 	}
 
 	model := ports.TenantModel{
-		RevisionID:        payload.DataModel.RevisionID,
-		RecordLookupField: payload.DataModel.IngestionContract.RecordLookupField,
-		Tables:            make(map[string]ports.TenantModelTable, len(payload.DataModel.Tables)),
+		RevisionID:         payload.DataModel.RevisionID,
+		PhysicalSchemaName: payload.DataModel.PhysicalSchemaName,
+		RecordLookupField:  payload.DataModel.IngestionContract.RecordLookupField,
+		Tables:             make(map[string]ports.TenantModelTable, len(payload.DataModel.Tables)),
+		LogicalBuckets:     make([]ports.LogicalBucketDefinition, len(payload.DataModel.LogicalBuckets)),
 	}
 	for key, table := range payload.DataModel.Tables {
 		fields := make(map[string]ports.TenantModelField, len(table.Fields))
@@ -142,6 +144,20 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 			LinksToSingle: links,
 		}
 	}
+	for i, bucket := range payload.DataModel.LogicalBuckets {
+		model.LogicalBuckets[i] = ports.LogicalBucketDefinition{
+			ID:                 bucket.ID,
+			TableID:            bucket.TableID,
+			TimestampFieldName: bucket.TimestampFieldName,
+			Grain:              bucket.Grain,
+			Timezone:           bucket.Timezone,
+			SealDelay:          time.Duration(bucket.SealDelaySeconds) * time.Second,
+			DefinitionVersion:  bucket.DefinitionVersion,
+			Status:             bucket.Status,
+			CacheEligibleAt:    bucket.CacheEligibleAt,
+			MaintenanceUntil:   bucket.MaintenanceUntil,
+		}
+	}
 
 	return model, nil
 }
@@ -152,6 +168,10 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 		"index_type":             indexType,
 		"columns":                columns,
 		"requested_by_operation": requestedByOperation,
+		"method":                 "btree",
+		"owner_service":          "decision-engine-service",
+		"submitted_by_service":   "decision-engine-service",
+		"purpose":                "aggregate",
 	})
 	if err != nil {
 		return ports.ManagedIndexJob{}, fmt.Errorf("encode index job request: %w", err)
@@ -185,11 +205,14 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 		return ports.ManagedIndexJob{}, fmt.Errorf("decode response: %w", err)
 	}
 	return ports.ManagedIndexJob{
-		ID:        payload.IndexJob.ID,
-		TableName: payload.IndexJob.TableName,
-		IndexType: payload.IndexJob.IndexType,
-		Status:    payload.IndexJob.Status,
-		Columns:   payload.IndexJob.Columns,
+		ID:           payload.IndexJob.ID,
+		TableName:    payload.IndexJob.TableName,
+		IndexType:    payload.IndexJob.IndexType,
+		Status:       payload.IndexJob.Status,
+		Columns:      payload.IndexJob.Columns,
+		Purpose:      payload.IndexJob.Purpose,
+		SpecHash:     payload.IndexJob.SpecHash,
+		OwnerService: payload.IndexJob.OwnerService,
 	}, nil
 }
 
@@ -218,11 +241,14 @@ func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]port
 	items := make([]ports.ManagedIndexJob, len(payload.IndexJobs))
 	for i, item := range payload.IndexJobs {
 		items[i] = ports.ManagedIndexJob{
-			ID:        item.ID,
-			TableName: item.TableName,
-			IndexType: item.IndexType,
-			Status:    item.Status,
-			Columns:   item.Columns,
+			ID:           item.ID,
+			TableName:    item.TableName,
+			IndexType:    item.IndexType,
+			Status:       item.Status,
+			Columns:      item.Columns,
+			Purpose:      item.Purpose,
+			SpecHash:     item.SpecHash,
+			OwnerService: item.OwnerService,
 		}
 	}
 	return items, nil
@@ -252,9 +278,24 @@ type getDataModelResponse struct {
 }
 
 type publishedDataModelResponse struct {
-	RevisionID        string                            `json:"revision_id"`
-	IngestionContract ingestionContractResponse         `json:"ingestion_contract"`
-	Tables            map[string]assembledTableResponse `json:"tables"`
+	RevisionID         string                            `json:"revision_id"`
+	PhysicalSchemaName string                            `json:"physical_schema_name"`
+	IngestionContract  ingestionContractResponse         `json:"ingestion_contract"`
+	Tables             map[string]assembledTableResponse `json:"tables"`
+	LogicalBuckets     []logicalBucketResponse           `json:"logical_bucket_definitions"`
+}
+
+type logicalBucketResponse struct {
+	ID                 string     `json:"id"`
+	TableID            string     `json:"table_id"`
+	TimestampFieldName string     `json:"timestamp_field_name"`
+	Grain              string     `json:"grain"`
+	Timezone           string     `json:"timezone"`
+	SealDelaySeconds   int64      `json:"seal_delay_seconds"`
+	DefinitionVersion  int        `json:"definition_version"`
+	Status             string     `json:"status"`
+	CacheEligibleAt    *time.Time `json:"cache_eligible_at"`
+	MaintenanceUntil   *time.Time `json:"maintenance_until"`
 }
 
 type assembledTableResponse struct {
@@ -286,9 +327,12 @@ type listIndexJobsResponse struct {
 }
 
 type indexJobResponse struct {
-	ID        string   `json:"id"`
-	TableName string   `json:"table_name"`
-	IndexType string   `json:"index_type"`
-	Status    string   `json:"status"`
-	Columns   []string `json:"columns"`
+	ID           string   `json:"id"`
+	TableName    string   `json:"table_name"`
+	IndexType    string   `json:"index_type"`
+	Status       string   `json:"status"`
+	Columns      []string `json:"columns"`
+	Purpose      string   `json:"purpose"`
+	SpecHash     string   `json:"spec_hash"`
+	OwnerService string   `json:"owner_service"`
 }

@@ -28,6 +28,10 @@ type RouterConfig struct {
 	HTTPClientTimeout                   time.Duration
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
+	AggregateExecutionMode              string
+	AggregateQueryTimeout               time.Duration
+	AggregateDBConcurrency              int
+	AggregateCache                      ports.AggregateCache
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
@@ -168,6 +172,20 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	if db != nil && (cfg.AggregateExecutionMode == "direct" || cfg.AggregateExecutionMode == "direct_cached") {
+		var aggregateCache ports.AggregateCache
+		if cfg.AggregateExecutionMode == "direct_cached" {
+			aggregateCache = cfg.AggregateCache
+		}
+		tenantDataReader = storepostgres.NewDirectAggregateReader(
+			tenantDataReader,
+			db,
+			dataModelReader,
+			aggregateCache,
+			cfg.AggregateQueryTimeout,
+			cfg.AggregateDBConcurrency,
+		)
+	}
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)

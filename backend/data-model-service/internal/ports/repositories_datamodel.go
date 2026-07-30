@@ -84,3 +84,23 @@ type IndexJobRepository interface {
 	MarkPendingRetry(ctx context.Context, id uuid.UUID, message string) error
 	Retry(ctx context.Context, id uuid.UUID, scheduledAt time.Time) error
 }
+
+type CanonicalIndexJobRepository interface {
+	IndexJobRepository
+	GetBySpecHash(ctx context.Context, specHash string) (datamodel.IndexJob, error)
+	CreateIntent(ctx context.Context, intent datamodel.IndexIntent) error
+}
+
+type LogicalBucketRepository interface {
+	Create(ctx context.Context, definition datamodel.LogicalBucketDefinition) error
+	GetByID(ctx context.Context, id uuid.UUID) (datamodel.LogicalBucketDefinition, error)
+	GetByIndexJobID(ctx context.Context, jobID uuid.UUID) (datamodel.LogicalBucketDefinition, error)
+	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.LogicalBucketDefinition, error)
+	ListByTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.LogicalBucketDefinition, error)
+	LockTable(ctx context.Context, tableID uuid.UUID) error
+	AttachIndexJob(ctx context.Context, id, jobID uuid.UUID, updatedAt time.Time) error
+	MarkActivating(ctx context.Context, id uuid.UUID, eligibleAt, updatedAt time.Time) error
+	MarkBlockedData(ctx context.Context, id uuid.UUID, updatedAt time.Time) error
+	MarkRetiring(ctx context.Context, id uuid.UUID, maintenanceUntil, updatedAt time.Time) error
+	PromoteLifecycle(ctx context.Context, now time.Time) error
+}

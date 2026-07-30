@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"sort"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -19,6 +21,12 @@ type IngestService struct {
 	txManager       ports.TransactionManager
 	idGenerator     ports.IDGenerator
 	clock           ports.Clock
+	writeTimeout    time.Duration
+}
+
+func (s IngestService) WithWriteTimeout(timeout time.Duration) IngestService {
+	s.writeTimeout = timeout
+	return s
 }
 
 type RecordLookupResult struct {
@@ -78,8 +86,12 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 		return ingestion.RecordResult{}, nil, fmt.Errorf("tenant is not writable for ingestion")
 	}
 
-	normalized, objectID, validationErrors := ingestion.ValidateRecord(model, input.ObjectType, input.Payload, input.Mode)
 	now := s.clock.Now()
+	normalized, objectID, validationErrors := ingestion.ValidateRecord(model, input.ObjectType, input.Payload, input.Mode)
+	validationErrors = append(
+		validationErrors,
+		validateLogicalBucketTimestamps(model, input.ObjectType, normalized, input.Mode, now)...,
+	)
 	if len(validationErrors) > 0 {
 		stampObjectID(validationErrors, objectID)
 		_ = s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -106,9 +118,11 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 	}
 
 	var result ingestion.RecordResult
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	writeCtx, cancelWrite := s.writeContext(ctx)
+	defer cancelWrite()
+	err = s.txManager.Run(writeCtx, func(store ports.MutationStore) error {
 		if input.IdempotencyKey != nil {
-			existing, err := store.Idempotency().Get(ctx, input.TenantID, *input.IdempotencyKey)
+			existing, err := store.Idempotency().Get(writeCtx, input.TenantID, *input.IdempotencyKey)
 			if err != nil {
 				return err
 			}
@@ -127,12 +141,12 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			}
 		}
 
-		action, err := store.TenantWriter().UpsertRecord(ctx, model, input.ObjectType, normalized, input.Mode, now)
+		action, err := store.TenantWriter().UpsertRecord(writeCtx, model, input.ObjectType, normalized, input.Mode, now)
 		if err != nil {
 			return err
 		}
 
-		if err := store.Audits().Create(ctx, ingestion.IngestionAudit{
+		if err := store.Audits().Create(writeCtx, ingestion.IngestionAudit{
 			ID:              s.idGenerator.New().String(),
 			TenantID:        input.TenantID.String(),
 			ObjectType:      input.ObjectType,
@@ -162,7 +176,7 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			"record":      normalized,
 			"ingested_at": now,
 		})
-		if err := store.OutboxEvents().Create(ctx, ingestion.OutboxEvent{
+		if err := store.OutboxEvents().Create(writeCtx, ingestion.OutboxEvent{
 			ID:            s.idGenerator.New().String(),
 			TenantID:      input.TenantID.String(),
 			EventType:     eventType,
@@ -186,7 +200,7 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			if err != nil {
 				return fmt.Errorf("marshal idempotent response: %w", err)
 			}
-			if err := store.Idempotency().Create(ctx, ingestion.IdempotencyKey{
+			if err := store.Idempotency().Create(writeCtx, ingestion.IdempotencyKey{
 				TenantID:        input.TenantID.String(),
 				Key:             *input.IdempotencyKey,
 				RequestHash:     requestHash,
@@ -233,14 +247,19 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 	type validatedRecord struct {
 		normalized map[string]any
 		objectID   string
+		order      int
 	}
 
 	seenObjectIDs := make(map[string]struct{}, len(input.Records))
 	validated := make([]validatedRecord, 0, len(input.Records))
 	validationErrors := make([]ingestion.ValidationError, 0)
 	now := s.clock.Now()
-	for _, record := range input.Records {
+	for order, record := range input.Records {
 		normalized, objectID, errs := ingestion.ValidateRecord(model, input.ObjectType, record, input.Mode)
+		errs = append(
+			errs,
+			validateLogicalBucketTimestamps(model, input.ObjectType, normalized, input.Mode, now)...,
+		)
 		if len(errs) > 0 {
 			stampObjectID(errs, objectID)
 			validationErrors = append(validationErrors, errs...)
@@ -256,7 +275,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 			continue
 		}
 		seenObjectIDs[objectID] = struct{}{}
-		validated = append(validated, validatedRecord{normalized: normalized, objectID: objectID})
+		validated = append(validated, validatedRecord{normalized: normalized, objectID: objectID, order: order})
 	}
 
 	if len(validationErrors) > 0 {
@@ -289,10 +308,15 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 		return nil, nil, err
 	}
 
-	results := make([]ingestion.RecordResult, 0, len(validated))
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	results := make([]ingestion.RecordResult, len(validated))
+	sort.SliceStable(validated, func(i, j int) bool {
+		return validated[i].objectID < validated[j].objectID
+	})
+	writeCtx, cancelWrite := s.writeContext(ctx)
+	defer cancelWrite()
+	err = s.txManager.Run(writeCtx, func(store ports.MutationStore) error {
 		if input.IdempotencyKey != nil {
-			existing, err := store.Idempotency().Get(ctx, input.TenantID, *input.IdempotencyKey)
+			existing, err := store.Idempotency().Get(writeCtx, input.TenantID, *input.IdempotencyKey)
 			if err != nil {
 				return err
 			}
@@ -314,12 +338,12 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 		}
 
 		for _, record := range validated {
-			action, err := store.TenantWriter().UpsertRecord(ctx, model, input.ObjectType, record.normalized, input.Mode, now)
+			action, err := store.TenantWriter().UpsertRecord(writeCtx, model, input.ObjectType, record.normalized, input.Mode, now)
 			if err != nil {
 				return err
 			}
 
-			if err := store.Audits().Create(ctx, ingestion.IngestionAudit{
+			if err := store.Audits().Create(writeCtx, ingestion.IngestionAudit{
 				ID:              s.idGenerator.New().String(),
 				TenantID:        input.TenantID.String(),
 				ObjectType:      input.ObjectType,
@@ -349,7 +373,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 				"record":      record.normalized,
 				"ingested_at": now,
 			})
-			if err := store.OutboxEvents().Create(ctx, ingestion.OutboxEvent{
+			if err := store.OutboxEvents().Create(writeCtx, ingestion.OutboxEvent{
 				ID:            s.idGenerator.New().String(),
 				TenantID:      input.TenantID.String(),
 				EventType:     eventType,
@@ -362,11 +386,11 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 				return err
 			}
 
-			results = append(results, ingestion.RecordResult{
+			results[record.order] = ingestion.RecordResult{
 				ObjectID:   record.objectID,
 				Action:     action,
 				RevisionID: model.RevisionID,
-			})
+			}
 		}
 
 		batchEventPayload, _ := json.Marshal(map[string]any{
@@ -377,7 +401,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 			"count":       len(results),
 			"ingested_at": now,
 		})
-		if err := store.OutboxEvents().Create(ctx, ingestion.OutboxEvent{
+		if err := store.OutboxEvents().Create(writeCtx, ingestion.OutboxEvent{
 			ID:            s.idGenerator.New().String(),
 			TenantID:      input.TenantID.String(),
 			EventType:     "batch.ingestion.completed",
@@ -395,7 +419,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 			if err != nil {
 				return fmt.Errorf("marshal idempotent batch response: %w", err)
 			}
-			if err := store.Idempotency().Create(ctx, ingestion.IdempotencyKey{
+			if err := store.Idempotency().Create(writeCtx, ingestion.IdempotencyKey{
 				TenantID:        input.TenantID.String(),
 				Key:             *input.IdempotencyKey,
 				RequestHash:     requestHash,
@@ -414,6 +438,45 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 	}
 
 	return results, nil, nil
+}
+
+func (s IngestService) writeContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if s.writeTimeout <= 0 {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, s.writeTimeout)
+}
+
+func validateLogicalBucketTimestamps(
+	model ingestion.PublishedDataModel,
+	objectType string,
+	normalized map[string]any,
+	mode ingestion.Mode,
+	now time.Time,
+) []ingestion.ValidationError {
+	if mode != ingestion.ModeCreate || normalized == nil {
+		return nil
+	}
+	table, ok := model.Tables[objectType]
+	if !ok {
+		return nil
+	}
+	var errors []ingestion.ValidationError
+	for _, definition := range model.MaintainedBucketsForTable(table.ID, now) {
+		value, exists := normalized[definition.TimestampFieldName]
+		if exists && value != nil {
+			continue
+		}
+		errors = append(errors, ingestion.ValidationError{
+			Field: definition.TimestampFieldName,
+			Code:  "missing_required",
+			Message: fmt.Sprintf(
+				"field %s is required by active logical bucket definition",
+				definition.TimestampFieldName,
+			),
+		})
+	}
+	return errors
 }
 
 func hashRequest(value any) (string, error) {

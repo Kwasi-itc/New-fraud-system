@@ -27,6 +27,10 @@ type Config struct {
 	HTTPClientTimeout                   time.Duration
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
+	AggregateExecutionMode              string
+	AggregateQueryTimeout               time.Duration
+	AggregateDBConcurrency              int
+	RedisURL                            string
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
@@ -86,6 +90,14 @@ func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
 
 	httpClientTimeout, err := getEnvDuration("HTTP_CLIENT_TIMEOUT", 10*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	aggregateQueryTimeout, err := getEnvDuration("AGGREGATE_QUERY_TIMEOUT", 3*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	aggregateDBConcurrency, err := getEnvInt("AGGREGATE_DB_CONCURRENCY", 16)
 	if err != nil {
 		return Config{}, err
 	}
@@ -199,7 +211,11 @@ func LoadConfig() (Config, error) {
 		GinMode:                             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:                   httpClientTimeout,
 		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
-		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count", "sum", "avg", "min", "max"}),
+		AggregateExecutionMode:              strings.ToLower(getEnv("AGGREGATE_EXECUTION_MODE", "legacy")),
+		AggregateQueryTimeout:               aggregateQueryTimeout,
+		AggregateDBConcurrency:              aggregateDBConcurrency,
+		RedisURL:                            strings.TrimSpace(os.Getenv("REDIS_URL")),
 		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
 		LiveAsyncFallbackEnabled:            liveAsyncFallbackEnabled,
 		RuleEvaluationConcurrency:           ruleEvaluationConcurrency,
@@ -254,6 +270,18 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.AggregatePushdownMode != "enabled" && cfg.AggregatePushdownMode != "disabled" && cfg.AggregatePushdownMode != "strict" {
 		return Config{}, fmt.Errorf("AGGREGATE_PUSHDOWN_MODE must be one of enabled, disabled, or strict")
+	}
+	if cfg.AggregateExecutionMode != "legacy" && cfg.AggregateExecutionMode != "direct" && cfg.AggregateExecutionMode != "direct_cached" {
+		return Config{}, fmt.Errorf("AGGREGATE_EXECUTION_MODE must be one of legacy, direct, or direct_cached")
+	}
+	if cfg.AggregateExecutionMode == "direct_cached" && cfg.RedisURL == "" {
+		return Config{}, fmt.Errorf("REDIS_URL is required when AGGREGATE_EXECUTION_MODE=direct_cached")
+	}
+	if cfg.AggregateQueryTimeout <= 0 {
+		return Config{}, fmt.Errorf("AGGREGATE_QUERY_TIMEOUT must be greater than zero")
+	}
+	if cfg.AggregateDBConcurrency <= 0 {
+		return Config{}, fmt.Errorf("AGGREGATE_DB_CONCURRENCY must be greater than zero")
 	}
 	if cfg.WorkerPollInterval <= 0 {
 		return Config{}, fmt.Errorf("WORKER_POLL_INTERVAL must be greater than zero")

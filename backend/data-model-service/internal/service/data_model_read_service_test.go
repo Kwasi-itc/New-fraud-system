@@ -79,3 +79,34 @@ func TestBuildRevisionIDChangesWhenPublishedStateChanges(t *testing.T) {
 		t.Fatal("expected revision id to change when tenant schema migrations change")
 	}
 }
+
+func TestBuildPublishedRevisionIDTracksLogicalBucketLifecycle(t *testing.T) {
+	t.Parallel()
+
+	first := datamodel.LogicalBucketDefinition{
+		ID:                 uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+		TableID:            uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+		TimestampFieldID:   uuid.MustParse("66666666-6666-6666-6666-666666666666"),
+		TimestampFieldName: "occurred_at",
+		Grain:              "daily",
+		Timezone:           "Africa/Accra",
+		SealDelay:          48 * time.Hour,
+		DefinitionVersion:  1,
+		Status:             datamodel.LogicalBucketStatusActivating,
+	}
+	second := first
+	second.ID = uuid.MustParse("77777777-7777-7777-7777-777777777777")
+	second.TimestampFieldName = "authorized_at"
+
+	forward := buildPublishedRevisionID("base", []datamodel.LogicalBucketDefinition{first, second})
+	reversed := buildPublishedRevisionID("base", []datamodel.LogicalBucketDefinition{second, first})
+	if forward != reversed {
+		t.Fatalf("logical bucket revision depends on repository order: %s != %s", forward, reversed)
+	}
+
+	first.Status = datamodel.LogicalBucketStatusActive
+	active := buildPublishedRevisionID("base", []datamodel.LogicalBucketDefinition{first, second})
+	if active == forward {
+		t.Fatal("logical bucket lifecycle change did not change published revision")
+	}
+}

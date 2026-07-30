@@ -84,12 +84,13 @@ def time_add(duration: str) -> dict[str, Any]:
 
 
 def aggregate(field_name: str, operation: str, *filters: dict[str, Any]) -> dict[str, Any]:
+    upper_bound = filter_node("date", "<=", field("date"))
     return fn(
         "Aggregator",
         tableName=const("transactions"),
         fieldName=const(field_name),
         aggregator=const(operation),
-        filters=list_node(*filters),
+        filters=list_node(*filters, upper_bound),
     )
 
 
@@ -102,9 +103,7 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
     account = filter_node("account_ref", "=", field("account_ref"))
     merchant = filter_node("merchant_id", "=", field("merchant_id"))
     product = filter_node("product_id", "=", field("product_id"))
-    source = filter_node("source_id", "=", field("source_id"))
     thirdparty = filter_node("thirdparty_id", "=", field("thirdparty_id"))
-    terminal = filter_node("terminal_id", "=", field("terminal_id"))
     payment_number = filter_node("payment_msisdn", "=", field("payment_msisdn"))
     one_hour = filter_node("date", ">=", time_add("PT1H"))
     one_day = filter_node("date", ">=", time_add("P1D"))
@@ -123,7 +122,7 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
     merchant_rules = [
         RuleDef("High Weekly Merchant Volume", "Merchant Velocity Risk", "Merchant transaction value exceeds 100000 in seven days.", 35, gt(aggregate("amount", "SUM", merchant, one_week), const(100_000))),
         RuleDef("Rapid Merchant Payment Burst", "Merchant Velocity Risk", "More than fifty merchant payments occur in one hour.", 25, gt(aggregate("transaction_id", "COUNT", merchant, one_hour), const(50))),
-        RuleDef("Repeated Same Account Payments", "Transaction Pattern Risk", "The same account pays a merchant more than ten times in one day.", 30, gt(aggregate("transaction_id", "COUNT", merchant, account, one_day), const(10))),
+        RuleDef("Repeated Same Account Payments", "Transaction Pattern Risk", "The same account pays a merchant more than ten times in one day.", 30, gt(aggregate("transaction_id", "COUNT", account, merchant, one_day), const(10))),
         RuleDef("Abnormal Merchant Average Ticket", "Behavioral Pattern Risk", "Amount exceeds three times the merchant's 30-day average.", 30, gt(field("amount"), fn("multiply", aggregate("amount", "AVG", merchant, thirty_days), const(3)))),
         RuleDef("High Account Merchant Exposure", "Merchant Exposure Risk", "One account sends more than 25000 to the same merchant in one day.", 35, gt(aggregate("amount", "SUM", account, merchant, one_day), const(25_000))),
         RuleDef("Merchant Product Abuse Burst", "Product Abuse Risk", "The same account and product combination appears more than six times in one hour.", 30, fn("and", fn("is_not_empty", field("product_id")), gt(aggregate("transaction_id", "COUNT", account, product, one_hour), const(6)))),
@@ -195,8 +194,8 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
                 always_true(),
                 (
                     RuleDef("Third-Party Identifier Burst", "Third-Party Risk", "The same third-party identifier appears on more than twenty transactions in one hour.", 25, fn("and", fn("is_not_empty", field("thirdparty_id")), gt(aggregate("transaction_id", "COUNT", thirdparty, one_hour), const(20)))),
-                    RuleDef("Source Identifier Daily Volume Spike", "Source System Risk", "A source identifier produces more than 100000 in transaction value in one day.", 30, fn("and", fn("is_not_empty", field("source_id")), gt(aggregate("amount", "SUM", source, one_day), const(100_000)))),
-                    RuleDef("Terminal High Value Burst", "Terminal Risk", "A terminal processes more than five high-value transactions in one hour.", 30, fn("and", fn("is_not_empty", field("terminal_id")), gt(aggregate("transaction_id", "COUNT", terminal, filter_node("amount", ">=", const(5_000)), one_hour), const(5)))),
+                    RuleDef("Source-Tagged Account Daily Volume Spike", "Source System Risk", "A source-tagged account produces more than 100000 in transaction value in one day.", 30, fn("and", fn("is_not_empty", field("source_id")), gt(aggregate("amount", "SUM", account, one_day), const(100_000)))),
+                    RuleDef("Terminal-Tagged Account High Value Burst", "Terminal Risk", "A terminal-tagged account has more than five transactions in one hour and the current amount is at least 5000.", 30, fn("and", fn("is_not_empty", field("terminal_id")), gte(field("amount"), const(5_000)), gt(aggregate("transaction_id", "COUNT", account, one_hour), const(5)))),
                     RuleDef("Raw Account Reference Mismatch", "Data Consistency Risk", "The normalized account reference differs from the raw account reference on a high-value transaction.", 20, fn("and", gt(field("amount"), const(5_000)), fn("is_not_empty", field("raw_account_ref")), neq(field("account_ref"), field("raw_account_ref")))),
                 ),
             ),
@@ -239,7 +238,7 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
                     RuleDef("Rapid Cash-Out Burst", "Velocity Risk", "More than three cash-outs occur for an account in one hour.", 30, gt(aggregate("transaction_id", "COUNT", account, cash_out, one_hour), const(3))),
                     RuleDef("High Cash-Out Amount", "Transaction Value Risk", "Cash-out amount exceeds 5000.", 30, gt(field("amount"), const(5_000))),
                     RuleDef("Agent High Daily Cash-Out Volume", "Agent Risk", "Agent cash-out volume exceeds 50000 in one day.", 35, gt(aggregate("amount", "SUM", merchant, cash_out, one_day), const(50_000))),
-                    RuleDef("Agent Shared Across Many Accounts", "Network Link Analysis Risk", "More than twenty accounts cash out through one agent in one day.", 35, gt(aggregate("account_ref", "COUNT_DISTINCT", merchant, cash_out, one_day), const(20))),
+                    RuleDef("Agent High Daily Cash-Out Count", "Agent Risk", "An agent processes more than twenty cash-outs in one day.", 35, gt(aggregate("transaction_id", "COUNT", merchant, cash_out, one_day), const(20))),
                     RuleDef("Abnormal Cash-Out Amount", "Behavioral Pattern Risk", "Cash-out exceeds three times the account's 30-day cash-out average.", 30, gt(field("amount"), fn("multiply", aggregate("amount", "AVG", account, cash_out, thirty_days), const(3)))),
                 ),
             )

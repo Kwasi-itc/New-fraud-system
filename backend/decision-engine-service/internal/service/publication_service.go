@@ -171,13 +171,20 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 		IterationID:         iterationID,
 		PreparationFinished: true,
 	}
+	requiredKeys := make(map[string]struct{}, len(required))
+	for _, requirement := range required {
+		requiredKeys[requirement.key()] = struct{}{}
+	}
 	applied := map[string]struct{}{}
 	for _, job := range relatedJobs {
-		if job.Status == "applied" || job.Status == "cancelled" {
+		if _, ok := requiredKeys[indexRequirementKey(job.TableName, job.Columns)]; !ok {
+			continue
+		}
+		if job.Status == "applied" {
 			applied[indexRequirementKey(job.TableName, job.Columns)] = struct{}{}
 		}
 		switch job.Status {
-		case "applied", "cancelled":
+		case "applied":
 			continue
 		case "running", "pending":
 			status.PreparationRequired = true
@@ -216,14 +223,26 @@ func (s PublicationService) StartPreparation(ctx context.Context, tenantID, scen
 		if hasIndexJobForRequirement(jobs, requirement) {
 			continue
 		}
-		job, err := s.dataModelReader.CreateIndexJob(ctx, tenantID, requirement.TableID, "search", requirement.Columns, "scenario_publication_preparation")
+		if performanceIndexCount(jobs, requirement.TableName) >= 8 {
+			return scenario.PublicationPreparationStatus{}, scenarioError(
+				fmt.Sprintf("table %s already has the maximum of 8 decision-engine performance indexes", requirement.TableName),
+			)
+		}
+		job, err := s.dataModelReader.CreateIndexJob(ctx, tenantID, requirement.TableID, "aggregate", requirement.Columns, "scenario_publication_preparation")
 		if err != nil {
 			return scenario.PublicationPreparationStatus{}, err
 		}
 		jobs = append(jobs, job)
 	}
+	requiredKeys := make(map[string]struct{}, len(required))
+	for _, requirement := range required {
+		requiredKeys[requirement.key()] = struct{}{}
+	}
 	for _, job := range jobs {
-		if job.Status == "failed" {
+		if _, ok := requiredKeys[indexRequirementKey(job.TableName, job.Columns)]; !ok {
+			continue
+		}
+		if job.Status == "failed" || job.Status == "cancelled" {
 			if err := s.dataModelReader.RetryIndexJob(ctx, job.ID); err != nil {
 				return scenario.PublicationPreparationStatus{}, err
 			}
@@ -254,6 +273,24 @@ func hasIndexJobForRequirement(jobs []ports.ManagedIndexJob, requirement indexRe
 		}
 	}
 	return false
+}
+
+func performanceIndexCount(jobs []ports.ManagedIndexJob, tableName string) int {
+	seen := make(map[string]struct{})
+	for _, job := range jobs {
+		if job.TableName != tableName || job.Status == "cancelled" {
+			continue
+		}
+		if job.Purpose != "aggregate" && job.IndexType != "aggregate" && job.IndexType != "search" {
+			continue
+		}
+		key := job.SpecHash
+		if key == "" {
+			key = indexRequirementKey(job.TableName, job.Columns)
+		}
+		seen[key] = struct{}{}
+	}
+	return len(seen)
 }
 
 func (s PublicationService) indexPreparationState(ctx context.Context, tenantID, scenarioID, iterationID string) ([]indexRequirement, []ports.ManagedIndexJob, error) {
@@ -387,26 +424,33 @@ func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, no
 	}
 	columns := make([]string, 0, len(filtersNode.Children))
 	seen := map[string]struct{}{}
+	var visitFilters func(domainast.Node)
+	visitFilters = func(filterNode domainast.Node) {
+		if filterNode.Function == "Filter" {
+			filterTableName, ok := constantString(filterNode.NamedChildren["tableName"])
+			if ok && strings.TrimSpace(filterTableName) != "" && filterTableName != tableName {
+				return
+			}
+			fieldName, ok := constantString(filterNode.NamedChildren["fieldName"])
+			if !ok || strings.TrimSpace(fieldName) == "" {
+				return
+			}
+			if _, exists := table.Fields[fieldName]; !exists {
+				return
+			}
+			if _, exists := seen[fieldName]; exists {
+				return
+			}
+			seen[fieldName] = struct{}{}
+			columns = append(columns, fieldName)
+			return
+		}
+		for _, child := range filterNode.Children {
+			visitFilters(child)
+		}
+	}
 	for _, filterNode := range filtersNode.Children {
-		if filterNode.Function != "Filter" {
-			continue
-		}
-		filterTableName, ok := constantString(filterNode.NamedChildren["tableName"])
-		if ok && strings.TrimSpace(filterTableName) != "" && filterTableName != tableName {
-			continue
-		}
-		fieldName, ok := constantString(filterNode.NamedChildren["fieldName"])
-		if !ok || strings.TrimSpace(fieldName) == "" {
-			continue
-		}
-		if _, exists := table.Fields[fieldName]; !exists {
-			continue
-		}
-		if _, exists := seen[fieldName]; exists {
-			continue
-		}
-		seen[fieldName] = struct{}{}
-		columns = append(columns, fieldName)
+		visitFilters(filterNode)
 	}
 	if len(columns) == 0 {
 		return indexRequirement{}, false

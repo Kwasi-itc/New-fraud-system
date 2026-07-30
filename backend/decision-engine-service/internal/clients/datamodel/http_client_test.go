@@ -17,7 +17,23 @@ func TestGetTenantModelUsesCacheWithinTTL(t *testing.T) {
 	var calls int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
-		fmt.Fprintf(w, `{"data_model":{"revision_id":"rev-%d","ingestion_contract":{"record_lookup_field":"object_id"},"tables":{}}}`, calls)
+		fmt.Fprintf(w, `{"data_model":{
+			"revision_id":"rev-%d",
+			"physical_schema_name":"tenant_acme",
+			"ingestion_contract":{"record_lookup_field":"object_id"},
+			"tables":{},
+			"logical_bucket_definitions":[{
+				"id":"bucket-1",
+				"table_id":"table-1",
+				"timestamp_field_name":"occurred_at",
+				"grain":"daily",
+				"timezone":"Africa/Accra",
+				"seal_delay_seconds":172800,
+				"definition_version":1,
+				"status":"active",
+				"cache_eligible_at":"2026-07-01T00:00:00Z"
+			}]
+		}}`, calls)
 	}))
 	defer server.Close()
 
@@ -37,6 +53,11 @@ func TestGetTenantModelUsesCacheWithinTTL(t *testing.T) {
 	}
 	if first.RevisionID != "rev-1" || second.RevisionID != "rev-1" {
 		t.Fatalf("cached revisions = %q and %q, want rev-1", first.RevisionID, second.RevisionID)
+	}
+	if first.PhysicalSchemaName != "tenant_acme" ||
+		len(first.LogicalBuckets) != 1 ||
+		first.LogicalBuckets[0].SealDelay != 48*time.Hour {
+		t.Fatalf("published aggregate contract = %+v", first)
 	}
 }
 

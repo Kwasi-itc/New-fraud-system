@@ -31,6 +31,8 @@ tags:
     description: CRUD operations for tables, fields, links, pivots, and table options.
   - name: index-jobs
     description: Async managed-index job enqueueing, inspection, and retry operations.
+  - name: logical-buckets
+    description: Daily logical aggregate bucket definitions and activation lifecycle.
   - name: schema-changes
     description: Audit-style history for logical and physical schema operations.
   - name: reconcile
@@ -228,8 +230,8 @@ paths:
         Returns the assembled tenant data model used as the downstream ingestion contract.
 
         This is the main read-model endpoint for consumers such as `ingestion-service`. The response
-        includes the published `revision_id`, tenant writability metadata, managed system fields, and
-        the assembled table, field, link, pivot, navigation-option, and table-option graph.
+        includes the published `revision_id`, physical schema name, logical bucket definitions,
+        tenant writability metadata, managed system fields, and the assembled model graph.
       security:
         - bearerAuth: []
       parameters:
@@ -247,6 +249,7 @@ paths:
               example:
                 data_model:
                   revision_id: rev_2026_07_13_001
+                  physical_schema_name: tenant_f2a11b375d514f628de6fb9c8f4ee3a7
                   ingestion_contract:
                     tenant_status: active
                     writable: true
@@ -277,6 +280,7 @@ paths:
                       navigation_options: []
                       options: null
                   pivots: []
+                  logical_bucket_definitions: []
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1180,6 +1184,138 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/tables/{tableId}/logical-buckets:
+    get:
+      tags: [logical-buckets]
+      operationId: listLogicalBuckets
+      summary: List logical bucket definitions for a table
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: Logical bucket definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logical_buckets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogicalBucket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/tables/{tableId}/logical-buckets:
+    post:
+      tags: [logical-buckets]
+      operationId: createLogicalBucket
+      summary: Create a daily logical bucket definition
+      description: Creates a pending definition and canonically queues its timestamp index.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLogicalBucketRequest'
+      responses:
+        '201':
+          description: Logical bucket definition created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logical_bucket:
+                    $ref: '#/components/schemas/LogicalBucket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/logical-buckets/{logicalBucketId}:
+    parameters:
+      - name: logicalBucketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [logical-buckets]
+      operationId: getLogicalBucket
+      summary: Get a logical bucket definition
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logical bucket definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logical_bucket:
+                    $ref: '#/components/schemas/LogicalBucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [logical-buckets]
+      operationId: retireLogicalBucket
+      summary: Begin retiring a logical bucket definition
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Retiring logical bucket definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logical_bucket:
+                    $ref: '#/components/schemas/LogicalBucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/logical-buckets/{logicalBucketId}/retry-activation:
+    post:
+      tags: [logical-buckets]
+      operationId: retryLogicalBucketActivation
+      summary: Retry activation after null data has been corrected
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: logicalBucketId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Activating logical bucket definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logical_bucket:
+                    $ref: '#/components/schemas/LogicalBucket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /v1/tenants/{tenantId}/index-jobs:
     get:
       tags: [index-jobs]
@@ -1220,7 +1356,8 @@ paths:
         This is the manual or service-driven entrypoint for async index creation when the supporting index
         work should be handled by the worker rather than inline with the original request.
 
-        The service currently accepts managed job types such as `navigation`, `search`, and `repair`.
+        The service accepts managed job types including `navigation`, `search`, `repair`,
+        `logical_bucket`, `aggregate`, and `unique`.
       security:
         - bearerAuth: []
       parameters:
@@ -2111,6 +2248,9 @@ components:
         revision_id:
           type: string
           description: Versioned identifier for the published tenant schema snapshot that downstream ingestion should pin to when validating and writing records.
+        physical_schema_name:
+          type: string
+          description: Validated PostgreSQL schema name used by direct tenant-data readers.
         ingestion_contract:
           $ref: '#/components/schemas/IngestionContract'
         tables:
@@ -2123,9 +2263,14 @@ components:
           description: Tenant pivot definitions included in the published contract.
           items:
             $ref: '#/components/schemas/AssembledPivot'
-      required: [revision_id, ingestion_contract, tables, pivots]
+        logical_bucket_definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogicalBucket'
+      required: [revision_id, physical_schema_name, ingestion_contract, tables, pivots, logical_bucket_definitions]
       example:
         revision_id: rev_2026_07_13_001
+        physical_schema_name: tenant_f2a11b375d514f628de6fb9c8f4ee3a7
         ingestion_contract:
           tenant_status: active
           writable: true
@@ -2166,6 +2311,7 @@ components:
             navigation_options: []
             options: null
         pivots: []
+        logical_bucket_definitions: []
     PortableImportRequest:
       type: object
       required: [data_model]
@@ -2532,6 +2678,71 @@ components:
           type: string
           format: date-time
           description: Time when the migration record was applied.
+    CreateLogicalBucketRequest:
+      type: object
+      properties:
+        timestamp_field_id:
+          type: string
+          format: uuid
+        timezone:
+          type: string
+          description: IANA timezone used to calculate local daily boundaries.
+          example: Africa/Accra
+      required: [timestamp_field_id, timezone]
+    LogicalBucket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        table_id:
+          type: string
+          format: uuid
+        timestamp_field_id:
+          type: string
+          format: uuid
+        timestamp_field_name:
+          type: string
+        grain:
+          type: string
+          enum: [daily]
+        timezone:
+          type: string
+        seal_delay_seconds:
+          type: integer
+          format: int64
+          example: 172800
+        definition_version:
+          type: integer
+        status:
+          type: string
+          enum: [pending_index, activating, active, blocked_data, retiring, retired]
+        index_job_id:
+          type: string
+          format: uuid
+          nullable: true
+        cache_eligible_at:
+          type: string
+          format: date-time
+          nullable: true
+        maintenance_until:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        retired_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, tenant_id, table_id, timestamp_field_id, timestamp_field_name, grain, timezone, seal_delay_seconds, definition_version, status, created_at, updated_at]
     CreateIndexJobRequest:
       type: object
       description: Payload for enqueueing an async managed-index job.
@@ -2557,6 +2768,23 @@ components:
           format: date-time
           nullable: true
           description: Optional future time when the job becomes eligible for worker pickup.
+        method:
+          type: string
+          enum: [btree]
+        is_unique:
+          type: boolean
+        include_columns:
+          type: array
+          items:
+            type: string
+        owner_service:
+          type: string
+        submitted_by_service:
+          type: string
+        purpose:
+          type: string
+        model_revision:
+          type: string
       required: [table_id, index_type, columns]
       example:
         table_id: 8c9b9e5d-73ea-46c6-9f47-e6b7fa9c1d7c
@@ -2624,7 +2852,27 @@ components:
         dedupe_key:
           type: string
           description: Stable deduplication key used to avoid enqueuing duplicate managed work.
-      required: [id, tenant_id, table_name, index_type, columns, status, requested_by_operation, attempt_count, requested_at, dedupe_key]
+        method:
+          type: string
+        is_unique:
+          type: boolean
+        include_columns:
+          type: array
+          items:
+            type: string
+        owner_service:
+          type: string
+        submitted_by_service:
+          type: string
+        purpose:
+          type: string
+        model_revision:
+          type: string
+        spec_hash:
+          type: string
+        index_name:
+          type: string
+      required: [id, tenant_id, table_name, index_type, columns, status, requested_by_operation, attempt_count, requested_at, dedupe_key, method, is_unique, include_columns, owner_service, submitted_by_service, purpose, model_revision, spec_hash, index_name]
       example:
         id: 855b6e0c-84a5-4e68-b695-d96cf3bfb764
         tenant_id: f2a11b37-5d51-4f62-8de6-fb9c8f4ee3a7

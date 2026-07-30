@@ -93,6 +93,30 @@ func TestLoadConfigRejectsNegativeLiveDecisionConcurrencyLimit(t *testing.T) {
 	}
 }
 
+func TestLoadConfigRequiresRedisForDirectCachedAggregates(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("AGGREGATE_EXECUTION_MODE", "direct_cached")
+	t.Setenv("REDIS_URL", "")
+
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("LoadConfig() error = nil, want REDIS_URL validation error")
+	}
+}
+
+func TestLoadConfigAcceptsDirectAggregatesWithoutRedis(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("AGGREGATE_EXECUTION_MODE", "direct")
+	t.Setenv("REDIS_URL", "")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if cfg.AggregateExecutionMode != "direct" {
+		t.Fatalf("aggregate execution mode = %q, want direct", cfg.AggregateExecutionMode)
+	}
+}
+
 func TestLoadConfigParsesWorkerTaskPriorities(t *testing.T) {
 	setRequiredConfigEnv(t)
 	t.Setenv("WORKER_TASKS", "scheduled,async,outbox")

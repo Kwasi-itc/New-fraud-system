@@ -30,3 +30,16 @@ type TenantDataReader interface {
 	QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]TenantRecord, error)
 	AggregateRecords(ctx context.Context, tenantID string, query AggregateQuery) (any, error)
 }
+
+// AggregateCache stores immutable, generation-keyed aggregate components.
+// Implementations must not apply a TTL; stale generations become unreachable.
+type AggregateCache interface {
+	Get(ctx context.Context, key string) (value []byte, found bool, err error)
+	Set(ctx context.Context, key string, value []byte) error
+}
+
+// AggregateFallbackPolicy lets direct readers prohibit the evaluator's bounded
+// in-memory fallback, which is incomplete for large tenant tables.
+type AggregateFallbackPolicy interface {
+	AllowLocalAggregateFallback() bool
+}

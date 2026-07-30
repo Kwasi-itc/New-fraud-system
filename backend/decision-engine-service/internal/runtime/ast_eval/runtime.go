@@ -50,6 +50,13 @@ func (r Runtime) aggregatePushdownStrict() bool {
 	return r.aggregatePushdownMode() == AggregatePushdownModeStrict
 }
 
+func (r Runtime) aggregateLocalFallbackAllowed() bool {
+	if policy, ok := r.TenantDataReader.(ports.AggregateFallbackPolicy); ok {
+		return policy.AllowLocalAggregateFallback()
+	}
+	return true
+}
+
 func (r Runtime) aggregatePushdownSupportsAggregate(name string) bool {
 	if len(r.AggregatePushdownAggregates) == 0 {
 		return true

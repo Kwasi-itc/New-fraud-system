@@ -1,19 +1,40 @@
 package ports
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type TenantModel struct {
-	RevisionID        string
-	RecordLookupField string
-	Tables            map[string]TenantModelTable
+	RevisionID         string
+	PhysicalSchemaName string
+	RecordLookupField  string
+	Tables             map[string]TenantModelTable
+	LogicalBuckets     []LogicalBucketDefinition
 }
 
 type ManagedIndexJob struct {
-	ID        string
-	TableName string
-	IndexType string
-	Status    string
-	Columns   []string
+	ID           string
+	TableName    string
+	IndexType    string
+	Status       string
+	Columns      []string
+	Purpose      string
+	SpecHash     string
+	OwnerService string
+}
+
+type LogicalBucketDefinition struct {
+	ID                 string
+	TableID            string
+	TimestampFieldName string
+	Grain              string
+	Timezone           string
+	SealDelay          time.Duration
+	DefinitionVersion  int
+	Status             string
+	CacheEligibleAt    *time.Time
+	MaintenanceUntil   *time.Time
 }
 
 type TenantModelTable struct {

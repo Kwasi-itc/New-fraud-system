@@ -213,6 +213,17 @@ Expected upstream contract from `data-model-service`:
 - enum values
 - tenant provisioning or active status
 - physical write-safe metadata needed by ingestion
+- `physical_schema_name` and versioned `logical_bucket_definitions`
+
+Logical bucket generation behavior:
+
+- active and activating daily definitions are maintained in every tenant write transaction
+- the affected local day is calculated in the definition's IANA timezone
+- generation increments commit atomically with the tenant row, audit, outbox, and idempotency record
+- writes for the same tenant object take a transaction-scoped advisory lock
+- batch object locks are acquired in stable object-id order
+- logical bucket timestamp fields cannot be edited in V1
+- `INGEST_WRITE_TIMEOUT` bounds the complete write transaction and defaults to two minutes
 
 Current idempotency behavior:
 
@@ -223,7 +234,7 @@ Current idempotency behavior:
 
 ## Aggregate Query Support
 
-`ingestion-service` now exposes a tenant-scoped aggregate endpoint used by `decision-engine-service` aggregate pushdown:
+`ingestion-service` retains a tenant-scoped aggregate endpoint for legacy rollback:
 
 - `POST /v1/tenants/:tenantId/query/aggregate`
 
@@ -257,7 +268,9 @@ Current supported predicate operators:
 - `starts_with`
 - `ends_with`
 
-This endpoint is intended for decision-time aggregate execution, not for exposing raw SQL or arbitrary query semantics.
+The active `direct` and `direct_cached` decision-engine modes query the merged
+PostgreSQL database themselves. This endpoint remains available but is not used by
+those modes.
 
 ## API docs
 

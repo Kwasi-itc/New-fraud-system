@@ -234,6 +234,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     original_source_end = _parse_iso(checkpoint_state.get("source_end")) if checkpoint_state else None
     source_start = original_source_start
     source_end = original_source_end
+    logical_bucket: dict[str, Any] | None = None
     with tempfile.TemporaryDirectory(prefix="sort-", dir=run_dir) as temp_dir:
         print("sorting and merging transaction streams...")
         sort_result = await asyncio.to_thread(
@@ -256,7 +257,9 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             async_tracking_path.write_text("", encoding="utf-8")
         async with ServiceClients(_services(args)) as clients:
             await clients.wait_until_ready()
-            await _verify_replay_tenant(clients, manifest, args.tenant_id)
+            logical_bucket = await _verify_replay_tenant(
+                clients, manifest, args.tenant_id
+            )
             chain = TransactionChain(
                 clients,
                 args.tenant_id,
@@ -319,6 +322,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["manifest"] = str(manifest.path)
     summary["source_fingerprint"] = profile["source_fingerprint"]
     summary["decision_mode"] = args.decision_mode
+    summary["logical_bucket"] = logical_bucket
     summary["async_callback_url"] = args.async_callback_url or None
     summary["async_tracking_output"] = str(async_tracking_path) if args.decision_mode == "async" and async_tracking_path else None
     summary["resumed"] = checkpoint_state is not None
@@ -376,17 +380,39 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat().replace("+00:00", "Z") if value else None
 
 
-async def _verify_replay_tenant(clients: ServiceClients, manifest: ReplayManifest, tenant_id: str) -> None:
+async def _verify_replay_tenant(
+    clients: ServiceClients, manifest: ReplayManifest, tenant_id: str
+) -> dict[str, Any]:
     model = await clients.request(clients.data_model, "GET", f"/v1/tenants/{tenant_id}/data-model", 200)
-    tables = model.get("data_model", {}).get("tables", {})
+    data_model = model.get("data_model", {})
+    tables = data_model.get("tables", {})
     if "transactions" not in tables:
         raise APIError("tenant does not have the production replay transactions model; run setup first")
+    transaction_table_id = tables["transactions"].get("id")
+    logical_bucket = next(
+        (
+            item
+            for item in data_model.get("logical_bucket_definitions", [])
+            if item.get("table_id") == transaction_table_id
+            and item.get("timestamp_field_name") == "date"
+            and item.get("timezone") == manifest.timezone
+            and item.get("grain") == "daily"
+            and item.get("status") == "active"
+        ),
+        None,
+    )
+    if logical_bucket is None:
+        raise APIError(
+            "tenant does not have an active daily transactions.date logical bucket "
+            f"in timezone {manifest.timezone!r}; run setup first"
+        )
     response = await clients.request(clients.decision_engine, "GET", f"/v1/tenants/{tenant_id}/scenarios", 200)
     scenarios = {item["name"]: item for item in response.get("scenarios", [])}
     expected = {item.name for item in build_portable_scenarios(manifest)}
     missing = sorted(name for name in expected if name not in scenarios or not scenarios[name].get("live_iteration_id"))
     if missing:
         raise APIError("tenant is missing live production replay scenarios: " + ", ".join(missing))
+    return logical_bucket
 
 
 async def async_main(argv: list[str] | None = None) -> int:

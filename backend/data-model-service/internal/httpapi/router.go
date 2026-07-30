@@ -61,6 +61,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeRepository := storepostgres.NewSchemaChangeRepository(db)
 	tenantSchemaMigrationRepository := storepostgres.NewTenantSchemaMigrationRepository(db)
 	indexJobRepository := storepostgres.NewIndexJobRepository(db)
+	logicalBucketRepository := storepostgres.NewLogicalBucketRepository(db)
 	riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
 	indexJobEnqueuer := riverjobs.NewRiverIndexJobEnqueuer(riverClient, cfg.IndexWorkerMaxAttempts, cfg.IndexJobQueueName)
 	schemaManager := tenantdbpostgres.NewSchemaManager(db)
@@ -98,7 +99,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithIndexJobEnqueuer(indexJobEnqueuer)
 	linkService := service.NewLinkService(
 		tableRepository,
 		fieldRepository,
@@ -151,7 +152,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		readRepository,
 		tenantRepository,
 		tenantSchemaMigrationRepository,
-	)
+	).WithLogicalBuckets(logicalBucketRepository, systemClock{})
 	portableService := service.NewPortableDataModelService(
 		readService,
 		tableService,
@@ -172,6 +173,17 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		systemClock{},
 		indexJobEnqueuer,
 	)
+	logicalBucketService := service.NewLogicalBucketService(
+		tenantRepository,
+		tableRepository,
+		fieldRepository,
+		logicalBucketRepository,
+		indexJobService,
+		transactionManager,
+		schemaManager,
+		uuidGenerator{},
+		systemClock{},
+	)
 	dataModelHandler := handlers.NewDataModelHandler(
 		readService,
 		portableService,
@@ -186,6 +198,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeHandler := handlers.NewSchemaChangeHandler(service.NewSchemaChangeService(schemaChangeRepository))
 	tenantSchemaMigrationHandler := handlers.NewTenantSchemaMigrationHandler(service.NewTenantSchemaMigrationService(tenantSchemaMigrationRepository))
 	indexJobHandler := handlers.NewIndexJobHandler(indexJobService)
+	logicalBucketHandler := handlers.NewLogicalBucketHandler(logicalBucketService)
 	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db, indexJobEnqueuer))
 
 	v1 := router.Group("/v1")
@@ -220,6 +233,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/index-jobs", indexJobHandler.List)
 	v1.GET("/index-jobs/:jobId", indexJobHandler.Get)
 	v1.POST("/index-jobs/:jobId/retry", indexJobHandler.Retry)
+	v1.GET("/tables/:tableId/logical-buckets", logicalBucketHandler.List)
+	v1.POST("/tenants/:tenantId/tables/:tableId/logical-buckets", logicalBucketHandler.Create)
+	v1.GET("/logical-buckets/:logicalBucketId", logicalBucketHandler.Get)
+	v1.DELETE("/logical-buckets/:logicalBucketId", logicalBucketHandler.Retire)
+	v1.POST("/logical-buckets/:logicalBucketId/retry-activation", logicalBucketHandler.RetryActivation)
 	v1.PATCH("/tables/:tableId", dataModelHandler.UpdateTable)
 	v1.PATCH("/fields/:fieldId", dataModelHandler.UpdateField)
 	v1.PATCH("/enum-values/:enumValueId", dataModelHandler.UpdateFieldEnumValue)

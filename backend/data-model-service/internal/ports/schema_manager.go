@@ -19,3 +19,11 @@ type SchemaManager interface {
 	CreateManagedIndex(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) error
 	GetManagedIndexState(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) (datamodel.ManagedIndexState, error)
 }
+
+type ManagedIndexRepairer interface {
+	DropInvalidManagedIndex(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) error
+}
+
+type TenantDataInspector interface {
+	HasNullValue(ctx context.Context, tenant tenant.Tenant, table datamodel.Table, fieldName string) (bool, error)
+}

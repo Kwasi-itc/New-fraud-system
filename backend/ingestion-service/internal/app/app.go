@@ -37,6 +37,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		HTTPClientTimeout:   cfg.HTTPClientTimeout,
 		WorkerMaxAttempts:   cfg.WorkerMaxAttempts,
 		UploadLogQueueName:  cfg.UploadLogQueueName,
+		IngestWriteTimeout:  cfg.IngestWriteTimeout,
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

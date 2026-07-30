@@ -136,6 +136,97 @@ class SortingAndScenarioTests(unittest.TestCase):
                 for rule in scenario.rules:
                     visit(rule.formula)
 
+    def test_aggregates_have_cache_plannable_time_bounds_and_supported_operations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_minimal_sources(root)
+            write_transactions(root / "transactions.csv", [transaction_row()])
+            path = root / "manifest.json"
+            path.write_text(
+                json.dumps(
+                    manifest_data(
+                        [
+                            stream(
+                                "cash",
+                                "transactions.csv",
+                                channel="cash",
+                                direction="outgoing",
+                                system_type="cash_out",
+                            )
+                        ]
+                    )
+                ),
+                encoding="utf-8",
+            )
+            scenarios = build_portable_scenarios(load_manifest(path))
+            aggregates: list[dict[str, object]] = []
+
+            def visit(node: object) -> None:
+                if isinstance(node, dict):
+                    if node.get("function") == "Aggregator":
+                        aggregates.append(node)
+                    for value in node.values():
+                        visit(value)
+                elif isinstance(node, list):
+                    for value in node:
+                        visit(value)
+
+            for scenario in scenarios:
+                visit(scenario.trigger_formula)
+                for rule in scenario.rules:
+                    visit(rule.formula)
+
+            self.assertGreater(len(aggregates), 0)
+            for aggregate_node in aggregates:
+                named = aggregate_node["named_children"]
+                self.assertNotEqual(named["aggregator"]["constant"], "COUNT_DISTINCT")
+                filters = named["filters"]["children"]
+                date_operators = {
+                    item["named_children"]["operator"]["constant"]
+                    for item in filters
+                    if item.get("function") == "Filter"
+                    and item["named_children"]["fieldName"]["constant"] == "date"
+                }
+                self.assertIn(">=", date_operators)
+                self.assertIn("<=", date_operators)
+
+    def test_default_wallet_catalog_stays_within_performance_index_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_minimal_sources(root)
+            write_transactions(root / "transactions.csv", [transaction_row()])
+            path = root / "manifest.json"
+            path.write_text(
+                json.dumps(manifest_data([stream("wallet", "transactions.csv")])),
+                encoding="utf-8",
+            )
+            scenarios = build_portable_scenarios(load_manifest(path))
+            index_shapes: set[tuple[str, ...]] = set()
+
+            def visit(node: object) -> None:
+                if isinstance(node, dict):
+                    if node.get("function") == "Aggregator":
+                        columns: list[str] = []
+                        for item in node["named_children"]["filters"]["children"]:
+                            if item.get("function") != "Filter":
+                                continue
+                            field_name = item["named_children"]["fieldName"]["constant"]
+                            if field_name not in columns:
+                                columns.append(field_name)
+                        index_shapes.add(tuple(columns))
+                    for value in node.values():
+                        visit(value)
+                elif isinstance(node, list):
+                    for value in node:
+                        visit(value)
+
+            for scenario in scenarios:
+                visit(scenario.trigger_formula)
+                for rule in scenario.rules:
+                    visit(rule.formula)
+
+            self.assertLessEqual(len(index_shapes), 8)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -8,20 +8,22 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type FieldService struct {
-	tenantRepository ports.TenantRepository
-	tableRepository  ports.TableRepository
-	fieldRepository  ports.FieldRepository
+	tenantRepository         ports.TenantRepository
+	tableRepository          ports.TableRepository
+	fieldRepository          ports.FieldRepository
 	fieldEnumValueRepository ports.FieldEnumValueRepository
-	linkRepository   ports.LinkRepository
-	pivotRepository  ports.PivotRepository
-	schemaChanges    ports.SchemaChangeRepository
-	schemaManager    ports.SchemaManager
-	txManager        ports.TransactionManager
-	idGenerator      ports.IDGenerator
-	clock            ports.Clock
+	linkRepository           ports.LinkRepository
+	pivotRepository          ports.PivotRepository
+	schemaChanges            ports.SchemaChangeRepository
+	schemaManager            ports.SchemaManager
+	txManager                ports.TransactionManager
+	idGenerator              ports.IDGenerator
+	clock                    ports.Clock
+	indexJobEnqueuer         riverjobs.IndexJobEnqueuer
 }
 
 type CreateFieldInput struct {
@@ -63,18 +65,26 @@ func NewFieldService(
 	clock ports.Clock,
 ) FieldService {
 	return FieldService{
-		tenantRepository: tenantRepository,
-		tableRepository:  tableRepository,
-		fieldRepository:  fieldRepository,
+		tenantRepository:         tenantRepository,
+		tableRepository:          tableRepository,
+		fieldRepository:          fieldRepository,
 		fieldEnumValueRepository: fieldEnumValueRepository,
-		linkRepository:   linkRepository,
-		pivotRepository:  pivotRepository,
-		schemaChanges:    schemaChanges,
-		schemaManager:    schemaManager,
-		txManager:        txManager,
-		idGenerator:      idGenerator,
-		clock:            clock,
+		linkRepository:           linkRepository,
+		pivotRepository:          pivotRepository,
+		schemaChanges:            schemaChanges,
+		schemaManager:            schemaManager,
+		txManager:                txManager,
+		idGenerator:              idGenerator,
+		clock:                    clock,
 	}
+}
+
+func (s FieldService) WithIndexJobEnqueuer(enqueuer riverjobs.IndexJobEnqueuer) FieldService {
+	if enqueuer == nil {
+		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
+	}
+	s.indexJobEnqueuer = enqueuer
+	return s
 }
 
 func (s FieldService) ListByTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.Field, error) {
@@ -120,7 +130,18 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 			return err
 		}
 		if field.IsUnique {
-			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
+			if _, _, err := ensureManagedIndexJobTx(
+				ctx,
+				store,
+				s.indexJobEnqueuer,
+				s.idGenerator,
+				field.TenantID,
+				table,
+				datamodel.IndexJobTypeUnique,
+				[]string{field.Name},
+				"create_unique_field",
+				now,
+			); err != nil {
 				return err
 			}
 		}
@@ -232,7 +253,18 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 		}
 
 		if !previousUnique && field.IsUnique {
-			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
+			if _, _, err := ensureManagedIndexJobTx(
+				ctx,
+				store,
+				s.indexJobEnqueuer,
+				s.idGenerator,
+				field.TenantID,
+				table,
+				datamodel.IndexJobTypeUnique,
+				[]string{field.Name},
+				"enable_unique_field",
+				field.UpdatedAt,
+			); err != nil {
 				return err
 			}
 		}

@@ -218,9 +218,11 @@ export type IngestionContract = {
 
 export type AssembledDataModel = {
   revision_id: string;
+  physical_schema_name: string;
   ingestion_contract: IngestionContract;
   tables: Record<string, AssembledTable>;
   pivots: AssembledPivot[];
+  logical_bucket_definitions: LogicalBucket[];
 };
 
 export type PortableFieldDocument = {
@@ -310,6 +312,38 @@ export type IndexJob = {
   error_message?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type LogicalBucketStatus =
+  | "pending_index"
+  | "activating"
+  | "active"
+  | "blocked_data"
+  | "retiring"
+  | "retired";
+
+export type LogicalBucket = {
+  id: string;
+  tenant_id: string;
+  table_id: string;
+  timestamp_field_id: string;
+  timestamp_field_name: string;
+  grain: "daily";
+  timezone: string;
+  seal_delay_seconds: number;
+  definition_version: number;
+  status: LogicalBucketStatus;
+  index_job_id?: string | null;
+  cache_eligible_at?: string | null;
+  maintenance_until?: string | null;
+  created_at: string;
+  updated_at: string;
+  retired_at?: string | null;
+};
+
+export type CreateLogicalBucketRequest = {
+  timestamp_field_id: string;
+  timezone: string;
 };
 
 const configuredServiceBaseUrl =
@@ -427,4 +461,34 @@ export const dataModelApi = {
     ),
   listIndexJobs: async (tenantId: string) =>
     apiFetch<{ index_jobs: IndexJob[] }>(`/v1/tenants/${tenantId}/index-jobs`),
+  listLogicalBuckets: async (tableId: string) =>
+    apiFetch<{ logical_buckets: LogicalBucket[] }>(
+      `/v1/tables/${tableId}/logical-buckets`
+    ),
+  createLogicalBucket: async (
+    tenantId: string,
+    tableId: string,
+    payload: CreateLogicalBucketRequest
+  ) =>
+    apiFetch<{ logical_bucket: LogicalBucket }>(
+      `/v1/tenants/${tenantId}/tables/${tableId}/logical-buckets`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
+  retireLogicalBucket: async (logicalBucketId: string) =>
+    apiFetch<{ logical_bucket: LogicalBucket }>(
+      `/v1/logical-buckets/${logicalBucketId}`,
+      {
+        method: "DELETE",
+      }
+    ),
+  retryLogicalBucketActivation: async (logicalBucketId: string) =>
+    apiFetch<{ logical_bucket: LogicalBucket }>(
+      `/v1/logical-buckets/${logicalBucketId}/retry-activation`,
+      {
+        method: "POST",
+      }
+    ),
 };

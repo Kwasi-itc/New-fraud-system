@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   type CreateFieldRequest,
+  type CreateLogicalBucketRequest,
   type CreateTableRequest,
   type CreateLinkRequest,
   type CreatePivotRequest,
@@ -22,6 +23,8 @@ export const dataModelQueryKeys = {
   schemaChanges: (tenantId: string) =>
     ["data-model", "schema-changes", tenantId] as const,
   indexJobs: (tenantId: string) => ["data-model", "index-jobs", tenantId] as const,
+  logicalBuckets: (tableId: string) =>
+    ["data-model", "logical-buckets", tableId] as const,
 };
 
 export function useTenantQuery(tenantId: string) {
@@ -69,6 +72,90 @@ export function useIndexJobsQuery(tenantId: string) {
     queryKey: dataModelQueryKeys.indexJobs(tenantId),
     queryFn: () => dataModelApi.listIndexJobs(tenantId),
     enabled: Boolean(tenantId),
+  });
+}
+
+export function useLogicalBucketsQuery(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: dataModelQueryKeys.logicalBuckets(tableId),
+    queryFn: () => dataModelApi.listLogicalBuckets(tableId),
+    enabled: enabled && Boolean(tableId),
+    refetchInterval: (query) => {
+      const buckets = query.state.data?.logical_buckets ?? [];
+      return buckets.some((bucket) =>
+        ["pending_index", "activating", "retiring"].includes(bucket.status)
+      )
+        ? 3_000
+        : false;
+    },
+  });
+}
+
+function invalidateLogicalBucketQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  tenantId: string,
+  tableId: string
+) {
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.logicalBuckets(tableId),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.assembledModel(tenantId),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.schemaChanges(tenantId),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: dataModelQueryKeys.indexJobs(tenantId),
+  });
+}
+
+export function useCreateLogicalBucketMutation(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tableId,
+      payload,
+    }: {
+      tableId: string;
+      payload: CreateLogicalBucketRequest;
+    }) => dataModelApi.createLogicalBucket(tenantId, tableId, payload),
+    onSuccess: (_response, variables) => {
+      invalidateLogicalBucketQueries(queryClient, tenantId, variables.tableId);
+    },
+  });
+}
+
+export function useRetireLogicalBucketMutation(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      logicalBucketId,
+    }: {
+      tableId: string;
+      logicalBucketId: string;
+    }) => dataModelApi.retireLogicalBucket(logicalBucketId),
+    onSuccess: (_response, variables) => {
+      invalidateLogicalBucketQueries(queryClient, tenantId, variables.tableId);
+    },
+  });
+}
+
+export function useRetryLogicalBucketActivationMutation(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      logicalBucketId,
+    }: {
+      tableId: string;
+      logicalBucketId: string;
+    }) => dataModelApi.retryLogicalBucketActivation(logicalBucketId),
+    onSuccess: (_response, variables) => {
+      invalidateLogicalBucketQueries(queryClient, tenantId, variables.tableId);
+    },
   });
 }
 

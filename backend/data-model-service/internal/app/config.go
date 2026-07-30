@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -18,11 +19,21 @@ type Config struct {
 	IndexWorkerMaxAttempts int
 	IndexJobQueueName      string
 	IndexJobQueueWorkers   int
+	IndexWorkerTimeout     time.Duration
+	BucketActivationGrace  time.Duration
 }
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
 
+	indexWorkerTimeout, err := getEnvDuration("INDEX_WORKER_TIMEOUT", 2*time.Hour)
+	if err != nil {
+		return Config{}, err
+	}
+	bucketActivationGrace, err := getEnvDuration("BUCKET_ACTIVATION_GRACE", 5*time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
 	cfg := Config{
 		Port:                   getEnv("PORT", "8080"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
@@ -34,6 +45,8 @@ func LoadConfig() (Config, error) {
 		IndexWorkerMaxAttempts: getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5),
 		IndexJobQueueName:      getEnv("INDEX_JOB_QUEUE_NAME", "index_jobs"),
 		IndexJobQueueWorkers:   getEnvInt("INDEX_JOB_QUEUE_WORKERS", 4),
+		IndexWorkerTimeout:     indexWorkerTimeout,
+		BucketActivationGrace:  bucketActivationGrace,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -48,8 +61,26 @@ func LoadConfig() (Config, error) {
 	if strings.TrimSpace(cfg.IndexJobQueueName) == "" {
 		return Config{}, fmt.Errorf("INDEX_JOB_QUEUE_NAME must not be empty")
 	}
+	if cfg.IndexWorkerTimeout <= 0 {
+		return Config{}, fmt.Errorf("INDEX_WORKER_TIMEOUT must be greater than zero")
+	}
+	if cfg.BucketActivationGrace <= 0 {
+		return Config{}, fmt.Errorf("BUCKET_ACTIVATION_GRACE must be greater than zero")
+	}
 
 	return cfg, nil
+}
+
+func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
+	}
+	return parsed, nil
 }
 
 func getEnv(key, fallback string) string {

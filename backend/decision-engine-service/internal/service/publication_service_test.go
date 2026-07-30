@@ -14,6 +14,7 @@ type publicationDataModelReader struct {
 	model   ports.TenantModel
 	jobs    []ports.ManagedIndexJob
 	created []ports.ManagedIndexJob
+	retried []string
 }
 
 func (s *publicationDataModelReader) GetTenantModel(context.Context, string) (ports.TenantModel, error) {
@@ -37,11 +38,12 @@ func (s *publicationDataModelReader) ListIndexJobs(context.Context, string) ([]p
 	return append([]ports.ManagedIndexJob(nil), s.jobs...), nil
 }
 
-func (s *publicationDataModelReader) RetryIndexJob(context.Context, string) error {
+func (s *publicationDataModelReader) RetryIndexJob(_ context.Context, id string) error {
+	s.retried = append(s.retried, id)
 	return nil
 }
 
-func TestStartPreparationCreatesSearchIndexForAggregatorFilters(t *testing.T) {
+func TestStartPreparationCreatesAggregateIndexForAggregatorFilters(t *testing.T) {
 	formula, err := json.Marshal(domainast.Node{
 		Function: "Aggregator",
 		NamedChildren: map[string]domainast.Node{
@@ -102,8 +104,8 @@ func TestStartPreparationCreatesSearchIndexForAggregatorFilters(t *testing.T) {
 		t.Fatalf("created index jobs = %d, want 1", len(dataModel.created))
 	}
 	job := dataModel.created[0]
-	if job.IndexType != "search" {
-		t.Fatalf("index type = %q, want search", job.IndexType)
+	if job.IndexType != "aggregate" {
+		t.Fatalf("index type = %q, want aggregate", job.IndexType)
 	}
 	if job.TableName != "transactions" {
 		t.Fatalf("table name = %q, want transactions", job.TableName)

@@ -86,7 +86,37 @@ func (m SchemaManager) DropUniqueIndex(ctx context.Context, record tenant.Tenant
 }
 
 func (m SchemaManager) CreateManagedIndex(ctx context.Context, record tenant.Tenant, table datamodel.Table, job datamodel.IndexJob) error {
-	return m.createIndex(ctx, record, table, job.Columns, false)
+	indexColumns := make([]string, len(job.Columns))
+	for i, column := range job.Columns {
+		indexColumns[i] = sanitizeIdentifier(column)
+	}
+	modifier := ""
+	if job.IsUnique {
+		modifier = "UNIQUE "
+	}
+	include := ""
+	if len(job.IncludeColumns) > 0 {
+		includeColumns := make([]string, len(job.IncludeColumns))
+		for i, column := range job.IncludeColumns {
+			includeColumns[i] = sanitizeIdentifier(column)
+		}
+		include = " INCLUDE (" + strings.Join(includeColumns, ", ") + ")"
+	}
+	indexName := job.IndexName
+	if indexName == "" {
+		indexName = managedIndexName(table.Name, job.Columns, job.IsUnique)
+	}
+	query := fmt.Sprintf("CREATE %sINDEX CONCURRENTLY IF NOT EXISTS %s ON %s USING btree (%s)%s",
+		modifier,
+		sanitizeIdentifier(indexName),
+		sanitizeIdentifier(record.SchemaName, table.Name),
+		strings.Join(indexColumns, ", "),
+		include,
+	)
+	if _, err := m.db.Exec(ctx, query); err != nil {
+		return fmt.Errorf("create managed index concurrently: %w", err)
+	}
+	return nil
 }
 
 func (m SchemaManager) createIndex(ctx context.Context, record tenant.Tenant, table datamodel.Table, columns []string, unique bool) error {

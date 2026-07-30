@@ -12,13 +12,15 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	storeredis "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/redis"
 )
 
 type App struct {
-	cfg        Config
-	logger     *slog.Logger
-	db         *pgxpool.Pool
-	httpServer *http.Server
+	cfg            Config
+	logger         *slog.Logger
+	db             *pgxpool.Pool
+	aggregateCache *storeredis.AggregateCache
+	httpServer     *http.Server
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
@@ -27,6 +29,14 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
+	}
+	var aggregateCache *storeredis.AggregateCache
+	if cfg.AggregateExecutionMode == "direct_cached" {
+		aggregateCache, err = storeredis.NewAggregateCache(cfg.RedisURL)
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
 	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
@@ -38,6 +48,10 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		HTTPClientTimeout:                   cfg.HTTPClientTimeout,
 		AggregatePushdownMode:               cfg.AggregatePushdownMode,
 		AggregatePushdownAggregates:         cfg.AggregatePushdownAggregates,
+		AggregateExecutionMode:              cfg.AggregateExecutionMode,
+		AggregateQueryTimeout:               cfg.AggregateQueryTimeout,
+		AggregateDBConcurrency:              cfg.AggregateDBConcurrency,
+		AggregateCache:                      aggregateCache,
 		LiveDecisionConcurrencyLimit:        cfg.LiveDecisionConcurrencyLimit,
 		LiveAsyncFallbackEnabled:            cfg.LiveAsyncFallbackEnabled,
 		RuleEvaluationConcurrency:           cfg.RuleEvaluationConcurrency,
@@ -65,10 +79,11 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	return &App{
-		cfg:        cfg,
-		logger:     logger,
-		db:         db,
-		httpServer: server,
+		cfg:            cfg,
+		logger:         logger,
+		db:             db,
+		aggregateCache: aggregateCache,
+		httpServer:     server,
 	}, nil
 }
 
@@ -81,6 +96,9 @@ func (a *App) Run() error {
 }
 
 func (a *App) Close() {
+	if a.aggregateCache != nil {
+		_ = a.aggregateCache.Close()
+	}
 	if a.db != nil {
 		a.db.Close()
 	}

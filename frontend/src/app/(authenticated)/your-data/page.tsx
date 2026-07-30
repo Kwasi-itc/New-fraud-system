@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  Archive,
+  CalendarClock,
   ChevronDown,
   ChevronUp,
   Database,
@@ -13,6 +15,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Shapes,
   Trash2,
   Upload,
@@ -40,6 +43,7 @@ import {
   useCreateFieldMutation,
   useCreateFieldEnumValueMutation,
   useCreateLinkMutation,
+  useCreateLogicalBucketMutation,
   useCreatePivotMutation,
   useCreateTableMutation,
   useDeleteFieldEnumValueMutation,
@@ -47,7 +51,10 @@ import {
   useDeleteTableMutation,
   useImportPortableDataModelMutation,
   useIndexJobsQuery,
+  useLogicalBucketsQuery,
   usePivotsQuery,
+  useRetireLogicalBucketMutation,
+  useRetryLogicalBucketActivationMutation,
   useSchemaChangesQuery,
   useTablesQuery,
   useTenantQuery,
@@ -62,6 +69,7 @@ import {
   type AssembledLink,
   type AssembledPivot,
   type AssembledTable,
+  type LogicalBucketStatus,
   type PortableDataModelDocument,
   type PortableImportSummary,
   type Table,
@@ -194,6 +202,27 @@ const semanticTypes = [
   "risk",
   "compliance",
   "audit",
+] as const;
+
+const activeLogicalBucketStatuses: LogicalBucketStatus[] = [
+  "pending_index",
+  "activating",
+  "active",
+  "blocked_data",
+];
+
+const suggestedTimezones = [
+  "UTC",
+  "Africa/Accra",
+  "Africa/Johannesburg",
+  "Africa/Lagos",
+  "America/Chicago",
+  "America/Los_Angeles",
+  "America/New_York",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Europe/London",
 ] as const;
 
 type LocalEnumValue = {
@@ -454,12 +483,14 @@ export default function YourDataPage() {
   const [isCreateFieldModalOpen, setIsCreateFieldModalOpen] = useState(false);
   const [isCreateLinkModalOpen, setIsCreateLinkModalOpen] = useState(false);
   const [isCreatePivotModalOpen, setIsCreatePivotModalOpen] = useState(false);
+  const [isLogicalBucketModalOpen, setIsLogicalBucketModalOpen] = useState(false);
   const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleteFieldModalOpen, setIsDeleteFieldModalOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [pendingDeleteTable, setPendingDeleteTable] = useState<Table | null>(null);
   const [fieldTable, setFieldTable] = useState<Table | null>(null);
+  const [logicalBucketTable, setLogicalBucketTable] = useState<Table | null>(null);
   const [editingField, setEditingField] = useState<AssembledField | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<AssembledField | null>(null);
   const [openTableMenuId, setOpenTableMenuId] = useState<string | null>(null);
@@ -490,6 +521,14 @@ export default function YourDataPage() {
   const [pivotFieldId, setPivotFieldId] = useState("");
   const [pivotPathLinkIds, setPivotPathLinkIds] = useState<string[]>([]);
   const [pivotFormError, setPivotFormError] = useState<string | null>(null);
+  const [logicalBucketFieldId, setLogicalBucketFieldId] = useState("");
+  const [logicalBucketTimezone, setLogicalBucketTimezone] = useState("UTC");
+  const [logicalBucketFormError, setLogicalBucketFormError] = useState<string | null>(
+    null
+  );
+  const [pendingRetireLogicalBucketId, setPendingRetireLogicalBucketId] = useState<
+    string | null
+  >(null);
   const [viewerTableId, setViewerTableId] = useState("");
   const [viewerObjectId, setViewerObjectId] = useState("");
   const [viewerFieldName, setViewerFieldName] = useState("");
@@ -511,6 +550,10 @@ export default function YourDataPage() {
   const pivotsQuery = usePivotsQuery(tenantId);
   const schemaChangesQuery = useSchemaChangesQuery(tenantId);
   const indexJobsQuery = useIndexJobsQuery(tenantId);
+  const logicalBucketsQuery = useLogicalBucketsQuery(
+    logicalBucketTable?.id ?? "",
+    isLogicalBucketModalOpen
+  );
   const createTableMutation = useCreateTableMutation(tenantId);
   const createFieldMutation = useCreateFieldMutation(tenantId);
   const updateTableMutation = useUpdateTableMutation(tenantId);
@@ -522,6 +565,10 @@ export default function YourDataPage() {
   const deleteFieldEnumValueMutation = useDeleteFieldEnumValueMutation(tenantId);
   const createLinkMutation = useCreateLinkMutation(tenantId);
   const createPivotMutation = useCreatePivotMutation(tenantId);
+  const createLogicalBucketMutation = useCreateLogicalBucketMutation(tenantId);
+  const retireLogicalBucketMutation = useRetireLogicalBucketMutation(tenantId);
+  const retryLogicalBucketActivationMutation =
+    useRetryLogicalBucketActivationMutation(tenantId);
   const importPortableDataModelMutation = useImportPortableDataModelMutation(tenantId);
 
   const assembledModelTables = assembledModelQuery.data?.data_model.tables;
@@ -599,6 +646,46 @@ export default function YourDataPage() {
   const viewerFieldOptions = viewerTable
     ? Object.values(viewerTable.fields).sort((a, b) => a.name.localeCompare(b.name))
     : [];
+  const logicalBucketAssembledTable = logicalBucketTable
+    ? getAssembledTableById(logicalBucketTable.id)
+    : undefined;
+  const logicalBuckets = useMemo(
+    () => logicalBucketsQuery.data?.logical_buckets ?? [],
+    [logicalBucketsQuery.data?.logical_buckets]
+  );
+  const configuredLogicalBucketFieldIds = useMemo(
+    () =>
+      new Set(
+        logicalBuckets
+          .filter((bucket) => activeLogicalBucketStatuses.includes(bucket.status))
+          .map((bucket) => bucket.timestamp_field_id)
+      ),
+    [logicalBuckets]
+  );
+  const logicalBucketTimestampFields = useMemo(
+    () =>
+      logicalBucketAssembledTable
+        ? Object.values(logicalBucketAssembledTable.fields)
+            .filter((field) => field.data_type === "timestamp" && !field.nullable)
+            .sort((a, b) => a.name.localeCompare(b.name))
+        : [],
+    [logicalBucketAssembledTable]
+  );
+  const availableLogicalBucketFields = useMemo(
+    () =>
+      logicalBucketTimestampFields.filter(
+        (field) => !configuredLogicalBucketFieldIds.has(field.id)
+      ),
+    [configuredLogicalBucketFieldIds, logicalBucketTimestampFields]
+  );
+  const activeLogicalBucketCount = logicalBuckets.filter((bucket) =>
+    activeLogicalBucketStatuses.includes(bucket.status)
+  ).length;
+  const selectedLogicalBucketFieldId = availableLogicalBucketFields.some(
+    (field) => field.id === logicalBucketFieldId
+  )
+    ? logicalBucketFieldId
+    : availableLogicalBucketFields[0]?.id ?? "";
 
   function toggleExpandedTable(tableId: string) {
     setExpandedTableIds((current) =>
@@ -632,6 +719,37 @@ export default function YourDataPage() {
         return "IP address";
       default:
         return dataType;
+    }
+  }
+
+  function formatLogicalBucketStatus(status: LogicalBucketStatus) {
+    switch (status) {
+      case "pending_index":
+        return "Preparing index";
+      case "activating":
+        return "Activating";
+      case "active":
+        return "Active";
+      case "blocked_data":
+        return "Blocked by data";
+      case "retiring":
+        return "Retiring";
+      case "retired":
+        return "Retired";
+    }
+  }
+
+  function logicalBucketStatusClass(status: LogicalBucketStatus) {
+    switch (status) {
+      case "active":
+        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      case "blocked_data":
+        return "border-red-200 bg-red-50 text-red-700";
+      case "retiring":
+      case "retired":
+        return "border-slate-200 bg-slate-100 text-slate-600";
+      default:
+        return "border-amber-200 bg-amber-50 text-amber-700";
     }
   }
 
@@ -1062,12 +1180,141 @@ export default function YourDataPage() {
     setIsCreatePivotModalOpen(true);
   }
 
+  function openLogicalBucketModal(table: Table) {
+    const assembledTable = getAssembledTableById(table.id);
+    const firstTimestampField = assembledTable
+      ? Object.values(assembledTable.fields)
+          .filter((field) => field.data_type === "timestamp" && !field.nullable)
+          .sort((a, b) => a.name.localeCompare(b.name))[0]
+      : undefined;
+    const browserTimezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone?.trim() || "UTC";
+
+    setLogicalBucketTable(table);
+    setLogicalBucketFieldId(firstTimestampField?.id ?? "");
+    setLogicalBucketTimezone(browserTimezone);
+    setLogicalBucketFormError(null);
+    setPendingRetireLogicalBucketId(null);
+    setIsLogicalBucketModalOpen(true);
+  }
+
+  function closeLogicalBucketModal() {
+    if (
+      createLogicalBucketMutation.isPending ||
+      retireLogicalBucketMutation.isPending ||
+      retryLogicalBucketActivationMutation.isPending
+    ) {
+      return;
+    }
+    setIsLogicalBucketModalOpen(false);
+    setLogicalBucketTable(null);
+    setLogicalBucketFormError(null);
+    setPendingRetireLogicalBucketId(null);
+  }
+
   function closeCreatePivotModal() {
     if (createPivotMutation.isPending) {
       return;
     }
     setIsCreatePivotModalOpen(false);
     resetCreatePivotForm();
+  }
+
+  async function handleCreateLogicalBucket(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLogicalBucketFormError(null);
+
+    if (!logicalBucketTable || !selectedLogicalBucketFieldId) {
+      setLogicalBucketFormError("Choose a required timestamp field.");
+      return;
+    }
+    const timezone = logicalBucketTimezone.trim();
+    if (!timezone) {
+      setLogicalBucketFormError("Enter an IANA timezone.");
+      return;
+    }
+
+    try {
+      const response = await createLogicalBucketMutation.mutateAsync({
+        tableId: logicalBucketTable.id,
+        payload: {
+          timestamp_field_id: selectedLogicalBucketFieldId,
+          timezone,
+        },
+      });
+      setLogicalBucketFieldId("");
+      setLogicalBucketFormError(null);
+      pushToast({
+        title: "Aggregate bucket created",
+        description: `${response.logical_bucket.timestamp_field_name} is waiting for its supporting index.`,
+        variant: "success",
+      });
+    } catch (mutationError) {
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to create the aggregate bucket.";
+      setLogicalBucketFormError(message);
+      pushToast({
+        title: "Aggregate bucket creation failed",
+        description: message,
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleRetireLogicalBucket(logicalBucketId: string) {
+    if (!logicalBucketTable) {
+      return;
+    }
+    setLogicalBucketFormError(null);
+    try {
+      await retireLogicalBucketMutation.mutateAsync({
+        tableId: logicalBucketTable.id,
+        logicalBucketId,
+      });
+      setPendingRetireLogicalBucketId(null);
+      pushToast({
+        title: "Aggregate bucket retiring",
+        description: "The definition will be retired after its maintenance grace period.",
+        variant: "success",
+      });
+    } catch (mutationError) {
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to retire the aggregate bucket.";
+      setLogicalBucketFormError(message);
+    }
+  }
+
+  async function handleRetryLogicalBucket(logicalBucketId: string) {
+    if (!logicalBucketTable) {
+      return;
+    }
+    setLogicalBucketFormError(null);
+    try {
+      await retryLogicalBucketActivationMutation.mutateAsync({
+        tableId: logicalBucketTable.id,
+        logicalBucketId,
+      });
+      pushToast({
+        title: "Activation requested",
+        description: "The data-model worker will check the index and table data again.",
+        variant: "success",
+      });
+    } catch (mutationError) {
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to retry aggregate bucket activation.";
+      setLogicalBucketFormError(message);
+      pushToast({
+        title: "Activation retry failed",
+        description: message,
+        variant: "error",
+      });
+    }
   }
 
   function handlePivotModeChange(nextMode: "field" | "path") {
@@ -2222,6 +2469,17 @@ export default function YourDataPage() {
                                   <Plus className="size-4 text-[#2563eb]" />
                                   Create a pivot
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenTableMenuId(null);
+                                    openLogicalBucketModal(table);
+                                  }}
+                                  className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-900 transition-colors hover:bg-slate-50"
+                                >
+                                  <CalendarClock className="size-4 text-[#2563eb]" />
+                                  Aggregate buckets
+                                </button>
                               </div>
                             ) : null}
                           </div>
@@ -2609,6 +2867,242 @@ export default function YourDataPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )
+        : null}
+
+      {typeof document !== "undefined" &&
+      isLogicalBucketModalOpen &&
+      logicalBucketTable
+        ? createPortal(
+        <div className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/38 p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+            <div className="relative border-b border-slate-200 px-6 py-5">
+              <div className="flex items-center gap-3 pr-10">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#2563eb]">
+                  <CalendarClock className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-semibold text-slate-950">
+                    Aggregate buckets
+                  </h3>
+                  <p className="mt-1 truncate text-sm text-slate-500">
+                    {logicalBucketTable.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeLogicalBucketModal}
+                className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close aggregate bucket modal"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-3 text-sm">
+                <span className="text-slate-600">Configured definitions</span>
+                <span className="font-semibold text-slate-950">
+                  {activeLogicalBucketCount} of 3
+                </span>
+              </div>
+
+              <div className="space-y-4 px-6 py-5">
+                {logicalBucketsQuery.isLoading ? (
+                  <div className="border-b border-slate-100 py-5 text-sm text-slate-500">
+                    Loading aggregate buckets...
+                  </div>
+                ) : logicalBucketsQuery.error ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {(logicalBucketsQuery.error as Error).message}
+                  </div>
+                ) : logicalBuckets.length > 0 ? (
+                  <div className="divide-y divide-slate-200 border-y border-slate-200">
+                    {logicalBuckets.map((bucket) => {
+                      const canRetry =
+                        bucket.status === "pending_index" ||
+                        bucket.status === "blocked_data";
+                      const canRetire = activeLogicalBucketStatuses.includes(bucket.status);
+                      const isConfirmingRetire =
+                        pendingRetireLogicalBucketId === bucket.id;
+
+                      return (
+                        <div key={bucket.id} className="py-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium text-slate-950">
+                                  {bucket.timestamp_field_name}
+                                </p>
+                                <span
+                                  className={cn(
+                                    "inline-flex rounded-md border px-2 py-0.5 text-xs font-medium",
+                                    logicalBucketStatusClass(bucket.status)
+                                  )}
+                                >
+                                  {formatLogicalBucketStatus(bucket.status)}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-500">
+                                Daily in {bucket.timezone} · version{" "}
+                                {bucket.definition_version} · 48-hour seal
+                              </p>
+                            </div>
+
+                            {isConfirmingRetire ? (
+                              <div className="flex shrink-0 items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setPendingRetireLogicalBucketId(null)}
+                                  disabled={retireLogicalBucketMutation.isPending}
+                                  className="h-8 rounded-lg border-slate-200 px-3 text-xs shadow-none hover:translate-y-0"
+                                >
+                                  Keep
+                                </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => void handleRetireLogicalBucket(bucket.id)}
+                                  disabled={retireLogicalBucketMutation.isPending}
+                                  className="h-8 rounded-lg bg-red-600 px-3 text-xs text-white shadow-none hover:translate-y-0 hover:bg-red-700"
+                                >
+                                  {retireLogicalBucketMutation.isPending
+                                    ? "Retiring..."
+                                    : "Confirm retire"}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex shrink-0 items-center gap-2">
+                                {canRetry ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => void handleRetryLogicalBucket(bucket.id)}
+                                    disabled={
+                                      retryLogicalBucketActivationMutation.isPending
+                                    }
+                                    className="h-8 rounded-lg border-slate-200 px-3 text-xs shadow-none hover:translate-y-0"
+                                  >
+                                    <RefreshCw className="size-3.5" />
+                                    Retry
+                                  </Button>
+                                ) : null}
+                                {canRetire ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setPendingRetireLogicalBucketId(bucket.id)
+                                    }
+                                    className="h-8 rounded-lg border-slate-200 px-3 text-xs text-slate-700 shadow-none hover:translate-y-0"
+                                  >
+                                    <Archive className="size-3.5" />
+                                    Retire
+                                  </Button>
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="border-y border-slate-200 py-5 text-sm text-slate-500">
+                    No aggregate buckets configured for this table.
+                  </div>
+                )}
+
+                {logicalBucketFormError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {logicalBucketFormError}
+                  </div>
+                ) : null}
+
+                {activeLogicalBucketCount < 3 ? (
+                  <form
+                    className="space-y-4 border-t border-slate-200 pt-5"
+                    onSubmit={handleCreateLogicalBucket}
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label
+                          className="text-sm font-medium text-slate-900"
+                          htmlFor="logical-bucket-field"
+                        >
+                          Timestamp field
+                        </label>
+                        <select
+                          id="logical-bucket-field"
+                          value={selectedLogicalBucketFieldId}
+                          onChange={(event) =>
+                            setLogicalBucketFieldId(event.target.value)
+                          }
+                          disabled={availableLogicalBucketFields.length === 0}
+                          className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none disabled:bg-slate-100 disabled:text-slate-500 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                        >
+                          {availableLogicalBucketFields.length === 0 ? (
+                            <option value="">No available required timestamp fields</option>
+                          ) : null}
+                          {availableLogicalBucketFields.map((field) => (
+                            <option key={field.id} value={field.id}>
+                              {field.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          className="text-sm font-medium text-slate-900"
+                          htmlFor="logical-bucket-timezone"
+                        >
+                          Timezone
+                        </label>
+                        <Input
+                          id="logical-bucket-timezone"
+                          list="logical-bucket-timezones"
+                          value={logicalBucketTimezone}
+                          onChange={(event) =>
+                            setLogicalBucketTimezone(event.target.value)
+                          }
+                          placeholder="Africa/Accra"
+                          className="h-11 rounded-lg border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                        />
+                        <datalist id="logical-bucket-timezones">
+                          {suggestedTimezones.map((timezone) => (
+                            <option key={timezone} value={timezone} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm text-slate-500">
+                        Daily buckets, 48-hour seal
+                      </p>
+                      <Button
+                        type="submit"
+                        disabled={
+                          createLogicalBucketMutation.isPending ||
+                          availableLogicalBucketFields.length === 0
+                        }
+                        className="h-9 rounded-lg bg-[#2563eb] px-4 text-sm text-white shadow-none hover:translate-y-0 hover:bg-[#1d4ed8]"
+                      >
+                        <CalendarClock className="size-4" />
+                        {createLogicalBucketMutation.isPending
+                          ? "Creating..."
+                          : "Create bucket"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : null}
+              </div>
+            </div>
           </div>
         </div>,
         document.body

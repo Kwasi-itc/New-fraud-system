@@ -9,19 +9,20 @@ import (
 )
 
 type Config struct {
-	Port                string
-	DatabaseURL         string
-	DataModelServiceURL string
-	ServiceAuthMode     string
-	ServiceAuthToken    string
-	AllowedOrigins      []string
-	LogLevel            string
-	GinMode             string
-	HTTPClientTimeout   time.Duration
-	WorkerPollInterval  time.Duration
-	WorkerMaxAttempts   int
-	UploadLogQueueName  string
+	Port                  string
+	DatabaseURL           string
+	DataModelServiceURL   string
+	ServiceAuthMode       string
+	ServiceAuthToken      string
+	AllowedOrigins        []string
+	LogLevel              string
+	GinMode               string
+	HTTPClientTimeout     time.Duration
+	WorkerPollInterval    time.Duration
+	WorkerMaxAttempts     int
+	UploadLogQueueName    string
 	UploadLogQueueWorkers int
+	IngestWriteTimeout    time.Duration
 }
 
 func LoadConfig() (Config, error) {
@@ -31,20 +32,25 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	ingestWriteTimeout, err := getEnvDuration("INGEST_WRITE_TIMEOUT", 2*time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
-		Port:                getEnv("PORT", "8081"),
-		DatabaseURL:         os.Getenv("DATABASE_URL"),
-		DataModelServiceURL: strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
-		ServiceAuthMode:     getEnv("SERVICE_AUTH_MODE", "disabled"),
-		ServiceAuthToken:    os.Getenv("SERVICE_AUTH_TOKEN"),
-		AllowedOrigins:      splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
-		LogLevel:            getEnv("LOG_LEVEL", "info"),
-		GinMode:             getEnv("GIN_MODE", "debug"),
-		HTTPClientTimeout:   httpClientTimeout,
-		WorkerMaxAttempts:   getEnvInt("WORKER_MAX_ATTEMPTS", 3),
-		UploadLogQueueName:  getEnv("UPLOAD_LOG_QUEUE_NAME", "upload_logs"),
+		Port:                  getEnv("PORT", "8081"),
+		DatabaseURL:           os.Getenv("DATABASE_URL"),
+		DataModelServiceURL:   strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
+		ServiceAuthMode:       getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthToken:      os.Getenv("SERVICE_AUTH_TOKEN"),
+		AllowedOrigins:        splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
+		LogLevel:              getEnv("LOG_LEVEL", "info"),
+		GinMode:               getEnv("GIN_MODE", "debug"),
+		HTTPClientTimeout:     httpClientTimeout,
+		WorkerMaxAttempts:     getEnvInt("WORKER_MAX_ATTEMPTS", 3),
+		UploadLogQueueName:    getEnv("UPLOAD_LOG_QUEUE_NAME", "upload_logs"),
 		UploadLogQueueWorkers: getEnvInt("UPLOAD_LOG_QUEUE_WORKERS", 4),
+		IngestWriteTimeout:    ingestWriteTimeout,
 	}
 	workerPollInterval, err := getEnvDuration("WORKER_POLL_INTERVAL", 5*time.Second)
 	if err != nil {
@@ -66,6 +72,9 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.UploadLogQueueWorkers <= 0 {
 		return Config{}, fmt.Errorf("UPLOAD_LOG_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.IngestWriteTimeout <= 0 {
+		return Config{}, fmt.Errorf("INGEST_WRITE_TIMEOUT must be greater than zero")
 	}
 
 	return cfg, nil

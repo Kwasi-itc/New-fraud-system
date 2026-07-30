@@ -107,6 +107,7 @@ func (h DataModelHandler) GetDataModel(c *gin.Context) {
 			publishedModel.Model,
 			publishedModel.RevisionID,
 			publishedModel.Tenant.Status,
+			publishedModel.Tenant.SchemaName,
 		),
 	})
 }

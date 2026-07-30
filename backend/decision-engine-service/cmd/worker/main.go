@@ -23,6 +23,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	storeredis "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/redis"
 )
 
 type uuidGenerator struct{}
@@ -121,7 +122,27 @@ func main() {
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	var tenantDataReader ports.TenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	if cfg.AggregateExecutionMode == "direct" || cfg.AggregateExecutionMode == "direct_cached" {
+		var aggregateCache ports.AggregateCache
+		if cfg.AggregateExecutionMode == "direct_cached" {
+			redisCache, err := storeredis.NewAggregateCache(cfg.RedisURL)
+			if err != nil {
+				logger.Error("failed to initialize aggregate cache", "error", err)
+				os.Exit(1)
+			}
+			defer redisCache.Close()
+			aggregateCache = redisCache
+		}
+		tenantDataReader = storepostgres.NewDirectAggregateReader(
+			tenantDataReader,
+			db,
+			dataModelReader,
+			aggregateCache,
+			cfg.AggregateQueryTimeout,
+			cfg.AggregateDBConcurrency,
+		)
+	}
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
