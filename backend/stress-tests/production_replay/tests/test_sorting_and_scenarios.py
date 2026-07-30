@@ -60,6 +60,7 @@ class SortingAndScenarioTests(unittest.TestCase):
             self.assertIn("Merchant Abuse Monitoring", names)
             self.assertIn("High Value Transaction Review", names)
             self.assertIn("Staff Transaction Monitoring", names)
+            self.assertIn("Source And Processor Abuse Monitoring", names)
             self.assertIn("Regulatory Reporting Review", names)
             self.assertNotIn("Card Payment Authorization Risk", names)
             self.assertNotIn("Bank Transfer Risk Assessment", names)
@@ -109,7 +110,7 @@ class SortingAndScenarioTests(unittest.TestCase):
             self.assertIn("Bank Transfer Risk Assessment", {item.name for item in scenarios})
             self.assertIn("Cash-Out Fraud Monitoring", {item.name for item in scenarios})
 
-    def test_merchant_watchlist_rule_guards_missing_related_merchants(self) -> None:
+    def test_portable_scenarios_do_not_use_related_record_lookups(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_minimal_sources(root)
@@ -120,12 +121,20 @@ class SortingAndScenarioTests(unittest.TestCase):
             path.write_text(json.dumps(manifest), encoding="utf-8")
 
             scenarios = build_portable_scenarios(load_manifest(path))
-            merchant_scenario = next(item for item in scenarios if item.name == "Merchant Abuse Monitoring")
-            rule = next(item for item in merchant_scenario.rules if item.name == "Watchlisted Merchant Name Match")
 
-            self.assertEqual(rule.formula["function"], "and")
-            self.assertEqual(rule.formula["children"][0]["function"], "is_not_empty")
-            self.assertEqual(rule.formula["children"][1]["function"], "in_custom_list")
+            def visit(node: object) -> None:
+                if isinstance(node, dict):
+                    self.assertNotEqual(node.get("function"), "related_field")
+                    for value in node.values():
+                        visit(value)
+                elif isinstance(node, list):
+                    for value in node:
+                        visit(value)
+
+            for scenario in scenarios:
+                visit(scenario.trigger_formula)
+                for rule in scenario.rules:
+                    visit(rule.formula)
 
 
 if __name__ == "__main__":

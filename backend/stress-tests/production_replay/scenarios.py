@@ -28,10 +28,6 @@ def field(name: str) -> dict[str, Any]:
     return {"function": "field_ref", "named_children": {"field": {"constant": name}}}
 
 
-def related(path: str, related_field: str) -> dict[str, Any]:
-    return fn("related_field", path=const(path), field=const(related_field))
-
-
 def const(value: Any) -> dict[str, Any]:
     return {"constant": value}
 
@@ -51,6 +47,10 @@ def list_node(*children: dict[str, Any]) -> dict[str, Any]:
 
 def eq(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     return fn("eq", left, right)
+
+
+def neq(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    return fn("neq", left, right)
 
 
 def gt(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
@@ -101,6 +101,11 @@ def stable_rule_id(value: str) -> str:
 def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...]:
     account = filter_node("account_ref", "=", field("account_ref"))
     merchant = filter_node("merchant_id", "=", field("merchant_id"))
+    product = filter_node("product_id", "=", field("product_id"))
+    source = filter_node("source_id", "=", field("source_id"))
+    thirdparty = filter_node("thirdparty_id", "=", field("thirdparty_id"))
+    terminal = filter_node("terminal_id", "=", field("terminal_id"))
+    payment_number = filter_node("payment_msisdn", "=", field("payment_msisdn"))
     one_hour = filter_node("date", ">=", time_add("PT1H"))
     one_day = filter_node("date", ">=", time_add("P1D"))
     one_week = filter_node("date", ">=", time_add("P7D"))
@@ -120,27 +125,9 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
         RuleDef("Rapid Merchant Payment Burst", "Merchant Velocity Risk", "More than fifty merchant payments occur in one hour.", 25, gt(aggregate("transaction_id", "COUNT", merchant, one_hour), const(50))),
         RuleDef("Repeated Same Account Payments", "Transaction Pattern Risk", "The same account pays a merchant more than ten times in one day.", 30, gt(aggregate("transaction_id", "COUNT", merchant, account, one_day), const(10))),
         RuleDef("Abnormal Merchant Average Ticket", "Behavioral Pattern Risk", "Amount exceeds three times the merchant's 30-day average.", 30, gt(field("amount"), fn("multiply", aggregate("amount", "AVG", merchant, thirty_days), const(3)))),
+        RuleDef("High Account Merchant Exposure", "Merchant Exposure Risk", "One account sends more than 25000 to the same merchant in one day.", 35, gt(aggregate("amount", "SUM", account, merchant, one_day), const(25_000))),
+        RuleDef("Merchant Product Abuse Burst", "Product Abuse Risk", "The same account and product combination appears more than six times in one hour.", 30, fn("and", fn("is_not_empty", field("product_id")), gt(aggregate("transaction_id", "COUNT", account, product, one_hour), const(6)))),
     ]
-    if manifest.reference_data.merchant_watchlist_xlsx:
-        merchant_name = related("merchant", "company_name_normalized")
-        merchant_rules.insert(
-            2,
-            RuleDef(
-                "Watchlisted Merchant Name Match",
-                "Merchant Risk",
-                "The normalized merchant company name appears in the supplied merchant watchlist.",
-                45,
-                fn(
-                    "and",
-                    fn("is_not_empty", merchant_name),
-                    fn(
-                        "in_custom_list",
-                        list=const("fraud_merchant_names"),
-                        value=merchant_name,
-                    ),
-                ),
-            ),
-        )
 
     if "wallet" in channels:
         scenarios.append(
@@ -151,6 +138,7 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
                     RuleDef("High Transfer Amount", "Transaction Based Rules", "Amount exceeds three times the account's 30-day average.", 25, gt(field("amount"), fn("multiply", aggregate("amount", "AVG", account, thirty_days), const(3)))),
                     RuleDef("One Hour Transfer Burst", "Velocity Rules", "More than ten account transactions occur in one hour.", 30, gt(aggregate("transaction_id", "COUNT", account, one_hour), const(10))),
                     RuleDef("Weekly Transfer Velocity", "Velocity Rules", "Account transaction value exceeds 50000 in seven days.", 35, gt(aggregate("amount", "SUM", account, one_week), const(50_000))),
+                    RuleDef("Repeated Wallet Number Activity", "Wallet Velocity Risk", "The same wallet or payment number appears more than eight times in one hour.", 30, fn("and", fn("is_not_empty", field("payment_msisdn")), gt(aggregate("transaction_id", "COUNT", payment_number, wallet, one_hour), const(8)))),
                 ),
             )
         )
@@ -167,6 +155,8 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
                 always_true(),
                 (
                     RuleDef("High Value Transaction", "Transaction Value Risk", "Transaction amount exceeds 10000.", 30, gt(field("amount"), const(10_000))),
+                    RuleDef("High Fee Ratio", "Pricing and Fee Risk", "Transaction fees exceed ten percent of the transaction amount.", 20, fn("and", gt(field("amount"), const(0)), gt(field("fees"), fn("multiply", field("amount"), const(0.1))))),
+                    RuleDef("Round Amount Structuring", "Structuring Risk", "Account has repeated near-threshold round-value transactions in one day.", 30, fn("and", gte(field("amount"), const(9_000)), lte(field("amount"), const(10_000)), gte(aggregate("transaction_id", "COUNT", account, filter_node("amount", ">=", const(9_000)), filter_node("amount", "<=", const(10_000)), one_day), const(3)))),
                     RuleDef(
                         "Fast Outflow After Funding",
                         "Source of Funds Risk",
@@ -198,6 +188,16 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
                             fn("in_custom_list", list=const("fraud_staff_numbers"), value=field("account_ref")),
                         ),
                     ),
+                ),
+            ),
+            ScenarioDef(
+                "Source And Processor Abuse Monitoring",
+                always_true(),
+                (
+                    RuleDef("Third-Party Identifier Burst", "Third-Party Risk", "The same third-party identifier appears on more than twenty transactions in one hour.", 25, fn("and", fn("is_not_empty", field("thirdparty_id")), gt(aggregate("transaction_id", "COUNT", thirdparty, one_hour), const(20)))),
+                    RuleDef("Source Identifier Daily Volume Spike", "Source System Risk", "A source identifier produces more than 100000 in transaction value in one day.", 30, fn("and", fn("is_not_empty", field("source_id")), gt(aggregate("amount", "SUM", source, one_day), const(100_000)))),
+                    RuleDef("Terminal High Value Burst", "Terminal Risk", "A terminal processes more than five high-value transactions in one hour.", 30, fn("and", fn("is_not_empty", field("terminal_id")), gt(aggregate("transaction_id", "COUNT", terminal, filter_node("amount", ">=", const(5_000)), one_hour), const(5)))),
+                    RuleDef("Raw Account Reference Mismatch", "Data Consistency Risk", "The normalized account reference differs from the raw account reference on a high-value transaction.", 20, fn("and", gt(field("amount"), const(5_000)), fn("is_not_empty", field("raw_account_ref")), neq(field("account_ref"), field("raw_account_ref")))),
                 ),
             ),
         )

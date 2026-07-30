@@ -60,7 +60,7 @@ You can still run the wrapper directly:
 ./backend/stress-tests/production_replay/run_local_replay.sh
 ```
 
-This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, creates a local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, rebuilds and starts the frontend with the new tenant ID, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. A harness-local Compose override points ingestion's migration, API, and worker at the same tenant-data database as data-model; it does not modify the base Compose file. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
+This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, prepares the requested local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, rebuilds and starts the frontend with the replay tenant ID, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
 
 ## Safety Model
 
@@ -79,7 +79,7 @@ The `fraud-data.json` manifest covers the final June 2026 extract. It discovers 
 - `httpx`
 - `openpyxl`
 - data-model, ingestion, decision-engine, and data-model index worker available in the isolated environment
-- one correctly shared tenant-schema data plane for data-model and ingestion
+- the base Compose single `fraud` database configuration applied to data-model, ingestion, decision-engine, and screening
 
 ## Validated Source Inventory
 

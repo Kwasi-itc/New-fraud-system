@@ -19,6 +19,13 @@ PROGRESS_EVERY ?= 100
 DECISION_CREATE_OUTPUT ?= /tmp/fraud-decision-create-results.ndjson
 DECISION_CREATE_EVENT_DATE ?=
 DECISION_CREATE_RAW_TIMESTAMP ?=
+DECISION_CREATE_MODE ?= sync
+DECISION_CREATE_CONCURRENCY_LEVELS ?= 10,13,15,17,18
+DECISION_CREATE_TENANT_ID ?= e83b4edf-570d-46af-9ff5-c189729a0897
+DECISION_CREATE_SCENARIO_ID ?= 03b820dc-0457-4639-8a65-1b278141c56b
+DECISION_CREATE_CALLBACK_URL ?=
+NEXT_PUBLIC_SERVICE_BASE_URL ?= http://54.246.247.31
+DECISION_ENGINE_FORWARDED_PORT ?= 8082
 DURATION ?=
 HOURS ?=
 DAYS ?=
@@ -27,7 +34,7 @@ BASE_URL ?= http://ec2-54-246-247-31.eu-west-1.compute.amazonaws.com
 DATA_MODEL_URL ?=
 INGESTION_URL ?=
 DECISION_ENGINE_URL ?=
-DECISION_CREATE_URL ?= http://127.0.0.1:8082
+DECISION_CREATE_URL ?= $(NEXT_PUBLIC_SERVICE_BASE_URL):$(DECISION_ENGINE_FORWARDED_PORT)
 TENANT_ID ?=
 SCENARIO_ID ?=
 TENANT_NAME ?= EC2 Production Replay Smoke Test
@@ -106,14 +113,18 @@ create-decisions:
 	DECISION_CREATE_RAW_TIMESTAMP="$(DECISION_CREATE_RAW_TIMESTAMP)" \
 	PYTHONPATH=backend/stress-tests python3 -m production_replay.create_decisions \
 		--decision-engine-url "$(if $(DECISION_ENGINE_URL),$(DECISION_ENGINE_URL),$(DECISION_CREATE_URL))" \
-		--tenant-id "$(TENANT_ID)" \
-		--scenario-id "$(SCENARIO_ID)" \
+		--tenant-id "$(if $(TENANT_ID),$(TENANT_ID),$(DECISION_CREATE_TENANT_ID))" \
+		--scenario-id "$(if $(SCENARIO_ID),$(SCENARIO_ID),$(DECISION_CREATE_SCENARIO_ID))" \
+		--endpoint-mode "$(DECISION_CREATE_MODE)" \
 		--count "$(COUNT)" \
+		--concurrency-levels "$(DECISION_CREATE_CONCURRENCY_LEVELS)" \
 		--wait-timeout-ms "$(ASYNC_WAIT_TIMEOUT_MS)" \
-		--callback-url "$(ASYNC_CALLBACK_URL)" \
+		--callback-url "$(DECISION_CREATE_CALLBACK_URL)" \
 		--progress-every "$(PROGRESS_EVERY)" \
 		--output "$(DECISION_CREATE_OUTPUT)"
 
+create-async-decisions: DECISION_CREATE_MODE=async
+create-async-decisions: DECISION_CREATE_CALLBACK_URL=$(ASYNC_CALLBACK_URL)
 create-async-decisions: create-decisions
 
 consolidate-postgres-db:

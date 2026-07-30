@@ -108,7 +108,7 @@ class EnvironmentSetup:
         await self._ensure_no_scenario_collisions()
         await self._ensure_model()
         references = await self._load_reference_data()
-        lists = await self._ensure_reference_lists(references[2], references[3])
+        lists = await self._ensure_reference_lists(references[2])
         scenarios = await self._create_scenarios(publication_timeout_seconds)
         return {
             "setup_version": 1,
@@ -269,7 +269,7 @@ class EnvironmentSetup:
             await self._ingest_reference("merchant_products", products.records)
         except APIError as exc:
             raise APIError(
-                f"reference ingestion failed. Confirm data-model and ingestion use the same tenant schemas in this environment: {exc}",
+                f"reference ingestion failed. Confirm data-model and ingestion are using the consolidated fraud database and that tenant migrations completed: {exc}",
                 status_code=exc.status_code,
             ) from exc
         return merchants, products, staff, merchant_watchlist
@@ -281,16 +281,12 @@ class EnvironmentSetup:
             key = f"production-replay-setup:{object_type}:{batch_number}:{digest}"
             await self.clients.ingest_batch(self.tenant_id, object_type, batch, key)
 
-    async def _ensure_reference_lists(
-        self, staff: StaffLists, merchant_watchlist: MerchantWatchlist | None
-    ) -> dict[str, int]:
+    async def _ensure_reference_lists(self, staff: StaffLists) -> dict[str, int]:
         values: dict[str, tuple[str, tuple[str, ...]]] = {
             "fraud_staff_numbers": ("string", staff.staff_numbers),
             "fraud_staff_emails": ("email", staff.emails),
             "fraud_staff_msisdns": ("string", staff.msisdns),
         }
-        if merchant_watchlist is not None:
-            values["fraud_merchant_names"] = ("string", merchant_watchlist.names)
         response = await self.clients.request(
             self.clients.decision_engine,
             "GET",

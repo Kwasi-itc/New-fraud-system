@@ -28,7 +28,6 @@ REPLAY_LOG="/tmp/fraud-data-local-replay.log"
 ASYNC_TRACKING_LOG="/tmp/fraud-data-local-async-decisions.ndjson"
 ASYNC_CALLBACK_LOG="/tmp/fraud-data-local-async-callbacks.ndjson"
 ASYNC_CALLBACK_SERVER_LOG="/tmp/fraud-data-local-callback-server.log"
-COMPOSE_OVERRIDE="$SCRIPT_DIR/docker-compose.local-replay.yml"
 CALLBACK_SERVER_PID=""
 AUTO_CALLBACK_SERVER=0
 
@@ -49,7 +48,6 @@ require_command() {
 compose() {
   docker compose --project-directory "$WORKSPACE_DIR" \
     --file "$WORKSPACE_DIR/docker-compose.yml" \
-    --file "$COMPOSE_OVERRIDE" \
     "$@"
 }
 
