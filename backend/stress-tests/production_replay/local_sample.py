@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import heapq
 import json
-import math
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from glob import glob
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 DEFAULT_STREAM_COUNTS = {
@@ -40,13 +41,16 @@ def create_local_sample(
 ) -> int:
     if stream_counts is not None and total_transactions is not None:
         raise ValueError("define either stream counts or total transactions, not both")
-    counts = stream_counts or (
-        _distribute_transactions(total_transactions) if total_transactions is not None else DEFAULT_STREAM_COUNTS
-    )
-    if set(counts) != set(STREAM_SOURCE_PATHS):
-        raise ValueError("local sample counts must define every configured replay stream")
-    if any(count <= 0 for count in counts.values()):
-        raise ValueError("local sample counts must be positive")
+    if total_transactions is not None and total_transactions <= 0:
+        raise ValueError("total transactions must be positive")
+
+    counts = stream_counts if stream_counts is not None else None
+    if total_transactions is None:
+        counts = counts or DEFAULT_STREAM_COUNTS
+        if set(counts) != set(STREAM_SOURCE_PATHS):
+            raise ValueError("local sample counts must define every configured replay stream")
+        if any(count <= 0 for count in counts.values()):
+            raise ValueError("local sample counts must be positive")
 
     manifest = json.loads(base_manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):
@@ -58,16 +62,28 @@ def create_local_sample(
     total = 0
     stream_files = _stream_files(data_root)
 
-    for stream_id, requested_count in counts.items():
-        output_path = output_dir / f"{stream_id}.csv"
-        written = _copy_rows_from_files(stream_files[stream_id], output_path, requested_count)
-        if written != requested_count:
-            stream_root = data_root / Path(STREAM_SOURCE_PATHS[stream_id]).parent
-            raise ValueError(f"{stream_root} contains {written} rows; {requested_count} are required")
-        stream = dict(configured_streams[stream_id])
-        stream["globs"] = [str(output_path)]
-        sample_streams.append(stream)
-        total += written
+    if total_transactions is not None:
+        total, selected_counts = _copy_global_rows(stream_files, output_dir, total_transactions)
+        if total != total_transactions:
+            available = sum(selected_counts.values())
+            raise ValueError(f"configured transaction streams contain {available} rows; {total_transactions} are required")
+        for stream_id in STREAM_SOURCE_PATHS:
+            if selected_counts.get(stream_id, 0) == 0:
+                continue
+            stream = dict(configured_streams[stream_id])
+            stream["globs"] = [str(output_dir / f"{stream_id}.csv")]
+            sample_streams.append(stream)
+    elif counts is not None:
+        for stream_id, requested_count in counts.items():
+            output_path = output_dir / f"{stream_id}.csv"
+            written = _copy_rows_from_files(stream_files[stream_id], output_path, requested_count)
+            if written != requested_count:
+                stream_root = data_root / Path(STREAM_SOURCE_PATHS[stream_id]).parent
+                raise ValueError(f"{stream_root} contains {written} rows; {requested_count} are required")
+            stream = dict(configured_streams[stream_id])
+            stream["globs"] = [str(output_path)]
+            sample_streams.append(stream)
+            total += written
 
     reference_data = manifest["reference_data"]
     reference_data["merchant_globs"] = [str(data_root / "data/dumps/merchant-info-dump/batch_*.json")]
@@ -79,6 +95,15 @@ def create_local_sample(
     manifest["transaction_streams"] = sample_streams
     output_manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return total
+
+
+@dataclass(frozen=True)
+class _StreamRow:
+    stream_id: str
+    source_path: Path
+    row_number: int
+    row: dict[str, str]
+    occurred_at: datetime
 
 
 def create_full_manifest(
@@ -173,33 +198,6 @@ def parse_duration(value: str) -> timedelta:
     return timedelta(weeks=amount)
 
 
-def _distribute_transactions(total_transactions: int) -> dict[str, int]:
-    if total_transactions < len(DEFAULT_STREAM_COUNTS):
-        raise ValueError(
-            f"local replay requires at least {len(DEFAULT_STREAM_COUNTS)} transactions "
-            "so every configured stream is represented"
-        )
-
-    default_total = sum(DEFAULT_STREAM_COUNTS.values())
-    raw_counts = {
-        stream_id: (total_transactions * default_count) / default_total
-        for stream_id, default_count in DEFAULT_STREAM_COUNTS.items()
-    }
-    counts = {stream_id: max(1, math.floor(count)) for stream_id, count in raw_counts.items()}
-    remaining = total_transactions - sum(counts.values())
-    if remaining < 0:
-        raise ValueError(f"could not distribute {total_transactions} transactions across streams")
-
-    remainders = sorted(
-        raw_counts,
-        key=lambda stream_id: (raw_counts[stream_id] - math.floor(raw_counts[stream_id]), stream_id),
-        reverse=True,
-    )
-    for stream_id in remainders[:remaining]:
-        counts[stream_id] += 1
-    return counts
-
-
 def _stream_files(data_root: Path) -> dict[str, list[Path]]:
     result: dict[str, list[Path]] = {}
     for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
@@ -209,6 +207,73 @@ def _stream_files(data_root: Path) -> dict[str, list[Path]]:
             raise ValueError(f"transaction stream {stream_id!r} did not match any files below {stream_root}")
         result[stream_id] = files
     return result
+
+
+def _copy_global_rows(
+    stream_files: dict[str, list[Path]],
+    output_dir: Path,
+    limit: int,
+) -> tuple[int, dict[str, int]]:
+    iterators = [_iter_stream_file(stream_id, path) for stream_id, paths in stream_files.items() for path in paths]
+    heap: list[tuple[datetime, int, _StreamRow, Iterator[_StreamRow]]] = []
+    sequence = 0
+    for iterator in iterators:
+        try:
+            item = next(iterator)
+        except StopIteration:
+            continue
+        heapq.heappush(heap, (item.occurred_at, sequence, item, iterator))
+        sequence += 1
+
+    writers: dict[str, csv.DictWriter[str]] = {}
+    handles: dict[str, Any] = {}
+    headers: dict[str, list[str]] = {}
+    selected_counts = {stream_id: 0 for stream_id in stream_files}
+    total = 0
+    try:
+        while heap and total < limit:
+            _, _, item, iterator = heapq.heappop(heap)
+            writer = writers.get(item.stream_id)
+            if writer is None:
+                fieldnames = list(item.row)
+                headers[item.stream_id] = fieldnames
+                handle = (output_dir / f"{item.stream_id}.csv").open("w", encoding="utf-8", newline="")
+                handles[item.stream_id] = handle
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                writers[item.stream_id] = writer
+            elif headers[item.stream_id] != list(item.row):
+                raise ValueError(f"{item.source_path} headers do not match earlier local sample files")
+
+            writer.writerow(item.row)
+            selected_counts[item.stream_id] += 1
+            total += 1
+
+            try:
+                next_item = next(iterator)
+            except StopIteration:
+                continue
+            heapq.heappush(heap, (next_item.occurred_at, sequence, next_item, iterator))
+            sequence += 1
+        return total, selected_counts
+    finally:
+        for handle in handles.values():
+            handle.close()
+
+
+def _iter_stream_file(stream_id: str, source_path: Path) -> Iterator[_StreamRow]:
+    with source_path.open("r", encoding="utf-8-sig", newline="") as source:
+        reader = csv.DictReader(source)
+        if not reader.fieldnames:
+            raise ValueError(f"local sample source has no CSV header: {source_path}")
+        for row_number, row in enumerate(reader, start=2):
+            yield _StreamRow(
+                stream_id=stream_id,
+                source_path=source_path,
+                row_number=row_number,
+                row=row,
+                occurred_at=_parse_source_timestamp(row, source_path, row_number),
+            )
 
 
 def _earliest_source_timestamp(stream_files: dict[str, list[Path]]) -> datetime:

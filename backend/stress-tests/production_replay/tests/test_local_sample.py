@@ -60,6 +60,79 @@ class LocalSampleTests(unittest.TestCase):
             )
             self.assertEqual(generated_total, 12)
 
+    def test_total_sample_uses_other_streams_when_one_stream_is_short(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_root = root / "data-root"
+            output_dir = root / "sample"
+            manifest_path = root / "manifest.json"
+            output_manifest = root / "sample-manifest.json"
+
+            data_root.mkdir(parents=True)
+            write_minimal_sources(data_root)
+            for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
+                source_path = data_root / relative_path
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                row_count = 1 if stream_id == "genpay-inflow" else 4
+                write_transactions(
+                    source_path,
+                    [
+                        transaction_row(source_trans_id=f"{stream_id}-{index}")
+                        for index in range(1, row_count + 1)
+                    ],
+                )
+
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream(stream_id, "unused.csv") for stream_id in STREAM_SOURCE_PATHS])),
+                encoding="utf-8",
+            )
+
+            total = create_local_sample(
+                manifest_path,
+                data_root,
+                output_dir,
+                output_manifest,
+                total_transactions=12,
+            )
+
+            self.assertEqual(total, 12)
+            generated_manifest = json.loads(output_manifest.read_text(encoding="utf-8"))
+            stream_counts = {
+                configured_stream["id"]: _csv_data_rows(Path(configured_stream["globs"][0]))
+                for configured_stream in generated_manifest["transaction_streams"]
+            }
+            self.assertEqual(stream_counts["genpay-inflow"], 1)
+            self.assertEqual(sum(stream_counts.values()), 12)
+
+    def test_total_sample_reports_combined_capacity_when_sources_are_short(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_root = root / "data-root"
+            output_dir = root / "sample"
+            manifest_path = root / "manifest.json"
+            output_manifest = root / "sample-manifest.json"
+
+            data_root.mkdir(parents=True)
+            write_minimal_sources(data_root)
+            for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
+                source_path = data_root / relative_path
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                write_transactions(source_path, [transaction_row(source_trans_id=f"{stream_id}-1")])
+
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream(stream_id, "unused.csv") for stream_id in STREAM_SOURCE_PATHS])),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "configured transaction streams contain 6 rows; 7 are required"):
+                create_local_sample(
+                    manifest_path,
+                    data_root,
+                    output_dir,
+                    output_manifest,
+                    total_transactions=7,
+                )
+
     def test_transaction_sample_can_span_multiple_files_per_stream(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
