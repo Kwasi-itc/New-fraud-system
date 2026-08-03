@@ -193,6 +193,42 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
 
 An interruption after the previous checkpoint can repeat the current checkpoint window. Ingestion remains idempotent; direct decision callbacks in that incomplete window can be repeated. Reduce `--checkpoint-every` if that recovery window must be smaller.
 
+## Synthetic partition-optimization replay
+
+When production CSV data is unavailable, run the external synthetic harness against
+an existing tenant. It provisions the tenant and creates the minimal `transactions`
+model, UTC daily logical bucket, and published aggregate scenario itself. It then
+creates uniquely named historical transactions and does not require `DATA_ROOT` or
+the production-replay setup:
+
+```bash
+python -m pip install -r backend/stress-tests/production_replay/requirements.txt
+python backend/stress-tests/partition_optimization_replay.py \
+  --tenant-id YOUR_TENANT_ID \
+  --data-model-url http://127.0.0.1:8080 \
+  --ingestion-url http://127.0.0.1:8081 \
+  --decision-engine-url http://127.0.0.1:8082 \
+  --redis-url redis://127.0.0.1:6379/0
+```
+
+The decision engine must use `AGGREGATE_EXECUTION_MODE=direct_cached`, and the data
+model worker must be running. Initial setup can take about five minutes while the
+logical bucket index is prepared and its activation grace period expires; the
+default `--setup-timeout 900` allows for that. The harness verifies and reports:
+
+- synthetic historical backfill through the ingestion API;
+- cold sealed-day cache population;
+- warm reuse with equivalent decisions and no additional keys;
+- generation invalidation after a late sealed-day transaction;
+- an inclusive midnight boundary request;
+- concurrent warm-cache decisions;
+- latency summaries and Redis `aggregate:v2` key-count changes.
+
+Results are printed and written to `partition-optimization-summary.json`. Synthetic
+tenant model changes, records, scenario, and decision history are intentionally
+retained for inspection. Use a disposable tenant if the data must be isolated. Old generation-keyed Redis entries
+also remain because cache cleanup is deferred.
+
 ## Adding Streams
 
 Add one manifest entry per direction, channel, or processor. Streams using `production_transaction_csv_v1` can be combined immediately when they have the same headers and timestamp format. Different formats require a new adapter registered in `adapters/__init__.py`; they do not require scheduler or service changes.

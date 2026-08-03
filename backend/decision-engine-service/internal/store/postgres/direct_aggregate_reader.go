@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -81,10 +81,9 @@ func (r DirectAggregateReader) AggregateRecords(ctx context.Context, tenantID st
 		return nil, ctx.Err()
 	}
 
-	queryCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
-	defer cancel()
-
-	model, err := r.models.GetTenantModel(queryCtx, tenantID)
+	modelCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
+	model, err := r.models.GetTenantModel(modelCtx, tenantID)
+	cancel()
 	if err != nil {
 		return nil, fmt.Errorf("load tenant model for aggregate: %w", err)
 	}
@@ -103,7 +102,9 @@ func (r DirectAggregateReader) AggregateRecords(ctx context.Context, tenantID st
 	now := r.now()
 	plan, ok := buildBucketPlan(model, table, query, now)
 	if !ok || r.cache == nil {
+		queryCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
 		component, err := r.queryComponent(queryCtx, model, table, field, query)
+		cancel()
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +112,21 @@ func (r DirectAggregateReader) AggregateRecords(ctx context.Context, tenantID st
 	}
 
 	combined := aggregateComponent{Aggregate: normalizedAggregate(query.Aggregate)}
+	cacheableParts := make([]aggregatePlanPart, 0, len(plan.Parts))
+	for _, part := range plan.Parts {
+		if part.Cacheable {
+			cacheableParts = append(cacheableParts, part)
+		}
+	}
+	cached := map[time.Time]aggregateComponent{}
+	if len(cacheableParts) > 0 {
+		baseQuery := query
+		baseQuery.Filter = plan.NonTimeFilter
+		cached, err = r.cachedBucketComponents(ctx, tenantID, model, table, field, plan.Definition, cacheableParts, baseQuery)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for _, part := range plan.Parts {
 		partQuery := query
 		baseFilter := query.Filter
@@ -121,9 +137,11 @@ func (r DirectAggregateReader) AggregateRecords(ctx context.Context, tenantID st
 
 		var component aggregateComponent
 		if part.Cacheable {
-			component, err = r.cachedBucketComponent(queryCtx, tenantID, model, table, field, plan.Definition, part.Start, partQuery)
+			component = cached[part.Start]
 		} else {
+			queryCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
 			component, err = r.queryComponent(queryCtx, model, table, field, partQuery)
+			cancel()
 		}
 		if err != nil {
 			return nil, err
@@ -133,95 +151,6 @@ func (r DirectAggregateReader) AggregateRecords(ctx context.Context, tenantID st
 		}
 	}
 	return combined.result(), nil
-}
-
-func (r DirectAggregateReader) cachedBucketComponent(
-	ctx context.Context,
-	tenantID string,
-	model ports.TenantModel,
-	table ports.TenantModelTable,
-	field ports.TenantModelField,
-	definition ports.LogicalBucketDefinition,
-	bucketStart time.Time,
-	query ports.AggregateQuery,
-) (aggregateComponent, error) {
-	for attempt := 0; attempt < 2; attempt++ {
-		generation, err := r.readGeneration(ctx, tenantID, table.ID, definition, bucketStart)
-		if err != nil {
-			slog.Default().Warn("aggregate generation read failed; querying bucket directly", "error", err)
-			return r.queryComponent(ctx, model, table, field, query)
-		}
-		key, err := aggregateCacheKey(tenantID, model, table, definition, bucketStart, generation, query)
-		if err != nil {
-			return aggregateComponent{}, err
-		}
-		cacheCtx, cancelCache := context.WithTimeout(ctx, 100*time.Millisecond)
-		payload, found, cacheErr := r.cache.Get(cacheCtx, key)
-		cancelCache()
-		if cacheErr != nil {
-			slog.Default().Warn("aggregate cache read failed; querying bucket directly", "error", cacheErr)
-		}
-		if cacheErr == nil && found {
-			var component aggregateComponent
-			if json.Unmarshal(payload, &component) == nil {
-				confirmedGeneration, confirmErr := r.readGeneration(ctx, tenantID, table.ID, definition, bucketStart)
-				if confirmErr == nil && confirmedGeneration == generation {
-					return component, nil
-				}
-				if attempt == 0 {
-					continue
-				}
-			}
-		}
-
-		component, err := r.queryComponent(ctx, model, table, field, query)
-		if err != nil {
-			return aggregateComponent{}, err
-		}
-		confirmedGeneration, err := r.readGeneration(ctx, tenantID, table.ID, definition, bucketStart)
-		if err != nil || confirmedGeneration != generation {
-			if attempt == 0 {
-				continue
-			}
-			return component, nil
-		}
-		payload, err = json.Marshal(component)
-		if err != nil {
-			return aggregateComponent{}, err
-		}
-		cacheCtx, cancelCache = context.WithTimeout(ctx, 100*time.Millisecond)
-		cacheErr = r.cache.Set(cacheCtx, key, payload)
-		cancelCache()
-		if cacheErr != nil {
-			slog.Default().Warn("aggregate cache write failed; returning database result", "error", cacheErr)
-		}
-		return component, nil
-	}
-	return r.queryComponent(ctx, model, table, field, query)
-}
-
-func (r DirectAggregateReader) readGeneration(
-	ctx context.Context,
-	tenantID string,
-	tableID string,
-	definition ports.LogicalBucketDefinition,
-	bucketStart time.Time,
-) (int64, error) {
-	const stmt = `
-		SELECT generation
-		FROM core_ingestion.logical_bucket_generations
-		WHERE tenant_id = $1
-		  AND table_id = $2
-		  AND bucket_definition_id = $3
-		  AND definition_version = $4
-		  AND bucket_start_utc = $5
-	`
-	var generation int64
-	err := r.db.QueryRow(ctx, stmt, tenantID, tableID, definition.ID, definition.DefinitionVersion, bucketStart).Scan(&generation)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, nil
-	}
-	return generation, err
 }
 
 type aggregateComponent struct {
@@ -505,7 +434,10 @@ func buildBucketPlan(
 		}
 		start := logicalDayStart(bounds.Lower, location)
 		parts := make([]aggregatePlanPart, 0)
-		for len(parts) <= maxAggregatePlanDays && start.Before(bounds.Upper) {
+		withinUpperBound := func(value time.Time) bool {
+			return value.Before(bounds.Upper) || (bounds.UpperInclusive && value.Equal(bounds.Upper))
+		}
+		for len(parts) <= maxAggregatePlanDays && withinUpperBound(start) {
 			end := nextLogicalDay(start, location)
 			full := (bounds.Lower.Before(start) || (bounds.Lower.Equal(start) && bounds.LowerInclusive)) &&
 				(bounds.Upper.After(end) || bounds.Upper.Equal(end))
@@ -518,7 +450,7 @@ func buildBucketPlan(
 			}
 			start = end
 		}
-		if len(parts) == 0 || start.Before(bounds.Upper) {
+		if len(parts) == 0 || withinUpperBound(start) {
 			continue
 		}
 		return aggregateBucketPlan{
@@ -626,6 +558,10 @@ func aggregateCacheKey(
 	generation int64,
 	query ports.AggregateQuery,
 ) (string, error) {
+	canonicalFilter, err := canonicalAggregateFilter(query.Filter)
+	if err != nil {
+		return "", err
+	}
 	signature, err := json.Marshal(struct {
 		Aggregate string                 `json:"aggregate"`
 		Field     string                 `json:"field"`
@@ -633,14 +569,14 @@ func aggregateCacheKey(
 	}{
 		Aggregate: normalizedAggregate(query.Aggregate),
 		Field:     query.Field,
-		Filter:    query.Filter,
+		Filter:    canonicalFilter,
 	})
 	if err != nil {
 		return "", err
 	}
 	sum := sha256.Sum256(signature)
 	return fmt.Sprintf(
-		"aggregate:v1:%s:%s:%s:%s:%d:%s:%d:%s",
+		"aggregate:v2:%s:%s:%s:%s:%d:%s:%d:%s",
 		tenantID,
 		model.RevisionID,
 		table.ID,
@@ -650,6 +586,268 @@ func aggregateCacheKey(
 		generation,
 		hex.EncodeToString(sum[:]),
 	), nil
+}
+
+type bucketSnapshot struct {
+	Generation int64
+	Component  aggregateComponent
+}
+
+func (r DirectAggregateReader) cachedBucketComponents(
+	ctx context.Context, tenantID string, model ports.TenantModel, table ports.TenantModelTable,
+	field ports.TenantModelField, definition ports.LogicalBucketDefinition,
+	parts []aggregatePlanPart, baseQuery ports.AggregateQuery,
+) (map[time.Time]aggregateComponent, error) {
+	starts := make([]time.Time, len(parts))
+	for i := range parts {
+		starts[i] = parts[i].Start
+	}
+	before, beforeErr := r.readGenerations(ctx, tenantID, table.ID, definition, starts)
+	keys := make(map[time.Time]string, len(parts))
+	keyList := make([]string, 0, len(parts))
+	if beforeErr == nil {
+		for _, start := range starts {
+			key, err := aggregateCacheKey(tenantID, model, table, definition, start, before[start], baseQuery)
+			if err != nil {
+				return nil, err
+			}
+			keys[start] = key
+			keyList = append(keyList, key)
+		}
+	}
+	payloads := map[string][]byte{}
+	if len(keyList) > 0 {
+		cacheCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+		var err error
+		payloads, err = r.cache.GetMany(cacheCtx, keyList)
+		cancel()
+		if err != nil {
+			slog.Default().Warn("aggregate cache batch read failed; querying buckets directly", "error", err)
+			payloads = map[string][]byte{}
+		}
+	}
+	after, afterErr := r.readGenerations(ctx, tenantID, table.ID, definition, starts)
+	result := make(map[time.Time]aggregateComponent, len(parts))
+	missing := make([]aggregatePlanPart, 0, len(parts))
+	for _, part := range parts {
+		if beforeErr == nil && afterErr == nil && before[part.Start] == after[part.Start] {
+			if payload, found := payloads[keys[part.Start]]; found {
+				var component aggregateComponent
+				if json.Unmarshal(payload, &component) == nil {
+					result[part.Start] = component
+					continue
+				}
+			}
+		}
+		missing = append(missing, part)
+	}
+	if len(missing) == 0 {
+		return result, nil
+	}
+	snapshots, err := r.queryBucketSnapshots(ctx, tenantID, model, table, field, definition, missing, baseQuery)
+	if err != nil {
+		return nil, err
+	}
+	writes := make(map[string][]byte, len(snapshots))
+	for start, snapshot := range snapshots {
+		result[start] = snapshot.Component
+		key, err := aggregateCacheKey(tenantID, model, table, definition, start, snapshot.Generation, baseQuery)
+		if err != nil {
+			return nil, err
+		}
+		payload, err := json.Marshal(snapshot.Component)
+		if err != nil {
+			return nil, err
+		}
+		writes[key] = payload
+	}
+	cacheCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	err = r.cache.SetMany(cacheCtx, writes)
+	cancel()
+	if err != nil {
+		slog.Default().Warn("aggregate cache batch write failed; returning database results", "error", err)
+	}
+	return result, nil
+}
+
+func (r DirectAggregateReader) readGenerations(ctx context.Context, tenantID, tableID string, definition ports.LogicalBucketDefinition, starts []time.Time) (map[time.Time]int64, error) {
+	result := make(map[time.Time]int64, len(starts))
+	for _, start := range starts {
+		result[start] = 0
+	}
+	if len(starts) == 0 {
+		return result, nil
+	}
+	queryCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
+	defer cancel()
+	rows, err := r.db.Query(queryCtx, `SELECT bucket_start_utc, generation FROM core_ingestion.logical_bucket_generations WHERE tenant_id=$1 AND table_id=$2 AND bucket_definition_id=$3 AND definition_version=$4 AND bucket_start_utc = ANY($5::timestamptz[])`, tenantID, tableID, definition.ID, definition.DefinitionVersion, starts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var start time.Time
+		var generation int64
+		if err := rows.Scan(&start, &generation); err != nil {
+			return nil, err
+		}
+		result[start.UTC()] = generation
+	}
+	return result, rows.Err()
+}
+
+func (r DirectAggregateReader) queryBucketSnapshots(
+	ctx context.Context, tenantID string, model ports.TenantModel, table ports.TenantModelTable,
+	field ports.TenantModelField, definition ports.LogicalBucketDefinition,
+	parts []aggregatePlanPart, baseQuery ports.AggregateQuery,
+) (map[time.Time]bucketSnapshot, error) {
+	expression, scanCount, err := directAggregateExpression(normalizedAggregate(baseQuery.Aggregate), field)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(model.PhysicalSchemaName) == "" {
+		return nil, fmt.Errorf("published tenant model is missing physical_schema_name")
+	}
+	statements := make([]string, 0, len(parts))
+	args := make([]any, 0)
+	for _, part := range parts {
+		startArg := len(args) + 1
+		args = append(args, part.Start)
+		endArg := len(args) + 1
+		args = append(args, part.End)
+		tenantArg := len(args) + 1
+		args = append(args, tenantID)
+		tableArg := len(args) + 1
+		args = append(args, table.ID)
+		definitionArg := len(args) + 1
+		args = append(args, definition.ID)
+		versionArg := len(args) + 1
+		args = append(args, definition.DefinitionVersion)
+		where := fmt.Sprintf("%s >= $%d AND %s < $%d", pgx.Identifier{definition.TimestampFieldName}.Sanitize(), startArg, pgx.Identifier{definition.TimestampFieldName}.Sanitize(), endArg)
+		if baseQuery.Filter != nil {
+			filterSQL, err := buildDirectAggregateFilter(model, table, *baseQuery.Filter, &args)
+			if err != nil {
+				return nil, err
+			}
+			if filterSQL != "" {
+				where += " AND (" + filterSQL + ")"
+			}
+		}
+		statements = append(statements, fmt.Sprintf(`SELECT $%d::timestamptz AS bucket_start, COALESCE((SELECT generation FROM core_ingestion.logical_bucket_generations WHERE tenant_id=$%d AND table_id=$%d AND bucket_definition_id=$%d AND definition_version=$%d AND bucket_start_utc=$%d),0)::bigint AS generation, %s FROM %s WHERE %s`, startArg, tenantArg, tableArg, definitionArg, versionArg, startArg, expression, pgx.Identifier{model.PhysicalSchemaName, table.Name}.Sanitize(), where))
+	}
+	queryCtx, cancel := context.WithTimeout(ctx, r.queryTimeout)
+	defer cancel()
+	rows, err := r.db.Query(queryCtx, strings.Join(statements, " UNION ALL "), args...)
+	if err != nil {
+		return nil, fmt.Errorf("execute snapshot aggregate batch: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[time.Time]bucketSnapshot, len(parts))
+	for rows.Next() {
+		var start time.Time
+		var generation int64
+		component := aggregateComponent{Aggregate: normalizedAggregate(baseQuery.Aggregate)}
+		if scanCount == 2 {
+			err = rows.Scan(&start, &generation, &component.Number, &component.Count)
+		} else {
+			var value any
+			err = rows.Scan(&start, &generation, &value)
+			if err == nil {
+				switch component.Aggregate {
+				case "count":
+					component.Count, err = int64Value(value)
+				case "sum":
+					component.Number, err = float64Value(value)
+				case "min", "max":
+					component.Scalar, component.HasScalar = normalizeAggregateScalar(value, field.Type)
+				}
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		result[start.UTC()] = bucketSnapshot{generation, component}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func canonicalAggregateFilter(filter *ports.AggregateFilter) (*ports.AggregateFilter, error) {
+	if filter == nil {
+		return nil, nil
+	}
+	item := *filter
+	item.Kind = strings.ToLower(strings.TrimSpace(item.Kind))
+	if item.Kind == "" {
+		item.Kind = "group"
+	}
+	switch item.Kind {
+	case "predicate":
+		item.Op = strings.ToLower(strings.TrimSpace(item.Op))
+		item.Operator = ""
+		item.Children = nil
+		if item.Op == "in" {
+			values, ok := item.Value.([]any)
+			if !ok {
+				return nil, fmt.Errorf("in filter expects a list value")
+			}
+			type encodedValue struct {
+				encoded string
+				value   any
+			}
+			encoded := make([]encodedValue, 0, len(values))
+			seen := map[string]struct{}{}
+			for _, value := range values {
+				payload, err := json.Marshal(value)
+				if err != nil {
+					return nil, err
+				}
+				key := string(payload)
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+				encoded = append(encoded, encodedValue{key, value})
+			}
+			sort.Slice(encoded, func(i, j int) bool { return encoded[i].encoded < encoded[j].encoded })
+			item.Value = make([]any, len(encoded))
+			for i := range encoded {
+				item.Value.([]any)[i] = encoded[i].value
+			}
+		}
+		return &item, nil
+	case "group":
+		item.Operator = strings.ToLower(strings.TrimSpace(item.Operator))
+		if item.Operator == "" {
+			item.Operator = "and"
+		}
+		item.Op, item.Field, item.Value = "", "", nil
+		children := make([]ports.AggregateFilter, 0, len(item.Children))
+		for i := range item.Children {
+			child, err := canonicalAggregateFilter(&item.Children[i])
+			if err != nil {
+				return nil, err
+			}
+			if (item.Operator == "and" || item.Operator == "or") && child.Kind == "group" && child.Operator == item.Operator {
+				children = append(children, child.Children...)
+			} else {
+				children = append(children, *child)
+			}
+		}
+		if item.Operator == "and" || item.Operator == "or" {
+			sort.Slice(children, func(i, j int) bool {
+				left, _ := json.Marshal(children[i])
+				right, _ := json.Marshal(children[j])
+				return string(left) < string(right)
+			})
+		}
+		item.Children = children
+		return &item, nil
+	default:
+		return nil, fmt.Errorf("filter kind %q is not supported", item.Kind)
+	}
 }
 
 func resolveAggregateTable(model ports.TenantModel, objectType string) (ports.TenantModelTable, error) {

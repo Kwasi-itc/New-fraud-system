@@ -15,8 +15,9 @@ import (
 )
 
 type aggregateTestDB struct {
-	rows []aggregateTestRow
-	sql  []string
+	rows      []aggregateTestRow
+	queryRows [][]aggregateTestRow
+	sql       []string
 }
 
 type aggregateTestRow struct {
@@ -34,9 +35,37 @@ func (db *aggregateTestDB) QueryRow(_ context.Context, sql string, _ ...any) pgx
 	return row
 }
 
-func (db *aggregateTestDB) Query(context.Context, string, ...any) (pgx.Rows, error) {
-	return nil, errors.New("unexpected Query")
+func (db *aggregateTestDB) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+	db.sql = append(db.sql, sql)
+	if len(db.queryRows) == 0 {
+		return nil, errors.New("unexpected Query")
+	}
+	rows := &aggregateTestRows{rows: db.queryRows[0]}
+	db.queryRows = db.queryRows[1:]
+	return rows, nil
 }
+
+type aggregateTestRows struct {
+	rows    []aggregateTestRow
+	current aggregateTestRow
+}
+
+func (r *aggregateTestRows) Close()                                       {}
+func (r *aggregateTestRows) Err() error                                   { return nil }
+func (r *aggregateTestRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *aggregateTestRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *aggregateTestRows) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	r.current = r.rows[0]
+	r.rows = r.rows[1:]
+	return true
+}
+func (r *aggregateTestRows) Scan(destinations ...any) error { return r.current.Scan(destinations...) }
+func (r *aggregateTestRows) Values() ([]any, error)         { return r.current.values, r.current.err }
+func (r *aggregateTestRows) RawValues() [][]byte            { return nil }
+func (r *aggregateTestRows) Conn() *pgx.Conn                { return nil }
 
 func (db *aggregateTestDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
 	return pgconn.CommandTag{}, errors.New("unexpected Exec")
@@ -57,6 +86,8 @@ func (row aggregateTestRow) Scan(destinations ...any) error {
 			*destination = value.(int64)
 		case *float64:
 			*destination = value.(float64)
+		case *time.Time:
+			*destination = value.(time.Time)
 		default:
 			return errors.New("unexpected scan destination type")
 		}
@@ -127,6 +158,26 @@ func (c *aggregateTestCache) Set(_ context.Context, key string, value []byte) er
 	return nil
 }
 
+func (c *aggregateTestCache) GetMany(_ context.Context, keys []string) (map[string][]byte, error) {
+	c.getCalls++
+	result := map[string][]byte{}
+	if c.found {
+		for _, key := range keys {
+			result[key] = c.value
+			c.lastKey = key
+		}
+	}
+	return result, nil
+}
+
+func (c *aggregateTestCache) SetMany(_ context.Context, values map[string][]byte) error {
+	c.setCalls++
+	for key, value := range values {
+		c.lastKey, c.value, c.found = key, value, true
+	}
+	return nil
+}
+
 func TestDirectAggregateReaderQueriesPublishedPhysicalTable(t *testing.T) {
 	t.Parallel()
 
@@ -168,9 +219,10 @@ func TestDirectAggregateReaderUsesCachedSealedBucket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db := &aggregateTestDB{rows: []aggregateTestRow{
-		{values: []any{int64(4)}},
-		{values: []any{int64(4)}},
+	start := time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC)
+	db := &aggregateTestDB{queryRows: [][]aggregateTestRow{
+		{{values: []any{start, int64(4)}}},
+		{{values: []any{start, int64(4)}}},
 	}}
 	cache := &aggregateTestCache{value: cachePayload, found: true}
 	reader := NewDirectAggregateReader(
@@ -184,7 +236,7 @@ func TestDirectAggregateReaderUsesCachedSealedBucket(t *testing.T) {
 	reader.now = func() time.Time { return now }
 
 	value, err := reader.AggregateRecords(t.Context(), "tenant-1", aggregateTestQuery(
-		time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC),
+		start,
 		time.Date(2026, 7, 26, 0, 0, 0, 0, time.UTC),
 	))
 	if err != nil {
@@ -207,10 +259,11 @@ func TestDirectAggregateReaderPopulatesCacheOnFirstStableMiss(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	db := &aggregateTestDB{rows: []aggregateTestRow{
-		{values: []any{int64(4)}},
-		{values: []any{int64(6)}},
-		{values: []any{int64(4)}},
+	start := time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC)
+	db := &aggregateTestDB{queryRows: [][]aggregateTestRow{
+		{{values: []any{start, int64(4)}}},
+		{{values: []any{start, int64(4)}}},
+		{{values: []any{start, int64(4), int64(6)}}},
 	}}
 	cache := &aggregateTestCache{}
 	reader := NewDirectAggregateReader(
@@ -224,7 +277,7 @@ func TestDirectAggregateReaderPopulatesCacheOnFirstStableMiss(t *testing.T) {
 	reader.now = func() time.Time { return now }
 
 	value, err := reader.AggregateRecords(t.Context(), "tenant-1", aggregateTestQuery(
-		time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC),
+		start,
 		time.Date(2026, 7, 26, 0, 0, 0, 0, time.UTC),
 	))
 	if err != nil {
@@ -239,13 +292,11 @@ func TestDirectAggregateReaderRetriesChangedGeneration(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	db := &aggregateTestDB{rows: []aggregateTestRow{
-		{values: []any{int64(4)}},
-		{values: []any{int64(6)}},
-		{values: []any{int64(5)}},
-		{values: []any{int64(5)}},
-		{values: []any{int64(7)}},
-		{values: []any{int64(5)}},
+	start := time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC)
+	db := &aggregateTestDB{queryRows: [][]aggregateTestRow{
+		{{values: []any{start, int64(4)}}},
+		{{values: []any{start, int64(5)}}},
+		{{values: []any{start, int64(5), int64(7)}}},
 	}}
 	cache := &aggregateTestCache{}
 	reader := NewDirectAggregateReader(
@@ -259,7 +310,7 @@ func TestDirectAggregateReaderRetriesChangedGeneration(t *testing.T) {
 	reader.now = func() time.Time { return now }
 
 	value, err := reader.AggregateRecords(t.Context(), "tenant-1", aggregateTestQuery(
-		time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC),
+		start,
 		time.Date(2026, 7, 26, 0, 0, 0, 0, time.UTC),
 	))
 	if err != nil {
@@ -267,6 +318,36 @@ func TestDirectAggregateReaderRetriesChangedGeneration(t *testing.T) {
 	}
 	if value != int64(7) || cache.setCalls != 1 {
 		t.Fatalf("value/set calls = %#v/%d, want 7/1 after retry", value, cache.setCalls)
+	}
+}
+
+func TestDirectAggregateReaderBatchesColdMultiDayBuckets(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	generationRows := make([]aggregateTestRow, 14)
+	snapshotRows := make([]aggregateTestRow, 14)
+	for i := 0; i < 14; i++ {
+		bucketStart := start.AddDate(0, 0, i)
+		generationRows[i] = aggregateTestRow{values: []any{bucketStart, int64(1)}}
+		snapshotRows[i] = aggregateTestRow{values: []any{bucketStart, int64(1), int64(1)}}
+	}
+	db := &aggregateTestDB{queryRows: [][]aggregateTestRow{generationRows, generationRows, snapshotRows}}
+	reader := NewDirectAggregateReader(&aggregateTestRecords{}, db, aggregateTestModelReader{model: aggregateTestModel(ptrTime(now.Add(-24 * time.Hour)))}, &aggregateTestCache{}, time.Second, 1)
+	reader.now = func() time.Time { return now }
+
+	value, err := reader.AggregateRecords(t.Context(), "tenant-1", aggregateTestQuery(start, start.AddDate(0, 0, 14)))
+	if err != nil {
+		t.Fatalf("AggregateRecords() error = %v", err)
+	}
+	if value != int64(14) {
+		t.Fatalf("AggregateRecords() = %#v, want 14", value)
+	}
+	if len(db.sql) != 3 {
+		t.Fatalf("database query count = %d, want 3 regardless of bucket count", len(db.sql))
+	}
+	if !strings.Contains(db.sql[2], "UNION ALL") {
+		t.Fatalf("snapshot query was not batched: %s", db.sql[2])
 	}
 }
 
@@ -295,6 +376,58 @@ func TestBuildBucketPlanUsesLocalDSTDayBoundaries(t *testing.T) {
 	}
 	if len(plan.Parts) != 1 || plan.Parts[0].End.Sub(plan.Parts[0].Start) != 23*time.Hour {
 		t.Fatalf("plan parts = %#v, want one 23-hour local day", plan.Parts)
+	}
+}
+
+func TestBuildBucketPlanPreservesInclusiveUpperDayBoundary(t *testing.T) {
+	t.Parallel()
+	start := time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC)
+	end := start.Add(24 * time.Hour)
+	eligible := start.Add(-time.Hour)
+	model := aggregateTestModel(&eligible)
+	model.LogicalBuckets[0].SealDelay = 0
+	query := aggregateTestQuery(start, end)
+	query.Filter.Children[1].Op = "lte"
+
+	plan, ok := buildBucketPlan(model, model.Tables["transactions"], query, end.Add(48*time.Hour))
+	if !ok {
+		t.Fatal("buildBucketPlan() supported = false, want true")
+	}
+	if len(plan.Parts) != 2 {
+		t.Fatalf("parts = %#v, want sealed day plus boundary part", plan.Parts)
+	}
+	if !plan.Parts[0].Cacheable || plan.Parts[1].Cacheable || !plan.Parts[1].Start.Equal(end) {
+		t.Fatalf("parts = %#v, want cacheable day followed by live boundary", plan.Parts)
+	}
+}
+
+func TestAggregateCacheKeyCanonicalizesEquivalentFilters(t *testing.T) {
+	t.Parallel()
+	model := aggregateTestModel(nil)
+	table := model.Tables["transactions"]
+	definition := ports.LogicalBucketDefinition{ID: "bucket-1", DefinitionVersion: 1}
+	start := time.Date(2026, 7, 25, 0, 0, 0, 0, time.UTC)
+	left := ports.AggregateQuery{Aggregate: " COUNT ", Field: "amount", Filter: &ports.AggregateFilter{Kind: "GROUP", Operator: "AND", Children: []ports.AggregateFilter{
+		{Kind: "predicate", Field: "amount", Op: "IN", Value: []any{3.0, 1.0, 3.0}},
+		{Kind: "predicate", Field: "occurred_at", Op: "GTE", Value: start},
+	}}}
+	right := ports.AggregateQuery{Aggregate: "count", Field: "amount", Filter: &ports.AggregateFilter{Kind: "group", Operator: "and", Children: []ports.AggregateFilter{
+		{Kind: "predicate", Field: "occurred_at", Op: "gte", Value: start},
+		{Kind: "predicate", Field: "amount", Op: "in", Value: []any{1.0, 3.0}},
+	}}}
+	leftKey, err := aggregateCacheKey("tenant-1", model, table, definition, start, 2, left)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightKey, err := aggregateCacheKey("tenant-1", model, table, definition, start, 2, right)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if leftKey != rightKey {
+		t.Fatalf("equivalent filters produced different keys:\n%s\n%s", leftKey, rightKey)
+	}
+	if !strings.Contains(leftKey, "aggregate:v2:") {
+		t.Fatalf("key %q does not use v2 namespace", leftKey)
 	}
 }
 

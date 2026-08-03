@@ -188,6 +188,8 @@ Current behavior:
 - `direct` executes complete PostgreSQL aggregates and prohibits the 5,000-row local fallback
 - `direct_cached` additionally caches complete, sealed daily bucket components in Redis
 - cache keys include model revision, bucket definition version, and the durable ingestion generation
+- generation checks and Redis reads are batched; cold sealed buckets are calculated in one PostgreSQL statement snapshot
+- cache signatures canonicalize equivalent filter ordering, operator casing, and `in` value ordering
 - Redis errors are cache misses; PostgreSQL errors fail rule evaluation
 - cache entries have no TTL and Redis uses bounded-memory LFU eviction
 - `count_distinct` is rejected in direct modes because distinct values cannot be safely merged from scalar bucket results
@@ -205,7 +207,7 @@ Current configuration:
   - `legacy`, `direct`, or `direct_cached`
   - default: `legacy`
 - `AGGREGATE_QUERY_TIMEOUT`
-  - deadline for model lookup, generation reads, cache calls, and aggregate SQL
+  - per-operation deadline for model lookup, each generation batch, and each aggregate SQL statement; the caller context remains the overall deadline
 - `AGGREGATE_DB_CONCURRENCY`
   - per-process upper bound for concurrent direct aggregate calls
 - `REDIS_URL`

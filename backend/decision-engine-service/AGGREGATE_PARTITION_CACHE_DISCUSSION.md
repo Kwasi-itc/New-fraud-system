@@ -1039,6 +1039,13 @@ aggregate waits must not consume every connection needed for decision writes and
 River jobs. This is connection-pool isolation inside the decision service, not a
 return to separate databases.
 
+The implemented cold-cache path batches generation reads and Redis operations. All
+missing sealed-day components are returned by one `UNION ALL` PostgreSQL statement,
+so their generation and aggregate values share the same MVCC statement snapshot.
+The configured query timeout applies separately to each bounded database operation;
+the request context remains the overall deadline. Cache hits are accepted only when
+batched generation reads before and after the Redis lookup agree.
+
 #### Redis Addition
 
 The decision engine currently has no Redis dependency, configuration, or container.
@@ -1053,6 +1060,10 @@ allkeys-lfu eviction policy
 cache metrics
 periodic cleanup worker
 ```
+
+Cache metrics, admission policy, obsolete-generation cleanup, and retired-definition
+cleanup remain deferred. Redis bounded-memory LFU eviction is the current memory
+safety mechanism.
 
 Redis must not be a readiness dependency. Missing configuration, connection failure,
 timeout, eviction, or a malformed cached value all produce a cache miss and direct

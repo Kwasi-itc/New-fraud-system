@@ -1,0 +1,59 @@
+{
+  "phases": {
+    "cold_cache": {
+      "latency_ms": 115.38,
+      "new_cache_keys": 9
+    },
+    "concurrent_warm_cache": {
+      "concurrency": 10,
+      "max_ms": 175.65,
+      "median_ms": 84.05,
+      "min_ms": 28.14,
+      "p95_ms": 155.81,
+      "requests": 20
+    },
+    "generation_invalidation": {
+      "late_transaction_timestamp": "2026-07-19T12:00:00Z",
+      "latency_ms": 15.31,
+      "new_generation_keys": 1
+    },
+    "inclusive_boundary": {
+      "expected_rule": "One Hour Transfer Burst",
+      "latency_ms": 16.49,
+      "status": "passed",
+      "timestamp": "2026-07-28T00:00:00Z"
+    },
+    "synthetic_backfill": {
+      "days": 10,
+      "first_timestamp": "2026-07-18T01:08:34Z",
+      "last_timestamp": "2026-07-27T22:51:25Z",
+      "latency_ms": 377.54,
+      "transactions": 200
+    },
+    "warm_cache": {
+      "max_ms": 16.55,
+      "median_ms": 14.79,
+      "min_ms": 10.68,
+      "new_cache_keys": 0,
+      "p95_ms": 15.95
+    }
+  },
+  "redis": {
+    "keys_after": 11,
+    "keys_before": 0,
+    "note": "old generation keys remain because cache cleanup is intentionally deferred"
+  },
+  "run_id": "3e6059919a50",
+  "setup": {
+    "created_bucket": false,
+    "created_fields": [],
+    "created_table": false,
+    "scenario": {
+      "created": false,
+      "id": "bac84dc7-e7c8-447b-a89a-6dfbb6b60072",
+      "published": true
+    }
+  },
+  "status": "passed",
+  "tenant_id": "87ff91f8-d789-4101-a0a4-fd31780e82b9"
+}

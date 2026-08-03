@@ -36,6 +36,8 @@ type TenantDataReader interface {
 type AggregateCache interface {
 	Get(ctx context.Context, key string) (value []byte, found bool, err error)
 	Set(ctx context.Context, key string, value []byte) error
+	GetMany(ctx context.Context, keys []string) (map[string][]byte, error)
+	SetMany(ctx context.Context, values map[string][]byte) error
 }
 
 // AggregateFallbackPolicy lets direct readers prohibit the evaluator's bounded

@@ -34,6 +34,40 @@ func (c *AggregateCache) Set(ctx context.Context, key string, value []byte) erro
 	return c.client.Set(ctx, key, value, 0).Err()
 }
 
+func (c *AggregateCache) GetMany(ctx context.Context, keys []string) (map[string][]byte, error) {
+	result := make(map[string][]byte, len(keys))
+	if len(keys) == 0 {
+		return result, nil
+	}
+	values, err := c.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+	for i, value := range values {
+		if value == nil {
+			continue
+		}
+		switch item := value.(type) {
+		case string:
+			result[keys[i]] = []byte(item)
+		case []byte:
+			result[keys[i]] = item
+		}
+	}
+	return result, nil
+}
+
+func (c *AggregateCache) SetMany(ctx context.Context, values map[string][]byte) error {
+	if len(values) == 0 {
+		return nil
+	}
+	items := make([]any, 0, len(values)*2)
+	for key, value := range values {
+		items = append(items, key, value)
+	}
+	return c.client.MSet(ctx, items...).Err()
+}
+
 func (c *AggregateCache) Ping(ctx context.Context) error {
 	return c.client.Ping(ctx).Err()
 }
