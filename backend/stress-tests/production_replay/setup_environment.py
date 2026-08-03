@@ -208,20 +208,51 @@ class EnvironmentSetup:
                 if existing is not None and not spec.nullable and existing.get("nullable") is not False:
                     raise APIError(f"existing field {table_name}.{spec.name} must be non-nullable for replay setup")
                 if existing is None:
-                    existing = (
-                        await self.clients.request(
-                            self.clients.data_model,
-                            "POST",
-                            f"/v1/tables/{table['id']}/fields",
-                            201,
-                            json={
-                                "name": spec.name,
-                                "data_type": spec.data_type,
-                                "nullable": spec.nullable,
-                                "is_unique": spec.unique,
-                            },
-                        )
-                    )["field"]
+                    field_path = f"/v1/tables/{table['id']}/fields"
+                    field_payload = {
+                        "name": spec.name,
+                        "data_type": spec.data_type,
+                        "nullable": spec.nullable,
+                        "is_unique": spec.unique,
+                    }
+
+                    last_error: APIError | None = None
+
+                    for attempt in range(1, 11):
+                        try:
+                            existing = (
+                                await self.clients.request(
+                                    self.clients.data_model,
+                                    "POST",
+                                    field_path,
+                                    201,
+                                    json=field_payload,
+                                )
+                            )["field"]
+                            break
+                        except APIError as exc:
+                            last_error = exc
+                            message = str(exc).lower()
+
+                            if (
+                                "deadlock detected" not in message
+                                and "sqlstate 40p01" not in message
+                            ):
+                                raise
+
+                            if attempt == 10:
+                                raise
+
+                            delay = min(float(attempt), 5.0)
+                            print(
+                                f"deadlock creating {table_name}.{spec.name}; "
+                                f"retrying in {delay:g}s "
+                                f"(attempt {attempt}/10)"
+                            )
+                            await asyncio.sleep(delay)
+                    else:
+                        assert last_error is not None
+                        raise last_error
                 self.fields[table_name][spec.name] = existing
         await self._ensure_links()
         await self.clients.request(
