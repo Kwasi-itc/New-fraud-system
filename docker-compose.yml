@@ -64,6 +64,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      data-model-migrate:
+        condition: service_completed_successfully
     restart: "no"
 
   decision-engine-migrate:
@@ -80,6 +82,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ingestion-migrate:
+        condition: service_completed_successfully
     restart: "no"
 
   screening-migrate:
@@ -94,6 +98,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      decision-engine-migrate:
+        condition: service_completed_successfully
     restart: "no"
 
   # case-manager-migrate:
