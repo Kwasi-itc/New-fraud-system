@@ -8,7 +8,7 @@ from typing import Any
 
 from production_replay.api_client import APIError
 from production_replay.domain import TransactionEvent
-from production_replay.replay import ReplayCursor, ReplayMetrics, TransactionChain, schedule_events
+from production_replay.replay import ReplayCursor, ReplayMetrics, TransactionChain, build_error_breakdown, schedule_events
 
 
 def event(name: str, at: datetime, sequence: int | None = None) -> TransactionEvent:
@@ -149,6 +149,56 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(restored.completed, 2)
         self.assertEqual(restored.ingestion_latencies_ms.summary()["count"], 2)
         self.assertEqual(restored.ingestion_latencies_ms.summary()["avg_ms"], 15.3)
+
+    def test_error_breakdown_separates_ingestion_and_callback_failures(self) -> None:
+        breakdown = build_error_breakdown(
+            [
+                {
+                    "stage": "decision",
+                    "error": (
+                        'POST http://127.0.0.1:8082/v1/tenants/t1/ingestion-events/record-ingested returned 400, '
+                        'expected [200]: {"error":"record_ingested_processing_failed","details":"context deadline exceeded"}'
+                    ),
+                },
+                {
+                    "stage": "ingestion",
+                    "error": (
+                        'POST http://127.0.0.1:8081/v1/tenants/t1/records/transactions returned 400, '
+                        'expected [200]: {"error":"validation_failed","details":"required field missing"}'
+                    ),
+                },
+            ]
+        )
+        self.assertEqual(breakdown["by_stage"], {"decision": 1, "ingestion": 1})
+        self.assertEqual(breakdown["by_route_hint"]["decision_callback"], 1)
+        self.assertEqual(breakdown["by_route_hint"]["record_write"], 1)
+        self.assertEqual(breakdown["by_classification"]["decision.record_ingested_processing_failed.timeout"], 1)
+        self.assertEqual(breakdown["by_classification"]["ingestion.validation"], 1)
+        self.assertEqual(breakdown["by_status_code"], {"400": 2})
+
+    async def test_chain_writes_full_error_log(self) -> None:
+        class FakeClients:
+            async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
+                raise APIError("POST http://127.0.0.1:8081/v1/tenants/t1/records/transactions returned 429, expected [200]", status_code=429)
+
+        metrics = ReplayMetrics()
+        error_log = Path(self.id().replace("/", "_") + ".errors.ndjson")
+        try:
+            chain = TransactionChain(  # type: ignore[arg-type]
+                FakeClients(),
+                "tenant",
+                metrics,
+                1,
+                error_log_path=error_log,
+            )
+            await chain(event("tx", datetime.now(timezone.utc)), 0.0)
+            lines = error_log.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(lines), 1)
+            self.assertEqual(metrics.ingestion_failures, 1)
+            self.assertEqual(len(metrics.errors), 1)
+        finally:
+            if error_log.exists():
+                error_log.unlink()
 
 
 if __name__ == "__main__":

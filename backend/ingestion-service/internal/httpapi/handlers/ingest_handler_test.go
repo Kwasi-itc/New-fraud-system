@@ -24,9 +24,10 @@ func TestIngestHandlerRejectsNonObjectPayload(t *testing.T) {
 	handler := NewIngestHandler(service.NewIngestService(
 		stubDataModelReader{},
 		stubTransactionManager{},
+		nil,
 		stubIDGenerator{},
 		stubClock{},
-	))
+	), IngestHandlerConfig{})
 	router := gin.New()
 	router.POST("/v1/tenants/:tenantId/ingest/:objectType", handler.PostIngest)
 
@@ -42,6 +43,76 @@ func TestIngestHandlerRejectsNonObjectPayload(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAggregateHandlerRejectsWhenConcurrencyLimitReached(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	handler := NewIngestHandler(service.NewIngestService(
+		stubDataModelReader{},
+		stubTransactionManager{},
+		nil,
+		stubIDGenerator{},
+		stubClock{},
+	), IngestHandlerConfig{
+		AggregateQueryConcurrencyLimit: 1,
+		AggregateQueryTimeout:          time.Second,
+	})
+	handler.aggregateLimiter <- struct{}{}
+	defer func() { <-handler.aggregateLimiter }()
+
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/query/aggregate", handler.AggregateRecords)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/11111111-1111-1111-1111-111111111111/query/aggregate",
+		bytes.NewBufferString(`{"object_type":"transactions","aggregate":"count","field":"status"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestIngestHandlerRejectsWhenWriteConcurrencyLimitReached(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	writeLimiter := make(chan struct{}, 1)
+	handler := NewIngestHandler(service.NewIngestService(
+		stubDataModelReader{},
+		stubTransactionManager{},
+		nil,
+		stubIDGenerator{},
+		stubClock{},
+	), IngestHandlerConfig{
+		WritePathLimiter: writeLimiter,
+	})
+	writeLimiter <- struct{}{}
+	defer func() { <-writeLimiter }()
+
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/ingest/:objectType", handler.PostIngest)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/11111111-1111-1111-1111-111111111111/ingest/transactions",
+		bytes.NewBufferString(`{"status":"ok"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

@@ -11,12 +11,15 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/requestctx"
 )
 
 type HTTPClient struct {
 	baseURL string
 	client  *http.Client
 }
+
+const requestIDHeader = "X-Request-ID"
 
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
@@ -33,6 +36,7 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 	if err != nil {
 		return ingestion.PublishedDataModel{}, fmt.Errorf("create request: %w", err)
 	}
+	attachRequestID(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -149,4 +153,13 @@ type fieldEnumValueModel struct {
 	ID    uuid.UUID `json:"id"`
 	Value string    `json:"value"`
 	Label string    `json:"label"`
+}
+
+func attachRequestID(req *http.Request) {
+	if req == nil {
+		return
+	}
+	if requestID := requestctx.RequestID(req.Context()); requestID != "" {
+		req.Header.Set(requestIDHeader, requestID)
+	}
 }

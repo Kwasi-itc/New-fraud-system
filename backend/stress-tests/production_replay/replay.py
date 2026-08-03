@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable
@@ -150,6 +151,7 @@ class ReplayMetrics:
             "max_observed_concurrency": self.max_observed_concurrency,
             "streams": self.streams,
             "sampled_errors": self.errors,
+            "sampled_error_breakdown": build_error_breakdown(self.errors),
             "acceptance_thresholds": None,
         }
 
@@ -215,6 +217,7 @@ class TransactionChain:
         async_wait_timeout_ms: int = 0,
         async_callback_url: str = "",
         async_tracking_path: Path | None = None,
+        error_log_path: Path | None = None,
     ) -> None:
         if decision_mode not in {"sync", "async"}:
             raise ValueError("decision_mode must be 'sync' or 'async'")
@@ -226,9 +229,11 @@ class TransactionChain:
         self.async_wait_timeout_ms = async_wait_timeout_ms
         self.async_callback_url = async_callback_url
         self.async_tracking_path = async_tracking_path
+        self.error_log_path = error_log_path
         self._active = 0
         self._lock = asyncio.Lock()
         self._tracking_lock = asyncio.Lock()
+        self._error_log_lock = asyncio.Lock()
 
     async def __call__(self, event: TransactionEvent, schedule_lag_ms: float) -> None:
         async with self.semaphore:
@@ -256,7 +261,7 @@ class TransactionChain:
                 except APIError as exc:
                     self.metrics.ingestion_failures += 1
                     stream_metrics["ingestion_failures"] += 1
-                    self._sample_error(event, "ingestion", exc)
+                    await self._record_error(event, "ingestion", exc)
                     return
 
                 decision_started = time.perf_counter()
@@ -280,7 +285,7 @@ class TransactionChain:
                 except APIError as exc:
                     self.metrics.decision_failures += 1
                     stream_metrics["decision_failures"] += 1
-                    self._sample_error(event, "decision", exc)
+                    await self._record_error(event, "decision", exc)
             finally:
                 self.metrics.completed += 1
                 self.metrics.stream(event.stream_id)["completed"] += 1
@@ -320,19 +325,121 @@ class TransactionChain:
             with self.async_tracking_path.open("a", encoding="utf-8") as handle:
                 handle.write(line)
 
-    def _sample_error(self, event: TransactionEvent, stage: str, error: Exception) -> None:
-        if len(self.metrics.errors) >= 100:
+    async def _record_error(self, event: TransactionEvent, stage: str, error: Exception) -> None:
+        record = {
+            "stage": stage,
+            "stream_id": event.stream_id,
+            "object_id": event.object_id,
+            "source_file": event.source_file.name,
+            "row_number": event.row_number,
+            "error": str(error)[:1_000],
+        }
+        if len(self.metrics.errors) < 100:
+            self.metrics.errors.append(record)
+        if self.error_log_path is None:
             return
-        self.metrics.errors.append(
+        line = json.dumps(record, sort_keys=True) + "\n"
+        async with self._error_log_lock:
+            self.error_log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.error_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line)
+
+
+_STATUS_CODE_RE = re.compile(r"returned\s+(\d{3})")
+
+
+def build_error_breakdown(errors: list[dict[str, Any]]) -> dict[str, Any]:
+    stage_counts: Counter[str] = Counter()
+    status_counts: Counter[str] = Counter()
+    classification_counts: Counter[str] = Counter()
+    route_counts: Counter[str] = Counter()
+    classification_examples: dict[str, str] = {}
+
+    for item in errors:
+        stage = str(item.get("stage") or "unknown")
+        message = str(item.get("error") or "")
+        classification = classify_error(stage, message)
+        route = classify_route_hint(message)
+        status_code = extract_status_code(message)
+
+        stage_counts[stage] += 1
+        classification_counts[classification] += 1
+        route_counts[route] += 1
+        if status_code is not None:
+            status_counts[status_code] += 1
+        classification_examples.setdefault(classification, message[:240])
+
+    top_classifications = []
+    for name, count in classification_counts.most_common(10):
+        top_classifications.append(
             {
-                "stage": stage,
-                "stream_id": event.stream_id,
-                "object_id": event.object_id,
-                "source_file": event.source_file.name,
-                "row_number": event.row_number,
-                "error": str(error)[:1_000],
+                "classification": name,
+                "count": count,
+                "example": classification_examples.get(name),
             }
         )
+
+    return {
+        "total_errors": sum(stage_counts.values()),
+        "by_stage": dict(sorted(stage_counts.items())),
+        "by_status_code": dict(sorted(status_counts.items())),
+        "by_route_hint": dict(sorted(route_counts.items())),
+        "by_classification": dict(sorted(classification_counts.items())),
+        "top_classifications": top_classifications,
+    }
+
+
+def extract_status_code(message: str) -> str | None:
+    match = _STATUS_CODE_RE.search(message)
+    if match is None:
+        return None
+    return match.group(1)
+
+
+def classify_route_hint(message: str) -> str:
+    if "/ingestion-events/record-ingested" in message:
+        return "decision_callback"
+    if "/records/" in message and "?limit=" in message:
+        return "tenant_data_list_read"
+    if "/records/" in message:
+        return "record_write"
+    if "/async-decision-executions" in message:
+        return "async_decision_execution"
+    return "other"
+
+
+def classify_error(stage: str, message: str) -> str:
+    lower = message.lower()
+    status_code = extract_status_code(message)
+    if stage == "decision":
+        if "record_ingested_processing_failed" in lower:
+            if "context deadline exceeded" in lower or "client.timeout exceeded" in lower:
+                return "decision.record_ingested_processing_failed.timeout"
+            return "decision.record_ingested_processing_failed"
+        if status_code == "429":
+            return "decision.overload"
+        if "context deadline exceeded" in lower or "client.timeout exceeded" in lower:
+            return "decision.timeout"
+        if status_code is not None and status_code.startswith("5"):
+            return "decision.server_error"
+        return "decision.other"
+
+    if stage == "ingestion":
+        if status_code == "429":
+            return "ingestion.overload"
+        if "context deadline exceeded" in lower or "client.timeout exceeded" in lower:
+            return "ingestion.timeout"
+        if status_code == "400":
+            if any(keyword in lower for keyword in ("validation", "invalid", "required", "must be", "malformed")):
+                return "ingestion.validation"
+            return "ingestion.bad_request"
+        if status_code == "409":
+            return "ingestion.conflict"
+        if status_code is not None and status_code.startswith("5"):
+            return "ingestion.server_error"
+        return "ingestion.other"
+
+    return f"{stage}.other"
 
 
 async def schedule_events(

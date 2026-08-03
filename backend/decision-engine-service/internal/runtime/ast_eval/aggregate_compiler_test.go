@@ -14,6 +14,7 @@ type aggregateTestTenantDataReader struct {
 	aggregateValue any
 	aggregateErr   error
 	records        []ports.TenantRecord
+	listCalls      int
 }
 
 func (s aggregateTestTenantDataReader) GetRecord(ctx context.Context, tenantID, objectType, objectID string) (ports.TenantRecord, error) {
@@ -25,7 +26,8 @@ func (s aggregateTestTenantDataReader) GetRecord(ctx context.Context, tenantID, 
 	return ports.TenantRecord{}, nil
 }
 
-func (s aggregateTestTenantDataReader) ListRecords(ctx context.Context, tenantID, objectType string, limit int) ([]ports.TenantRecord, error) {
+func (s *aggregateTestTenantDataReader) ListRecords(ctx context.Context, tenantID, objectType string, limit int) ([]ports.TenantRecord, error) {
+	s.listCalls++
 	out := make([]ports.TenantRecord, 0, len(s.records))
 	for _, record := range s.records {
 		if record.ObjectType == objectType {
@@ -35,11 +37,11 @@ func (s aggregateTestTenantDataReader) ListRecords(ctx context.Context, tenantID
 	return out, nil
 }
 
-func (s aggregateTestTenantDataReader) QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]ports.TenantRecord, error) {
+func (s *aggregateTestTenantDataReader) QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]ports.TenantRecord, error) {
 	return nil, nil
 }
 
-func (s aggregateTestTenantDataReader) AggregateRecords(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error) {
+func (s *aggregateTestTenantDataReader) AggregateRecords(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error) {
 	if s.aggregateErr != nil {
 		return nil, s.aggregateErr
 	}
@@ -263,6 +265,132 @@ func TestCompileAggregateQueryBuildsInFilter(t *testing.T) {
 	}
 }
 
+func TestCompileAggregateQueryBuildsNotEqualAndStartsWithFilters(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "amount"},
+			"aggregator": {Constant: "COUNT"},
+			"filters": {
+				Function: "List",
+				Children: []domainast.Node{
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "status"},
+							"operator":  {Constant: "!="},
+							"value":     {Constant: "decline"},
+						},
+					},
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "email"},
+							"operator":  {Constant: "StringStartsWith"},
+							"value":     {Constant: "alice"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := CompileAggregateQuery(context.Background(), node, Runtime{
+		TenantID:   "tenant-1",
+		ObjectID:   "txn-1",
+		ObjectType: "transactions",
+		Fields:     map[string]any{},
+		Model: &ports.TenantModel{
+			RecordLookupField: "object_id",
+			Tables: map[string]ports.TenantModelTable{
+				"transactions": {
+					Name: "transactions",
+					Fields: map[string]ports.TenantModelField{
+						"status": {Name: "status", Type: "string"},
+						"email":  {Name: "email", Type: "string"},
+						"amount": {Name: "amount", Type: "number"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CompileAggregateQuery() error = %v", err)
+	}
+	if !result.Supported {
+		t.Fatalf("CompileAggregateQuery() Supported = false, reason = %q", result.UnsupportedReason)
+	}
+	if result.Query.Filter == nil || len(result.Query.Filter.Children) != 2 {
+		t.Fatalf("query filter = %#v, want 2 AND children", result.Query.Filter)
+	}
+	if got := result.Query.Filter.Children[0].Op; got != "neq" {
+		t.Fatalf("first filter op = %q, want neq", got)
+	}
+	if got := result.Query.Filter.Children[1].Op; got != "starts_with" {
+		t.Fatalf("second filter op = %q, want starts_with", got)
+	}
+}
+
+func TestCompileAggregateQueryBuildsNullComparisons(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "amount"},
+			"aggregator": {Constant: "COUNT"},
+			"filters": {
+				Function: "List",
+				Children: []domainast.Node{
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "reviewed_at"},
+							"operator":  {Constant: "="},
+							"value":     {Constant: nil},
+						},
+					},
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "approved_at"},
+							"operator":  {Constant: "!="},
+							"value":     {Constant: nil},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := CompileAggregateQuery(context.Background(), node, Runtime{
+		TenantID:   "tenant-1",
+		ObjectID:   "txn-1",
+		ObjectType: "transactions",
+		Fields:     map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("CompileAggregateQuery() error = %v", err)
+	}
+	if !result.Supported {
+		t.Fatalf("CompileAggregateQuery() Supported = false, reason = %q", result.UnsupportedReason)
+	}
+	if got := result.Query.Filter.Children[0].Op; got != "is_null" {
+		t.Fatalf("first filter op = %q, want is_null", got)
+	}
+	if got := result.Query.Filter.Children[1].Op; got != "is_not_null" {
+		t.Fatalf("second filter op = %q, want is_not_null", got)
+	}
+}
+
 func TestCompileAggregateQueryPreservesGroupedBooleanFilters(t *testing.T) {
 	t.Parallel()
 
@@ -452,7 +580,7 @@ func TestEvaluateMarbleAggregatorUsesRemoteAggregateResult(t *testing.T) {
 		ObjectID:         "txn-1",
 		ObjectType:       "transactions",
 		Fields:           map[string]any{},
-		TenantDataReader: aggregateTestTenantDataReader{aggregateValue: int64(7)},
+		TenantDataReader: &aggregateTestTenantDataReader{aggregateValue: int64(7)},
 	})
 	if err != nil {
 		t.Fatalf("EvaluateNode() error = %v", err)
@@ -462,7 +590,7 @@ func TestEvaluateMarbleAggregatorUsesRemoteAggregateResult(t *testing.T) {
 	}
 }
 
-func TestEvaluateMarbleAggregatorFallsBackWhenRemoteAggregateFails(t *testing.T) {
+func TestEvaluateMarbleAggregatorReturnsErrorWhenRemoteAggregateFails(t *testing.T) {
 	t.Parallel()
 
 	node := domainast.Node{
@@ -474,28 +602,29 @@ func TestEvaluateMarbleAggregatorFallsBackWhenRemoteAggregateFails(t *testing.T)
 		},
 	}
 
-	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:   "tenant-1",
-		ObjectID:   "txn-1",
-		ObjectType: "transactions",
-		Fields:     map[string]any{},
-		TenantDataReader: aggregateTestTenantDataReader{
-			aggregateErr: errors.New("remote aggregate failed"),
-			records: []ports.TenantRecord{
-				{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10)}},
-				{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20)}},
-			},
+	reader := &aggregateTestTenantDataReader{
+		aggregateErr: errors.New("remote aggregate failed"),
+		records: []ports.TenantRecord{
+			{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10)}},
+			{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20)}},
 		},
-	})
-	if err != nil {
-		t.Fatalf("EvaluateNode() error = %v", err)
 	}
-	if value != float64(2) {
-		t.Fatalf("EvaluateNode() = %#v, want 2", value)
+	_, err := EvaluateNode(context.Background(), node, Runtime{
+		TenantID:         "tenant-1",
+		ObjectID:         "txn-1",
+		ObjectType:       "transactions",
+		Fields:           map[string]any{},
+		TenantDataReader: reader,
+	})
+	if err == nil {
+		t.Fatalf("EvaluateNode() error = nil, want remote aggregate failure")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
 	}
 }
 
-func TestEvaluateMarbleAggregatorFallbackSupportsGroupedFilters(t *testing.T) {
+func TestEvaluateMarbleAggregatorUnsupportedFilterReturnsErrorWithoutFallback(t *testing.T) {
 	t.Parallel()
 
 	node := domainast.Node{
@@ -505,65 +634,109 @@ func TestEvaluateMarbleAggregatorFallbackSupportsGroupedFilters(t *testing.T) {
 			"fieldName":  {Constant: "amount"},
 			"aggregator": {Constant: "COUNT"},
 			"filters": {
-				Function: "and",
-				Children: []domainast.Node{
-					{
-						Function: "Filter",
-						NamedChildren: map[string]domainast.Node{
-							"tableName": {Constant: "transactions"},
-							"fieldName": {Constant: "owner_id"},
-							"operator":  {Constant: "="},
-							"value":     {Constant: "customer-1"},
-						},
-					},
-					{
-						Function: "or",
-						Children: []domainast.Node{
-							{
-								Function: "Filter",
-								NamedChildren: map[string]domainast.Node{
-									"tableName": {Constant: "transactions"},
-									"fieldName": {Constant: "status"},
-									"operator":  {Constant: "="},
-									"value":     {Constant: "review"},
-								},
-							},
-							{
-								Function: "Filter",
-								NamedChildren: map[string]domainast.Node{
-									"tableName": {Constant: "transactions"},
-									"fieldName": {Constant: "status"},
-									"operator":  {Constant: "="},
-									"value":     {Constant: "decline"},
-								},
-							},
-						},
-					},
+				Function: "Filter",
+				NamedChildren: map[string]domainast.Node{
+					"tableName": {Constant: "transactions"},
+					"fieldName": {Constant: "status"},
+					"operator":  {Constant: "IsEmpty"},
 				},
 			},
 		},
 	}
 
-	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:   "tenant-1",
-		ObjectID:   "txn-1",
-		ObjectType: "transactions",
-		Fields:     map[string]any{},
-		TenantDataReader: aggregateTestTenantDataReader{
-			aggregateErr: errors.New("remote aggregate failed"),
-			records: []ports.TenantRecord{
-				{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10), "owner_id": "customer-1", "status": "review"}},
-				{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20), "owner_id": "customer-1", "status": "decline"}},
-				{ObjectID: "txn-3", ObjectType: "transactions", Fields: map[string]any{"amount": float64(30), "owner_id": "customer-1", "status": "approved"}},
-				{ObjectID: "txn-4", ObjectType: "transactions", Fields: map[string]any{"amount": float64(40), "owner_id": "other", "status": "review"}},
+	reader := &aggregateTestTenantDataReader{
+		aggregateErr: errors.New("remote aggregate failed"),
+		records: []ports.TenantRecord{
+			{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10), "owner_id": "customer-1", "status": "review"}},
+			{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20), "owner_id": "customer-1", "status": "decline"}},
+			{ObjectID: "txn-3", ObjectType: "transactions", Fields: map[string]any{"amount": float64(30), "owner_id": "customer-1", "status": "approved"}},
+			{ObjectID: "txn-4", ObjectType: "transactions", Fields: map[string]any{"amount": float64(40), "owner_id": "other", "status": "review"}},
+		},
+	}
+	_, err := EvaluateNode(context.Background(), node, Runtime{
+		TenantID:         "tenant-1",
+		ObjectID:         "txn-1",
+		ObjectType:       "transactions",
+		Fields:           map[string]any{},
+		TenantDataReader: reader,
+	})
+	if err == nil {
+		t.Fatalf("EvaluateNode() error = nil, want unsupported pushdown error")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
+	}
+}
+
+func TestEvaluateMarbleAggregatorEndsWithReturnsUnsupportedErrorWithoutFallback(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "amount"},
+			"aggregator": {Constant: "COUNT"},
+			"filters": {
+				Function: "Filter",
+				NamedChildren: map[string]domainast.Node{
+					"tableName": {Constant: "transactions"},
+					"fieldName": {Constant: "email"},
+					"operator":  {Constant: "StringEndsWith"},
+					"value":     {Constant: "@example.com"},
+				},
 			},
 		},
-	})
-	if err != nil {
-		t.Fatalf("EvaluateNode() error = %v", err)
 	}
-	if value != float64(2) {
-		t.Fatalf("EvaluateNode() = %#v, want 2", value)
+
+	reader := &aggregateTestTenantDataReader{}
+	_, err := EvaluateNode(context.Background(), node, Runtime{
+		TenantID:         "tenant-1",
+		ObjectID:         "txn-1",
+		ObjectType:       "transactions",
+		Fields:           map[string]any{},
+		TenantDataReader: reader,
+	})
+	if err == nil {
+		t.Fatalf("EvaluateNode() error = nil, want unsupported pushdown error")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
+	}
+}
+
+func TestEvaluateMarbleAggregatorDisabledPushdownReturnsErrorWithoutFallback(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "amount"},
+			"aggregator": {Constant: "COUNT"},
+		},
+	}
+
+	reader := &aggregateTestTenantDataReader{
+		aggregateValue: int64(7),
+		records: []ports.TenantRecord{
+			{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10)}},
+			{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20)}},
+		},
+	}
+	_, err := EvaluateNode(context.Background(), node, Runtime{
+		TenantID:              "tenant-1",
+		ObjectID:              "txn-1",
+		ObjectType:            "transactions",
+		Fields:                map[string]any{},
+		TenantDataReader:      reader,
+		AggregatePushdownMode: AggregatePushdownModeDisabled,
+	})
+	if err == nil {
+		t.Fatalf("EvaluateNode() error = nil, want aggregate pushdown disabled error")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
 	}
 }
 
@@ -587,16 +760,20 @@ func TestEvaluateMarbleAggregatorStrictModeRejectsUnsupportedPushdown(t *testing
 		},
 	}
 
+	reader := &aggregateTestTenantDataReader{}
 	_, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:               "tenant-1",
-		ObjectID:               "txn-1",
-		ObjectType:             "transactions",
-		Fields:                 map[string]any{},
-		TenantDataReader:       aggregateTestTenantDataReader{},
-		AggregatePushdownMode:  AggregatePushdownModeStrict,
+		TenantID:              "tenant-1",
+		ObjectID:              "txn-1",
+		ObjectType:            "transactions",
+		Fields:                map[string]any{},
+		TenantDataReader:      reader,
+		AggregatePushdownMode: AggregatePushdownModeStrict,
 	})
 	if err == nil {
 		t.Fatalf("EvaluateNode() error = nil, want strict pushdown error")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
 	}
 }
 
@@ -612,15 +789,19 @@ func TestEvaluateMarbleAggregatorStrictModeRejectsRemoteFailure(t *testing.T) {
 		},
 	}
 
+	reader := &aggregateTestTenantDataReader{aggregateErr: errors.New("boom")}
 	_, err := EvaluateNode(context.Background(), node, Runtime{
 		TenantID:              "tenant-1",
 		ObjectID:              "txn-1",
 		ObjectType:            "transactions",
 		Fields:                map[string]any{},
-		TenantDataReader:      aggregateTestTenantDataReader{aggregateErr: errors.New("boom")},
+		TenantDataReader:      reader,
 		AggregatePushdownMode: AggregatePushdownModeStrict,
 	})
 	if err == nil {
 		t.Fatalf("EvaluateNode() error = nil, want strict pushdown failure")
+	}
+	if reader.listCalls != 0 {
+		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
 	}
 }

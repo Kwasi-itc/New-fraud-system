@@ -11,16 +11,30 @@ TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
 MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-3600}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
-DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-sync}}"
+DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
 ASYNC_CALLBACK_PORT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_PORT:-${ASYNC_CALLBACK_PORT:-8099}}"
 ASYNC_CALLBACK_WAIT_TIMEOUT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_WAIT_TIMEOUT:-${ASYNC_CALLBACK_WAIT_TIMEOUT:-120}}"
+LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-async_only}}"
+LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
+INGESTION_TRIGGER_DECISION_MODE="${PRODUCTION_REPLAY_INGESTION_TRIGGER_DECISION_MODE:-${INGESTION_TRIGGER_DECISION_MODE:-async_only}}"
+INGESTION_TRIGGER_OVERLOAD_MODE="${PRODUCTION_REPLAY_INGESTION_TRIGGER_OVERLOAD_MODE:-${INGESTION_TRIGGER_OVERLOAD_MODE:-defer_async}}"
+LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
+TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
+ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
+READ_DATABASE_URL="${PRODUCTION_REPLAY_READ_DATABASE_URL:-${READ_DATABASE_URL:-}}"
+READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
+READ_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS:-${READ_DATABASE_MIN_CONNS:-0}}"
+WORKER_DATABASE_URL="${PRODUCTION_REPLAY_WORKER_DATABASE_URL:-${WORKER_DATABASE_URL:-}}"
+WORKER_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MAX_CONNS:-${WORKER_DATABASE_MAX_CONNS:-0}}"
+WORKER_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MIN_CONNS:-${WORKER_DATABASE_MIN_CONNS:-0}}"
 DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
 HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
 DAYS="${PRODUCTION_REPLAY_DAYS:-${DAYS:-}}"
 WEEKS="${PRODUCTION_REPLAY_WEEKS:-${WEEKS:-}}"
 TENANT_ID="${PRODUCTION_REPLAY_TENANT_ID:-${TENANT_ID:-}}"
+EXPERIMENT_LABEL="${PRODUCTION_REPLAY_EXPERIMENT_LABEL:-${EXPERIMENT_LABEL:-}}"
 SMOKE_MANIFEST="/tmp/fraud-data-local-smoke.json"
 SAMPLE_DIR="/tmp/fraud-data-local-sample"
 SETUP_LOG="/tmp/fraud-data-local-setup.log"
@@ -147,16 +161,56 @@ if [[ ! "$ASYNC_CALLBACK_WAIT_TIMEOUT" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   printf 'error: ASYNC_CALLBACK_WAIT_TIMEOUT must be zero or a positive number; got %s\n' "$ASYNC_CALLBACK_WAIT_TIMEOUT" >&2
   exit 1
 fi
+if [[ "$LIVE_DECISION_MODE" != "sync" && "$LIVE_DECISION_MODE" != "async_only" ]]; then
+  printf 'error: LIVE_DECISION_MODE must be sync or async_only; got %s\n' "$LIVE_DECISION_MODE" >&2
+  exit 1
+fi
+if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED" != "false" ]]; then
+  printf 'error: LIVE_ASYNC_FALLBACK_ENABLED must be true or false; got %s\n' "$LIVE_ASYNC_FALLBACK_ENABLED" >&2
+  exit 1
+fi
+if [[ "$INGESTION_TRIGGER_DECISION_MODE" != "sync" && "$INGESTION_TRIGGER_DECISION_MODE" != "async_only" ]]; then
+  printf 'error: INGESTION_TRIGGER_DECISION_MODE must be sync or async_only; got %s\n' "$INGESTION_TRIGGER_DECISION_MODE" >&2
+  exit 1
+fi
+if [[ "$INGESTION_TRIGGER_OVERLOAD_MODE" != "defer_async" && "$INGESTION_TRIGGER_OVERLOAD_MODE" != "reject" ]]; then
+  printf 'error: INGESTION_TRIGGER_OVERLOAD_MODE must be defer_async or reject; got %s\n' "$INGESTION_TRIGGER_OVERLOAD_MODE" >&2
+  exit 1
+fi
+if [[ "$TENANT_DATA_READ_MODE" != "ingestion_http" && "$TENANT_DATA_READ_MODE" != "direct_db" ]]; then
+  printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
+  exit 1
+fi
+if [[ "$ENABLE_SEPARATE_READ_POOL" != "true" && "$ENABLE_SEPARATE_READ_POOL" != "false" ]]; then
+  printf 'error: ENABLE_SEPARATE_READ_POOL must be true or false; got %s\n' "$ENABLE_SEPARATE_READ_POOL" >&2
+  exit 1
+fi
 
 if [[ -n "$REPLAY_DURATION" ]]; then
-  printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s\n' \
-    "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE"
+  printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 else
-  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s\n' \
-    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE"
+  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
+fi
+
+if [[ "$ENABLE_SEPARATE_READ_POOL" == "true" && -z "$READ_DATABASE_URL" ]]; then
+  READ_DATABASE_URL="postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable"
 fi
 
 printf 'Preparing local fraud databases from existing images...\n'
+export PRODUCTION_REPLAY_LIVE_DECISION_MODE="$LIVE_DECISION_MODE"
+export PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED="$LIVE_ASYNC_FALLBACK_ENABLED"
+export PRODUCTION_REPLAY_INGESTION_TRIGGER_DECISION_MODE="$INGESTION_TRIGGER_DECISION_MODE"
+export PRODUCTION_REPLAY_INGESTION_TRIGGER_OVERLOAD_MODE="$INGESTION_TRIGGER_OVERLOAD_MODE"
+export PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES="$LIVE_ASYNC_OBJECT_TYPES"
+export PRODUCTION_REPLAY_TENANT_DATA_READ_MODE="$TENANT_DATA_READ_MODE"
+export PRODUCTION_REPLAY_READ_DATABASE_URL="$READ_DATABASE_URL"
+export PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS="$READ_DATABASE_MAX_CONNS"
+export PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS="$READ_DATABASE_MIN_CONNS"
+export PRODUCTION_REPLAY_WORKER_DATABASE_URL="$WORKER_DATABASE_URL"
+export PRODUCTION_REPLAY_WORKER_DATABASE_MAX_CONNS="$WORKER_DATABASE_MAX_CONNS"
+export PRODUCTION_REPLAY_WORKER_DATABASE_MIN_CONNS="$WORKER_DATABASE_MIN_CONNS"
 compose up -d --no-build postgres
 compose run --rm data-model-migrate
 compose run --rm ingestion-migrate
@@ -276,6 +330,36 @@ if [[ -z "$RUN_DIR" || ! -f "$RUN_DIR/summary.json" ]]; then
   printf 'error: replay completed without a summary file\n' >&2
   exit 1
 fi
+
+"$VENV_DIR/bin/python" - "$RUN_DIR" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+run_dir = Path(sys.argv[1])
+metadata = {
+    "experiment_label": os.getenv("EXPERIMENT_LABEL") or None,
+    "service_modes": {
+        "live_decision_mode": os.getenv("LIVE_DECISION_MODE"),
+        "live_async_fallback_enabled": os.getenv("LIVE_ASYNC_FALLBACK_ENABLED"),
+        "ingestion_trigger_decision_mode": os.getenv("INGESTION_TRIGGER_DECISION_MODE"),
+        "ingestion_trigger_overload_mode": os.getenv("INGESTION_TRIGGER_OVERLOAD_MODE"),
+        "live_async_object_types": os.getenv("LIVE_ASYNC_OBJECT_TYPES") or None,
+        "tenant_data_read_mode": os.getenv("TENANT_DATA_READ_MODE"),
+    },
+    "ingestion_read_pool": {
+        "enabled": os.getenv("ENABLE_SEPARATE_READ_POOL") == "true",
+        "read_database_url": "set" if os.getenv("READ_DATABASE_URL") else None,
+        "read_database_max_conns": os.getenv("READ_DATABASE_MAX_CONNS"),
+        "read_database_min_conns": os.getenv("READ_DATABASE_MIN_CONNS"),
+        "worker_database_url": "set" if os.getenv("WORKER_DATABASE_URL") else None,
+        "worker_database_max_conns": os.getenv("WORKER_DATABASE_MAX_CONNS"),
+        "worker_database_min_conns": os.getenv("WORKER_DATABASE_MIN_CONNS"),
+    },
+}
+(run_dir / "experiment-settings.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+PY
 
 CALLBACK_REPORT_STATUS=0
 if [[ "$DECISION_MODE" == "async" && "$AUTO_CALLBACK_SERVER" == "1" ]]; then

@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	defaultRecurringTimezone      = "UTC"
+	defaultRecurringTimezone       = "UTC"
 	defaultRecurringCandidateLimit = 100
+	maxRecurringCandidateLimit     = 500
 	maxRecurringCatchupOccurrences = 24
 )
 
@@ -90,6 +91,8 @@ func NormalizeRecurringScheduleConfig(cfg RecurringScheduleConfig) (RecurringSch
 
 	if cfg.CandidateLimit <= 0 {
 		cfg.CandidateLimit = defaultRecurringCandidateLimit
+	} else if cfg.CandidateLimit > maxRecurringCandidateLimit {
+		cfg.CandidateLimit = maxRecurringCandidateLimit
 	}
 
 	return cfg, nil

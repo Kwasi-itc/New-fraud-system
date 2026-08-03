@@ -16,18 +16,34 @@ import (
 type DecisionHandler struct {
 	decisionService          service.DecisionService
 	executionService         service.ExecutionService
+	liveDecisionMode         string
+	ingestionTriggerMode     string
+	ingestionOverloadMode    string
+	liveAsyncObjectTypes     map[string]struct{}
 	liveLimiter              chan struct{}
 	liveAsyncFallbackEnabled bool
 }
 
-func NewDecisionHandler(decisionService service.DecisionService, executionService service.ExecutionService, liveDecisionConcurrencyLimit int, liveAsyncFallbackEnabled bool) DecisionHandler {
+func NewDecisionHandler(decisionService service.DecisionService, executionService service.ExecutionService, liveDecisionMode, ingestionTriggerMode, ingestionOverloadMode string, liveAsyncObjectTypes []string, liveDecisionConcurrencyLimit int, liveAsyncFallbackEnabled bool) DecisionHandler {
 	var limiter chan struct{}
 	if liveDecisionConcurrencyLimit > 0 {
 		limiter = make(chan struct{}, liveDecisionConcurrencyLimit)
 	}
+	normalizedAsyncTypes := make(map[string]struct{}, len(liveAsyncObjectTypes))
+	for _, objectType := range liveAsyncObjectTypes {
+		trimmed := strings.ToLower(strings.TrimSpace(objectType))
+		if trimmed == "" {
+			continue
+		}
+		normalizedAsyncTypes[trimmed] = struct{}{}
+	}
 	return DecisionHandler{
 		decisionService:          decisionService,
 		executionService:         executionService,
+		liveDecisionMode:         liveDecisionMode,
+		ingestionTriggerMode:     ingestionTriggerMode,
+		ingestionOverloadMode:    ingestionOverloadMode,
+		liveAsyncObjectTypes:     normalizedAsyncTypes,
 		liveLimiter:              limiter,
 		liveAsyncFallbackEnabled: liveAsyncFallbackEnabled,
 	}
@@ -36,12 +52,15 @@ func NewDecisionHandler(decisionService service.DecisionService, executionServic
 func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 	var req dto.EvaluateDecisionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logHandlerFailure(c, "evaluate scenario request failed", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+		writeBadRequestError(c, "invalid_request", "evaluate scenario request is invalid", err)
 		return
 	}
 	tenantID := c.Param("tenantId")
 	scenarioID := c.Param("scenarioId")
+	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() {
+		h.deferAsyncScenarioExecution(c, tenantID, scenarioID, req.ObjectID, req.ObjectType, req.Fields)
+		return
+	}
 	release, ok := h.tryAcquireLiveSlot(c)
 	if !ok {
 		h.deferAsyncScenarioExecution(c, tenantID, scenarioID, req.ObjectID, req.ObjectType, req.Fields)
@@ -55,8 +74,7 @@ func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
-		logHandlerFailure(c, "evaluate scenario failed", err, "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "evaluate_scenario_failed", "details": err.Error()})
+		writeDecisionEvaluationError(c, "evaluate_scenario_failed", "scenario evaluation failed", err, "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
 	logHandlerSuccess(c, "evaluate scenario completed", "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType, "triggered", result.Triggered)
@@ -66,11 +84,14 @@ func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 func (h DecisionHandler) CreateDecision(c *gin.Context) {
 	var req dto.CreateDecisionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logHandlerFailure(c, "create decision request failed", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+		writeBadRequestError(c, "invalid_request", "create decision request is invalid", err)
 		return
 	}
 	tenantID := c.Param("tenantId")
+	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() {
+		h.deferAsyncScenarioExecution(c, tenantID, req.ScenarioID, req.ObjectID, req.ObjectType, req.Fields)
+		return
+	}
 	release, ok := h.tryAcquireLiveSlot(c)
 	if !ok {
 		h.deferAsyncScenarioExecution(c, tenantID, req.ScenarioID, req.ObjectID, req.ObjectType, req.Fields)
@@ -83,8 +104,7 @@ func (h DecisionHandler) CreateDecision(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
-		logHandlerFailure(c, "create decision failed", err, "tenant_id", tenantID, "scenario_id", req.ScenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "create_decision_failed", "details": err.Error()})
+		writeDecisionEvaluationError(c, "create_decision_failed", "decision creation failed", err, "tenant_id", tenantID, "scenario_id", req.ScenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
 	logHandlerSuccess(c, "create decision completed", "tenant_id", tenantID, "scenario_id", req.ScenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType, "triggered", result.Triggered)
@@ -94,11 +114,14 @@ func (h DecisionHandler) CreateDecision(c *gin.Context) {
 func (h DecisionHandler) CreateAllDecisions(c *gin.Context) {
 	var req dto.EvaluateDecisionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logHandlerFailure(c, "create all decisions request failed", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+		writeBadRequestError(c, "invalid_request", "create all decisions request is invalid", err)
 		return
 	}
 	tenantID := c.Param("tenantId")
+	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() {
+		h.deferAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+		return
+	}
 	release, ok := h.tryAcquireLiveSlot(c)
 	if !ok {
 		h.deferAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
@@ -111,8 +134,7 @@ func (h DecisionHandler) CreateAllDecisions(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
-		logHandlerFailure(c, "create all decisions failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "create_all_decisions_failed", "details": err.Error()})
+		writeDecisionEvaluationError(c, "create_all_decisions_failed", "multi-scenario evaluation failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
 	logHandlerSuccess(c, "create all decisions completed", "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType, "result_count", len(result.Results))
@@ -376,14 +398,17 @@ func normalizeDecisionOutcomeFilter(value string) string {
 func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {
 	var req dto.IngestionTriggerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logHandlerFailure(c, "record ingested request failed", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+		writeBadRequestError(c, "invalid_request", "record ingested request is invalid", err)
 		return
 	}
 	tenantID := c.Param("tenantId")
+	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() || h.ingestionTriggersAsyncOnly() {
+		h.enqueueAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+		return
+	}
 	release, ok := h.tryAcquireLiveSlot(c)
 	if !ok {
-		h.deferAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+		h.handleRecordIngestedOverload(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
 		return
 	}
 	defer release()
@@ -394,8 +419,7 @@ func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
-		logHandlerFailure(c, "record ingested processing failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "record_ingested_processing_failed", "details": err.Error()})
+		writeDecisionEvaluationError(c, "record_ingested_processing_failed", "ingestion-triggered evaluation failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
 	logHandlerSuccess(c, "record ingested processing completed", "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType, "result_count", len(result.Results))
@@ -412,6 +436,26 @@ func (h DecisionHandler) tryAcquireLiveSlot(c *gin.Context) (func(), bool) {
 	default:
 		return nil, false
 	}
+}
+
+func (h DecisionHandler) liveDecisionsAsyncOnly() bool {
+	return h.liveDecisionMode == "async_only"
+}
+
+func (h DecisionHandler) ingestionTriggersAsyncOnly() bool {
+	return h.ingestionTriggerMode == "async_only"
+}
+
+func (h DecisionHandler) ingestionTriggersDeferOnOverload() bool {
+	return h.ingestionOverloadMode == "defer_async"
+}
+
+func (h DecisionHandler) shouldForceAsyncForObjectType(objectType string) bool {
+	if len(h.liveAsyncObjectTypes) == 0 {
+		return false
+	}
+	_, ok := h.liveAsyncObjectTypes[strings.ToLower(strings.TrimSpace(objectType))]
+	return ok
 }
 
 func (h DecisionHandler) deferAsyncScenarioExecution(c *gin.Context, tenantID, scenarioID, objectID, objectType string, fields map[string]any) {
@@ -464,5 +508,35 @@ func (h DecisionHandler) deferAsyncAllScenariosExecution(c *gin.Context, tenantI
 		return
 	}
 	logHandlerSuccess(c, "live all-scenarios decision deferred to async execution", "tenant_id", tenantID, "object_id", objectID, "object_type", objectType, "execution_id", result.Execution.ID)
+	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(result.Execution)})
+}
+
+func (h DecisionHandler) handleRecordIngestedOverload(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any) {
+	if h.ingestionTriggersDeferOnOverload() {
+		h.enqueueAsyncAllScenariosExecution(c, tenantID, objectID, objectType, fields)
+		return
+	}
+	logHandlerFailure(c, "record-ingested rejected due to live decision overload", nil, "tenant_id", tenantID, "object_id", objectID, "object_type", objectType)
+	c.JSON(http.StatusTooManyRequests, gin.H{
+		"error":   "record_ingested_overloaded",
+		"details": "ingestion-triggered evaluation concurrency limit reached; retry later or switch ingestion triggers to async execution",
+	})
+}
+
+func (h DecisionHandler) enqueueAsyncAllScenariosExecution(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any) {
+	result, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
+		ObjectType: objectType,
+		Items: []service.DecisionEvaluationRequest{{
+			ObjectID:   objectID,
+			ObjectType: objectType,
+			Fields:     fields,
+		}},
+	})
+	if err != nil {
+		logHandlerFailure(c, "ingestion-triggered async enqueue failed", err, "tenant_id", tenantID, "object_id", objectID, "object_type", objectType)
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "record_ingested_async_enqueue_failed", "details": "failed to enqueue async ingestion-triggered execution"})
+		return
+	}
+	logHandlerSuccess(c, "ingestion-triggered decision deferred to async execution", "tenant_id", tenantID, "object_id", objectID, "object_type", objectType, "execution_id", result.Execution.ID)
 	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(result.Execution)})
 }

@@ -102,6 +102,8 @@ type DecisionService struct {
 	evaluationCache               *decisionEvaluationCache
 	metadataLoadGroup             *singleflight.Group
 	dbPoolStatsProvider           DBPoolStatsProvider
+	evaluationMetrics             *evaluationMetricsCollector
+	tenantDataReadMetrics         *tenantDataReadMetrics
 }
 
 type cacheMetricCounters struct {
@@ -130,6 +132,50 @@ type decisionCacheStatsSnapshot struct {
 	ActiveWorkflows  cacheMetricSnapshot
 	ActiveScreenings cacheMetricSnapshot
 	ActiveScorings   cacheMetricSnapshot
+}
+
+type DecisionRuntimeMetrics struct {
+	Cache             DecisionCacheMetrics      `json:"cache"`
+	DBPool            *DBPoolStats              `json:"db_pool,omitempty"`
+	AggregatePushdown AggregatePushdownMetrics  `json:"aggregate_pushdown"`
+	BroadReadHelpers  BroadReadHelperMetrics    `json:"broad_read_helpers"`
+	TenantDataReads   TenantDataReadMetrics     `json:"tenant_data_reads"`
+	Evaluation        DecisionEvaluationMetrics `json:"evaluation"`
+}
+
+type DecisionCacheMetrics struct {
+	Scenario         cacheMetricSnapshot `json:"scenario"`
+	LiveScenarios    cacheMetricSnapshot `json:"live_scenarios"`
+	Iteration        cacheMetricSnapshot `json:"iteration"`
+	Rules            cacheMetricSnapshot `json:"rules"`
+	TenantModel      cacheMetricSnapshot `json:"tenant_model"`
+	WorkflowRules    cacheMetricSnapshot `json:"workflow_rules"`
+	ActiveWorkflows  cacheMetricSnapshot `json:"active_workflows"`
+	ActiveScreenings cacheMetricSnapshot `json:"active_screenings"`
+	ActiveScorings   cacheMetricSnapshot `json:"active_scorings"`
+	Total            cacheMetricSnapshot `json:"total"`
+}
+
+type AggregatePushdownMetrics struct {
+	CompileSupportedCount            uint64 `json:"compile_supported_count"`
+	CompileUnsupportedCount          uint64 `json:"compile_unsupported_count"`
+	FallbackCount                    uint64 `json:"fallback_count"`
+	FallbackAggregateNotEnabledCount uint64 `json:"fallback_aggregate_not_enabled_count"`
+	FallbackRemoteCallFailedCount    uint64 `json:"fallback_remote_call_failed_count"`
+	FallbackUnsupportedQueryCount    uint64 `json:"fallback_unsupported_query_count"`
+	AggregateEvaluationCount         uint64 `json:"aggregate_evaluation_count"`
+	RemoteCallCount                  uint64 `json:"remote_call_count"`
+	RemoteErrorCount                 uint64 `json:"remote_error_count"`
+	AggregateLatencyTotalMicros      int64  `json:"aggregate_latency_total_micros"`
+	AggregateLatencyP50Micros        int64  `json:"aggregate_latency_p50_micros"`
+	AggregateLatencyP95Micros        int64  `json:"aggregate_latency_p95_micros"`
+	AggregateLatencyP99Micros        int64  `json:"aggregate_latency_p99_micros"`
+	RemoteLatencyTotalMicros         int64  `json:"remote_latency_total_micros"`
+}
+
+type BroadReadHelperMetrics struct {
+	RejectedCount          uint64            `json:"rejected_count"`
+	RejectedByFunctionName map[string]uint64 `json:"rejected_by_function_name"`
 }
 
 func (s decisionCacheStatsSnapshot) total() cacheMetricSnapshot {
@@ -227,6 +273,10 @@ func NewDecisionService(
 	if outboxEventEnqueuer == nil {
 		outboxEventEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
 	}
+	readMetrics := &tenantDataReadMetrics{}
+	if tenantDataReader != nil {
+		tenantDataReader = instrumentedTenantDataReader{reader: tenantDataReader, metrics: readMetrics}
+	}
 	return DecisionService{
 		txManager:                     txManager,
 		idGen:                         idGen,
@@ -264,6 +314,8 @@ func NewDecisionService(
 		evaluationCache:               newDecisionEvaluationCache(decisionEvaluationCacheTTL),
 		metadataLoadGroup:             &singleflight.Group{},
 		dbPoolStatsProvider:           dbPoolStatsProvider,
+		evaluationMetrics:             newEvaluationMetricsCollector(),
+		tenantDataReadMetrics:         readMetrics,
 	}
 }
 
@@ -272,6 +324,10 @@ func (s DecisionService) EvaluateScenario(
 	tenantID, scenarioID string,
 	req DecisionEvaluationRequest,
 ) (result DecisionEvaluationResult, err error) {
+	startedAt := time.Now()
+	defer func() {
+		s.evaluationMetrics.recordSingle(time.Since(startedAt), result.Triggered, err)
+	}()
 	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), s.clock.Now())
 }
 
@@ -369,6 +425,7 @@ func (s DecisionService) evaluateScenario(
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
 		EvalCache:                   evalCache,
+		RelatedPathCache:            asteval.NewRelatedPathCache(),
 	}
 	currentStage = "trigger_eval"
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
@@ -1278,6 +1335,59 @@ func (s DecisionService) CacheInvalidator() DecisionMetadataCacheInvalidator {
 	return s.evaluationCache
 }
 
+func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
+	var cache DecisionCacheMetrics
+	if snapshot, ok := s.snapshotCacheStats(); ok {
+		cache = DecisionCacheMetrics{
+			Scenario:         snapshot.Scenario,
+			LiveScenarios:    snapshot.LiveScenarios,
+			Iteration:        snapshot.Iteration,
+			Rules:            snapshot.Rules,
+			TenantModel:      snapshot.TenantModel,
+			WorkflowRules:    snapshot.WorkflowRules,
+			ActiveWorkflows:  snapshot.ActiveWorkflows,
+			ActiveScreenings: snapshot.ActiveScreenings,
+			ActiveScorings:   snapshot.ActiveScorings,
+			Total:            snapshot.total(),
+		}
+	}
+
+	var dbPool *DBPoolStats
+	if stats, ok := s.snapshotDBPoolStats(); ok {
+		statsCopy := stats
+		dbPool = &statsCopy
+	}
+
+	aggregateSnapshot := asteval.AggregatePushdownMetricsSnapshot()
+	broadReadSnapshot := asteval.BroadReadHelperMetricsSnapshot()
+	return DecisionRuntimeMetrics{
+		Cache:  cache,
+		DBPool: dbPool,
+		AggregatePushdown: AggregatePushdownMetrics{
+			CompileSupportedCount:            aggregateSnapshot.CompileSupportedCount,
+			CompileUnsupportedCount:          aggregateSnapshot.CompileUnsupportedCount,
+			FallbackCount:                    aggregateSnapshot.FallbackCount,
+			FallbackAggregateNotEnabledCount: aggregateSnapshot.FallbackAggregateNotEnabledCount,
+			FallbackRemoteCallFailedCount:    aggregateSnapshot.FallbackRemoteCallFailedCount,
+			FallbackUnsupportedQueryCount:    aggregateSnapshot.FallbackUnsupportedQueryCount,
+			AggregateEvaluationCount:         aggregateSnapshot.AggregateEvaluationCount,
+			RemoteCallCount:                  aggregateSnapshot.RemoteCallCount,
+			RemoteErrorCount:                 aggregateSnapshot.RemoteErrorCount,
+			AggregateLatencyTotalMicros:      aggregateSnapshot.AggregateLatencyTotal.Microseconds(),
+			AggregateLatencyP50Micros:        aggregateSnapshot.AggregateLatencyP50.Microseconds(),
+			AggregateLatencyP95Micros:        aggregateSnapshot.AggregateLatencyP95.Microseconds(),
+			AggregateLatencyP99Micros:        aggregateSnapshot.AggregateLatencyP99.Microseconds(),
+			RemoteLatencyTotalMicros:         aggregateSnapshot.RemoteLatencyTotal.Microseconds(),
+		},
+		BroadReadHelpers: BroadReadHelperMetrics{
+			RejectedCount:          broadReadSnapshot.RejectedCount,
+			RejectedByFunctionName: broadReadSnapshot.RejectedByFunctionName,
+		},
+		TenantDataReads: s.tenantDataReadMetrics.snapshot(),
+		Evaluation: s.evaluationMetrics.snapshot(),
+	}
+}
+
 func (c *decisionEvaluationCache) snapshotStats() decisionCacheStatsSnapshot {
 	if c == nil {
 		return decisionCacheStatsSnapshot{}
@@ -1882,6 +1992,11 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	req DecisionEvaluationRequest,
 ) (MultiScenarioEvaluationResult, error) {
 	startedAt := time.Now()
+	var result MultiScenarioEvaluationResult
+	var err error
+	defer func() {
+		s.evaluationMetrics.recordMulti(time.Since(startedAt), len(result.Results), err)
+	}()
 	cacheStatsBefore, hasCacheStats := s.snapshotCacheStats()
 	scenarios, err := s.getLiveScenariosByTriggerObject(ctx, tenantID, req.ObjectType)
 	if err != nil {
@@ -1925,6 +2040,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		attrs = append(attrs, liveScenarioCacheStatsAttrs(cacheDelta)...)
 		slog.Default().Debug("multi-scenario evaluation timings", attrs...)
 	}
+	result = results
 	return results, nil
 }
 

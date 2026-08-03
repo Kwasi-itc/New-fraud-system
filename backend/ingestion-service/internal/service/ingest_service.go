@@ -17,6 +17,7 @@ import (
 type IngestService struct {
 	dataModelReader ports.DataModelReader
 	txManager       ports.TransactionManager
+	readDataReader  ports.TenantDataReader
 	idGenerator     ports.IDGenerator
 	clock           ports.Clock
 }
@@ -58,12 +59,14 @@ type BatchIngestInput struct {
 func NewIngestService(
 	dataModelReader ports.DataModelReader,
 	txManager ports.TransactionManager,
+	readDataReader ports.TenantDataReader,
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
 ) IngestService {
 	return IngestService{
 		dataModelReader: dataModelReader,
 		txManager:       txManager,
+		readDataReader:  readDataReader,
 		idGenerator:     idGenerator,
 		clock:           clock,
 	}
@@ -450,23 +453,36 @@ func (s IngestService) GetRecord(ctx context.Context, tenantID uuid.UUID, object
 		return RecordLookupResult{}, err
 	}
 
-	var result RecordLookupResult
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		record, err := store.TenantReader().GetRecord(ctx, model, objectType, objectID)
+	reader := s.readDataReader
+	if reader == nil {
+		var result RecordLookupResult
+		err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			record, err := store.TenantReader().GetRecord(ctx, model, objectType, objectID)
+			if err != nil {
+				return err
+			}
+			result = RecordLookupResult{
+				ObjectID:   objectID,
+				ObjectType: objectType,
+				Fields:     record,
+			}
+			return nil
+		})
 		if err != nil {
-			return err
+			return RecordLookupResult{}, err
 		}
-		result = RecordLookupResult{
-			ObjectID:   objectID,
-			ObjectType: objectType,
-			Fields:     record,
-		}
-		return nil
-	})
+		return result, nil
+	}
+
+	record, err := reader.GetRecord(ctx, model, objectType, objectID)
 	if err != nil {
 		return RecordLookupResult{}, err
 	}
-	return result, nil
+	return RecordLookupResult{
+		ObjectID:   objectID,
+		ObjectType: objectType,
+		Fields:     record,
+	}, nil
 }
 
 func (s IngestService) ListRecords(ctx context.Context, tenantID uuid.UUID, objectType string, limit int) (RecordListResult, error) {
@@ -475,30 +491,51 @@ func (s IngestService) ListRecords(ctx context.Context, tenantID uuid.UUID, obje
 		return RecordListResult{}, err
 	}
 
-	var result RecordListResult
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		records, err := store.TenantReader().ListRecords(ctx, model, objectType, limit)
+	reader := s.readDataReader
+	if reader == nil {
+		var result RecordListResult
+		err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			records, err := store.TenantReader().ListRecords(ctx, model, objectType, limit)
+			if err != nil {
+				return err
+			}
+			result.Records = make([]RecordLookupResult, len(records))
+			for i, record := range records {
+				objectID := ""
+				if value, ok := record[model.RecordLookupField]; ok && value != nil {
+					objectID = fmt.Sprint(value)
+				}
+				result.Records[i] = RecordLookupResult{
+					ObjectID:   objectID,
+					ObjectType: objectType,
+					Fields:     record,
+				}
+			}
+			return nil
+		})
 		if err != nil {
-			return err
+			return RecordListResult{}, err
 		}
-		result.Records = make([]RecordLookupResult, len(records))
-		for i, record := range records {
-			objectID := ""
-			if value, ok := record[model.RecordLookupField]; ok && value != nil {
-				objectID = fmt.Sprint(value)
-			}
-			result.Records[i] = RecordLookupResult{
-				ObjectID:   objectID,
-				ObjectType: objectType,
-				Fields:     record,
-			}
-		}
-		return nil
-	})
+		return result, nil
+	}
+
+	records, err := reader.ListRecords(ctx, model, objectType, limit)
 	if err != nil {
 		return RecordListResult{}, err
 	}
-	return result, nil
+	out := RecordListResult{Records: make([]RecordLookupResult, len(records))}
+	for i, record := range records {
+		objectID := ""
+		if value, ok := record[model.RecordLookupField]; ok && value != nil {
+			objectID = fmt.Sprint(value)
+		}
+		out.Records[i] = RecordLookupResult{
+			ObjectID:   objectID,
+			ObjectType: objectType,
+			Fields:     record,
+		}
+	}
+	return out, nil
 }
 
 func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, objectType, fieldName, value string, limit int) (RecordQueryResult, error) {
@@ -507,28 +544,49 @@ func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, obj
 		return RecordQueryResult{}, err
 	}
 
-	var result RecordQueryResult
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		records, err := store.TenantReader().QueryRecords(ctx, model, objectType, fieldName, value, limit)
+	reader := s.readDataReader
+	if reader == nil {
+		var result RecordQueryResult
+		err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			records, err := store.TenantReader().QueryRecords(ctx, model, objectType, fieldName, value, limit)
+			if err != nil {
+				return err
+			}
+			result.Records = make([]RecordLookupResult, len(records))
+			for i, record := range records {
+				objectID := ""
+				if raw, ok := record[model.RecordLookupField]; ok && raw != nil {
+					objectID = fmt.Sprint(raw)
+				}
+				result.Records[i] = RecordLookupResult{
+					ObjectID:   objectID,
+					ObjectType: objectType,
+					Fields:     record,
+				}
+			}
+			return nil
+		})
 		if err != nil {
-			return err
+			return RecordQueryResult{}, err
 		}
-		result.Records = make([]RecordLookupResult, len(records))
-		for i, record := range records {
-			objectID := ""
-			if raw, ok := record[model.RecordLookupField]; ok && raw != nil {
-				objectID = fmt.Sprint(raw)
-			}
-			result.Records[i] = RecordLookupResult{
-				ObjectID:   objectID,
-				ObjectType: objectType,
-				Fields:     record,
-			}
-		}
-		return nil
-	})
+		return result, nil
+	}
+
+	records, err := reader.QueryRecords(ctx, model, objectType, fieldName, value, limit)
 	if err != nil {
 		return RecordQueryResult{}, err
+	}
+	result := RecordQueryResult{Records: make([]RecordLookupResult, len(records))}
+	for i, record := range records {
+		objectID := ""
+		if raw, ok := record[model.RecordLookupField]; ok && raw != nil {
+			objectID = fmt.Sprint(raw)
+		}
+		result.Records[i] = RecordLookupResult{
+			ObjectID:   objectID,
+			ObjectType: objectType,
+			Fields:     record,
+		}
 	}
 	return result, nil
 }
@@ -539,17 +597,25 @@ func (s IngestService) AggregateRecords(ctx context.Context, tenantID uuid.UUID,
 		return AggregateResult{}, err
 	}
 
-	var result AggregateResult
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		value, err := store.TenantReader().AggregateRecords(ctx, model, query)
+	reader := s.readDataReader
+	if reader == nil {
+		var result AggregateResult
+		err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			value, err := store.TenantReader().AggregateRecords(ctx, model, query)
+			if err != nil {
+				return err
+			}
+			result.Value = value
+			return nil
+		})
 		if err != nil {
-			return err
+			return AggregateResult{}, err
 		}
-		result.Value = value
-		return nil
-	})
+		return result, nil
+	}
+	value, err := reader.AggregateRecords(ctx, model, query)
 	if err != nil {
 		return AggregateResult{}, err
 	}
-	return result, nil
+	return AggregateResult{Value: value}, nil
 }

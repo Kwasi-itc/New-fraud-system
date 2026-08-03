@@ -12,12 +12,15 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/requestctx"
 )
 
 type HTTPClient struct {
 	baseURL string
 	client  *http.Client
 }
+
+const requestIDHeader = "X-Request-ID"
 
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
@@ -32,6 +35,7 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("create request: %w", err)
 	}
+	attachRequestID(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("perform request: %w", err)
@@ -65,6 +69,7 @@ func (c HTTPClient) ListRecords(ctx context.Context, tenantID, objectType string
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
+	attachRequestID(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("perform request: %w", err)
@@ -101,6 +106,7 @@ func (c HTTPClient) QueryRecords(ctx context.Context, tenantID, objectType, fiel
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
+	attachRequestID(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("perform request: %w", err)
@@ -136,10 +142,12 @@ func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	attachRequestID(req)
 	startedAt := time.Now()
 	resp, err := c.client.Do(req)
 	if err != nil {
 		slog.Default().Warn("ingestion aggregate request failed",
+			"request_id", requestctx.RequestID(ctx),
 			"tenant_id", tenantID,
 			"object_type", query.ObjectType,
 			"aggregate", query.Aggregate,
@@ -152,6 +160,7 @@ func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		slog.Default().Warn("ingestion aggregate request returned non-200",
+			"request_id", requestctx.RequestID(ctx),
 			"tenant_id", tenantID,
 			"object_type", query.ObjectType,
 			"aggregate", query.Aggregate,
@@ -167,6 +176,7 @@ func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	slog.Default().Info("ingestion aggregate request completed",
+		"request_id", requestctx.RequestID(ctx),
 		"tenant_id", tenantID,
 		"object_type", query.ObjectType,
 		"aggregate", query.Aggregate,
@@ -192,4 +202,13 @@ type listRecordsResponse struct {
 
 type aggregateResponse struct {
 	Value any `json:"value"`
+}
+
+func attachRequestID(req *http.Request) {
+	if req == nil {
+		return
+	}
+	if requestID := requestctx.RequestID(req.Context()); requestID != "" {
+		req.Header.Set(requestIDHeader, requestID)
+	}
 }

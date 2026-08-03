@@ -41,6 +41,7 @@ func TestIntegrationSingleAndPatchIngestWritesTenantRecordAndMetadata(t *testing
 			model: publishedTransactionsModel(tenantID),
 		},
 		storepostgres.NewTransactionManager(pool),
+		nil,
 		idGenerator,
 		fixedClock{now: time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)},
 	)
@@ -107,6 +108,7 @@ func TestIntegrationSingleIngestReplaysStoredIdempotentResponse(t *testing.T) {
 			model: publishedTransactionsModel(tenantID),
 		},
 		storepostgres.NewTransactionManager(pool),
+		nil,
 		idGenerator,
 		fixedClock{now: time.Date(2026, 5, 20, 12, 30, 0, 0, time.UTC)},
 	)
@@ -174,6 +176,7 @@ func TestIntegrationCSVUploadServiceProcessesUploadedLog(t *testing.T) {
 			model: publishedTransactionsModel(tenantID),
 		},
 		storepostgres.NewTransactionManager(pool),
+		nil,
 		idGenerator,
 		clock,
 	)
@@ -243,6 +246,7 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 			model: publishedTransactionsModel(tenantID),
 		},
 		storepostgres.NewTransactionManager(pool),
+		nil,
 		idGenerator,
 		clock,
 	)
@@ -391,7 +395,7 @@ func integrationDatabaseURL(t *testing.T) string {
 
 func integrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {
 	t.Helper()
-	pool, err := storepostgres.NewPool(ctx, databaseURL)
+	pool, err := storepostgres.NewPool(ctx, databaseURL, storepostgres.PoolConfig{})
 	if err != nil {
 		t.Fatalf("connect integration pool: %v", err)
 	}

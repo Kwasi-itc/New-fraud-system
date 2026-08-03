@@ -119,7 +119,7 @@ func SupportedFunctionCatalog() []FunctionDescriptor {
 		{
 			Name:              "related_count",
 			Category:          "related data",
-			Description:       "Counts records of another object type, optionally restricted to records whose field equals a provided value.",
+			Description:       "Deprecated runtime helper. Evaluation currently fails explicitly because broad record-list scans are disabled.",
 			ReturnType:        domainast.ValueTypeNumber,
 			SupportsNamedArgs: true,
 			Arguments: []FunctionArgument{
@@ -342,7 +342,7 @@ func SupportedFunctionCatalog() []FunctionDescriptor {
 		{
 			Name:              "related_records",
 			Category:          "related data",
-			Description:       "Loads related records as a list so later functions can filter, aggregate, and group them.",
+			Description:       "Deprecated runtime helper. Evaluation currently fails explicitly because broad record-list scans are disabled.",
 			ReturnType:        domainast.ValueTypeList,
 			SupportsNamedArgs: true,
 			Arguments: []FunctionArgument{

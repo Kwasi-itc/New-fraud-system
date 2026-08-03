@@ -64,8 +64,8 @@ func CompileAggregateQuery(ctx context.Context, node domainast.Node, runtime Run
 		ObjectType: tableName,
 		Aggregate:  aggregateName,
 		Field:      fieldName,
+		Filter:     compiledFilter,
 	}
-	query.Filter = compiledFilter
 
 	return AggregateCompileResult{
 		Supported: true,
@@ -237,8 +237,14 @@ func normalizeAggregateName(name string) string {
 func normalizeAggregateFilterOperator(operator string, value any) (string, bool) {
 	switch strings.TrimSpace(strings.ToLower(operator)) {
 	case "=", "eq":
+		if value == nil {
+			return "is_null", true
+		}
 		return "eq", true
-	case "!=", "â‰ ", "neq":
+	case "!=", "neq", "≠":
+		if value == nil {
+			return "is_not_null", true
+		}
 		return "neq", true
 	case ">", "gt":
 		return "gt", true
@@ -254,9 +260,12 @@ func normalizeAggregateFilterOperator(operator string, value any) (string, bool)
 		}
 		return "in", true
 	case "stringstartswith":
+		if _, ok := value.(string); !ok {
+			return "", false
+		}
 		return "starts_with", true
 	case "stringendswith":
-		return "ends_with", true
+		return "", false
 	default:
 		return "", false
 	}

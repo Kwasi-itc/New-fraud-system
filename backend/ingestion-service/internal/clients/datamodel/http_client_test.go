@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -106,5 +107,23 @@ func TestHTTPClientGetPublishedDataModelRequiresRevisionID(t *testing.T) {
 	_, err := client.GetPublishedDataModel(context.Background(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 	if err == nil {
 		t.Fatal("expected missing revision_id to return an error")
+	}
+}
+
+func TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewHTTPClient(server.URL, time.Second)
+	_, err := client.GetPublishedDataModel(context.Background(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+	if err == nil {
+		t.Fatal("expected non-200 response to return an error")
+	}
+	if !strings.Contains(err.Error(), "unexpected status from data-model-service") {
+		t.Fatalf("error = %v, want unexpected status from data-model-service", err)
 	}
 }

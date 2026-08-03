@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/requestctx"
 )
 
 const requestIDHeader = "X-Request-ID"
@@ -24,20 +25,28 @@ func requestContextMiddleware(logger *slog.Logger) gin.HandlerFunc {
 		}
 
 		requestLogger := logger.With("request_id", requestID)
+		c.Request = c.Request.WithContext(requestctx.WithRequestID(c.Request.Context(), requestID))
 		c.Set("logger", requestLogger)
 		c.Set("request_id", requestID)
 		c.Writer.Header().Set(requestIDHeader, requestID)
 		c.Next()
 
-		requestLogger.Debug(
-			"http request",
+		attrs := []any{
 			"method", c.Request.Method,
 			"path", c.FullPath(),
 			"raw_path", c.Request.URL.Path,
 			"status", c.Writer.Status(),
 			"latency_ms", time.Since(start).Milliseconds(),
 			"client_ip", c.ClientIP(),
-		)
+		}
+		switch status := c.Writer.Status(); {
+		case status >= http.StatusInternalServerError:
+			requestLogger.Error("http request", attrs...)
+		case status >= http.StatusBadRequest:
+			requestLogger.Warn("http request", attrs...)
+		default:
+			requestLogger.Info("http request", attrs...)
+		}
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,7 +30,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
+	workerDatabaseURL := strings.TrimSpace(cfg.WorkerDatabaseURL)
+	if workerDatabaseURL == "" {
+		workerDatabaseURL = cfg.DatabaseURL
+	}
+	db, err := storepostgres.NewPool(context.Background(), workerDatabaseURL, storepostgres.PoolConfig{
+		MaxConns: int32(cfg.WorkerDatabaseMaxConns),
+		MinConns: int32(cfg.WorkerDatabaseMinConns),
+	})
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
 		os.Exit(1)
@@ -43,6 +51,7 @@ func main() {
 	ingestService := service.NewIngestService(
 		dataModelReader,
 		storepostgres.NewTransactionManager(db),
+		nil,
 		uuidGenerator{},
 		systemClock{},
 	)
@@ -74,8 +83,11 @@ func main() {
 	}
 
 	logger.Info("starting ingestion worker",
+		"database_url_source", workerDatabaseURLSource(cfg),
 		"queue", cfg.UploadLogQueueName,
 		"workers", cfg.UploadLogQueueWorkers,
+		"db_max_conns", cfg.WorkerDatabaseMaxConns,
+		"db_min_conns", cfg.WorkerDatabaseMinConns,
 		"max_attempts", cfg.WorkerMaxAttempts,
 	)
 	if err := riverClient.Start(ctx); err != nil {
@@ -105,4 +117,11 @@ type systemClock struct{}
 
 func (systemClock) Now() time.Time {
 	return time.Now().UTC()
+}
+
+func workerDatabaseURLSource(cfg app.Config) string {
+	if strings.TrimSpace(cfg.WorkerDatabaseURL) != "" {
+		return "WORKER_DATABASE_URL"
+	}
+	return "DATABASE_URL"
 }

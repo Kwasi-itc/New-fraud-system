@@ -43,6 +43,23 @@ func TestNormalizeRecurringScheduleConfigAllowsIanaTimezone(t *testing.T) {
 	}
 }
 
+func TestNormalizeRecurringScheduleConfigClampsCandidateLimit(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := NormalizeRecurringScheduleConfig(RecurringScheduleConfig{
+		Enabled:        true,
+		Frequency:      "daily",
+		TimeOfDay:      "08:00",
+		CandidateLimit: maxRecurringCandidateLimit + 250,
+	})
+	if err != nil {
+		t.Fatalf("normalize recurring schedule: %v", err)
+	}
+	if cfg.CandidateLimit != maxRecurringCandidateLimit {
+		t.Fatalf("expected candidate limit %d, got %d", maxRecurringCandidateLimit, cfg.CandidateLimit)
+	}
+}
+
 func TestEncodeDecodeRecurringScheduleConfigRoundTrip(t *testing.T) {
 	t.Parallel()
 

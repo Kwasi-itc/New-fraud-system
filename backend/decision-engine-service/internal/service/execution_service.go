@@ -91,6 +91,16 @@ type ExecutionService struct {
 	outboxEnqueuer        riverjobs.OutboxEventEnqueuer
 }
 
+func normalizeScheduledExecutionCandidateLimit(limit int) int {
+	if limit <= 0 {
+		return defaultRecurringCandidateLimit
+	}
+	if limit > maxRecurringCandidateLimit {
+		return maxRecurringCandidateLimit
+	}
+	return limit
+}
+
 func NewExecutionService(
 	txManager ports.TransactionManager,
 	idGen ports.IDGenerator,
@@ -557,10 +567,7 @@ func (s ExecutionService) runScheduledExecution(ctx context.Context, item execut
 		if err != nil {
 			return err
 		}
-		limit := req.CandidateLimit
-		if limit <= 0 {
-			limit = 100
-		}
+		limit := normalizeScheduledExecutionCandidateLimit(req.CandidateLimit)
 		records, err := s.tenantDataReader.ListRecords(ctx, item.TenantID, scn.TriggerObjectType, limit)
 		if err != nil {
 			return err

@@ -14,6 +14,7 @@ type Config struct {
 	DatabaseURL                         string
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
+	TenantDataReadMode                  string
 	ServiceAuthMode                     string
 	ServiceAuthToken                    string
 	ServiceAllowedOrigins               []string
@@ -27,6 +28,10 @@ type Config struct {
 	HTTPClientTimeout                   time.Duration
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
+	LiveDecisionMode                    string
+	IngestionTriggerDecisionMode        string
+	IngestionTriggerOverloadMode        string
+	LiveAsyncObjectTypes                []string
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
@@ -187,6 +192,7 @@ func LoadConfig() (Config, error) {
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
 		IngestionServiceURL:                 strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
+		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "ingestion_http")),
 		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),
 		ServiceAllowedOrigins:               parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
@@ -200,6 +206,10 @@ func LoadConfig() (Config, error) {
 		HTTPClientTimeout:                   httpClientTimeout,
 		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
 		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		LiveDecisionMode:                    strings.ToLower(getEnv("LIVE_DECISION_MODE", "sync")),
+		IngestionTriggerDecisionMode:        strings.ToLower(getEnv("INGESTION_TRIGGER_DECISION_MODE", "async_only")),
+		IngestionTriggerOverloadMode:        strings.ToLower(getEnv("INGESTION_TRIGGER_OVERLOAD_MODE", "defer_async")),
+		LiveAsyncObjectTypes:                normalizeLowercaseList(parseCSVEnv("LIVE_ASYNC_OBJECT_TYPES", nil)),
 		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
 		LiveAsyncFallbackEnabled:            liveAsyncFallbackEnabled,
 		RuleEvaluationConcurrency:           ruleEvaluationConcurrency,
@@ -240,7 +250,10 @@ func LoadConfig() (Config, error) {
 	if cfg.DataModelServiceURL == "" {
 		return Config{}, fmt.Errorf("DATA_MODEL_SERVICE_URL is required")
 	}
-	if cfg.IngestionServiceURL == "" {
+	if cfg.TenantDataReadMode != "ingestion_http" && cfg.TenantDataReadMode != "direct_db" {
+		return Config{}, fmt.Errorf("TENANT_DATA_READ_MODE must be one of ingestion_http or direct_db")
+	}
+	if cfg.TenantDataReadMode == "ingestion_http" && cfg.IngestionServiceURL == "" {
 		return Config{}, fmt.Errorf("INGESTION_SERVICE_URL is required")
 	}
 	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
@@ -254,6 +267,15 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.AggregatePushdownMode != "enabled" && cfg.AggregatePushdownMode != "disabled" && cfg.AggregatePushdownMode != "strict" {
 		return Config{}, fmt.Errorf("AGGREGATE_PUSHDOWN_MODE must be one of enabled, disabled, or strict")
+	}
+	if cfg.LiveDecisionMode != "sync" && cfg.LiveDecisionMode != "async_only" {
+		return Config{}, fmt.Errorf("LIVE_DECISION_MODE must be one of sync or async_only")
+	}
+	if cfg.IngestionTriggerDecisionMode != "sync" && cfg.IngestionTriggerDecisionMode != "async_only" {
+		return Config{}, fmt.Errorf("INGESTION_TRIGGER_DECISION_MODE must be one of sync or async_only")
+	}
+	if cfg.IngestionTriggerOverloadMode != "defer_async" && cfg.IngestionTriggerOverloadMode != "reject" {
+		return Config{}, fmt.Errorf("INGESTION_TRIGGER_OVERLOAD_MODE must be one of defer_async or reject")
 	}
 	if cfg.WorkerPollInterval <= 0 {
 		return Config{}, fmt.Errorf("WORKER_POLL_INTERVAL must be greater than zero")
@@ -352,6 +374,24 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func normalizeLowercaseList(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" {
+			continue
+		}
+		out = append(out, normalized)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {

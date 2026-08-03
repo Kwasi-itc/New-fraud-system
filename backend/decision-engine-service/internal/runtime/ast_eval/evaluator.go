@@ -327,36 +327,13 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		return float64(count), nil
 	case "related_count":
-		objectType, err := evalNamedString(ctx, node, "object_type", runtime)
-		if err != nil {
-			return nil, err
-		}
-		fieldName, err := evalNamedString(ctx, node, "field", runtime)
-		if err != nil {
-			return nil, err
-		}
-		if runtime.TenantDataReader == nil {
-			return nil, fmt.Errorf("tenant data reader is not configured")
-		}
-		records, err := runtime.TenantDataReader.ListRecords(ctx, runtime.TenantID, objectType, 1000)
-		if err != nil {
-			return nil, err
-		}
-		equalsNode, hasEquals := node.NamedChildren["equals"]
-		if !hasEquals {
-			return float64(countNonNilField(records, fieldName)), nil
-		}
-		expected, err := EvaluateNode(ctx, equalsNode, runtime)
-		if err != nil {
-			return nil, err
-		}
-		count := 0
-		for _, record := range records {
-			if equal, err := compareValues("eq", record.Fields[fieldName], expected); err == nil && equal {
-				count++
-			}
-		}
-		return float64(count), nil
+		recordBroadReadHelperRejection("related_count")
+		slog.Default().Warn("broad read helper disabled",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"helper_function", "related_count",
+		)
+		return nil, fmt.Errorf("related_count is disabled: broad record-list evaluation is not allowed")
 	case "related_field":
 		path, err := evalNamedString(ctx, node, "path", runtime)
 		if err != nil {
@@ -835,7 +812,13 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		return ScoreComputationResult{Triggered: true, Default: true}, nil
 	case "related_records":
-		return fetchRelatedRecords(ctx, node, runtime)
+		recordBroadReadHelperRejection("related_records")
+		slog.Default().Warn("broad read helper disabled",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"helper_function", "related_records",
+		)
+		return nil, fmt.Errorf("related_records is disabled: broad record-list evaluation is not allowed")
 	case "filter_eq":
 		items, err := evalNamedList(ctx, node, "items", runtime)
 		if err != nil {
@@ -963,6 +946,13 @@ func TraverseRelatedPath(ctx context.Context, runtime Runtime, path string) (map
 	currentType := runtime.ObjectType
 	currentFields := runtime.Fields
 	segments := strings.Split(path, ".")
+	cacheKey := runtime.ObjectType + "|" + strings.TrimSpace(path)
+	if cachedFields, cachedType, found, ok := runtime.RelatedPathCache.Get(cacheKey); ok {
+		if !found {
+			return nil, "", nil
+		}
+		return cachedFields, cachedType, nil
+	}
 	for _, segment := range segments {
 		segment = strings.TrimSpace(segment)
 		if segment == "" {
@@ -978,6 +968,7 @@ func TraverseRelatedPath(ctx context.Context, runtime Runtime, path string) (map
 		}
 		lookupValue, ok := currentFields[link.ChildFieldName]
 		if !ok || lookupValue == nil {
+			runtime.RelatedPathCache.Set(cacheKey, nil, "", false)
 			return nil, "", nil
 		}
 		results, err := runtime.TenantDataReader.QueryRecords(ctx, runtime.TenantID, link.ParentTableName, link.ParentFieldName, fmt.Sprint(lookupValue), 1)
@@ -985,11 +976,13 @@ func TraverseRelatedPath(ctx context.Context, runtime Runtime, path string) (map
 			return nil, "", err
 		}
 		if len(results) == 0 {
+			runtime.RelatedPathCache.Set(cacheKey, nil, "", false)
 			return nil, "", nil
 		}
 		currentType = link.ParentTableName
 		currentFields = results[0].Fields
 	}
+	runtime.RelatedPathCache.Set(cacheKey, currentFields, currentType, true)
 	return currentFields, currentType, nil
 }
 
@@ -1007,16 +1000,6 @@ func EvaluateFormula(ctx context.Context, formula json.RawMessage, runtime Runti
 		return false, fmt.Errorf("formula did not evaluate to boolean")
 	}
 	return boolResult, nil
-}
-
-func countNonNilField(records []ports.TenantRecord, fieldName string) int {
-	count := 0
-	for _, record := range records {
-		if value, ok := record.Fields[fieldName]; ok && value != nil {
-			count++
-		}
-	}
-	return count
 }
 
 func canonicalFunctionName(name string) string {
@@ -1122,91 +1105,17 @@ func evalStringNode(ctx context.Context, node domainast.Node, runtime Runtime, l
 	return text, nil
 }
 
-func fetchRelatedRecords(ctx context.Context, node domainast.Node, runtime Runtime) ([]any, error) {
-	objectType, err := evalNamedString(ctx, node, "object_type", runtime)
-	if err != nil {
-		return nil, err
-	}
-	if runtime.TenantDataReader == nil {
-		return nil, fmt.Errorf("tenant data reader is not configured")
-	}
-	limit := 1000
-	if rawLimit, ok, err := evalOptionalNamedNumber(ctx, node, "limit", runtime); err != nil {
-		return nil, err
-	} else if ok && rawLimit > 0 {
-		limit = int(rawLimit)
-	}
-	records, err := runtime.TenantDataReader.ListRecords(ctx, runtime.TenantID, objectType, limit)
-	if err != nil {
-		return nil, err
-	}
-	if matchFieldNode, hasMatchField := node.NamedChildren["match_field"]; hasMatchField {
-		matchFieldRaw, err := EvaluateNode(ctx, matchFieldNode, runtime)
-		if err != nil {
-			return nil, err
-		}
-		matchField, ok := matchFieldRaw.(string)
-		if !ok {
-			return nil, fmt.Errorf("related_records match_field must resolve to string")
-		}
-		expected, err := evalNamedAny(ctx, node, "equals", runtime)
-		if err != nil {
-			return nil, err
-		}
-		filtered := make([]ports.TenantRecord, 0, len(records))
-		for _, record := range records {
-			if equal, err := compareValues("eq", record.Fields[matchField], expected); err == nil && equal {
-				filtered = append(filtered, record)
-			}
-		}
-		records = filtered
-	}
-	if timestampField, ok, err := evalOptionalNamedString(ctx, node, "timestamp_field", runtime); err != nil {
-		return nil, err
-	} else if ok {
-		withinHours, hasWithinHours, err := evalOptionalNamedNumber(ctx, node, "within_hours", runtime)
-		if err != nil {
-			return nil, err
-		}
-		if hasWithinHours {
-			windowStart := runtime.Now
-			if windowStart.IsZero() {
-				windowStart = time.Now().UTC()
-			}
-			windowStart = windowStart.Add(-time.Duration(withinHours * float64(time.Hour)))
-			filtered := make([]ports.TenantRecord, 0, len(records))
-			for _, record := range records {
-				recordTime, ok := parseTimeValue(record.Fields[timestampField])
-				if !ok {
-					continue
-				}
-				if !recordTime.Before(windowStart) {
-					filtered = append(filtered, record)
-				}
-			}
-			records = filtered
-		}
-	}
-	out := make([]any, 0, len(records))
-	for _, record := range records {
-		item := make(map[string]any, len(record.Fields)+2)
-		for key, value := range record.Fields {
-			item[key] = value
-		}
-		item["object_id"] = record.ObjectID
-		item["object_type"] = record.ObjectType
-		out = append(out, item)
-	}
-	return out, nil
-}
-
 func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime Runtime) (any, error) {
+	startedAt := time.Now()
+	defer func() {
+		recordAggregateEvaluation(time.Since(startedAt))
+	}()
+
 	tableName, err := evalNamedString(ctx, node, "tableName", runtime)
 	if err != nil {
 		return nil, err
 	}
-	fieldName, err := evalNamedString(ctx, node, "fieldName", runtime)
-	if err != nil {
+	if _, err := evalNamedString(ctx, node, "fieldName", runtime); err != nil {
 		return nil, err
 	}
 	aggregatorName, err := evalNamedString(ctx, node, "aggregator", runtime)
@@ -1216,96 +1125,72 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 	if runtime.TenantDataReader == nil {
 		return nil, fmt.Errorf("tenant data reader is not configured")
 	}
-	if runtime.aggregatePushdownEnabled() {
-		if compileResult, err := CompileAggregateQuery(ctx, node, runtime); err != nil {
-			return nil, err
-		} else if compileResult.Supported {
-			recordAggregatePushdownCompile(true)
-			if !runtime.aggregatePushdownSupportsAggregate(compileResult.Query.Aggregate) {
-				reason := fmt.Sprintf("aggregate %q is not enabled for remote pushdown", compileResult.Query.Aggregate)
-				slog.Default().Warn("aggregate pushdown skipped by aggregate allow-list",
-					"tenant_id", runtime.TenantID,
-					"object_type", runtime.ObjectType,
-					"table_name", tableName,
-					"aggregate", compileResult.Query.Aggregate,
-					"mode", runtime.aggregatePushdownMode(),
-				)
-				if runtime.aggregatePushdownStrict() {
-					return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
-				}
-				recordAggregatePushdownFallback()
-			} else {
-				startedAt := time.Now()
-				value, err := runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
-				recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
-				if err == nil {
-					return value, nil
-				}
-				slog.Default().Warn("aggregate pushdown remote call failed",
-					"tenant_id", runtime.TenantID,
-					"object_type", runtime.ObjectType,
-					"table_name", tableName,
-					"aggregate", compileResult.Query.Aggregate,
-					"field", compileResult.Query.Field,
-					"mode", runtime.aggregatePushdownMode(),
-					"error", err,
-				)
-				if runtime.aggregatePushdownStrict() {
-					return nil, fmt.Errorf("aggregate pushdown failed: %w", err)
-				}
-				recordAggregatePushdownFallback()
-			}
-		} else if runtime.aggregatePushdownStrict() {
-			recordAggregatePushdownCompile(false)
-			slog.Default().Warn("aggregate pushdown unsupported",
-				"tenant_id", runtime.TenantID,
-				"object_type", runtime.ObjectType,
-				"table_name", tableName,
-				"aggregate", aggregatorName,
-				"reason", compileResult.UnsupportedReason,
-			)
-			return nil, fmt.Errorf("aggregate pushdown unsupported: %s", compileResult.UnsupportedReason)
-		} else {
-			recordAggregatePushdownCompile(false)
-			recordAggregatePushdownFallback()
-			slog.Default().Warn("aggregate pushdown unsupported, using local fallback",
-				"tenant_id", runtime.TenantID,
-				"object_type", runtime.ObjectType,
-				"table_name", tableName,
-				"aggregate", aggregatorName,
-				"reason", compileResult.UnsupportedReason,
-			)
-		}
+	if !runtime.aggregatePushdownEnabled() {
+		reason := "aggregate pushdown is disabled"
+		slog.Default().Warn("aggregate pushdown disabled for aggregator evaluation",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"table_name", tableName,
+			"aggregate", aggregatorName,
+			"mode", runtime.aggregatePushdownMode(),
+			"strict_mode", runtime.aggregatePushdownStrict(),
+			"fallback_used", false,
+			"fallback_reason", "aggregate_pushdown_disabled",
+		)
+		return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
 	}
-	records, err := runtime.TenantDataReader.ListRecords(ctx, runtime.TenantID, tableName, 5000)
+	compileResult, err := CompileAggregateQuery(ctx, node, runtime)
 	if err != nil {
 		return nil, err
 	}
-	filtered := make([]ports.TenantRecord, 0, len(records))
-	var filterExpr *aggregateFilterExpr
-	if filterNode, ok := node.NamedChildren["filters"]; ok {
-		expr, supported, _, err := parseAggregateFilterExpr(ctx, filterNode, runtime)
-		if err != nil {
-			return nil, err
-		}
-		if supported {
-			filterExpr = &expr
-		}
+	if !compileResult.Supported {
+		recordAggregatePushdownCompile(false)
+		slog.Default().Warn("aggregate pushdown unsupported",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"table_name", tableName,
+			"aggregate", aggregatorName,
+			"reason", compileResult.UnsupportedReason,
+			"strict_mode", runtime.aggregatePushdownStrict(),
+			"fallback_used", false,
+			"fallback_reason", "unsupported_query_shape",
+		)
+		return nil, fmt.Errorf("aggregate pushdown unsupported: %s", compileResult.UnsupportedReason)
 	}
-	for _, record := range records {
-		matches := true
-		if filterExpr != nil {
-			var err error
-			matches, err = recordMatchesFilterExpr(record, *filterExpr)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if matches {
-			filtered = append(filtered, record)
-		}
+	recordAggregatePushdownCompile(true)
+	if !runtime.aggregatePushdownSupportsAggregate(compileResult.Query.Aggregate) {
+		reason := fmt.Sprintf("aggregate %q is not enabled for remote pushdown", compileResult.Query.Aggregate)
+		slog.Default().Warn("aggregate pushdown skipped by aggregate allow-list",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"table_name", tableName,
+			"aggregate", compileResult.Query.Aggregate,
+			"mode", runtime.aggregatePushdownMode(),
+			"strict_mode", runtime.aggregatePushdownStrict(),
+			"fallback_used", false,
+			"fallback_reason", "aggregate_not_enabled",
+		)
+		return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
 	}
-	return aggregateFieldValues(filtered, fieldName, aggregatorName, node.NamedChildren)
+	startedAt = time.Now()
+	value, err := runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
+	recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
+	if err != nil {
+		slog.Default().Warn("aggregate pushdown remote call failed",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"table_name", tableName,
+			"aggregate", compileResult.Query.Aggregate,
+			"field", compileResult.Query.Field,
+			"mode", runtime.aggregatePushdownMode(),
+			"strict_mode", runtime.aggregatePushdownStrict(),
+			"fallback_used", false,
+			"fallback_reason", "remote_call_failed",
+			"error", err,
+		)
+		return nil, fmt.Errorf("aggregate pushdown failed: %w", err)
+	}
+	return value, nil
 }
 
 func evalNamedFilters(ctx context.Context, node domainast.Node, runtime Runtime) ([]marbleFilter, error) {

@@ -13,14 +13,25 @@ import (
 )
 
 type UploadLogHandler struct {
-	service service.UploadLogService
+	service      service.UploadLogService
+	writeLimiter chan struct{}
 }
 
-func NewUploadLogHandler(service service.UploadLogService) UploadLogHandler {
-	return UploadLogHandler{service: service}
+type UploadLogHandlerConfig struct {
+	WritePathLimiter chan struct{}
+}
+
+func NewUploadLogHandler(service service.UploadLogService, cfg UploadLogHandlerConfig) UploadLogHandler {
+	return UploadLogHandler{service: service, writeLimiter: cfg.WritePathLimiter}
 }
 
 func (h UploadLogHandler) CreateCSV(c *gin.Context) {
+	release, ok := h.tryAcquireWriteSlot(c)
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
 		writeBadRequest(c, "invalid tenantId")
@@ -56,6 +67,19 @@ func (h UploadLogHandler) CreateCSV(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{"upload_log": dto.AdaptUploadLog(log)})
+}
+
+func (h UploadLogHandler) tryAcquireWriteSlot(c *gin.Context) (func(), bool) {
+	if h.writeLimiter == nil {
+		return func() {}, true
+	}
+	select {
+	case h.writeLimiter <- struct{}{}:
+		return func() { <-h.writeLimiter }, true
+	default:
+		writeOverloaded(c, "csv_upload_overloaded", "write path concurrency limit reached", "operation", "create_csv_upload")
+		return nil, false
+	}
 }
 
 func (h UploadLogHandler) List(c *gin.Context) {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,7 +53,218 @@ func (s stubTenantDataReader) QueryRecords(ctx context.Context, tenantID, object
 }
 
 func (s stubTenantDataReader) AggregateRecords(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error) {
-	return nil, fmt.Errorf("aggregate pushdown not supported in stub")
+	records := make([]ports.TenantRecord, 0, len(s.records))
+	for _, record := range s.records {
+		if record.ObjectType != query.ObjectType {
+			continue
+		}
+		match, err := stubAggregateFilterMatches(record, query.Filter)
+		if err != nil {
+			return nil, err
+		}
+		if match {
+			records = append(records, record)
+		}
+	}
+
+	switch strings.ToLower(strings.TrimSpace(query.Aggregate)) {
+	case "count":
+		return int64(len(records)), nil
+	case "count_distinct":
+		seen := map[string]struct{}{}
+		for _, record := range records {
+			seen[fmt.Sprint(record.Fields[query.Field])] = struct{}{}
+		}
+		return int64(len(seen)), nil
+	case "sum":
+		total := 0.0
+		for _, record := range records {
+			value, ok := stubToFloat(record.Fields[query.Field])
+			if !ok {
+				continue
+			}
+			total += value
+		}
+		return total, nil
+	case "avg":
+		total := 0.0
+		count := 0.0
+		for _, record := range records {
+			value, ok := stubToFloat(record.Fields[query.Field])
+			if !ok {
+				continue
+			}
+			total += value
+			count++
+		}
+		if count == 0 {
+			return float64(0), nil
+		}
+		return total / count, nil
+	case "min":
+		var minValue float64
+		set := false
+		for _, record := range records {
+			value, ok := stubToFloat(record.Fields[query.Field])
+			if !ok {
+				continue
+			}
+			if !set || value < minValue {
+				minValue = value
+				set = true
+			}
+		}
+		if !set {
+			return nil, nil
+		}
+		return minValue, nil
+	case "max":
+		var maxValue float64
+		set := false
+		for _, record := range records {
+			value, ok := stubToFloat(record.Fields[query.Field])
+			if !ok {
+				continue
+			}
+			if !set || value > maxValue {
+				maxValue = value
+				set = true
+			}
+		}
+		if !set {
+			return nil, nil
+		}
+		return maxValue, nil
+	default:
+		return nil, fmt.Errorf("aggregate %q not supported in stub", query.Aggregate)
+	}
+}
+
+func stubAggregateFilterMatches(record ports.TenantRecord, filter *ports.AggregateFilter) (bool, error) {
+	if filter == nil {
+		return true, nil
+	}
+	if filter.Op != "" {
+		return stubCompareAggregateField(record.Fields[filter.Field], filter.Op, filter.Value)
+	}
+	operator := strings.ToLower(strings.TrimSpace(filter.Operator))
+	switch operator {
+	case "", "and":
+		for _, child := range filter.Children {
+			match, err := stubAggregateFilterMatches(record, &child)
+			if err != nil {
+				return false, err
+			}
+			if !match {
+				return false, nil
+			}
+		}
+		return true, nil
+	case "or":
+		for _, child := range filter.Children {
+			match, err := stubAggregateFilterMatches(record, &child)
+			if err != nil {
+				return false, err
+			}
+			if match {
+				return true, nil
+			}
+		}
+		return false, nil
+	case "not":
+		if len(filter.Children) != 1 {
+			return false, fmt.Errorf("not filter expects one child")
+		}
+		match, err := stubAggregateFilterMatches(record, &filter.Children[0])
+		if err != nil {
+			return false, err
+		}
+		return !match, nil
+	default:
+		return false, fmt.Errorf("unsupported aggregate filter operator %q in stub", filter.Operator)
+	}
+}
+
+func stubCompareAggregateField(left any, op string, right any) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(op)) {
+	case "eq", "=":
+		return fmt.Sprint(left) == fmt.Sprint(right), nil
+	case "gt", ">":
+		return stubCompareOrdered(left, right, func(c int) bool { return c > 0 })
+	case "gte", ">=":
+		return stubCompareOrdered(left, right, func(c int) bool { return c >= 0 })
+	case "lt", "<":
+		return stubCompareOrdered(left, right, func(c int) bool { return c < 0 })
+	case "lte", "<=":
+		return stubCompareOrdered(left, right, func(c int) bool { return c <= 0 })
+	default:
+		return false, fmt.Errorf("unsupported aggregate filter op %q in stub", op)
+	}
+}
+
+func stubCompareOrdered(left any, right any, accept func(int) bool) (bool, error) {
+	if leftTime, ok := stubParseTime(left); ok {
+		rightTime, ok := stubParseTime(right)
+		if !ok {
+			return false, fmt.Errorf("time comparison requires timestamp rhs")
+		}
+		switch {
+		case leftTime.Before(rightTime):
+			return accept(-1), nil
+		case leftTime.After(rightTime):
+			return accept(1), nil
+		default:
+			return accept(0), nil
+		}
+	}
+	leftNum, ok := stubToFloat(left)
+	if !ok {
+		return false, fmt.Errorf("ordered comparison requires numeric or timestamp lhs")
+	}
+	rightNum, ok := stubToFloat(right)
+	if !ok {
+		return false, fmt.Errorf("ordered comparison requires numeric or timestamp rhs")
+	}
+	switch {
+	case leftNum < rightNum:
+		return accept(-1), nil
+	case leftNum > rightNum:
+		return accept(1), nil
+	default:
+		return accept(0), nil
+	}
+}
+
+func stubParseTime(value any) (time.Time, bool) {
+	switch typed := value.(type) {
+	case time.Time:
+		return typed, true
+	case string:
+		parsed, err := time.Parse(time.RFC3339, typed)
+		if err != nil {
+			return time.Time{}, false
+		}
+		return parsed, true
+	default:
+		return time.Time{}, false
+	}
+}
+
+func stubToFloat(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case float32:
+		return float64(typed), true
+	case int:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case int32:
+		return float64(typed), true
+	default:
+		return math.NaN(), false
+	}
 }
 
 type stubCustomListRepo struct {
@@ -328,9 +541,10 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		formula domainast.Node
-		want    any
+		name            string
+		formula         domainast.Node
+		want            any
+		wantErrContains string
 	}{
 		{
 			name: "custom list lookup",
@@ -420,7 +634,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(3)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_count is disabled",
 		},
 		{
 			name: "related count with dynamic equals filter",
@@ -441,7 +655,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(3)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_count is disabled",
 		},
 		{
 			name: "related count without equals counts non nil field values",
@@ -458,7 +672,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(4)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_count is disabled",
 		},
 		{
 			name: "past decision count with unmatched outcome",
@@ -565,7 +779,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(2)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "sum related amounts",
@@ -594,7 +808,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(250)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "average related amounts",
@@ -623,7 +837,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(250.0 / 3.0)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "minimum related amount",
@@ -652,7 +866,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(50)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "maximum related amount",
@@ -681,7 +895,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(120)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "filter records then count",
@@ -711,7 +925,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(2)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "group count and read result",
@@ -741,7 +955,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(2)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "group sum and read result",
@@ -772,7 +986,7 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 					{Constant: float64(200)},
 				},
 			},
-			want: true,
+			wantErrContains: "related_records is disabled",
 		},
 		{
 			name: "marble aggregator count distinct in last 24h",
@@ -1083,6 +1297,15 @@ func TestEvaluateFormulaPlatformFunctions(t *testing.T) {
 				}
 			}
 			got, err := asteval.EvaluateNode(context.Background(), tc.formula, testRuntime)
+			if tc.wantErrContains != "" {
+				if err == nil {
+					t.Fatalf("evaluateNode() error = nil, want %q", tc.wantErrContains)
+				}
+				if !strings.Contains(err.Error(), tc.wantErrContains) {
+					t.Fatalf("evaluateNode() error = %v, want substring %q", err, tc.wantErrContains)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("evaluateNode() error = %v", err)
 			}

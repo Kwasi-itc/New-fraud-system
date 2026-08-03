@@ -110,6 +110,29 @@ func TestLoadConfigParsesWorkerTaskPriorities(t *testing.T) {
 	}
 }
 
+func TestLoadConfigAllowsDirectDBTenantReadModeWithoutIngestionURL(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://example")
+	t.Setenv("DATA_MODEL_SERVICE_URL", "http://localhost:8080")
+	t.Setenv("TENANT_DATA_READ_MODE", "direct_db")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if cfg.TenantDataReadMode != "direct_db" {
+		t.Fatalf("cfg.TenantDataReadMode = %q, want direct_db", cfg.TenantDataReadMode)
+	}
+}
+
+func TestLoadConfigRejectsUnsupportedTenantReadMode(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("TENANT_DATA_READ_MODE", "something_else")
+
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("LoadConfig() error = nil, want tenant read mode validation error")
+	}
+}
+
 func TestSortedWorkerTasksUsesPriorityOrder(t *testing.T) {
 	got := SortedWorkerTasks([]string{"scheduled", "async", "outbox"}, map[string]int{
 		"scheduled": 20,

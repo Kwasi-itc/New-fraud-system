@@ -11,12 +11,12 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
-	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
 )
 
 type RouterConfig struct {
@@ -25,9 +25,14 @@ type RouterConfig struct {
 	AllowedOrigins                      []string
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
+	TenantDataReadMode                  string
 	HTTPClientTimeout                   time.Duration
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
+	LiveDecisionMode                    string
+	IngestionTriggerDecisionMode        string
+	IngestionTriggerOverloadMode        string
+	LiveAsyncObjectTypes                []string
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
@@ -167,7 +172,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader = ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)
@@ -226,7 +231,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	publicationHandler := handlers.NewPublicationHandler(iterationService, publicationService)
 	ruleHandler := handlers.NewRuleHandler(ruleService)
 	validationHandler := handlers.NewValidationHandler(validationService)
-	decisionHandler := handlers.NewDecisionHandler(decisionService, executionService, cfg.LiveDecisionConcurrencyLimit, cfg.LiveAsyncFallbackEnabled)
+	decisionHandler := handlers.NewDecisionHandler(decisionService, executionService, cfg.LiveDecisionMode, cfg.IngestionTriggerDecisionMode, cfg.IngestionTriggerOverloadMode, cfg.LiveAsyncObjectTypes, cfg.LiveDecisionConcurrencyLimit, cfg.LiveAsyncFallbackEnabled)
 	testRunHandler := handlers.NewTestRunHandler(testRunService)
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
 	workflowRuleHandler := handlers.NewWorkflowRuleHandler(workflowRuleService)
@@ -237,17 +242,20 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internalScreeningHandler := handlers.NewInternalScreeningHandler(screeningService)
 	scoringHandler := handlers.NewScoringHandler(scoringService)
 	platformHandler := handlers.NewPlatformHandler(platformService)
+	runtimeMetricsHandler := handlers.NewRuntimeMetricsHandler(decisionService)
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{
 		Mode:  cfg.AuthMode,
 		Token: cfg.AuthToken,
 	}))
+	v1.GET("/admin/runtime-metrics", runtimeMetricsHandler.Get)
 	v1.GET("/service-info", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                "decision-engine-service",
 			"data_model_service_url": cfg.DataModelServiceURL,
 			"ingestion_service_url":  cfg.IngestionServiceURL,
+			"tenant_data_read_mode":  cfg.TenantDataReadMode,
 		})
 	})
 	v1.GET("/rule-functions", validationHandler.ListRuleFunctions)

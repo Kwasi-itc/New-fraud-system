@@ -201,7 +201,8 @@ func TestEvaluationCacheReusesRelatedFieldTraversal(t *testing.T) {
 				},
 			},
 		}},
-		EvalCache: NewEvaluationCache(),
+		EvalCache:        NewEvaluationCache(),
+		RelatedPathCache: NewRelatedPathCache(),
 	}
 
 	for i := 0; i < 5; i++ {
@@ -213,6 +214,84 @@ func TestEvaluationCacheReusesRelatedFieldTraversal(t *testing.T) {
 			t.Fatalf("EvaluateNode() = %#v, want active", value)
 		}
 	}
+	if got := reader.QueryCalls(); got != 1 {
+		t.Fatalf("QueryRecords calls = %d, want 1", got)
+	}
+}
+
+func TestRelatedPathCacheReusesTraversalAcrossDistinctNodes(t *testing.T) {
+	t.Parallel()
+
+	reader := &countingTenantDataReader{
+		records: []ports.TenantRecord{{
+			ObjectID:   "acct-1",
+			ObjectType: "accounts",
+			Fields: map[string]any{
+				"account_status": "active",
+				"country":        "GH",
+			},
+		}},
+	}
+	statusNode := domainast.Node{
+		Function: "related_field",
+		NamedChildren: map[string]domainast.Node{
+			"path":  {Constant: "account"},
+			"field": {Constant: "account_status"},
+		},
+	}
+	countryNode := domainast.Node{
+		Function: "related_field",
+		NamedChildren: map[string]domainast.Node{
+			"path":  {Constant: "account"},
+			"field": {Constant: "country"},
+		},
+	}
+	runtime := Runtime{
+		TenantID:         "tenant-1",
+		ObjectID:         "txn-1",
+		ObjectType:       "transactions",
+		Fields:           map[string]any{"account_id": "acct-1"},
+		Now:              time.Unix(100, 0),
+		TenantDataReader: reader,
+		Model: &ports.TenantModel{Tables: map[string]ports.TenantModelTable{
+			"transactions": {
+				Name: "transactions",
+				LinksToSingle: map[string]ports.TenantModelLink{
+					"account": {
+						ParentTableName: "accounts",
+						ParentFieldName: "object_id",
+						ChildFieldName:  "account_id",
+					},
+				},
+			},
+			"accounts": {
+				Name: "accounts",
+				Fields: map[string]ports.TenantModelField{
+					"account_status": {Name: "account_status", Type: "string"},
+					"country":        {Name: "country", Type: "string"},
+				},
+			},
+		}},
+		EvalCache:        NewEvaluationCache(),
+		RelatedPathCache: NewRelatedPathCache(),
+	}
+
+	statusValue, err := EvaluateNode(context.Background(), statusNode, runtime)
+	if err != nil {
+		t.Fatalf("status EvaluateNode() error = %v", err)
+	}
+	if statusValue != "active" {
+		t.Fatalf("status EvaluateNode() = %#v, want active", statusValue)
+	}
+
+	countryValue, err := EvaluateNode(context.Background(), countryNode, runtime)
+	if err != nil {
+		t.Fatalf("country EvaluateNode() error = %v", err)
+	}
+	if countryValue != "GH" {
+		t.Fatalf("country EvaluateNode() = %#v, want GH", countryValue)
+	}
+
 	if got := reader.QueryCalls(); got != 1 {
 		t.Fatalf("QueryRecords calls = %d, want 1", got)
 	}

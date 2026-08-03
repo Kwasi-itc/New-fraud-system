@@ -247,6 +247,119 @@ stress-tests/scenario-scaling-runs/<timestamp>/summary.json
 stress-tests/scenario-scaling-runs/<timestamp>/trial-<complexity>-<scenario_count>-scenarios-<rules_per_scenario>-rules-<vus>-vus-<duration>s.json
 ```
 
+## Read Mode Comparison
+
+To compare `TENANT_DATA_READ_MODE=ingestion_http` against `TENANT_DATA_READ_MODE=direct_db`, run the same stress profile twice and then compare the two `summary.json` files.
+
+Recommended flow:
+
+1. Run one matrix with `TENANT_DATA_READ_MODE=ingestion_http`.
+2. Run the same matrix with `TENANT_DATA_READ_MODE=direct_db`.
+3. Compare the resulting summaries:
+
+```bash
+python3 stress-tests/decision_read_mode_comparison.py \
+  --baseline-label ingestion_http \
+  --baseline-summary stress-tests/rule-complexity-runs/<run-a>/summary.json \
+  --candidate-label direct_db \
+  --candidate-summary stress-tests/rule-complexity-runs/<run-b>/summary.json \
+  --output stress-tests/read-mode-comparison.json
+```
+
+Supported summary types:
+
+- `decision_engine_rule_complexity_scaling`
+- `decision_engine_scenario_scaling`
+
+The comparison output highlights:
+
+- throughput ratio
+- p95/p99 latency ratio
+- failure and timeout deltas
+
+To assemble one benchmark artifact that combines summary comparison, decision runtime metrics, ingestion read metrics, and top aggregate shapes:
+
+```bash
+python3 stress-tests/decision_read_benchmark_report.py \
+  --baseline-label ingestion_http \
+  --baseline-summary stress-tests/rule-complexity-runs/<run-a>/summary.json \
+  --candidate-label direct_db \
+  --candidate-summary stress-tests/rule-complexity-runs/<run-b>/summary.json \
+  --baseline-runtime-metrics stress-tests/runtime-metrics-ingestion-http.json \
+  --candidate-runtime-metrics stress-tests/runtime-metrics-direct-db.json \
+  --baseline-read-metrics stress-tests/read-metrics-ingestion-http.json \
+  --candidate-read-metrics stress-tests/read-metrics-direct-db.json \
+  --aggregate-shape-snapshots stress-tests/read-metrics-ingestion-http.json stress-tests/read-metrics-direct-db.json \
+  --output stress-tests/read-mode-benchmark-report.json
+```
+
+This report is the repo-supported benchmark summary for the direct-read feasibility checklist items.
+
+To capture decision-engine runtime metrics and ingestion read metrics as standalone artifacts during a replay or stress run:
+
+```bash
+python3 stress-tests/capture_runtime_read_metrics.py \
+  --label replay-ingestion-http \
+  --samples 5 \
+  --interval-seconds 15 \
+  --output-dir stress-tests/metrics-captures
+```
+
+This writes one capture directory containing:
+
+- `capture-manifest.json`
+- `runtime-metrics-001.json`, `runtime-metrics-002.json`, ...
+- `read-metrics-001.json`, `read-metrics-002.json`, ...
+
+Use this for:
+
+- replay-like snapshot collection from `GET /v1/admin/runtime-metrics`
+- replay-like snapshot collection from `GET /v1/admin/read-metrics`
+- preserving before/during/after artifacts around async-mode or read-mode changes
+
+To classify sampled replay failures by rule shape against the repo-side production replay and fraud demo catalogs:
+
+```bash
+python3 stress-tests/replay_rule_shape_audit.py \
+  --summary context/summary.json \
+  --output context/record-ingested-stress-failure-rule-audit.json
+```
+
+This report is intended for the stress-failure investigation checklist item around verifying whether sampled failing rules are:
+
+- aggregate pushdown candidates
+- unsupported aggregate shapes
+- broad list-read helpers such as `related_count` or `related_records`
+
+If you have an additional rule export that exposes `setup.rules`, append it with `--catalog-json <path>` to extend name resolution.
+
+`GET /v1/admin/read-metrics` now exposes:
+
+- aggregate shape counts for `aggregate_records`
+- threshold configuration echoed in the snapshot
+- a `pressure` summary with:
+  - status
+  - threshold-trigger reasons
+  - DB pool saturation percentage
+  - active read requests
+  - aggregate timeout rate
+  - read and aggregate overload counts
+
+To summarize the highest-frequency aggregate shapes from one or more `read-metrics` snapshots:
+
+```bash
+python3 stress-tests/aggregate_shape_inventory.py \
+  stress-tests/read-metrics-a.json \
+  stress-tests/read-metrics-b.json \
+  --output stress-tests/aggregate-shape-inventory.json
+```
+
+Use this as the basis for the remaining checklist items around:
+
+- direct-read benchmark feasibility
+- facade-vs-direct-read sustainability
+- final architecture decision
+
 Run a specific profile:
 
 ```bash

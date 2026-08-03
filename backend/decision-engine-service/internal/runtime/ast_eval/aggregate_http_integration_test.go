@@ -298,7 +298,7 @@ func TestAggregateHTTPPushdownHandlesLargeDatasetScenario(t *testing.T) {
 	}
 }
 
-func TestAggregatePushdownMatchesFallbackOnSupportedRule(t *testing.T) {
+func TestAggregatePushdownMatchesRemoteAggregateContractOnSupportedRule(t *testing.T) {
 	t.Parallel()
 
 	node := domainast.Node{
@@ -353,13 +353,6 @@ func TestAggregatePushdownMatchesFallbackOnSupportedRule(t *testing.T) {
 		},
 	}
 
-	records := []ports.TenantRecord{
-		{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"amount": float64(10), "owner_id": "customer-1", "status": "review"}},
-		{ObjectID: "txn-2", ObjectType: "transactions", Fields: map[string]any{"amount": float64(20), "owner_id": "customer-1", "status": "decline"}},
-		{ObjectID: "txn-3", ObjectType: "transactions", Fields: map[string]any{"amount": float64(30), "owner_id": "customer-1", "status": "approved"}},
-		{ObjectID: "txn-4", ObjectType: "transactions", Fields: map[string]any{"amount": float64(40), "owner_id": "other", "status": "review"}},
-	}
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"value": int64(2)})
 	}))
@@ -378,19 +371,19 @@ func TestAggregatePushdownMatchesFallbackOnSupportedRule(t *testing.T) {
 		t.Fatalf("pushdown EvaluateNode() error = %v", err)
 	}
 
-	fallbackValue, err := EvaluateNode(context.Background(), node, Runtime{
+	remoteValue, err := EvaluateNode(context.Background(), node, Runtime{
 		TenantID:              "tenant-1",
 		ObjectID:              "txn-1",
 		ObjectType:            "transactions",
 		Fields:                map[string]any{},
-		TenantDataReader:      aggregateTestTenantDataReader{aggregateErr: context.DeadlineExceeded, records: records},
+		TenantDataReader:      &aggregateTestTenantDataReader{aggregateValue: int64(2)},
 		AggregatePushdownMode: AggregatePushdownModeEnabled,
 	})
 	if err != nil {
-		t.Fatalf("fallback EvaluateNode() error = %v", err)
+		t.Fatalf("remote EvaluateNode() error = %v", err)
 	}
 
-	if pushdownValue != fallbackValue {
-		t.Fatalf("pushdown result = %#v, fallback result = %#v", pushdownValue, fallbackValue)
+	if pushdownValue != remoteValue {
+		t.Fatalf("pushdown result = %#v, remote result = %#v", pushdownValue, remoteValue)
 	}
 }

@@ -18,11 +18,11 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	dispatchclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch"
-	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
 )
 
 type uuidGenerator struct{}
@@ -121,7 +121,7 @@ func main() {
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{

@@ -69,7 +69,10 @@ The implemented runtime hides tenant-record access behind `ports.TenantDataReade
 - `ListRecords(ctx, tenantID, objectType, limit)`
 - `QueryRecords(ctx, tenantID, objectType, fieldName, value, limit)`
 
-The current HTTP-backed implementation uses `ingestion-service` as the source for those reads.
+The runtime now supports two implementations behind the same interface:
+
+- `ingestion-service` over HTTP
+- an internal direct Postgres reader that still resolves schema through `data-model-service`
 
 ## Current contract with `ingestion-service`
 
@@ -222,7 +225,7 @@ That spec mirrors the implemented request and response envelopes for:
 The highest-value remaining contract decisions are:
 
 - whether the ingestion-trigger remains synchronous HTTP or moves to events
-- whether `TenantDataReader` continues to read through `ingestion-service` or moves to direct tenant-schema reads
+- when to prefer the internal direct-read adapter over the HTTP facade in production
 - whether workflow side effects execute in-process or through a downstream case-management contract
 - whether helper-data repositories remain local service-owned V1 storage or become external dependencies
 - whether screening and scoring stay as local orchestration plus provider contracts, or move behind other service boundaries

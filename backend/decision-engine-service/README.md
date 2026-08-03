@@ -181,8 +181,8 @@ Current behavior:
 
 - the decision engine compiles supported aggregate AST into a logical aggregate query
 - `ingestion-service` executes the aggregate close to the tenant data tables
-- unsupported shapes fall back to local in-memory aggregation when pushdown mode allows fallback
-- strict mode fails fast instead of silently falling back
+- aggregate evaluation is remote-only; disabled, unsupported, or failed pushdown returns an explicit evaluation error
+- strict mode remains available, but aggregate evaluation no longer uses a local fallback path
 
 Current configuration:
 

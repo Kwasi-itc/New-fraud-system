@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,11 +16,36 @@ import (
 )
 
 type IngestHandler struct {
-	ingestService service.IngestService
+	ingestService         service.IngestService
+	writeLimiter          chan struct{}
+	readLimiter           chan struct{}
+	aggregateLimiter      chan struct{}
+	aggregateQueryTimeout time.Duration
 }
 
-func NewIngestHandler(ingestService service.IngestService) IngestHandler {
-	return IngestHandler{ingestService: ingestService}
+type IngestHandlerConfig struct {
+	WritePathLimiter               chan struct{}
+	ReadQueryConcurrencyLimit      int
+	AggregateQueryConcurrencyLimit int
+	AggregateQueryTimeout          time.Duration
+}
+
+func NewIngestHandler(ingestService service.IngestService, cfg IngestHandlerConfig) IngestHandler {
+	var readLimiter chan struct{}
+	if cfg.ReadQueryConcurrencyLimit > 0 {
+		readLimiter = make(chan struct{}, cfg.ReadQueryConcurrencyLimit)
+	}
+	var aggregateLimiter chan struct{}
+	if cfg.AggregateQueryConcurrencyLimit > 0 {
+		aggregateLimiter = make(chan struct{}, cfg.AggregateQueryConcurrencyLimit)
+	}
+	return IngestHandler{
+		ingestService:         ingestService,
+		writeLimiter:          cfg.WritePathLimiter,
+		readLimiter:           readLimiter,
+		aggregateLimiter:      aggregateLimiter,
+		aggregateQueryTimeout: cfg.AggregateQueryTimeout,
+	}
 }
 
 func (h IngestHandler) PostIngest(c *gin.Context) {
@@ -39,55 +65,79 @@ func (h IngestHandler) PatchBatchIngest(c *gin.Context) {
 }
 
 func (h IngestHandler) GetRecord(c *gin.Context) {
+	c.Set("metric_object_type", c.Param("objectType"))
+	release, ok := h.tryAcquireReadSlot(c, "get_record")
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"), "object_id", c.Param("objectId"))
 		return
 	}
 
 	result, err := h.ingestService.GetRecord(c.Request.Context(), tenantID, c.Param("objectType"), c.Param("objectId"))
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "object_id", c.Param("objectId"))
 		return
 	}
 
+	logHandlerSuccess(c, "get record completed", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "object_id", c.Param("objectId"))
 	c.JSON(http.StatusOK, gin.H{"record": result})
 }
 
 func (h IngestHandler) ListRecords(c *gin.Context) {
+	c.Set("metric_object_type", c.Param("objectType"))
+	release, ok := h.tryAcquireReadSlot(c, "list_records")
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"))
 		return
 	}
 	limit := 100
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {
-			writeBadRequest(c, "invalid limit")
+			writeBadRequest(c, "invalid limit", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "limit", raw)
 			return
 		}
 		limit = parsed
 	}
+	c.Set("metric_list_limit", limit)
 
 	result, err := h.ingestService.ListRecords(c.Request.Context(), tenantID, c.Param("objectType"), limit)
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "limit", limit)
 		return
 	}
 
+	logHandlerSuccess(c, "list records completed", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "limit", limit, "count", len(result.Records))
 	c.JSON(http.StatusOK, gin.H{"records": result.Records})
 }
 
 func (h IngestHandler) QueryRecords(c *gin.Context) {
+	c.Set("metric_object_type", c.Param("objectType"))
+	release, ok := h.tryAcquireReadSlot(c, "query_records")
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"))
 		return
 	}
 	fieldName := c.Query("field")
 	if fieldName == "" {
-		writeBadRequest(c, "field is required")
+		writeBadRequest(c, "field is required", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"))
 		return
 	}
 	value := c.Query("value")
@@ -95,58 +145,90 @@ func (h IngestHandler) QueryRecords(c *gin.Context) {
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {
-			writeBadRequest(c, "invalid limit")
+			writeBadRequest(c, "invalid limit", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "field", fieldName, "limit", raw)
 			return
 		}
 		limit = parsed
 	}
+	c.Set("metric_list_limit", limit)
 	result, err := h.ingestService.QueryRecords(c.Request.Context(), tenantID, c.Param("objectType"), fieldName, value, limit)
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "field", fieldName, "limit", limit)
 		return
 	}
+	logHandlerSuccess(c, "query records completed", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "field", fieldName, "limit", limit, "count", len(result.Records))
 	c.JSON(http.StatusOK, gin.H{"records": result.Records})
 }
 
 func (h IngestHandler) AggregateRecords(c *gin.Context) {
+	release, ok := h.tryAcquireAggregateSlot(c)
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"))
 		return
 	}
 
 	var query ingestion.AggregateQuery
 	if err := c.ShouldBindJSON(&query); err != nil {
-		writeBadRequest(c, "request body must be a JSON object")
+		writeBadRequest(c, "request body must be a JSON object", "tenant_id", tenantID.String())
 		return
 	}
 	if query.ObjectType == "" {
-		writeBadRequest(c, "object_type is required")
+		writeBadRequest(c, "object_type is required", "tenant_id", tenantID.String())
 		return
 	}
+	c.Set("metric_object_type", query.ObjectType)
 	if query.Aggregate == "" {
-		writeBadRequest(c, "aggregate is required")
+		writeBadRequest(c, "aggregate is required", "tenant_id", tenantID.String(), "object_type", query.ObjectType)
+		return
+	}
+	c.Set("metric_aggregate", query.Aggregate)
+	shape := ingestion.MeasureAggregateQueryShape(query)
+	c.Set("metric_aggregate_shape", ingestion.NormalizedAggregateQueryShapeKey(query))
+	if shape.FilterDepth > 0 {
+		c.Set("metric_filter_depth", shape.FilterDepth)
+	}
+	if err := ingestion.ValidateAggregateQuery(query); err != nil {
+		writeBadRequest(c, err.Error(), "tenant_id", tenantID.String(), "object_type", query.ObjectType, "aggregate", query.Aggregate, "field", query.Field, "filter_depth", shape.FilterDepth, "filter_nodes", shape.FilterNodes, "rejected_query_shape", true)
 		return
 	}
 
-	result, err := h.ingestService.AggregateRecords(c.Request.Context(), tenantID, query)
+	ctx := c.Request.Context()
+	if h.aggregateQueryTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, h.aggregateQueryTimeout)
+		defer cancel()
+	}
+	result, err := h.ingestService.AggregateRecords(ctx, tenantID, query)
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", query.ObjectType, "aggregate", query.Aggregate, "field", query.Field, "timeout_ms", h.aggregateQueryTimeout.Milliseconds())
 		return
 	}
+	logHandlerSuccess(c, "aggregate records completed", "tenant_id", tenantID.String(), "object_type", query.ObjectType, "aggregate", query.Aggregate, "field", query.Field, "timeout_ms", h.aggregateQueryTimeout.Milliseconds())
 	c.JSON(http.StatusOK, gin.H{"value": result.Value})
 }
 
 func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
+	release, ok := h.tryAcquireWriteSlot(c, "ingest")
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
 
 	var payload map[string]any
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		writeBadRequest(c, "request body must be a JSON object")
+		writeBadRequest(c, "request body must be a JSON object", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
 
@@ -158,29 +240,40 @@ func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
 		IdempotencyKey: optionalHeader(c.GetHeader("Idempotency-Key")),
 	})
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
 	if len(validationErrors) > 0 {
+		c.Set("error_category", "validation_failed")
+		logHandlerFailure(c, "ingest validation failed", nil, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode, "validation_error_count", len(validationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"error": gin.H{
-				"code":    "validation_failed",
-				"message": "payload validation failed",
+				"code":       "validation_failed",
+				"message":    "payload validation failed",
+				"category":   "validation_failed",
+				"request_id": requestIDFromContext(c),
 			},
 			"validation_errors": dto.AdaptValidationErrors(validationErrors),
 		})
 		return
 	}
 
+	logHandlerSuccess(c, "ingest completed", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode, "object_id", result.ObjectID, "action", result.Action, "replayed", result.Replayed, "revision_id", result.RevisionID)
 	c.JSON(http.StatusOK, gin.H{
 		"result": dto.AdaptIngestResult(result),
 	})
 }
 
 func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
+	release, ok := h.tryAcquireWriteSlot(c, "batch_ingest")
+	if !ok {
+		return
+	}
+	defer release()
+
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
-		writeBadRequest(c, "invalid tenantId")
+		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
 
@@ -188,7 +281,7 @@ func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
 	decoder := json.NewDecoder(c.Request.Body)
 	decoder.UseNumber()
 	if err := decoder.Decode(&records); err != nil {
-		writeBadRequest(c, "request body must be a JSON array of records")
+		writeBadRequest(c, "request body must be a JSON array of records", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
 
@@ -200,14 +293,18 @@ func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
 		IdempotencyKey: optionalHeader(c.GetHeader("Idempotency-Key")),
 	})
 	if err != nil {
-		writeServiceError(c, err)
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode, "record_count", len(records))
 		return
 	}
 	if len(validationErrors) > 0 {
+		c.Set("error_category", "validation_failed")
+		logHandlerFailure(c, "batch ingest validation failed", nil, "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode, "record_count", len(records), "validation_error_count", len(validationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"error": gin.H{
-				"code":    "validation_failed",
-				"message": "batch validation failed",
+				"code":       "validation_failed",
+				"message":    "batch validation failed",
+				"category":   "validation_failed",
+				"request_id": requestIDFromContext(c),
 			},
 			"validation_errors": dto.AdaptValidationErrors(validationErrors),
 		})
@@ -218,6 +315,7 @@ func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
 	for i, result := range results {
 		response[i] = dto.AdaptIngestResult(result)
 	}
+	logHandlerSuccess(c, "batch ingest completed", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode, "record_count", len(records), "result_count", len(results))
 	c.JSON(http.StatusOK, gin.H{
 		"results": response,
 	})
@@ -230,30 +328,41 @@ func optionalHeader(value string) *string {
 	return &value
 }
 
-func writeBadRequest(c *gin.Context, message string) {
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": gin.H{
-			"code":    "bad_parameter",
-			"message": message,
-		},
-	})
+func (h IngestHandler) tryAcquireWriteSlot(c *gin.Context, operation string) (func(), bool) {
+	if h.writeLimiter == nil {
+		return func() {}, true
+	}
+	select {
+	case h.writeLimiter <- struct{}{}:
+		return func() { <-h.writeLimiter }, true
+	default:
+		writeOverloaded(c, "write_path_overloaded", "write path concurrency limit reached", "operation", operation)
+		return nil, false
+	}
 }
 
-func writeServiceError(c *gin.Context, err error) {
-	switch {
-	case errors.Is(err, service.ErrIdempotencyKeyReused):
-		c.JSON(http.StatusConflict, gin.H{
-			"error": gin.H{
-				"code":    "idempotency_key_reused",
-				"message": err.Error(),
-			},
-		})
+func (h IngestHandler) tryAcquireReadSlot(c *gin.Context, operation string) (func(), bool) {
+	if h.readLimiter == nil {
+		return func() {}, true
+	}
+	select {
+	case h.readLimiter <- struct{}{}:
+		return func() { <-h.readLimiter }, true
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "bad_parameter",
-				"message": err.Error(),
-			},
-		})
+		writeOverloaded(c, "read_path_overloaded", "read path concurrency limit reached", "operation", operation)
+		return nil, false
+	}
+}
+
+func (h IngestHandler) tryAcquireAggregateSlot(c *gin.Context) (func(), bool) {
+	if h.aggregateLimiter == nil {
+		return func() {}, true
+	}
+	select {
+	case h.aggregateLimiter <- struct{}{}:
+		return func() { <-h.aggregateLimiter }, true
+	default:
+		writeOverloaded(c, "aggregate_path_overloaded", "aggregate concurrency limit reached", "operation", "aggregate_records", "timeout_ms", h.aggregateQueryTimeout.Milliseconds())
+		return nil, false
 	}
 }

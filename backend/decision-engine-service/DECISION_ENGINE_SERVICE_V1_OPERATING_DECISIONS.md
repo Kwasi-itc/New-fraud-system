@@ -66,6 +66,14 @@ Current configuration knobs:
 - `LIVE_ASYNC_FALLBACK_ENABLED`
   - default: `false`
   - when enabled, overloaded realtime decision requests are deferred into async execution instead of being rejected
+- `INGESTION_TRIGGER_DECISION_MODE`
+  - allowed values: `sync`, `async_only`
+  - default: `async_only`
+  - controls `POST /v1/tenants/:tenantId/ingestion-events/record-ingested` separately from the generic live decision endpoints
+- `INGESTION_TRIGGER_OVERLOAD_MODE`
+  - allowed values: `defer_async`, `reject`
+  - default: `defer_async`
+  - applies only when `INGESTION_TRIGGER_DECISION_MODE=sync` and the live concurrency gate is exhausted
 
 ### Current worker responsibilities
 
@@ -166,19 +174,28 @@ If the limit is reached:
 - when `LIVE_ASYNC_FALLBACK_ENABLED=false`, the request is rejected immediately with `429`
 - when `LIVE_ASYNC_FALLBACK_ENABLED=true`, the request is accepted as an async decision execution and returns `202`
 
+`record-ingested` now has additional callback-specific controls:
+
+- when `INGESTION_TRIGGER_DECISION_MODE=async_only`, the callback is deferred immediately and returns `202`
+- when `INGESTION_TRIGGER_DECISION_MODE=sync`, the callback uses the shared live gate
+- when that sync-mode gate is exhausted and `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`, the callback is deferred and returns `202`
+- when that sync-mode gate is exhausted and `INGESTION_TRIGGER_OVERLOAD_MODE=reject`, the callback returns `429 record_ingested_overloaded`
+
 ### Current sync vs deferred workload split
 
 - synchronous by default:
   - direct single-scenario evaluation
   - direct all-live-scenarios evaluation
-  - ingestion-triggered all-live-scenarios evaluation
 - deferred by explicit API:
   - async decision executions
   - scheduled executions
+- deferred by callback-specific default:
+  - ingestion-triggered all-live-scenarios evaluation
 - deferred under overload when async fallback is enabled:
   - single-scenario decision creation and evaluation
   - all-live-scenarios decision creation
-  - ingestion-triggered fan-out evaluation
+- deferred under callback-specific overload policy:
+  - ingestion-triggered fan-out evaluation when `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`
 
 ### Current synchronous side effects review
 

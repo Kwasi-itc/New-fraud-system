@@ -10,9 +10,17 @@ TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
 MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-360}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
-DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-sync}}"
+DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
+LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-async_only}}"
+LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
+INGESTION_TRIGGER_DECISION_MODE="${PRODUCTION_REPLAY_INGESTION_TRIGGER_DECISION_MODE:-${INGESTION_TRIGGER_DECISION_MODE:-async_only}}"
+INGESTION_TRIGGER_OVERLOAD_MODE="${PRODUCTION_REPLAY_INGESTION_TRIGGER_OVERLOAD_MODE:-${INGESTION_TRIGGER_OVERLOAD_MODE:-defer_async}}"
+TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
+ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
+READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
+READ_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS:-${READ_DATABASE_MIN_CONNS:-0}}"
 DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
 HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
 DAYS="${PRODUCTION_REPLAY_DAYS:-${DAYS:-}}"
@@ -22,6 +30,7 @@ TENANT_ID="${PRODUCTION_REPLAY_TENANT_ID:-${TENANT_ID:-}}"
 TENANT_NAME="${PRODUCTION_REPLAY_TENANT_NAME:-${TENANT_NAME:-EC2 Production Replay Smoke Test}}"
 PUBLICATION_TIMEOUT="${PRODUCTION_REPLAY_PUBLICATION_TIMEOUT:-${PUBLICATION_TIMEOUT:-900}}"
 AUTH_TOKEN="${SERVICE_AUTH_TOKEN:-}"
+EXPERIMENT_LABEL="${PRODUCTION_REPLAY_EXPERIMENT_LABEL:-${EXPERIMENT_LABEL:-}}"
 
 BASE_URL="${BASE_URL%/}"
 DATA_MODEL_URL="${PRODUCTION_REPLAY_DATA_MODEL_URL:-${DATA_MODEL_URL:-}}"
@@ -125,17 +134,37 @@ if [[ ! "$ASYNC_WAIT_TIMEOUT_MS" =~ ^[0-9]+$ ]]; then
   printf 'error: ASYNC_WAIT_TIMEOUT_MS must be zero or a positive integer; got %s\n' "$ASYNC_WAIT_TIMEOUT_MS" >&2
   exit 1
 fi
+if [[ "$LIVE_DECISION_MODE" != "sync" && "$LIVE_DECISION_MODE" != "async_only" ]]; then
+  printf 'error: LIVE_DECISION_MODE must be sync or async_only; got %s\n' "$LIVE_DECISION_MODE" >&2
+  exit 1
+fi
+if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED" != "false" ]]; then
+  printf 'error: LIVE_ASYNC_FALLBACK_ENABLED must be true or false; got %s\n' "$LIVE_ASYNC_FALLBACK_ENABLED" >&2
+  exit 1
+fi
+if [[ "$INGESTION_TRIGGER_DECISION_MODE" != "sync" && "$INGESTION_TRIGGER_DECISION_MODE" != "async_only" ]]; then
+  printf 'error: INGESTION_TRIGGER_DECISION_MODE must be sync or async_only; got %s\n' "$INGESTION_TRIGGER_DECISION_MODE" >&2
+  exit 1
+fi
+if [[ "$INGESTION_TRIGGER_OVERLOAD_MODE" != "defer_async" && "$INGESTION_TRIGGER_OVERLOAD_MODE" != "reject" ]]; then
+  printf 'error: INGESTION_TRIGGER_OVERLOAD_MODE must be defer_async or reject; got %s\n' "$INGESTION_TRIGGER_OVERLOAD_MODE" >&2
+  exit 1
+fi
+if [[ "$TENANT_DATA_READ_MODE" != "ingestion_http" && "$TENANT_DATA_READ_MODE" != "direct_db" ]]; then
+  printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
+  exit 1
+fi
 
 printf 'Remote replay endpoints:\n'
 printf '  data-model:      %s\n' "$DATA_MODEL_URL"
 printf '  ingestion:       %s\n' "$INGESTION_URL"
 printf '  decision-engine: %s\n' "$DECISION_ENGINE_URL"
 if [[ -n "$REPLAY_DURATION" ]]; then
-  printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s\n' \
-    "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE"
+  printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 else
-  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s\n' \
-    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE"
+  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 fi
 
 wait_for_service "data-model-service" "$DATA_MODEL_URL/readyz"
@@ -237,6 +266,32 @@ if [[ -z "$RUN_DIR" || ! -f "$RUN_DIR/summary.json" ]]; then
   printf 'error: replay completed without a summary file\n' >&2
   exit 1
 fi
+
+"$VENV_DIR/bin/python" - "$RUN_DIR" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+run_dir = Path(sys.argv[1])
+metadata = {
+    "experiment_label": os.getenv("EXPERIMENT_LABEL") or None,
+    "service_modes": {
+        "live_decision_mode": os.getenv("LIVE_DECISION_MODE"),
+        "live_async_fallback_enabled": os.getenv("LIVE_ASYNC_FALLBACK_ENABLED"),
+        "ingestion_trigger_decision_mode": os.getenv("INGESTION_TRIGGER_DECISION_MODE"),
+        "ingestion_trigger_overload_mode": os.getenv("INGESTION_TRIGGER_OVERLOAD_MODE"),
+        "tenant_data_read_mode": os.getenv("TENANT_DATA_READ_MODE"),
+    },
+    "ingestion_read_pool": {
+        "enabled": os.getenv("ENABLE_SEPARATE_READ_POOL") == "true",
+        "read_database_max_conns": os.getenv("READ_DATABASE_MAX_CONNS"),
+        "read_database_min_conns": os.getenv("READ_DATABASE_MIN_CONNS"),
+    },
+    "note": "Remote replay wrapper records requested service-mode assumptions only. It does not reconfigure remote services.",
+}
+(run_dir / "experiment-settings.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+PY
 
 printf '\nRemote replay result:\n'
 "$VENV_DIR/bin/python" - "$RUN_DIR/summary.json" <<'PY'

@@ -25,6 +25,10 @@ func TestRequestContextMiddlewareSetsRequestIDHeader(t *testing.T) {
 		if !ok || value == "" {
 			t.Fatal("expected request_id in context")
 		}
+		loggerValue, ok := c.Get("logger")
+		if !ok || loggerValue == nil {
+			t.Fatal("expected request-scoped logger in context")
+		}
 		c.Status(http.StatusOK)
 	})
 
@@ -38,8 +42,8 @@ func TestRequestContextMiddlewareSetsRequestIDHeader(t *testing.T) {
 	if rec.Header().Get(requestIDHeader) == "" {
 		t.Fatal("expected request id header")
 	}
-	if logs.String() != "" {
-		t.Fatalf("expected default info logger to suppress request debug log, got %s", logs.String())
+	if logs.String() == "" {
+		t.Fatal("expected request log output")
 	}
 }
 

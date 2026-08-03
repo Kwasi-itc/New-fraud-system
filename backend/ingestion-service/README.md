@@ -204,6 +204,10 @@ Current CSV behavior:
 - malformed or transient processing failures are retried up to `WORKER_MAX_ATTEMPTS`
 - validation failures remain terminal immediately because replaying the same invalid rows is not useful
 - parses CSV headers as field names and feeds rows through the same batch validation and write path
+- CSV worker DB usage can be isolated from API traffic with:
+  - `WORKER_DATABASE_URL`
+  - `WORKER_DATABASE_MAX_CONNS`
+  - `WORKER_DATABASE_MIN_CONNS`
 
 Expected upstream contract from `data-model-service`:
 
@@ -258,6 +262,40 @@ Current supported predicate operators:
 - `ends_with`
 
 This endpoint is intended for decision-time aggregate execution, not for exposing raw SQL or arbitrary query semantics.
+
+## Resource isolation knobs
+
+The service now supports separate database pools for the main synchronous write API, decision-time read/aggregate traffic, and the async CSV worker.
+
+Useful environment variables:
+
+- `DATABASE_URL`
+  - primary database URL used by the HTTP API write path
+- `DATABASE_MAX_CONNS`
+  - optional max connections for the HTTP API write pool
+- `DATABASE_MIN_CONNS`
+  - optional min connections for the HTTP API write pool
+- `READ_DATABASE_URL`
+  - optional dedicated database URL for record reads and aggregate queries
+  - if set, a separate read pool is created even when it points to the same database as `DATABASE_URL`
+- `READ_DATABASE_MAX_CONNS`
+  - optional max connections for the read/aggregate pool
+- `READ_DATABASE_MIN_CONNS`
+  - optional min connections for the read/aggregate pool
+- `WORKER_DATABASE_URL`
+  - optional dedicated database URL for the CSV worker
+  - defaults to `DATABASE_URL`
+- `WORKER_DATABASE_MAX_CONNS`
+  - optional max connections for the CSV worker pool
+  - defaults to `4`
+- `WORKER_DATABASE_MIN_CONNS`
+  - optional min connections for the CSV worker pool
+
+Recommended production posture:
+
+- keep synchronous writes on `DATABASE_URL`
+- set `READ_DATABASE_URL` for decision-time reads and aggregates
+- cap the worker pool with `WORKER_DATABASE_MAX_CONNS` so CSV backfills cannot exhaust the primary write pool
 
 ## API docs
 

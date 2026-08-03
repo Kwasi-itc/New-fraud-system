@@ -13,7 +13,7 @@ from typing import Any
 from .api_client import APIError, ServiceClients, ServiceConfig
 from .manifest import ManifestError, ReplayManifest, load_manifest
 from .profiler import profile_manifest
-from .replay import ReplayCursor, ReplayMetrics, TransactionChain, schedule_events
+from .replay import ReplayCursor, ReplayMetrics, TransactionChain, build_error_breakdown, schedule_events
 from .scenarios import build_portable_scenarios
 from .setup_environment import EnvironmentSetup
 from .sorting import build_sorted_chunks, iter_merged_events
@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--max-in-flight", type=int, default=500)
     run.add_argument("--sort-chunk-size", type=int, default=100_000)
     run.add_argument("--checkpoint-every", type=int, default=10_000)
-    run.add_argument("--decision-mode", choices=("sync", "async"), default="sync")
+    run.add_argument("--decision-mode", choices=("sync", "async"), default="async")
     run.add_argument("--async-wait-timeout-ms", type=int, default=0)
     run.add_argument("--async-callback-url", default="")
     run.add_argument("--async-tracking-output", default="")
@@ -113,6 +113,20 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"checkpoint {path} must contain a JSON object")
     return value
+
+
+def _read_ndjson_records(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        value = json.loads(line)
+        if isinstance(value, dict):
+            records.append(value)
+    return records
 
 
 def _snapshot_manifest(manifest: ReplayManifest, run_dir: Path) -> None:
@@ -252,8 +266,11 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             if args.async_tracking_output
             else (run_dir / "async-decisions.ndjson" if args.decision_mode == "async" else None)
         )
+        error_log_path = run_dir / "errors.ndjson"
         if async_tracking_path is not None and checkpoint_state is None:
             async_tracking_path.write_text("", encoding="utf-8")
+        if checkpoint_state is None:
+            error_log_path.write_text("", encoding="utf-8")
         async with ServiceClients(_services(args)) as clients:
             await clients.wait_until_ready()
             await _verify_replay_tenant(clients, manifest, args.tenant_id)
@@ -266,6 +283,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                 async_wait_timeout_ms=args.async_wait_timeout_ms,
                 async_callback_url=args.async_callback_url,
                 async_tracking_path=async_tracking_path,
+                error_log_path=error_log_path,
             )
 
             async def save_checkpoint(cursor: ReplayCursor, batch_start: datetime, batch_end: datetime) -> None:
@@ -323,10 +341,8 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["async_tracking_output"] = str(async_tracking_path) if args.decision_mode == "async" and async_tracking_path else None
     summary["resumed"] = checkpoint_state is not None
     summary["checkpoint"] = str(checkpoint_path)
+    summary["error_breakdown"] = build_error_breakdown(_read_ndjson_records(run_dir / "errors.ndjson"))
     _write_json(run_dir / "summary.json", summary)
-    with (run_dir / "errors.ndjson").open("w", encoding="utf-8") as handle:
-        for error in metrics.errors:
-            handle.write(json.dumps(error, sort_keys=True) + "\n")
     print(f"status: {summary['status']}")
     print(f"completed: {summary['completed']} / {summary['scheduled']}")
     print(f"replay output: {run_dir}")

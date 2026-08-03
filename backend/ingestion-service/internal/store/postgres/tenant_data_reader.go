@@ -237,7 +237,7 @@ func buildAggregateFilterSQL(model ingestion.PublishedDataModel, table ingestion
 			return strings.Join(parts, " "+strings.ToUpper(op)+" "), nil
 		case "not":
 			if len(filter.Children) != 1 {
-				return "", fmt.Errorf("not filter expects exactly one child")
+				return "", fmt.Errorf("filter group operator %q expects exactly one child", filter.Operator)
 			}
 			part, err := buildAggregateFilterSQL(model, table, filter.Children[0], args)
 			if err != nil {
@@ -301,19 +301,8 @@ func buildAggregatePredicateSQL(model ingestion.PublishedDataModel, table ingest
 	case "is_not_null":
 		return fmt.Sprintf("%s IS NOT NULL", column), nil
 	case "starts_with":
-		value, ok := filter.Value.(string)
-		if !ok {
-			return "", fmt.Errorf("starts_with expects string value")
-		}
-		*args = append(*args, value+"%")
-		return fmt.Sprintf("%s LIKE $%d", column, len(*args)), nil
-	case "ends_with":
-		value, ok := filter.Value.(string)
-		if !ok {
-			return "", fmt.Errorf("ends_with expects string value")
-		}
-		*args = append(*args, "%"+value)
-		return fmt.Sprintf("%s LIKE $%d", column, len(*args)), nil
+		*args = append(*args, filter.Value)
+		return fmt.Sprintf("%s LIKE ($%d || '%%')", column, len(*args)), nil
 	default:
 		return "", fmt.Errorf("filter operator %q is not supported", filter.Op)
 	}

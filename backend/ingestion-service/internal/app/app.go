@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,25 +19,50 @@ type App struct {
 	cfg        Config
 	logger     *slog.Logger
 	db         *pgxpool.Pool
+	readDB     *pgxpool.Pool
 	httpServer *http.Server
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
 
-	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
+	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
+		MaxConns: int32(cfg.DatabaseMaxConns),
+		MinConns: int32(cfg.DatabaseMinConns),
+	})
 	if err != nil {
 		return nil, err
 	}
+	readDB := db
+	if strings.TrimSpace(cfg.ReadDatabaseURL) != "" {
+		readDB, err = storepostgres.NewPool(context.Background(), cfg.ReadDatabaseURL, storepostgres.PoolConfig{
+			MaxConns: int32(cfg.ReadDatabaseMaxConns),
+			MinConns: int32(cfg.ReadDatabaseMinConns),
+		})
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
 
-	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		AuthMode:            cfg.ServiceAuthMode,
-		AuthToken:           cfg.ServiceAuthToken,
-		AllowedOrigins:      cfg.AllowedOrigins,
-		DataModelServiceURL: cfg.DataModelServiceURL,
-		HTTPClientTimeout:   cfg.HTTPClientTimeout,
-		WorkerMaxAttempts:   cfg.WorkerMaxAttempts,
-		UploadLogQueueName:  cfg.UploadLogQueueName,
+	router := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
+		AuthMode:                       cfg.ServiceAuthMode,
+		AuthToken:                      cfg.ServiceAuthToken,
+		AllowedOrigins:                 cfg.AllowedOrigins,
+		DataModelServiceURL:            cfg.DataModelServiceURL,
+		HTTPClientTimeout:              cfg.HTTPClientTimeout,
+		AggregateQueryTimeout:          cfg.AggregateQueryTimeout,
+		WorkerMaxAttempts:              cfg.WorkerMaxAttempts,
+		UploadLogQueueName:             cfg.UploadLogQueueName,
+		WritePathConcurrencyLimit:      cfg.WritePathConcurrencyLimit,
+		ReadQueryConcurrencyLimit:      cfg.ReadQueryConcurrencyLimit,
+		AggregateQueryConcurrencyLimit: cfg.AggregateQueryConcurrencyLimit,
+		OverloadThresholds: httpapi.OverloadThresholds{
+			DBPoolSaturationPct:    cfg.DBPoolSaturationThresholdPct,
+			RequestQueueDepth:      cfg.RequestQueueDepthThreshold,
+			ServiceCPUPercent:      cfg.ServiceCPUThresholdPct,
+			UpstreamTimeoutRatePct: cfg.UpstreamTimeoutRateThresholdPct,
+		},
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -48,6 +74,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		cfg:        cfg,
 		logger:     logger,
 		db:         db,
+		readDB:     readDB,
 		httpServer: server,
 	}, nil
 }
@@ -61,6 +88,9 @@ func (a *App) Run() error {
 }
 
 func (a *App) Close() {
+	if a.readDB != nil && a.readDB != a.db {
+		a.readDB.Close()
+	}
 	if a.db != nil {
 		a.db.Close()
 	}

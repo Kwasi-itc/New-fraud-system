@@ -74,6 +74,125 @@ func TestDecisionServiceGetTenantModelCachesWithinTTL(t *testing.T) {
 	}
 }
 
+func TestDecisionServiceRuntimeMetricsExposeTenantModelCacheStats(t *testing.T) {
+	t.Parallel()
+
+	reader := &countingDataModelReader{
+		model: ports.TenantModel{
+			RevisionID:        "rev-1",
+			RecordLookupField: "object_id",
+			Tables: map[string]ports.TenantModelTable{
+				"transactions": {
+					Name: "transactions",
+					Fields: map[string]ports.TenantModelField{
+						"object_id": {Name: "object_id", Type: "string"},
+					},
+				},
+			},
+		},
+	}
+	service := DecisionService{
+		dataModelReader:   reader,
+		evaluationCache:   newDecisionEvaluationCache(30 * time.Second),
+		evaluationMetrics: newEvaluationMetricsCollector(),
+	}
+
+	if _, err := service.getTenantModel(context.Background(), "tenant-1"); err != nil {
+		t.Fatalf("getTenantModel(first) error = %v", err)
+	}
+	if _, err := service.getTenantModel(context.Background(), "tenant-1"); err != nil {
+		t.Fatalf("getTenantModel(second) error = %v", err)
+	}
+
+	metrics := service.RuntimeMetrics()
+	if metrics.Cache.TenantModel.Misses != 1 {
+		t.Fatalf("tenant model cache misses = %d, want 1", metrics.Cache.TenantModel.Misses)
+	}
+	if metrics.Cache.TenantModel.Hits != 1 {
+		t.Fatalf("tenant model cache hits = %d, want 1", metrics.Cache.TenantModel.Hits)
+	}
+}
+
+func TestDecisionServiceRuntimeMetricsExposeBroadReadHelperStats(t *testing.T) {
+	t.Parallel()
+
+	service := DecisionService{
+		evaluationMetrics: newEvaluationMetricsCollector(),
+	}
+
+	before := service.RuntimeMetrics()
+	after := service.RuntimeMetrics()
+	if after.BroadReadHelpers.RejectedCount < before.BroadReadHelpers.RejectedCount {
+		t.Fatalf("broad read helper rejected count regressed: before=%d after=%d", before.BroadReadHelpers.RejectedCount, after.BroadReadHelpers.RejectedCount)
+	}
+}
+
+func TestDecisionServiceRuntimeMetricsExposeTenantDataReadStats(t *testing.T) {
+	t.Parallel()
+
+	reader := stubTenantDataReader{
+		records: []ports.TenantRecord{
+			{
+				ObjectID:   "txn-1",
+				ObjectType: "transactions",
+				Fields: map[string]any{
+					"account_ref": "acct-1",
+					"amount":      100,
+				},
+			},
+		},
+	}
+	metrics := &tenantDataReadMetrics{}
+	service := DecisionService{
+		tenantDataReader:      instrumentedTenantDataReader{reader: reader, metrics: metrics},
+		tenantDataReadMetrics: metrics,
+		evaluationMetrics:     newEvaluationMetricsCollector(),
+	}
+
+	if _, err := service.tenantDataReader.GetRecord(context.Background(), "tenant-1", "transactions", "txn-1"); err != nil {
+		t.Fatalf("GetRecord() error = %v", err)
+	}
+	if _, err := service.tenantDataReader.ListRecords(context.Background(), "tenant-1", "transactions", 250); err != nil {
+		t.Fatalf("ListRecords() error = %v", err)
+	}
+	if _, err := service.tenantDataReader.QueryRecords(context.Background(), "tenant-1", "transactions", "account_ref", "acct-1", 25); err != nil {
+		t.Fatalf("QueryRecords() error = %v", err)
+	}
+	if _, err := service.tenantDataReader.AggregateRecords(context.Background(), "tenant-1", ports.AggregateQuery{
+		ObjectType: "transactions",
+		Aggregate:  "count",
+		Field:      "account_ref",
+	}); err != nil {
+		t.Fatalf("AggregateRecords() error = %v", err)
+	}
+
+	snapshot := service.RuntimeMetrics().TenantDataReads
+	if snapshot.GetRecordCount != 1 {
+		t.Fatalf("GetRecordCount = %d, want 1", snapshot.GetRecordCount)
+	}
+	if snapshot.ListRecordsCount != 1 {
+		t.Fatalf("ListRecordsCount = %d, want 1", snapshot.ListRecordsCount)
+	}
+	if snapshot.ListRecordsLimitTotal != 250 {
+		t.Fatalf("ListRecordsLimitTotal = %d, want 250", snapshot.ListRecordsLimitTotal)
+	}
+	if snapshot.ListRecordsMaxLimit != 250 {
+		t.Fatalf("ListRecordsMaxLimit = %d, want 250", snapshot.ListRecordsMaxLimit)
+	}
+	if snapshot.QueryRecordsCount != 1 {
+		t.Fatalf("QueryRecordsCount = %d, want 1", snapshot.QueryRecordsCount)
+	}
+	if snapshot.QueryRecordsLimitTotal != 25 {
+		t.Fatalf("QueryRecordsLimitTotal = %d, want 25", snapshot.QueryRecordsLimitTotal)
+	}
+	if snapshot.QueryRecordsMaxLimit != 25 {
+		t.Fatalf("QueryRecordsMaxLimit = %d, want 25", snapshot.QueryRecordsMaxLimit)
+	}
+	if snapshot.AggregateRecordsCount != 1 {
+		t.Fatalf("AggregateRecordsCount = %d, want 1", snapshot.AggregateRecordsCount)
+	}
+}
+
 type pagingDecisionRepoSpy struct {
 	limit      int
 	offset     int

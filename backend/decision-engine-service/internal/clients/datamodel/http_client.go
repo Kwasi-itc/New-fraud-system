@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/requestctx"
 	"golang.org/x/sync/singleflight"
 )
 
 const tenantModelCacheTTL = 30 * time.Second
+const requestIDHeader = "X-Request-ID"
 
 type HTTPClient struct {
 	baseURL string
@@ -93,6 +95,7 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 	if err != nil {
 		return ports.TenantModel{}, fmt.Errorf("create request: %w", err)
 	}
+	attachRequestID(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -162,6 +165,7 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 		return ports.ManagedIndexJob{}, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	attachRequestID(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -291,4 +295,13 @@ type indexJobResponse struct {
 	IndexType string   `json:"index_type"`
 	Status    string   `json:"status"`
 	Columns   []string `json:"columns"`
+}
+
+func attachRequestID(req *http.Request) {
+	if req == nil {
+		return
+	}
+	if requestID := requestctx.RequestID(req.Context()); requestID != "" {
+		req.Header.Set(requestIDHeader, requestID)
+	}
 }

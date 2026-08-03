@@ -44,7 +44,7 @@ func (r fakeRow) Scan(dest ...any) error {
 	return nil
 }
 
-func TestBuildAggregateFilterSQLPreservesOrAndNesting(t *testing.T) {
+func TestBuildAggregateFilterSQLPreservesAndNesting(t *testing.T) {
 	t.Parallel()
 
 	model := ingestion.PublishedDataModel{
@@ -71,7 +71,7 @@ func TestBuildAggregateFilterSQLPreservesOrAndNesting(t *testing.T) {
 			},
 			{
 				Kind:     ingestion.AggregateFilterKindGroup,
-				Operator: "or",
+				Operator: "and",
 				Children: []ingestion.AggregateFilter{
 					{Kind: ingestion.AggregateFilterKindPredicate, Field: "status", Op: "eq", Value: "review"},
 					{Kind: ingestion.AggregateFilterKindPredicate, Field: "country", Op: "eq", Value: "GH"},
@@ -85,8 +85,8 @@ func TestBuildAggregateFilterSQLPreservesOrAndNesting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildAggregateFilterSQL() error = %v", err)
 	}
-	if !strings.Contains(sql, "AND") || !strings.Contains(sql, "OR") {
-		t.Fatalf("buildAggregateFilterSQL() = %q, want grouped AND/OR", sql)
+	if strings.Count(sql, "AND") < 2 {
+		t.Fatalf("buildAggregateFilterSQL() = %q, want grouped AND clauses", sql)
 	}
 	if len(args) != 3 {
 		t.Fatalf("args len = %d, want 3", len(args))
@@ -122,8 +122,37 @@ func TestBuildAggregateFilterSQLSupportsNot(t *testing.T) {
 	if !strings.Contains(sql, "NOT") {
 		t.Fatalf("buildAggregateFilterSQL() = %q, want NOT clause", sql)
 	}
-	if len(args) != 1 {
-		t.Fatalf("args len = %d, want 1", len(args))
+}
+
+func TestBuildAggregateFilterSQLSupportsOr(t *testing.T) {
+	t.Parallel()
+
+	model := ingestion.PublishedDataModel{
+		TenantID:          uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		RecordLookupField: "object_id",
+	}
+	table := ingestion.ObjectSchema{
+		Name: "transactions",
+		Fields: map[string]ingestion.FieldSchema{
+			"status": {Name: "status"},
+		},
+	}
+	filter := ingestion.AggregateFilter{
+		Kind:     ingestion.AggregateFilterKindGroup,
+		Operator: "or",
+		Children: []ingestion.AggregateFilter{
+			{Kind: ingestion.AggregateFilterKindPredicate, Field: "status", Op: "eq", Value: "approved"},
+			{Kind: ingestion.AggregateFilterKindPredicate, Field: "status", Op: "eq", Value: "review"},
+		},
+	}
+
+	args := []any{}
+	sql, err := buildAggregateFilterSQL(model, table, filter, &args)
+	if err != nil {
+		t.Fatalf("buildAggregateFilterSQL() error = %v", err)
+	}
+	if !strings.Contains(sql, "OR") {
+		t.Fatalf("buildAggregateFilterSQL() = %q, want OR clause", sql)
 	}
 }
 
@@ -150,6 +179,99 @@ func TestBuildAggregatePredicateSQLRejectsUnsupportedOperator(t *testing.T) {
 	}, &args)
 	if err == nil {
 		t.Fatalf("buildAggregatePredicateSQL() error = nil, want unsupported operator error")
+	}
+}
+
+func TestBuildAggregatePredicateSQLUsesPlaceholders(t *testing.T) {
+	t.Parallel()
+
+	model := ingestion.PublishedDataModel{
+		TenantID:          uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		RecordLookupField: "object_id",
+	}
+	table := ingestion.ObjectSchema{
+		Name: "transactions",
+		Fields: map[string]ingestion.FieldSchema{
+			"status": {Name: "status"},
+		},
+	}
+
+	args := []any{}
+	sql, err := buildAggregatePredicateSQL(model, table, ingestion.AggregateFilter{
+		Kind:  ingestion.AggregateFilterKindPredicate,
+		Field: "status",
+		Op:    "eq",
+		Value: "review",
+	}, &args)
+	if err != nil {
+		t.Fatalf("buildAggregatePredicateSQL() error = %v", err)
+	}
+	if !strings.Contains(sql, "$1") {
+		t.Fatalf("buildAggregatePredicateSQL() = %q, want placeholder", sql)
+	}
+	if strings.Contains(sql, "review") {
+		t.Fatalf("buildAggregatePredicateSQL() = %q, value should not be interpolated", sql)
+	}
+	if len(args) != 1 || args[0] != "review" {
+		t.Fatalf("args = %#v, want parameterized value", args)
+	}
+}
+
+func TestBuildAggregatePredicateSQLSupportsNotEqual(t *testing.T) {
+	t.Parallel()
+
+	model := ingestion.PublishedDataModel{
+		TenantID:          uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		RecordLookupField: "object_id",
+	}
+	table := ingestion.ObjectSchema{
+		Name: "transactions",
+		Fields: map[string]ingestion.FieldSchema{
+			"status": {Name: "status"},
+		},
+	}
+
+	args := []any{}
+	sql, err := buildAggregatePredicateSQL(model, table, ingestion.AggregateFilter{
+		Kind:  ingestion.AggregateFilterKindPredicate,
+		Field: "status",
+		Op:    "neq",
+		Value: "review",
+	}, &args)
+	if err != nil {
+		t.Fatalf("buildAggregatePredicateSQL() error = %v", err)
+	}
+	if !strings.Contains(sql, "<>") {
+		t.Fatalf("buildAggregatePredicateSQL() = %q, want <>", sql)
+	}
+}
+
+func TestBuildAggregatePredicateSQLSupportsStartsWith(t *testing.T) {
+	t.Parallel()
+
+	model := ingestion.PublishedDataModel{
+		TenantID:          uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		RecordLookupField: "object_id",
+	}
+	table := ingestion.ObjectSchema{
+		Name: "transactions",
+		Fields: map[string]ingestion.FieldSchema{
+			"email": {Name: "email"},
+		},
+	}
+
+	args := []any{}
+	sql, err := buildAggregatePredicateSQL(model, table, ingestion.AggregateFilter{
+		Kind:  ingestion.AggregateFilterKindPredicate,
+		Field: "email",
+		Op:    "starts_with",
+		Value: "alice",
+	}, &args)
+	if err != nil {
+		t.Fatalf("buildAggregatePredicateSQL() error = %v", err)
+	}
+	if !strings.Contains(sql, "LIKE") {
+		t.Fatalf("buildAggregatePredicateSQL() = %q, want LIKE", sql)
 	}
 }
 

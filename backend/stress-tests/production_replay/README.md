@@ -32,10 +32,30 @@ When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ig
 
 `MULTIPLIER` also accepts a `*` suffix, for example `MULTIPLIER='360*'`. Quote it in your shell so it is not treated as a filename pattern.
 
-The `production-replay-async` target uses the same ingestion flow, then submits each event to `POST /v1/tenants/{tenant_id}/async-decision-executions` instead of the direct ingestion callback decision endpoint. For EC2, use:
+Replay and backfill runs should default to async decision execution. The `production-replay-async` target uses the same ingestion flow, then submits each event to `POST /v1/tenants/{tenant_id}/async-decision-executions` instead of the direct ingestion callback decision endpoint. The CLI and shell wrappers now default to `--decision-mode async`; use `--decision-mode sync` or `DECISION_MODE=sync` only for explicit comparison runs. For EC2, use:
 
 ```bash
 make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x
+```
+
+For replay and backfill incident posture, the local replay wrapper now also defaults the service-side decision posture to:
+
+- `LIVE_DECISION_MODE=async_only`
+- `LIVE_ASYNC_FALLBACK_ENABLED=true`
+- `INGESTION_TRIGGER_DECISION_MODE=async_only`
+- `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`
+- `TENANT_DATA_READ_MODE=direct_db`
+
+Override those only for explicit comparison runs:
+
+```bash
+make production-replay TENANT_ID=<tenant-id> \
+  LIVE_DECISION_MODE=sync \
+  LIVE_ASYNC_FALLBACK_ENABLED=true \
+  INGESTION_TRIGGER_DECISION_MODE=sync \
+  INGESTION_TRIGGER_OVERLOAD_MODE=reject \
+  TENANT_DATA_READ_MODE=ingestion_http \
+  DECISION_MODE=sync
 ```
 
 For local async replay, the wrapper starts a small host callback receiver automatically when `ASYNC_CALLBACK_URL` is not provided:
@@ -102,6 +122,64 @@ cd backend
 python3 -m pip install -r stress-tests/production_replay/requirements.txt
 ```
 
+## Replay Matrix
+
+To compare the operational modes from the stress-failure checklist, use the matrix runner.
+
+Plan only:
+
+```bash
+cd backend
+python3 stress-tests/production_replay_matrix.py --target local
+```
+
+Execute the local matrix:
+
+```bash
+cd backend
+python3 stress-tests/production_replay_matrix.py \
+  --target local \
+  --execute \
+  --tenant-id <existing-tenant-id> \
+  --transactions 1000 \
+  --multiplier 3600 \
+  --capture-metrics
+```
+
+The default matrix covers:
+
+- `LIVE_DECISION_MODE=async_only` replay posture
+- `LIVE_ASYNC_FALLBACK_ENABLED=true`
+- `INGESTION_TRIGGER_DECISION_MODE=async_only`
+- `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`
+- `TENANT_DATA_READ_MODE=ingestion_http`
+- `TENANT_DATA_READ_MODE=direct_db`
+- shared write/read DB pool
+- separate read pool enabled in ingestion-service
+
+Each run writes:
+
+- replay stdout/stderr logs
+- the replay run directory reported by the wrapper
+- `experiment-settings.json`
+- optional metrics capture manifests when `--capture-metrics` is used
+
+The matrix artifacts are written below:
+
+```text
+stress-tests/production-replay-matrix-runs/
+```
+
+For local compose-backed runs, separate read-pool comparison is implemented by setting:
+
+- `READ_DATABASE_URL`
+- `READ_DATABASE_MAX_CONNS`
+- `READ_DATABASE_MIN_CONNS`
+
+When `ENABLE_SEPARATE_READ_POOL=true` and `READ_DATABASE_URL` is unset, the wrapper reuses the same Postgres URL as the write pool but still creates a distinct read pool so contention can be capped independently.
+
+For remote runs, the wrapper records the requested service-mode assumptions in `experiment-settings.json`, but it does not reconfigure the remote services itself.
+
 ## 1. Profile
 
 ```bash
@@ -156,7 +234,6 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
   --multiplier 10 \
   --max-in-flight 500 \
   --checkpoint-every 10000 \
-  --decision-mode async \
   --async-wait-timeout-ms 0 \
   --async-callback-url "$ASYNC_CALLBACK_URL" \
   --data-model-url "$DATA_MODEL_URL" \
@@ -164,13 +241,13 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
   --decision-engine-url "$DECISION_ENGINE_URL"
 ```
 
-For every transaction, the harness calls ingestion and waits for success before calling the decision callback. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling.
+For every transaction, the harness calls ingestion and waits for success before submitting the decision request. By default that decision request goes to the async execution endpoint; use synchronous mode only when you are intentionally measuring the direct callback path. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling.
 
 The six configured streams are `genpay` inflow, `genpayv2` inflow, and `uniwallet`/`uniwalletv2` inflow and outflow. They all use the shared final CSV schema. Inflow maps to `incoming`, outflow maps to `outgoing`, and the retained source fields identify the concrete processor and payment source.
 
 Every source row receives a deterministic object ID derived from its stream, file, row number, and source transaction identifier. Repeated source transaction identifiers are therefore versioned rather than overwritten, while rerunning the same source row reuses the same ingestion idempotency key.
 
-Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors and leaves acceptance thresholds unset until they are defined.
+Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors, includes `sampled_error_breakdown` and full-run `error_breakdown`, and leaves acceptance thresholds unset until they are defined. Each run also writes `errors.ndjson` so ingestion write failures can be separated from callback or decision failures after the run.
 
 Use a fresh setup tenant for each independent measured run. Ingestion itself is idempotent for a repeated source event, but the direct decision callback is intentionally not retried or deduplicated by this harness.
 

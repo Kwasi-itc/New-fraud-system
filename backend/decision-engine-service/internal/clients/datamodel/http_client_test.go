@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -153,5 +154,23 @@ func TestGetTenantModelCoalescesConcurrentRefreshes(t *testing.T) {
 		if revision != "rev-1" {
 			t.Fatalf("revision = %q, want rev-1", revision)
 		}
+	}
+}
+
+func TestGetTenantModelReturnsDependencyErrorOnNon200(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewHTTPClient(server.URL, time.Second)
+	_, err := client.GetTenantModel(context.Background(), "tenant-1")
+	if err == nil {
+		t.Fatal("expected non-200 response to return an error")
+	}
+	if !strings.Contains(err.Error(), "unexpected status from data-model-service") {
+		t.Fatalf("error = %v, want unexpected status from data-model-service", err)
 	}
 }
