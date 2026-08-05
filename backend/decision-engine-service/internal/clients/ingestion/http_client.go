@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -21,6 +22,23 @@ type HTTPClient struct {
 }
 
 const requestIDHeader = "X-Request-ID"
+
+type StatusError struct {
+	Service    string
+	StatusCode int
+}
+
+func (e StatusError) Error() string {
+	return fmt.Sprintf("unexpected status from %s: %d", e.Service, e.StatusCode)
+}
+
+func IsStatusError(err error, service string, statusCode int) bool {
+	var target StatusError
+	if !errors.As(err, &target) {
+		return false
+	}
+	return target.Service == service && target.StatusCode == statusCode
+}
 
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
@@ -42,7 +60,7 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return ports.TenantRecord{}, fmt.Errorf("unexpected status from ingestion-service: %d", resp.StatusCode)
+		return ports.TenantRecord{}, StatusError{Service: "ingestion-service", StatusCode: resp.StatusCode}
 	}
 
 	var payload getRecordResponse
@@ -76,7 +94,7 @@ func (c HTTPClient) ListRecords(ctx context.Context, tenantID, objectType string
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status from ingestion-service: %d", resp.StatusCode)
+		return nil, StatusError{Service: "ingestion-service", StatusCode: resp.StatusCode}
 	}
 
 	var payload listRecordsResponse
@@ -113,7 +131,7 @@ func (c HTTPClient) QueryRecords(ctx context.Context, tenantID, objectType, fiel
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status from ingestion-service: %d", resp.StatusCode)
+		return nil, StatusError{Service: "ingestion-service", StatusCode: resp.StatusCode}
 	}
 
 	var payload listRecordsResponse
@@ -168,7 +186,7 @@ func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query
 			"duration_ms", time.Since(startedAt).Milliseconds(),
 			"status_code", resp.StatusCode,
 		)
-		return nil, fmt.Errorf("unexpected status from ingestion-service: %d", resp.StatusCode)
+		return nil, StatusError{Service: "ingestion-service", StatusCode: resp.StatusCode}
 	}
 
 	var payload aggregateResponse

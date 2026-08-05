@@ -21,6 +21,7 @@ TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
 READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
 READ_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS:-${READ_DATABASE_MIN_CONNS:-0}}"
+ALLOW_UNSAFE_INGESTION_HTTP_REPLAY="${PRODUCTION_REPLAY_ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-${ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-false}}"
 DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
 HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
 DAYS="${PRODUCTION_REPLAY_DAYS:-${DAYS:-}}"
@@ -153,6 +154,26 @@ fi
 if [[ "$TENANT_DATA_READ_MODE" != "ingestion_http" && "$TENANT_DATA_READ_MODE" != "direct_db" ]]; then
   printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
   exit 1
+fi
+if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" && "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "false" ]]; then
+  printf 'error: ALLOW_UNSAFE_INGESTION_HTTP_REPLAY must be true or false; got %s\n' "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" >&2
+  exit 1
+fi
+if [[ "$TENANT_DATA_READ_MODE" == "ingestion_http" && "$ENABLE_SEPARATE_READ_POOL" != "true" ]]; then
+  if python3 - "$MULTIPLIER" "$MAX_IN_FLIGHT" <<'PY'
+import sys
+multiplier = float(sys.argv[1])
+max_in_flight = int(sys.argv[2])
+sys.exit(0 if multiplier >= 50 or max_in_flight >= 25 else 1)
+PY
+  then
+    if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" ]]; then
+      printf 'error: refusing high-pressure replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
+      printf 'set ENABLE_SEPARATE_READ_POOL=true, switch to TENANT_DATA_READ_MODE=direct_db, or set ALLOW_UNSAFE_INGESTION_HTTP_REPLAY=true for an explicit comparison run.\n' >&2
+      exit 1
+    fi
+    printf 'warning: running an explicitly unsafe replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
+  fi
 fi
 
 printf 'Remote replay endpoints:\n'

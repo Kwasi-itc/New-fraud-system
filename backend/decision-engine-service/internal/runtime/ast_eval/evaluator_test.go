@@ -2,6 +2,7 @@ package ast_eval
 
 import (
 	"context"
+	"sync"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +66,9 @@ type evaluatorTenantDataReaderStub struct {
 	listDelay      time.Duration
 	aggregateDelay time.Duration
 	aggregateValue any
+	mu             sync.Mutex
+	activeAggregates int
+	maxActiveAggregates int
 }
 
 func (s *evaluatorTenantDataReaderStub) GetRecord(context.Context, string, string, string) (ports.TenantRecord, error) {
@@ -88,6 +92,17 @@ func (s *evaluatorTenantDataReaderStub) QueryRecords(context.Context, string, st
 }
 
 func (s *evaluatorTenantDataReaderStub) AggregateRecords(context.Context, string, ports.AggregateQuery) (any, error) {
+	s.mu.Lock()
+	s.activeAggregates++
+	if s.activeAggregates > s.maxActiveAggregates {
+		s.maxActiveAggregates = s.activeAggregates
+	}
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.activeAggregates--
+		s.mu.Unlock()
+	}()
 	if s.aggregateDelay > 0 {
 		time.Sleep(s.aggregateDelay)
 	}
@@ -217,6 +232,106 @@ func TestAggregatePushdownMetricsSnapshotTracksAggregateLatencyPercentiles(t *te
 	}
 	if after.AggregateLatencyP99 <= 0 {
 		t.Fatalf("AggregateLatencyP99 = %s, want > 0", after.AggregateLatencyP99)
+	}
+}
+
+func TestAggregatePushdownMetricsSnapshotTracksTopRulesAndShapes(t *testing.T) {
+	t.Parallel()
+
+	before := AggregatePushdownMetricsSnapshot()
+	reader := &evaluatorTenantDataReaderStub{aggregateValue: int64(2)}
+	node := domainast.Node{
+		Function: "gt",
+		Children: []domainast.Node{
+			{
+				Function: "Aggregator",
+				NamedChildren: map[string]domainast.Node{
+					"tableName":  {Constant: "transactions"},
+					"fieldName":  {Constant: "amount"},
+					"aggregator": {Constant: "COUNT"},
+				},
+			},
+			{Constant: 1},
+		},
+	}
+
+	ctx := WithRuleName(context.Background(), "Hot Aggregate Rule")
+	_, err := EvaluateNode(ctx, node, Runtime{
+		TenantID:                    "tenant-1",
+		ObjectType:                  "transactions",
+		Model:                       aggregateTestModel(),
+		TenantDataReader:            reader,
+		AggregatePushdownMode:       AggregatePushdownModeEnabled,
+		AggregatePushdownAggregates: []string{"count"},
+	})
+	if err != nil {
+		t.Fatalf("EvaluateNode() error = %v", err)
+	}
+
+	after := AggregatePushdownMetricsSnapshot()
+	ruleMetrics, ok := after.TopRules["Hot Aggregate Rule"]
+	if !ok {
+		t.Fatalf("TopRules missing Hot Aggregate Rule: %+v", after.TopRules)
+	}
+	if ruleMetrics.RemoteCallCount < before.TopRules["Hot Aggregate Rule"].RemoteCallCount+1 {
+		t.Fatalf("RemoteCallCount = %d, want increment", ruleMetrics.RemoteCallCount)
+	}
+	shapeKey := "transactions|count|amount|none"
+	if after.TopShapes[shapeKey] < before.TopShapes[shapeKey]+1 {
+		t.Fatalf("TopShapes[%q] = %d, want increment", shapeKey, after.TopShapes[shapeKey])
+	}
+}
+
+func TestAggregateRemoteConcurrencyLimitBoundsRemoteCalls(t *testing.T) {
+	t.Parallel()
+
+	reader := &evaluatorTenantDataReaderStub{
+		aggregateDelay: 20 * time.Millisecond,
+		aggregateValue: int64(2),
+	}
+	node := domainast.Node{
+		Function: "gt",
+		Children: []domainast.Node{
+			{
+				Function: "Aggregator",
+				NamedChildren: map[string]domainast.Node{
+					"tableName":  {Constant: "transactions"},
+					"fieldName":  {Constant: "amount"},
+					"aggregator": {Constant: "COUNT"},
+				},
+			},
+			{Constant: 1},
+		},
+	}
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 3)
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_, err := EvaluateNode(WithRuleName(context.Background(), "Bounded Aggregate Rule"), node, Runtime{
+				TenantID:                    "tenant-1",
+				ObjectID:                    "txn-" + string(rune('a'+i)),
+				ObjectType:                  "transactions",
+				Model:                       aggregateTestModel(),
+				TenantDataReader:            reader,
+				AggregatePushdownMode:       AggregatePushdownModeEnabled,
+				AggregatePushdownAggregates: []string{"count"},
+				AggregateRemoteConcurrency:  1,
+			})
+			errs <- err
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("EvaluateNode() error = %v", err)
+		}
+	}
+	if reader.maxActiveAggregates > 1 {
+		t.Fatalf("maxActiveAggregates = %d, want <= 1", reader.maxActiveAggregates)
 	}
 }
 

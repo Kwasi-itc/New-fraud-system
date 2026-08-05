@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+
+	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 )
 
 func TestClassifyDecisionEvaluationError(t *testing.T) {
@@ -15,6 +17,12 @@ func TestClassifyDecisionEvaluationError(t *testing.T) {
 		wantStatus   int
 		wantCategory string
 	}{
+		{
+			name:         "aggregate pushdown overload",
+			err:          fmt.Errorf("aggregate pushdown failed: %w", ingestionclient.StatusError{Service: "ingestion-service", StatusCode: http.StatusTooManyRequests}),
+			wantStatus:   http.StatusTooManyRequests,
+			wantCategory: "aggregate_pushdown_overloaded",
+		},
 		{
 			name:         "dependency failure from ingestion",
 			err:          fmt.Errorf("aggregate pushdown failed: unexpected status from ingestion-service: 503"),

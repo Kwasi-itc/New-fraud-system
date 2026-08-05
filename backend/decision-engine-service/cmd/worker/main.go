@@ -196,6 +196,7 @@ func main() {
 		cfg.AggregatePushdownAggregates,
 		cfg.RuleEvaluationConcurrency,
 		cfg.ScenarioEvaluationConcurrency,
+		cfg.AggregateRemoteConcurrencyLimit,
 		dbPoolStatsProvider(db),
 	)
 

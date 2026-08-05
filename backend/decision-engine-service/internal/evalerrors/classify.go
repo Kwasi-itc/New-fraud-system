@@ -3,6 +3,8 @@ package evalerrors
 import (
 	"net/http"
 	"strings"
+
+	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 )
 
 type Classification struct {
@@ -13,6 +15,9 @@ type Classification struct {
 func Classify(err error) Classification {
 	if err == nil {
 		return Classification{Status: http.StatusInternalServerError, Category: "internal_error"}
+	}
+	if isAggregatePushdownOverload(err) {
+		return Classification{Status: http.StatusTooManyRequests, Category: "aggregate_pushdown_overloaded"}
 	}
 	message := strings.ToLower(err.Error())
 
@@ -57,4 +62,14 @@ func Classify(err error) Classification {
 	default:
 		return Classification{Status: http.StatusInternalServerError, Category: "internal_error"}
 	}
+}
+
+func isAggregatePushdownOverload(err error) bool {
+	if err == nil {
+		return false
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "aggregate pushdown failed:") {
+		return false
+	}
+	return ingestionclient.IsStatusError(err, "ingestion-service", http.StatusTooManyRequests)
 }

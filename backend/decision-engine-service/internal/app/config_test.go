@@ -27,6 +27,15 @@ func TestLoadConfigRejectsScenarioEvaluationConcurrencyAboveGuardrail(t *testing
 	}
 }
 
+func TestLoadConfigRejectsAggregateRemoteConcurrencyAboveGuardrail(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("AGGREGATE_REMOTE_CONCURRENCY_LIMIT", "129")
+
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("LoadConfig() error = nil, want aggregate remote concurrency validation error")
+	}
+}
+
 func TestLoadConfigUsesAllWorkerTasksByDefault(t *testing.T) {
 	setRequiredConfigEnv(t)
 

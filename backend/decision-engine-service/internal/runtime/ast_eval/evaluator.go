@@ -1173,8 +1173,16 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 		return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
 	}
 	startedAt = time.Now()
-	value, err := runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
+	value, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
+		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency)
+		if acquireErr != nil {
+			return nil, acquireErr
+		}
+		defer release()
+		return runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
+	})
 	recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
+	recordAggregatePressure(ctx, aggregateQueryShapeKey(compileResult.Query), compileResult.Query.Aggregate, compileResult.Query.Field, err)
 	if err != nil {
 		slog.Default().Warn("aggregate pushdown remote call failed",
 			"tenant_id", runtime.TenantID,

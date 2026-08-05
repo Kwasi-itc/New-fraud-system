@@ -144,6 +144,7 @@ func newDecisionHandlerWithRuleRepoForTests(repo ports.DecisionRepository, ruleE
 		nil,
 		0,
 		0,
+		0,
 		nil,
 	)
 	return NewDecisionHandler(decisionService, service.ExecutionService{}, "sync", "sync", "defer_async", nil, 0, false)

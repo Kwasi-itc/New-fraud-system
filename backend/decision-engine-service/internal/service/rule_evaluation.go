@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 
@@ -48,8 +49,12 @@ func evaluateRules(
 				}
 			}
 
-			matched, evaluation, err := asteval.EvaluateFormulaWithEvidence(groupCtx, rule.Formula, runtimeCtx)
+			ruleCtx := asteval.WithRuleName(groupCtx, rule.Name)
+			matched, evaluation, err := asteval.EvaluateFormulaWithEvidence(ruleCtx, rule.Formula, runtimeCtx)
 			if err != nil {
+				if shouldSuppressRuleCancellation(groupCtx, err) {
+					return nil
+				}
 				return fmt.Errorf("evaluate rule %q: %w", rule.Name, err)
 			}
 
@@ -66,6 +71,23 @@ func evaluateRules(
 		return nil, err
 	}
 	return results, nil
+}
+
+func shouldSuppressRuleCancellation(ctx context.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	cause := context.Cause(ctx)
+	if cause == nil {
+		return false
+	}
+	if errors.Is(cause, context.Canceled) || errors.Is(cause, context.DeadlineExceeded) {
+		return false
+	}
+	return true
 }
 
 func resolveRuleEvaluationConcurrency(configured, ruleCount int) int {

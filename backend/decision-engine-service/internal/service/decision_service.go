@@ -99,6 +99,7 @@ type DecisionService struct {
 	aggregatePushdownAggregates   []string
 	ruleEvaluationConcurrency     int
 	scenarioEvaluationConcurrency int
+	aggregateRemoteConcurrency    int
 	evaluationCache               *decisionEvaluationCache
 	metadataLoadGroup             *singleflight.Group
 	dbPoolStatsProvider           DBPoolStatsProvider
@@ -171,6 +172,11 @@ type AggregatePushdownMetrics struct {
 	AggregateLatencyP95Micros        int64  `json:"aggregate_latency_p95_micros"`
 	AggregateLatencyP99Micros        int64  `json:"aggregate_latency_p99_micros"`
 	RemoteLatencyTotalMicros         int64  `json:"remote_latency_total_micros"`
+	RemoteLimiterWaitCount           uint64 `json:"remote_limiter_wait_count"`
+	RemoteLimiterWaitTotalMicros     int64  `json:"remote_limiter_wait_total_micros"`
+	RemoteConcurrencyLimit           int    `json:"remote_concurrency_limit"`
+	TopRules                         map[string]asteval.AggregateRulePressure `json:"top_rules,omitempty"`
+	TopShapes                        map[string]uint64                        `json:"top_shapes,omitempty"`
 }
 
 type BroadReadHelperMetrics struct {
@@ -259,6 +265,7 @@ func NewDecisionService(
 	aggregatePushdownAggregates []string,
 	ruleEvaluationConcurrency int,
 	scenarioEvaluationConcurrency int,
+	aggregateRemoteConcurrency int,
 	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
 	if workflowExecutionEnqueuer == nil {
@@ -311,6 +318,7 @@ func NewDecisionService(
 		aggregatePushdownAggregates:   append([]string(nil), aggregatePushdownAggregates...),
 		ruleEvaluationConcurrency:     ruleEvaluationConcurrency,
 		scenarioEvaluationConcurrency: scenarioEvaluationConcurrency,
+		aggregateRemoteConcurrency:    aggregateRemoteConcurrency,
 		evaluationCache:               newDecisionEvaluationCache(decisionEvaluationCacheTTL),
 		metadataLoadGroup:             &singleflight.Group{},
 		dbPoolStatsProvider:           dbPoolStatsProvider,
@@ -328,7 +336,7 @@ func (s DecisionService) EvaluateScenario(
 	defer func() {
 		s.evaluationMetrics.recordSingle(time.Since(startedAt), result.Triggered, err)
 	}()
-	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), s.clock.Now())
+	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), asteval.NewAggregateResultCache(), s.clock.Now())
 }
 
 func (s DecisionService) evaluateScenario(
@@ -336,6 +344,7 @@ func (s DecisionService) evaluateScenario(
 	tenantID, scenarioID string,
 	req DecisionEvaluationRequest,
 	evalCache *asteval.EvaluationCache,
+	aggregateCache *asteval.AggregateResultCache,
 	evaluationNow time.Time,
 ) (result DecisionEvaluationResult, err error) {
 	timingStartedAt := time.Now()
@@ -424,7 +433,9 @@ func (s DecisionService) evaluateScenario(
 		DecisionRepo:                s.decisionRepo,
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
+		AggregateRemoteConcurrency:  s.aggregateRemoteConcurrency,
 		EvalCache:                   evalCache,
+		AggregateResultCache:        aggregateCache,
 		RelatedPathCache:            asteval.NewRelatedPathCache(),
 	}
 	currentStage = "trigger_eval"
@@ -1378,6 +1389,11 @@ func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
 			AggregateLatencyP95Micros:        aggregateSnapshot.AggregateLatencyP95.Microseconds(),
 			AggregateLatencyP99Micros:        aggregateSnapshot.AggregateLatencyP99.Microseconds(),
 			RemoteLatencyTotalMicros:         aggregateSnapshot.RemoteLatencyTotal.Microseconds(),
+			RemoteLimiterWaitCount:           aggregateSnapshot.RemoteLimiterWaitCount,
+			RemoteLimiterWaitTotalMicros:     aggregateSnapshot.RemoteLimiterWaitTotal.Microseconds(),
+			RemoteConcurrencyLimit:           aggregateSnapshot.RemoteConcurrencyLimit,
+			TopRules:                         aggregateSnapshot.TopRules,
+			TopShapes:                        aggregateSnapshot.TopShapes,
 		},
 		BroadReadHelpers: BroadReadHelperMetrics{
 			RejectedCount:          broadReadSnapshot.RejectedCount,
@@ -2008,6 +2024,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		Results:  make([]DecisionEvaluationResult, len(scenarios)),
 	}
 	evalCache := asteval.NewEvaluationCache()
+	aggregateCache := asteval.NewAggregateResultCache()
 	evaluationNow := s.clock.Now()
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -2016,7 +2033,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		i := i
 		scn := scn
 		group.Go(func() error {
-			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, evaluationNow)
+			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, evaluationNow)
 			if err != nil {
 				return err
 			}

@@ -379,3 +379,88 @@ func TestEvaluationCacheDoesNotCacheErrors(t *testing.T) {
 		t.Fatalf("AggregateRecords calls = %d, want 2", got)
 	}
 }
+
+func TestAggregateResultCacheReusesSemanticallyEquivalentQueries(t *testing.T) {
+	t.Parallel()
+
+	reader := &countingTenantDataReader{aggregate: int64(7)}
+	orEqualsNode := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "object_id"},
+			"aggregator": {Constant: "COUNT"},
+			"filters": {
+				Function: "or",
+				Children: []domainast.Node{
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "status"},
+							"operator":  {Constant: "="},
+							"value":     {Constant: "review"},
+						},
+					},
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"tableName": {Constant: "transactions"},
+							"fieldName": {Constant: "status"},
+							"operator":  {Constant: "="},
+							"value":     {Constant: "decline"},
+						},
+					},
+				},
+			},
+		},
+	}
+	explicitInNode := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "object_id"},
+			"aggregator": {Constant: "count"},
+			"filters": {
+				Function: "Filter",
+				NamedChildren: map[string]domainast.Node{
+					"tableName": {Constant: "transactions"},
+					"fieldName": {Constant: "status"},
+					"operator":  {Constant: "isInList"},
+					"value":     {Constant: []any{"review", "decline"}},
+				},
+			},
+		},
+	}
+	runtime := Runtime{
+		TenantID:              "tenant-1",
+		ObjectID:              "txn-1",
+		ObjectType:            "transactions",
+		Fields:                map[string]any{},
+		Now:                   time.Unix(100, 0),
+		TenantDataReader:      reader,
+		AggregatePushdownMode: AggregatePushdownModeStrict,
+		EvalCache:             NewEvaluationCache(),
+		AggregateResultCache:  NewAggregateResultCache(),
+	}
+
+	value, err := EvaluateNode(context.Background(), orEqualsNode, runtime)
+	if err != nil {
+		t.Fatalf("EvaluateNode(orEqualsNode) error = %v", err)
+	}
+	if value != int64(7) {
+		t.Fatalf("EvaluateNode(orEqualsNode) = %#v, want 7", value)
+	}
+
+	value, err = EvaluateNode(context.Background(), explicitInNode, runtime)
+	if err != nil {
+		t.Fatalf("EvaluateNode(explicitInNode) error = %v", err)
+	}
+	if value != int64(7) {
+		t.Fatalf("EvaluateNode(explicitInNode) = %#v, want 7", value)
+	}
+
+	if got := reader.AggregateCalls(); got != 1 {
+		t.Fatalf("AggregateRecords calls = %d, want 1", got)
+	}
+}

@@ -1,7 +1,9 @@
 package ast_eval
 
 import (
+	"context"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,6 +26,20 @@ type AggregatePushdownMetrics struct {
 	AggregateLatencyP95              time.Duration
 	AggregateLatencyP99              time.Duration
 	RemoteLatencyTotal               time.Duration
+	RemoteLimiterWaitCount           uint64
+	RemoteLimiterWaitTotal           time.Duration
+	RemoteConcurrencyLimit           int
+	TopRules                         map[string]AggregateRulePressure
+	TopShapes                        map[string]uint64
+}
+
+type AggregateRulePressure struct {
+	RemoteCallCount uint64 `json:"remote_call_count"`
+	RemoteErrorCount uint64 `json:"remote_error_count"`
+	OverloadCount   uint64 `json:"overload_count"`
+	LastAggregate   string `json:"last_aggregate,omitempty"`
+	LastField       string `json:"last_field,omitempty"`
+	LastShape       string `json:"last_shape,omitempty"`
 }
 
 var aggregatePushdownCompileSupportedCount atomic.Uint64
@@ -37,8 +53,14 @@ var aggregatePushdownRemoteCallCount atomic.Uint64
 var aggregatePushdownRemoteErrorCount atomic.Uint64
 var aggregatePushdownEvaluationLatencyTotalNanos atomic.Int64
 var aggregatePushdownRemoteLatencyTotalNanos atomic.Int64
+var aggregatePushdownRemoteLimiterWaitCount atomic.Uint64
+var aggregatePushdownRemoteLimiterWaitTotalNanos atomic.Int64
 var aggregatePushdownLatencySamplesMu sync.Mutex
 var aggregatePushdownLatencySamples = make([]int64, 0, aggregateLatencySampleLimit)
+var aggregatePushdownRuleMetricsMu sync.Mutex
+var aggregatePushdownRuleMetrics = map[string]*AggregateRulePressure{}
+var aggregatePushdownShapeCounts = map[string]uint64{}
+var aggregateRemoteLimiterState atomic.Int64
 
 func recordAggregatePushdownCompile(supported bool) {
 	if supported {
@@ -82,10 +104,59 @@ func recordAggregatePushdownRemoteCall(duration time.Duration, err error) {
 	}
 }
 
+func recordAggregateRemoteLimiterWait(duration time.Duration) {
+	if duration <= 0 {
+		return
+	}
+	aggregatePushdownRemoteLimiterWaitCount.Add(1)
+	aggregatePushdownRemoteLimiterWaitTotalNanos.Add(duration.Nanoseconds())
+}
+
+func setAggregateRemoteConcurrencyLimit(limit int) {
+	aggregateRemoteLimiterState.Store(int64(limit))
+}
+
+func recordAggregatePressure(ctx context.Context, queryShape string, aggregate string, field string, err error) {
+	ruleName := RuleNameFromContext(ctx)
+	aggregatePushdownRuleMetricsMu.Lock()
+	defer aggregatePushdownRuleMetricsMu.Unlock()
+	if queryShape != "" {
+		aggregatePushdownShapeCounts[queryShape]++
+	}
+	if ruleName == "" {
+		return
+	}
+	item, ok := aggregatePushdownRuleMetrics[ruleName]
+	if !ok {
+		item = &AggregateRulePressure{}
+		aggregatePushdownRuleMetrics[ruleName] = item
+	}
+	item.RemoteCallCount++
+	item.LastAggregate = aggregate
+	item.LastField = field
+	item.LastShape = queryShape
+	if err != nil {
+		item.RemoteErrorCount++
+		if isAggregateOverloadError(err) {
+			item.OverloadCount++
+		}
+	}
+}
+
 func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 	aggregatePushdownLatencySamplesMu.Lock()
 	samples := append([]int64(nil), aggregatePushdownLatencySamples...)
 	aggregatePushdownLatencySamplesMu.Unlock()
+	aggregatePushdownRuleMetricsMu.Lock()
+	ruleMetrics := make(map[string]AggregateRulePressure, len(aggregatePushdownRuleMetrics))
+	for key, value := range aggregatePushdownRuleMetrics {
+		ruleMetrics[key] = *value
+	}
+	shapeCounts := make(map[string]uint64, len(aggregatePushdownShapeCounts))
+	for key, value := range aggregatePushdownShapeCounts {
+		shapeCounts[key] = value
+	}
+	aggregatePushdownRuleMetricsMu.Unlock()
 	return AggregatePushdownMetrics{
 		CompileSupportedCount:            aggregatePushdownCompileSupportedCount.Load(),
 		CompileUnsupportedCount:          aggregatePushdownCompileUnsupportedCount.Load(),
@@ -101,7 +172,16 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 		AggregateLatencyP95:              percentileDuration(samples, 95),
 		AggregateLatencyP99:              percentileDuration(samples, 99),
 		RemoteLatencyTotal:               time.Duration(aggregatePushdownRemoteLatencyTotalNanos.Load()),
+		RemoteLimiterWaitCount:           aggregatePushdownRemoteLimiterWaitCount.Load(),
+		RemoteLimiterWaitTotal:           time.Duration(aggregatePushdownRemoteLimiterWaitTotalNanos.Load()),
+		RemoteConcurrencyLimit:           int(aggregateRemoteLimiterState.Load()),
+		TopRules:                         ruleMetrics,
+		TopShapes:                        shapeCounts,
 	}
+}
+
+func isAggregateOverloadError(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "unexpected status from ingestion-service: 429")
 }
 
 func percentileDuration(samples []int64, percentile int) time.Duration {

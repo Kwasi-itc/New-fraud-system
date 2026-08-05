@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -73,6 +74,41 @@ func TestEvaluateRulesPreservesOrderAndSnoozes(t *testing.T) {
 	if results[2].Evaluation != nil {
 		t.Fatalf("result[2].Evaluation = %#v, want nil for no-hit rule", results[2].Evaluation)
 	}
+}
+
+func TestShouldSuppressRuleCancellation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("suppresses sibling cancellation with richer cause", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancelCause(context.Background())
+		cause := fmt.Errorf("aggregate pushdown failed: unexpected status from ingestion-service: 429")
+		cancel(cause)
+
+		if !shouldSuppressRuleCancellation(ctx, context.Canceled) {
+			t.Fatalf("shouldSuppressRuleCancellation() = false, want true")
+		}
+	})
+
+	t.Run("does not suppress plain parent cancellation", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		if shouldSuppressRuleCancellation(ctx, context.Canceled) {
+			t.Fatalf("shouldSuppressRuleCancellation() = true, want false")
+		}
+	})
+
+	t.Run("does not suppress non-cancellation errors", func(t *testing.T) {
+		t.Parallel()
+
+		if shouldSuppressRuleCancellation(context.Background(), fmt.Errorf("boom")) {
+			t.Fatalf("shouldSuppressRuleCancellation() = true, want false")
+		}
+	})
 }
 
 func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.T) {

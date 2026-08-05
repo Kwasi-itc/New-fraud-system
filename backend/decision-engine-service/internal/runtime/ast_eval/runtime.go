@@ -1,6 +1,7 @@
 package ast_eval
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +24,9 @@ type Runtime struct {
 	DecisionRepo                ports.DecisionRepository
 	AggregatePushdownMode       string
 	AggregatePushdownAggregates []string
+	AggregateRemoteConcurrency  int
 	EvalCache                   *EvaluationCache
+	AggregateResultCache        *AggregateResultCache
 	RelatedPathCache            *RelatedPathCache
 }
 
@@ -125,4 +128,23 @@ func cloneFieldMap(input map[string]any) map[string]any {
 		out[key] = value
 	}
 	return out
+}
+
+type contextKey string
+
+const ruleNameContextKey contextKey = "rule_name"
+
+func WithRuleName(ctx context.Context, ruleName string) context.Context {
+	if ctx == nil || strings.TrimSpace(ruleName) == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, ruleNameContextKey, ruleName)
+}
+
+func RuleNameFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	value, _ := ctx.Value(ruleNameContextKey).(string)
+	return strings.TrimSpace(value)
 }

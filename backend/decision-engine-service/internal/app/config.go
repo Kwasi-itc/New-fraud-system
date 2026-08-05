@@ -36,6 +36,7 @@ type Config struct {
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
 	ScenarioEvaluationConcurrency       int
+	AggregateRemoteConcurrencyLimit     int
 	WorkerMode                          string
 	WorkerTasks                         []string
 	WorkerTaskPriorities                map[string]int
@@ -68,6 +69,7 @@ type Config struct {
 
 const maxRuleEvaluationConcurrency = 64
 const maxScenarioEvaluationConcurrency = 32
+const maxAggregateRemoteConcurrencyLimit = 128
 
 var supportedWorkerTasks = map[string]struct{}{
 	"scheduled":          {},
@@ -186,6 +188,10 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	aggregateRemoteConcurrencyLimit, err := getEnvInt("AGGREGATE_REMOTE_CONCURRENCY_LIMIT", 0)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Port:                                getEnv("PORT", "8082"),
@@ -214,6 +220,7 @@ func LoadConfig() (Config, error) {
 		LiveAsyncFallbackEnabled:            liveAsyncFallbackEnabled,
 		RuleEvaluationConcurrency:           ruleEvaluationConcurrency,
 		ScenarioEvaluationConcurrency:       scenarioEvaluationConcurrency,
+		AggregateRemoteConcurrencyLimit:     aggregateRemoteConcurrencyLimit,
 		WorkerMode:                          strings.ToLower(getEnv("WORKER_MODE", "batch")),
 		WorkerTasks:                         workerTasks,
 		WorkerTaskPriorities:                workerTaskPriorities,
@@ -363,6 +370,12 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.ScenarioEvaluationConcurrency > maxScenarioEvaluationConcurrency {
 		return Config{}, fmt.Errorf("SCENARIO_EVALUATION_CONCURRENCY must be less than or equal to %d", maxScenarioEvaluationConcurrency)
+	}
+	if cfg.AggregateRemoteConcurrencyLimit < 0 {
+		return Config{}, fmt.Errorf("AGGREGATE_REMOTE_CONCURRENCY_LIMIT must be greater than or equal to zero")
+	}
+	if cfg.AggregateRemoteConcurrencyLimit > maxAggregateRemoteConcurrencyLimit {
+		return Config{}, fmt.Errorf("AGGREGATE_REMOTE_CONCURRENCY_LIMIT must be less than or equal to %d", maxAggregateRemoteConcurrencyLimit)
 	}
 
 	return cfg, nil

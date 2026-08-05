@@ -340,6 +340,7 @@ func evaluateScenarioByIteration(
 		IPFlagRepo:                  ipFlagRepo,
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
+		AggregateResultCache:        asteval.NewAggregateResultCache(),
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -442,6 +443,7 @@ func evaluatePhantomByIteration(
 		IPFlagRepo:                  ipFlagRepo,
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
+		AggregateResultCache:        asteval.NewAggregateResultCache(),
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {

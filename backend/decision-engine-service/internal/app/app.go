@@ -47,6 +47,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		LiveAsyncFallbackEnabled:            cfg.LiveAsyncFallbackEnabled,
 		RuleEvaluationConcurrency:           cfg.RuleEvaluationConcurrency,
 		ScenarioEvaluationConcurrency:       cfg.ScenarioEvaluationConcurrency,
+		AggregateRemoteConcurrencyLimit:     cfg.AggregateRemoteConcurrencyLimit,
 		ScheduledExecutionMaxAttempts:       cfg.ScheduledExecutionMaxAttempts,
 		ScheduledExecutionRetryBackoff:      cfg.ScheduledExecutionRetryBackoff,
 		ScheduledExecutionQueueName:         cfg.ScheduledExecutionQueueName,

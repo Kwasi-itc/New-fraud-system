@@ -160,6 +160,7 @@ func newFailureTestDecisionService(
 		nil,
 		0,
 		0,
+		0,
 		nil,
 	)
 }

@@ -37,6 +37,7 @@ type RouterConfig struct {
 	LiveAsyncFallbackEnabled            bool
 	RuleEvaluationConcurrency           int
 	ScenarioEvaluationConcurrency       int
+	AggregateRemoteConcurrencyLimit     int
 	ScheduledExecutionMaxAttempts       int
 	ScheduledExecutionRetryBackoff      time.Duration
 	AsyncExecutionMaxAttempts           int
@@ -180,7 +181,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, dbPoolStatsProvider(db))
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
