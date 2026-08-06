@@ -17,6 +17,8 @@ import (
 
 type IngestHandler struct {
 	ingestService         service.IngestService
+	deferredIngestService service.DeferredIngestService
+	writePathOverloadMode string
 	writeLimiter          chan struct{}
 	readLimiter           chan struct{}
 	aggregateLimiter      chan struct{}
@@ -25,6 +27,8 @@ type IngestHandler struct {
 
 type IngestHandlerConfig struct {
 	WritePathLimiter               chan struct{}
+	WritePathOverloadMode          string
+	DeferredIngestService          service.DeferredIngestService
 	ReadQueryConcurrencyLimit      int
 	AggregateQueryConcurrencyLimit int
 	AggregateQueryTimeout          time.Duration
@@ -41,6 +45,8 @@ func NewIngestHandler(ingestService service.IngestService, cfg IngestHandlerConf
 	}
 	return IngestHandler{
 		ingestService:         ingestService,
+		deferredIngestService: cfg.DeferredIngestService,
+		writePathOverloadMode: cfg.WritePathOverloadMode,
 		writeLimiter:          cfg.WritePathLimiter,
 		readLimiter:           readLimiter,
 		aggregateLimiter:      aggregateLimiter,
@@ -214,12 +220,6 @@ func (h IngestHandler) AggregateRecords(c *gin.Context) {
 }
 
 func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
-	release, ok := h.tryAcquireWriteSlot(c, "ingest")
-	if !ok {
-		return
-	}
-	defer release()
-
 	tenantID, err := uuid.Parse(c.Param("tenantId"))
 	if err != nil {
 		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"), "mode", mode)
@@ -231,6 +231,17 @@ func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
 		writeBadRequest(c, "request body must be a JSON object", "tenant_id", tenantID.String(), "object_type", c.Param("objectType"), "mode", mode)
 		return
 	}
+
+	release, ok := h.tryAcquireWriteSlot(c, "ingest")
+	if !ok {
+		if h.writePathOverloadMode == "defer_async" {
+			h.deferIngest(c, tenantID, c.Param("objectType"), mode, payload)
+		} else {
+			writeOverloaded(c, "write_path_overloaded", "write path concurrency limit reached", "operation", "ingest")
+		}
+		return
+	}
+	defer release()
 
 	result, validationErrors, err := h.ingestService.Ingest(c.Request.Context(), service.IngestInput{
 		TenantID:       tenantID,
@@ -264,9 +275,37 @@ func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
 	})
 }
 
+func (h IngestHandler) deferIngest(c *gin.Context, tenantID uuid.UUID, objectType string, mode ingestion.Mode, payload map[string]any) {
+	execution, err := h.deferredIngestService.Create(
+		c.Request.Context(),
+		tenantID,
+		objectType,
+		mode,
+		payload,
+		optionalHeader(c.GetHeader("Idempotency-Key")),
+	)
+	if err != nil {
+		writeServiceError(c, err, "tenant_id", tenantID.String(), "object_type", objectType, "mode", mode, "overload_mode", h.writePathOverloadMode)
+		return
+	}
+
+	logHandlerSuccess(c, "ingest deferred due to write path saturation", "tenant_id", tenantID.String(), "object_type", objectType, "mode", mode, "deferred_ingest_id", execution.ID)
+	c.JSON(http.StatusAccepted, gin.H{
+		"deferred_ingest": gin.H{
+			"id":           execution.ID,
+			"status":       execution.Status,
+			"tenant_id":    execution.TenantID,
+			"object_type":  execution.ObjectType,
+			"mode":         execution.Mode,
+			"requested_at": execution.RequestedAt,
+		},
+	})
+}
+
 func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
 	release, ok := h.tryAcquireWriteSlot(c, "batch_ingest")
 	if !ok {
+		writeOverloaded(c, "write_path_overloaded", "write path concurrency limit reached", "operation", "batch_ingest")
 		return
 	}
 	defer release()
@@ -336,7 +375,6 @@ func (h IngestHandler) tryAcquireWriteSlot(c *gin.Context, operation string) (fu
 	case h.writeLimiter <- struct{}{}:
 		return func() { <-h.writeLimiter }, true
 	default:
-		writeOverloaded(c, "write_path_overloaded", "write path concurrency limit reached", "operation", operation)
 		return nil, false
 	}
 }

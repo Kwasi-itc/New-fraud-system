@@ -87,3 +87,26 @@ func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 		t.Fatalf("expected db pool saturation threshold in response body, got %s", body)
 	}
 }
+
+func TestRouterExposesDeferredIngestMetricsEndpoint(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
+		AuthMode:            "disabled",
+		AllowedOrigins:      []string{"http://localhost:3000"},
+		DataModelServiceURL: "http://example.com",
+		HTTPClientTimeout:   time.Second,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/deferred-ingest-metrics", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "\"deferred_ingest_metrics\"") {
+		t.Fatalf("expected deferred_ingest_metrics in response body, got %s", rec.Body.String())
+	}
+}

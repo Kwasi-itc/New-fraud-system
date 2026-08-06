@@ -425,6 +425,64 @@ This means:
   - payload-derived values
   - resolved time expressions
 
+### Aggregate runtime metrics interpretation
+
+Runtime metrics now separate aggregate demand from actual downstream aggregate pressure.
+
+Key counters:
+
+- `aggregate_evaluation_count`
+  - total aggregate evaluations attempted by rules
+  - this is demand, not downstream traffic
+- `cache_hit_count`
+  - aggregate evaluations satisfied from a completed per-evaluation cache result
+  - these do not execute a new downstream aggregate request
+- `shared_inflight_count`
+  - aggregate evaluations that joined an identical in-flight aggregate request through `singleflight`
+  - these do not execute a second downstream aggregate request
+- `remote_call_count`
+  - real downstream aggregate executions
+  - this is the metric to use for actual `ingestion-service` aggregate pressure
+- `remote_error_count`
+  - failures from real downstream aggregate executions only
+
+Rule and shape metrics:
+
+- `top_rules`
+  - per-rule counters now distinguish:
+    - demand
+    - cache hits
+    - shared in-flight joins
+    - real remote calls
+    - remote errors
+    - overloads
+- `top_shapes`
+  - demand-oriented aggregate query shapes
+- `top_remote_shapes`
+  - shapes that actually executed downstream
+
+How to read the relationship:
+
+- high `aggregate_evaluation_count` with low `remote_call_count`
+  - deduplication is working
+  - many rule evaluations are reusing aggregate work
+- high `cache_hit_count`
+  - repeated identical aggregate queries are being reused from completed results
+- high `shared_inflight_count`
+  - concurrent identical aggregate queries are being coalesced successfully
+- high `remote_call_count`
+  - real downstream aggregate pressure is high
+- high `remote_error_count` or high per-rule overload counts
+  - downstream aggregate execution is failing for real
+  - investigate `ingestion-service` concurrency, read pool sizing, and aggregate limiter pressure
+
+Operational rule of thumb:
+
+- use `aggregate_evaluation_count` to understand rule demand
+- use `remote_call_count` to understand actual downstream load
+- use `cache_hit_count` and `shared_inflight_count` to understand deduplication effectiveness
+- use `top_remote_shapes` rather than `top_shapes` when tuning real downstream pressure
+
 ### Explicit V1 deferrals
 
 The following are explicitly deferred from remote pushdown in V1:

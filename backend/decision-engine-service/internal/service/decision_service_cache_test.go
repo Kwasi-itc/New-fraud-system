@@ -8,6 +8,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 )
 
 type countingDataModelReader struct {
@@ -190,6 +191,34 @@ func TestDecisionServiceRuntimeMetricsExposeTenantDataReadStats(t *testing.T) {
 	}
 	if snapshot.AggregateRecordsCount != 1 {
 		t.Fatalf("AggregateRecordsCount = %d, want 1", snapshot.AggregateRecordsCount)
+	}
+}
+
+func TestBuildDecisionRuntimePressureClassifiesSaturationAndAggregateErrors(t *testing.T) {
+	t.Parallel()
+
+	pressure := buildDecisionRuntimePressure(&DBPoolStats{
+		MaxConns:             10,
+		AcquiredConns:        9,
+		CanceledAcquireCount: 2,
+	}, AggregatePushdownMetrics{
+		RemoteCallCount:        10,
+		RemoteErrorCount:       2,
+		RemoteLimiterWaitCount: 1,
+		TopRules:               map[string]asteval.AggregateRulePressure{},
+	})
+
+	if pressure.Status != "critical" {
+		t.Fatalf("pressure.Status = %q, want critical", pressure.Status)
+	}
+	if pressure.DBPoolSaturationPct != 90 {
+		t.Fatalf("pressure.DBPoolSaturationPct = %d, want 90", pressure.DBPoolSaturationPct)
+	}
+	if pressure.AggregateRemoteErrorRatePct != 20 {
+		t.Fatalf("pressure.AggregateRemoteErrorRatePct = %d, want 20", pressure.AggregateRemoteErrorRatePct)
+	}
+	if len(pressure.Reasons) < 3 {
+		t.Fatalf("pressure.Reasons = %+v, want multiple reasons", pressure.Reasons)
 	}
 }
 

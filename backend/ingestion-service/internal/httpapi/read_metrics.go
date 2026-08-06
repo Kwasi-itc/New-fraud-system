@@ -42,34 +42,53 @@ type readMetricsCollector struct {
 }
 
 type endpointMetrics struct {
-	Requests             int64            `json:"requests"`
-	InFlight             int64            `json:"in_flight"`
-	Successes            int64            `json:"successes"`
-	Overloads            int64            `json:"overloads"`
-	Timeouts             int64            `json:"timeouts"`
-	Cancellations        int64            `json:"cancellations"`
-	DependencyFailures   int64            `json:"dependency_failures"`
-	ValidationFailures   int64            `json:"validation_failures"`
-	InternalFailures     int64            `json:"internal_failures"`
-	TotalLatencyMicros   int64            `json:"total_latency_micros"`
-	LastLatencyMicros    int64            `json:"last_latency_micros"`
-	P50LatencyMicros     int64            `json:"p50_latency_micros"`
-	P95LatencyMicros     int64            `json:"p95_latency_micros"`
-	P99LatencyMicros     int64            `json:"p99_latency_micros"`
-	StatusCounts         map[int]int64    `json:"status_counts"`
-	AggregateCounts      map[string]int64 `json:"aggregate_counts,omitempty"`
-	AggregateShapeCounts map[string]int64 `json:"aggregate_shape_counts,omitempty"`
-	ObjectTypeCounts     map[string]int64 `json:"object_type_counts,omitempty"`
-	FilterDepthCounts    map[int]int64    `json:"filter_depth_counts,omitempty"`
-	ListLimitCounts      map[int]int64    `json:"list_limit_counts,omitempty"`
-	LastErrorCategory    string           `json:"last_error_category,omitempty"`
-	LastAggregate        string           `json:"last_aggregate,omitempty"`
-	LastAggregateShape   string           `json:"last_aggregate_shape,omitempty"`
-	LastObjectType       string           `json:"last_object_type,omitempty"`
-	LastFilterDepth      int              `json:"last_filter_depth,omitempty"`
-	LastListLimit        int              `json:"last_list_limit,omitempty"`
-	MaxListLimit         int              `json:"max_list_limit,omitempty"`
-	LatencySamplesMicros []int64          `json:"-"`
+	Requests              int64                            `json:"requests"`
+	InFlight              int64                            `json:"in_flight"`
+	Successes             int64                            `json:"successes"`
+	Overloads             int64                            `json:"overloads"`
+	Timeouts              int64                            `json:"timeouts"`
+	Cancellations         int64                            `json:"cancellations"`
+	DependencyFailures    int64                            `json:"dependency_failures"`
+	ValidationFailures    int64                            `json:"validation_failures"`
+	InternalFailures      int64                            `json:"internal_failures"`
+	TotalLatencyMicros    int64                            `json:"total_latency_micros"`
+	LastLatencyMicros     int64                            `json:"last_latency_micros"`
+	P50LatencyMicros      int64                            `json:"p50_latency_micros"`
+	P95LatencyMicros      int64                            `json:"p95_latency_micros"`
+	P99LatencyMicros      int64                            `json:"p99_latency_micros"`
+	StatusCounts          map[int]int64                    `json:"status_counts"`
+	AggregateCounts       map[string]int64                 `json:"aggregate_counts,omitempty"`
+	AggregateShapeCounts  map[string]int64                 `json:"aggregate_shape_counts,omitempty"`
+	AggregateShapeMetrics map[string]aggregateShapeMetrics `json:"aggregate_shape_metrics,omitempty"`
+	ObjectTypeCounts      map[string]int64                 `json:"object_type_counts,omitempty"`
+	FilterDepthCounts     map[int]int64                    `json:"filter_depth_counts,omitempty"`
+	ListLimitCounts       map[int]int64                    `json:"list_limit_counts,omitempty"`
+	LastErrorCategory     string                           `json:"last_error_category,omitempty"`
+	LastAggregate         string                           `json:"last_aggregate,omitempty"`
+	LastAggregateShape    string                           `json:"last_aggregate_shape,omitempty"`
+	LastObjectType        string                           `json:"last_object_type,omitempty"`
+	LastFilterDepth       int                              `json:"last_filter_depth,omitempty"`
+	LastListLimit         int                              `json:"last_list_limit,omitempty"`
+	MaxListLimit          int                              `json:"max_list_limit,omitempty"`
+	LatencySamplesMicros  []int64                          `json:"-"`
+}
+
+type aggregateShapeMetrics struct {
+	Requests             int64   `json:"requests"`
+	Successes            int64   `json:"successes"`
+	Overloads            int64   `json:"overloads"`
+	Timeouts             int64   `json:"timeouts"`
+	Cancellations        int64   `json:"cancellations"`
+	DependencyFailures   int64   `json:"dependency_failures"`
+	ValidationFailures   int64   `json:"validation_failures"`
+	InternalFailures     int64   `json:"internal_failures"`
+	TotalLatencyMicros   int64   `json:"total_latency_micros"`
+	LastLatencyMicros    int64   `json:"last_latency_micros"`
+	MaxLatencyMicros     int64   `json:"max_latency_micros"`
+	P50LatencyMicros     int64   `json:"p50_latency_micros"`
+	P95LatencyMicros     int64   `json:"p95_latency_micros"`
+	P99LatencyMicros     int64   `json:"p99_latency_micros"`
+	LatencySamplesMicros []int64 `json:"-"`
 }
 
 type readMetricsSnapshot struct {
@@ -145,6 +164,31 @@ func (c *readMetricsCollector) finish(endpoint string, status int, duration time
 	if aggregateShape != "" {
 		item.AggregateShapeCounts[aggregateShape]++
 		item.LastAggregateShape = aggregateShape
+		shapeMetrics := item.AggregateShapeMetrics[aggregateShape]
+		shapeMetrics.Requests++
+		shapeMetrics.TotalLatencyMicros += duration.Microseconds()
+		shapeMetrics.LastLatencyMicros = duration.Microseconds()
+		if shapeMetrics.LastLatencyMicros > shapeMetrics.MaxLatencyMicros {
+			shapeMetrics.MaxLatencyMicros = shapeMetrics.LastLatencyMicros
+		}
+		recordLatencySample(&shapeMetrics.LatencySamplesMicros, shapeMetrics.LastLatencyMicros)
+		switch {
+		case status >= 200 && status < 300:
+			shapeMetrics.Successes++
+		case status == 429:
+			shapeMetrics.Overloads++
+		case errorCategory == "timeout":
+			shapeMetrics.Timeouts++
+		case errorCategory == "canceled":
+			shapeMetrics.Cancellations++
+		case errorCategory == "dependency_failure":
+			shapeMetrics.DependencyFailures++
+		case errorCategory == "invalid_request" || errorCategory == "validation_failed":
+			shapeMetrics.ValidationFailures++
+		case status >= 500:
+			shapeMetrics.InternalFailures++
+		}
+		item.AggregateShapeMetrics[aggregateShape] = shapeMetrics
 	}
 	if objectType != "" {
 		item.ObjectTypeCounts[objectType]++
@@ -189,30 +233,31 @@ func (c *readMetricsCollector) snapshot() readMetricsSnapshot {
 	endpoints := make(map[string]endpointMetrics, len(c.endpoints))
 	for key, value := range c.endpoints {
 		copyValue := endpointMetrics{
-			Requests:             value.Requests,
-			InFlight:             value.InFlight,
-			Successes:            value.Successes,
-			Overloads:            value.Overloads,
-			Timeouts:             value.Timeouts,
-			Cancellations:        value.Cancellations,
-			DependencyFailures:   value.DependencyFailures,
-			ValidationFailures:   value.ValidationFailures,
-			InternalFailures:     value.InternalFailures,
-			TotalLatencyMicros:   value.TotalLatencyMicros,
-			LastLatencyMicros:    value.LastLatencyMicros,
-			LastErrorCategory:    value.LastErrorCategory,
-			LastAggregate:        value.LastAggregate,
-			LastAggregateShape:   value.LastAggregateShape,
-			LastObjectType:       value.LastObjectType,
-			LastFilterDepth:      value.LastFilterDepth,
-			LastListLimit:        value.LastListLimit,
-			MaxListLimit:         value.MaxListLimit,
-			StatusCounts:         make(map[int]int64, len(value.StatusCounts)),
-			AggregateCounts:      make(map[string]int64, len(value.AggregateCounts)),
-			AggregateShapeCounts: make(map[string]int64, len(value.AggregateShapeCounts)),
-			ObjectTypeCounts:     make(map[string]int64, len(value.ObjectTypeCounts)),
-			FilterDepthCounts:    make(map[int]int64, len(value.FilterDepthCounts)),
-			ListLimitCounts:      make(map[int]int64, len(value.ListLimitCounts)),
+			Requests:              value.Requests,
+			InFlight:              value.InFlight,
+			Successes:             value.Successes,
+			Overloads:             value.Overloads,
+			Timeouts:              value.Timeouts,
+			Cancellations:         value.Cancellations,
+			DependencyFailures:    value.DependencyFailures,
+			ValidationFailures:    value.ValidationFailures,
+			InternalFailures:      value.InternalFailures,
+			TotalLatencyMicros:    value.TotalLatencyMicros,
+			LastLatencyMicros:     value.LastLatencyMicros,
+			LastErrorCategory:     value.LastErrorCategory,
+			LastAggregate:         value.LastAggregate,
+			LastAggregateShape:    value.LastAggregateShape,
+			LastObjectType:        value.LastObjectType,
+			LastFilterDepth:       value.LastFilterDepth,
+			LastListLimit:         value.LastListLimit,
+			MaxListLimit:          value.MaxListLimit,
+			StatusCounts:          make(map[int]int64, len(value.StatusCounts)),
+			AggregateCounts:       make(map[string]int64, len(value.AggregateCounts)),
+			AggregateShapeCounts:  make(map[string]int64, len(value.AggregateShapeCounts)),
+			AggregateShapeMetrics: make(map[string]aggregateShapeMetrics, len(value.AggregateShapeMetrics)),
+			ObjectTypeCounts:      make(map[string]int64, len(value.ObjectTypeCounts)),
+			FilterDepthCounts:     make(map[int]int64, len(value.FilterDepthCounts)),
+			ListLimitCounts:       make(map[int]int64, len(value.ListLimitCounts)),
 		}
 		copyValue.P50LatencyMicros = percentileMicros(value.LatencySamplesMicros, 50)
 		copyValue.P95LatencyMicros = percentileMicros(value.LatencySamplesMicros, 95)
@@ -225,6 +270,14 @@ func (c *readMetricsCollector) snapshot() readMetricsSnapshot {
 		}
 		for shape, count := range value.AggregateShapeCounts {
 			copyValue.AggregateShapeCounts[shape] = count
+		}
+		for shape, metrics := range value.AggregateShapeMetrics {
+			shapeCopy := metrics
+			shapeCopy.P50LatencyMicros = percentileMicros(metrics.LatencySamplesMicros, 50)
+			shapeCopy.P95LatencyMicros = percentileMicros(metrics.LatencySamplesMicros, 95)
+			shapeCopy.P99LatencyMicros = percentileMicros(metrics.LatencySamplesMicros, 99)
+			shapeCopy.LatencySamplesMicros = nil
+			copyValue.AggregateShapeMetrics[shape] = shapeCopy
 		}
 		for objectType, count := range value.ObjectTypeCounts {
 			copyValue.ObjectTypeCounts[objectType] = count
@@ -260,13 +313,14 @@ func (c *readMetricsCollector) endpoint(name string) *endpointMetrics {
 		return item
 	}
 	item = &endpointMetrics{
-		StatusCounts:         map[int]int64{},
-		AggregateCounts:      map[string]int64{},
-		AggregateShapeCounts: map[string]int64{},
-		ObjectTypeCounts:     map[string]int64{},
-		FilterDepthCounts:    map[int]int64{},
-		ListLimitCounts:      map[int]int64{},
-		LatencySamplesMicros: make([]int64, 0, latencySampleLimit),
+		StatusCounts:          map[int]int64{},
+		AggregateCounts:       map[string]int64{},
+		AggregateShapeCounts:  map[string]int64{},
+		AggregateShapeMetrics: map[string]aggregateShapeMetrics{},
+		ObjectTypeCounts:      map[string]int64{},
+		FilterDepthCounts:     map[int]int64{},
+		ListLimitCounts:       map[int]int64{},
+		LatencySamplesMicros:  make([]int64, 0, latencySampleLimit),
 	}
 	c.endpoints[name] = item
 	return item

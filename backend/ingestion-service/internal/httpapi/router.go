@@ -27,7 +27,9 @@ type RouterConfig struct {
 	AggregateQueryTimeout          time.Duration
 	WorkerMaxAttempts              int
 	UploadLogQueueName             string
+	DeferredIngestQueueName        string
 	WritePathConcurrencyLimit      int
+	WritePathOverloadMode          string
 	ReadQueryConcurrencyLimit      int
 	AggregateQueryConcurrencyLimit int
 	OverloadThresholds             OverloadThresholds
@@ -69,12 +71,16 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	var txManager ports.TransactionManager
 	var uploadLogRepository ports.UploadLogRepository
+	var deferredIngestRepository ports.DeferredIngestRepository
 	var uploadLogEnqueuer riverjobs.UploadLogEnqueuer = riverjobs.NoopUploadLogEnqueuer{}
+	var deferredIngestEnqueuer riverjobs.DeferredIngestEnqueuer = riverjobs.NoopDeferredIngestEnqueuer{}
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		uploadLogRepository = storepostgres.NewUploadLogRepository(db)
+		deferredIngestRepository = storepostgres.NewDeferredIngestRepository(db)
 		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
 		uploadLogEnqueuer = riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName)
+		deferredIngestEnqueuer = riverjobs.NewRiverDeferredIngestEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.DeferredIngestQueueName)
 	}
 	var readDataReader ports.TenantDataReader
 	if readDB != nil {
@@ -89,8 +95,20 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		uuidGenerator{},
 		systemClock{},
 	)
+	deferredIngestService := service.NewDeferredIngestService(
+		deferredIngestRepository,
+		ingestService,
+		txManager,
+		uuidGenerator{},
+		systemClock{},
+		max(1, cfg.WorkerMaxAttempts),
+		deferredIngestEnqueuer,
+	)
+	deferredIngestHandler := handlers.NewDeferredIngestHandler(deferredIngestService)
 	ingestHandler := handlers.NewIngestHandler(ingestService, handlers.IngestHandlerConfig{
 		WritePathLimiter:               writePathLimiter,
+		WritePathOverloadMode:          cfg.WritePathOverloadMode,
+		DeferredIngestService:          deferredIngestService,
 		ReadQueryConcurrencyLimit:      cfg.ReadQueryConcurrencyLimit,
 		AggregateQueryConcurrencyLimit: cfg.AggregateQueryConcurrencyLimit,
 		AggregateQueryTimeout:          cfg.AggregateQueryTimeout,
@@ -108,6 +126,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		WritePathLimiter: writePathLimiter,
 	})
 	readMetricsHandler := handlers.NewReadMetricsHandler(readMetrics)
+	deferredIngestMetricsHandler := handlers.NewDeferredIngestMetricsHandler(func(c *gin.Context) (any, error) {
+		return deferredIngestService.MetricsSnapshot(c.Request.Context())
+	})
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{
@@ -119,6 +140,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	v1.POST("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PostBatchIngest)
 	v1.PATCH("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PatchBatchIngest)
 	v1.GET("/admin/read-metrics", readMetricsHandler.Get)
+	v1.GET("/admin/deferred-ingest-metrics", deferredIngestMetricsHandler.Get)
 	readRoutes := v1.Group("")
 	readRoutes.GET("/tenants/:tenantId/records/:objectType", readMetrics.middleware("list_records"), ingestHandler.ListRecords)
 	readRoutes.GET("/tenants/:tenantId/records/:objectType/search", readMetrics.middleware("query_records"), ingestHandler.QueryRecords)
@@ -127,6 +149,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	v1.POST("/tenants/:tenantId/ingest/:objectType/csv", uploadLogHandler.CreateCSV)
 	v1.GET("/tenants/:tenantId/ingest/:objectType/upload-logs", uploadLogHandler.List)
 	v1.GET("/upload-logs/:uploadLogId", uploadLogHandler.Get)
+	v1.GET("/deferred-ingests/:deferredIngestId", deferredIngestHandler.Get)
 
 	return router
 }

@@ -31,7 +31,10 @@ type Config struct {
 	WorkerMaxAttempts               int
 	UploadLogQueueName              string
 	UploadLogQueueWorkers           int
+	DeferredIngestQueueName         string
+	DeferredIngestQueueWorkers      int
 	WritePathConcurrencyLimit       int
+	WritePathOverloadMode           string
 	ReadQueryConcurrencyLimit       int
 	AggregateQueryConcurrencyLimit  int
 	DBPoolSaturationThresholdPct    int
@@ -74,7 +77,10 @@ func LoadConfig() (Config, error) {
 		WorkerMaxAttempts:               getEnvInt("WORKER_MAX_ATTEMPTS", 3),
 		UploadLogQueueName:              getEnv("UPLOAD_LOG_QUEUE_NAME", "upload_logs"),
 		UploadLogQueueWorkers:           getEnvInt("UPLOAD_LOG_QUEUE_WORKERS", 4),
-		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 32),
+		DeferredIngestQueueName:         getEnv("DEFERRED_INGEST_QUEUE_NAME", "deferred_ingests"),
+		DeferredIngestQueueWorkers:      getEnvInt("DEFERRED_INGEST_QUEUE_WORKERS", 4),
+		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 200),
+		WritePathOverloadMode:           strings.ToLower(strings.TrimSpace(getEnv("WRITE_PATH_OVERLOAD_MODE", "defer_async"))),
 		ReadQueryConcurrencyLimit:       getEnvInt("READ_QUERY_CONCURRENCY_LIMIT", 64),
 		AggregateQueryConcurrencyLimit:  getEnvInt("AGGREGATE_QUERY_CONCURRENCY_LIMIT", 16),
 		DBPoolSaturationThresholdPct:    getEnvInt("DB_POOL_SATURATION_THRESHOLD_PCT", 80),
@@ -130,6 +136,12 @@ func LoadConfig() (Config, error) {
 	if cfg.UploadLogQueueWorkers <= 0 {
 		return Config{}, fmt.Errorf("UPLOAD_LOG_QUEUE_WORKERS must be greater than zero")
 	}
+	if strings.TrimSpace(cfg.DeferredIngestQueueName) == "" {
+		return Config{}, fmt.Errorf("DEFERRED_INGEST_QUEUE_NAME must not be empty")
+	}
+	if cfg.DeferredIngestQueueWorkers <= 0 {
+		return Config{}, fmt.Errorf("DEFERRED_INGEST_QUEUE_WORKERS must be greater than zero")
+	}
 	if cfg.AggregateQueryTimeout <= 0 {
 		return Config{}, fmt.Errorf("AGGREGATE_QUERY_TIMEOUT must be greater than zero")
 	}
@@ -138,6 +150,9 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.WritePathConcurrencyLimit < 0 {
 		return Config{}, fmt.Errorf("WRITE_PATH_CONCURRENCY_LIMIT must be greater than or equal to zero")
+	}
+	if cfg.WritePathOverloadMode != "reject" && cfg.WritePathOverloadMode != "defer_async" {
+		return Config{}, fmt.Errorf("WRITE_PATH_OVERLOAD_MODE must be one of reject,defer_async")
 	}
 	if cfg.AggregateQueryConcurrencyLimit < 0 {
 		return Config{}, fmt.Errorf("AGGREGATE_QUERY_CONCURRENCY_LIMIT must be greater than or equal to zero")

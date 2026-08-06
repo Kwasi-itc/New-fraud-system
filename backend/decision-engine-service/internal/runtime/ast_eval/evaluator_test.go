@@ -2,8 +2,8 @@ package ast_eval
 
 import (
 	"context"
-	"sync"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -61,13 +61,13 @@ func TestCompareValuesHandlesNilOperands(t *testing.T) {
 }
 
 type evaluatorTenantDataReaderStub struct {
-	listLimit      int
-	listCalls      int
-	listDelay      time.Duration
-	aggregateDelay time.Duration
-	aggregateValue any
-	mu             sync.Mutex
-	activeAggregates int
+	listLimit           int
+	listCalls           int
+	listDelay           time.Duration
+	aggregateDelay      time.Duration
+	aggregateValue      any
+	mu                  sync.Mutex
+	activeAggregates    int
 	maxActiveAggregates int
 }
 
@@ -275,6 +275,12 @@ func TestAggregatePushdownMetricsSnapshotTracksTopRulesAndShapes(t *testing.T) {
 	}
 	if ruleMetrics.RemoteCallCount < before.TopRules["Hot Aggregate Rule"].RemoteCallCount+1 {
 		t.Fatalf("RemoteCallCount = %d, want increment", ruleMetrics.RemoteCallCount)
+	}
+	if ruleMetrics.DistinctDemandShapeCount == 0 {
+		t.Fatalf("DistinctDemandShapeCount = %d, want > 0", ruleMetrics.DistinctDemandShapeCount)
+	}
+	if ruleMetrics.DistinctRemoteShapeCount == 0 {
+		t.Fatalf("DistinctRemoteShapeCount = %d, want > 0", ruleMetrics.DistinctRemoteShapeCount)
 	}
 	shapeKey := "transactions|count|amount|none"
 	if after.TopShapes[shapeKey] < before.TopShapes[shapeKey]+1 {

@@ -316,6 +316,69 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 	assertCoreIngestionCount(t, ctx, pool, "core_ingestion.outbox_events", 0)
 }
 
+func TestIntegrationDeferredIngestServiceProcessesQueuedExecution(t *testing.T) {
+	databaseURL := integrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := integrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	resetIntegrationDatabase(t, ctx, pool, databaseURL)
+
+	tenantID := uuid.MustParse("24242424-2424-2424-2424-242424242424")
+	schemaName := tenantSchemaName(tenantID)
+	createTenantTable(t, ctx, pool, schemaName, "transactions")
+
+	idGenerator := &fixedIDGenerator{next: integrationUUIDSequence(20)}
+	clock := fixedClock{now: time.Date(2026, 5, 20, 14, 0, 0, 0, time.UTC)}
+	ingestService := NewIngestService(
+		stubPublishedModelReader{
+			model: publishedTransactionsModel(tenantID),
+		},
+		storepostgres.NewTransactionManager(pool),
+		nil,
+		idGenerator,
+		clock,
+	)
+	deferredService := NewDeferredIngestService(
+		storepostgres.NewDeferredIngestRepository(pool),
+		ingestService,
+		storepostgres.NewTransactionManager(pool),
+		idGenerator,
+		clock,
+		3,
+		nil,
+	)
+
+	execution, err := deferredService.Create(ctx, tenantID, "transactions", ingestion.ModeCreate, map[string]any{
+		"object_id": "deferred-1",
+		"amount":    21.5,
+		"status":    "pending",
+	}, nil)
+	if err != nil {
+		t.Fatalf("create deferred ingest: %v", err)
+	}
+	if execution.Status != ingestion.DeferredIngestStatusQueued {
+		t.Fatalf("expected queued deferred ingest, got %+v", execution)
+	}
+
+	if err := deferredService.RunDeferredIngest(ctx, uuid.MustParse(execution.ID)); err != nil {
+		t.Fatalf("run deferred ingest: %v", err)
+	}
+
+	reloaded, err := deferredService.Get(ctx, uuid.MustParse(execution.ID))
+	if err != nil {
+		t.Fatalf("reload deferred ingest: %v", err)
+	}
+	if reloaded.Status != ingestion.DeferredIngestStatusCompleted {
+		t.Fatalf("expected completed deferred ingest, got %+v", reloaded)
+	}
+
+	assertTenantRowValues(t, ctx, pool, schemaName, "transactions", "deferred-1", "pending", 21.5)
+	assertCoreIngestionCount(t, ctx, pool, "core_ingestion.ingestion_audit", 1)
+	assertCoreIngestionCount(t, ctx, pool, "core_ingestion.outbox_events", 1)
+	assertCoreIngestionCount(t, ctx, pool, "core_ingestion.deferred_ingests", 1)
+}
+
 type stubPublishedModelReader struct {
 	model ingestion.PublishedDataModel
 }

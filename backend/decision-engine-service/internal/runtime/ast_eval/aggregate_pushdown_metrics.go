@@ -19,6 +19,8 @@ type AggregatePushdownMetrics struct {
 	FallbackRemoteCallFailedCount    uint64
 	FallbackUnsupportedQueryCount    uint64
 	AggregateEvaluationCount         uint64
+	CacheHitCount                    uint64
+	SharedInflightCount              uint64
 	RemoteCallCount                  uint64
 	RemoteErrorCount                 uint64
 	AggregateLatencyTotal            time.Duration
@@ -31,15 +33,21 @@ type AggregatePushdownMetrics struct {
 	RemoteConcurrencyLimit           int
 	TopRules                         map[string]AggregateRulePressure
 	TopShapes                        map[string]uint64
+	TopRemoteShapes                  map[string]uint64
 }
 
 type AggregateRulePressure struct {
-	RemoteCallCount uint64 `json:"remote_call_count"`
-	RemoteErrorCount uint64 `json:"remote_error_count"`
-	OverloadCount   uint64 `json:"overload_count"`
-	LastAggregate   string `json:"last_aggregate,omitempty"`
-	LastField       string `json:"last_field,omitempty"`
-	LastShape       string `json:"last_shape,omitempty"`
+	DemandCount              uint64 `json:"demand_count"`
+	CacheHitCount            uint64 `json:"cache_hit_count"`
+	SharedInflightCount      uint64 `json:"shared_inflight_count"`
+	RemoteCallCount          uint64 `json:"remote_call_count"`
+	RemoteErrorCount         uint64 `json:"remote_error_count"`
+	OverloadCount            uint64 `json:"overload_count"`
+	DistinctDemandShapeCount uint64 `json:"distinct_demand_shape_count"`
+	DistinctRemoteShapeCount uint64 `json:"distinct_remote_shape_count"`
+	LastAggregate            string `json:"last_aggregate,omitempty"`
+	LastField                string `json:"last_field,omitempty"`
+	LastShape                string `json:"last_shape,omitempty"`
 }
 
 var aggregatePushdownCompileSupportedCount atomic.Uint64
@@ -49,6 +57,8 @@ var aggregatePushdownFallbackAggregateNotEnabledCount atomic.Uint64
 var aggregatePushdownFallbackRemoteCallFailedCount atomic.Uint64
 var aggregatePushdownFallbackUnsupportedQueryCount atomic.Uint64
 var aggregatePushdownEvaluationCount atomic.Uint64
+var aggregatePushdownCacheHitCount atomic.Uint64
+var aggregatePushdownSharedInflightCount atomic.Uint64
 var aggregatePushdownRemoteCallCount atomic.Uint64
 var aggregatePushdownRemoteErrorCount atomic.Uint64
 var aggregatePushdownEvaluationLatencyTotalNanos atomic.Int64
@@ -59,7 +69,10 @@ var aggregatePushdownLatencySamplesMu sync.Mutex
 var aggregatePushdownLatencySamples = make([]int64, 0, aggregateLatencySampleLimit)
 var aggregatePushdownRuleMetricsMu sync.Mutex
 var aggregatePushdownRuleMetrics = map[string]*AggregateRulePressure{}
+var aggregatePushdownRuleDemandShapes = map[string]map[string]struct{}{}
+var aggregatePushdownRuleRemoteShapes = map[string]map[string]struct{}{}
 var aggregatePushdownShapeCounts = map[string]uint64{}
+var aggregatePushdownRemoteShapeCounts = map[string]uint64{}
 var aggregateRemoteLimiterState atomic.Int64
 
 func recordAggregatePushdownCompile(supported bool) {
@@ -104,6 +117,14 @@ func recordAggregatePushdownRemoteCall(duration time.Duration, err error) {
 	}
 }
 
+func recordAggregateCacheHit() {
+	aggregatePushdownCacheHitCount.Add(1)
+}
+
+func recordAggregateSharedInflight() {
+	aggregatePushdownSharedInflightCount.Add(1)
+}
+
 func recordAggregateRemoteLimiterWait(duration time.Duration) {
 	if duration <= 0 {
 		return
@@ -116,7 +137,7 @@ func setAggregateRemoteConcurrencyLimit(limit int) {
 	aggregateRemoteLimiterState.Store(int64(limit))
 }
 
-func recordAggregatePressure(ctx context.Context, queryShape string, aggregate string, field string, err error) {
+func recordAggregateDemand(ctx context.Context, queryShape string, aggregate string, field string) {
 	ruleName := RuleNameFromContext(ctx)
 	aggregatePushdownRuleMetricsMu.Lock()
 	defer aggregatePushdownRuleMetricsMu.Unlock()
@@ -131,7 +152,80 @@ func recordAggregatePressure(ctx context.Context, queryShape string, aggregate s
 		item = &AggregateRulePressure{}
 		aggregatePushdownRuleMetrics[ruleName] = item
 	}
+	item.DemandCount++
+	if queryShape != "" {
+		shapeSet, ok := aggregatePushdownRuleDemandShapes[ruleName]
+		if !ok {
+			shapeSet = map[string]struct{}{}
+			aggregatePushdownRuleDemandShapes[ruleName] = shapeSet
+		}
+		if _, seen := shapeSet[queryShape]; !seen {
+			shapeSet[queryShape] = struct{}{}
+			item.DistinctDemandShapeCount++
+		}
+	}
+	item.LastAggregate = aggregate
+	item.LastField = field
+	item.LastShape = queryShape
+}
+
+func recordAggregateCacheHitForRule(ctx context.Context, queryShape string) {
+	ruleName := RuleNameFromContext(ctx)
+	if ruleName == "" {
+		return
+	}
+	aggregatePushdownRuleMetricsMu.Lock()
+	defer aggregatePushdownRuleMetricsMu.Unlock()
+	item, ok := aggregatePushdownRuleMetrics[ruleName]
+	if !ok {
+		item = &AggregateRulePressure{LastShape: queryShape}
+		aggregatePushdownRuleMetrics[ruleName] = item
+	}
+	item.CacheHitCount++
+}
+
+func recordAggregateSharedInflightForRule(ctx context.Context, queryShape string) {
+	ruleName := RuleNameFromContext(ctx)
+	if ruleName == "" {
+		return
+	}
+	aggregatePushdownRuleMetricsMu.Lock()
+	defer aggregatePushdownRuleMetricsMu.Unlock()
+	item, ok := aggregatePushdownRuleMetrics[ruleName]
+	if !ok {
+		item = &AggregateRulePressure{LastShape: queryShape}
+		aggregatePushdownRuleMetrics[ruleName] = item
+	}
+	item.SharedInflightCount++
+}
+
+func recordAggregateRemotePressure(ctx context.Context, queryShape string, aggregate string, field string, err error) {
+	ruleName := RuleNameFromContext(ctx)
+	aggregatePushdownRuleMetricsMu.Lock()
+	defer aggregatePushdownRuleMetricsMu.Unlock()
+	if queryShape != "" {
+		aggregatePushdownRemoteShapeCounts[queryShape]++
+	}
+	if ruleName == "" {
+		return
+	}
+	item, ok := aggregatePushdownRuleMetrics[ruleName]
+	if !ok {
+		item = &AggregateRulePressure{}
+		aggregatePushdownRuleMetrics[ruleName] = item
+	}
 	item.RemoteCallCount++
+	if queryShape != "" {
+		shapeSet, ok := aggregatePushdownRuleRemoteShapes[ruleName]
+		if !ok {
+			shapeSet = map[string]struct{}{}
+			aggregatePushdownRuleRemoteShapes[ruleName] = shapeSet
+		}
+		if _, seen := shapeSet[queryShape]; !seen {
+			shapeSet[queryShape] = struct{}{}
+			item.DistinctRemoteShapeCount++
+		}
+	}
 	item.LastAggregate = aggregate
 	item.LastField = field
 	item.LastShape = queryShape
@@ -156,6 +250,10 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 	for key, value := range aggregatePushdownShapeCounts {
 		shapeCounts[key] = value
 	}
+	remoteShapeCounts := make(map[string]uint64, len(aggregatePushdownRemoteShapeCounts))
+	for key, value := range aggregatePushdownRemoteShapeCounts {
+		remoteShapeCounts[key] = value
+	}
 	aggregatePushdownRuleMetricsMu.Unlock()
 	return AggregatePushdownMetrics{
 		CompileSupportedCount:            aggregatePushdownCompileSupportedCount.Load(),
@@ -165,6 +263,8 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 		FallbackRemoteCallFailedCount:    aggregatePushdownFallbackRemoteCallFailedCount.Load(),
 		FallbackUnsupportedQueryCount:    aggregatePushdownFallbackUnsupportedQueryCount.Load(),
 		AggregateEvaluationCount:         aggregatePushdownEvaluationCount.Load(),
+		CacheHitCount:                    aggregatePushdownCacheHitCount.Load(),
+		SharedInflightCount:              aggregatePushdownSharedInflightCount.Load(),
 		RemoteCallCount:                  aggregatePushdownRemoteCallCount.Load(),
 		RemoteErrorCount:                 aggregatePushdownRemoteErrorCount.Load(),
 		AggregateLatencyTotal:            time.Duration(aggregatePushdownEvaluationLatencyTotalNanos.Load()),
@@ -177,6 +277,7 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 		RemoteConcurrencyLimit:           int(aggregateRemoteLimiterState.Load()),
 		TopRules:                         ruleMetrics,
 		TopShapes:                        shapeCounts,
+		TopRemoteShapes:                  remoteShapeCounts,
 	}
 }
 

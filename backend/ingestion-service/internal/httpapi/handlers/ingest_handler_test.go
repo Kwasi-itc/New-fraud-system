@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -116,6 +117,64 @@ func TestIngestHandlerRejectsWhenWriteConcurrencyLimitReached(t *testing.T) {
 	}
 }
 
+func TestIngestHandlerDefersWhenWriteConcurrencyLimitReachedAndAsyncFallbackEnabled(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	writeLimiter := make(chan struct{}, 1)
+	handler := NewIngestHandler(service.NewIngestService(
+		stubDataModelReader{},
+		stubTransactionManager{},
+		nil,
+		stubIDGenerator{},
+		stubClock{},
+	), IngestHandlerConfig{
+		WritePathLimiter:      writeLimiter,
+		WritePathOverloadMode: "defer_async",
+		DeferredIngestService: service.NewDeferredIngestService(
+			stubDeferredIngestRepo{},
+			service.NewIngestService(
+				stubDataModelReader{},
+				stubTransactionManager{},
+				nil,
+				stubIDGenerator{},
+				stubClock{},
+			),
+			stubTransactionManager{},
+			stubIDGenerator{},
+			stubClock{},
+			3,
+			stubDeferredIngestEnqueuer{},
+		),
+	})
+	writeLimiter <- struct{}{}
+	defer func() { <-writeLimiter }()
+
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/ingest/:objectType", handler.PostIngest)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/11111111-1111-1111-1111-111111111111/ingest/transactions",
+		bytes.NewBufferString(`{"status":"ok","object_id":"txn-1"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body map[string]map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["deferred_ingest"]["status"] != string(ingestion.DeferredIngestStatusQueued) {
+		t.Fatalf("expected queued deferred ingest, got %v", body["deferred_ingest"]["status"])
+	}
+}
+
 type stubDataModelReader struct{}
 
 func (stubDataModelReader) GetPublishedDataModel(context.Context, uuid.UUID) (ingestion.PublishedDataModel, error) {
@@ -147,9 +206,12 @@ func (stubMutationStore) Audits() ports.IngestionAuditRepository    { return stu
 func (stubMutationStore) Idempotency() ports.IdempotencyRepository  { return stubIdempotencyRepo{} }
 func (stubMutationStore) OutboxEvents() ports.OutboxEventRepository { return stubOutboxRepo{} }
 func (stubMutationStore) UploadLogs() ports.UploadLogRepository     { return stubUploadLogRepo{} }
-func (stubMutationStore) TenantWriter() ports.TenantDataWriter      { return stubTenantWriter{} }
-func (stubMutationStore) TenantReader() ports.TenantDataReader      { return stubTenantReader{} }
-func (stubMutationStore) RawTx() pgx.Tx                             { return nil }
+func (stubMutationStore) DeferredIngests() ports.DeferredIngestRepository {
+	return stubDeferredIngestRepo{}
+}
+func (stubMutationStore) TenantWriter() ports.TenantDataWriter { return stubTenantWriter{} }
+func (stubMutationStore) TenantReader() ports.TenantDataReader { return stubTenantReader{} }
+func (stubMutationStore) RawTx() pgx.Tx                        { return nil }
 
 type stubAuditRepo struct{}
 
@@ -178,6 +240,27 @@ func (stubUploadLogRepo) GetByID(context.Context, uuid.UUID) (ingestion.UploadLo
 func (stubUploadLogRepo) Update(context.Context, ingestion.UploadLog) error { return nil }
 func (stubUploadLogRepo) StartAttempt(context.Context, uuid.UUID, time.Time) (ingestion.UploadLog, error) {
 	return ingestion.UploadLog{}, nil
+}
+
+type stubDeferredIngestRepo struct{}
+
+func (stubDeferredIngestRepo) Create(context.Context, ingestion.DeferredIngest) error { return nil }
+func (stubDeferredIngestRepo) GetByID(context.Context, uuid.UUID) (ingestion.DeferredIngest, error) {
+	return ingestion.DeferredIngest{}, nil
+}
+func (stubDeferredIngestRepo) Update(context.Context, ingestion.DeferredIngest) error { return nil }
+func (stubDeferredIngestRepo) StartAttempt(context.Context, uuid.UUID, time.Time) (ingestion.DeferredIngest, error) {
+	return ingestion.DeferredIngest{}, nil
+}
+func (stubDeferredIngestRepo) MetricsSnapshot(context.Context, time.Time) (ingestion.DeferredIngestMetrics, error) {
+	return ingestion.DeferredIngestMetrics{}, nil
+}
+
+type stubDeferredIngestEnqueuer struct{}
+
+func (stubDeferredIngestEnqueuer) Enqueue(context.Context, uuid.UUID, *time.Time) error { return nil }
+func (stubDeferredIngestEnqueuer) EnqueueTx(context.Context, pgx.Tx, uuid.UUID, *time.Time) error {
+	return nil
 }
 
 type stubTenantWriter struct{}

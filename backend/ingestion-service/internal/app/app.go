@@ -54,7 +54,9 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		AggregateQueryTimeout:          cfg.AggregateQueryTimeout,
 		WorkerMaxAttempts:              cfg.WorkerMaxAttempts,
 		UploadLogQueueName:             cfg.UploadLogQueueName,
+		DeferredIngestQueueName:        cfg.DeferredIngestQueueName,
 		WritePathConcurrencyLimit:      cfg.WritePathConcurrencyLimit,
+		WritePathOverloadMode:          cfg.WritePathOverloadMode,
 		ReadQueryConcurrencyLimit:      cfg.ReadQueryConcurrencyLimit,
 		AggregateQueryConcurrencyLimit: cfg.AggregateQueryConcurrencyLimit,
 		OverloadThresholds: httpapi.OverloadThresholds{

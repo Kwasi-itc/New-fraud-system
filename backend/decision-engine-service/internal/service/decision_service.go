@@ -138,10 +138,19 @@ type decisionCacheStatsSnapshot struct {
 type DecisionRuntimeMetrics struct {
 	Cache             DecisionCacheMetrics      `json:"cache"`
 	DBPool            *DBPoolStats              `json:"db_pool,omitempty"`
+	Pressure          DecisionRuntimePressure   `json:"pressure"`
 	AggregatePushdown AggregatePushdownMetrics  `json:"aggregate_pushdown"`
 	BroadReadHelpers  BroadReadHelperMetrics    `json:"broad_read_helpers"`
 	TenantDataReads   TenantDataReadMetrics     `json:"tenant_data_reads"`
 	Evaluation        DecisionEvaluationMetrics `json:"evaluation"`
+}
+
+type DecisionRuntimePressure struct {
+	Status                      string   `json:"status"`
+	Reasons                     []string `json:"reasons,omitempty"`
+	DBPoolSaturationPct         int      `json:"db_pool_saturation_pct"`
+	AggregateRemoteErrorRatePct int      `json:"aggregate_remote_error_rate_pct"`
+	AggregateOverloadRuleCount  int      `json:"aggregate_overload_rule_count"`
 }
 
 type DecisionCacheMetrics struct {
@@ -158,25 +167,28 @@ type DecisionCacheMetrics struct {
 }
 
 type AggregatePushdownMetrics struct {
-	CompileSupportedCount            uint64 `json:"compile_supported_count"`
-	CompileUnsupportedCount          uint64 `json:"compile_unsupported_count"`
-	FallbackCount                    uint64 `json:"fallback_count"`
-	FallbackAggregateNotEnabledCount uint64 `json:"fallback_aggregate_not_enabled_count"`
-	FallbackRemoteCallFailedCount    uint64 `json:"fallback_remote_call_failed_count"`
-	FallbackUnsupportedQueryCount    uint64 `json:"fallback_unsupported_query_count"`
-	AggregateEvaluationCount         uint64 `json:"aggregate_evaluation_count"`
-	RemoteCallCount                  uint64 `json:"remote_call_count"`
-	RemoteErrorCount                 uint64 `json:"remote_error_count"`
-	AggregateLatencyTotalMicros      int64  `json:"aggregate_latency_total_micros"`
-	AggregateLatencyP50Micros        int64  `json:"aggregate_latency_p50_micros"`
-	AggregateLatencyP95Micros        int64  `json:"aggregate_latency_p95_micros"`
-	AggregateLatencyP99Micros        int64  `json:"aggregate_latency_p99_micros"`
-	RemoteLatencyTotalMicros         int64  `json:"remote_latency_total_micros"`
-	RemoteLimiterWaitCount           uint64 `json:"remote_limiter_wait_count"`
-	RemoteLimiterWaitTotalMicros     int64  `json:"remote_limiter_wait_total_micros"`
-	RemoteConcurrencyLimit           int    `json:"remote_concurrency_limit"`
+	CompileSupportedCount            uint64                                   `json:"compile_supported_count"`
+	CompileUnsupportedCount          uint64                                   `json:"compile_unsupported_count"`
+	FallbackCount                    uint64                                   `json:"fallback_count"`
+	FallbackAggregateNotEnabledCount uint64                                   `json:"fallback_aggregate_not_enabled_count"`
+	FallbackRemoteCallFailedCount    uint64                                   `json:"fallback_remote_call_failed_count"`
+	FallbackUnsupportedQueryCount    uint64                                   `json:"fallback_unsupported_query_count"`
+	AggregateEvaluationCount         uint64                                   `json:"aggregate_evaluation_count"`
+	CacheHitCount                    uint64                                   `json:"cache_hit_count"`
+	SharedInflightCount              uint64                                   `json:"shared_inflight_count"`
+	RemoteCallCount                  uint64                                   `json:"remote_call_count"`
+	RemoteErrorCount                 uint64                                   `json:"remote_error_count"`
+	AggregateLatencyTotalMicros      int64                                    `json:"aggregate_latency_total_micros"`
+	AggregateLatencyP50Micros        int64                                    `json:"aggregate_latency_p50_micros"`
+	AggregateLatencyP95Micros        int64                                    `json:"aggregate_latency_p95_micros"`
+	AggregateLatencyP99Micros        int64                                    `json:"aggregate_latency_p99_micros"`
+	RemoteLatencyTotalMicros         int64                                    `json:"remote_latency_total_micros"`
+	RemoteLimiterWaitCount           uint64                                   `json:"remote_limiter_wait_count"`
+	RemoteLimiterWaitTotalMicros     int64                                    `json:"remote_limiter_wait_total_micros"`
+	RemoteConcurrencyLimit           int                                      `json:"remote_concurrency_limit"`
 	TopRules                         map[string]asteval.AggregateRulePressure `json:"top_rules,omitempty"`
 	TopShapes                        map[string]uint64                        `json:"top_shapes,omitempty"`
+	TopRemoteShapes                  map[string]uint64                        `json:"top_remote_shapes,omitempty"`
 }
 
 type BroadReadHelperMetrics struct {
@@ -1371,37 +1383,78 @@ func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
 
 	aggregateSnapshot := asteval.AggregatePushdownMetricsSnapshot()
 	broadReadSnapshot := asteval.BroadReadHelperMetricsSnapshot()
+	aggregateMetrics := AggregatePushdownMetrics{
+		CompileSupportedCount:            aggregateSnapshot.CompileSupportedCount,
+		CompileUnsupportedCount:          aggregateSnapshot.CompileUnsupportedCount,
+		FallbackCount:                    aggregateSnapshot.FallbackCount,
+		FallbackAggregateNotEnabledCount: aggregateSnapshot.FallbackAggregateNotEnabledCount,
+		FallbackRemoteCallFailedCount:    aggregateSnapshot.FallbackRemoteCallFailedCount,
+		FallbackUnsupportedQueryCount:    aggregateSnapshot.FallbackUnsupportedQueryCount,
+		AggregateEvaluationCount:         aggregateSnapshot.AggregateEvaluationCount,
+		CacheHitCount:                    aggregateSnapshot.CacheHitCount,
+		SharedInflightCount:              aggregateSnapshot.SharedInflightCount,
+		RemoteCallCount:                  aggregateSnapshot.RemoteCallCount,
+		RemoteErrorCount:                 aggregateSnapshot.RemoteErrorCount,
+		AggregateLatencyTotalMicros:      aggregateSnapshot.AggregateLatencyTotal.Microseconds(),
+		AggregateLatencyP50Micros:        aggregateSnapshot.AggregateLatencyP50.Microseconds(),
+		AggregateLatencyP95Micros:        aggregateSnapshot.AggregateLatencyP95.Microseconds(),
+		AggregateLatencyP99Micros:        aggregateSnapshot.AggregateLatencyP99.Microseconds(),
+		RemoteLatencyTotalMicros:         aggregateSnapshot.RemoteLatencyTotal.Microseconds(),
+		RemoteLimiterWaitCount:           aggregateSnapshot.RemoteLimiterWaitCount,
+		RemoteLimiterWaitTotalMicros:     aggregateSnapshot.RemoteLimiterWaitTotal.Microseconds(),
+		RemoteConcurrencyLimit:           aggregateSnapshot.RemoteConcurrencyLimit,
+		TopRules:                         aggregateSnapshot.TopRules,
+		TopShapes:                        aggregateSnapshot.TopShapes,
+		TopRemoteShapes:                  aggregateSnapshot.TopRemoteShapes,
+	}
 	return DecisionRuntimeMetrics{
-		Cache:  cache,
-		DBPool: dbPool,
-		AggregatePushdown: AggregatePushdownMetrics{
-			CompileSupportedCount:            aggregateSnapshot.CompileSupportedCount,
-			CompileUnsupportedCount:          aggregateSnapshot.CompileUnsupportedCount,
-			FallbackCount:                    aggregateSnapshot.FallbackCount,
-			FallbackAggregateNotEnabledCount: aggregateSnapshot.FallbackAggregateNotEnabledCount,
-			FallbackRemoteCallFailedCount:    aggregateSnapshot.FallbackRemoteCallFailedCount,
-			FallbackUnsupportedQueryCount:    aggregateSnapshot.FallbackUnsupportedQueryCount,
-			AggregateEvaluationCount:         aggregateSnapshot.AggregateEvaluationCount,
-			RemoteCallCount:                  aggregateSnapshot.RemoteCallCount,
-			RemoteErrorCount:                 aggregateSnapshot.RemoteErrorCount,
-			AggregateLatencyTotalMicros:      aggregateSnapshot.AggregateLatencyTotal.Microseconds(),
-			AggregateLatencyP50Micros:        aggregateSnapshot.AggregateLatencyP50.Microseconds(),
-			AggregateLatencyP95Micros:        aggregateSnapshot.AggregateLatencyP95.Microseconds(),
-			AggregateLatencyP99Micros:        aggregateSnapshot.AggregateLatencyP99.Microseconds(),
-			RemoteLatencyTotalMicros:         aggregateSnapshot.RemoteLatencyTotal.Microseconds(),
-			RemoteLimiterWaitCount:           aggregateSnapshot.RemoteLimiterWaitCount,
-			RemoteLimiterWaitTotalMicros:     aggregateSnapshot.RemoteLimiterWaitTotal.Microseconds(),
-			RemoteConcurrencyLimit:           aggregateSnapshot.RemoteConcurrencyLimit,
-			TopRules:                         aggregateSnapshot.TopRules,
-			TopShapes:                        aggregateSnapshot.TopShapes,
-		},
+		Cache:             cache,
+		DBPool:            dbPool,
+		Pressure:          buildDecisionRuntimePressure(dbPool, aggregateMetrics),
+		AggregatePushdown: aggregateMetrics,
 		BroadReadHelpers: BroadReadHelperMetrics{
 			RejectedCount:          broadReadSnapshot.RejectedCount,
 			RejectedByFunctionName: broadReadSnapshot.RejectedByFunctionName,
 		},
 		TenantDataReads: s.tenantDataReadMetrics.snapshot(),
-		Evaluation: s.evaluationMetrics.snapshot(),
+		Evaluation:      s.evaluationMetrics.snapshot(),
 	}
+}
+
+func buildDecisionRuntimePressure(dbPool *DBPoolStats, aggregate AggregatePushdownMetrics) DecisionRuntimePressure {
+	pressure := DecisionRuntimePressure{Status: "ok"}
+	if dbPool != nil && dbPool.MaxConns > 0 {
+		pressure.DBPoolSaturationPct = int((int64(dbPool.AcquiredConns) * 100) / int64(dbPool.MaxConns))
+		if pressure.DBPoolSaturationPct >= 80 {
+			pressure.Reasons = append(pressure.Reasons, "db_pool_saturation>=80%")
+		}
+		if dbPool.CanceledAcquireCount > 0 {
+			pressure.Reasons = append(pressure.Reasons, "db_pool_canceled_acquires_observed")
+		}
+	}
+	if aggregate.RemoteCallCount > 0 {
+		pressure.AggregateRemoteErrorRatePct = int((aggregate.RemoteErrorCount * 100) / aggregate.RemoteCallCount)
+	}
+	for _, item := range aggregate.TopRules {
+		if item.OverloadCount > 0 {
+			pressure.AggregateOverloadRuleCount++
+		}
+	}
+	if aggregate.RemoteLimiterWaitCount > 0 {
+		pressure.Reasons = append(pressure.Reasons, "aggregate_remote_limiter_waits_observed")
+	}
+	if aggregate.RemoteErrorCount > 0 {
+		pressure.Reasons = append(pressure.Reasons, "aggregate_remote_errors_observed")
+	}
+	switch len(pressure.Reasons) {
+	case 0:
+		pressure.Status = "ok"
+	case 1:
+		pressure.Status = "warning"
+	default:
+		pressure.Status = "critical"
+	}
+	return pressure
 }
 
 func (c *decisionEvaluationCache) snapshotStats() decisionCacheStatsSnapshot {

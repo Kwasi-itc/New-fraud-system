@@ -25,6 +25,11 @@ class Experiment:
     ingestion_trigger_overload_mode: str
     tenant_data_read_mode: str
     separate_read_pool: bool
+    rule_evaluation_concurrency: int
+    scenario_evaluation_concurrency: int
+    aggregate_remote_concurrency_limit: int
+    aggregate_query_concurrency_limit: int
+    read_database_max_conns: int
 
 
 def utc_stamp() -> str:
@@ -34,7 +39,7 @@ def utc_stamp() -> str:
 def build_default_experiments() -> list[Experiment]:
     return [
         Experiment(
-            label="async-only-ingestion-http-shared-read-pool",
+            label="async-only-ingestion-http-shared-read-pool-conservative",
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
@@ -42,9 +47,14 @@ def build_default_experiments() -> list[Experiment]:
             ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="ingestion_http",
             separate_read_pool=False,
+            rule_evaluation_concurrency=2,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=4,
+            aggregate_query_concurrency_limit=16,
+            read_database_max_conns=0,
         ),
         Experiment(
-            label="async-only-ingestion-http-separate-read-pool",
+            label="async-only-ingestion-http-separate-read-pool-conservative",
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
@@ -52,9 +62,14 @@ def build_default_experiments() -> list[Experiment]:
             ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="ingestion_http",
             separate_read_pool=True,
+            rule_evaluation_concurrency=2,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=4,
+            aggregate_query_concurrency_limit=16,
+            read_database_max_conns=16,
         ),
         Experiment(
-            label="async-only-direct-db-separate-read-pool",
+            label="async-only-direct-db-separate-read-pool-conservative",
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
@@ -62,9 +77,14 @@ def build_default_experiments() -> list[Experiment]:
             ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="direct_db",
             separate_read_pool=True,
+            rule_evaluation_concurrency=2,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=4,
+            aggregate_query_concurrency_limit=16,
+            read_database_max_conns=16,
         ),
         Experiment(
-            label="sync-direct-db-separate-read-pool-with-fallback",
+            label="sync-direct-db-separate-read-pool-conservative",
             decision_mode="sync",
             live_decision_mode="sync",
             live_async_fallback_enabled=True,
@@ -72,6 +92,26 @@ def build_default_experiments() -> list[Experiment]:
             ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="direct_db",
             separate_read_pool=True,
+            rule_evaluation_concurrency=2,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=4,
+            aggregate_query_concurrency_limit=16,
+            read_database_max_conns=16,
+        ),
+        Experiment(
+            label="sync-direct-db-separate-read-pool-expanded",
+            decision_mode="sync",
+            live_decision_mode="sync",
+            live_async_fallback_enabled=True,
+            ingestion_trigger_decision_mode="sync",
+            ingestion_trigger_overload_mode="defer_async",
+            tenant_data_read_mode="direct_db",
+            separate_read_pool=True,
+            rule_evaluation_concurrency=4,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=8,
+            aggregate_query_concurrency_limit=32,
+            read_database_max_conns=32,
         ),
     ]
 
@@ -118,6 +158,16 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
             "PRODUCTION_REPLAY_TENANT_DATA_READ_MODE": experiment.tenant_data_read_mode,
             "PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL": "true" if experiment.separate_read_pool else "false",
             "PRODUCTION_REPLAY_EXPERIMENT_LABEL": experiment.label,
+            "PRODUCTION_REPLAY_RULE_EVALUATION_CONCURRENCY": str(experiment.rule_evaluation_concurrency),
+            "PRODUCTION_REPLAY_SCENARIO_EVALUATION_CONCURRENCY": str(experiment.scenario_evaluation_concurrency),
+            "PRODUCTION_REPLAY_AGGREGATE_REMOTE_CONCURRENCY_LIMIT": str(experiment.aggregate_remote_concurrency_limit),
+            "PRODUCTION_REPLAY_AGGREGATE_QUERY_CONCURRENCY_LIMIT": str(experiment.aggregate_query_concurrency_limit),
+            "PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS": str(experiment.read_database_max_conns),
+            "RULE_EVALUATION_CONCURRENCY": str(experiment.rule_evaluation_concurrency),
+            "SCENARIO_EVALUATION_CONCURRENCY": str(experiment.scenario_evaluation_concurrency),
+            "AGGREGATE_REMOTE_CONCURRENCY_LIMIT": str(experiment.aggregate_remote_concurrency_limit),
+            "AGGREGATE_QUERY_CONCURRENCY_LIMIT": str(experiment.aggregate_query_concurrency_limit),
+            "READ_DATABASE_MAX_CONNS": str(experiment.read_database_max_conns),
         }
     )
     if args.tenant_id:

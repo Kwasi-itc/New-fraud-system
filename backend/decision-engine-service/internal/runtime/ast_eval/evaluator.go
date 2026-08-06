@@ -1173,7 +1173,9 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 		return nil, fmt.Errorf("aggregate pushdown unsupported: %s", reason)
 	}
 	startedAt = time.Now()
-	value, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
+	queryShape := aggregateQueryShapeKey(compileResult.Query)
+	recordAggregateDemand(ctx, queryShape, compileResult.Query.Aggregate, compileResult.Query.Field)
+	cacheOutcome, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
 		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency)
 		if acquireErr != nil {
 			return nil, acquireErr
@@ -1181,8 +1183,18 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 		defer release()
 		return runtime.TenantDataReader.AggregateRecords(ctx, runtime.TenantID, compileResult.Query)
 	})
-	recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
-	recordAggregatePressure(ctx, aggregateQueryShapeKey(compileResult.Query), compileResult.Query.Aggregate, compileResult.Query.Field, err)
+	if cacheOutcome.CacheHit {
+		recordAggregateCacheHit()
+		recordAggregateCacheHitForRule(ctx, queryShape)
+	}
+	if cacheOutcome.SharedInflight {
+		recordAggregateSharedInflight()
+		recordAggregateSharedInflightForRule(ctx, queryShape)
+	}
+	if cacheOutcome.RemoteExecuted {
+		recordAggregatePushdownRemoteCall(time.Since(startedAt), err)
+		recordAggregateRemotePressure(ctx, queryShape, compileResult.Query.Aggregate, compileResult.Query.Field, err)
+	}
 	if err != nil {
 		slog.Default().Warn("aggregate pushdown remote call failed",
 			"tenant_id", runtime.TenantID,
@@ -1198,7 +1210,7 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 		)
 		return nil, fmt.Errorf("aggregate pushdown failed: %w", err)
 	}
-	return value, nil
+	return cacheOutcome.Value, nil
 }
 
 func evalNamedFilters(ctx context.Context, node domainast.Node, runtime Runtime) ([]marbleFilter, error) {

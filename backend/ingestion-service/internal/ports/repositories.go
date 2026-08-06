@@ -31,6 +31,14 @@ type UploadLogRepository interface {
 	StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (ingestion.UploadLog, error)
 }
 
+type DeferredIngestRepository interface {
+	Create(ctx context.Context, execution ingestion.DeferredIngest) error
+	GetByID(ctx context.Context, id uuid.UUID) (ingestion.DeferredIngest, error)
+	Update(ctx context.Context, execution ingestion.DeferredIngest) error
+	StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (ingestion.DeferredIngest, error)
+	MetricsSnapshot(ctx context.Context, now time.Time) (ingestion.DeferredIngestMetrics, error)
+}
+
 type TenantDataWriter interface {
 	UpsertRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType string, record map[string]any, mode ingestion.Mode, now time.Time) (string, error)
 }
@@ -52,6 +60,7 @@ type MutationStore interface {
 	Idempotency() IdempotencyRepository
 	OutboxEvents() OutboxEventRepository
 	UploadLogs() UploadLogRepository
+	DeferredIngests() DeferredIngestRepository
 	TenantWriter() TenantDataWriter
 	TenantReader() TenantDataReader
 	RawTx() pgx.Tx

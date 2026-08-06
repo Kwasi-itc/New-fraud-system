@@ -464,3 +464,153 @@ func TestAggregateResultCacheReusesSemanticallyEquivalentQueries(t *testing.T) {
 		t.Fatalf("AggregateRecords calls = %d, want 1", got)
 	}
 }
+
+func TestAggregateMetricsCacheHitDoesNotCountAsRemoteCall(t *testing.T) {
+	before := AggregatePushdownMetricsSnapshot()
+	reader := &countingTenantDataReader{aggregate: int64(7)}
+	const ruleName = "Cache Hit Rule Unique"
+	orEqualsNode := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "object_id"},
+			"aggregator": {Constant: "COUNT"},
+			"filters": {
+				Function: "or",
+				Children: []domainast.Node{
+					{Function: "Filter", NamedChildren: map[string]domainast.Node{
+						"tableName": {Constant: "transactions"},
+						"fieldName": {Constant: "status"},
+						"operator":  {Constant: "="},
+						"value":     {Constant: "review"},
+					}},
+					{Function: "Filter", NamedChildren: map[string]domainast.Node{
+						"tableName": {Constant: "transactions"},
+						"fieldName": {Constant: "status"},
+						"operator":  {Constant: "="},
+						"value":     {Constant: "decline"},
+					}},
+				},
+			},
+		},
+	}
+	explicitInNode := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "object_id"},
+			"aggregator": {Constant: "count"},
+			"filters": {Function: "Filter", NamedChildren: map[string]domainast.Node{
+				"tableName": {Constant: "transactions"},
+				"fieldName": {Constant: "status"},
+				"operator":  {Constant: "isInList"},
+				"value":     {Constant: []any{"review", "decline"}},
+			}},
+		},
+	}
+	cache := NewAggregateResultCache()
+	runtime := Runtime{
+		TenantID:              "tenant-1",
+		ObjectID:              "txn-1",
+		ObjectType:            "transactions",
+		Fields:                map[string]any{},
+		Now:                   time.Unix(100, 0),
+		TenantDataReader:      reader,
+		AggregatePushdownMode: AggregatePushdownModeStrict,
+		EvalCache:             NewEvaluationCache(),
+		AggregateResultCache:  cache,
+	}
+
+	if _, err := EvaluateNode(WithRuleName(context.Background(), ruleName), orEqualsNode, runtime); err != nil {
+		t.Fatalf("EvaluateNode(orEqualsNode) error = %v", err)
+	}
+	if _, err := EvaluateNode(WithRuleName(context.Background(), ruleName), explicitInNode, runtime); err != nil {
+		t.Fatalf("EvaluateNode(explicitInNode) error = %v", err)
+	}
+
+	after := AggregatePushdownMetricsSnapshot()
+	if got := reader.AggregateCalls(); got != 1 {
+		t.Fatalf("AggregateRecords calls = %d, want 1", got)
+	}
+	if got := after.CacheHitCount - before.CacheHitCount; got < 1 {
+		t.Fatalf("cache hit delta = %d, want at least 1", got)
+	}
+	ruleMetrics := after.TopRules[ruleName]
+	if ruleMetrics.DemandCount < before.TopRules[ruleName].DemandCount+2 {
+		t.Fatalf("rule demand count = %d, want increment by 2", ruleMetrics.DemandCount)
+	}
+	if ruleMetrics.RemoteCallCount < before.TopRules[ruleName].RemoteCallCount+1 {
+		t.Fatalf("rule remote call count = %d, want increment by 1", ruleMetrics.RemoteCallCount)
+	}
+	if ruleMetrics.CacheHitCount < before.TopRules[ruleName].CacheHitCount+1 {
+		t.Fatalf("rule cache hit count = %d, want increment by 1", ruleMetrics.CacheHitCount)
+	}
+	if ruleMetrics.SharedInflightCount != before.TopRules[ruleName].SharedInflightCount {
+		t.Fatalf("rule shared inflight count = %d, want unchanged", ruleMetrics.SharedInflightCount)
+	}
+}
+
+func TestAggregateMetricsSharedInflightDoesNotCountAsSecondRemoteCall(t *testing.T) {
+	before := AggregatePushdownMetricsSnapshot()
+	reader := &countingTenantDataReader{aggregate: int64(7), delay: 25 * time.Millisecond}
+	const ruleName = "Shared Rule Unique"
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "object_id"},
+			"aggregator": {Constant: "COUNT"},
+		},
+	}
+	cache := NewAggregateResultCache()
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			runtime := Runtime{
+				TenantID:              "tenant-1",
+				ObjectID:              fmt.Sprintf("txn-%d", i),
+				ObjectType:            "transactions",
+				Fields:                map[string]any{},
+				Now:                   time.Unix(100, 0),
+				TenantDataReader:      reader,
+				AggregatePushdownMode: AggregatePushdownModeStrict,
+				EvalCache:             NewEvaluationCache(),
+				AggregateResultCache:  cache,
+			}
+			_, err := EvaluateNode(WithRuleName(context.Background(), ruleName), node, runtime)
+			errs <- err
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("EvaluateNode() error = %v", err)
+		}
+	}
+
+	after := AggregatePushdownMetricsSnapshot()
+	if got := reader.AggregateCalls(); got != 1 {
+		t.Fatalf("AggregateRecords calls = %d, want 1", got)
+	}
+	if got := after.SharedInflightCount - before.SharedInflightCount; got < 1 {
+		t.Fatalf("shared inflight delta = %d, want at least 1", got)
+	}
+	ruleMetrics := after.TopRules[ruleName]
+	if ruleMetrics.DemandCount < before.TopRules[ruleName].DemandCount+2 {
+		t.Fatalf("rule demand count = %d, want increment by 2", ruleMetrics.DemandCount)
+	}
+	if ruleMetrics.SharedInflightCount < before.TopRules[ruleName].SharedInflightCount+1 {
+		t.Fatalf("rule shared inflight count = %d, want increment by 1", ruleMetrics.SharedInflightCount)
+	}
+	if ruleMetrics.RemoteCallCount < before.TopRules[ruleName].RemoteCallCount+1 {
+		t.Fatalf("rule remote call count = %d, want increment by 1", ruleMetrics.RemoteCallCount)
+	}
+	if ruleMetrics.CacheHitCount != before.TopRules[ruleName].CacheHitCount {
+		t.Fatalf("rule cache hit count = %d, want unchanged", ruleMetrics.CacheHitCount)
+	}
+}

@@ -64,16 +64,30 @@ func main() {
 		cfg.WorkerMaxAttempts,
 		riverjobs.NoopUploadLogEnqueuer{},
 	)
+	deferredIngestService := service.NewDeferredIngestService(
+		storepostgres.NewDeferredIngestRepository(db),
+		ingestService,
+		storepostgres.NewTransactionManager(db),
+		uuidGenerator{},
+		systemClock{},
+		cfg.WorkerMaxAttempts,
+		riverjobs.NoopDeferredIngestEnqueuer{},
+	)
 
 	workers := river.NewWorkers()
 	uploadLogWorker := riverjobs.NewUploadLogWorker(uploadLogService)
 	river.AddWorker(workers, &uploadLogWorker)
+	deferredIngestWorker := riverjobs.NewDeferredIngestWorker(deferredIngestService)
+	river.AddWorker(workers, &deferredIngestWorker)
 
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
 		Workers: workers,
 		Queues: map[string]river.QueueConfig{
 			cfg.UploadLogQueueName: {
 				MaxWorkers: cfg.UploadLogQueueWorkers,
+			},
+			cfg.DeferredIngestQueueName: {
+				MaxWorkers: cfg.DeferredIngestQueueWorkers,
 			},
 		},
 	})
@@ -84,8 +98,10 @@ func main() {
 
 	logger.Info("starting ingestion worker",
 		"database_url_source", workerDatabaseURLSource(cfg),
-		"queue", cfg.UploadLogQueueName,
-		"workers", cfg.UploadLogQueueWorkers,
+		"upload_log_queue", cfg.UploadLogQueueName,
+		"upload_log_workers", cfg.UploadLogQueueWorkers,
+		"deferred_ingest_queue", cfg.DeferredIngestQueueName,
+		"deferred_ingest_workers", cfg.DeferredIngestQueueWorkers,
 		"db_max_conns", cfg.WorkerDatabaseMaxConns,
 		"db_min_conns", cfg.WorkerDatabaseMinConns,
 		"max_attempts", cfg.WorkerMaxAttempts,

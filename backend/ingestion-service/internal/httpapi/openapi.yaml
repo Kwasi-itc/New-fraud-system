@@ -33,6 +33,8 @@ tags:
     description: Tenant-scoped record lookup and aggregate query endpoints.
   - name: Upload Logs
     description: CSV upload and upload-log inspection endpoints.
+  - name: Deferred Ingest
+    description: Deferred ingest execution inspection and backlog monitoring endpoints.
 paths:
   /healthz:
     get:
@@ -108,6 +110,15 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '202':
+          description: Record queued for deferred ingest because the synchronous write path was saturated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deferred_ingest:
+                    $ref: '#/components/schemas/DeferredIngest'
     patch:
       tags: [Tenant Ingestion]
       summary: Patch one record
@@ -142,6 +153,15 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '202':
+          description: Record patch queued for deferred ingest because the synchronous write path was saturated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deferred_ingest:
+                    $ref: '#/components/schemas/DeferredIngest'
   /v1/tenants/{tenantId}/ingest/{objectType}/batch:
     post:
       tags: [Tenant Ingestion]
@@ -431,6 +451,55 @@ paths:
                     $ref: '#/components/schemas/UploadLog'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /v1/deferred-ingests/{deferredIngestId}:
+    get:
+      tags: [Deferred Ingest]
+      summary: Get one deferred ingest execution
+      description: |-
+        Returns one deferred ingest execution by id.
+
+        Use this to poll the state of a single-record ingest request that was accepted with `202`
+        because the synchronous write path was saturated. A deferred ingest remains queued until a
+        worker claims it, processes it through the normal ingest service path, and marks it as
+        completed or failed.
+      parameters:
+        - name: deferredIngestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deferred ingest execution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deferred_ingest:
+                    $ref: '#/components/schemas/DeferredIngest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/admin/deferred-ingest-metrics:
+    get:
+      tags: [Deferred Ingest]
+      summary: Get deferred ingest backlog and drain metrics
+      description: |-
+        Returns a database-backed snapshot of deferred ingest backlog and recent worker outcomes.
+
+        These metrics are intended to show whether overflowed single-record ingests are piling up
+        or draining successfully after the API falls back to asynchronous worker processing.
+      responses:
+        '200':
+          description: Deferred ingest metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deferred_ingest_metrics:
+                    $ref: '#/components/schemas/DeferredIngestMetrics'
 components:
   parameters:
     TenantId:
@@ -629,6 +698,95 @@ components:
           type: string
           description: Terminal or latest processing error when the upload has failed.
       required: [id, tenant_id, object_type, mode, filename, content_type, status, total_rows, successful_rows, failed_rows, attempt_count]
+    DeferredIngest:
+      type: object
+      description: Deferred single-record ingest execution created when synchronous write admission is saturated.
+      properties:
+        id:
+          type: string
+          description: Deferred ingest execution identifier.
+        tenant_id:
+          type: string
+          description: Tenant that owns the deferred ingest request.
+        object_type:
+          type: string
+          description: Target logical object type. This matches the tenant table name used for ingestion.
+          example: transactions
+        mode:
+          type: string
+          enum: [create, patch]
+          description: Whether the deferred record will be processed with full-write semantics or patch semantics.
+        status:
+          type: string
+          enum: [queued, processing, completed, failed]
+          description: Current asynchronous processing state for the deferred ingest execution.
+        attempt_count:
+          type: integer
+          description: Number of worker processing attempts made for this deferred ingest execution.
+        error_message:
+          type: string
+          description: Terminal or latest processing error when the deferred ingest has failed.
+        requested_at:
+          type: string
+          format: date-time
+          description: Time the deferred ingest execution was created.
+        started_at:
+          type: string
+          format: date-time
+          description: Time a worker most recently started processing this execution.
+        completed_at:
+          type: string
+          format: date-time
+          description: Time the deferred ingest execution completed successfully or failed terminally.
+      required: [id, tenant_id, object_type, mode, status, attempt_count, requested_at]
+    DeferredIngestMetrics:
+      type: object
+      description: Database-backed snapshot of deferred ingest backlog, retries, and recent drain behavior.
+      properties:
+        queued_count:
+          type: integer
+          description: Number of deferred ingest executions currently waiting to be claimed by a worker.
+        processing_count:
+          type: integer
+          description: Number of deferred ingest executions currently being processed by workers.
+        completed_count:
+          type: integer
+          description: Total number of completed deferred ingest executions retained in the metadata table.
+        failed_count:
+          type: integer
+          description: Total number of terminally failed deferred ingest executions retained in the metadata table.
+        retry_pending_count:
+          type: integer
+          description: Number of queued deferred ingest executions that have already failed at least once and are waiting to retry.
+        retried_execution_count:
+          type: integer
+          description: Number of deferred ingest executions that required more than one processing attempt.
+        oldest_queued_requested_at:
+          type: string
+          format: date-time
+          description: Request time of the oldest currently queued deferred ingest, when one exists.
+        oldest_queued_age_seconds:
+          type: number
+          format: double
+          description: Age in seconds of the oldest currently queued deferred ingest.
+        recent_success_count:
+          type: integer
+          description: Number of deferred ingest executions completed in the last five minutes.
+        recent_failure_count:
+          type: integer
+          description: Number of deferred ingest executions that failed terminally in the last five minutes.
+        recent_retry_count:
+          type: integer
+          description: Number of retry attempts started in the last five minutes.
+        drain_rate_per_minute_last_5m:
+          type: number
+          format: double
+          description: Average number of completed deferred ingest executions per minute over the last five minutes.
+        snapshot_at:
+          type: string
+          format: date-time
+          description: Time the metrics snapshot was calculated.
+      required: [queued_count, processing_count, completed_count, failed_count, retry_pending_count, retried_execution_count, oldest_queued_age_seconds, recent_success_count, recent_failure_count, recent_retry_count, drain_rate_per_minute_last_5m, snapshot_at]
     AggregateQueryRequest:
       type: object
       description: Request for one constrained aggregate query evaluated inside the tenant schema.
