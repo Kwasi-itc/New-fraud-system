@@ -127,13 +127,17 @@ Current request shape:
 
 - `object_id`
 - `object_type`
+- optional `mode`
+- optional `wait_timeout_ms`
+- optional `callback_url`
 - `fields`
 - optional `source`
 
 The current behavior is:
 
-- evaluate all live scenarios for the tenant
-- return a multi-scenario evaluation result synchronously
+- when `mode=sync` or omitted, evaluate all live scenarios for the tenant synchronously if live capacity is available, otherwise defer to async execution
+- when `mode=async`, defer immediately to async execution
+- return a multi-scenario evaluation result synchronously for inline completions or an async execution envelope when deferred
 
 ### Important current behavior note
 

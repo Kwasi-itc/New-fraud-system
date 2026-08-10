@@ -29,8 +29,6 @@ type Config struct {
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
 	LiveDecisionMode                    string
-	IngestionTriggerDecisionMode        string
-	IngestionTriggerOverloadMode        string
 	LiveAsyncObjectTypes                []string
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
@@ -213,8 +211,6 @@ func LoadConfig() (Config, error) {
 		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
 		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
 		LiveDecisionMode:                    strings.ToLower(getEnv("LIVE_DECISION_MODE", "sync")),
-		IngestionTriggerDecisionMode:        strings.ToLower(getEnv("INGESTION_TRIGGER_DECISION_MODE", "async_only")),
-		IngestionTriggerOverloadMode:        strings.ToLower(getEnv("INGESTION_TRIGGER_OVERLOAD_MODE", "defer_async")),
 		LiveAsyncObjectTypes:                normalizeLowercaseList(parseCSVEnv("LIVE_ASYNC_OBJECT_TYPES", nil)),
 		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
 		LiveAsyncFallbackEnabled:            liveAsyncFallbackEnabled,
@@ -277,12 +273,6 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.LiveDecisionMode != "sync" && cfg.LiveDecisionMode != "async_only" {
 		return Config{}, fmt.Errorf("LIVE_DECISION_MODE must be one of sync or async_only")
-	}
-	if cfg.IngestionTriggerDecisionMode != "sync" && cfg.IngestionTriggerDecisionMode != "async_only" {
-		return Config{}, fmt.Errorf("INGESTION_TRIGGER_DECISION_MODE must be one of sync or async_only")
-	}
-	if cfg.IngestionTriggerOverloadMode != "defer_async" && cfg.IngestionTriggerOverloadMode != "reject" {
-		return Config{}, fmt.Errorf("INGESTION_TRIGGER_OVERLOAD_MODE must be one of defer_async or reject")
 	}
 	if cfg.WorkerPollInterval <= 0 {
 		return Config{}, fmt.Errorf("WORKER_POLL_INTERVAL must be greater than zero")

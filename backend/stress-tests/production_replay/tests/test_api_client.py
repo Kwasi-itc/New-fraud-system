@@ -4,7 +4,7 @@ import unittest
 
 import httpx
 
-from production_replay.api_client import ServiceClients, ServiceConfig
+from production_replay.api_client import APIError, ServiceClients, ServiceConfig
 
 
 class APIClientTests(unittest.IsolatedAsyncioTestCase):
@@ -32,6 +32,22 @@ class APIClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(used_attempts, 2)
         self.assertEqual(observed_keys, ["stable-key", "stable-key"])
+
+    async def test_request_reports_exception_type_when_httpx_message_is_empty(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ReadTimeout("", request=request)
+
+        clients = ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision"))
+        await clients.decision_engine.aclose()
+        clients.decision_engine = httpx.AsyncClient(base_url="http://decision", transport=httpx.MockTransport(handler))
+        try:
+            with self.assertRaises(APIError) as ctx:
+                await clients.request(clients.decision_engine, "POST", "/v1/test", 200, json={"ok": True})
+        finally:
+            await clients.close()
+
+        self.assertIn("ReadTimeout", str(ctx.exception))
+        self.assertIn("POST /v1/test failed:", str(ctx.exception))
 
 
 if __name__ == "__main__":

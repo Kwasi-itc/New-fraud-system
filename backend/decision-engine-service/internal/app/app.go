@@ -40,8 +40,6 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		AggregatePushdownMode:               cfg.AggregatePushdownMode,
 		AggregatePushdownAggregates:         cfg.AggregatePushdownAggregates,
 		LiveDecisionMode:                    cfg.LiveDecisionMode,
-		IngestionTriggerDecisionMode:        cfg.IngestionTriggerDecisionMode,
-		IngestionTriggerOverloadMode:        cfg.IngestionTriggerOverloadMode,
 		LiveAsyncObjectTypes:                cfg.LiveAsyncObjectTypes,
 		LiveDecisionConcurrencyLimit:        cfg.LiveDecisionConcurrencyLimit,
 		LiveAsyncFallbackEnabled:            cfg.LiveAsyncFallbackEnabled,

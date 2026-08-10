@@ -17,14 +17,12 @@ type DecisionHandler struct {
 	decisionService          service.DecisionService
 	executionService         service.ExecutionService
 	liveDecisionMode         string
-	ingestionTriggerMode     string
-	ingestionOverloadMode    string
 	liveAsyncObjectTypes     map[string]struct{}
 	liveLimiter              chan struct{}
 	liveAsyncFallbackEnabled bool
 }
 
-func NewDecisionHandler(decisionService service.DecisionService, executionService service.ExecutionService, liveDecisionMode, ingestionTriggerMode, ingestionOverloadMode string, liveAsyncObjectTypes []string, liveDecisionConcurrencyLimit int, liveAsyncFallbackEnabled bool) DecisionHandler {
+func NewDecisionHandler(decisionService service.DecisionService, executionService service.ExecutionService, liveDecisionMode string, liveAsyncObjectTypes []string, liveDecisionConcurrencyLimit int, liveAsyncFallbackEnabled bool) DecisionHandler {
 	var limiter chan struct{}
 	if liveDecisionConcurrencyLimit > 0 {
 		limiter = make(chan struct{}, liveDecisionConcurrencyLimit)
@@ -41,8 +39,6 @@ func NewDecisionHandler(decisionService service.DecisionService, executionServic
 		decisionService:          decisionService,
 		executionService:         executionService,
 		liveDecisionMode:         liveDecisionMode,
-		ingestionTriggerMode:     ingestionTriggerMode,
-		ingestionOverloadMode:    ingestionOverloadMode,
 		liveAsyncObjectTypes:     normalizedAsyncTypes,
 		liveLimiter:              limiter,
 		liveAsyncFallbackEnabled: liveAsyncFallbackEnabled,
@@ -401,14 +397,22 @@ func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {
 		writeBadRequestError(c, "invalid_request", "record ingested request is invalid", err)
 		return
 	}
+	mode, ok := normalizeRecordIngestedMode(req.Mode)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"details": "record ingested mode must be one of sync or async",
+		})
+		return
+	}
 	tenantID := c.Param("tenantId")
-	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() || h.ingestionTriggersAsyncOnly() {
-		h.enqueueAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+	if h.shouldForceAsyncForObjectType(req.ObjectType) || h.liveDecisionsAsyncOnly() || mode == "async" {
+		h.enqueueAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields, req.WaitTimeoutMS, req.CallbackURL)
 		return
 	}
 	release, ok := h.tryAcquireLiveSlot(c)
 	if !ok {
-		h.handleRecordIngestedOverload(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+		h.enqueueAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields, req.WaitTimeoutMS, req.CallbackURL)
 		return
 	}
 	defer release()
@@ -442,20 +446,23 @@ func (h DecisionHandler) liveDecisionsAsyncOnly() bool {
 	return h.liveDecisionMode == "async_only"
 }
 
-func (h DecisionHandler) ingestionTriggersAsyncOnly() bool {
-	return h.ingestionTriggerMode == "async_only"
-}
-
-func (h DecisionHandler) ingestionTriggersDeferOnOverload() bool {
-	return h.ingestionOverloadMode == "defer_async"
-}
-
 func (h DecisionHandler) shouldForceAsyncForObjectType(objectType string) bool {
 	if len(h.liveAsyncObjectTypes) == 0 {
 		return false
 	}
 	_, ok := h.liveAsyncObjectTypes[strings.ToLower(strings.TrimSpace(objectType))]
 	return ok
+}
+
+func normalizeRecordIngestedMode(raw string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "sync":
+		return "sync", true
+	case "async":
+		return "async", true
+	default:
+		return "", false
+	}
 }
 
 func (h DecisionHandler) deferAsyncScenarioExecution(c *gin.Context, tenantID, scenarioID, objectID, objectType string, fields map[string]any) {
@@ -511,21 +518,11 @@ func (h DecisionHandler) deferAsyncAllScenariosExecution(c *gin.Context, tenantI
 	c.JSON(http.StatusAccepted, gin.H{"deferred": true, "async_decision_execution": dto.AdaptAsyncDecisionExecution(result.Execution)})
 }
 
-func (h DecisionHandler) handleRecordIngestedOverload(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any) {
-	if h.ingestionTriggersDeferOnOverload() {
-		h.enqueueAsyncAllScenariosExecution(c, tenantID, objectID, objectType, fields)
-		return
-	}
-	logHandlerFailure(c, "record-ingested rejected due to live decision overload", nil, "tenant_id", tenantID, "object_id", objectID, "object_type", objectType)
-	c.JSON(http.StatusTooManyRequests, gin.H{
-		"error":   "record_ingested_overloaded",
-		"details": "ingestion-triggered evaluation concurrency limit reached; retry later or switch ingestion triggers to async execution",
-	})
-}
-
-func (h DecisionHandler) enqueueAsyncAllScenariosExecution(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any) {
+func (h DecisionHandler) enqueueAsyncAllScenariosExecution(c *gin.Context, tenantID, objectID, objectType string, fields map[string]any, waitTimeoutMS int, callbackURL string) {
 	result, err := h.executionService.CreateAsyncDecisionExecution(c.Request.Context(), tenantID, service.AsyncDecisionExecutionRequest{
-		ObjectType: objectType,
+		ObjectType:    objectType,
+		WaitTimeoutMS: waitTimeoutMS,
+		CallbackURL:   callbackURL,
 		Items: []service.DecisionEvaluationRequest{{
 			ObjectID:   objectID,
 			ObjectType: objectType,

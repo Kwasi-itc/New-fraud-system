@@ -107,7 +107,7 @@ Parameters:
 Request body meaning:
 
 - represents an ingestion callback event
-- includes object type, object id, and record payload used to evaluate all live matching scenarios
+- includes object type, object id, execution mode, and record payload used to evaluate all live matching scenarios
 
 ## Endpoint Detail
 
@@ -249,12 +249,22 @@ How it should be used:
 What it does:
 
 - handles an ingestion callback and evaluates all live scenarios whose trigger object type matches
+- supports explicit request-level sync or async execution mode
 
 Request body fields:
 
 - `object_id`
 - `object_type`
+- `mode`
+  - optional
+  - `sync` attempts synchronous evaluation first and falls back to async if the live path is saturated
+  - `async` defers immediately to async execution
+  - default is `sync`
 - `fields`
+- `wait_timeout_ms`
+  - optional async wait window in milliseconds used only when the request is deferred to async execution
+- `callback_url`
+  - optional HTTP callback URL used only when the request is deferred to async execution
 - `source`
   - optional source marker from the upstream ingestion path
 
@@ -262,6 +272,9 @@ How it works:
 
 - this is the split-service integration point from `ingestion-service`
 - the decision engine treats the request as a post-ingest event and fans out across relevant scenarios
+- when `mode=sync`, the handler attempts inline all-scenario evaluation and falls back to async execution if the shared live gate is full
+- when `mode=async`, the handler enqueues async execution immediately
+- `LIVE_DECISION_MODE=async_only` and forced async object-type policies still override the request and defer immediately
 
 How it should be used:
 
