@@ -33,29 +33,21 @@ class APIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(used_attempts, 2)
         self.assertEqual(observed_keys, ["stable-key", "stable-key"])
 
-    async def test_api_error_retains_the_complete_response_body(self) -> None:
-        response_body = {"error": "validation_failed", "details": "x" * 5_000}
-
-        async def handler(_request: httpx.Request) -> httpx.Response:
-            return httpx.Response(400, json=response_body)
+    async def test_request_reports_exception_type_when_httpx_message_is_empty(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ReadTimeout("", request=request)
 
         clients = ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision"))
-        await clients.ingestion.aclose()
-        clients.ingestion = httpx.AsyncClient(base_url="http://ingestion", transport=httpx.MockTransport(handler))
+        await clients.decision_engine.aclose()
+        clients.decision_engine = httpx.AsyncClient(base_url="http://decision", transport=httpx.MockTransport(handler))
         try:
-            with self.assertRaises(APIError) as raised:
-                await clients.ingest_one(
-                    "tenant",
-                    "transactions",
-                    {"object_id": "tx"},
-                    "stable-key",
-                    max_attempts=1,
-                )
+            with self.assertRaises(APIError) as ctx:
+                await clients.request(clients.decision_engine, "POST", "/v1/test", 200, json={"ok": True})
         finally:
             await clients.close()
 
-        self.assertEqual(raised.exception.status_code, 400)
-        self.assertEqual(raised.exception.response_body, response_body)
+        self.assertIn("ReadTimeout", str(ctx.exception))
+        self.assertIn("POST /v1/test failed:", str(ctx.exception))
 
 
 if __name__ == "__main__":

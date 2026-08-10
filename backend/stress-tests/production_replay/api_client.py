@@ -91,7 +91,7 @@ class ServiceClients:
         try:
             response = await client.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
-            raise APIError(f"{method} {path} failed: {exc}") from exc
+            raise APIError(f"{method} {path} failed: {_format_httpx_error(exc)}") from exc
         expected_codes = {expected} if isinstance(expected, int) else set(expected)
         if response.status_code not in expected_codes:
             detail = _response_detail(response)
@@ -223,10 +223,11 @@ def _response_detail(response: httpx.Response) -> str:
     return text[:1_000] + ("..." if len(text) > 1_000 else "")
 
 
-def _response_body(response: httpx.Response) -> Any:
-    if not response.content:
-        return None
-    try:
-        return response.json()
-    except json.JSONDecodeError:
-        return response.text
+def _format_httpx_error(exc: httpx.HTTPError) -> str:
+    detail = str(exc).strip()
+    if detail:
+        return f"{exc.__class__.__name__}: {detail}"
+    request = getattr(exc, "request", None)
+    if request is not None:
+        return f"{exc.__class__.__name__} while calling {request.method} {request.url}"
+    return exc.__class__.__name__

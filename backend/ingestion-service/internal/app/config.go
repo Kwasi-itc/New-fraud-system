@@ -79,7 +79,7 @@ func LoadConfig() (Config, error) {
 		UploadLogQueueWorkers:           getEnvInt("UPLOAD_LOG_QUEUE_WORKERS", 4),
 		DeferredIngestQueueName:         getEnv("DEFERRED_INGEST_QUEUE_NAME", "deferred_ingests"),
 		DeferredIngestQueueWorkers:      getEnvInt("DEFERRED_INGEST_QUEUE_WORKERS", 4),
-		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 200),
+		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 800),
 		WritePathOverloadMode:           strings.ToLower(strings.TrimSpace(getEnv("WRITE_PATH_OVERLOAD_MODE", "defer_async"))),
 		ReadQueryConcurrencyLimit:       getEnvInt("READ_QUERY_CONCURRENCY_LIMIT", 64),
 		AggregateQueryConcurrencyLimit:  getEnvInt("AGGREGATE_QUERY_CONCURRENCY_LIMIT", 16),

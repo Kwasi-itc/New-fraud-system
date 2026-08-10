@@ -175,6 +175,70 @@ func TestIngestHandlerDefersWhenWriteConcurrencyLimitReachedAndAsyncFallbackEnab
 	}
 }
 
+func TestListRecordsUsesDefaultReadLimit(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	reader := &capturingTenantReader{}
+	handler := NewIngestHandler(service.NewIngestService(
+		stubDataModelReader{},
+		capturingTransactionManager{reader: reader},
+		nil,
+		stubIDGenerator{},
+		stubClock{},
+	), IngestHandlerConfig{})
+	router := gin.New()
+	router.GET("/v1/tenants/:tenantId/records/:objectType", handler.ListRecords)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/tenants/11111111-1111-1111-1111-111111111111/records/transactions",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if reader.lastListLimit != defaultRecordReadLimit {
+		t.Fatalf("list limit = %d, want %d", reader.lastListLimit, defaultRecordReadLimit)
+	}
+}
+
+func TestQueryRecordsUsesDefaultReadLimit(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	reader := &capturingTenantReader{}
+	handler := NewIngestHandler(service.NewIngestService(
+		stubDataModelReader{},
+		capturingTransactionManager{reader: reader},
+		nil,
+		stubIDGenerator{},
+		stubClock{},
+	), IngestHandlerConfig{})
+	router := gin.New()
+	router.GET("/v1/tenants/:tenantId/records/:objectType/search", handler.QueryRecords)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/tenants/11111111-1111-1111-1111-111111111111/records/transactions/search?field=status&value=ok",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if reader.lastQueryLimit != defaultRecordReadLimit {
+		t.Fatalf("query limit = %d, want %d", reader.lastQueryLimit, defaultRecordReadLimit)
+	}
+}
+
 type stubDataModelReader struct{}
 
 func (stubDataModelReader) GetPublishedDataModel(context.Context, uuid.UUID) (ingestion.PublishedDataModel, error) {
@@ -200,6 +264,14 @@ func (stubTransactionManager) Run(ctx context.Context, fn func(ports.MutationSto
 	return fn(stubMutationStore{})
 }
 
+type capturingTransactionManager struct {
+	reader ports.TenantDataReader
+}
+
+func (s capturingTransactionManager) Run(ctx context.Context, fn func(ports.MutationStore) error) error {
+	return fn(capturingMutationStore{reader: s.reader})
+}
+
 type stubMutationStore struct{}
 
 func (stubMutationStore) Audits() ports.IngestionAuditRepository    { return stubAuditRepo{} }
@@ -212,6 +284,23 @@ func (stubMutationStore) DeferredIngests() ports.DeferredIngestRepository {
 func (stubMutationStore) TenantWriter() ports.TenantDataWriter { return stubTenantWriter{} }
 func (stubMutationStore) TenantReader() ports.TenantDataReader { return stubTenantReader{} }
 func (stubMutationStore) RawTx() pgx.Tx                        { return nil }
+
+type capturingMutationStore struct {
+	reader ports.TenantDataReader
+}
+
+func (capturingMutationStore) Audits() ports.IngestionAuditRepository    { return stubAuditRepo{} }
+func (capturingMutationStore) Idempotency() ports.IdempotencyRepository  { return stubIdempotencyRepo{} }
+func (capturingMutationStore) OutboxEvents() ports.OutboxEventRepository { return stubOutboxRepo{} }
+func (capturingMutationStore) UploadLogs() ports.UploadLogRepository     { return stubUploadLogRepo{} }
+func (capturingMutationStore) DeferredIngests() ports.DeferredIngestRepository {
+	return stubDeferredIngestRepo{}
+}
+func (capturingMutationStore) TenantWriter() ports.TenantDataWriter { return stubTenantWriter{} }
+func (s capturingMutationStore) TenantReader() ports.TenantDataReader {
+	return s.reader
+}
+func (capturingMutationStore) RawTx() pgx.Tx { return nil }
 
 type stubAuditRepo struct{}
 
@@ -284,6 +373,29 @@ func (stubTenantReader) QueryRecords(context.Context, ingestion.PublishedDataMod
 }
 
 func (stubTenantReader) AggregateRecords(context.Context, ingestion.PublishedDataModel, ingestion.AggregateQuery) (any, error) {
+	return float64(1), nil
+}
+
+type capturingTenantReader struct {
+	lastListLimit  int
+	lastQueryLimit int
+}
+
+func (capturingTenantReader) GetRecord(context.Context, ingestion.PublishedDataModel, string, string) (map[string]any, error) {
+	return map[string]any{"object_id": "obj-1"}, nil
+}
+
+func (r *capturingTenantReader) ListRecords(_ context.Context, _ ingestion.PublishedDataModel, _ string, limit int) ([]map[string]any, error) {
+	r.lastListLimit = limit
+	return []map[string]any{{"object_id": "obj-1"}}, nil
+}
+
+func (r *capturingTenantReader) QueryRecords(_ context.Context, _ ingestion.PublishedDataModel, _ string, _ string, _ string, limit int) ([]map[string]any, error) {
+	r.lastQueryLimit = limit
+	return []map[string]any{{"object_id": "obj-1"}}, nil
+}
+
+func (capturingTenantReader) AggregateRecords(context.Context, ingestion.PublishedDataModel, ingestion.AggregateQuery) (any, error) {
 	return float64(1), nil
 }
 

@@ -876,7 +876,7 @@ paths:
     post:
       tags: [Decisions]
       summary: Evaluate all live scenarios for an ingested record
-      description: Evaluates every live scenario for the tenant that targets the ingested record's object type.
+      description: Evaluates every live scenario for the tenant that targets the ingested record's object type, either synchronously or by deferring to async execution.
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -892,6 +892,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MultiDecisionEvaluationEnvelope'
+        '202':
+          description: Async decision execution accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs:
@@ -3341,6 +3347,18 @@ components:
           type: object
           additionalProperties: true
           description: Raw ingested record fields supplied to scenario evaluation.
+        mode:
+          type: string
+          enum: [sync, async]
+          description: Optional execution mode. `sync` attempts synchronous evaluation first and falls back to async if the live path is saturated. `async` defers immediately. Defaults to `sync`.
+        wait_timeout_ms:
+          type: integer
+          minimum: 0
+          description: Optional async wait window in milliseconds when the ingestion-triggered request is deferred to async execution.
+        callback_url:
+          type: string
+          format: uri
+          description: Optional HTTP callback URL to notify when async ingestion-triggered evaluation completes.
         source:
           type: string
           description: Optional source label indicating where the ingestion trigger originated.
@@ -3348,10 +3366,13 @@ components:
       example:
         object_id: txn_100234
         object_type: transactions
+        mode: sync
         fields:
           amount: 12500
           currency: USD
           customer_id: cust_778
+        wait_timeout_ms: 300
+        callback_url: https://api.example.com/webhooks/decision-results
         source: ingestion-service
     DecisionResponse:
       type: object

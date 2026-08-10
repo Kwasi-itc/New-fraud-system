@@ -23,10 +23,13 @@ type CreateDecisionRequest struct {
 }
 
 type IngestionTriggerRequest struct {
-	ObjectID   string         `json:"object_id"`
-	ObjectType string         `json:"object_type"`
-	Fields     map[string]any `json:"fields"`
-	Source     string         `json:"source,omitempty"`
+	ObjectID      string         `json:"object_id"`
+	ObjectType    string         `json:"object_type"`
+	Fields        map[string]any `json:"fields"`
+	Mode          string         `json:"mode,omitempty"`
+	WaitTimeoutMS int            `json:"wait_timeout_ms,omitempty"`
+	CallbackURL   string         `json:"callback_url,omitempty"`
+	Source        string         `json:"source,omitempty"`
 }
 
 type DecisionResponse struct {

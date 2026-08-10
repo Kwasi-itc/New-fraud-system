@@ -15,6 +15,8 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 )
 
+const defaultRecordReadLimit = 100
+
 type IngestHandler struct {
 	ingestService         service.IngestService
 	deferredIngestService service.DeferredIngestService
@@ -107,7 +109,7 @@ func (h IngestHandler) ListRecords(c *gin.Context) {
 		writeBadRequest(c, "invalid tenantId", "tenant_id", c.Param("tenantId"), "object_type", c.Param("objectType"))
 		return
 	}
-	limit := 100
+	limit := defaultRecordReadLimit
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {
@@ -147,7 +149,7 @@ func (h IngestHandler) QueryRecords(c *gin.Context) {
 		return
 	}
 	value := c.Query("value")
-	limit := 100
+	limit := defaultRecordReadLimit
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {

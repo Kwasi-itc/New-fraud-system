@@ -30,8 +30,6 @@ type RouterConfig struct {
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
 	LiveDecisionMode                    string
-	IngestionTriggerDecisionMode        string
-	IngestionTriggerOverloadMode        string
 	LiveAsyncObjectTypes                []string
 	LiveDecisionConcurrencyLimit        int
 	LiveAsyncFallbackEnabled            bool
@@ -232,7 +230,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	publicationHandler := handlers.NewPublicationHandler(iterationService, publicationService)
 	ruleHandler := handlers.NewRuleHandler(ruleService)
 	validationHandler := handlers.NewValidationHandler(validationService)
-	decisionHandler := handlers.NewDecisionHandler(decisionService, executionService, cfg.LiveDecisionMode, cfg.IngestionTriggerDecisionMode, cfg.IngestionTriggerOverloadMode, cfg.LiveAsyncObjectTypes, cfg.LiveDecisionConcurrencyLimit, cfg.LiveAsyncFallbackEnabled)
+	decisionHandler := handlers.NewDecisionHandler(decisionService, executionService, cfg.LiveDecisionMode, cfg.LiveAsyncObjectTypes, cfg.LiveDecisionConcurrencyLimit, cfg.LiveAsyncFallbackEnabled)
 	testRunHandler := handlers.NewTestRunHandler(testRunService)
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
 	workflowRuleHandler := handlers.NewWorkflowRuleHandler(workflowRuleService)

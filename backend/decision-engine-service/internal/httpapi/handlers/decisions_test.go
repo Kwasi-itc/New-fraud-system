@@ -147,7 +147,7 @@ func newDecisionHandlerWithRuleRepoForTests(repo ports.DecisionRepository, ruleE
 		0,
 		nil,
 	)
-	return NewDecisionHandler(decisionService, service.ExecutionService{}, "sync", "sync", "defer_async", nil, 0, false)
+	return NewDecisionHandler(decisionService, service.ExecutionService{}, "sync", nil, 0, false)
 }
 
 type decisionHandlerAsyncRepoStub struct {
@@ -203,14 +203,18 @@ type decisionHandlerMutationStoreStub struct {
 	asyncRepo ports.AsyncDecisionExecutionRepository
 }
 
-func (s decisionHandlerMutationStoreStub) Scenarios() ports.ScenarioRepository               { return nil }
-func (s decisionHandlerMutationStoreStub) Iterations() ports.ScenarioIterationRepository     { return nil }
-func (s decisionHandlerMutationStoreStub) Publications() ports.ScenarioPublicationRepository { return nil }
-func (s decisionHandlerMutationStoreStub) Rules() ports.RuleRepository                       { return nil }
-func (s decisionHandlerMutationStoreStub) Decisions() ports.DecisionRepository               { return nil }
-func (s decisionHandlerMutationStoreStub) RuleExecutions() ports.RuleExecutionRepository     { return nil }
-func (s decisionHandlerMutationStoreStub) TestRuns() ports.TestRunRepository                 { return nil }
-func (s decisionHandlerMutationStoreStub) PhantomDecisions() ports.PhantomDecisionRepository { return nil }
+func (s decisionHandlerMutationStoreStub) Scenarios() ports.ScenarioRepository           { return nil }
+func (s decisionHandlerMutationStoreStub) Iterations() ports.ScenarioIterationRepository { return nil }
+func (s decisionHandlerMutationStoreStub) Publications() ports.ScenarioPublicationRepository {
+	return nil
+}
+func (s decisionHandlerMutationStoreStub) Rules() ports.RuleRepository                   { return nil }
+func (s decisionHandlerMutationStoreStub) Decisions() ports.DecisionRepository           { return nil }
+func (s decisionHandlerMutationStoreStub) RuleExecutions() ports.RuleExecutionRepository { return nil }
+func (s decisionHandlerMutationStoreStub) TestRuns() ports.TestRunRepository             { return nil }
+func (s decisionHandlerMutationStoreStub) PhantomDecisions() ports.PhantomDecisionRepository {
+	return nil
+}
 func (s decisionHandlerMutationStoreStub) PhantomRuleExecutions() ports.PhantomRuleExecutionRepository {
 	return nil
 }
@@ -219,7 +223,9 @@ func (s decisionHandlerMutationStoreStub) WorkflowRules() ports.WorkflowRuleRepo
 func (s decisionHandlerMutationStoreStub) WorkflowConditions() ports.WorkflowConditionRepository {
 	return nil
 }
-func (s decisionHandlerMutationStoreStub) WorkflowActions() ports.WorkflowActionRepository { return nil }
+func (s decisionHandlerMutationStoreStub) WorkflowActions() ports.WorkflowActionRepository {
+	return nil
+}
 func (s decisionHandlerMutationStoreStub) WorkflowExecutions() ports.WorkflowExecutionRepository {
 	return nil
 }
@@ -233,7 +239,9 @@ func (s decisionHandlerMutationStoreStub) ScheduledExecutions() ports.ScheduledE
 func (s decisionHandlerMutationStoreStub) AsyncDecisionExecutions() ports.AsyncDecisionExecutionRepository {
 	return s.asyncRepo
 }
-func (s decisionHandlerMutationStoreStub) ScreeningConfigs() ports.ScreeningConfigRepository { return nil }
+func (s decisionHandlerMutationStoreStub) ScreeningConfigs() ports.ScreeningConfigRepository {
+	return nil
+}
 func (s decisionHandlerMutationStoreStub) ScreeningExecutions() ports.ScreeningExecutionRepository {
 	return nil
 }
@@ -567,7 +575,7 @@ func TestDecisionHandlerCountDecisionsReturnsCountOnly(t *testing.T) {
 func TestDecisionHandlerAsyncOnlyModeUsesDeferPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "async_only", "sync", "defer_async", nil, 0, false)
+	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "async_only", nil, 0, false)
 	router := gin.New()
 	router.POST("/v1/tenants/:tenantId/decisions", handler.CreateDecision)
 
@@ -588,10 +596,11 @@ func TestDecisionHandlerAsyncOnlyModeUsesDeferPath(t *testing.T) {
 	}
 }
 
-func TestDecisionHandlerLiveLimitFailsFastWhenAsyncFallbackDisabled(t *testing.T) {
+func TestDecisionHandlerRecordIngestedLiveLimitFallsBackAsyncByDefault(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "sync", "sync", "reject", nil, 1, false)
+	asyncRepo := &decisionHandlerAsyncRepoStub{}
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
 	handler.liveLimiter <- struct{}{}
 	defer func() { <-handler.liveLimiter }()
 
@@ -607,11 +616,11 @@ func TestDecisionHandlerLiveLimitFailsFastWhenAsyncFallbackDisabled(t *testing.T
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusTooManyRequests {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusTooManyRequests)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusAccepted)
 	}
-	if !strings.Contains(rec.Body.String(), "record_ingested_overloaded") {
-		t.Fatalf("response = %s, want record_ingested_overloaded", rec.Body.String())
+	if asyncRepo.created.TenantID != "tenant-1" {
+		t.Fatalf("created tenant id = %q, want tenant-1", asyncRepo.created.TenantID)
 	}
 }
 
@@ -619,7 +628,7 @@ func TestDecisionHandlerRecordIngestedOverloadDefersAsyncWhenConfigured(t *testi
 	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
-	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", "sync", "defer_async", nil, 1, false)
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
 	handler.liveLimiter <- struct{}{}
 	defer func() { <-handler.liveLimiter }()
 
@@ -650,7 +659,7 @@ func TestDecisionHandlerForcedAsyncObjectTypeUsesDeferPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
-	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", "sync", "defer_async", []string{"transactions"}, 0, false)
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", []string{"transactions"}, 0, false)
 	router := gin.New()
 	router.POST("/v1/tenants/:tenantId/ingestion-events/record-ingested", handler.HandleRecordIngested)
 
@@ -671,11 +680,11 @@ func TestDecisionHandlerForcedAsyncObjectTypeUsesDeferPath(t *testing.T) {
 	}
 }
 
-func TestDecisionHandlerIngestionTriggerAsyncModeEnqueuesAsyncExecution(t *testing.T) {
+func TestDecisionHandlerRecordIngestedAsyncModeEnqueuesAsyncExecution(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
-	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", "async_only", "reject", nil, 1, false)
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
 	handler.liveLimiter <- struct{}{}
 	defer func() { <-handler.liveLimiter }()
 
@@ -685,7 +694,7 @@ func TestDecisionHandlerIngestionTriggerAsyncModeEnqueuesAsyncExecution(t *testi
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/tenants/tenant-1/ingestion-events/record-ingested",
-		strings.NewReader(`{"object_id":"obj-1","object_type":"transactions","fields":{"amount":12}}`),
+		strings.NewReader(`{"object_id":"obj-1","object_type":"transactions","mode":"async","fields":{"amount":12}}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -702,5 +711,85 @@ func TestDecisionHandlerIngestionTriggerAsyncModeEnqueuesAsyncExecution(t *testi
 	}
 	if !strings.Contains(rec.Body.String(), "\"deferred\":true") {
 		t.Fatalf("response = %s, want deferred async response", rec.Body.String())
+	}
+}
+
+func TestDecisionHandlerRecordIngestedAsyncModePassesCallbackURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	asyncRepo := &decisionHandlerAsyncRepoStub{}
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
+
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/ingestion-events/record-ingested", handler.HandleRecordIngested)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/tenant-1/ingestion-events/record-ingested",
+		strings.NewReader(`{"object_id":"obj-1","object_type":"transactions","mode":"async","fields":{"amount":12},"callback_url":"https://example.com/hooks/decision-results"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusAccepted)
+	}
+	if asyncRepo.created.CallbackURL != "https://example.com/hooks/decision-results" {
+		t.Fatalf("created callback url = %q, want callback URL to be preserved", asyncRepo.created.CallbackURL)
+	}
+}
+
+func TestDecisionHandlerRecordIngestedAsyncModePassesWaitTimeoutMS(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	asyncRepo := &decisionHandlerAsyncRepoStub{}
+	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
+
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/ingestion-events/record-ingested", handler.HandleRecordIngested)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/tenant-1/ingestion-events/record-ingested",
+		strings.NewReader(`{"object_id":"obj-1","object_type":"transactions","mode":"async","fields":{"amount":12},"wait_timeout_ms":750}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusAccepted)
+	}
+	var stored service.AsyncDecisionExecutionRequest
+	if err := json.Unmarshal(asyncRepo.created.RequestBody, &stored); err != nil {
+		t.Fatalf("unmarshal request body: %v", err)
+	}
+	if stored.WaitTimeoutMS != 750 {
+		t.Fatalf("stored wait timeout = %d, want 750", stored.WaitTimeoutMS)
+	}
+}
+
+func TestDecisionHandlerRecordIngestedRejectsInvalidMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "sync", nil, 1, false)
+	router := gin.New()
+	router.POST("/v1/tenants/:tenantId/ingestion-events/record-ingested", handler.HandleRecordIngested)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/tenants/tenant-1/ingestion-events/record-ingested",
+		strings.NewReader(`{"object_id":"obj-1","object_type":"transactions","mode":"later","fields":{"amount":12}}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+	if !strings.Contains(rec.Body.String(), "record ingested mode must be one of sync or async") {
+		t.Fatalf("response = %s, want invalid mode details", rec.Body.String())
 	}
 }
