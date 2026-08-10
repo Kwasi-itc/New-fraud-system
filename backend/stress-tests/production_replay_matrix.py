@@ -21,8 +21,6 @@ class Experiment:
     decision_mode: str
     live_decision_mode: str
     live_async_fallback_enabled: bool
-    ingestion_trigger_decision_mode: str
-    ingestion_trigger_overload_mode: str
     tenant_data_read_mode: str
     separate_read_pool: bool
     rule_evaluation_concurrency: int
@@ -43,8 +41,6 @@ def build_default_experiments() -> list[Experiment]:
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
-            ingestion_trigger_decision_mode="async_only",
-            ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="ingestion_http",
             separate_read_pool=False,
             rule_evaluation_concurrency=2,
@@ -58,8 +54,6 @@ def build_default_experiments() -> list[Experiment]:
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
-            ingestion_trigger_decision_mode="async_only",
-            ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="ingestion_http",
             separate_read_pool=True,
             rule_evaluation_concurrency=2,
@@ -73,8 +67,6 @@ def build_default_experiments() -> list[Experiment]:
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
-            ingestion_trigger_decision_mode="async_only",
-            ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="direct_db",
             separate_read_pool=True,
             rule_evaluation_concurrency=2,
@@ -88,8 +80,6 @@ def build_default_experiments() -> list[Experiment]:
             decision_mode="sync",
             live_decision_mode="sync",
             live_async_fallback_enabled=True,
-            ingestion_trigger_decision_mode="sync",
-            ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="direct_db",
             separate_read_pool=True,
             rule_evaluation_concurrency=2,
@@ -103,8 +93,6 @@ def build_default_experiments() -> list[Experiment]:
             decision_mode="sync",
             live_decision_mode="sync",
             live_async_fallback_enabled=True,
-            ingestion_trigger_decision_mode="sync",
-            ingestion_trigger_overload_mode="defer_async",
             tenant_data_read_mode="direct_db",
             separate_read_pool=True,
             rule_evaluation_concurrency=4,
@@ -153,8 +141,6 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
             "PRODUCTION_REPLAY_DECISION_MODE": experiment.decision_mode,
             "PRODUCTION_REPLAY_LIVE_DECISION_MODE": experiment.live_decision_mode,
             "PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED": "true" if experiment.live_async_fallback_enabled else "false",
-            "PRODUCTION_REPLAY_INGESTION_TRIGGER_DECISION_MODE": experiment.ingestion_trigger_decision_mode,
-            "PRODUCTION_REPLAY_INGESTION_TRIGGER_OVERLOAD_MODE": experiment.ingestion_trigger_overload_mode,
             "PRODUCTION_REPLAY_TENANT_DATA_READ_MODE": experiment.tenant_data_read_mode,
             "PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL": "true" if experiment.separate_read_pool else "false",
             "PRODUCTION_REPLAY_EXPERIMENT_LABEL": experiment.label,
@@ -238,8 +224,6 @@ def main() -> None:
             print("  decision_mode:", experiment.decision_mode)
             print("  live_decision_mode:", experiment.live_decision_mode)
             print("  live_async_fallback_enabled:", experiment.live_async_fallback_enabled)
-            print("  ingestion_trigger_decision_mode:", experiment.ingestion_trigger_decision_mode)
-            print("  ingestion_trigger_overload_mode:", experiment.ingestion_trigger_overload_mode)
             print("  tenant_data_read_mode:", experiment.tenant_data_read_mode)
             print("  separate_read_pool:", experiment.separate_read_pool)
         return

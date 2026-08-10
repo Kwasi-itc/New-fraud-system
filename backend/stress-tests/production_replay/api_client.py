@@ -88,6 +88,17 @@ class ServiceClients:
         expected: int | set[int] | tuple[int, ...],
         **kwargs: Any,
     ) -> dict[str, Any]:
+        value, _status_code = await self.request_with_status(client, method, path, expected, **kwargs)
+        return value
+
+    async def request_with_status(
+        self,
+        client: httpx.AsyncClient,
+        method: str,
+        path: str,
+        expected: int | set[int] | tuple[int, ...],
+        **kwargs: Any,
+    ) -> tuple[dict[str, Any], int]:
         try:
             response = await client.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
@@ -101,7 +112,7 @@ class ServiceClients:
                 response_body=_response_body(response),
             )
         if not response.content:
-            return {}
+            return {}, response.status_code
         try:
             value = response.json()
         except json.JSONDecodeError as exc:
@@ -116,7 +127,7 @@ class ServiceClients:
                 status_code=response.status_code,
                 response_body=value,
             )
-        return value
+        return value, response.status_code
 
     async def ingest_batch(
         self,
@@ -177,50 +188,48 @@ class ServiceClients:
         assert last_error is not None
         raise last_error
 
-    async def decide_once(self, tenant_id: str, object_id: str, fields: dict[str, Any]) -> dict[str, Any]:
-        return await self.request(
-            self.decision_engine,
-            "POST",
-            f"/v1/tenants/{tenant_id}/ingestion-events/record-ingested",
-            200,
-            json={"object_id": object_id, "object_type": "transactions", "fields": fields, "source": "production_replay"},
-        )
-
-    async def create_async_decision_execution(
+    async def record_ingested(
         self,
         tenant_id: str,
         object_id: str,
         fields: dict[str, Any],
-        idempotency_key: str,
+        *,
+        mode: str,
         wait_timeout_ms: int = 0,
         callback_url: str = "",
-    ) -> dict[str, Any]:
+        source: str = "production_replay",
+    ) -> tuple[dict[str, Any], int, dict[str, Any]]:
         payload: dict[str, Any] = {
+            "object_id": object_id,
             "object_type": "transactions",
-            "idempotency_key": idempotency_key,
+            "mode": mode,
+            "fields": fields,
             "wait_timeout_ms": wait_timeout_ms,
-            "items": [
-                {
-                    "object_id": object_id,
-                    "object_type": "transactions",
-                    "fields": fields,
-                }
-            ],
+            "callback_url": callback_url,
+            "source": source,
         }
-        if callback_url:
-            payload["callback_url"] = callback_url
-        return await self.request(
+        response, status_code = await self.request_with_status(
             self.decision_engine,
             "POST",
-            f"/v1/tenants/{tenant_id}/async-decision-executions",
-            201,
+            f"/v1/tenants/{tenant_id}/ingestion-events/record-ingested",
+            {200, 202},
             json=payload,
         )
+        return response, status_code, payload
 
 
 def _response_detail(response: httpx.Response) -> str:
     text = response.text.replace("\n", " ").strip()
     return text[:1_000] + ("..." if len(text) > 1_000 else "")
+
+
+def _response_body(response: httpx.Response) -> Any:
+    if not response.content:
+        return None
+    try:
+        return response.json()
+    except json.JSONDecodeError:
+        return response.text
 
 
 def _format_httpx_error(exc: httpx.HTTPError) -> str:

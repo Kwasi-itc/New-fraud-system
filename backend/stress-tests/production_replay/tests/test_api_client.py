@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 
 import httpx
@@ -48,6 +49,44 @@ class APIClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("ReadTimeout", str(ctx.exception))
         self.assertIn("POST /v1/test failed:", str(ctx.exception))
+
+    async def test_record_ingested_sends_request_mode_and_async_options(self) -> None:
+        observed_request: dict[str, object] = {}
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            observed_request["path"] = request.url.path
+            observed_request["body"] = json.loads(request.content)
+            return httpx.Response(202, json={"deferred": True, "async_decision_execution": {"id": "execution-1"}})
+
+        clients = ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision"))
+        await clients.decision_engine.aclose()
+        clients.decision_engine = httpx.AsyncClient(base_url="http://decision", transport=httpx.MockTransport(handler))
+        try:
+            response, status_code, payload = await clients.record_ingested(
+                "tenant",
+                "tx-1",
+                {"amount": 12500, "currency": "USD"},
+                mode="async",
+                wait_timeout_ms=300,
+                callback_url="https://api.example.com/webhooks/decision-results",
+            )
+        finally:
+            await clients.close()
+
+        expected_payload = {
+            "object_id": "tx-1",
+            "object_type": "transactions",
+            "mode": "async",
+            "fields": {"amount": 12500, "currency": "USD"},
+            "wait_timeout_ms": 300,
+            "callback_url": "https://api.example.com/webhooks/decision-results",
+            "source": "production_replay",
+        }
+        self.assertEqual(observed_request["path"], "/v1/tenants/tenant/ingestion-events/record-ingested")
+        self.assertEqual(observed_request["body"], expected_payload)
+        self.assertEqual(payload, expected_payload)
+        self.assertEqual(status_code, 202)
+        self.assertTrue(response["deferred"])
 
 
 if __name__ == "__main__":

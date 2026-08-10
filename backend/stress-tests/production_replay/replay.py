@@ -298,52 +298,25 @@ class TransactionChain:
                 decision_request_started_at = _now_iso()
                 decision_started = time.perf_counter()
                 try:
+                    response, decision_status_code, request_body = await self.clients.record_ingested(
+                        self.tenant_id,
+                        event.object_id,
+                        event.fields,
+                        mode=self.decision_mode,
+                        wait_timeout_ms=self.async_wait_timeout_ms,
+                        callback_url=self.async_callback_url,
+                        source="production_replay",
+                    )
+                    decision_response_received_at = _now_iso()
+                    decision_latency_ms = (time.perf_counter() - decision_started) * 1_000
+                    decision_path = f"/v1/tenants/{self.tenant_id}/ingestion-events/record-ingested"
                     if self.decision_mode == "async":
-                        async_idempotency_key = _async_decision_idempotency_key(self.tenant_id, event.object_id)
-                        request_body: dict[str, Any] = {
-                            "object_type": "transactions",
-                            "idempotency_key": async_idempotency_key,
-                            "wait_timeout_ms": self.async_wait_timeout_ms,
-                            "items": [
-                                {
-                                    "object_id": event.object_id,
-                                    "object_type": "transactions",
-                                    "fields": event.fields,
-                                }
-                            ],
-                        }
-                        if self.async_callback_url:
-                            request_body["callback_url"] = self.async_callback_url
-                        response = await self.clients.create_async_decision_execution(
-                            self.tenant_id,
-                            event.object_id,
-                            event.fields,
-                            async_idempotency_key,
-                            wait_timeout_ms=self.async_wait_timeout_ms,
-                            callback_url=self.async_callback_url,
-                        )
-                        decision_response_received_at = _now_iso()
-                        decision_latency_ms = (time.perf_counter() - decision_started) * 1_000
-                        decision_status_code = 201
-                        decision_path = f"/v1/tenants/{self.tenant_id}/async-decision-executions"
                         await self._record_async_submission(
                             event,
                             response,
                             decision_request_started_at,
                             decision_started,
                         )
-                    else:
-                        request_body = {
-                            "object_id": event.object_id,
-                            "object_type": "transactions",
-                            "fields": event.fields,
-                            "source": "production_replay",
-                        }
-                        response = await self.clients.decide_once(self.tenant_id, event.object_id, event.fields)
-                        decision_response_received_at = _now_iso()
-                        decision_latency_ms = (time.perf_counter() - decision_started) * 1_000
-                        decision_status_code = 200
-                        decision_path = f"/v1/tenants/{self.tenant_id}/ingestion-events/record-ingested"
                     self.metrics.decision_successes += 1
                     stream_metrics["decision_successes"] += 1
                     self.metrics.decision_latencies_ms.add(decision_latency_ms)
@@ -652,11 +625,6 @@ async def schedule_events(
 def _event_idempotency_key(tenant_id: str, object_id: str) -> str:
     digest = hashlib.sha256(f"{tenant_id}:{object_id}".encode()).hexdigest()
     return f"production-replay:{digest}"
-
-
-def _async_decision_idempotency_key(tenant_id: str, object_id: str) -> str:
-    digest = hashlib.sha256(f"async:{tenant_id}:{object_id}".encode()).hexdigest()
-    return f"production-replay-async:{digest}"
 
 
 def _events_after_cursor(

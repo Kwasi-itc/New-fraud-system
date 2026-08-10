@@ -32,7 +32,7 @@ When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ig
 
 `MULTIPLIER` also accepts a `*` suffix, for example `MULTIPLIER='360*'`. Quote it in your shell so it is not treated as a filename pattern.
 
-Replay and backfill runs should default to async decision execution. The `production-replay-async` target uses the same ingestion flow, then submits each event to `POST /v1/tenants/{tenant_id}/async-decision-executions` instead of the direct ingestion callback decision endpoint. The CLI and shell wrappers now default to `--decision-mode async`; use `--decision-mode sync` or `DECISION_MODE=sync` only for explicit comparison runs. For EC2, use:
+Replay and backfill runs should default to async decision execution. Both modes submit each event to `POST /v1/tenants/{tenant_id}/ingestion-events/record-ingested`; the request payload sets `mode` to `async` or `sync`. The CLI and shell wrappers default to `--decision-mode async`; use `--decision-mode sync` or `DECISION_MODE=sync` only for explicit comparison runs. For EC2, use:
 
 ```bash
 make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x
@@ -42,8 +42,6 @@ For replay and backfill incident posture, the local replay wrapper now also defa
 
 - `LIVE_DECISION_MODE=async_only`
 - `LIVE_ASYNC_FALLBACK_ENABLED=true`
-- `INGESTION_TRIGGER_DECISION_MODE=async_only`
-- `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`
 - `TENANT_DATA_READ_MODE=direct_db`
 
 Override those only for explicit comparison runs:
@@ -52,8 +50,6 @@ Override those only for explicit comparison runs:
 make production-replay TENANT_ID=<tenant-id> \
   LIVE_DECISION_MODE=sync \
   LIVE_ASYNC_FALLBACK_ENABLED=true \
-  INGESTION_TRIGGER_DECISION_MODE=sync \
-  INGESTION_TRIGGER_OVERLOAD_MODE=reject \
   TENANT_DATA_READ_MODE=ingestion_http \
   DECISION_MODE=sync
 ```
@@ -64,7 +60,7 @@ For local async replay, the wrapper starts a small host callback receiver automa
 make production-replay-async TRANSACTIONS=1000 MULTIPLIER=360x
 ```
 
-The local receiver is passed to Docker workers as `http://host.docker.internal:8099/callbacks/async-decision`. The replay output directory includes `async-decisions.ndjson` and `async-callback-summary.json`. The summary reports how many async endpoint requests completed inline versus how many were deferred, plus per-deferred-execution callback timing.
+The local receiver is passed to Docker workers as `http://host.docker.internal:8099/callbacks/async-decision`. The replay output directory includes `async-decisions.ndjson` and `async-callback-summary.json`. The summary reports how many async-mode requests completed inline versus how many were deferred, plus per-deferred-execution callback timing.
 
 Both async targets accept `ASYNC_WAIT_TIMEOUT_MS=<milliseconds>`. When omitted, the service default async wait window is used. Local async replay also accepts `ASYNC_CALLBACK_PORT=<port>` and `ASYNC_CALLBACK_WAIT_TIMEOUT=<seconds>`.
 
@@ -150,8 +146,6 @@ The default matrix covers:
 
 - `LIVE_DECISION_MODE=async_only` replay posture
 - `LIVE_ASYNC_FALLBACK_ENABLED=true`
-- `INGESTION_TRIGGER_DECISION_MODE=async_only`
-- `INGESTION_TRIGGER_OVERLOAD_MODE=defer_async`
 - `TENANT_DATA_READ_MODE=ingestion_http`
 - `TENANT_DATA_READ_MODE=direct_db`
 - shared write/read DB pool
@@ -241,7 +235,7 @@ PYTHONPATH=stress-tests python3 -m production_replay run \
   --decision-engine-url "$DECISION_ENGINE_URL"
 ```
 
-For every transaction, the harness calls ingestion and waits for success before submitting the decision request. By default that decision request goes to the async execution endpoint; use synchronous mode only when you are intentionally measuring the direct callback path. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling.
+For every transaction, the harness calls ingestion and waits for success before submitting a `record-ingested` decision request. The payload always includes the selected `mode`, `wait_timeout_ms`, `callback_url`, and `source`; async mode defers immediately, while sync mode attempts inline evaluation and may return either an inline `200` response or a deferred `202` response. Independent transactions run concurrently. Events with the same source timestamp are launched together, and all streams are globally merged before scheduling.
 
 The six configured streams are `genpay` inflow, `genpayv2` inflow, and `uniwallet`/`uniwalletv2` inflow and outflow. They all use the shared final CSV schema. Inflow maps to `incoming`, outflow maps to `outgoing`, and the retained source fields identify the concrete processor and payment source.
 

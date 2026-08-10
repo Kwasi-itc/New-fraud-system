@@ -46,9 +46,9 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
                 self.calls.append("ingest")
                 return {}, 2
 
-            async def decide_once(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            async def record_ingested(self, *_args: Any, **kwargs: Any) -> tuple[dict[str, Any], int, dict[str, Any]]:
                 self.calls.append("decision")
-                return {}
+                return {}, 200, {"mode": kwargs["mode"]}
 
         clients = FakeClients()
         metrics = ReplayMetrics()
@@ -67,7 +67,7 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
             async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
                 return {}, 1
 
-            async def decide_once(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            async def record_ingested(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int, dict[str, Any]]:
                 self.decision_calls += 1
                 raise APIError("decision unavailable", status_code=503)
 
@@ -79,24 +79,33 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(metrics.decision_failures, 1)
         self.assertEqual(metrics.summary(multiplier=1, source_start=None, source_end=None)["status"], "completed_with_errors")
 
-    async def test_async_decision_mode_uses_async_execution_endpoint(self) -> None:
+    async def test_async_decision_mode_uses_record_ingested_request_mode(self) -> None:
         class FakeClients:
             def __init__(self) -> None:
                 self.calls: list[str] = []
                 self.async_wait_timeout_ms = -1
-                self.async_idempotency_key = ""
                 self.async_callback_url = ""
+                self.mode = ""
 
             async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
                 self.calls.append("ingest")
                 return {}, 1
 
-            async def create_async_decision_execution(self, *_args: Any, **kwargs: Any) -> dict[str, Any]:
+            async def record_ingested(self, *_args: Any, **kwargs: Any) -> tuple[dict[str, Any], int, dict[str, Any]]:
                 self.calls.append("async_decision")
                 self.async_wait_timeout_ms = int(kwargs["wait_timeout_ms"])
                 self.async_callback_url = str(kwargs["callback_url"])
-                self.async_idempotency_key = str(_args[3])
-                return {"async_decision_execution": {"status": "queued"}}
+                self.mode = str(kwargs["mode"])
+                body = {
+                    "object_id": _args[1],
+                    "object_type": "transactions",
+                    "mode": kwargs["mode"],
+                    "fields": _args[2],
+                    "wait_timeout_ms": kwargs["wait_timeout_ms"],
+                    "callback_url": kwargs["callback_url"],
+                    "source": kwargs["source"],
+                }
+                return {"deferred": True, "async_decision_execution": {"status": "queued"}}, 202, body
 
         clients = FakeClients()
         metrics = ReplayMetrics()
@@ -113,7 +122,7 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(clients.calls, ["ingest", "async_decision"])
         self.assertEqual(clients.async_wait_timeout_ms, 25)
         self.assertEqual(clients.async_callback_url, "https://callbacks.example/async")
-        self.assertTrue(clients.async_idempotency_key.startswith("production-replay-async:"))
+        self.assertEqual(clients.mode, "async")
         self.assertEqual(metrics.decision_successes, 1)
         self.assertEqual(metrics.completed, 1)
 
@@ -125,8 +134,16 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
             async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
                 return ingestion_response, 2
 
-            async def decide_once(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
-                return decision_response
+            async def record_ingested(self, *_args: Any, **kwargs: Any) -> tuple[dict[str, Any], int, dict[str, Any]]:
+                return decision_response, 200, {
+                    "object_id": _args[1],
+                    "object_type": "transactions",
+                    "mode": kwargs["mode"],
+                    "fields": _args[2],
+                    "wait_timeout_ms": kwargs["wait_timeout_ms"],
+                    "callback_url": kwargs["callback_url"],
+                    "source": kwargs["source"],
+                }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             success_log = Path(temp_dir) / "successes.ndjson"
@@ -155,6 +172,9 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
             decision["request"]["path"],
             "/v1/tenants/tenant/ingestion-events/record-ingested",
         )
+        self.assertEqual(decision["request"]["body"]["mode"], "sync")
+        self.assertEqual(decision["request"]["body"]["wait_timeout_ms"], 0)
+        self.assertEqual(decision["request"]["body"]["callback_url"], "")
         self.assertEqual(decision["request"]["body"]["source"], "production_replay")
         self.assertEqual(decision["response"], {"status_code": 200, "body": decision_response})
         self.assertIn("request_started_at", decision)
@@ -164,15 +184,23 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
     async def test_chain_writes_async_submission_request_and_response(self) -> None:
         async_response = {
             "async_decision_execution": {"id": "execution-1", "status": "queued"},
-            "completed_inline": False,
+            "deferred": True,
         }
 
         class FakeClients:
             async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
                 return {}, 1
 
-            async def create_async_decision_execution(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
-                return async_response
+            async def record_ingested(self, *_args: Any, **kwargs: Any) -> tuple[dict[str, Any], int, dict[str, Any]]:
+                return async_response, 202, {
+                    "object_id": _args[1],
+                    "object_type": "transactions",
+                    "mode": kwargs["mode"],
+                    "fields": _args[2],
+                    "wait_timeout_ms": kwargs["wait_timeout_ms"],
+                    "callback_url": kwargs["callback_url"],
+                    "source": kwargs["source"],
+                }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             success_log = Path(temp_dir) / "successes.ndjson"
@@ -192,11 +220,12 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
 
         decision = records[1]
         self.assertEqual(decision["stage"], "decision")
-        self.assertEqual(decision["request"]["path"], "/v1/tenants/tenant/async-decision-executions")
+        self.assertEqual(decision["request"]["path"], "/v1/tenants/tenant/ingestion-events/record-ingested")
+        self.assertEqual(decision["request"]["body"]["mode"], "async")
         self.assertEqual(decision["request"]["body"]["wait_timeout_ms"], 25)
         self.assertEqual(decision["request"]["body"]["callback_url"], "https://callbacks.example/async")
-        self.assertTrue(decision["request"]["body"]["idempotency_key"].startswith("production-replay-async:"))
-        self.assertEqual(decision["response"], {"status_code": 201, "body": async_response})
+        self.assertEqual(decision["request"]["body"]["source"], "production_replay")
+        self.assertEqual(decision["response"], {"status_code": 202, "body": async_response})
 
     async def test_resume_cursor_starts_after_a_drained_checkpoint(self) -> None:
         at = datetime(2026, 1, 1, tzinfo=timezone.utc)
