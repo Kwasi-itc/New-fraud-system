@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -114,6 +116,87 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(clients.async_idempotency_key.startswith("production-replay-async:"))
         self.assertEqual(metrics.decision_successes, 1)
         self.assertEqual(metrics.completed, 1)
+
+    async def test_chain_writes_successful_sync_requests_and_responses(self) -> None:
+        ingestion_response = {"result": {"action": "created", "object_id": "tx"}}
+        decision_response = {"decisions": [{"outcome": "allow"}]}
+
+        class FakeClients:
+            async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
+                return ingestion_response, 2
+
+            async def decide_once(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+                return decision_response
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            success_log = Path(temp_dir) / "successes.ndjson"
+            chain = TransactionChain(  # type: ignore[arg-type]
+                FakeClients(),
+                "tenant",
+                ReplayMetrics(),
+                1,
+                success_log_path=success_log,
+            )
+            await chain(event("tx", datetime.now(timezone.utc)), 0.0)
+            await chain.flush_success_log()
+
+            records = [json.loads(line) for line in success_log.read_text(encoding="utf-8").splitlines()]
+
+        self.assertEqual([record["stage"] for record in records], ["ingestion", "decision"])
+        ingestion, decision = records
+        self.assertEqual(ingestion["attempts"], 2)
+        self.assertEqual(ingestion["request"]["method"], "POST")
+        self.assertEqual(ingestion["request"]["path"], "/v1/tenants/tenant/ingest/transactions")
+        self.assertEqual(ingestion["request"]["body"]["transaction_id"], "tx")
+        self.assertEqual(set(ingestion["request"]["headers"]), {"Idempotency-Key"})
+        self.assertNotIn("Authorization", ingestion["request"]["headers"])
+        self.assertEqual(ingestion["response"], {"status_code": 200, "body": ingestion_response})
+        self.assertEqual(
+            decision["request"]["path"],
+            "/v1/tenants/tenant/ingestion-events/record-ingested",
+        )
+        self.assertEqual(decision["request"]["body"]["source"], "production_replay")
+        self.assertEqual(decision["response"], {"status_code": 200, "body": decision_response})
+        self.assertIn("request_started_at", decision)
+        self.assertIn("response_received_at", decision)
+        self.assertGreaterEqual(decision["latency_ms"], 0)
+
+    async def test_chain_writes_async_submission_request_and_response(self) -> None:
+        async_response = {
+            "async_decision_execution": {"id": "execution-1", "status": "queued"},
+            "completed_inline": False,
+        }
+
+        class FakeClients:
+            async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
+                return {}, 1
+
+            async def create_async_decision_execution(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+                return async_response
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            success_log = Path(temp_dir) / "successes.ndjson"
+            chain = TransactionChain(  # type: ignore[arg-type]
+                FakeClients(),
+                "tenant",
+                ReplayMetrics(),
+                1,
+                decision_mode="async",
+                async_wait_timeout_ms=25,
+                async_callback_url="https://callbacks.example/async",
+                success_log_path=success_log,
+            )
+            await chain(event("tx", datetime.now(timezone.utc)), 0.0)
+            await chain.flush_success_log()
+            records = [json.loads(line) for line in success_log.read_text(encoding="utf-8").splitlines()]
+
+        decision = records[1]
+        self.assertEqual(decision["stage"], "decision")
+        self.assertEqual(decision["request"]["path"], "/v1/tenants/tenant/async-decision-executions")
+        self.assertEqual(decision["request"]["body"]["wait_timeout_ms"], 25)
+        self.assertEqual(decision["request"]["body"]["callback_url"], "https://callbacks.example/async")
+        self.assertTrue(decision["request"]["body"]["idempotency_key"].startswith("production-replay-async:"))
+        self.assertEqual(decision["response"], {"status_code": 201, "body": async_response})
 
     async def test_resume_cursor_starts_after_a_drained_checkpoint(self) -> None:
         at = datetime(2026, 1, 1, tzinfo=timezone.utc)

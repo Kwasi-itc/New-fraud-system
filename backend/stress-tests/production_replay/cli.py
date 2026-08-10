@@ -220,6 +220,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
         checkpoint_path = run_dir / "checkpoint.json"
         _snapshot_manifest(manifest, run_dir)
         _write_json(run_dir / "profile.json", profile)
+    success_log_path = run_dir / "successes.ndjson"
     _write_json(
         run_dir / "run-config.json",
         {
@@ -232,6 +233,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             "async_wait_timeout_ms": args.async_wait_timeout_ms,
             "async_callback_url": args.async_callback_url or None,
             "async_tracking_output": args.async_tracking_output or None,
+            "success_log_output": str(success_log_path),
             "resume_from": str(Path(args.resume_from).expanduser().resolve()) if args.resume_from else None,
             "service_urls": {
                 "data_model": args.data_model_url,
@@ -271,6 +273,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             async_tracking_path.write_text("", encoding="utf-8")
         if checkpoint_state is None:
             error_log_path.write_text("", encoding="utf-8")
+            success_log_path.write_text("", encoding="utf-8")
         async with ServiceClients(_services(args)) as clients:
             await clients.wait_until_ready()
             await _verify_replay_tenant(clients, manifest, args.tenant_id)
@@ -284,12 +287,14 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                 async_callback_url=args.async_callback_url,
                 async_tracking_path=async_tracking_path,
                 error_log_path=error_log_path,
+                success_log_path=success_log_path,
             )
 
             async def save_checkpoint(cursor: ReplayCursor, batch_start: datetime, batch_end: datetime) -> None:
                 nonlocal original_source_start, original_source_end
                 original_source_start = original_source_start or batch_start
                 original_source_end = batch_end
+                await chain.flush_success_log()
                 _write_replay_checkpoint(
                     checkpoint_path,
                     manifest=manifest,
@@ -319,16 +324,19 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                     expected_events=sort_result.event_count,
                     decision_mode=args.decision_mode,
                 )
-            resumed_start, resumed_end = await schedule_events(
-                iter_merged_events(sort_result.chunk_paths),
-                multiplier=args.multiplier,
-                max_in_flight=args.max_in_flight,
-                processor=chain,
-                metrics=metrics,
-                resume_after=resume_cursor,
-                checkpoint_every=args.checkpoint_every,
-                checkpoint=save_checkpoint,
-            )
+            try:
+                resumed_start, resumed_end = await schedule_events(
+                    iter_merged_events(sort_result.chunk_paths),
+                    multiplier=args.multiplier,
+                    max_in_flight=args.max_in_flight,
+                    processor=chain,
+                    metrics=metrics,
+                    resume_after=resume_cursor,
+                    checkpoint_every=args.checkpoint_every,
+                    checkpoint=save_checkpoint,
+                )
+            finally:
+                await chain.flush_success_log()
             source_start = original_source_start or resumed_start
             source_end = resumed_end or original_source_end
 
@@ -341,6 +349,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["async_tracking_output"] = str(async_tracking_path) if args.decision_mode == "async" and async_tracking_path else None
     summary["resumed"] = checkpoint_state is not None
     summary["checkpoint"] = str(checkpoint_path)
+    summary["success_log_output"] = str(success_log_path)
     summary["error_breakdown"] = build_error_breakdown(_read_ndjson_records(run_dir / "errors.ndjson"))
     _write_json(run_dir / "summary.json", summary)
     print(f"status: {summary['status']}")

@@ -16,6 +16,15 @@ from .api_client import APIError, ServiceClients
 from .domain import TransactionEvent
 
 
+_SUCCESS_LOG_BATCH_SIZE = 100
+
+
+def _append_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(value)
+
+
 @dataclass
 class LatencyMetric:
     count: int = 0
@@ -218,6 +227,7 @@ class TransactionChain:
         async_callback_url: str = "",
         async_tracking_path: Path | None = None,
         error_log_path: Path | None = None,
+        success_log_path: Path | None = None,
     ) -> None:
         if decision_mode not in {"sync", "async"}:
             raise ValueError("decision_mode must be 'sync' or 'async'")
@@ -230,10 +240,13 @@ class TransactionChain:
         self.async_callback_url = async_callback_url
         self.async_tracking_path = async_tracking_path
         self.error_log_path = error_log_path
+        self.success_log_path = success_log_path
         self._active = 0
         self._lock = asyncio.Lock()
         self._tracking_lock = asyncio.Lock()
         self._error_log_lock = asyncio.Lock()
+        self._success_log_lock = asyncio.Lock()
+        self._success_log_buffer: list[str] = []
 
     async def __call__(self, event: TransactionEvent, schedule_lag_ms: float) -> None:
         async with self.semaphore:
@@ -244,44 +257,111 @@ class TransactionChain:
             try:
                 stream_metrics = self.metrics.stream(event.stream_id)
                 self.metrics.schedule_lag_ms.add(schedule_lag_ms)
+                ingestion_request_started_at = _now_iso()
                 ingestion_started = time.perf_counter()
                 idempotency_key = _event_idempotency_key(self.tenant_id, event.object_id)
                 try:
-                    _response, attempts = await self.clients.ingest_one(
+                    response, attempts = await self.clients.ingest_one(
                         self.tenant_id,
                         "transactions",
                         event.fields,
                         idempotency_key,
                         max_attempts=3,
                     )
+                    ingestion_response_received_at = _now_iso()
+                    ingestion_latency_ms = (time.perf_counter() - ingestion_started) * 1_000
                     self.metrics.ingestion_successes += 1
                     stream_metrics["ingestion_successes"] += 1
                     self.metrics.ingestion_retries += attempts - 1
-                    self.metrics.ingestion_latencies_ms.add((time.perf_counter() - ingestion_started) * 1_000)
+                    self.metrics.ingestion_latencies_ms.add(ingestion_latency_ms)
+                    await self._record_success(
+                        event,
+                        stage="ingestion",
+                        request_started_at=ingestion_request_started_at,
+                        response_received_at=ingestion_response_received_at,
+                        latency_ms=ingestion_latency_ms,
+                        attempts=attempts,
+                        request={
+                            "method": "POST",
+                            "path": f"/v1/tenants/{self.tenant_id}/ingest/transactions",
+                            "headers": {"Idempotency-Key": idempotency_key},
+                            "body": event.fields,
+                        },
+                        response={"status_code": 200, "body": response},
+                    )
                 except APIError as exc:
                     self.metrics.ingestion_failures += 1
                     stream_metrics["ingestion_failures"] += 1
                     await self._record_error(event, "ingestion", exc)
                     return
 
+                decision_request_started_at = _now_iso()
                 decision_started = time.perf_counter()
                 try:
                     if self.decision_mode == "async":
-                        request_started_at = _now_iso()
+                        async_idempotency_key = _async_decision_idempotency_key(self.tenant_id, event.object_id)
+                        request_body: dict[str, Any] = {
+                            "object_type": "transactions",
+                            "idempotency_key": async_idempotency_key,
+                            "wait_timeout_ms": self.async_wait_timeout_ms,
+                            "items": [
+                                {
+                                    "object_id": event.object_id,
+                                    "object_type": "transactions",
+                                    "fields": event.fields,
+                                }
+                            ],
+                        }
+                        if self.async_callback_url:
+                            request_body["callback_url"] = self.async_callback_url
                         response = await self.clients.create_async_decision_execution(
                             self.tenant_id,
                             event.object_id,
                             event.fields,
-                            _async_decision_idempotency_key(self.tenant_id, event.object_id),
+                            async_idempotency_key,
                             wait_timeout_ms=self.async_wait_timeout_ms,
                             callback_url=self.async_callback_url,
                         )
-                        await self._record_async_submission(event, response, request_started_at, decision_started)
+                        decision_response_received_at = _now_iso()
+                        decision_latency_ms = (time.perf_counter() - decision_started) * 1_000
+                        decision_status_code = 201
+                        decision_path = f"/v1/tenants/{self.tenant_id}/async-decision-executions"
+                        await self._record_async_submission(
+                            event,
+                            response,
+                            decision_request_started_at,
+                            decision_started,
+                        )
                     else:
-                        await self.clients.decide_once(self.tenant_id, event.object_id, event.fields)
+                        request_body = {
+                            "object_id": event.object_id,
+                            "object_type": "transactions",
+                            "fields": event.fields,
+                            "source": "production_replay",
+                        }
+                        response = await self.clients.decide_once(self.tenant_id, event.object_id, event.fields)
+                        decision_response_received_at = _now_iso()
+                        decision_latency_ms = (time.perf_counter() - decision_started) * 1_000
+                        decision_status_code = 200
+                        decision_path = f"/v1/tenants/{self.tenant_id}/ingestion-events/record-ingested"
                     self.metrics.decision_successes += 1
                     stream_metrics["decision_successes"] += 1
-                    self.metrics.decision_latencies_ms.add((time.perf_counter() - decision_started) * 1_000)
+                    self.metrics.decision_latencies_ms.add(decision_latency_ms)
+                    await self._record_success(
+                        event,
+                        stage="decision",
+                        request_started_at=decision_request_started_at,
+                        response_received_at=decision_response_received_at,
+                        latency_ms=decision_latency_ms,
+                        attempts=1,
+                        request={
+                            "method": "POST",
+                            "path": decision_path,
+                            "headers": {},
+                            "body": request_body,
+                        },
+                        response={"status_code": decision_status_code, "body": response},
+                    )
                 except APIError as exc:
                     self.metrics.decision_failures += 1
                     stream_metrics["decision_failures"] += 1
@@ -292,6 +372,51 @@ class TransactionChain:
                 self.metrics.end_to_end_latencies_ms.add((time.perf_counter() - started) * 1_000)
                 async with self._lock:
                     self._active -= 1
+
+    async def _record_success(
+        self,
+        event: TransactionEvent,
+        *,
+        stage: str,
+        request_started_at: str,
+        response_received_at: str,
+        latency_ms: float,
+        attempts: int,
+        request: dict[str, Any],
+        response: dict[str, Any],
+    ) -> None:
+        if self.success_log_path is None:
+            return
+        record = {
+            "stage": stage,
+            "request_started_at": request_started_at,
+            "response_received_at": response_received_at,
+            "latency_ms": round(latency_ms, 2),
+            "attempts": attempts,
+            "tenant_id": self.tenant_id,
+            "stream_id": event.stream_id,
+            "object_id": event.object_id,
+            "source_file": event.source_file.name,
+            "row_number": event.row_number,
+            "request": request,
+            "response": response,
+        }
+        line = json.dumps(record, sort_keys=True, default=str) + "\n"
+        async with self._success_log_lock:
+            self._success_log_buffer.append(line)
+            if len(self._success_log_buffer) >= _SUCCESS_LOG_BATCH_SIZE:
+                await self._flush_success_log_locked()
+
+    async def flush_success_log(self) -> None:
+        async with self._success_log_lock:
+            await self._flush_success_log_locked()
+
+    async def _flush_success_log_locked(self) -> None:
+        if self.success_log_path is None or not self._success_log_buffer:
+            return
+        payload = "".join(self._success_log_buffer)
+        await asyncio.to_thread(_append_text, self.success_log_path, payload)
+        self._success_log_buffer.clear()
 
     async def _record_async_submission(
         self,
