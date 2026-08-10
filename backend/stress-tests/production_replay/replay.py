@@ -463,7 +463,11 @@ class TransactionChain:
             self.metrics.errors.append(record)
         if self.error_log_path is None:
             return
-        line = json.dumps(record, sort_keys=True) + "\n"
+        response = {
+            "status_code": error.status_code if isinstance(error, APIError) else None,
+            "body": error.response_body if isinstance(error, APIError) else None,
+        }
+        line = json.dumps({**record, "response": response}, sort_keys=True, default=str) + "\n"
         async with self._error_log_lock:
             self.error_log_path.parent.mkdir(parents=True, exist_ok=True)
             with self.error_log_path.open("a", encoding="utf-8") as handle:

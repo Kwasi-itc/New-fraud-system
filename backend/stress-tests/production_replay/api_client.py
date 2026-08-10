@@ -10,9 +10,16 @@ import httpx
 
 
 class APIError(RuntimeError):
-    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        response_body: Any = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.response_body = response_body
 
 
 @dataclass(frozen=True)
@@ -91,15 +98,24 @@ class ServiceClients:
             raise APIError(
                 f"{method} {response.request.url} returned {response.status_code}, expected {sorted(expected_codes)}: {detail}",
                 status_code=response.status_code,
+                response_body=_response_body(response),
             )
         if not response.content:
             return {}
         try:
             value = response.json()
         except json.JSONDecodeError as exc:
-            raise APIError(f"{method} {response.request.url} returned invalid JSON") from exc
+            raise APIError(
+                f"{method} {response.request.url} returned invalid JSON",
+                status_code=response.status_code,
+                response_body=response.text,
+            ) from exc
         if not isinstance(value, dict):
-            raise APIError(f"{method} {response.request.url} returned a non-object JSON response")
+            raise APIError(
+                f"{method} {response.request.url} returned a non-object JSON response",
+                status_code=response.status_code,
+                response_body=value,
+            )
         return value
 
     async def ingest_batch(
@@ -205,3 +221,12 @@ class ServiceClients:
 def _response_detail(response: httpx.Response) -> str:
     text = response.text.replace("\n", " ").strip()
     return text[:1_000] + ("..." if len(text) > 1_000 else "")
+
+
+def _response_body(response: httpx.Response) -> Any:
+    if not response.content:
+        return None
+    try:
+        return response.json()
+    except json.JSONDecodeError:
+        return response.text

@@ -87,7 +87,7 @@ This starts the required Docker services from existing images using `--no-build`
 - `profile` is always read only.
 - `setup` only calls services when `--execute` is present.
 - `run` only sends events when `--execute`, `--tenant-id`, and a positive `--multiplier` are all present.
-- Raw source rows are not emitted in error logs. Successful replay artifacts intentionally include the normalized request body and service response for each completed request; treat the replay output directory as sensitive data.
+- Replay artifacts intentionally include normalized request bodies for successful calls and complete service response bodies for successful and failed calls; treat the replay output directory as sensitive data.
 - Ingestion retries reuse one deterministic idempotency key. Decision callbacks are not retried.
 - Technical errors are observed and summarized; they do not stop the remaining replay.
 
@@ -247,7 +247,7 @@ The six configured streams are `genpay` inflow, `genpayv2` inflow, and `uniwalle
 
 Every source row receives a deterministic object ID derived from its stream, file, row number, and source transaction identifier. Repeated source transaction identifiers are therefore versioned rather than overwritten, while rerunning the same source row reuses the same ingestion idempotency key.
 
-Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors, includes `sampled_error_breakdown` and full-run `error_breakdown`, and leaves acceptance thresholds unset until they are defined. Each run writes `errors.ndjson` so ingestion write failures can be separated from callback or decision failures after the run. It also writes `successes.ndjson`, with one record for every successful ingestion or decision request. A success record includes request and response timestamps, latency, attempt count, method, path, safe request headers, request body, HTTP status, and response body. Authorization headers are never included.
+Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors, includes `sampled_error_breakdown` and full-run `error_breakdown`, and leaves acceptance thresholds unset until they are defined. Each run writes `errors.ndjson` so ingestion write failures can be separated from callback or decision failures after the run. Each error record includes the complete service response status and body when a response was received; its short `error` description remains bounded for readable summaries. The run also writes `successes.ndjson`, with one record for every successful ingestion or decision request. A success record includes request and response timestamps, latency, attempt count, method, path, safe request headers, request body, HTTP status, and the complete response body. Authorization headers are never included.
 
 `successes.ndjson` can be large because a successful transaction normally produces both an ingestion entry and a decision entry, and the request body contains production-shaped fields. Protect and expire this file like the source data and allow sufficient disk space for long replays. Success records are buffered in small batches and flushed before checkpoints to reduce measurement overhead.
 

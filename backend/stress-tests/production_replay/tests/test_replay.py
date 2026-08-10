@@ -260,9 +260,15 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(breakdown["by_status_code"], {"400": 2})
 
     async def test_chain_writes_full_error_log(self) -> None:
+        response_body = {"error": "overloaded", "details": "x" * 5_000}
+
         class FakeClients:
             async def ingest_one(self, *_args: Any, **_kwargs: Any) -> tuple[dict[str, Any], int]:
-                raise APIError("POST http://127.0.0.1:8081/v1/tenants/t1/records/transactions returned 429, expected [200]", status_code=429)
+                raise APIError(
+                    "POST http://127.0.0.1:8081/v1/tenants/t1/records/transactions returned 429, expected [200]",
+                    status_code=429,
+                    response_body=response_body,
+                )
 
         metrics = ReplayMetrics()
         error_log = Path(self.id().replace("/", "_") + ".errors.ndjson")
@@ -277,6 +283,8 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
             await chain(event("tx", datetime.now(timezone.utc)), 0.0)
             lines = error_log.read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(lines), 1)
+            record = json.loads(lines[0])
+            self.assertEqual(record["response"], {"status_code": 429, "body": response_body})
             self.assertEqual(metrics.ingestion_failures, 1)
             self.assertEqual(len(metrics.errors), 1)
         finally:
