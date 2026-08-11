@@ -15,6 +15,7 @@ from .manifest import ManifestError, ReplayManifest, load_manifest
 from .profiler import profile_manifest
 from .replay import ReplayCursor, ReplayMetrics, TransactionChain, build_error_breakdown, schedule_events
 from .scenarios import build_portable_scenarios
+from .seed import seed_transactions
 from .setup_environment import EnvironmentSetup
 from .sorting import build_sorted_chunks, iter_merged_events
 
@@ -41,6 +42,16 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--tenant-name", default="Production Replay Stress Tenant")
     setup.add_argument("--publication-timeout", type=float, default=900.0)
     setup.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
+
+    seed = subparsers.add_parser("seed", help="Batch-ingest historical transactions without decision requests")
+    _add_manifest(seed)
+    _add_services(seed)
+    seed.add_argument("--execute", action="store_true", help="Allow ingestion-only seed requests")
+    seed.add_argument("--tenant-id", help="Tenant prepared by the setup command")
+    seed.add_argument("--batch-size", type=int, default=500)
+    seed.add_argument("--max-in-flight", type=int, default=10)
+    seed.add_argument("--progress-every", type=int, default=100)
+    seed.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
 
     run = subparsers.add_parser("run", help="Profile sources and optionally perform a timed replay")
     _add_manifest(run)
@@ -176,6 +187,68 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
     _write_json(run_dir / "setup.json", result)
     print(f"tenant: {result['tenant_id']}")
     print(f"setup output: {run_dir}")
+    return 0
+
+
+async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
+    if not args.execute:
+        print("seed not executed; pass --execute and --tenant-id to ingest historical transactions")
+        return 0
+    if not args.tenant_id:
+        raise ValueError("--tenant-id is required with --execute")
+    if args.batch_size <= 0 or args.batch_size > 500:
+        raise ValueError("--batch-size must be between 1 and 500")
+    if args.max_in_flight <= 0:
+        raise ValueError("--max-in-flight must be positive")
+    if args.progress_every < 0:
+        raise ValueError("--progress-every must be greater than or equal to zero")
+
+    run_dir = _create_run_dir(args.output_root, "seed")
+    _snapshot_manifest(manifest, run_dir)
+    _write_json(
+        run_dir / "seed-config.json",
+        {
+            "tenant_id": args.tenant_id,
+            "manifest": str(manifest.path),
+            "batch_size": args.batch_size,
+            "max_in_flight": args.max_in_flight,
+            "progress_every": args.progress_every,
+            "service_urls": {
+                "data_model": args.data_model_url,
+                "ingestion": args.ingestion_url,
+            },
+            "auth_token": "set" if args.auth_token else None,
+            "decision_requests_enabled": False,
+        },
+    )
+
+    def report_progress(records: int, batches: int) -> None:
+        if args.progress_every and batches % args.progress_every == 0:
+            print(f"seeded {records} records in {batches} batches")
+
+    async with ServiceClients(_services(args)) as clients:
+        await clients.wait_until_ingestion_ready()
+        await _verify_seed_tenant(clients, args.tenant_id)
+        result = await seed_transactions(
+            clients,
+            manifest,
+            args.tenant_id,
+            batch_size=args.batch_size,
+            max_in_flight=args.max_in_flight,
+            progress=report_progress,
+        )
+
+    summary = {
+        "status": "completed",
+        "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "tenant_id": args.tenant_id,
+        "manifest": str(manifest.path),
+        "decision_requests": 0,
+        **result,
+    }
+    _write_json(run_dir / "summary.json", summary)
+    print(f"seeded: {summary['records']} records in {summary['batches']} batches")
+    print(f"seed output: {run_dir}")
     return 0
 
 
@@ -414,9 +487,18 @@ async def _verify_replay_tenant(clients: ServiceClients, manifest: ReplayManifes
         raise APIError("tenant is missing live production replay scenarios: " + ", ".join(missing))
 
 
+async def _verify_seed_tenant(clients: ServiceClients, tenant_id: str) -> None:
+    model = await clients.request(clients.data_model, "GET", f"/v1/tenants/{tenant_id}/data-model", 200)
+    tables = model.get("data_model", {}).get("tables", {})
+    if "transactions" not in tables:
+        raise APIError("tenant does not have the production replay transactions model; run setup first")
+
+
 async def async_main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     manifest = load_manifest(args.manifest)
+    if args.command == "seed":
+        return await _seed(args, manifest)
     profile = await asyncio.to_thread(_profile, manifest)
     if args.command == "profile":
         if args.output:

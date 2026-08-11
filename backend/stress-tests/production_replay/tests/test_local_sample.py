@@ -265,6 +265,30 @@ class LocalSampleTests(unittest.TestCase):
                 self.assertTrue(configured_stream["globs"][0].startswith(str(data_root)))
                 self.assertTrue(configured_stream["globs"][0].endswith("*.csv"))
 
+    def test_full_manifest_can_use_separate_transaction_and_reference_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            seed_root = root / "fraud_data_seed"
+            reference_root = root / "fraud_data"
+            manifest_path = root / "manifest.json"
+            output_manifest = root / "seed-manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream(stream_id, "unused.csv") for stream_id in STREAM_SOURCE_PATHS])),
+                encoding="utf-8",
+            )
+
+            create_full_manifest(
+                manifest_path,
+                seed_root,
+                output_manifest,
+                reference_data_root=reference_root,
+            )
+
+            generated = json.loads(output_manifest.read_text(encoding="utf-8"))
+            self.assertTrue(generated["reference_data"]["staff_csv"].startswith(str(reference_root)))
+            for configured_stream in generated["transaction_streams"]:
+                self.assertTrue(configured_stream["globs"][0].startswith(str(seed_root)))
+
 
 def _csv_data_rows(path: Path) -> int:
     with path.open("r", encoding="utf-8", newline="") as handle:

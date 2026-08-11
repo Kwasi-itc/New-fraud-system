@@ -17,6 +17,11 @@ class CLITests(unittest.TestCase):
         )
         self.assertEqual(args.decision_mode, "async")
 
+    def test_seed_defaults_to_maximum_ingestion_batch_size(self) -> None:
+        args = build_parser().parse_args(["seed", "--manifest", "manifest.json"])
+        self.assertEqual(args.batch_size, 500)
+        self.assertEqual(args.max_in_flight, 10)
+
 
 if __name__ == "__main__":
     unittest.main()

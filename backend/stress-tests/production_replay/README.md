@@ -19,6 +19,23 @@ make production-replay TRANSACTIONS=all MULTIPLIER=360x
 make production-replay-async TRANSACTIONS=1000 MULTIPLIER=360x
 ```
 
+Every wrapper run now uses two transaction datasets in this order:
+
+1. It prepares the tenant, then batch-ingests every transaction under `SEED_DATA_ROOT` through the ingestion service. This phase does not submit any decision requests.
+2. Only after the seed completes successfully, it replays the requested `TRANSACTIONS` or source-time window from `DATA_ROOT`, including the normal decision request for each measured transaction.
+
+`SEED_DATA_ROOT` defaults to `$(DATA_ROOT)_seed`. For example, `DATA_ROOT=/home/ubuntu/fraud_data` automatically uses `/home/ubuntu/fraud_data_seed` for history and `/home/ubuntu/fraud_data` for the measured replay. Set it explicitly when the directories are elsewhere:
+
+```bash
+make production-replay \
+  DATA_ROOT=/home/ubuntu/fraud_data \
+  SEED_DATA_ROOT=/home/ubuntu/fraud_data_seed \
+  TRANSACTIONS=500000 \
+  MULTIPLIER=100
+```
+
+The seed phase defaults to batches of 500 with 10 concurrent batch requests. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT` and `SEED_PROGRESS_EVERY` control its concurrency and progress reporting.
+
 You can replay a source-time window instead of choosing a transaction count:
 
 ```bash
@@ -76,12 +93,13 @@ You can still run the wrapper directly:
 ./backend/stress-tests/production_replay/run_local_replay.sh
 ```
 
-This starts the required Docker services from existing images using `--no-build`, prepares its Python environment, prepares the requested local tenant, loads the final reference data from `/Users/kwilson/Desktop/ITC/fraud_data`, rebuilds and starts the frontend with the replay tenant ID, replays the configured number of production-format transactions across all six streams, and prints a compact ingestion and decision summary. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
+This starts the required Docker services from existing images using `--no-build`, prepares its Python environment and tenant, loads reference data from `DATA_ROOT`, batch-ingests all historical transactions from `SEED_DATA_ROOT` without decisions, rebuilds the frontend with the replay tenant ID, and then replays the configured number of production-format transactions from `DATA_ROOT` across all six streams. It prints compact seed, ingestion, and decision summaries. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
 
 ## Safety Model
 
 - `profile` is always read only.
 - `setup` only calls services when `--execute` is present.
+- `seed` only sends ingestion requests when `--execute` and `--tenant-id` are present. It uses deterministic idempotency keys and never calls the decision endpoint.
 - `run` only sends events when `--execute`, `--tenant-id`, and a positive `--multiplier` are all present.
 - Replay artifacts intentionally include normalized request bodies for successful calls and complete service response bodies for successful and failed calls; treat the replay output directory as sensitive data.
 - Ingestion retries reuse one deterministic idempotency key. Decision callbacks are not retried.
@@ -96,6 +114,7 @@ The `fraud-data.json` manifest covers the final June 2026 extract. It discovers 
 - `openpyxl`
 - data-model, ingestion, decision-engine, and data-model index worker available in the isolated environment
 - the base Compose single `fraud` database configuration applied to data-model, ingestion, decision-engine, and screening
+- a seed dataset containing the same six `transactions/<processor>/<direction>/*.csv` stream directories as the measured dataset; reference files continue to come from `DATA_ROOT`
 
 ## Validated Source Inventory
 
@@ -216,7 +235,24 @@ Setup creates:
 
 The setup output includes the tenant ID needed for replay.
 
-## 3. Replay
+## 3. Seed
+
+The Make and shell wrappers run this phase automatically. To run it directly, first create a full manifest whose transaction globs point to the seed dataset, then execute:
+
+```bash
+PYTHONPATH=stress-tests python3 -m production_replay seed \
+  --manifest /tmp/fraud-data-local-seed.json \
+  --execute \
+  --tenant-id '<setup-tenant-id>' \
+  --batch-size 500 \
+  --max-in-flight 10 \
+  --data-model-url "$DATA_MODEL_URL" \
+  --ingestion-url "$INGESTION_URL"
+```
+
+The seed command streams all configured transaction files and sends only `POST /v1/tenants/{tenant_id}/ingest/transactions/batch`. It does not profile or sort the seed files, pace them by source time, or call `record-ingested`, so no decisions are requested by the replay harness during this phase. A summary records the number of seeded records and batches and explicitly reports `decision_requests: 0`.
+
+## 4. Replay
 
 Without `--execute`, this profiles only. A real replay requires an explicit speed:
 
@@ -241,7 +277,7 @@ The six configured streams are `genpay` inflow, `genpayv2` inflow, and `uniwalle
 
 Every source row receives a deterministic object ID derived from its stream, file, row number, and source transaction identifier. Repeated source transaction identifiers are therefore versioned rather than overwritten, while rerunning the same source row reuses the same ingestion idempotency key.
 
-Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. The summary separates ingestion and decision errors, includes `sampled_error_breakdown` and full-run `error_breakdown`, and leaves acceptance thresholds unset until they are defined. Each run writes `errors.ndjson` so ingestion write failures can be separated from callback or decision failures after the run. Each error record includes the complete service response status and body when a response was received; its short `error` description remains bounded for readable summaries. The run also writes `successes.ndjson`, with one record for every successful ingestion or decision request. A success record includes request and response timestamps, latency, attempt count, method, path, safe request headers, request body, HTTP status, and the complete response body. Authorization headers are never included.
+Results are written below `stress-tests/production-replay-runs/`, which is ignored by Git. Each wrapper-created replay directory includes `seed-summary.json`, copied from the completed seed phase. The replay summary separates ingestion and decision errors, includes `sampled_error_breakdown` and full-run `error_breakdown`, and leaves acceptance thresholds unset until they are defined. Each run writes `errors.ndjson` so ingestion write failures can be separated from callback or decision failures after the run. Each error record includes the complete service response status and body when a response was received; its short `error` description remains bounded for readable summaries. The run also writes `successes.ndjson`, with one record for every successful ingestion or decision request. A success record includes request and response timestamps, latency, attempt count, method, path, safe request headers, request body, HTTP status, and the complete response body. Authorization headers are never included.
 
 `successes.ndjson` can be large because a successful transaction normally produces both an ingestion entry and a decision entry, and the request body contains production-shaped fields. Protect and expire this file like the source data and allow sufficient disk space for long replays. Success records are buffered in small batches and flushed before checkpoints to reduce measurement overhead.
 

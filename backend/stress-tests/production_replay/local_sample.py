@@ -110,18 +110,20 @@ def create_full_manifest(
     base_manifest_path: Path,
     data_root: Path,
     output_manifest_path: Path,
+    reference_data_root: Path | None = None,
 ) -> None:
     manifest = json.loads(base_manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):
         raise ValueError("base replay manifest must contain a JSON object")
 
+    references = reference_data_root or data_root
     reference_data = manifest["reference_data"]
-    reference_data["merchant_globs"] = [str(data_root / "data/dumps/merchant-info-dump/batch_*.json")]
+    reference_data["merchant_globs"] = [str(references / "data/dumps/merchant-info-dump/batch_*.json")]
     reference_data["merchant_product_globs"] = [
-        str(data_root / "data/dumps/merchant-product-dump/batch_*.json")
+        str(references / "data/dumps/merchant-product-dump/batch_*.json")
     ]
-    reference_data["staff_csv"] = str(data_root / "data/lists/fraud-staff.csv")
-    reference_data["merchant_watchlist_xlsx"] = str(data_root / "data/lists/merchants.xlsx")
+    reference_data["staff_csv"] = str(references / "data/lists/fraud-staff.csv")
+    reference_data["merchant_watchlist_xlsx"] = str(references / "data/lists/merchants.xlsx")
 
     for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
         stream_root = data_root / Path(relative_path).parent
@@ -375,6 +377,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Create a local replay manifest for sampled or full production data")
     parser.add_argument("--base-manifest", required=True, type=Path)
     parser.add_argument("--data-root", required=True, type=Path)
+    parser.add_argument(
+        "--reference-data-root",
+        type=Path,
+        help="Optional reference-data root when transaction files come from a separate seed dataset",
+    )
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--output-manifest", required=True, type=Path)
     parser.add_argument(
@@ -404,6 +411,7 @@ def main() -> None:
             args.base_manifest.resolve(),
             args.data_root.resolve(),
             args.output_manifest.resolve(),
+            args.reference_data_root.resolve() if args.reference_data_root else None,
         )
         print("created local replay manifest for all transactions")
         return

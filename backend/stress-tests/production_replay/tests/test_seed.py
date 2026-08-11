@@ -1,0 +1,112 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from typing import Any
+
+from production_replay.api_client import APIError
+from production_replay.manifest import load_manifest
+from production_replay.seed import seed_transactions
+from production_replay.tests.helpers import (
+    manifest_data,
+    stream,
+    transaction_row,
+    write_minimal_sources,
+    write_transactions,
+)
+
+
+class SeedTests(unittest.IsolatedAsyncioTestCase):
+    async def test_seed_batch_ingests_every_transaction_without_decisions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_minimal_sources(root)
+            transaction_path = root / "seed-transactions-a.csv"
+            write_transactions(
+                transaction_path,
+                [transaction_row(source_trans_id=f"seed-a-{index}") for index in range(3)],
+            )
+            second_transaction_path = root / "seed-transactions-b.csv"
+            write_transactions(
+                second_transaction_path,
+                [transaction_row(source_trans_id=f"seed-b-{index}") for index in range(2)],
+            )
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(
+                    manifest_data(
+                        [
+                            stream("seed-stream-a", transaction_path.name),
+                            stream("seed-stream-b", second_transaction_path.name),
+                        ]
+                    )
+                ),
+                encoding="utf-8",
+            )
+            manifest = load_manifest(manifest_path)
+
+            class FakeClients:
+                def __init__(self) -> None:
+                    self.batches: list[list[dict[str, Any]]] = []
+                    self.keys: list[str] = []
+
+                async def ingest_batch(
+                    self,
+                    _tenant_id: str,
+                    object_type: str,
+                    records: list[dict[str, Any]],
+                    idempotency_key: str,
+                ) -> dict[str, Any]:
+                    self.assert_transactions(object_type)
+                    self.batches.append(records)
+                    self.keys.append(idempotency_key)
+                    return {"results": [{} for _record in records]}
+
+                @staticmethod
+                def assert_transactions(object_type: str) -> None:
+                    if object_type != "transactions":
+                        raise AssertionError(f"unexpected object type: {object_type}")
+
+            clients = FakeClients()
+            result = await seed_transactions(  # type: ignore[arg-type]
+                clients,
+                manifest,
+                "tenant-1",
+                batch_size=2,
+                max_in_flight=2,
+            )
+
+        self.assertEqual(sorted(len(batch) for batch in clients.batches), [1, 2, 2])
+        self.assertEqual(result["records"], 5)
+        self.assertEqual(result["batches"], 3)
+        self.assertEqual(len(set(clients.keys)), 3)
+        self.assertTrue(all(key.startswith("production-replay-seed:") for key in clients.keys))
+
+    async def test_seed_rejects_incomplete_batch_response(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_minimal_sources(root)
+            transaction_path = root / "seed-transactions.csv"
+            write_transactions(transaction_path, [transaction_row(source_trans_id="seed-1")])
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream("seed-stream", transaction_path.name)])),
+                encoding="utf-8",
+            )
+
+            class FakeClients:
+                async def ingest_batch(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+                    return {"results": []}
+
+            with self.assertRaisesRegex(APIError, "returned 0 results for 1 records"):
+                await seed_transactions(  # type: ignore[arg-type]
+                    FakeClients(),
+                    load_manifest(manifest_path),
+                    "tenant-1",
+                )
+
+
+if __name__ == "__main__":
+    unittest.main()

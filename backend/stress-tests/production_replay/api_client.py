@@ -66,6 +66,12 @@ class ServiceClients:
             self._wait_for(self.decision_engine, "decision-engine", timeout_seconds),
         )
 
+    async def wait_until_ingestion_ready(self, timeout_seconds: float = 60.0) -> None:
+        await asyncio.gather(
+            self._wait_for(self.data_model, "data-model", timeout_seconds),
+            self._wait_for(self.ingestion, "ingestion", timeout_seconds),
+        )
+
     async def _wait_for(self, client: httpx.AsyncClient, name: str, timeout_seconds: float) -> None:
         deadline = time.monotonic() + timeout_seconds
         detail = "not attempted"

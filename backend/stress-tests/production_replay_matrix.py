@@ -117,6 +117,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-every", default=os.getenv("CHECKPOINT_EVERY", "100"))
     parser.add_argument("--tenant-id", default=os.getenv("TENANT_ID", ""))
     parser.add_argument("--data-root", default=os.getenv("DATA_ROOT", "/Users/kwilson/Desktop/ITC/fraud_data"))
+    parser.add_argument(
+        "--seed-data-root",
+        default=os.getenv("SEED_DATA_ROOT", os.getenv("FRAUD_DATA_SEED_ROOT", "")),
+    )
     parser.add_argument("--capture-metrics", action="store_true", help="Capture one runtime/read metrics snapshot after each replay run.")
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
@@ -156,6 +160,7 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
             "READ_DATABASE_MAX_CONNS": str(experiment.read_database_max_conns),
         }
     )
+    env["FRAUD_DATA_SEED_ROOT"] = args.seed_data_root or f"{args.data_root.rstrip('/')}_seed"
     if args.tenant_id:
         env["PRODUCTION_REPLAY_TENANT_ID"] = args.tenant_id
     return env

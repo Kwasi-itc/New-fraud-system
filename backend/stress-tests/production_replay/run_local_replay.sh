@@ -6,11 +6,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKSPACE_DIR="$(cd "$BACKEND_DIR/.." && pwd)"
 DATA_ROOT="${FRAUD_DATA_ROOT:-/Users/kwilson/Desktop/ITC/fraud_data}"
+SEED_DATA_ROOT="${PRODUCTION_REPLAY_SEED_DATA_ROOT:-${FRAUD_DATA_SEED_ROOT:-${DATA_ROOT%/}_seed}}"
 VENV_DIR="${PRODUCTION_REPLAY_VENV:-/tmp/fraud-production-replay-venv}"
 TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
 MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-3600}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
+SEED_BATCH_SIZE="${PRODUCTION_REPLAY_SEED_BATCH_SIZE:-${SEED_BATCH_SIZE:-500}}"
+SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-10}}"
+SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
@@ -39,8 +43,11 @@ WEEKS="${PRODUCTION_REPLAY_WEEKS:-${WEEKS:-}}"
 TENANT_ID="${PRODUCTION_REPLAY_TENANT_ID:-${TENANT_ID:-}}"
 EXPERIMENT_LABEL="${PRODUCTION_REPLAY_EXPERIMENT_LABEL:-${EXPERIMENT_LABEL:-}}"
 SMOKE_MANIFEST="/tmp/fraud-data-local-smoke.json"
+SEED_MANIFEST="/tmp/fraud-data-local-seed.json"
 SAMPLE_DIR="/tmp/fraud-data-local-sample"
+SEED_SAMPLE_DIR="/tmp/fraud-data-local-seed-sample"
 SETUP_LOG="/tmp/fraud-data-local-setup.log"
+SEED_LOG="/tmp/fraud-data-local-seed.log"
 REPLAY_LOG="/tmp/fraud-data-local-replay.log"
 ASYNC_TRACKING_LOG="/tmp/fraud-data-local-async-decisions.ndjson"
 ASYNC_CALLBACK_LOG="/tmp/fraud-data-local-async-callbacks.ndjson"
@@ -125,6 +132,10 @@ if [[ ! -d "$DATA_ROOT" ]]; then
   printf 'error: fraud data directory does not exist: %s\n' "$DATA_ROOT" >&2
   exit 1
 fi
+if [[ ! -d "$SEED_DATA_ROOT" ]]; then
+  printf 'error: fraud seed data directory does not exist: %s\n' "$SEED_DATA_ROOT" >&2
+  exit 1
+fi
 
 MULTIPLIER="$(normalize_multiplier "$MULTIPLIER")"
 REPLAY_DURATION="$(duration_selector)"
@@ -146,6 +157,18 @@ if [[ ! "$MAX_IN_FLIGHT" =~ ^[0-9]+$ || "$MAX_IN_FLIGHT" -le 0 ]]; then
 fi
 if [[ ! "$CHECKPOINT_EVERY" =~ ^[0-9]+$ || "$CHECKPOINT_EVERY" -le 0 ]]; then
   printf 'error: CHECKPOINT_EVERY must be a positive integer; got %s\n' "$CHECKPOINT_EVERY" >&2
+  exit 1
+fi
+if [[ ! "$SEED_BATCH_SIZE" =~ ^[0-9]+$ || "$SEED_BATCH_SIZE" -le 0 || "$SEED_BATCH_SIZE" -gt 500 ]]; then
+  printf 'error: SEED_BATCH_SIZE must be between 1 and 500; got %s\n' "$SEED_BATCH_SIZE" >&2
+  exit 1
+fi
+if [[ ! "$SEED_MAX_IN_FLIGHT" =~ ^[0-9]+$ || "$SEED_MAX_IN_FLIGHT" -le 0 ]]; then
+  printf 'error: SEED_MAX_IN_FLIGHT must be a positive integer; got %s\n' "$SEED_MAX_IN_FLIGHT" >&2
+  exit 1
+fi
+if [[ ! "$SEED_PROGRESS_EVERY" =~ ^[0-9]+$ ]]; then
+  printf 'error: SEED_PROGRESS_EVERY must be zero or a positive integer; got %s\n' "$SEED_PROGRESS_EVERY" >&2
   exit 1
 fi
 if [[ "$DECISION_MODE" != "sync" && "$DECISION_MODE" != "async" ]]; then
@@ -227,6 +250,8 @@ else
 fi
 printf 'Replay tuning: rule_eval=%s scenario_eval=%s aggregate_remote=%s aggregate_query=%s read_db_max_conns=%s\n' \
   "$RULE_EVALUATION_CONCURRENCY" "$SCENARIO_EVALUATION_CONCURRENCY" "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" "$READ_DATABASE_MAX_CONNS"
+printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s\n' \
+  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT"
 
 if [[ "$ENABLE_SEPARATE_READ_POOL" == "true" && -z "$READ_DATABASE_URL" ]]; then
   READ_DATABASE_URL="postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable"
@@ -320,6 +345,14 @@ fi
     SAMPLE_ARGS+=(--transactions "$TRANSACTIONS")
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
+
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample \
+    --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
+    --data-root "$SEED_DATA_ROOT" \
+    --reference-data-root "$DATA_ROOT" \
+    --output-dir "$SEED_SAMPLE_DIR" \
+    --output-manifest "$SEED_MANIFEST" \
+    --transactions all
 )
 
 printf 'Creating a local replay tenant and loading reference data...\n'
@@ -336,6 +369,24 @@ printf 'Creating a local replay tenant and loading reference data...\n'
 TENANT_ID="$(awk '/^tenant:/ {print $2}' "$SETUP_LOG" | tail -n 1)"
 if [[ -z "$TENANT_ID" ]]; then
   printf 'error: setup completed without returning a tenant ID\n' >&2
+  exit 1
+fi
+
+printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
+(
+  cd "$BACKEND_DIR"
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay seed \
+    --manifest "$SEED_MANIFEST" \
+    --execute \
+    --tenant-id "$TENANT_ID" \
+    --batch-size "$SEED_BATCH_SIZE" \
+    --max-in-flight "$SEED_MAX_IN_FLIGHT" \
+    --progress-every "$SEED_PROGRESS_EVERY"
+) | tee "$SEED_LOG"
+
+SEED_RUN_DIR="$(awk -F': ' '/^seed output:/ {print $2}' "$SEED_LOG" | tail -n 1)"
+if [[ -z "$SEED_RUN_DIR" || ! -f "$SEED_RUN_DIR/summary.json" ]]; then
+  printf 'error: transaction seed completed without a summary file\n' >&2
   exit 1
 fi
 
@@ -380,6 +431,7 @@ if [[ -z "$RUN_DIR" || ! -f "$RUN_DIR/summary.json" ]]; then
   printf 'error: replay completed without a summary file\n' >&2
   exit 1
 fi
+cp "$SEED_RUN_DIR/summary.json" "$RUN_DIR/seed-summary.json"
 
 "$VENV_DIR/bin/python" - "$RUN_DIR" <<'PY'
 import json
@@ -423,12 +475,13 @@ if [[ "$DECISION_MODE" == "async" && "$AUTO_CALLBACK_SERVER" == "1" ]]; then
 fi
 
 printf '\nLocal replay result:\n'
-"$VENV_DIR/bin/python" - "$RUN_DIR/summary.json" <<'PY'
+"$VENV_DIR/bin/python" - "$RUN_DIR/summary.json" "$RUN_DIR/seed-summary.json" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 summary = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+seed = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
 result = {
     "status": summary["status"],
     "scheduled": summary["scheduled"],
@@ -441,11 +494,17 @@ result = {
         "successes": summary["decision"]["successes"],
         "failures": summary["decision"]["failures"],
     },
+    "seed": {
+        "records": seed["records"],
+        "batches": seed["batches"],
+        "decision_requests": seed["decision_requests"],
+    },
 }
 print(json.dumps(result, indent=2))
 PY
 
 printf '\nTenant: %s\n' "$TENANT_ID"
+printf 'Seed results: %s\n' "$SEED_RUN_DIR"
 printf 'Results: %s\n' "$RUN_DIR"
 if [[ "$REPLAY_STATUS" -ne 0 ]]; then
   exit "$REPLAY_STATUS"
