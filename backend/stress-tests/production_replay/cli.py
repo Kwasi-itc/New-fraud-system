@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--tenant-id", help="Use an existing clean tenant; omit to create one")
     setup.add_argument("--tenant-name", default="Production Replay Stress Tenant")
     setup.add_argument("--publication-timeout", type=float, default=900.0)
+    setup.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Read-only verification of a tenant previously prepared by this harness",
+    )
     setup.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
 
     seed = subparsers.add_parser("seed", help="Batch-ingest historical transactions without decision requests")
@@ -182,8 +187,29 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
     _snapshot_manifest(manifest, run_dir)
     _write_json(run_dir / "profile.json", profile)
     async with ServiceClients(_services(args)) as clients:
-        setup = EnvironmentSetup(manifest, clients, args.tenant_id, args.tenant_name)
-        result = await setup.run(args.publication_timeout)
+        if args.reuse_existing:
+            if not args.tenant_id:
+                raise ValueError("--tenant-id is required with --reuse-existing")
+            await clients.wait_until_ready()
+            tenant_response = await clients.request(
+                clients.data_model,
+                "GET",
+                f"/v1/tenants/{args.tenant_id}",
+                200,
+            )
+            await _verify_replay_tenant(clients, manifest, args.tenant_id)
+            tenant = tenant_response.get("tenant", {})
+            result = {
+                "setup_version": 1,
+                "verified_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "tenant_id": args.tenant_id,
+                "tenant_name": tenant.get("name"),
+                "reused_existing_setup": True,
+                "mutations_performed": False,
+            }
+        else:
+            setup = EnvironmentSetup(manifest, clients, args.tenant_id, args.tenant_name)
+            result = await setup.run(args.publication_timeout)
     _write_json(run_dir / "setup.json", result)
     print(f"tenant: {result['tenant_id']}")
     print(f"setup output: {run_dir}")

@@ -34,7 +34,18 @@ make production-replay \
   MULTIPLIER=100
 ```
 
-The seed phase defaults to batches of 500 with 10 concurrent batch requests. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT` and `SEED_PROGRESS_EVERY` control its concurrency and progress reporting.
+The seed phase defaults to batches of 500 with 10 concurrent batch requests and a 300-second request timeout. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT`, `SEED_PROGRESS_EVERY`, and `SEED_REQUEST_TIMEOUT` control its concurrency, progress reporting, and per-request timeout.
+
+If setup completed but the seed was interrupted, rerun with the same tenant and batch size using `REUSE_EXISTING_SETUP=true`. This performs read-only verification of the existing data model and live replay scenarios instead of trying to recreate them. Keeping the same batch size preserves the original deterministic batch idempotency keys:
+
+```bash
+make production-replay \
+  TENANT_ID='<existing-replay-tenant>' \
+  REUSE_EXISTING_SETUP=true \
+  SEED_BATCH_SIZE=500 \
+  SEED_MAX_IN_FLIGHT=1 \
+  SEED_REQUEST_TIMEOUT=300
+```
 
 You can replay a source-time window instead of choosing a transaction count:
 
@@ -99,6 +110,7 @@ This starts the required Docker services from existing images using `--no-build`
 
 - `profile` is always read only.
 - `setup` only calls services when `--execute` is present.
+- `setup --reuse-existing` only reads and verifies the existing tenant, transaction model, and live replay scenarios; it does not recreate setup resources.
 - `seed` only sends ingestion requests when `--execute` and `--tenant-id` are present. It uses deterministic idempotency keys and never calls the decision endpoint.
 - `run` only sends events when `--execute`, `--tenant-id`, and a positive `--multiplier` are all present.
 - Replay artifacts intentionally include normalized request bodies for successful calls and complete service response bodies for successful and failed calls; treat the replay output directory as sensitive data.

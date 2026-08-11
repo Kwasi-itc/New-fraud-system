@@ -14,6 +14,8 @@ CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}
 SEED_BATCH_SIZE="${PRODUCTION_REPLAY_SEED_BATCH_SIZE:-${SEED_BATCH_SIZE:-500}}"
 SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-10}}"
 SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
+SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-300}}"
+REUSE_EXISTING_SETUP="${PRODUCTION_REPLAY_REUSE_EXISTING_SETUP:-${REUSE_EXISTING_SETUP:-false}}"
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
@@ -148,6 +150,14 @@ if [[ ! "$SEED_PROGRESS_EVERY" =~ ^[0-9]+$ ]]; then
   printf 'error: SEED_PROGRESS_EVERY must be zero or a positive integer; got %s\n' "$SEED_PROGRESS_EVERY" >&2
   exit 1
 fi
+if [[ ! "$SEED_REQUEST_TIMEOUT" =~ ^[0-9]+([.][0-9]+)?$ || "$SEED_REQUEST_TIMEOUT" =~ ^0+([.]0+)?$ ]]; then
+  printf 'error: SEED_REQUEST_TIMEOUT must be a positive number; got %s\n' "$SEED_REQUEST_TIMEOUT" >&2
+  exit 1
+fi
+if [[ "$REUSE_EXISTING_SETUP" != "true" && "$REUSE_EXISTING_SETUP" != "false" ]]; then
+  printf 'error: REUSE_EXISTING_SETUP must be true or false; got %s\n' "$REUSE_EXISTING_SETUP" >&2
+  exit 1
+fi
 if [[ "$DECISION_MODE" != "sync" && "$DECISION_MODE" != "async" ]]; then
   printf 'error: DECISION_MODE must be sync or async; got %s\n' "$DECISION_MODE" >&2
   exit 1
@@ -200,8 +210,8 @@ else
   printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
     "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 fi
-printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s\n' \
-  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT"
+printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s\n' \
+  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP"
 
 wait_for_service "data-model-service" "$DATA_MODEL_URL/readyz"
 wait_for_service "ingestion-service" "$INGESTION_URL/readyz"
@@ -240,7 +250,11 @@ fi
     --transactions all
 )
 
-printf 'Creating a remote replay tenant and loading reference data...\n'
+if [[ "$REUSE_EXISTING_SETUP" == "true" ]]; then
+  printf 'Verifying the existing remote replay tenant without changing its setup...\n'
+else
+  printf 'Creating a remote replay tenant and loading reference data...\n'
+fi
 (
   cd "$BACKEND_DIR"
   SETUP_ARGS=(
@@ -257,6 +271,13 @@ printf 'Creating a remote replay tenant and loading reference data...\n'
   fi
   if [[ -n "$TENANT_ID" ]]; then
     SETUP_ARGS+=(--tenant-id "$TENANT_ID")
+  fi
+  if [[ "$REUSE_EXISTING_SETUP" == "true" ]]; then
+    if [[ -z "$TENANT_ID" ]]; then
+      printf 'error: TENANT_ID is required when REUSE_EXISTING_SETUP=true\n' >&2
+      exit 1
+    fi
+    SETUP_ARGS+=(--reuse-existing)
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay setup "${SETUP_ARGS[@]}"
 ) | tee "$SETUP_LOG"
@@ -277,6 +298,7 @@ printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no
     --batch-size "$SEED_BATCH_SIZE"
     --max-in-flight "$SEED_MAX_IN_FLIGHT"
     --progress-every "$SEED_PROGRESS_EVERY"
+    --timeout "$SEED_REQUEST_TIMEOUT"
     --data-model-url "$DATA_MODEL_URL"
     --ingestion-url "$INGESTION_URL"
     --decision-engine-url "$DECISION_ENGINE_URL"
