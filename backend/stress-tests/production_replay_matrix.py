@@ -121,6 +121,16 @@ def parse_args() -> argparse.Namespace:
         "--seed-data-root",
         default=os.getenv("SEED_DATA_ROOT", os.getenv("FRAUD_DATA_SEED_ROOT", "")),
     )
+    parser.add_argument(
+        "--reuse-existing-setup",
+        action="store_true",
+        default=os.getenv("REUSE_EXISTING_SETUP", "false").lower() == "true",
+    )
+    parser.add_argument(
+        "--reuse-existing-seed",
+        action="store_true",
+        default=os.getenv("REUSE_EXISTING_SEED", "false").lower() == "true",
+    )
     parser.add_argument("--capture-metrics", action="store_true", help="Capture one runtime/read metrics snapshot after each replay run.")
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
@@ -161,6 +171,8 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
         }
     )
     env["FRAUD_DATA_SEED_ROOT"] = args.seed_data_root or f"{args.data_root.rstrip('/')}_seed"
+    env["PRODUCTION_REPLAY_REUSE_EXISTING_SETUP"] = "true" if args.reuse_existing_setup else "false"
+    env["PRODUCTION_REPLAY_REUSE_EXISTING_SEED"] = "true" if args.reuse_existing_seed else "false"
     if args.tenant_id:
         env["PRODUCTION_REPLAY_TENANT_ID"] = args.tenant_id
     return env
@@ -216,6 +228,8 @@ def main() -> None:
         "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "target": args.target,
         "execute": args.execute,
+        "reuse_existing_setup": args.reuse_existing_setup,
+        "reuse_existing_seed": args.reuse_existing_seed,
         "experiments": [asdict(item) for item in experiments],
     }
     write_json(matrix_dir / "matrix-plan.json", plan)

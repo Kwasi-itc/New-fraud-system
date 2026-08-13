@@ -47,6 +47,19 @@ make production-replay \
   SEED_REQUEST_TIMEOUT=300
 ```
 
+To stop seeding and test against whatever historical data is already present, set both reuse flags. The harness verifies the existing setup and looks up the first expected seed transaction by its indexed object ID, performs no setup or seed mutations, and proceeds to the measured replay:
+
+```bash
+make production-replay \
+  TENANT_ID='<existing-replay-tenant>' \
+  REUSE_EXISTING_SETUP=true \
+  REUSE_EXISTING_SEED=true \
+  TRANSACTIONS=500000 \
+  MULTIPLIER=100
+```
+
+The resulting `seed-summary.json` uses `status: reused_existing`; `records` and `batches` are `null` because the harness deliberately avoids a potentially expensive full-table count. This mode confirms that seed data exists, but it does not claim the interrupted seed is complete.
+
 You can replay a source-time window instead of choosing a transaction count:
 
 ```bash
@@ -112,6 +125,7 @@ This starts the required Docker services from existing images using `--no-build`
 - `setup` only calls services when `--execute` is present.
 - `setup --reuse-existing` only reads and verifies the existing tenant, transaction model, and live replay scenarios; it does not recreate setup resources.
 - `seed` only sends ingestion requests when `--execute` and `--tenant-id` are present. It uses deterministic idempotency keys and never calls the decision endpoint.
+- `seed --reuse-existing` verifies one expected historical transaction using its indexed object ID and performs no seed writes.
 - `run` only sends events when `--execute`, `--tenant-id`, and a positive `--multiplier` are all present.
 - Replay artifacts intentionally include normalized request bodies for successful calls and complete service response bodies for successful and failed calls; treat the replay output directory as sensitive data.
 - Ingestion retries reuse one deterministic idempotency key. Decision callbacks are not retried.

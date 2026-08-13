@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from production_replay.cli import _setup, build_parser
+from production_replay.cli import _seed, _setup, build_parser
 
 
 class CLITests(unittest.TestCase):
@@ -27,6 +27,13 @@ class CLITests(unittest.TestCase):
         args = build_parser().parse_args(["seed", "--manifest", "manifest.json"])
         self.assertEqual(args.batch_size, 500)
         self.assertEqual(args.max_in_flight, 10)
+        self.assertFalse(args.reuse_existing)
+
+    def test_existing_seed_reuse_is_explicit(self) -> None:
+        args = build_parser().parse_args(
+            ["seed", "--manifest", "manifest.json", "--reuse-existing"]
+        )
+        self.assertTrue(args.reuse_existing)
 
     def test_setup_reuse_is_explicit(self) -> None:
         args = build_parser().parse_args(
@@ -100,6 +107,61 @@ class SetupReuseTests(unittest.IsolatedAsyncioTestCase):
             setup_result = json.loads(setup_files[0].read_text(encoding="utf-8"))
             self.assertTrue(setup_result["reused_existing_setup"])
             self.assertFalse(setup_result["mutations_performed"])
+
+
+class SeedReuseTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reuse_verifies_existing_seed_without_ingesting(self) -> None:
+        class FakeClients:
+            async def __aenter__(self) -> "FakeClients":
+                return self
+
+            async def __aexit__(self, *_args: object) -> None:
+                return None
+
+            async def wait_until_ingestion_ready(self) -> None:
+                return None
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text("{}\n", encoding="utf-8")
+            args = argparse.Namespace(
+                execute=False,
+                reuse_existing=True,
+                tenant_id="tenant-1",
+                batch_size=500,
+                max_in_flight=10,
+                progress_every=100,
+                output_root=str(root / "runs"),
+                data_model_url="http://data-model",
+                ingestion_url="http://ingestion",
+                decision_engine_url="http://decision",
+                auth_token=None,
+                timeout=30.0,
+            )
+            verify_seed_tenant = AsyncMock()
+            verify_existing_seed = AsyncMock(return_value="seed-object-1")
+            with (
+                patch("production_replay.cli.ServiceClients", return_value=FakeClients()),
+                patch("production_replay.cli._verify_seed_tenant", verify_seed_tenant),
+                patch("production_replay.cli._verify_existing_seed", verify_existing_seed),
+                patch("production_replay.cli.seed_transactions", new_callable=AsyncMock) as ingest,
+            ):
+                result = await _seed(
+                    args,
+                    SimpleNamespace(path=manifest_path),  # type: ignore[arg-type]
+                )
+
+            self.assertEqual(result, 0)
+            verify_seed_tenant.assert_awaited_once()
+            verify_existing_seed.assert_awaited_once()
+            ingest.assert_not_awaited()
+            summary_files = list((root / "runs").glob("seed-*/summary.json"))
+            self.assertEqual(len(summary_files), 1)
+            summary = json.loads(summary_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(summary["status"], "reused_existing")
+            self.assertIsNone(summary["records"])
+            self.assertFalse(summary["mutations_performed"])
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT
 SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
 SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-300}}"
 REUSE_EXISTING_SETUP="${PRODUCTION_REPLAY_REUSE_EXISTING_SETUP:-${REUSE_EXISTING_SETUP:-false}}"
+REUSE_EXISTING_SEED="${PRODUCTION_REPLAY_REUSE_EXISTING_SEED:-${REUSE_EXISTING_SEED:-false}}"
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
@@ -181,6 +182,14 @@ if [[ "$REUSE_EXISTING_SETUP" != "true" && "$REUSE_EXISTING_SETUP" != "false" ]]
   printf 'error: REUSE_EXISTING_SETUP must be true or false; got %s\n' "$REUSE_EXISTING_SETUP" >&2
   exit 1
 fi
+if [[ "$REUSE_EXISTING_SEED" != "true" && "$REUSE_EXISTING_SEED" != "false" ]]; then
+  printf 'error: REUSE_EXISTING_SEED must be true or false; got %s\n' "$REUSE_EXISTING_SEED" >&2
+  exit 1
+fi
+if [[ "$REUSE_EXISTING_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
+  printf 'error: REUSE_EXISTING_SEED=true requires REUSE_EXISTING_SETUP=true to avoid mutating the prepared tenant\n' >&2
+  exit 1
+fi
 if [[ "$DECISION_MODE" != "sync" && "$DECISION_MODE" != "async" ]]; then
   printf 'error: DECISION_MODE must be sync or async; got %s\n' "$DECISION_MODE" >&2
   exit 1
@@ -260,8 +269,8 @@ else
 fi
 printf 'Replay tuning: rule_eval=%s scenario_eval=%s aggregate_remote=%s aggregate_query=%s read_db_max_conns=%s\n' \
   "$RULE_EVALUATION_CONCURRENCY" "$SCENARIO_EVALUATION_CONCURRENCY" "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" "$READ_DATABASE_MAX_CONNS"
-printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s\n' \
-  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP"
+printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
+  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
 
 if [[ "$ENABLE_SEPARATE_READ_POOL" == "true" && -z "$READ_DATABASE_URL" ]]; then
   READ_DATABASE_URL="postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable"
@@ -391,17 +400,29 @@ if [[ -z "$TENANT_ID" ]]; then
   exit 1
 fi
 
-printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
+if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+  printf 'Reusing the existing seed in tenant %s without performing seed writes...\n' "$TENANT_ID"
+else
+  printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
+fi
 (
   cd "$BACKEND_DIR"
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay seed \
-    --manifest "$SEED_MANIFEST" \
-    --execute \
-    --tenant-id "$TENANT_ID" \
-    --batch-size "$SEED_BATCH_SIZE" \
-    --max-in-flight "$SEED_MAX_IN_FLIGHT" \
-    --progress-every "$SEED_PROGRESS_EVERY" \
+  SEED_ARGS=(
+    --manifest "$SEED_MANIFEST"
+    --tenant-id "$TENANT_ID"
     --timeout "$SEED_REQUEST_TIMEOUT"
+  )
+  if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+    SEED_ARGS+=(--reuse-existing)
+  else
+    SEED_ARGS+=(
+      --execute
+      --batch-size "$SEED_BATCH_SIZE"
+      --max-in-flight "$SEED_MAX_IN_FLIGHT"
+      --progress-every "$SEED_PROGRESS_EVERY"
+    )
+  fi
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay seed "${SEED_ARGS[@]}"
 ) | tee "$SEED_LOG"
 
 SEED_RUN_DIR="$(awk -F': ' '/^seed output:/ {print $2}' "$SEED_LOG" | tail -n 1)"
@@ -515,6 +536,7 @@ result = {
         "failures": summary["decision"]["failures"],
     },
     "seed": {
+        "status": seed["status"],
         "records": seed["records"],
         "batches": seed["batches"],
         "decision_requests": seed["decision_requests"],

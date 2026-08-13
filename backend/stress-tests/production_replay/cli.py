@@ -9,13 +9,14 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from .api_client import APIError, ServiceClients, ServiceConfig
 from .manifest import ManifestError, ReplayManifest, load_manifest
 from .profiler import profile_manifest
 from .replay import ReplayCursor, ReplayMetrics, TransactionChain, build_error_breakdown, schedule_events
 from .scenarios import build_portable_scenarios
-from .seed import seed_transactions
+from .seed import iter_seed_batches, seed_transactions
 from .setup_environment import EnvironmentSetup
 from .sorting import build_sorted_chunks, iter_merged_events
 
@@ -52,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_manifest(seed)
     _add_services(seed)
     seed.add_argument("--execute", action="store_true", help="Allow ingestion-only seed requests")
+    seed.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Verify and reuse a prior partial or complete seed without writing seed records",
+    )
     seed.add_argument("--tenant-id", help="Tenant prepared by the setup command")
     seed.add_argument("--batch-size", type=int, default=500)
     seed.add_argument("--max-in-flight", type=int, default=10)
@@ -217,11 +223,13 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
 
 
 async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
-    if not args.execute:
-        print("seed not executed; pass --execute and --tenant-id to ingest historical transactions")
+    if args.execute and args.reuse_existing:
+        raise ValueError("--execute and --reuse-existing cannot be used together")
+    if not args.execute and not args.reuse_existing:
+        print("seed not executed; pass --execute to ingest or --reuse-existing to reuse seeded data")
         return 0
     if not args.tenant_id:
-        raise ValueError("--tenant-id is required with --execute")
+        raise ValueError("--tenant-id is required with --execute or --reuse-existing")
     if args.batch_size <= 0 or args.batch_size > 500:
         raise ValueError("--batch-size must be between 1 and 500")
     if args.max_in_flight <= 0:
@@ -245,6 +253,7 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
             },
             "auth_token": "set" if args.auth_token else None,
             "decision_requests_enabled": False,
+            "reuse_existing": args.reuse_existing,
         },
     )
 
@@ -255,17 +264,31 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
     async with ServiceClients(_services(args)) as clients:
         await clients.wait_until_ingestion_ready()
         await _verify_seed_tenant(clients, args.tenant_id)
-        result = await seed_transactions(
-            clients,
-            manifest,
-            args.tenant_id,
-            batch_size=args.batch_size,
-            max_in_flight=args.max_in_flight,
-            progress=report_progress,
-        )
+        if args.reuse_existing:
+            verified_object_id = await _verify_existing_seed(clients, manifest, args.tenant_id)
+            result = {
+                "records": None,
+                "batches": None,
+                "batch_size": None,
+                "max_in_flight": None,
+                "elapsed_seconds": 0,
+                "records_per_second": None,
+                "verified_object_id": verified_object_id,
+                "mutations_performed": False,
+                "note": "Existing seed data was explicitly reused; the harness did not count or ingest seed records.",
+            }
+        else:
+            result = await seed_transactions(
+                clients,
+                manifest,
+                args.tenant_id,
+                batch_size=args.batch_size,
+                max_in_flight=args.max_in_flight,
+                progress=report_progress,
+            )
 
     summary = {
-        "status": "completed",
+        "status": "reused_existing" if args.reuse_existing else "completed",
         "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "tenant_id": args.tenant_id,
         "manifest": str(manifest.path),
@@ -273,7 +296,10 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
         **result,
     }
     _write_json(run_dir / "summary.json", summary)
-    print(f"seeded: {summary['records']} records in {summary['batches']} batches")
+    if args.reuse_existing:
+        print(f"reused existing seed: verified transaction {summary['verified_object_id']}")
+    else:
+        print(f"seeded: {summary['records']} records in {summary['batches']} batches")
     print(f"seed output: {run_dir}")
     return 0
 
@@ -518,6 +544,24 @@ async def _verify_seed_tenant(clients: ServiceClients, tenant_id: str) -> None:
     tables = model.get("data_model", {}).get("tables", {})
     if "transactions" not in tables:
         raise APIError("tenant does not have the production replay transactions model; run setup first")
+
+
+async def _verify_existing_seed(
+    clients: ServiceClients,
+    manifest: ReplayManifest,
+    tenant_id: str,
+) -> str:
+    first_batch = next(iter_seed_batches(manifest, 1), None)
+    if first_batch is None:
+        raise ValueError("seed manifest contains no transaction records to verify")
+    object_id = first_batch.object_ids[0]
+    await clients.request(
+        clients.ingestion,
+        "GET",
+        f"/v1/tenants/{tenant_id}/records/transactions/{quote(object_id, safe='')}",
+        200,
+    )
+    return object_id
 
 
 async def async_main(argv: list[str] | None = None) -> int:
