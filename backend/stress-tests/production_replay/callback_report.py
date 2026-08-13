@@ -25,6 +25,21 @@ def read_ndjson(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def read_new_ndjson(path: Path, offset: int) -> tuple[list[dict[str, Any]], int]:
+    if not path.exists():
+        return [], offset
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        handle.seek(offset)
+        while line := handle.readline():
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if isinstance(value, dict):
+                rows.append(value)
+        return rows, handle.tell()
+
+
 def callback_execution_id(record: dict[str, Any]) -> str:
     body = record.get("body")
     if isinstance(body, dict) and body.get("execution_id"):
@@ -97,17 +112,30 @@ def main() -> None:
     args = parser.parse_args()
 
     deadline = time.monotonic() + args.wait_timeout
-    report: dict[str, Any] = {}
+    submissions = read_ndjson(args.submissions)
+    deferred_execution_ids = {
+        str(row.get("execution_id") or "")
+        for row in submissions
+        if not bool(row.get("completed_inline")) and row.get("execution_id")
+    }
+    callbacks: list[dict[str, Any]] = []
+    callback_execution_ids: set[str] = set()
+    callback_offset = 0
     while True:
-        submissions = read_ndjson(args.submissions)
-        callbacks = read_ndjson(args.callbacks)
-        report = build_report(submissions, callbacks)
-        if report["deferred_callbacks_missing"] == 0:
+        new_callbacks, callback_offset = read_new_ndjson(args.callbacks, callback_offset)
+        callbacks.extend(new_callbacks)
+        callback_execution_ids.update(
+            execution_id
+            for record in new_callbacks
+            if (execution_id := callback_execution_id(record))
+        )
+        if deferred_execution_ids.issubset(callback_execution_ids):
             break
         if time.monotonic() >= deadline:
             break
         time.sleep(args.poll_interval)
 
+    report = build_report(submissions, callbacks)
     args.summary.parent.mkdir(parents=True, exist_ok=True)
     args.summary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     compact = {

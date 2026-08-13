@@ -112,6 +112,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--execute", action="store_true", help="Actually run the matrix. Without this, print the plan only.")
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
     parser.add_argument("--transactions", default=os.getenv("TRANSACTIONS", "1000"))
+    parser.add_argument("--transaction-offset", default=os.getenv("TRANSACTION_OFFSET", "0"))
     parser.add_argument("--multiplier", default=os.getenv("MULTIPLIER", "3600"))
     parser.add_argument("--max-in-flight", default=os.getenv("MAX_IN_FLIGHT", "50"))
     parser.add_argument("--checkpoint-every", default=os.getenv("CHECKPOINT_EVERY", "100"))
@@ -149,6 +150,7 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
         {
             "FRAUD_DATA_ROOT": args.data_root,
             "PRODUCTION_REPLAY_TRANSACTIONS": args.transactions,
+            "PRODUCTION_REPLAY_TRANSACTION_OFFSET": args.transaction_offset,
             "PRODUCTION_REPLAY_MULTIPLIER": args.multiplier,
             "PRODUCTION_REPLAY_MAX_IN_FLIGHT": args.max_in_flight,
             "PRODUCTION_REPLAY_CHECKPOINT_EVERY": args.checkpoint_every,

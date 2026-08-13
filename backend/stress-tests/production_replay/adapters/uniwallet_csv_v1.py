@@ -13,6 +13,9 @@ from ..manifest import TransactionStream
 from .base import AdapterError
 
 
+IDENTITY_ROW_NUMBER_COLUMN = "production_replay_identity_row_number"
+
+
 class ProductionTransactionCSVV1Adapter:
     name = "production_transaction_csv_v1"
     required_headers = {
@@ -48,9 +51,10 @@ class ProductionTransactionCSVV1Adapter:
 
                     source_transaction_id = _clean(row.get("source_trans_id"))
                     third_party_id = _clean(row.get("thirdparty_id"))
-                    fallback = f"{path.stem}:{row_number}"
+                    identity_row_number = _identity_row_number(row, path, row_number)
+                    fallback = f"{path.stem}:{identity_row_number}"
                     source_key = source_transaction_id or third_party_id or fallback
-                    object_id = _object_id(stream.id, path, row_number, source_key)
+                    object_id = _object_id(stream.id, path, identity_row_number, source_key)
                     source_direction = _clean(row.get("transtype"))
                     expected_direction = {"inflow": "incoming", "outflow": "outgoing"}.get(
                         (source_direction or "").lower()
@@ -123,6 +127,19 @@ def _clean(value: Any) -> str | None:
         return None
     result = str(value).strip()
     return result or None
+
+
+def _identity_row_number(row: dict[str, str], path: Path, row_number: int) -> int:
+    raw = _clean(row.get(IDENTITY_ROW_NUMBER_COLUMN))
+    if raw is None:
+        return row_number
+    try:
+        result = int(raw)
+    except ValueError as exc:
+        raise AdapterError(f"invalid {IDENTITY_ROW_NUMBER_COLUMN} at {path}:{row_number}") from exc
+    if result < 2:
+        raise AdapterError(f"invalid {IDENTITY_ROW_NUMBER_COLUMN} at {path}:{row_number}")
+    return result
 
 
 def _optional_float(value: Any) -> float | None:

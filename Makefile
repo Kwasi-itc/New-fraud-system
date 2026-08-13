@@ -1,6 +1,13 @@
-.PHONY: production-replay replay-production production-replay-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async production-replay-matrix callback-server create-decisions create-async-decisions consolidate-postgres-db
+ENV_FILE ?= $(firstword $(wildcard .env))
+ifneq ($(strip $(ENV_FILE)),)
+include $(ENV_FILE)
+endif
+REPLAY_ENV_FILE := $(if $(strip $(ENV_FILE)),$(abspath $(ENV_FILE)),)
+
+.PHONY: production-replay replay-production production-replay-async production-replay-continue-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async production-replay-matrix callback-server create-decisions create-async-decisions consolidate-postgres-db
 
 TRANSACTIONS ?= 1000
+TRANSACTION_OFFSET ?= 0
 MULTIPLIER ?= 3600
 DATA_ROOT ?= /Users/kwilson/Desktop/ITC/fraud_data
 SEED_DATA_ROOT ?= $(patsubst %/,%,$(DATA_ROOT))_seed
@@ -15,12 +22,12 @@ REUSE_EXISTING_SEED ?= false
 DECISION_MODE ?= sync
 ASYNC_WAIT_TIMEOUT_MS ?= 0
 ASYNC_CALLBACK_PORT ?= 8099
-ASYNC_CALLBACK_URL ?= http://host.docker.internal:$(ASYNC_CALLBACK_PORT)/callbacks/async-decisions
+ASYNC_CALLBACK_URL ?=
 ASYNC_CALLBACK_WAIT_TIMEOUT ?= 120
-LIVE_DECISION_MODE ?= async_only
+LIVE_DECISION_MODE ?= $(if $(filter async,$(DECISION_MODE)),async_only,sync)
 LIVE_ASYNC_FALLBACK_ENABLED ?= true
 LIVE_ASYNC_OBJECT_TYPES ?=
-TENANT_DATA_READ_MODE ?= ingestion_http
+TENANT_DATA_READ_MODE ?= direct_db
 ENABLE_SEPARATE_READ_POOL ?= false
 READ_DATABASE_URL ?=
 READ_DATABASE_MAX_CONNS ?= 0
@@ -67,9 +74,11 @@ DROP_LEGACY_DBS ?= true
 ALLOW_EXISTING_TARGET ?= 0
 
 production-replay:
+	PRODUCTION_REPLAY_ENV_FILE="$(REPLAY_ENV_FILE)" \
 	FRAUD_DATA_ROOT="$(DATA_ROOT)" \
 	FRAUD_DATA_SEED_ROOT="$(SEED_DATA_ROOT)" \
 	PRODUCTION_REPLAY_TRANSACTIONS="$(TRANSACTIONS)" \
+	PRODUCTION_REPLAY_TRANSACTION_OFFSET="$(TRANSACTION_OFFSET)" \
 	PRODUCTION_REPLAY_MULTIPLIER="$(MULTIPLIER)" \
 	PRODUCTION_REPLAY_MAX_IN_FLIGHT="$(MAX_IN_FLIGHT)" \
 	PRODUCTION_REPLAY_CHECKPOINT_EVERY="$(CHECKPOINT_EVERY)" \
@@ -108,10 +117,17 @@ replay-production: production-replay
 production-replay-async: DECISION_MODE=async
 production-replay-async: production-replay
 
+production-replay-continue-async: override DECISION_MODE=async
+production-replay-continue-async: override REUSE_EXISTING_SETUP=true
+production-replay-continue-async: override REUSE_EXISTING_SEED=true
+production-replay-continue-async: production-replay
+
 production-replay-ec2:
+	PRODUCTION_REPLAY_ENV_FILE="$(REPLAY_ENV_FILE)" \
 	FRAUD_DATA_ROOT="$(DATA_ROOT)" \
 	FRAUD_DATA_SEED_ROOT="$(SEED_DATA_ROOT)" \
 	PRODUCTION_REPLAY_TRANSACTIONS="$(TRANSACTIONS)" \
+	PRODUCTION_REPLAY_TRANSACTION_OFFSET="$(TRANSACTION_OFFSET)" \
 	PRODUCTION_REPLAY_MULTIPLIER="$(MULTIPLIER)" \
 	PRODUCTION_REPLAY_MAX_IN_FLIGHT="$(MAX_IN_FLIGHT)" \
 	PRODUCTION_REPLAY_CHECKPOINT_EVERY="$(CHECKPOINT_EVERY)" \
@@ -157,6 +173,7 @@ production-replay-matrix:
 		$(if $(filter true,$(EXECUTE)),--execute,) \
 		$${CAPTURE_METRICS_FLAG} \
 		--transactions "$(TRANSACTIONS)" \
+		--transaction-offset "$(TRANSACTION_OFFSET)" \
 		--multiplier "$(MULTIPLIER)" \
 		--max-in-flight "$(MAX_IN_FLIGHT)" \
 		--checkpoint-every "$(CHECKPOINT_EVERY)" \

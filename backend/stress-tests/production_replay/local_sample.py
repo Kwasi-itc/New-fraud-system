@@ -30,6 +30,8 @@ STREAM_SOURCE_PATHS = {
     "uniwallet-v2-outflow": "transactions/uniwalletv2/outflow/2026-06-01.csv",
 }
 
+IDENTITY_ROW_NUMBER_COLUMN = "production_replay_identity_row_number"
+
 
 def create_local_sample(
     base_manifest_path: Path,
@@ -38,9 +40,14 @@ def create_local_sample(
     output_manifest_path: Path,
     stream_counts: dict[str, int] | None = None,
     total_transactions: int | None = None,
+    transaction_offset: int = 0,
 ) -> int:
     if stream_counts is not None and total_transactions is not None:
         raise ValueError("define either stream counts or total transactions, not both")
+    if transaction_offset < 0:
+        raise ValueError("transaction offset must be zero or positive")
+    if transaction_offset and total_transactions is None:
+        raise ValueError("transaction offset requires a total transaction count")
     if total_transactions is not None and total_transactions <= 0:
         raise ValueError("total transactions must be positive")
 
@@ -63,10 +70,15 @@ def create_local_sample(
     stream_files = _stream_files(data_root)
 
     if total_transactions is not None:
-        total, selected_counts = _copy_global_rows(stream_files, output_dir, total_transactions)
+        total, selected_counts, available = _copy_global_rows(
+            stream_files,
+            output_dir,
+            total_transactions,
+            transaction_offset,
+        )
         if total != total_transactions:
-            available = sum(selected_counts.values())
-            raise ValueError(f"configured transaction streams contain {available} rows; {total_transactions} are required")
+            required = transaction_offset + total_transactions
+            raise ValueError(f"configured transaction streams contain {available} rows; {required} are required")
         for stream_id in STREAM_SOURCE_PATHS:
             if selected_counts.get(stream_id, 0) == 0:
                 continue
@@ -215,7 +227,8 @@ def _copy_global_rows(
     stream_files: dict[str, list[Path]],
     output_dir: Path,
     limit: int,
-) -> tuple[int, dict[str, int]]:
+    offset: int = 0,
+) -> tuple[int, dict[str, int], int]:
     iterators = [_iter_stream_file(stream_id, path) for stream_id, paths in stream_files.items() for path in paths]
     heap: list[tuple[datetime, int, _StreamRow, Iterator[_StreamRow]]] = []
     sequence = 0
@@ -231,25 +244,35 @@ def _copy_global_rows(
     handles: dict[str, Any] = {}
     headers: dict[str, list[str]] = {}
     selected_counts = {stream_id: 0 for stream_id in stream_files}
+    stream_positions = {stream_id: 0 for stream_id in stream_files}
     total = 0
+    consumed = 0
     try:
         while heap and total < limit:
             _, _, item, iterator = heapq.heappop(heap)
-            writer = writers.get(item.stream_id)
-            if writer is None:
-                fieldnames = list(item.row)
-                headers[item.stream_id] = fieldnames
-                handle = (output_dir / f"{item.stream_id}.csv").open("w", encoding="utf-8", newline="")
-                handles[item.stream_id] = handle
-                writer = csv.DictWriter(handle, fieldnames=fieldnames)
-                writer.writeheader()
-                writers[item.stream_id] = writer
-            elif headers[item.stream_id] != list(item.row):
-                raise ValueError(f"{item.source_path} headers do not match earlier local sample files")
+            identity_row_number = stream_positions[item.stream_id] + 2
+            stream_positions[item.stream_id] += 1
+            if consumed >= offset:
+                writer = writers.get(item.stream_id)
+                if writer is None:
+                    source_fieldnames = list(item.row)
+                    fieldnames = [*source_fieldnames, IDENTITY_ROW_NUMBER_COLUMN] if offset else source_fieldnames
+                    headers[item.stream_id] = source_fieldnames
+                    handle = (output_dir / f"{item.stream_id}.csv").open("w", encoding="utf-8", newline="")
+                    handles[item.stream_id] = handle
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writers[item.stream_id] = writer
+                elif headers[item.stream_id] != list(item.row):
+                    raise ValueError(f"{item.source_path} headers do not match earlier local sample files")
 
-            writer.writerow(item.row)
-            selected_counts[item.stream_id] += 1
-            total += 1
+                output_row = dict(item.row)
+                if offset:
+                    output_row[IDENTITY_ROW_NUMBER_COLUMN] = str(identity_row_number)
+                writer.writerow(output_row)
+                selected_counts[item.stream_id] += 1
+                total += 1
+            consumed += 1
 
             try:
                 next_item = next(iterator)
@@ -257,7 +280,7 @@ def _copy_global_rows(
                 continue
             heapq.heappush(heap, (next_item.occurred_at, sequence, next_item, iterator))
             sequence += 1
-        return total, selected_counts
+        return total, selected_counts, consumed
     finally:
         for handle in handles.values():
             handle.close()
@@ -390,12 +413,23 @@ def main() -> None:
         help="Total sampled transaction count, or 'all' to use every configured source file",
     )
     parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Skip this many globally ordered source transactions before selecting --transactions.",
+    )
+    parser.add_argument(
         "--duration",
         help="Source-time replay window, for example 6h, 2d, or 1w. Overrides --transactions.",
     )
     args = parser.parse_args()
 
+    if args.offset < 0:
+        raise ValueError("--offset must be zero or positive")
+
     if args.duration:
+        if args.offset:
+            raise ValueError("--offset cannot be combined with --duration")
         total = create_duration_sample(
             args.base_manifest.resolve(),
             args.data_root.resolve(),
@@ -407,6 +441,8 @@ def main() -> None:
         return
 
     if args.transactions.strip().lower() == "all":
+        if args.offset:
+            raise ValueError("--offset requires a numeric --transactions value")
         create_full_manifest(
             args.base_manifest.resolve(),
             args.data_root.resolve(),
@@ -423,8 +459,12 @@ def main() -> None:
         args.output_dir.resolve(),
         args.output_manifest.resolve(),
         total_transactions=total_transactions,
+        transaction_offset=args.offset,
     )
-    print(f"created local replay sample with {total} transactions")
+    if args.offset:
+        print(f"created local replay sample with {total} transactions after skipping {args.offset}")
+    else:
+        print(f"created local replay sample with {total} transactions")
 
 
 if __name__ == "__main__":

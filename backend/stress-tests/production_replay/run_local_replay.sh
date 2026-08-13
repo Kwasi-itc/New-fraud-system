@@ -5,10 +5,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKSPACE_DIR="$(cd "$BACKEND_DIR/.." && pwd)"
+ENV_FILE="${PRODUCTION_REPLAY_ENV_FILE:-}"
 DATA_ROOT="${FRAUD_DATA_ROOT:-/Users/kwilson/Desktop/ITC/fraud_data}"
 SEED_DATA_ROOT="${PRODUCTION_REPLAY_SEED_DATA_ROOT:-${FRAUD_DATA_SEED_ROOT:-${DATA_ROOT%/}_seed}}"
 VENV_DIR="${PRODUCTION_REPLAY_VENV:-/tmp/fraud-production-replay-venv}"
 TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
+TRANSACTION_OFFSET="${PRODUCTION_REPLAY_TRANSACTION_OFFSET:-${TRANSACTION_OFFSET:-0}}"
 MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-3600}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
@@ -23,7 +25,7 @@ ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_T
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
 ASYNC_CALLBACK_PORT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_PORT:-${ASYNC_CALLBACK_PORT:-8099}}"
 ASYNC_CALLBACK_WAIT_TIMEOUT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_WAIT_TIMEOUT:-${ASYNC_CALLBACK_WAIT_TIMEOUT:-120}}"
-LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-async_only}}"
+LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
 LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
 LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
 TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
@@ -55,8 +57,19 @@ REPLAY_LOG="/tmp/fraud-data-local-replay.log"
 ASYNC_TRACKING_LOG="/tmp/fraud-data-local-async-decisions.ndjson"
 ASYNC_CALLBACK_LOG="/tmp/fraud-data-local-async-callbacks.ndjson"
 ASYNC_CALLBACK_SERVER_LOG="/tmp/fraud-data-local-callback-server.log"
+ASYNC_BACKLOG_BEFORE="/tmp/fraud-data-local-async-backlog-before.json"
+ASYNC_BACKLOG_AFTER="/tmp/fraud-data-local-async-backlog-after.json"
 CALLBACK_SERVER_PID=""
 AUTO_CALLBACK_SERVER=0
+START_DECISION_WORKER=0
+
+if [[ -z "$LIVE_DECISION_MODE" ]]; then
+  if [[ "$DECISION_MODE" == "async" ]]; then
+    LIVE_DECISION_MODE="async_only"
+  else
+    LIVE_DECISION_MODE="sync"
+  fi
+fi
 
 cleanup() {
   if [[ -n "$CALLBACK_SERVER_PID" ]]; then
@@ -73,9 +86,37 @@ require_command() {
 }
 
 compose() {
-  docker compose --project-directory "$WORKSPACE_DIR" \
-    --file "$WORKSPACE_DIR/docker-compose.yml" \
-    "$@"
+  local compose_args=(
+    --project-directory "$WORKSPACE_DIR"
+    --file "$WORKSPACE_DIR/docker-compose.yml"
+  )
+  if [[ -n "$ENV_FILE" ]]; then
+    compose_args+=(--env-file "$ENV_FILE")
+  fi
+  docker compose "${compose_args[@]}" "$@"
+}
+
+capture_async_backlog() {
+  local output_path="$1"
+  local label="$2"
+  local url="http://127.0.0.1:8082/v1/tenants/$TENANT_ID/async-decision-executions/status-summary"
+  if ! curl --fail --silent --show-error "$url" >"$output_path"; then
+    : >"$output_path"
+    printf 'warning: unable to read async decision backlog %s replay\n' "$label" >&2
+    return
+  fi
+  python3 - "$output_path" "$label" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+summary = payload.get("status_summary", {})
+print(
+    "Async decision backlog " + sys.argv[2] + " replay: "
+    + " ".join(f"{key}={summary.get(key, 0)}" for key in ("pending", "queued", "running", "completed", "failed"))
+)
+PY
 }
 
 normalize_multiplier() {
@@ -126,6 +167,11 @@ require_command curl
 require_command docker
 require_command python3
 
+if [[ -n "$ENV_FILE" && ! -f "$ENV_FILE" ]]; then
+  printf 'error: replay environment file does not exist: %s\n' "$ENV_FILE" >&2
+  exit 1
+fi
+
 if [[ -z "$TENANT_ID" ]]; then
   printf 'error: TENANT_ID is required; pass TENANT_ID=<existing-tenant-id> to make production-replay\n' >&2
   exit 1
@@ -148,6 +194,18 @@ if [[ "$TRANSACTIONS" != "all" && ! "$TRANSACTIONS" =~ ^[0-9]+$ ]]; then
 fi
 if [[ "$TRANSACTIONS" != "all" && "$TRANSACTIONS" -le 0 ]]; then
   printf 'error: TRANSACTIONS must be positive; got %s\n' "$TRANSACTIONS" >&2
+  exit 1
+fi
+if [[ ! "$TRANSACTION_OFFSET" =~ ^[0-9]+$ ]]; then
+  printf 'error: TRANSACTION_OFFSET must be zero or a positive integer; got %s\n' "$TRANSACTION_OFFSET" >&2
+  exit 1
+fi
+if [[ "$TRANSACTION_OFFSET" -gt 0 && "$TRANSACTIONS" == "all" ]]; then
+  printf 'error: TRANSACTION_OFFSET requires a numeric TRANSACTIONS value\n' >&2
+  exit 1
+fi
+if [[ "$TRANSACTION_OFFSET" -gt 0 && -n "$REPLAY_DURATION" ]]; then
+  printf 'error: TRANSACTION_OFFSET cannot be combined with DURATION, HOURS, DAYS, or WEEKS\n' >&2
   exit 1
 fi
 if [[ ! "$MULTIPLIER" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
@@ -210,6 +268,12 @@ if [[ "$LIVE_DECISION_MODE" != "sync" && "$LIVE_DECISION_MODE" != "async_only" ]
   printf 'error: LIVE_DECISION_MODE must be sync or async_only; got %s\n' "$LIVE_DECISION_MODE" >&2
   exit 1
 fi
+if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; then
+  printf 'warning: DECISION_MODE=sync is overridden by LIVE_DECISION_MODE=async_only; decision requests will be queued.\n' >&2
+fi
+if [[ "$DECISION_MODE" == "async" && "$LIVE_DECISION_MODE" == "sync" ]]; then
+  printf 'warning: DECISION_MODE=async still queues decisions even though LIVE_DECISION_MODE=sync.\n' >&2
+fi
 if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED" != "false" ]]; then
   printf 'error: LIVE_ASYNC_FALLBACK_ENABLED must be true or false; got %s\n' "$LIVE_ASYNC_FALLBACK_ENABLED" >&2
   exit 1
@@ -264,13 +328,20 @@ if [[ -n "$REPLAY_DURATION" ]]; then
   printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
     "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 else
-  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
-    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
+  printf 'Replay configuration: transactions=%s offset=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$TRANSACTIONS" "$TRANSACTION_OFFSET" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 fi
 printf 'Replay tuning: rule_eval=%s scenario_eval=%s aggregate_remote=%s aggregate_query=%s read_db_max_conns=%s\n' \
   "$RULE_EVALUATION_CONCURRENCY" "$SCENARIO_EVALUATION_CONCURRENCY" "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" "$READ_DATABASE_MAX_CONNS"
 printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
   "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
+if [[ -n "$ENV_FILE" ]]; then
+  printf 'Docker environment file: %s (service values are preserved unless explicitly overridden on the Make command line)\n' "$ENV_FILE"
+fi
+
+if [[ "$DECISION_MODE" == "async" || "$LIVE_DECISION_MODE" == "async_only" ]]; then
+  START_DECISION_WORKER=1
+fi
 
 if [[ "$ENABLE_SEPARATE_READ_POOL" == "true" && -z "$READ_DATABASE_URL" ]]; then
   READ_DATABASE_URL="postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable"
@@ -278,6 +349,10 @@ fi
 
 printf 'Preparing local fraud databases from existing images...\n'
 export LIVE_DECISION_MODE="$LIVE_DECISION_MODE"
+export DECISION_MODE="$DECISION_MODE"
+export TRANSACTION_OFFSET="$TRANSACTION_OFFSET"
+export EXPERIMENT_LABEL="$EXPERIMENT_LABEL"
+export ENABLE_SEPARATE_READ_POOL="$ENABLE_SEPARATE_READ_POOL"
 export LIVE_ASYNC_FALLBACK_ENABLED="$LIVE_ASYNC_FALLBACK_ENABLED"
 export LIVE_ASYNC_OBJECT_TYPES="$LIVE_ASYNC_OBJECT_TYPES"
 export TENANT_DATA_READ_MODE="$TENANT_DATA_READ_MODE"
@@ -318,9 +393,6 @@ SERVICES=(
   decision-engine-service
   data-model-worker
 )
-if [[ "$DECISION_MODE" == "async" ]]; then
-  SERVICES+=(decision-engine-worker)
-fi
 compose up -d --no-build "${SERVICES[@]}"
 
 wait_for_service "data-model-service" "http://127.0.0.1:8080/readyz"
@@ -334,6 +406,10 @@ fi
 
 if ! "$VENV_DIR/bin/python" -c 'import httpx, openpyxl' >/dev/null 2>&1; then
   "$VENV_DIR/bin/python" -m pip install -r "$SCRIPT_DIR/requirements.txt"
+fi
+
+if [[ "$START_DECISION_WORKER" == "1" ]]; then
+  capture_async_backlog "$ASYNC_BACKLOG_BEFORE" "before"
 fi
 
 if [[ "$DECISION_MODE" == "async" && -z "$ASYNC_CALLBACK_URL" ]]; then
@@ -350,6 +426,11 @@ if [[ "$DECISION_MODE" == "async" && -z "$ASYNC_CALLBACK_URL" ]]; then
   printf 'Async callback URL for Docker workers: %s\n' "$ASYNC_CALLBACK_URL"
 fi
 
+if [[ "$START_DECISION_WORKER" == "1" ]]; then
+  printf 'Starting the decision worker; any existing queued executions will continue processing.\n'
+  compose up -d --no-build decision-engine-worker
+fi
+
 (
   cd "$BACKEND_DIR"
   SAMPLE_ARGS=(
@@ -361,7 +442,7 @@ fi
   if [[ -n "$REPLAY_DURATION" ]]; then
     SAMPLE_ARGS+=(--duration "$REPLAY_DURATION")
   else
-    SAMPLE_ARGS+=(--transactions "$TRANSACTIONS")
+    SAMPLE_ARGS+=(--transactions "$TRANSACTIONS" --offset "$TRANSACTION_OFFSET")
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
 
@@ -442,7 +523,11 @@ if [[ -n "$REPLAY_DURATION" ]]; then
 elif [[ "$TRANSACTIONS" == "all" ]]; then
   printf 'Replaying all production-format transactions...\n'
 else
-  printf 'Replaying %s production-format transactions...\n' "$TRANSACTIONS"
+  if [[ "$TRANSACTION_OFFSET" -gt 0 ]]; then
+    printf 'Replaying the next %s production-format transactions after the first %s...\n' "$TRANSACTIONS" "$TRANSACTION_OFFSET"
+  else
+    printf 'Replaying %s production-format transactions...\n' "$TRANSACTIONS"
+  fi
 fi
 set +e
 (
@@ -483,7 +568,13 @@ from pathlib import Path
 run_dir = Path(sys.argv[1])
 metadata = {
     "experiment_label": os.getenv("EXPERIMENT_LABEL") or None,
+    "configuration": {
+        "env_file": os.getenv("PRODUCTION_REPLAY_ENV_FILE") or None,
+        "precedence": "make_command_line > env_file > process_environment > built_in_default",
+        "transaction_offset": int(os.getenv("TRANSACTION_OFFSET", "0")),
+    },
     "service_modes": {
+        "request_decision_mode": os.getenv("DECISION_MODE"),
         "live_decision_mode": os.getenv("LIVE_DECISION_MODE"),
         "live_async_fallback_enabled": os.getenv("LIVE_ASYNC_FALLBACK_ENABLED"),
         "live_async_object_types": os.getenv("LIVE_ASYNC_OBJECT_TYPES") or None,
@@ -501,6 +592,12 @@ metadata = {
 }
 (run_dir / "experiment-settings.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 PY
+
+if [[ "$START_DECISION_WORKER" == "1" ]]; then
+  capture_async_backlog "$ASYNC_BACKLOG_AFTER" "after"
+  [[ -s "$ASYNC_BACKLOG_BEFORE" ]] && cp "$ASYNC_BACKLOG_BEFORE" "$RUN_DIR/async-backlog-before.json"
+  [[ -s "$ASYNC_BACKLOG_AFTER" ]] && cp "$ASYNC_BACKLOG_AFTER" "$RUN_DIR/async-backlog-after.json"
+fi
 
 CALLBACK_REPORT_STATUS=0
 if [[ "$DECISION_MODE" == "async" && "$AUTO_CALLBACK_SERVER" == "1" ]]; then

@@ -4,10 +4,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENV_FILE="${PRODUCTION_REPLAY_ENV_FILE:-}"
 DATA_ROOT="${FRAUD_DATA_ROOT:-/Users/kwilson/Desktop/ITC/fraud_data}"
 SEED_DATA_ROOT="${PRODUCTION_REPLAY_SEED_DATA_ROOT:-${FRAUD_DATA_SEED_ROOT:-${DATA_ROOT%/}_seed}}"
 VENV_DIR="${PRODUCTION_REPLAY_VENV:-/tmp/fraud-production-replay-venv}"
 TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
+TRANSACTION_OFFSET="${PRODUCTION_REPLAY_TRANSACTION_OFFSET:-${TRANSACTION_OFFSET:-0}}"
 MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-360}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
@@ -20,7 +22,7 @@ REUSE_EXISTING_SEED="${PRODUCTION_REPLAY_REUSE_EXISTING_SEED:-${REUSE_EXISTING_S
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
-LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-async_only}}"
+LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
 LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
 TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
@@ -37,6 +39,24 @@ TENANT_NAME="${PRODUCTION_REPLAY_TENANT_NAME:-${TENANT_NAME:-EC2 Production Repl
 PUBLICATION_TIMEOUT="${PRODUCTION_REPLAY_PUBLICATION_TIMEOUT:-${PUBLICATION_TIMEOUT:-900}}"
 AUTH_TOKEN="${SERVICE_AUTH_TOKEN:-}"
 EXPERIMENT_LABEL="${PRODUCTION_REPLAY_EXPERIMENT_LABEL:-${EXPERIMENT_LABEL:-}}"
+
+if [[ -z "$LIVE_DECISION_MODE" ]]; then
+  if [[ "$DECISION_MODE" == "async" ]]; then
+    LIVE_DECISION_MODE="async_only"
+  else
+    LIVE_DECISION_MODE="sync"
+  fi
+fi
+
+export DECISION_MODE="$DECISION_MODE"
+export TRANSACTION_OFFSET="$TRANSACTION_OFFSET"
+export LIVE_DECISION_MODE="$LIVE_DECISION_MODE"
+export LIVE_ASYNC_FALLBACK_ENABLED="$LIVE_ASYNC_FALLBACK_ENABLED"
+export TENANT_DATA_READ_MODE="$TENANT_DATA_READ_MODE"
+export ENABLE_SEPARATE_READ_POOL="$ENABLE_SEPARATE_READ_POOL"
+export READ_DATABASE_MAX_CONNS="$READ_DATABASE_MAX_CONNS"
+export READ_DATABASE_MIN_CONNS="$READ_DATABASE_MIN_CONNS"
+export EXPERIMENT_LABEL="$EXPERIMENT_LABEL"
 
 BASE_URL="${BASE_URL%/}"
 DATA_MODEL_URL="${PRODUCTION_REPLAY_DATA_MODEL_URL:-${DATA_MODEL_URL:-}}"
@@ -125,6 +145,18 @@ if [[ "$TRANSACTIONS" != "all" && ! "$TRANSACTIONS" =~ ^[0-9]+$ ]]; then
 fi
 if [[ "$TRANSACTIONS" != "all" && "$TRANSACTIONS" -le 0 ]]; then
   printf 'error: TRANSACTIONS must be positive; got %s\n' "$TRANSACTIONS" >&2
+  exit 1
+fi
+if [[ ! "$TRANSACTION_OFFSET" =~ ^[0-9]+$ ]]; then
+  printf 'error: TRANSACTION_OFFSET must be zero or a positive integer; got %s\n' "$TRANSACTION_OFFSET" >&2
+  exit 1
+fi
+if [[ "$TRANSACTION_OFFSET" -gt 0 && "$TRANSACTIONS" == "all" ]]; then
+  printf 'error: TRANSACTION_OFFSET requires a numeric TRANSACTIONS value\n' >&2
+  exit 1
+fi
+if [[ "$TRANSACTION_OFFSET" -gt 0 && -n "$REPLAY_DURATION" ]]; then
+  printf 'error: TRANSACTION_OFFSET cannot be combined with DURATION, HOURS, DAYS, or WEEKS\n' >&2
   exit 1
 fi
 if [[ ! "$MULTIPLIER" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
@@ -216,8 +248,8 @@ if [[ -n "$REPLAY_DURATION" ]]; then
   printf 'Replay configuration: duration=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
     "$REPLAY_DURATION" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 else
-  printf 'Replay configuration: transactions=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
-    "$TRANSACTIONS" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
+  printf 'Replay configuration: transactions=%s offset=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
+    "$TRANSACTIONS" "$TRANSACTION_OFFSET" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 fi
 printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
   "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
@@ -246,7 +278,7 @@ fi
   if [[ -n "$REPLAY_DURATION" ]]; then
     SAMPLE_ARGS+=(--duration "$REPLAY_DURATION")
   else
-    SAMPLE_ARGS+=(--transactions "$TRANSACTIONS")
+    SAMPLE_ARGS+=(--transactions "$TRANSACTIONS" --offset "$TRANSACTION_OFFSET")
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
 
@@ -339,7 +371,11 @@ if [[ -n "$REPLAY_DURATION" ]]; then
 elif [[ "$TRANSACTIONS" == "all" ]]; then
   printf 'Replaying all production-format transactions...\n'
 else
-  printf 'Replaying %s production-format transactions...\n' "$TRANSACTIONS"
+  if [[ "$TRANSACTION_OFFSET" -gt 0 ]]; then
+    printf 'Replaying the next %s production-format transactions after the first %s...\n' "$TRANSACTIONS" "$TRANSACTION_OFFSET"
+  else
+    printf 'Replaying %s production-format transactions...\n' "$TRANSACTIONS"
+  fi
 fi
 
 set +e
@@ -388,7 +424,13 @@ from pathlib import Path
 run_dir = Path(sys.argv[1])
 metadata = {
     "experiment_label": os.getenv("EXPERIMENT_LABEL") or None,
+    "configuration": {
+        "env_file": os.getenv("PRODUCTION_REPLAY_ENV_FILE") or None,
+        "precedence": "make_command_line > env_file > process_environment > built_in_default",
+        "transaction_offset": int(os.getenv("TRANSACTION_OFFSET", "0")),
+    },
     "service_modes": {
+        "request_decision_mode": os.getenv("DECISION_MODE"),
         "live_decision_mode": os.getenv("LIVE_DECISION_MODE"),
         "live_async_fallback_enabled": os.getenv("LIVE_ASYNC_FALLBACK_ENABLED"),
         "tenant_data_read_mode": os.getenv("TENANT_DATA_READ_MODE"),

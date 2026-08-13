@@ -19,6 +19,17 @@ make production-replay TRANSACTIONS=all MULTIPLIER=360x
 make production-replay-async TRANSACTIONS=1000 MULTIPLIER=360x
 ```
 
+Docker and service settings may be placed in `.env`, or in another Make-compatible environment file selected with `ENV_FILE`. The replay wrapper passes that same file to Docker Compose and does not replace an explicitly configured service mode with a mode derived from the replay request. Keep run-specific inputs such as `TRANSACTIONS`, `MULTIPLIER`, `TENANT_ID`, and data paths on the `make` command line:
+
+```bash
+make production-replay-async \
+  ENV_FILE=/home/ubuntu/system.env \
+  TENANT_ID='<existing-replay-tenant>' \
+  DATA_ROOT=/home/ubuntu/fraud_data \
+  TRANSACTIONS=500000 \
+  MULTIPLIER=100
+```
+
 Every wrapper run now uses two transaction datasets in this order:
 
 1. It prepares the tenant, then batch-ingests every transaction under `SEED_DATA_ROOT` through the ingestion service. This phase does not submit any decision requests.
@@ -60,6 +71,35 @@ make production-replay \
 
 The resulting `seed-summary.json` uses `status: reused_existing`; `records` and `batches` are `null` because the harness deliberately avoids a potentially expensive full-table count. This mode confirms that seed data exists, but it does not claim the interrupted seed is complete.
 
+For an async run on top of an existing prepared tenant, the continuation target forces the async request mode and both reuse flags. It does not override `LIVE_DECISION_MODE` or other Docker/service settings from the selected environment file. It starts the decision worker, prints the tenant's async execution status before and after the replay, and stores those snapshots in the result directory:
+
+```bash
+make production-replay-continue-async \
+  ENV_FILE=/home/ubuntu/system.env \
+  TENANT_ID='<existing-replay-tenant>' \
+  DATA_ROOT=/home/ubuntu/fraud_data \
+  SEED_DATA_ROOT=/home/ubuntu/fraud_data_seed \
+  TRANSACTIONS=500000 \
+  MULTIPLIER=100
+```
+
+Existing queued executions are not deleted or recreated; the worker resumes them and processes newly accepted executions from the continuation run as queue capacity becomes available.
+
+To avoid replaying records already used by an earlier measured run, set `TRANSACTION_OFFSET` to the number of records previously selected. The offset is applied after globally ordering all six transaction streams by source timestamp. For example, this selects source positions 10,001 through 20,000:
+
+```bash
+make production-replay-continue-async \
+  ENV_FILE=.env \
+  TENANT_ID='e12add53-58ca-4769-b7d7-57720ab05e39' \
+  DATA_ROOT=/home/ubuntu/fraud_data \
+  SEED_DATA_ROOT=/home/ubuntu/fraud_data_seed \
+  TRANSACTION_OFFSET=10000 \
+  TRANSACTIONS=10000 \
+  MULTIPLIER=100
+```
+
+For later consecutive runs, increase the offset by the number selected in each successful earlier run. `TRANSACTION_OFFSET` is a run parameter and does not belong in the Docker `.env`. It requires a numeric `TRANSACTIONS` value and cannot be combined with `TRANSACTIONS=all` or a duration selector.
+
 You can replay a source-time window instead of choosing a transaction count:
 
 ```bash
@@ -73,19 +113,21 @@ When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ig
 
 `MULTIPLIER` also accepts a `*` suffix, for example `MULTIPLIER='360*'`. Quote it in your shell so it is not treated as a filename pattern.
 
-Replay and backfill runs should default to async decision execution. Both modes submit each event to `POST /v1/tenants/{tenant_id}/ingestion-events/record-ingested`; the request payload sets `mode` to `async` or `sync`. The CLI and shell wrappers default to `--decision-mode async`; use `--decision-mode sync` or `DECISION_MODE=sync` only for explicit comparison runs. For EC2, use:
+Both modes submit each event to `POST /v1/tenants/{tenant_id}/ingestion-events/record-ingested`; the request payload sets `mode` to `async` or `sync`. `production-replay` sends synchronous requests by default and the async targets send asynchronous requests. `LIVE_DECISION_MODE` remains an independent Docker/service setting: when it is present in the selected environment file, the wrapper preserves it. For EC2 async replay, use:
 
 ```bash
 make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x
 ```
 
-For replay and backfill incident posture, the local replay wrapper now also defaults the service-side decision posture to:
+When the selected environment file does not define the service settings, the local wrapper uses these async-oriented fallbacks for an async target:
 
 - `LIVE_DECISION_MODE=async_only`
 - `LIVE_ASYNC_FALLBACK_ENABLED=true`
 - `TENANT_DATA_READ_MODE=direct_db`
 
-Override those only for explicit comparison runs:
+Without an explicit environment-file value, the synchronous target falls back to `LIVE_DECISION_MODE=sync`.
+
+For an explicit synchronous comparison run:
 
 ```bash
 make production-replay TENANT_ID=<tenant-id> \
