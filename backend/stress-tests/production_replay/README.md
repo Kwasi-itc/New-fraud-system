@@ -85,6 +85,21 @@ make production-replay-continue-async \
 
 Existing queued executions are not deleted or recreated; the worker resumes them and processes newly accepted executions from the continuation run as queue capacity becomes available.
 
+For a synchronous continuation, use `production-replay-continue-sync`. It forces the sync request mode and both reuse flags while preserving Docker/service settings from the selected environment file. When `LIVE_DECISION_MODE=sync`, it stops the local decision worker before measuring so an old async backlog does not compete with the synchronous run:
+
+```bash
+make production-replay-continue-sync \
+  ENV_FILE=.env \
+  TENANT_ID='<existing-replay-tenant>' \
+  DATA_ROOT=/home/ubuntu/fraud_data \
+  SEED_DATA_ROOT=/home/ubuntu/fraud_data_seed \
+  TRANSACTION_OFFSET=10000 \
+  TRANSACTIONS=10000 \
+  MULTIPLIER=100
+```
+
+`LIVE_DECISION_MODE` must resolve to `sync` from the selected Docker environment or the sync fallback, and `LIVE_ASYNC_OBJECT_TYPES` must not include `transactions`. The wrapper refuses conflicting settings, preventing another mislabeled sync result.
+
 To avoid replaying records already used by an earlier measured run, set `TRANSACTION_OFFSET` to the number of records previously selected. The offset is applied after globally ordering all six transaction streams by source timestamp. For example, this selects source positions 10,001 through 20,000:
 
 ```bash

@@ -4,7 +4,7 @@ include $(ENV_FILE)
 endif
 REPLAY_ENV_FILE := $(if $(strip $(ENV_FILE)),$(abspath $(ENV_FILE)),)
 
-.PHONY: production-replay replay-production production-replay-async production-replay-continue-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async production-replay-matrix callback-server create-decisions create-async-decisions consolidate-postgres-db
+.PHONY: production-replay replay-production production-replay-async production-replay-continue-sync production-replay-continue-async production-replay-ec2 replay-production-ec2 production-replay-ec2-async production-replay-matrix callback-server create-decisions create-async-decisions consolidate-postgres-db
 
 TRANSACTIONS ?= 1000
 TRANSACTION_OFFSET ?= 0
@@ -117,6 +117,11 @@ replay-production: production-replay
 production-replay-async: DECISION_MODE=async
 production-replay-async: production-replay
 
+production-replay-continue-sync: override DECISION_MODE=sync
+production-replay-continue-sync: override REUSE_EXISTING_SETUP=true
+production-replay-continue-sync: override REUSE_EXISTING_SEED=true
+production-replay-continue-sync: production-replay
+
 production-replay-continue-async: override DECISION_MODE=async
 production-replay-continue-async: override REUSE_EXISTING_SETUP=true
 production-replay-continue-async: override REUSE_EXISTING_SEED=true
@@ -142,6 +147,7 @@ production-replay-ec2:
 	PRODUCTION_REPLAY_ASYNC_CALLBACK_URL="$(ASYNC_CALLBACK_URL)" \
 	PRODUCTION_REPLAY_LIVE_DECISION_MODE="$(LIVE_DECISION_MODE)" \
 	PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED="$(LIVE_ASYNC_FALLBACK_ENABLED)" \
+	PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES="$(LIVE_ASYNC_OBJECT_TYPES)" \
 	PRODUCTION_REPLAY_TENANT_DATA_READ_MODE="$(TENANT_DATA_READ_MODE)" \
 	PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL="$(ENABLE_SEPARATE_READ_POOL)" \
 	PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS="$(READ_DATABASE_MAX_CONNS)" \

@@ -24,6 +24,7 @@ ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_T
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
 LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
 LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
+LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
 TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
 READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
@@ -52,6 +53,7 @@ export DECISION_MODE="$DECISION_MODE"
 export TRANSACTION_OFFSET="$TRANSACTION_OFFSET"
 export LIVE_DECISION_MODE="$LIVE_DECISION_MODE"
 export LIVE_ASYNC_FALLBACK_ENABLED="$LIVE_ASYNC_FALLBACK_ENABLED"
+export LIVE_ASYNC_OBJECT_TYPES="$LIVE_ASYNC_OBJECT_TYPES"
 export TENANT_DATA_READ_MODE="$TENANT_DATA_READ_MODE"
 export ENABLE_SEPARATE_READ_POOL="$ENABLE_SEPARATE_READ_POOL"
 export READ_DATABASE_MAX_CONNS="$READ_DATABASE_MAX_CONNS"
@@ -209,6 +211,18 @@ if [[ ! "$ASYNC_WAIT_TIMEOUT_MS" =~ ^[0-9]+$ ]]; then
 fi
 if [[ "$LIVE_DECISION_MODE" != "sync" && "$LIVE_DECISION_MODE" != "async_only" ]]; then
   printf 'error: LIVE_DECISION_MODE must be sync or async_only; got %s\n' "$LIVE_DECISION_MODE" >&2
+  exit 1
+fi
+if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; then
+  printf 'error: refusing a mislabeled sync replay because LIVE_DECISION_MODE=async_only would queue the decisions.\n' >&2
+  printf 'configure the remote decision service with LIVE_DECISION_MODE=sync for a real synchronous run.\n' >&2
+  exit 1
+fi
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${LIVE_ASYNC_OBJECT_TYPES,,},"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES//[[:space:]]/}"
+if [[ "$DECISION_MODE" == "sync" && "$NORMALIZED_LIVE_ASYNC_OBJECT_TYPES" == *",transactions,"* ]]; then
+  printf 'error: refusing a mislabeled sync replay because LIVE_ASYNC_OBJECT_TYPES includes transactions.\n' >&2
+  printf 'remove transactions from LIVE_ASYNC_OBJECT_TYPES in the remote decision service configuration.\n' >&2
   exit 1
 fi
 if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED" != "false" ]]; then
@@ -433,6 +447,7 @@ metadata = {
         "request_decision_mode": os.getenv("DECISION_MODE"),
         "live_decision_mode": os.getenv("LIVE_DECISION_MODE"),
         "live_async_fallback_enabled": os.getenv("LIVE_ASYNC_FALLBACK_ENABLED"),
+        "live_async_object_types": os.getenv("LIVE_ASYNC_OBJECT_TYPES") or None,
         "tenant_data_read_mode": os.getenv("TENANT_DATA_READ_MODE"),
     },
     "ingestion_read_pool": {

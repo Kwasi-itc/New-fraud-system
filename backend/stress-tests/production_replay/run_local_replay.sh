@@ -269,7 +269,16 @@ if [[ "$LIVE_DECISION_MODE" != "sync" && "$LIVE_DECISION_MODE" != "async_only" ]
   exit 1
 fi
 if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; then
-  printf 'warning: DECISION_MODE=sync is overridden by LIVE_DECISION_MODE=async_only; decision requests will be queued.\n' >&2
+  printf 'error: refusing a mislabeled sync replay because LIVE_DECISION_MODE=async_only would queue the decisions.\n' >&2
+  printf 'set LIVE_DECISION_MODE=sync in the selected Docker environment file for a real synchronous run.\n' >&2
+  exit 1
+fi
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${LIVE_ASYNC_OBJECT_TYPES,,},"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES//[[:space:]]/}"
+if [[ "$DECISION_MODE" == "sync" && "$NORMALIZED_LIVE_ASYNC_OBJECT_TYPES" == *",transactions,"* ]]; then
+  printf 'error: refusing a mislabeled sync replay because LIVE_ASYNC_OBJECT_TYPES includes transactions.\n' >&2
+  printf 'remove transactions from LIVE_ASYNC_OBJECT_TYPES in the selected Docker environment file.\n' >&2
+  exit 1
 fi
 if [[ "$DECISION_MODE" == "async" && "$LIVE_DECISION_MODE" == "sync" ]]; then
   printf 'warning: DECISION_MODE=async still queues decisions even though LIVE_DECISION_MODE=sync.\n' >&2
@@ -387,6 +396,10 @@ compose run --rm decision-engine-migrate
 compose run --rm screening-migrate
 
 printf 'Starting local fraud services from existing images...\n'
+if [[ "$START_DECISION_WORKER" == "0" ]]; then
+  printf 'Stopping the decision worker so queued async work does not distort the synchronous replay...\n'
+  compose stop decision-engine-worker >/dev/null 2>&1 || true
+fi
 SERVICES=(
   data-model-service
   ingestion-service
