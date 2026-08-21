@@ -20,4 +20,3 @@ func NewSchemaChangeService(repository ports.SchemaChangeRepository) SchemaChang
 func (s SchemaChangeService) List(ctx context.Context, tenantID uuid.UUID) ([]datamodel.SchemaChange, error) {
 	return s.repository.ListByTenant(ctx, tenantID)
 }
-

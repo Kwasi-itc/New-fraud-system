@@ -3,6 +3,7 @@ module github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service
 go 1.25.0
 
 require (
+	github.com/Kwasi-itc/New-fraud-system/backend/event-store-service v0.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
@@ -11,6 +12,8 @@ require (
 	github.com/riverqueue/river v0.31.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
 )
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/event-store-service => ../event-store-service
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

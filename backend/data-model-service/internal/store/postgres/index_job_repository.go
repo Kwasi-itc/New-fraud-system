@@ -121,6 +121,18 @@ func (r IndexJobRepository) MarkFailed(ctx context.Context, id uuid.UUID, messag
 	return nil
 }
 
+func (r IndexJobRepository) MarkCancelled(ctx context.Context, id uuid.UUID, message string, completedAt time.Time) error {
+	query := `
+		UPDATE core.index_jobs
+		SET status = $2, error_message = $3, completed_at = $4
+		WHERE id = $1
+	`
+	if _, err := r.db.Exec(ctx, query, id, datamodel.IndexJobStatusCancelled, message, completedAt); err != nil {
+		return fmt.Errorf("mark index job cancelled: %w", err)
+	}
+	return nil
+}
+
 func (r IndexJobRepository) MarkPendingRetry(ctx context.Context, id uuid.UUID, message string) error {
 	query := `
 		UPDATE core.index_jobs

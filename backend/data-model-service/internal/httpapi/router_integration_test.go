@@ -354,6 +354,79 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 	}
 }
 
+func TestRouterIntegrationLocksEventSchemaOnFirstIngestContract(t *testing.T) {
+	databaseURL := routerIntegrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := routerIntegrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
+	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+
+	tenantRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants", map[string]any{"name": "Event Lock Tenant"})
+	if tenantRec.Code != http.StatusCreated {
+		t.Fatalf("create tenant: %d %s", tenantRec.Code, tenantRec.Body.String())
+	}
+	var tenantBody struct {
+		Tenant struct {
+			ID string `json:"id"`
+		} `json:"tenant"`
+	}
+	mustUnmarshal(t, tenantRec.Body.Bytes(), &tenantBody)
+	if rec := doRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantBody.Tenant.ID+"/provision", nil, ""); rec.Code != http.StatusOK {
+		t.Fatalf("provision tenant: %d %s", rec.Code, rec.Body.String())
+	}
+
+	tableRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantBody.Tenant.ID+"/tables", map[string]any{
+		"name": "transactions", "storage_class": "event", "event_time_field": "date",
+	})
+	if tableRec.Code != http.StatusCreated {
+		t.Fatalf("create event table: %d %s", tableRec.Code, tableRec.Body.String())
+	}
+	var tableBody struct {
+		Table struct {
+			ID string `json:"id"`
+		} `json:"table"`
+	}
+	mustUnmarshal(t, tableRec.Body.Bytes(), &tableBody)
+	for _, field := range []map[string]any{
+		{"name": "date", "data_type": "timestamp", "nullable": false},
+		{"name": "amount", "data_type": "float", "nullable": false},
+	} {
+		rec := doJSONRequest(t, router, http.MethodPost, "/v1/tables/"+tableBody.Table.ID+"/fields", field)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("create event field: %d %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	modelRec := doRequest(t, router, http.MethodGet, "/v1/tenants/"+tenantBody.Tenant.ID+"/data-model", nil, "")
+	if modelRec.Code != http.StatusOK {
+		t.Fatalf("get data model: %d %s", modelRec.Code, modelRec.Body.String())
+	}
+	var modelBody struct {
+		DataModel struct {
+			Tables map[string]struct {
+				EventSchemaRevision string `json:"event_schema_revision"`
+			} `json:"tables"`
+		} `json:"data_model"`
+	}
+	mustUnmarshal(t, modelRec.Body.Bytes(), &modelBody)
+	schemaRevision := modelBody.DataModel.Tables["transactions"].EventSchemaRevision
+	if schemaRevision == "" {
+		t.Fatal("published event schema revision is empty")
+	}
+	lockRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants/"+tenantBody.Tenant.ID+"/tables/"+tableBody.Table.ID+"/event-schema-lock", map[string]any{"schema_revision": schemaRevision})
+	if lockRec.Code != http.StatusOK {
+		t.Fatalf("lock event schema: %d %s", lockRec.Code, lockRec.Body.String())
+	}
+
+	mutationRec := doJSONRequest(t, router, http.MethodPost, "/v1/tables/"+tableBody.Table.ID+"/fields", map[string]any{
+		"name": "merchant_id", "data_type": "string", "nullable": true,
+	})
+	if mutationRec.Code != http.StatusConflict {
+		t.Fatalf("locked event schema mutation: got %d, want 409: %s", mutationRec.Code, mutationRec.Body.String())
+	}
+}
+
 func TestRouterIntegrationPortableDataModelExportImportRoundTrip(t *testing.T) {
 	databaseURL := routerIntegrationDatabaseURL(t)
 	ctx := context.Background()

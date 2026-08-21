@@ -4,6 +4,7 @@ import argparse
 import csv
 import heapq
 import json
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -105,6 +106,7 @@ def create_local_sample(
     reference_data["staff_csv"] = str(data_root / "data/lists/fraud-staff.csv")
     reference_data["merchant_watchlist_xlsx"] = str(data_root / "data/lists/merchants.xlsx")
     manifest["transaction_streams"] = sample_streams
+    _stabilize_sample_mtimes(output_dir, stream_files)
     output_manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return total
 
@@ -193,6 +195,7 @@ def create_duration_sample(
     reference_data["staff_csv"] = str(data_root / "data/lists/fraud-staff.csv")
     reference_data["merchant_watchlist_xlsx"] = str(data_root / "data/lists/merchants.xlsx")
     manifest["transaction_streams"] = sample_streams
+    _stabilize_sample_mtimes(output_dir, stream_files)
     output_manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return total
 
@@ -221,6 +224,23 @@ def _stream_files(data_root: Path) -> dict[str, list[Path]]:
             raise ValueError(f"transaction stream {stream_id!r} did not match any files below {stream_root}")
         result[stream_id] = files
     return result
+
+
+def _stabilize_sample_mtimes(output_dir: Path, stream_files: dict[str, list[Path]]) -> None:
+    """Make a regenerated deterministic sample retain a stable fingerprint.
+
+    ReplayManifest fingerprints include file size and modification time. A
+    generated sample therefore uses the newest source-file timestamp instead
+    of its creation time. Rebuilding the same selection from unchanged source
+    files then produces the same fingerprint, while normal source-file changes
+    still invalidate it.
+    """
+    for stream_id, source_paths in stream_files.items():
+        output_path = output_dir / f"{stream_id}.csv"
+        if not output_path.is_file() or not source_paths:
+            continue
+        source_mtime_ns = max(path.stat().st_mtime_ns for path in source_paths)
+        os.utime(output_path, ns=(source_mtime_ns, source_mtime_ns))
 
 
 def _copy_global_rows(

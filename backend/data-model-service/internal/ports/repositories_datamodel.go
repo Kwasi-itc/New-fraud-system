@@ -17,6 +17,10 @@ type TableRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
+type EventSchemaRepository interface {
+	Lock(ctx context.Context, tenantID, tableID uuid.UUID, expectedRevision string, lockedAt time.Time) (datamodel.Table, error)
+}
+
 type FieldRepository interface {
 	Create(ctx context.Context, field datamodel.Field) error
 	GetByID(ctx context.Context, id uuid.UUID) (datamodel.Field, error)
@@ -81,6 +85,7 @@ type IndexJobRepository interface {
 	StartAttempt(ctx context.Context, id uuid.UUID, startedAt time.Time) (datamodel.IndexJob, error)
 	MarkApplied(ctx context.Context, id uuid.UUID, completedAt time.Time) error
 	MarkFailed(ctx context.Context, id uuid.UUID, message string, completedAt time.Time) error
+	MarkCancelled(ctx context.Context, id uuid.UUID, message string, completedAt time.Time) error
 	MarkPendingRetry(ctx context.Context, id uuid.UUID, message string) error
 	Retry(ctx context.Context, id uuid.UUID, scheduledAt time.Time) error
 }

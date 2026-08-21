@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -348,7 +349,7 @@ func (s DecisionService) EvaluateScenario(
 	defer func() {
 		s.evaluationMetrics.recordSingle(time.Since(startedAt), result.Triggered, err)
 	}()
-	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), asteval.NewAggregateResultCache(), s.clock.Now())
+	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), asteval.NewAggregateResultCache(), nil, s.clock.Now())
 }
 
 func (s DecisionService) evaluateScenario(
@@ -357,6 +358,7 @@ func (s DecisionService) evaluateScenario(
 	req DecisionEvaluationRequest,
 	evalCache *asteval.EvaluationCache,
 	aggregateCache *asteval.AggregateResultCache,
+	aggregateBatcher asteval.AggregateBatcher,
 	evaluationNow time.Time,
 ) (result DecisionEvaluationResult, err error) {
 	timingStartedAt := time.Now()
@@ -448,6 +450,7 @@ func (s DecisionService) evaluateScenario(
 		AggregateRemoteConcurrency:  s.aggregateRemoteConcurrency,
 		EvalCache:                   evalCache,
 		AggregateResultCache:        aggregateCache,
+		AggregateBatcher:            aggregateBatcher,
 		RelatedPathCache:            asteval.NewRelatedPathCache(),
 	}
 	currentStage = "trigger_eval"
@@ -1792,10 +1795,15 @@ func cloneTenantModel(item ports.TenantModel) ports.TenantModel {
 	}
 	for name, table := range item.Tables {
 		clonedTable := ports.TenantModelTable{
-			ID:            table.ID,
-			Name:          table.Name,
-			Fields:        make(map[string]ports.TenantModelField, len(table.Fields)),
-			LinksToSingle: make(map[string]ports.TenantModelLink, len(table.LinksToSingle)),
+			ID:                  table.ID,
+			Name:                table.Name,
+			StorageClass:        table.StorageClass,
+			EventTimeField:      table.EventTimeField,
+			EventSchemaRevision: table.EventSchemaRevision,
+			StorageCutoverAt:    cloneTimePointer(table.StorageCutoverAt),
+			LegacyReadUntil:     cloneTimePointer(table.LegacyReadUntil),
+			Fields:              make(map[string]ports.TenantModelField, len(table.Fields)),
+			LinksToSingle:       make(map[string]ports.TenantModelLink, len(table.LinksToSingle)),
 		}
 		for fieldName, field := range table.Fields {
 			clonedTable.Fields[fieldName] = field
@@ -1806,6 +1814,14 @@ func cloneTenantModel(item ports.TenantModel) ports.TenantModel {
 		out.Tables[name] = clonedTable
 	}
 	return out
+}
+
+func cloneTimePointer(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
 
 func cloneWorkflowRules(items []workflow.Rule) []workflow.Rule {
@@ -2078,15 +2094,20 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	}
 	evalCache := asteval.NewEvaluationCache()
 	aggregateCache := asteval.NewAggregateResultCache()
-	evaluationNow := s.clock.Now()
+	model, err := s.getTenantModel(ctx, tenantID)
+	if err != nil {
+		return MultiScenarioEvaluationResult{}, err
+	}
+	evaluationNow := evaluationTimeForRequest(req, model, s.clock.Now())
 
 	group, groupCtx := errgroup.WithContext(ctx)
+	aggregateBatcher := newRequestAggregateBatcher(groupCtx, tenantID, s.tenantDataReader, model, s.aggregateRemoteConcurrency)
 	group.SetLimit(resolveScenarioEvaluationConcurrency(s.scenarioEvaluationConcurrency, len(scenarios)))
 	for i, scn := range scenarios {
 		i := i
 		scn := scn
 		group.Go(func() error {
-			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, evaluationNow)
+			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, aggregateBatcher, evaluationNow)
 			if err != nil {
 				return err
 			}
@@ -2112,6 +2133,28 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	}
 	result = results
 	return results, nil
+}
+
+func evaluationTimeForRequest(req DecisionEvaluationRequest, model ports.TenantModel, fallback time.Time) time.Time {
+	table, ok := model.Tables[req.ObjectType]
+	if !ok || table.StorageClass != "event" || strings.TrimSpace(table.EventTimeField) == "" {
+		return fallback
+	}
+	value, ok := req.Fields[table.EventTimeField]
+	if !ok || value == nil {
+		return fallback
+	}
+	switch typed := value.(type) {
+	case time.Time:
+		if !typed.IsZero() {
+			return typed
+		}
+	case string:
+		if parsed, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(typed)); err == nil {
+			return parsed
+		}
+	}
+	return fallback
 }
 
 const defaultScenarioEvaluationConcurrency = 4

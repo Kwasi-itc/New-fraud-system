@@ -35,6 +35,22 @@ Every wrapper run now uses two transaction datasets in this order:
 1. It prepares the tenant, then batch-ingests every transaction under `SEED_DATA_ROOT` through the ingestion service. This phase does not submit any decision requests.
 2. Only after the seed completes successfully, it replays the requested `TRANSACTIONS` or source-time window from `DATA_ROOT`, including the normal decision request for each measured transaction.
 
+For an empty-database baseline with no historical transaction seed, set `PRESEED=false`. When `REUSE_EXISTING_SETUP=false` and `TENANT_ID` is omitted, the harness creates a fresh tenant and prints its generated ID. Reference records and managed scenarios are still prepared, but no transaction from `SEED_DATA_ROOT` is read or ingested:
+
+```bash
+make production-replay \
+  ENV_FILE=.env \
+  PRESEED=false \
+  REUSE_EXISTING_SETUP=false \
+  REUSE_EXISTING_SEED=false \
+  DATA_ROOT=/Users/kwilson/Desktop/ITC/fraud_data \
+  TRANSACTIONS=10000 \
+  MULTIPLIER=1 \
+  DECISION_MODE=sync
+```
+
+The resulting `seed-summary.json` uses `status: skipped` and reports zero seed records and writes. `PRESEED=false` cannot be combined with seed reuse or seed resume.
+
 `SEED_DATA_ROOT` defaults to `$(DATA_ROOT)_seed`. For example, `DATA_ROOT=/home/ubuntu/fraud_data` automatically uses `/home/ubuntu/fraud_data_seed` for history and `/home/ubuntu/fraud_data` for the measured replay. Set it explicitly when the directories are elsewhere:
 
 ```bash
@@ -45,18 +61,21 @@ make production-replay \
   MULTIPLIER=100
 ```
 
-The seed phase defaults to batches of 500 with 10 concurrent batch requests and a 300-second request timeout. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT`, `SEED_PROGRESS_EVERY`, and `SEED_REQUEST_TIMEOUT` control its concurrency, progress reporting, and per-request timeout.
+The seed phase defaults to batches of 500 with 4 concurrent batch requests and a 900-second request timeout. The local wrapper also starts `ingestion-worker` so deferred ingestion and CSV jobs have a consumer during the seed and measured replay. Batch seed requests themselves still execute on `ingestion-service`; lowering their concurrency prevents long-running database checkpoints from causing a large group of requests to hit the timeout together. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT`, `SEED_PROGRESS_EVERY`, and `SEED_REQUEST_TIMEOUT` control its concurrency, progress reporting, and per-request timeout.
 
-If setup completed but the seed was interrupted, rerun with the same tenant and batch size using `REUSE_EXISTING_SETUP=true`. This performs read-only verification of the existing data model and live replay scenarios instead of trying to recreate them. Keeping the same batch size preserves the original deterministic batch idempotency keys:
+If setup completed but the seed was interrupted, rerun with the same tenant and batch size using `REUSE_EXISTING_SETUP=true` and `RESUME_SEED=true`. Setup is verified without being recreated. The seed source is scanned in its original deterministic order, and ingestion idempotency keys make already completed batches read-only replays while unfinished batches are inserted. Keeping the same batch size is required because it preserves those original batch keys:
 
 ```bash
 make production-replay \
   TENANT_ID='<existing-replay-tenant>' \
   REUSE_EXISTING_SETUP=true \
+  RESUME_SEED=true \
   SEED_BATCH_SIZE=500 \
-  SEED_MAX_IN_FLIGHT=1 \
-  SEED_REQUEST_TIMEOUT=300
+  SEED_MAX_IN_FLIGHT=4 \
+  SEED_REQUEST_TIMEOUT=900
 ```
+
+Resume progress and `seed-summary.json` report `replayed_records` for records that were already safely committed and `inserted_records` for records added by the resumed process. `RESUME_SEED=true` cannot be combined with `REUSE_EXISTING_SEED=true`, because the latter intentionally skips all seed writes.
 
 To stop seeding and test against whatever historical data is already present, set both reuse flags. The harness verifies the existing setup and looks up the first expected seed transaction by its indexed object ID, performs no setup or seed mutations, and proceeds to the measured replay:
 
@@ -84,6 +103,23 @@ make production-replay-continue-async \
 ```
 
 Existing queued executions are not deleted or recreated; the worker resumes them and processes newly accepted executions from the continuation run as queue capacity becomes available.
+
+To resume an interrupted measured replay in the same run directory, pass its
+checkpoint together with the existing-setup and existing-seed safeguards. The
+checkpoint validates the tenant, source fingerprint, multiplier, and decision
+mode before any replay request is sent:
+
+```bash
+make production-replay-continue-sync \
+  REPLAY_RESUME_FROM=backend/stress-tests/production-replay-runs/replay-<run-id>/checkpoint.json \
+  TENANT_ID='<tenant-id>' \
+  TRANSACTIONS=10000 \
+  MULTIPLIER=1
+```
+
+Locally generated transaction samples inherit stable timestamps from their
+source CSV files, so regenerating an unchanged selection preserves its source
+fingerprint across interrupted runs.
 
 For a synchronous continuation, use `production-replay-continue-sync`. It forces the sync request mode and both reuse flags while preserving Docker/service settings from the selected environment file. When `LIVE_DECISION_MODE=sync`, it stops the local decision worker before measuring so an old async backlog does not compete with the synchronous run:
 
@@ -138,7 +174,7 @@ When the selected environment file does not define the service settings, the loc
 
 - `LIVE_DECISION_MODE=async_only`
 - `LIVE_ASYNC_FALLBACK_ENABLED=true`
-- `TENANT_DATA_READ_MODE=direct_db`
+- `TENANT_DATA_READ_MODE=ingestion_http`
 
 Without an explicit environment-file value, the synchronous target falls back to `LIVE_DECISION_MODE=sync`.
 
@@ -174,7 +210,7 @@ You can still run the wrapper directly:
 ./backend/stress-tests/production_replay/run_local_replay.sh
 ```
 
-This starts the required Docker services from existing images using `--no-build`, prepares its Python environment and tenant, loads reference data from `DATA_ROOT`, batch-ingests all historical transactions from `SEED_DATA_ROOT` without decisions, rebuilds the frontend with the replay tenant ID, and then replays the configured number of production-format transactions from `DATA_ROOT` across all six streams. It prints compact seed, ingestion, and decision summaries. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
+This starts the required Docker services from existing images using `--no-build`, prepares its Python environment and tenant, loads reference data from `DATA_ROOT`, optionally batch-ingests historical transactions from `SEED_DATA_ROOT` without decisions, rebuilds the frontend with the replay tenant ID, and then replays the configured number of production-format transactions from `DATA_ROOT` across all six streams. It prints compact seed, ingestion, and decision summaries. The harness uses the base Compose file directly and relies on the system-level single `fraud` database configuration; it no longer applies replay-specific database overrides. The command leaves Docker, the frontend, and the local tenant running for inspection. If a required backend Docker image does not exist, it fails instead of building it.
 
 ## Safety Model
 
@@ -183,6 +219,7 @@ This starts the required Docker services from existing images using `--no-build`
 - `setup --reuse-existing` only reads and verifies the existing tenant, transaction model, and live replay scenarios; it does not recreate setup resources.
 - `seed` only sends ingestion requests when `--execute` and `--tenant-id` are present. It uses deterministic idempotency keys and never calls the decision endpoint.
 - `seed --reuse-existing` verifies one expected historical transaction using its indexed object ID and performs no seed writes.
+- `seed --skip` records an intentionally skipped seed with zero writes and does not contact the ingestion service.
 - `run` only sends events when `--execute`, `--tenant-id`, and a positive `--multiplier` are all present.
 - Replay artifacts intentionally include normalized request bodies for successful calls and complete service response bodies for successful and failed calls; treat the replay output directory as sensitive data.
 - Ingestion retries reuse one deterministic idempotency key. Decision callbacks are not retried.
@@ -249,9 +286,8 @@ The default matrix covers:
 - `LIVE_DECISION_MODE=async_only` replay posture
 - `LIVE_ASYNC_FALLBACK_ENABLED=true`
 - `TENANT_DATA_READ_MODE=ingestion_http`
-- `TENANT_DATA_READ_MODE=direct_db`
-- shared write/read DB pool
-- separate read pool enabled in ingestion-service
+- synchronous event writes to ClickHouse
+- bounded event aggregates through ingestion-service
 
 Each run writes:
 
@@ -266,13 +302,21 @@ The matrix artifacts are written below:
 stress-tests/production-replay-matrix-runs/
 ```
 
-For local compose-backed runs, separate read-pool comparison is implemented by setting:
+For operational-table comparison runs, a separate PostgreSQL read pool can still be configured with:
 
 - `READ_DATABASE_URL`
 - `READ_DATABASE_MAX_CONNS`
 - `READ_DATABASE_MIN_CONNS`
 
-When `ENABLE_SEPARATE_READ_POOL=true` and `READ_DATABASE_URL` is unset, the wrapper reuses the same Postgres URL as the write pool but still creates a distinct read pool so contention can be capped independently.
+Production replay transactions use `storage_class=event`. Fresh setup explicitly
+selects `account_ref` and `merchant_id` for ClickHouse projections because the
+managed scenarios commonly constrain history by those fields. Reused setup must
+already have the same projection choices; setup will not retrofit an event table
+after ingestion has locked its schema. Transactions are always routed through
+ingestion-service to ClickHouse, including when
+`TENANT_DATA_READ_MODE=direct_db`; that mode remains direct only for operational
+PostgreSQL tables. A separate PostgreSQL read pool does not affect transaction
+aggregates on this path.
 
 For remote runs, the wrapper records the requested service-mode assumptions in `experiment-settings.json`, but it does not reconfigure the remote services itself.
 

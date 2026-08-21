@@ -22,7 +22,9 @@ Current implementation status:
   - `GET /v1/upload-logs/:uploadLogId`
   - payload validation against the published model contract
   - patch semantics for partial updates
-  - direct tenant-schema upserts
+  - direct PostgreSQL tenant-schema upserts for operational tables
+  - synchronous ClickHouse writes for append-only event tables
+  - no PostgreSQL rows for successful single-event writes; keyed event batches retain one request-level receipt rather than one row per event
   - ingestion audit persistence
   - durable outbox event persistence
   - idempotent response replay for repeated successful requests
@@ -61,7 +63,7 @@ The current architecture decisions for this service are:
 
 - `data-model-service` is the sole source of the published ingestion contract
 - the published contract must be versioned with a top-level `revision_id`
-- `ingestion-service` writes directly into tenant schemas managed by `data-model-service`
+- `ingestion-service` routes operational tables to tenant PostgreSQL schemas and writes event tables through the shared ClickHouse repository module
 - monitoring and scoring should preserve Marble-compatible behavior
 - monitoring and scoring handoff should be implemented through events or an outbox pattern rather than tight in-process coupling
 
@@ -115,7 +117,7 @@ The current webhook subsystem is outbound delivery only. It is not the ingestion
 - service-to-service auth
 - read-only dependency on `data-model-service`
 - version-pinned writes against published schema revisions
-- PostgreSQL-backed metadata for upload logs, audits, idempotency keys, and outbox events
+- PostgreSQL-backed metadata for upload logs, operational audits/outbox events, and optional request-level idempotency keys
 - tenant data writer abstraction
 - synchronous ingestion endpoints
 - batch ingestion endpoints
@@ -221,22 +223,28 @@ Expected upstream contract from `data-model-service`:
 Current idempotency behavior:
 
 - optional `Idempotency-Key` request header
-- duplicate key with identical payload replays the original successful response
-- duplicate key with different payload is rejected as key reuse
-- replayed results include `replayed: true`
+- operational writes and event batches use the key to replay an identical successful request and reject conflicting reuse
+- a keyed event batch stores one PostgreSQL receipt for the complete batch, never one row per event
+- single event writes always bypass PostgreSQL and do not report synchronous replay state, even if the header is present
+- exact event retries use stable event IDs so ClickHouse can collapse duplicate physical rows during `ReplacingMergeTree` compaction
+- before the first event write, ingestion atomically locks the event table's published `event_schema_revision`
+- event writes pass the complete typed table contract to the shared repository, which writes every active model field to a physical ClickHouse column rather than a JSON payload
 
 ## Aggregate Query Support
 
-`ingestion-service` now exposes a tenant-scoped aggregate endpoint used by `decision-engine-service` aggregate pushdown:
+`ingestion-service` retains a tenant-scoped aggregate endpoint for compatibility:
 
 - `POST /v1/tenants/:tenantId/query/aggregate`
 
 Current behavior:
 
+- the decision engine does not use this endpoint for event aggregates; it imports the shared ClickHouse repository directly
+
 - validates object type and field names against the published tenant model
 - accepts grouped filter trees with `and`, `or`, and `not`
-- translates supported predicates into parameterized SQL
-- executes the aggregate inside the tenant schema and returns only the aggregate result
+- translates supported predicates into typed storage predicates
+- executes operational aggregates in PostgreSQL and event aggregates directly against typed ClickHouse columns
+- returns only the aggregate result
 
 Current supported aggregates:
 

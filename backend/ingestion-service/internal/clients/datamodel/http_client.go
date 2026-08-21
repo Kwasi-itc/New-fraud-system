@@ -1,9 +1,11 @@
 package datamodel
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -81,31 +83,65 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 			}
 
 			fields[fieldKey] = ingestion.FieldSchema{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  enumValues,
+				ID:                      field.ID,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                field.DataType,
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         field.AggregationMode,
+				AggregationColdBehavior: field.AggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				Archived:                field.Archived,
+				EnumValues:              enumValues,
 			}
 		}
 
 		model.Tables[key] = ingestion.ObjectSchema{
-			ID:           table.ID,
-			Name:         table.Name,
-			Description:  table.Description,
-			Alias:        table.Alias,
-			SemanticType: table.SemanticType,
-			CaptionField: table.CaptionField,
-			Archived:     table.Archived,
-			Fields:       fields,
+			ID:                  table.ID,
+			Name:                table.Name,
+			Description:         table.Description,
+			Alias:               table.Alias,
+			SemanticType:        table.SemanticType,
+			CaptionField:        table.CaptionField,
+			StorageClass:        table.StorageClass,
+			EventTimeField:      table.EventTimeField,
+			EventSchemaRevision: table.EventSchemaRevision,
+			EventSchemaLockedAt: table.EventSchemaLockedAt,
+			StorageCutoverAt:    table.StorageCutoverAt,
+			LegacyReadUntil:     table.LegacyReadUntil,
+			Archived:            table.Archived,
+			Fields:              fields,
 		}
 	}
 
 	return model, nil
+}
+
+func (c HTTPClient) LockEventTableSchema(ctx context.Context, tenantID, tableID uuid.UUID, schemaRevision string) error {
+	body, err := json.Marshal(map[string]string{"schema_revision": schemaRevision})
+	if err != nil {
+		return fmt.Errorf("encode event schema lock request: %w", err)
+	}
+	endpoint := fmt.Sprintf("%s/v1/tenants/%s/tables/%s/event-schema-lock", c.baseURL, tenantID, tableID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create event schema lock request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	attachRequestID(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("perform event schema lock request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("data-model event schema lock status %d: %s", resp.StatusCode, strings.TrimSpace(string(responseBody)))
+	}
+	return nil
 }
 
 type getDataModelResponse struct {
@@ -127,26 +163,36 @@ type ingestionContractResponse struct {
 }
 
 type assembledTableResponse struct {
-	ID           uuid.UUID                         `json:"id"`
-	Name         string                            `json:"name"`
-	Description  string                            `json:"description"`
-	Alias        string                            `json:"alias"`
-	SemanticType string                            `json:"semantic_type"`
-	CaptionField string                            `json:"caption_field"`
-	Archived     bool                              `json:"archived"`
-	Fields       map[string]assembledFieldResponse `json:"fields"`
+	ID                  uuid.UUID                         `json:"id"`
+	Name                string                            `json:"name"`
+	Description         string                            `json:"description"`
+	Alias               string                            `json:"alias"`
+	SemanticType        string                            `json:"semantic_type"`
+	CaptionField        string                            `json:"caption_field"`
+	StorageClass        string                            `json:"storage_class"`
+	EventTimeField      string                            `json:"event_time_field"`
+	EventSchemaRevision string                            `json:"event_schema_revision"`
+	EventSchemaLockedAt *time.Time                        `json:"event_schema_locked_at"`
+	StorageCutoverAt    *time.Time                        `json:"storage_cutover_at"`
+	LegacyReadUntil     *time.Time                        `json:"legacy_read_until"`
+	Archived            bool                              `json:"archived"`
+	Fields              map[string]assembledFieldResponse `json:"fields"`
 }
 
 type assembledFieldResponse struct {
-	ID          uuid.UUID             `json:"id"`
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	DataType    string                `json:"data_type"`
-	Nullable    bool                  `json:"nullable"`
-	IsEnum      bool                  `json:"is_enum"`
-	IsUnique    bool                  `json:"is_unique"`
-	Archived    bool                  `json:"archived"`
-	EnumValues  []fieldEnumValueModel `json:"enum_values"`
+	ID                      uuid.UUID             `json:"id"`
+	Name                    string                `json:"name"`
+	Description             string                `json:"description"`
+	DataType                string                `json:"data_type"`
+	Nullable                bool                  `json:"nullable"`
+	IsEnum                  bool                  `json:"is_enum"`
+	IsUnique                bool                  `json:"is_unique"`
+	IsProjection            bool                  `json:"is_projection"`
+	AggregationMode         string                `json:"aggregation_mode"`
+	AggregationColdBehavior string                `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64              `json:"aggregation_default_value"`
+	Archived                bool                  `json:"archived"`
+	EnumValues              []fieldEnumValueModel `json:"enum_values"`
 }
 
 type fieldEnumValueModel struct {

@@ -15,11 +15,14 @@ MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-3600}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
 SEED_BATCH_SIZE="${PRODUCTION_REPLAY_SEED_BATCH_SIZE:-${SEED_BATCH_SIZE:-500}}"
-SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-10}}"
+SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-4}}"
 SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
-SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-300}}"
+SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-900}}"
 REUSE_EXISTING_SETUP="${PRODUCTION_REPLAY_REUSE_EXISTING_SETUP:-${REUSE_EXISTING_SETUP:-false}}"
 REUSE_EXISTING_SEED="${PRODUCTION_REPLAY_REUSE_EXISTING_SEED:-${REUSE_EXISTING_SEED:-false}}"
+RESUME_SEED="${PRODUCTION_REPLAY_RESUME_SEED:-${RESUME_SEED:-false}}"
+PRESEED="${PRODUCTION_REPLAY_PRESEED:-${PRESEED:-true}}"
+REPLAY_RESUME_FROM="${PRODUCTION_REPLAY_RESUME_FROM:-${REPLAY_RESUME_FROM:-}}"
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
@@ -28,7 +31,7 @@ ASYNC_CALLBACK_WAIT_TIMEOUT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_WAIT_TIMEOUT:-${
 LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
 LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
 LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
-TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
+TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-ingestion_http}}"
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
 READ_DATABASE_URL="${PRODUCTION_REPLAY_READ_DATABASE_URL:-${READ_DATABASE_URL:-}}"
 READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
@@ -38,7 +41,7 @@ WORKER_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MAX_CONNS:-${WORK
 WORKER_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MIN_CONNS:-${WORKER_DATABASE_MIN_CONNS:-0}}"
 RULE_EVALUATION_CONCURRENCY="${PRODUCTION_REPLAY_RULE_EVALUATION_CONCURRENCY:-${RULE_EVALUATION_CONCURRENCY:-0}}"
 SCENARIO_EVALUATION_CONCURRENCY="${PRODUCTION_REPLAY_SCENARIO_EVALUATION_CONCURRENCY:-${SCENARIO_EVALUATION_CONCURRENCY:-0}}"
-AGGREGATE_REMOTE_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}}"
+AGGREGATE_REMOTE_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-16}}"
 AGGREGATE_QUERY_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_QUERY_CONCURRENCY_LIMIT:-${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}}"
 ALLOW_UNSAFE_INGESTION_HTTP_REPLAY="${PRODUCTION_REPLAY_ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-${ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-false}}"
 DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
@@ -172,8 +175,8 @@ if [[ -n "$ENV_FILE" && ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-if [[ -z "$TENANT_ID" ]]; then
-  printf 'error: TENANT_ID is required; pass TENANT_ID=<existing-tenant-id> to make production-replay\n' >&2
+if [[ -z "$TENANT_ID" && "$REUSE_EXISTING_SETUP" == "true" ]]; then
+  printf 'error: TENANT_ID is required when reusing an existing replay setup\n' >&2
   exit 1
 fi
 
@@ -181,7 +184,7 @@ if [[ ! -d "$DATA_ROOT" ]]; then
   printf 'error: fraud data directory does not exist: %s\n' "$DATA_ROOT" >&2
   exit 1
 fi
-if [[ ! -d "$SEED_DATA_ROOT" ]]; then
+if [[ "$PRESEED" == "true" && ! -d "$SEED_DATA_ROOT" ]]; then
   printf 'error: fraud seed data directory does not exist: %s\n' "$SEED_DATA_ROOT" >&2
   exit 1
 fi
@@ -244,9 +247,40 @@ if [[ "$REUSE_EXISTING_SEED" != "true" && "$REUSE_EXISTING_SEED" != "false" ]]; 
   printf 'error: REUSE_EXISTING_SEED must be true or false; got %s\n' "$REUSE_EXISTING_SEED" >&2
   exit 1
 fi
+if [[ "$RESUME_SEED" != "true" && "$RESUME_SEED" != "false" ]]; then
+  printf 'error: RESUME_SEED must be true or false; got %s\n' "$RESUME_SEED" >&2
+  exit 1
+fi
+if [[ "$PRESEED" != "true" && "$PRESEED" != "false" ]]; then
+  printf 'error: PRESEED must be true or false; got %s\n' "$PRESEED" >&2
+  exit 1
+fi
+if [[ "$PRESEED" == "false" && ( "$REUSE_EXISTING_SEED" == "true" || "$RESUME_SEED" == "true" ) ]]; then
+  printf 'error: PRESEED=false cannot be combined with REUSE_EXISTING_SEED=true or RESUME_SEED=true\n' >&2
+  exit 1
+fi
 if [[ "$REUSE_EXISTING_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
   printf 'error: REUSE_EXISTING_SEED=true requires REUSE_EXISTING_SETUP=true to avoid mutating the prepared tenant\n' >&2
   exit 1
+fi
+if [[ "$RESUME_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
+  printf 'error: RESUME_SEED=true requires REUSE_EXISTING_SETUP=true to preserve the prepared tenant\n' >&2
+  exit 1
+fi
+if [[ "$RESUME_SEED" == "true" && "$REUSE_EXISTING_SEED" == "true" ]]; then
+  printf 'error: RESUME_SEED=true cannot be combined with REUSE_EXISTING_SEED=true\n' >&2
+  exit 1
+fi
+if [[ -n "$REPLAY_RESUME_FROM" ]]; then
+  if [[ ! -f "$REPLAY_RESUME_FROM" ]]; then
+    printf 'error: replay checkpoint does not exist: %s\n' "$REPLAY_RESUME_FROM" >&2
+    exit 1
+  fi
+  if [[ "$REUSE_EXISTING_SETUP" != "true" || "$REUSE_EXISTING_SEED" != "true" ]]; then
+    printf 'error: REPLAY_RESUME_FROM requires REUSE_EXISTING_SETUP=true and REUSE_EXISTING_SEED=true\n' >&2
+    exit 1
+  fi
+  REPLAY_RESUME_FROM="$(cd "$(dirname "$REPLAY_RESUME_FROM")" && pwd)/$(basename "$REPLAY_RESUME_FROM")"
 fi
 if [[ "$DECISION_MODE" != "sync" && "$DECISION_MODE" != "async" ]]; then
   printf 'error: DECISION_MODE must be sync or async; got %s\n' "$DECISION_MODE" >&2
@@ -273,7 +307,7 @@ if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; th
   printf 'set LIVE_DECISION_MODE=sync in the selected Docker environment file for a real synchronous run.\n' >&2
   exit 1
 fi
-NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${LIVE_ASYNC_OBJECT_TYPES,,},"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",$(printf '%s' "$LIVE_ASYNC_OBJECT_TYPES" | tr '[:upper:]' '[:lower:]'),"
 NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES//[[:space:]]/}"
 if [[ "$DECISION_MODE" == "sync" && "$NORMALIZED_LIVE_ASYNC_OBJECT_TYPES" == *",transactions,"* ]]; then
   printf 'error: refusing a mislabeled sync replay because LIVE_ASYNC_OBJECT_TYPES includes transactions.\n' >&2
@@ -288,8 +322,8 @@ if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED"
   exit 1
 fi
 if [[ "$TENANT_DATA_READ_MODE" != "ingestion_http" && "$TENANT_DATA_READ_MODE" != "direct_db" ]]; then
-  printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
-  exit 1
+	printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
+	exit 1
 fi
 if [[ "$ENABLE_SEPARATE_READ_POOL" != "true" && "$ENABLE_SEPARATE_READ_POOL" != "false" ]]; then
   printf 'error: ENABLE_SEPARATE_READ_POOL must be true or false; got %s\n' "$ENABLE_SEPARATE_READ_POOL" >&2
@@ -307,6 +341,11 @@ if [[ ! "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" =~ ^[0-9]+$ ]]; then
   printf 'error: AGGREGATE_REMOTE_CONCURRENCY_LIMIT must be zero or a positive integer; got %s\n' "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" >&2
   exit 1
 fi
+if [[ "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" -eq 0 && "$MAX_IN_FLIGHT" -gt 1 ]]; then
+  printf 'error: refusing concurrent replay with unlimited aggregate queries.\n' >&2
+  printf 'set AGGREGATE_REMOTE_CONCURRENCY_LIMIT to a positive value in the selected environment file.\n' >&2
+  exit 1
+fi
 if [[ ! "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" =~ ^[0-9]+$ ]]; then
   printf 'error: AGGREGATE_QUERY_CONCURRENCY_LIMIT must be zero or a positive integer; got %s\n' "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" >&2
   exit 1
@@ -314,23 +353,6 @@ fi
 if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" && "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "false" ]]; then
   printf 'error: ALLOW_UNSAFE_INGESTION_HTTP_REPLAY must be true or false; got %s\n' "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" >&2
   exit 1
-fi
-
-if [[ "$TENANT_DATA_READ_MODE" == "ingestion_http" && "$ENABLE_SEPARATE_READ_POOL" != "true" ]]; then
-  if python3 - "$MULTIPLIER" "$MAX_IN_FLIGHT" <<'PY'
-import sys
-multiplier = float(sys.argv[1])
-max_in_flight = int(sys.argv[2])
-sys.exit(0 if multiplier >= 50 or max_in_flight >= 25 else 1)
-PY
-  then
-    if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" ]]; then
-      printf 'error: refusing high-pressure replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
-      printf 'set ENABLE_SEPARATE_READ_POOL=true, switch to TENANT_DATA_READ_MODE=direct_db, or set ALLOW_UNSAFE_INGESTION_HTTP_REPLAY=true for an explicit comparison run.\n' >&2
-      exit 1
-    fi
-    printf 'warning: running an explicitly unsafe replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
-  fi
 fi
 
 if [[ -n "$REPLAY_DURATION" ]]; then
@@ -342,8 +364,11 @@ else
 fi
 printf 'Replay tuning: rule_eval=%s scenario_eval=%s aggregate_remote=%s aggregate_query=%s read_db_max_conns=%s\n' \
   "$RULE_EVALUATION_CONCURRENCY" "$SCENARIO_EVALUATION_CONCURRENCY" "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" "$READ_DATABASE_MAX_CONNS"
-printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
-  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
+printf 'Seed configuration: enabled=%s data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s resume=%s\n' \
+  "$PRESEED" "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED" "$RESUME_SEED"
+if [[ -n "$REPLAY_RESUME_FROM" ]]; then
+  printf 'Replay checkpoint: %s\n' "$REPLAY_RESUME_FROM"
+fi
 if [[ -n "$ENV_FILE" ]]; then
   printf 'Docker environment file: %s (service values are preserved unless explicitly overridden on the Make command line)\n' "$ENV_FILE"
 fi
@@ -403,10 +428,11 @@ fi
 SERVICES=(
   data-model-service
   ingestion-service
+  ingestion-worker
   decision-engine-service
   data-model-worker
 )
-compose up -d --no-build "${SERVICES[@]}"
+compose up -d --no-build --remove-orphans "${SERVICES[@]}"
 
 wait_for_service "data-model-service" "http://127.0.0.1:8080/readyz"
 wait_for_service "ingestion-service" "http://127.0.0.1:8081/readyz"
@@ -459,13 +485,15 @@ fi
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
 
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample \
-    --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
-    --data-root "$SEED_DATA_ROOT" \
-    --reference-data-root "$DATA_ROOT" \
-    --output-dir "$SEED_SAMPLE_DIR" \
-    --output-manifest "$SEED_MANIFEST" \
-    --transactions all
+  if [[ "$PRESEED" == "true" ]]; then
+    PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample \
+      --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
+      --data-root "$SEED_DATA_ROOT" \
+      --reference-data-root "$DATA_ROOT" \
+      --output-dir "$SEED_SAMPLE_DIR" \
+      --output-manifest "$SEED_MANIFEST" \
+      --transactions all
+  fi
 )
 
 if [[ "$REUSE_EXISTING_SETUP" == "true" ]]; then
@@ -494,8 +522,12 @@ if [[ -z "$TENANT_ID" ]]; then
   exit 1
 fi
 
-if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+if [[ "$PRESEED" == "false" ]]; then
+  printf 'Skipping historical transaction pre-seeding for tenant %s.\n' "$TENANT_ID"
+elif [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
   printf 'Reusing the existing seed in tenant %s without performing seed writes...\n' "$TENANT_ID"
+elif [[ "$RESUME_SEED" == "true" ]]; then
+  printf 'Resuming the seed in tenant %s; completed deterministic batches will be replayed without writes...\n' "$TENANT_ID"
 else
   printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
 fi
@@ -506,7 +538,13 @@ fi
     --tenant-id "$TENANT_ID"
     --timeout "$SEED_REQUEST_TIMEOUT"
   )
-  if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+  if [[ "$PRESEED" == "false" ]]; then
+    SEED_ARGS=(
+      --manifest "$SMOKE_MANIFEST"
+      --tenant-id "$TENANT_ID"
+      --skip
+    )
+  elif [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
     SEED_ARGS+=(--reuse-existing)
   else
     SEED_ARGS+=(
@@ -515,6 +553,9 @@ fi
       --max-in-flight "$SEED_MAX_IN_FLIGHT"
       --progress-every "$SEED_PROGRESS_EVERY"
     )
+    if [[ "$RESUME_SEED" == "true" ]]; then
+      SEED_ARGS+=(--resume)
+    fi
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay seed "${SEED_ARGS[@]}"
 ) | tee "$SEED_LOG"
@@ -545,17 +586,22 @@ fi
 set +e
 (
   cd "$BACKEND_DIR"
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay run \
-    --manifest "$SMOKE_MANIFEST" \
-    --execute \
-    --tenant-id "$TENANT_ID" \
-    --multiplier "$MULTIPLIER" \
-    --max-in-flight "$MAX_IN_FLIGHT" \
-    --checkpoint-every "$CHECKPOINT_EVERY" \
-    --decision-mode "$DECISION_MODE" \
-    --async-wait-timeout-ms "$ASYNC_WAIT_TIMEOUT_MS" \
-    --async-callback-url "$ASYNC_CALLBACK_URL" \
+  RUN_ARGS=(
+    --manifest "$SMOKE_MANIFEST"
+    --execute
+    --tenant-id "$TENANT_ID"
+    --multiplier "$MULTIPLIER"
+    --max-in-flight "$MAX_IN_FLIGHT"
+    --checkpoint-every "$CHECKPOINT_EVERY"
+    --decision-mode "$DECISION_MODE"
+    --async-wait-timeout-ms "$ASYNC_WAIT_TIMEOUT_MS"
+    --async-callback-url "$ASYNC_CALLBACK_URL"
     --async-tracking-output "$ASYNC_TRACKING_LOG"
+  )
+  if [[ -n "$REPLAY_RESUME_FROM" ]]; then
+    RUN_ARGS+=(--resume-from "$REPLAY_RESUME_FROM")
+  fi
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay run "${RUN_ARGS[@]}"
 ) | tee "$REPLAY_LOG"
 REPLAY_STATUS="${PIPESTATUS[0]}"
 set -e
@@ -649,6 +695,9 @@ result = {
         "status": seed["status"],
         "records": seed["records"],
         "batches": seed["batches"],
+        "resume": seed.get("resume", False),
+        "inserted_records": seed.get("inserted_records"),
+        "replayed_records": seed.get("replayed_records"),
         "decision_requests": seed["decision_requests"],
     },
 }

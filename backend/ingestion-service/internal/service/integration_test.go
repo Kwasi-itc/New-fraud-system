@@ -387,6 +387,10 @@ func (s stubPublishedModelReader) GetPublishedDataModel(context.Context, uuid.UU
 	return s.model, nil
 }
 
+func (stubPublishedModelReader) LockEventTableSchema(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
+}
+
 type fixedIDGenerator struct {
 	next []uuid.UUID
 }

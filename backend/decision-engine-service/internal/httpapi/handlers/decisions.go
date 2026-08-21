@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 )
 
 type DecisionHandler struct {
@@ -70,6 +72,10 @@ func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, sharedeventstore.ErrAggregationDeferred) {
+			h.deferAsyncScenarioExecution(c, tenantID, scenarioID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "evaluate_scenario_failed", "scenario evaluation failed", err, "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
@@ -100,6 +106,10 @@ func (h DecisionHandler) CreateDecision(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, sharedeventstore.ErrAggregationDeferred) {
+			h.deferAsyncScenarioExecution(c, tenantID, req.ScenarioID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "create_decision_failed", "decision creation failed", err, "tenant_id", tenantID, "scenario_id", req.ScenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
@@ -130,6 +140,10 @@ func (h DecisionHandler) CreateAllDecisions(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, sharedeventstore.ErrAggregationDeferred) {
+			h.deferAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "create_all_decisions_failed", "multi-scenario evaluation failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}

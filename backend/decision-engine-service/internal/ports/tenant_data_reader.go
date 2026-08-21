@@ -30,3 +30,10 @@ type TenantDataReader interface {
 	QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]TenantRecord, error)
 	AggregateRecords(ctx context.Context, tenantID string, query AggregateQuery) (any, error)
 }
+
+// BatchTenantDataReader is an optional capability used by all-scenario
+// evaluations. Readers that do not implement it keep the existing one-query
+// fallback behavior.
+type BatchTenantDataReader interface {
+	BatchAggregateRecords(ctx context.Context, tenantID string, queries []AggregateQuery) ([]any, error)
+}

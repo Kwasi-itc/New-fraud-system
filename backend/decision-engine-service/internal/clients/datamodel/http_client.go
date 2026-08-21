@@ -124,8 +124,13 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 		fields := make(map[string]ports.TenantModelField, len(table.Fields))
 		for fieldKey, field := range table.Fields {
 			fields[fieldKey] = ports.TenantModelField{
-				Name: field.Name,
-				Type: field.DataType,
+				Name:                    field.Name,
+				Type:                    field.DataType,
+				Nullable:                field.Nullable,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         field.AggregationMode,
+				AggregationColdBehavior: field.AggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
 			}
 		}
 		links := make(map[string]ports.TenantModelLink, len(table.LinksToSingle))
@@ -139,10 +144,15 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 			}
 		}
 		model.Tables[key] = ports.TenantModelTable{
-			ID:            table.ID,
-			Name:          table.Name,
-			Fields:        fields,
-			LinksToSingle: links,
+			ID:                  table.ID,
+			Name:                table.Name,
+			StorageClass:        table.StorageClass,
+			EventTimeField:      table.EventTimeField,
+			EventSchemaRevision: table.EventSchemaRevision,
+			StorageCutoverAt:    table.StorageCutoverAt,
+			LegacyReadUntil:     table.LegacyReadUntil,
+			Fields:              fields,
+			LinksToSingle:       links,
 		}
 	}
 
@@ -262,15 +272,25 @@ type publishedDataModelResponse struct {
 }
 
 type assembledTableResponse struct {
-	ID            string                            `json:"id"`
-	Name          string                            `json:"name"`
-	Fields        map[string]assembledFieldResponse `json:"fields"`
-	LinksToSingle map[string]assembledLinkResponse  `json:"links_to_single"`
+	ID                  string                            `json:"id"`
+	Name                string                            `json:"name"`
+	StorageClass        string                            `json:"storage_class"`
+	EventTimeField      string                            `json:"event_time_field"`
+	EventSchemaRevision string                            `json:"event_schema_revision"`
+	StorageCutoverAt    *time.Time                        `json:"storage_cutover_at"`
+	LegacyReadUntil     *time.Time                        `json:"legacy_read_until"`
+	Fields              map[string]assembledFieldResponse `json:"fields"`
+	LinksToSingle       map[string]assembledLinkResponse  `json:"links_to_single"`
 }
 
 type assembledFieldResponse struct {
-	Name     string `json:"name"`
-	DataType string `json:"data_type"`
+	Name                    string   `json:"name"`
+	DataType                string   `json:"data_type"`
+	Nullable                bool     `json:"nullable"`
+	IsProjection            bool     `json:"is_projection"`
+	AggregationMode         string   `json:"aggregation_mode"`
+	AggregationColdBehavior string   `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64 `json:"aggregation_default_value"`
 }
 
 type ingestionContractResponse struct {

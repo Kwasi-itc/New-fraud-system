@@ -36,3 +36,9 @@ func acquireAggregateRemoteSlot(ctx context.Context, limit int) (func(), error) 
 		return nil, context.Cause(ctx)
 	}
 }
+
+// AcquireAggregateRemoteSlot lets request-scoped batch execution share the
+// same service-wide ClickHouse pressure limit as individual aggregates.
+func AcquireAggregateRemoteSlot(ctx context.Context, limit int) (func(), error) {
+	return acquireAggregateRemoteSlot(ctx, limit)
+}

@@ -37,6 +37,8 @@ type PortableTable struct {
 	Description       string
 	Alias             string
 	SemanticType      string
+	StorageClass      string
+	EventTimeField    string
 	CaptionField      string
 	Fields            []PortableField
 	Options           *PortableTableOptions
@@ -44,13 +46,17 @@ type PortableTable struct {
 }
 
 type PortableField struct {
-	Name        string
-	Description string
-	DataType    string
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	EnumValues  []CreateFieldEnumValueSeed
+	Name                    string
+	Description             string
+	DataType                string
+	Nullable                bool
+	IsEnum                  bool
+	IsUnique                bool
+	IsProjection            bool
+	AggregationMode         string
+	AggregationColdBehavior string
+	AggregationDefaultValue *float64
+	EnumValues              []CreateFieldEnumValueSeed
 }
 
 type PortableTableOptions struct {
@@ -159,13 +165,17 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 				return lhs.SortOrder - rhs.SortOrder
 			})
 			fields = append(fields, PortableField{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    string(field.DataType),
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                string(field.DataType),
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         string(field.AggregationMode),
+				AggregationColdBehavior: string(field.AggregationColdBehavior),
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				EnumValues:              enumValues,
 			})
 		}
 
@@ -204,6 +214,8 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 			Description:       table.Description,
 			Alias:             table.Alias,
 			SemanticType:      table.SemanticType,
+			StorageClass:      string(table.StorageClass),
+			EventTimeField:    table.EventTimeField,
 			CaptionField:      table.CaptionField,
 			Fields:            fields,
 			Options:           options,
@@ -276,11 +288,13 @@ func (s PortableDataModelService) Import(ctx context.Context, tenantID uuid.UUID
 
 	for _, table := range document.Tables {
 		createdTable, err := s.tableService.Create(ctx, CreateTableInput{
-			TenantID:     tenantID,
-			Name:         table.Name,
-			Description:  table.Description,
-			Alias:        table.Alias,
-			SemanticType: table.SemanticType,
+			TenantID:       tenantID,
+			Name:           table.Name,
+			Description:    table.Description,
+			Alias:          table.Alias,
+			SemanticType:   table.SemanticType,
+			StorageClass:   table.StorageClass,
+			EventTimeField: table.EventTimeField,
 		})
 		if err != nil {
 			return result, fmt.Errorf("create table %s: %w", table.Name, err)
@@ -297,15 +311,27 @@ func (s PortableDataModelService) Import(ctx context.Context, tenantID uuid.UUID
 			if err != nil {
 				return result, fmt.Errorf("parse field %s.%s data type: %w", table.Name, field.Name, err)
 			}
+			aggregationMode, err := datamodel.ParseAggregationMode(field.AggregationMode)
+			if err != nil {
+				return result, fmt.Errorf("parse field %s.%s aggregation mode: %w", table.Name, field.Name, err)
+			}
+			aggregationColdBehavior, err := datamodel.ParseAggregationColdBehavior(field.AggregationColdBehavior)
+			if err != nil {
+				return result, fmt.Errorf("parse field %s.%s aggregation cold behavior: %w", table.Name, field.Name, err)
+			}
 			createdField, err := s.fieldService.Create(ctx, CreateFieldInput{
-				TableID:     createdTable.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    dataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  field.EnumValues,
+				TableID:                 createdTable.ID,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                dataType,
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         aggregationMode,
+				AggregationColdBehavior: aggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				EnumValues:              field.EnumValues,
 			})
 			if err != nil {
 				return result, fmt.Errorf("create field %s.%s: %w", table.Name, field.Name, err)

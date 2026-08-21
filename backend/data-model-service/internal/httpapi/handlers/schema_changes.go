@@ -33,4 +33,3 @@ func (h SchemaChangeHandler) List(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"schema_changes": response})
 }
-

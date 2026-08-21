@@ -175,12 +175,15 @@ Relevant optional downstream variables:
 
 ## Aggregate Pushdown
 
-Aggregate-heavy Marble `Aggregator(...)` rules can now be pushed down to `ingestion-service` instead of pulling record sets back into the decision engine first.
+Aggregate-heavy Marble `Aggregator(...)` rules are executed at the storage layer instead of pulling record sets into the decision engine.
 
 Current behavior:
 
 - the decision engine compiles supported aggregate AST into a logical aggregate query
-- `ingestion-service` executes the aggregate close to the tenant data tables
+- all-live-scenario evaluation shares one request-scoped aggregate batcher; compatible metrics for the same projected entity are evaluated in one ClickHouse scan
+- event aggregates receive an upper event-time bound from the ingested record, preventing historical replay decisions from reading future events
+- operational models use the PostgreSQL tenant-data repository
+- event models use the shared ClickHouse event repository directly, without an ingestion or event-store HTTP hop
 - aggregate evaluation is remote-only; disabled, unsupported, or failed pushdown returns an explicit evaluation error
 - strict mode remains available, but aggregate evaluation no longer uses a local fallback path
 

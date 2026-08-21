@@ -258,6 +258,10 @@ func (stubDataModelReader) GetPublishedDataModel(context.Context, uuid.UUID) (in
 	}, nil
 }
 
+func (stubDataModelReader) LockEventTableSchema(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
+}
+
 type stubTransactionManager struct{}
 
 func (stubTransactionManager) Run(ctx context.Context, fn func(ports.MutationStore) error) error {

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -18,9 +19,11 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	dispatchclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch"
+	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	storeclickhouse "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/clickhouse"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
 )
@@ -121,7 +124,19 @@ func main() {
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	eventStore, err := sharedeventstore.NewRepository(cfg.EventStoreConfig(), logger)
+	if err != nil {
+		logger.Error("failed to initialize ClickHouse repository", "error", err)
+		os.Exit(1)
+	}
+	defer eventStore.Close()
+	if err := eventStore.Initialize(context.Background()); err != nil {
+		logger.Error("failed to connect to ClickHouse", "error", err)
+		os.Exit(1)
+	}
+	eventDataReader := storeclickhouse.NewTenantDataReader(eventStore, dataModelReader)
+	remoteTenantDataReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader := tenantdata.NewReaderWithEvents(cfg.TenantDataReadMode, db, dataModelReader, remoteTenantDataReader, eventDataReader)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{

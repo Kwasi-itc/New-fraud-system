@@ -20,13 +20,16 @@ func NewTableRepository(db executor) TableRepository {
 func (r TableRepository) Create(ctx context.Context, table datamodel.Table) error {
 	query := `
 		INSERT INTO core.model_tables
-			(id, tenant_id, name, description, alias, semantic_type, caption_field, archived, created_at, updated_at)
+			(id, tenant_id, name, description, alias, semantic_type, caption_field, storage_class,
+			 event_time_field, event_schema_revision, event_schema_locked_at, storage_cutover_at, legacy_read_until, archived, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
 	_, err := r.db.Exec(ctx, query,
 		table.ID, table.TenantID, table.Name, table.Description, table.Alias,
-		table.SemanticType, table.CaptionField, table.Archived, table.CreatedAt, table.UpdatedAt,
+		table.SemanticType, table.CaptionField, table.StorageClass, table.EventTimeField,
+		table.EventSchemaRevision, table.EventSchemaLockedAt, table.StorageCutoverAt, table.LegacyReadUntil,
+		table.Archived, table.CreatedAt, table.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("insert table: %w", err)
@@ -36,14 +39,17 @@ func (r TableRepository) Create(ctx context.Context, table datamodel.Table) erro
 
 func (r TableRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.Table, error) {
 	query := `
-		SELECT id, tenant_id, name, description, alias, semantic_type, caption_field, archived, created_at, updated_at
+		SELECT id, tenant_id, name, description, alias, semantic_type, caption_field, storage_class,
+		       event_time_field, event_schema_revision, event_schema_locked_at, storage_cutover_at, legacy_read_until, archived, created_at, updated_at
 		FROM core.model_tables
 		WHERE id = $1
 	`
 	var table datamodel.Table
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&table.ID, &table.TenantID, &table.Name, &table.Description, &table.Alias,
-		&table.SemanticType, &table.CaptionField, &table.Archived, &table.CreatedAt, &table.UpdatedAt,
+		&table.SemanticType, &table.CaptionField, &table.StorageClass, &table.EventTimeField,
+		&table.EventSchemaRevision, &table.EventSchemaLockedAt, &table.StorageCutoverAt, &table.LegacyReadUntil,
+		&table.Archived, &table.CreatedAt, &table.UpdatedAt,
 	)
 	if err != nil {
 		return datamodel.Table{}, fmt.Errorf("get table by id: %w", err)
@@ -53,7 +59,8 @@ func (r TableRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.T
 
 func (r TableRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.Table, error) {
 	query := `
-		SELECT id, tenant_id, name, description, alias, semantic_type, caption_field, archived, created_at, updated_at
+		SELECT id, tenant_id, name, description, alias, semantic_type, caption_field, storage_class,
+		       event_time_field, event_schema_revision, event_schema_locked_at, storage_cutover_at, legacy_read_until, archived, created_at, updated_at
 		FROM core.model_tables
 		WHERE tenant_id = $1
 		ORDER BY created_at DESC
@@ -69,7 +76,9 @@ func (r TableRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) (
 		var table datamodel.Table
 		if err := rows.Scan(
 			&table.ID, &table.TenantID, &table.Name, &table.Description, &table.Alias,
-			&table.SemanticType, &table.CaptionField, &table.Archived, &table.CreatedAt, &table.UpdatedAt,
+			&table.SemanticType, &table.CaptionField, &table.StorageClass, &table.EventTimeField,
+			&table.EventSchemaRevision, &table.EventSchemaLockedAt, &table.StorageCutoverAt, &table.LegacyReadUntil,
+			&table.Archived, &table.CreatedAt, &table.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan table: %w", err)
 		}
@@ -84,10 +93,14 @@ func (r TableRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) (
 func (r TableRepository) Update(ctx context.Context, table datamodel.Table) error {
 	query := `
 		UPDATE core.model_tables
-		SET description = $2, alias = $3, semantic_type = $4, caption_field = $5, archived = $6, updated_at = $7
+		SET description = $2, alias = $3, semantic_type = $4, caption_field = $5,
+		    storage_class = $6, event_time_field = $7, storage_cutover_at = $8,
+		    legacy_read_until = $9, archived = $10, updated_at = $11
 		WHERE id = $1
 	`
-	_, err := r.db.Exec(ctx, query, table.ID, table.Description, table.Alias, table.SemanticType, table.CaptionField, table.Archived, table.UpdatedAt)
+	_, err := r.db.Exec(ctx, query, table.ID, table.Description, table.Alias, table.SemanticType,
+		table.CaptionField, table.StorageClass, table.EventTimeField, table.StorageCutoverAt,
+		table.LegacyReadUntil, table.Archived, table.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("update table: %w", err)
 	}

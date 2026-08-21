@@ -8,9 +8,11 @@ import (
 	"strings"
 	"time"
 
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	eventstoreclient "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/eventstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
 )
@@ -20,6 +22,7 @@ type App struct {
 	logger     *slog.Logger
 	db         *pgxpool.Pool
 	readDB     *pgxpool.Pool
+	eventStore *sharedeventstore.Repository
 	httpServer *http.Server
 }
 
@@ -44,12 +47,31 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 			return nil, err
 		}
 	}
+	eventStore, err := sharedeventstore.NewRepository(cfg.EventStoreConfig(), logger)
+	if err != nil {
+		if readDB != db {
+			readDB.Close()
+		}
+		db.Close()
+		return nil, err
+	}
+	initCtx, cancel := context.WithTimeout(context.Background(), cfg.ClickHouseTimeout)
+	defer cancel()
+	if err := eventStore.Initialize(initCtx); err != nil {
+		eventStore.Close()
+		if readDB != db {
+			readDB.Close()
+		}
+		db.Close()
+		return nil, fmt.Errorf("initialize ClickHouse event repository: %w", err)
+	}
 
 	router := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
 		AuthMode:                       cfg.ServiceAuthMode,
 		AuthToken:                      cfg.ServiceAuthToken,
 		AllowedOrigins:                 cfg.AllowedOrigins,
 		DataModelServiceURL:            cfg.DataModelServiceURL,
+		EventStore:                     eventstoreclient.NewRepository(eventStore),
 		HTTPClientTimeout:              cfg.HTTPClientTimeout,
 		AggregateQueryTimeout:          cfg.AggregateQueryTimeout,
 		WorkerMaxAttempts:              cfg.WorkerMaxAttempts,
@@ -77,6 +99,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		logger:     logger,
 		db:         db,
 		readDB:     readDB,
+		eventStore: eventStore,
 		httpServer: server,
 	}, nil
 }
@@ -90,6 +113,9 @@ func (a *App) Run() error {
 }
 
 func (a *App) Close() {
+	if a.eventStore != nil {
+		a.eventStore.Close()
+	}
 	if a.readDB != nil && a.readDB != a.db {
 		a.readDB.Close()
 	}

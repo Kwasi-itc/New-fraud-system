@@ -82,6 +82,9 @@ func classifyServiceError(err error) (apiErrorSpec, string, string) {
 		strings.Contains(message, "perform request:"),
 		strings.Contains(message, "decode response:"):
 		return apiErrorSpec{Status: http.StatusBadGateway, Category: "dependency_failure"}, "dependency_failure", "data model dependency request failed"
+	case strings.Contains(message, "event-store request:"),
+		strings.Contains(message, "event-store status"):
+		return apiErrorSpec{Status: http.StatusBadGateway, Category: "dependency_failure"}, "dependency_failure", "event store dependency request failed"
 	default:
 		return apiErrorSpec{Status: http.StatusInternalServerError, Category: "internal_error"}, "internal_error", "request failed"
 	}

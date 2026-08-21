@@ -37,7 +37,7 @@ def utc_stamp() -> str:
 def build_default_experiments() -> list[Experiment]:
     return [
         Experiment(
-            label="async-only-ingestion-http-shared-read-pool-conservative",
+            label="async-only-clickhouse-conservative",
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
@@ -50,56 +50,43 @@ def build_default_experiments() -> list[Experiment]:
             read_database_max_conns=0,
         ),
         Experiment(
-            label="async-only-ingestion-http-separate-read-pool-conservative",
+            label="async-only-clickhouse-expanded",
             decision_mode="async",
             live_decision_mode="async_only",
             live_async_fallback_enabled=True,
             tenant_data_read_mode="ingestion_http",
-            separate_read_pool=True,
-            rule_evaluation_concurrency=2,
-            scenario_evaluation_concurrency=2,
-            aggregate_remote_concurrency_limit=4,
-            aggregate_query_concurrency_limit=16,
-            read_database_max_conns=16,
-        ),
-        Experiment(
-            label="async-only-direct-db-separate-read-pool-conservative",
-            decision_mode="async",
-            live_decision_mode="async_only",
-            live_async_fallback_enabled=True,
-            tenant_data_read_mode="direct_db",
-            separate_read_pool=True,
-            rule_evaluation_concurrency=2,
-            scenario_evaluation_concurrency=2,
-            aggregate_remote_concurrency_limit=4,
-            aggregate_query_concurrency_limit=16,
-            read_database_max_conns=16,
-        ),
-        Experiment(
-            label="sync-direct-db-separate-read-pool-conservative",
-            decision_mode="sync",
-            live_decision_mode="sync",
-            live_async_fallback_enabled=True,
-            tenant_data_read_mode="direct_db",
-            separate_read_pool=True,
-            rule_evaluation_concurrency=2,
-            scenario_evaluation_concurrency=2,
-            aggregate_remote_concurrency_limit=4,
-            aggregate_query_concurrency_limit=16,
-            read_database_max_conns=16,
-        ),
-        Experiment(
-            label="sync-direct-db-separate-read-pool-expanded",
-            decision_mode="sync",
-            live_decision_mode="sync",
-            live_async_fallback_enabled=True,
-            tenant_data_read_mode="direct_db",
-            separate_read_pool=True,
+            separate_read_pool=False,
             rule_evaluation_concurrency=4,
             scenario_evaluation_concurrency=2,
             aggregate_remote_concurrency_limit=8,
             aggregate_query_concurrency_limit=32,
-            read_database_max_conns=32,
+            read_database_max_conns=0,
+        ),
+        Experiment(
+            label="sync-clickhouse-conservative",
+            decision_mode="sync",
+            live_decision_mode="sync",
+            live_async_fallback_enabled=True,
+            tenant_data_read_mode="ingestion_http",
+            separate_read_pool=False,
+            rule_evaluation_concurrency=2,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=4,
+            aggregate_query_concurrency_limit=16,
+            read_database_max_conns=0,
+        ),
+        Experiment(
+            label="sync-clickhouse-expanded",
+            decision_mode="sync",
+            live_decision_mode="sync",
+            live_async_fallback_enabled=True,
+            tenant_data_read_mode="ingestion_http",
+            separate_read_pool=False,
+            rule_evaluation_concurrency=4,
+            scenario_evaluation_concurrency=2,
+            aggregate_remote_concurrency_limit=8,
+            aggregate_query_concurrency_limit=32,
+            read_database_max_conns=0,
         ),
     ]
 
@@ -131,6 +118,11 @@ def parse_args() -> argparse.Namespace:
         "--reuse-existing-seed",
         action="store_true",
         default=os.getenv("REUSE_EXISTING_SEED", "false").lower() == "true",
+    )
+    parser.add_argument(
+        "--resume-seed",
+        action="store_true",
+        default=os.getenv("RESUME_SEED", "false").lower() == "true",
     )
     parser.add_argument("--capture-metrics", action="store_true", help="Capture one runtime/read metrics snapshot after each replay run.")
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
@@ -175,6 +167,7 @@ def build_env(base: dict[str, str], args: argparse.Namespace, experiment: Experi
     env["FRAUD_DATA_SEED_ROOT"] = args.seed_data_root or f"{args.data_root.rstrip('/')}_seed"
     env["PRODUCTION_REPLAY_REUSE_EXISTING_SETUP"] = "true" if args.reuse_existing_setup else "false"
     env["PRODUCTION_REPLAY_REUSE_EXISTING_SEED"] = "true" if args.reuse_existing_seed else "false"
+    env["PRODUCTION_REPLAY_RESUME_SEED"] = "true" if args.resume_seed else "false"
     if args.tenant_id:
         env["PRODUCTION_REPLAY_TENANT_ID"] = args.tenant_id
     return env
@@ -232,6 +225,7 @@ def main() -> None:
         "execute": args.execute,
         "reuse_existing_setup": args.reuse_existing_setup,
         "reuse_existing_seed": args.reuse_existing_seed,
+        "resume_seed": args.resume_seed,
         "experiments": [asdict(item) for item in experiments],
     }
     write_json(matrix_dir / "matrix-plan.json", plan)

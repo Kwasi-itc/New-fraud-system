@@ -3,10 +3,12 @@ package ast_eval
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 )
 
 func EvaluateFormulaWithEvidence(ctx context.Context, formula json.RawMessage, runtime Runtime) (bool, *domainast.EvaluationNode, error) {
@@ -16,6 +18,9 @@ func EvaluateFormulaWithEvidence(ctx context.Context, formula json.RawMessage, r
 	}
 	evaluation, err := evaluateNodeWithEvidence(ctx, node, runtime)
 	if err != nil {
+		if errors.Is(err, sharedeventstore.ErrAggregationSkipped) {
+			return false, &domainast.EvaluationNode{Function: node.Function, Constant: node.Constant, ReturnValue: false}, nil
+		}
 		return false, nil, err
 	}
 	boolResult, ok := evaluation.ReturnValue.(bool)

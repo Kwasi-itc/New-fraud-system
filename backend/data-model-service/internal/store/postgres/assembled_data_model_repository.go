@@ -64,17 +64,23 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 			return datamodel.AssembledDataModel{}, err
 		}
 		result.Tables[table.Name] = datamodel.AssembledTable{
-			ID:                table.ID,
-			Name:              table.Name,
-			Description:       table.Description,
-			Alias:             table.Alias,
-			SemanticType:      table.SemanticType,
-			CaptionField:      table.CaptionField,
-			Archived:          table.Archived,
-			Fields:            map[string]datamodel.AssembledField{},
-			LinksToSingle:     map[string]datamodel.AssembledLink{},
-			NavigationOptions: []datamodel.NavigationOption{},
-			Options:           options,
+			ID:                  table.ID,
+			Name:                table.Name,
+			Description:         table.Description,
+			Alias:               table.Alias,
+			SemanticType:        table.SemanticType,
+			CaptionField:        table.CaptionField,
+			StorageClass:        table.StorageClass,
+			EventTimeField:      table.EventTimeField,
+			EventSchemaRevision: table.EventSchemaRevision,
+			EventSchemaLockedAt: table.EventSchemaLockedAt,
+			StorageCutoverAt:    table.StorageCutoverAt,
+			LegacyReadUntil:     table.LegacyReadUntil,
+			Archived:            table.Archived,
+			Fields:              map[string]datamodel.AssembledField{},
+			LinksToSingle:       map[string]datamodel.AssembledLink{},
+			NavigationOptions:   []datamodel.NavigationOption{},
+			Options:             options,
 		}
 		fields, err := r.fieldRepository.ListByTable(ctx, table.ID)
 		if err != nil {
@@ -84,15 +90,19 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 			fieldByID[field.ID] = field
 			assembledTable := result.Tables[table.Name]
 			assembledTable.Fields[field.Name] = datamodel.AssembledField{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  []datamodel.FieldEnumValue{},
+				ID:                      field.ID,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                field.DataType,
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         field.AggregationMode,
+				AggregationColdBehavior: field.AggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				Archived:                field.Archived,
+				EnumValues:              []datamodel.FieldEnumValue{},
 			}
 			if field.IsEnum {
 				enumValues, err := r.fieldEnumValueRepository.ListByField(ctx, field.ID)

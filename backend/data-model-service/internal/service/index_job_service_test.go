@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -89,6 +90,9 @@ func (s *stubIndexJobRepository) MarkApplied(context.Context, uuid.UUID, time.Ti
 func (s *stubIndexJobRepository) MarkFailed(context.Context, uuid.UUID, string, time.Time) error {
 	return nil
 }
+func (s *stubIndexJobRepository) MarkCancelled(context.Context, uuid.UUID, string, time.Time) error {
+	return nil
+}
 func (s *stubIndexJobRepository) MarkPendingRetry(context.Context, uuid.UUID, string) error {
 	return nil
 }
@@ -171,6 +175,33 @@ func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
 	}
 	if len(enqueuer.jobIDs) != 1 || enqueuer.jobIDs[0] != jobID {
 		t.Fatalf("unexpected enqueued ids: %v", enqueuer.jobIDs)
+	}
+}
+
+func TestIndexJobServiceRejectsEventTable(t *testing.T) {
+	t.Parallel()
+	tenantID := uuid.New()
+	tableID := uuid.New()
+	service := NewIndexJobService(
+		stubTenantRepository{record: tenant.Tenant{ID: tenantID, Status: tenant.StatusActive}},
+		stubTableRepository{table: datamodel.Table{ID: tableID, TenantID: tenantID, Name: "transactions", StorageClass: datamodel.StorageClassEvent}},
+		stubFieldRepository{},
+		&stubIndexJobRepository{},
+		&stubSchemaChangeRepository{},
+		stubTransactionManager{},
+		stubIDGenerator{value: uuid.New()},
+		stubClock{now: time.Now().UTC()},
+		&stubIndexJobEnqueuer{},
+	)
+
+	_, err := service.Create(context.Background(), CreateIndexJobInput{
+		TenantID:  tenantID,
+		TableID:   tableID,
+		IndexType: datamodel.IndexJobTypeSearch,
+		Columns:   []string{"account_ref"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "disabled for event tables") {
+		t.Fatalf("Create() error = %v, want event-table rejection", err)
 	}
 }
 

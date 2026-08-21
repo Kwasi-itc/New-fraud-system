@@ -19,6 +19,12 @@ class SeedBatch:
     object_ids: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class SeedBatchResult:
+    record_count: int
+    replayed: bool
+
+
 def iter_seed_batches(manifest: ReplayManifest, batch_size: int) -> Iterator[SeedBatch]:
     if batch_size <= 0 or batch_size > 500:
         raise ValueError("seed batch size must be between 1 and 500")
@@ -48,7 +54,7 @@ async def seed_transactions(
     *,
     batch_size: int = 500,
     max_in_flight: int = 10,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[int, int, int, int], None] | None = None,
 ) -> dict[str, Any]:
     if not tenant_id.strip():
         raise ValueError("seed tenant ID must not be empty")
@@ -58,9 +64,13 @@ async def seed_transactions(
     started = time.perf_counter()
     completed_batches = 0
     completed_records = 0
-    pending: set[asyncio.Task[int]] = set()
+    inserted_batches = 0
+    inserted_records = 0
+    replayed_batches = 0
+    replayed_records = 0
+    pending: set[asyncio.Task[SeedBatchResult]] = set()
 
-    async def submit(batch: SeedBatch) -> int:
+    async def submit(batch: SeedBatch) -> SeedBatchResult:
         response = await clients.ingest_batch(
             tenant_id,
             "transactions",
@@ -73,15 +83,26 @@ async def seed_transactions(
             raise APIError(
                 f"seed batch {batch.number} returned {actual} results for {len(batch.records)} records"
             )
-        return len(batch.records)
+        replay_flags = [isinstance(result, dict) and result.get("replayed") is True for result in results]
+        if any(replay_flags) and not all(replay_flags):
+            raise APIError(f"seed batch {batch.number} returned a mixture of replayed and new results")
+        return SeedBatchResult(record_count=len(batch.records), replayed=all(replay_flags))
 
-    async def collect(tasks: set[asyncio.Task[int]]) -> None:
+    async def collect(tasks: set[asyncio.Task[SeedBatchResult]]) -> None:
         nonlocal completed_batches, completed_records
-        for record_count in await asyncio.gather(*tasks):
-            completed_records += record_count
+        nonlocal inserted_batches, inserted_records
+        nonlocal replayed_batches, replayed_records
+        for batch_result in await asyncio.gather(*tasks):
+            completed_records += batch_result.record_count
             completed_batches += 1
+            if batch_result.replayed:
+                replayed_records += batch_result.record_count
+                replayed_batches += 1
+            else:
+                inserted_records += batch_result.record_count
+                inserted_batches += 1
             if progress is not None:
-                progress(completed_records, completed_batches)
+                progress(completed_records, completed_batches, inserted_records, replayed_records)
 
     try:
         for batch in iter_seed_batches(manifest, batch_size):
@@ -105,6 +126,10 @@ async def seed_transactions(
     return {
         "records": completed_records,
         "batches": completed_batches,
+        "inserted_records": inserted_records,
+        "inserted_batches": inserted_batches,
+        "replayed_records": replayed_records,
+        "replayed_batches": replayed_batches,
         "batch_size": batch_size,
         "max_in_flight": max_in_flight,
         "elapsed_seconds": round(elapsed_seconds, 3),

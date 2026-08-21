@@ -74,6 +74,11 @@ func (s *stubWorkerIndexJobRepository) MarkFailed(_ context.Context, id uuid.UUI
 	s.failedMsgs = append(s.failedMsgs, message)
 	return nil
 }
+func (s *stubWorkerIndexJobRepository) MarkCancelled(_ context.Context, id uuid.UUID, message string, _ time.Time) error {
+	s.failedIDs = append(s.failedIDs, id)
+	s.failedMsgs = append(s.failedMsgs, message)
+	return nil
+}
 func (s *stubWorkerIndexJobRepository) MarkPendingRetry(_ context.Context, id uuid.UUID, _ string) error {
 	s.rescheduledIDs = append(s.rescheduledIDs, id)
 	return nil

@@ -27,7 +27,12 @@ type Runtime struct {
 	AggregateRemoteConcurrency  int
 	EvalCache                   *EvaluationCache
 	AggregateResultCache        *AggregateResultCache
+	AggregateBatcher            AggregateBatcher
 	RelatedPathCache            *RelatedPathCache
+}
+
+type AggregateBatcher interface {
+	Aggregate(ctx context.Context, tenantID string, query ports.AggregateQuery) (any, error)
 }
 
 const (

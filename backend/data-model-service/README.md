@@ -16,6 +16,8 @@ The service manages:
 - logical data-model metadata
 - physical per-tenant PostgreSQL tables and columns
 - published ingestion-safe tenant schema contracts
+- first-ingest schema locking for append-only event tables
+- creation-time, user-selected ClickHouse projection metadata on event fields
 - links and pivots used for higher-level graph navigation
 - table display/options metadata
 - navigation-option metadata
@@ -259,8 +261,49 @@ The response now includes:
 - `ingestion_contract.record_lookup_field` and `ingestion_contract.partial_updates` to define baseline upsert semantics
 - assembled table and field `archived` flags
 - enum values inside assembled fields
+- per-event-table `event_schema_revision` and `event_schema_locked_at`
 
 This service remains the sole schema authority. It publishes the contract and manages tenant physical layout, but it does not expose a business-record write API.
+
+### Event-table schema policy
+
+Every active field in an `event` table becomes a typed physical ClickHouse
+column. Ingestion calls the event-schema lock endpoint immediately before the
+first event write. That lock is stored in `core.model_tables`, and PostgreSQL
+triggers reject later physical table, field, and enum mutations even if a caller
+bypasses the normal service checks. API-level attempts return `409 Conflict`.
+
+An event field may be created with `is_projection=true`. This is an explicit
+user choice and is rejected for operational fields. On first ingest, ClickHouse
+creates an alternate ordering by that field and the event-time field. Projection
+metadata participates in the immutable event schema revision, so it cannot be
+enabled or removed after ingestion starts. No PostgreSQL index job is created
+for this setting.
+
+Projected event fields may also define a user-selected `aggregation_mode`:
+
+- `projection_only` is the default and creates no summary or Valkey entries.
+- `adaptive_cache` promotes only dimension values that are requested repeatedly (or repeatedly exceed the slow-query threshold). This is the recommended mode for high-cardinality values such as account references.
+- `tiered_summary` builds one durable ClickHouse hourly summary for all values used by a query shape, while Valkey still admits only bounded hot values. This suits reusable merchant, terminal, and source facts.
+- `always_online` uses the same durable summary and admits a queried value to the bounded Valkey hot set immediately.
+
+For a query constrained by multiple equality fields, every participating field
+must opt in. The least expansive mode wins, preventing a broad merchant policy
+from implicitly creating summaries for unconfigured or adaptive account values.
+
+Accelerated modes require `is_projection=true`. The field also declares what a
+decision does before its summary is ready through
+`aggregation_cold_behavior`: query ClickHouse exactly, synchronously build the
+durable summary, defer the decision to async processing, treat the rule as a
+non-match, or use an explicit numeric default. The last option requires
+`aggregation_default_value`.
+
+Aggregation policy is runtime metadata and may be tuned after ingestion on an
+already projected field; this does not alter the immutable ClickHouse table.
+Turning acceleration on for an unprojected locked field remains rejected.
+
+For now this is deliberately immutable: schema evolution through a new physical
+ClickHouse table, write cutover, and historical backfill is not implemented yet.
 
 ### `revision_id` semantics
 

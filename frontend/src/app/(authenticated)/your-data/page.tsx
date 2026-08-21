@@ -477,6 +477,16 @@ export default function YourDataPage() {
     useState<"bool" | "int" | "float" | "string" | "timestamp" | "ip_address">("string");
   const [fieldIsEnum, setFieldIsEnum] = useState(false);
   const [fieldIsUnique, setFieldIsUnique] = useState(false);
+  const [fieldIsProjection, setFieldIsProjection] = useState(false);
+  const [fieldAggregationMode, setFieldAggregationMode] =
+    useState<"projection_only" | "adaptive_cache" | "tiered_summary" | "always_online">(
+      "projection_only"
+    );
+  const [fieldAggregationColdBehavior, setFieldAggregationColdBehavior] =
+    useState<"query_clickhouse" | "durable_summary" | "defer_async" | "skip_rule" | "use_default">(
+      "query_clickhouse"
+    );
+  const [fieldAggregationDefaultValue, setFieldAggregationDefaultValue] = useState("");
   const [fieldEnumValues, setFieldEnumValues] = useState<LocalEnumValue[]>([]);
   const [fieldFormError, setFieldFormError] = useState<string | null>(null);
   const [linkName, setLinkName] = useState("");
@@ -917,6 +927,10 @@ export default function YourDataPage() {
     setFieldType("string");
     setFieldIsEnum(false);
     setFieldIsUnique(false);
+    setFieldIsProjection(false);
+    setFieldAggregationMode("projection_only");
+    setFieldAggregationColdBehavior("query_clickhouse");
+    setFieldAggregationDefaultValue("");
     setFieldEnumValues([]);
     setFieldFormError(null);
   }
@@ -939,6 +953,16 @@ export default function YourDataPage() {
     );
     setFieldIsEnum(field.is_enum);
     setFieldIsUnique(field.is_unique);
+    setFieldIsProjection(field.is_projection);
+    setFieldAggregationMode(field.aggregation_mode || "projection_only");
+    setFieldAggregationColdBehavior(
+      field.aggregation_cold_behavior || "query_clickhouse"
+    );
+    setFieldAggregationDefaultValue(
+      field.aggregation_default_value === undefined
+        ? ""
+        : String(field.aggregation_default_value)
+    );
     setFieldEnumValues(
       field.enum_values.map((enumValue) => ({
         id: enumValue.id,
@@ -1334,6 +1358,17 @@ export default function YourDataPage() {
       }
     }
 
+    if (
+      fieldTable.storage_class === "event" &&
+      fieldAggregationMode !== "projection_only" &&
+      fieldAggregationColdBehavior === "use_default" &&
+      (fieldAggregationDefaultValue.trim() === "" ||
+        !Number.isFinite(Number(fieldAggregationDefaultValue)))
+    ) {
+      setFieldFormError("Enter a valid number to use while the aggregation summary is cold.");
+      return;
+    }
+
     try {
       await createFieldMutation.mutateAsync({
         tableId: fieldTable.id,
@@ -1344,6 +1379,19 @@ export default function YourDataPage() {
           nullable: !fieldIsRequired,
           is_enum: fieldIsEnum,
           is_unique: fieldIsUnique,
+          is_projection: fieldTable.storage_class === "event" && fieldIsProjection,
+          aggregation_mode:
+            fieldTable.storage_class === "event" ? fieldAggregationMode : "projection_only",
+          aggregation_cold_behavior:
+            fieldTable.storage_class === "event" && fieldAggregationMode !== "projection_only"
+              ? fieldAggregationColdBehavior
+              : "query_clickhouse",
+          aggregation_default_value:
+            fieldTable.storage_class === "event" &&
+            fieldAggregationMode !== "projection_only" &&
+            fieldAggregationColdBehavior === "use_default"
+              ? Number(fieldAggregationDefaultValue)
+              : undefined,
           enum_values: fieldIsEnum
             ? fieldEnumValues.map((item, index) => ({
                 value: item.value.trim(),
@@ -1389,6 +1437,17 @@ export default function YourDataPage() {
       }
     }
 
+    if (
+      fieldTable?.storage_class === "event" &&
+      fieldAggregationMode !== "projection_only" &&
+      fieldAggregationColdBehavior === "use_default" &&
+      (fieldAggregationDefaultValue.trim() === "" ||
+        !Number.isFinite(Number(fieldAggregationDefaultValue)))
+    ) {
+      setFieldFormError("Enter a valid number to use while the aggregation summary is cold.");
+      return;
+    }
+
     try {
       await updateFieldMutation.mutateAsync({
         fieldId: editingField.id,
@@ -1397,6 +1456,20 @@ export default function YourDataPage() {
           nullable: !fieldIsRequired,
           is_enum: fieldIsEnum,
           is_unique: fieldIsUnique,
+          aggregation_mode:
+            fieldTable?.storage_class === "event" ? fieldAggregationMode : undefined,
+          aggregation_cold_behavior:
+            fieldTable?.storage_class === "event" && fieldAggregationMode !== "projection_only"
+              ? fieldAggregationColdBehavior
+              : fieldTable?.storage_class === "event"
+                ? "query_clickhouse"
+                : undefined,
+          aggregation_default_value:
+            fieldTable?.storage_class === "event" &&
+            fieldAggregationMode !== "projection_only" &&
+            fieldAggregationColdBehavior === "use_default"
+              ? Number(fieldAggregationDefaultValue)
+              : undefined,
         },
       });
 
@@ -2307,7 +2380,15 @@ export default function YourDataPage() {
                                         {field.nullable ? "Optional" : "Required"}
                                       </td>
                                       <td className="px-4 py-3">
-                                        {field.is_unique ? "Unique" : ""}
+                                        {[
+                                          field.is_unique ? "Unique" : "",
+                                          field.is_projection ? "Projection" : "",
+                                          field.aggregation_mode !== "projection_only"
+                                            ? field.aggregation_mode.replaceAll("_", " ")
+                                            : "",
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" · ")}
                                       </td>
                                       <td className="px-4 py-3">
                                         {field.description || "No description"}
@@ -2804,6 +2885,96 @@ export default function YourDataPage() {
                       </span>
                     </span>
                   </label>
+
+                  {fieldTable.storage_class === "event" ? (
+                    <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+                      <label className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={fieldIsProjection}
+                          disabled={fieldAggregationMode !== "projection_only"}
+                          onChange={(event) => setFieldIsProjection(event.target.checked)}
+                          className="mt-1 size-5 rounded border border-slate-300 text-[#2563eb] focus:ring-[#2563eb] disabled:opacity-60"
+                        />
+                        <span>
+                          <span className="block text-[15px] font-medium text-slate-900">
+                            Optimize history searches by this field
+                          </span>
+                          <span className="block text-sm leading-6 text-slate-500">
+                            Creates a ClickHouse projection ordered by this field and event time. Accelerated aggregation modes require it, and it cannot be changed after ingestion starts.
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className="block space-y-2">
+                        <span className="block text-[15px] font-medium text-slate-900">
+                          Aggregation acceleration
+                        </span>
+                        <select
+                          value={fieldAggregationMode}
+                          onChange={(event) => {
+                            const mode = event.target.value as typeof fieldAggregationMode;
+                            setFieldAggregationMode(mode);
+                            if (mode !== "projection_only") {
+                              setFieldIsProjection(true);
+                            } else {
+                              setFieldAggregationColdBehavior("query_clickhouse");
+                              setFieldAggregationDefaultValue("");
+                            }
+                          }}
+                          className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[#2563eb] focus:outline-none focus:ring-[3px] focus:ring-blue-100"
+                        >
+                          <option value="projection_only">Projection only — no summaries or Valkey entries</option>
+                          <option value="adaptive_cache">Adaptive cache — promote only repeatedly used values</option>
+                          <option value="tiered_summary">Tiered summary — all values on ClickHouse disk, hot values in Valkey</option>
+                          <option value="always_online">Always online — admit queried values to Valkey immediately</option>
+                        </select>
+                        <span className="block text-sm leading-6 text-slate-500">
+                          Adaptive cache is safest for fields such as account references. Tiered summary suits reusable merchant, terminal, or source facts.
+                        </span>
+                      </label>
+
+                      {fieldAggregationMode !== "projection_only" ? (
+                        <label className="block space-y-2">
+                          <span className="block text-[15px] font-medium text-slate-900">
+                            Before the summary is ready
+                          </span>
+                          <select
+                            value={fieldAggregationColdBehavior}
+                            onChange={(event) =>
+                              setFieldAggregationColdBehavior(
+                                event.target.value as typeof fieldAggregationColdBehavior
+                              )
+                            }
+                            className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[#2563eb] focus:outline-none focus:ring-[3px] focus:ring-blue-100"
+                          >
+                            <option value="query_clickhouse">Query ClickHouse for an exact answer</option>
+                            <option value="durable_summary">Build the durable summary before answering</option>
+                            <option value="defer_async">Move the decision to async processing</option>
+                            <option value="skip_rule">Skip this cold aggregation for the current rule</option>
+                            <option value="use_default">Use a configured default value</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {fieldAggregationMode !== "projection_only" &&
+                      fieldAggregationColdBehavior === "use_default" ? (
+                        <label className="block space-y-2">
+                          <span className="block text-[15px] font-medium text-slate-900">
+                            Cold default value
+                          </span>
+                          <Input
+                            type="number"
+                            step="any"
+                            value={fieldAggregationDefaultValue}
+                            onChange={(event) => setFieldAggregationDefaultValue(event.target.value)}
+                            placeholder="0"
+                            className="h-10 rounded-md border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -3350,6 +3521,87 @@ export default function YourDataPage() {
                       </span>
                     </span>
                   </label>
+
+                  {fieldTable.storage_class === "event" ? (
+                    <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+                      <label className="block space-y-2">
+                        <span className="block text-[15px] font-medium text-slate-900">
+                          Aggregation acceleration
+                        </span>
+                        <select
+                          value={fieldAggregationMode}
+                          onChange={(event) => {
+                            const mode = event.target.value as typeof fieldAggregationMode;
+                            setFieldAggregationMode(mode);
+                            if (mode === "projection_only") {
+                              setFieldAggregationColdBehavior("query_clickhouse");
+                              setFieldAggregationDefaultValue("");
+                            }
+                          }}
+                          className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[#2563eb] focus:outline-none focus:ring-[3px] focus:ring-blue-100"
+                        >
+                          <option value="projection_only">Projection only</option>
+                          <option value="adaptive_cache" disabled={!editingField.is_projection}>
+                            Adaptive cache
+                          </option>
+                          <option value="tiered_summary" disabled={!editingField.is_projection}>
+                            Tiered summary
+                          </option>
+                          <option value="always_online" disabled={!editingField.is_projection}>
+                            Always online
+                          </option>
+                        </select>
+                        {!editingField.is_projection ? (
+                          <span className="block text-sm leading-6 text-amber-700">
+                            This field was not projected before ingestion, so accelerated modes cannot be enabled without a new event-table version.
+                          </span>
+                        ) : (
+                          <span className="block text-sm leading-6 text-slate-500">
+                            This runtime policy can be tuned without changing the locked ClickHouse schema.
+                          </span>
+                        )}
+                      </label>
+
+                      {fieldAggregationMode !== "projection_only" ? (
+                        <label className="block space-y-2">
+                          <span className="block text-[15px] font-medium text-slate-900">
+                            Before the summary is ready
+                          </span>
+                          <select
+                            value={fieldAggregationColdBehavior}
+                            onChange={(event) =>
+                              setFieldAggregationColdBehavior(
+                                event.target.value as typeof fieldAggregationColdBehavior
+                              )
+                            }
+                            className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[#2563eb] focus:outline-none focus:ring-[3px] focus:ring-blue-100"
+                          >
+                            <option value="query_clickhouse">Query ClickHouse exactly</option>
+                            <option value="durable_summary">Build the durable summary first</option>
+                            <option value="defer_async">Move the decision to async processing</option>
+                            <option value="skip_rule">Treat the current rule as a non-match</option>
+                            <option value="use_default">Use a configured default value</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {fieldAggregationMode !== "projection_only" &&
+                      fieldAggregationColdBehavior === "use_default" ? (
+                        <label className="block space-y-2">
+                          <span className="block text-[15px] font-medium text-slate-900">
+                            Cold default value
+                          </span>
+                          <Input
+                            type="number"
+                            step="any"
+                            value={fieldAggregationDefaultValue}
+                            onChange={(event) => setFieldAggregationDefaultValue(event.target.value)}
+                            className="h-10 rounded-md border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

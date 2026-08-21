@@ -11,6 +11,7 @@ import (
 
 type FieldEnumValueService struct {
 	fieldRepository     ports.FieldRepository
+	tableRepository     ports.TableRepository
 	enumValueRepository ports.FieldEnumValueRepository
 	schemaChanges       ports.SchemaChangeRepository
 	txManager           ports.TransactionManager
@@ -18,11 +19,16 @@ type FieldEnumValueService struct {
 	clock               ports.Clock
 }
 
+func (s FieldEnumValueService) WithEventTableGuard(tableRepository ports.TableRepository) FieldEnumValueService {
+	s.tableRepository = tableRepository
+	return s
+}
+
 type CreateFieldEnumValueInput struct {
-	FieldID    uuid.UUID
-	Value      string
-	Label      string
-	SortOrder  int
+	FieldID   uuid.UUID
+	Value     string
+	Label     string
+	SortOrder int
 }
 
 type UpdateFieldEnumValueInput struct {
@@ -64,6 +70,9 @@ func (s FieldEnumValueService) List(ctx context.Context, fieldID uuid.UUID) ([]d
 func (s FieldEnumValueService) Create(ctx context.Context, input CreateFieldEnumValueInput) (datamodel.FieldEnumValue, error) {
 	field, err := s.fieldRepository.GetByID(ctx, input.FieldID)
 	if err != nil {
+		return datamodel.FieldEnumValue{}, err
+	}
+	if err := s.ensureEventTableMutable(ctx, field.TableID); err != nil {
 		return datamodel.FieldEnumValue{}, err
 	}
 	if err := datamodel.ValidateEnumValueCreate(field, input.Value, input.Label); err != nil {
@@ -116,6 +125,9 @@ func (s FieldEnumValueService) Update(ctx context.Context, input UpdateFieldEnum
 	if err != nil {
 		return datamodel.FieldEnumValue{}, err
 	}
+	if err := s.ensureEventTableMutable(ctx, field.TableID); err != nil {
+		return datamodel.FieldEnumValue{}, err
+	}
 	if err := datamodel.ValidateEnumValueUpdate(field, input.Value, input.Label); err != nil {
 		return datamodel.FieldEnumValue{}, err
 	}
@@ -165,6 +177,9 @@ func (s FieldEnumValueService) Delete(ctx context.Context, enumValueID uuid.UUID
 	if err != nil {
 		return err
 	}
+	if err := s.ensureEventTableMutable(ctx, field.TableID); err != nil {
+		return err
+	}
 	now := s.clock.Now()
 	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.FieldEnumValues().Delete(ctx, enumValueID); err != nil {
@@ -187,4 +202,18 @@ func (s FieldEnumValueService) Delete(ctx context.Context, enumValueID uuid.UUID
 		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("delete_field_enum_value", "field_enum_value"), now)
 		return nil
 	})
+}
+
+func (s FieldEnumValueService) ensureEventTableMutable(ctx context.Context, tableID uuid.UUID) error {
+	if s.tableRepository == nil {
+		return nil
+	}
+	table, err := s.tableRepository.GetByID(ctx, tableID)
+	if err != nil {
+		return err
+	}
+	if table.StorageClass == datamodel.StorageClassEvent && table.EventSchemaLockedAt != nil {
+		return datamodel.ErrEventSchemaLocked
+	}
+	return nil
 }

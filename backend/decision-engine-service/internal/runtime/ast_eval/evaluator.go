@@ -17,6 +17,7 @@ import (
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -993,6 +994,9 @@ func EvaluateFormula(ctx context.Context, formula json.RawMessage, runtime Runti
 	}
 	result, err := EvaluateNode(ctx, node, runtime)
 	if err != nil {
+		if errors.Is(err, sharedeventstore.ErrAggregationSkipped) {
+			return false, nil
+		}
 		return false, err
 	}
 	boolResult, ok := result.(bool)
@@ -1176,6 +1180,9 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 	queryShape := aggregateQueryShapeKey(compileResult.Query)
 	recordAggregateDemand(ctx, queryShape, compileResult.Query.Aggregate, compileResult.Query.Field)
 	cacheOutcome, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
+		if runtime.AggregateBatcher != nil {
+			return runtime.AggregateBatcher.Aggregate(ctx, runtime.TenantID, compileResult.Query)
+		}
 		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency)
 		if acquireErr != nil {
 			return nil, acquireErr

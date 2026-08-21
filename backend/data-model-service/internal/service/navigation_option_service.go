@@ -162,20 +162,24 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		if err := store.NavigationOptions().Create(ctx, option); err != nil {
 			return err
 		}
-		indexJob, _, err := ensureManagedIndexJobTx(
-			ctx,
-			store,
-			s.indexJobEnqueuer,
-			s.idGenerator,
-			input.TenantID,
-			targetTable,
-			datamodel.IndexJobTypeNavigation,
-			[]string{filterField.Name, orderingField.Name},
-			"create_navigation_option",
-			now,
-		)
-		if err != nil {
-			return err
+		var indexJobID any
+		if targetTable.StorageClass != datamodel.StorageClassEvent {
+			indexJob, _, err := ensureManagedIndexJobTx(
+				ctx,
+				store,
+				s.indexJobEnqueuer,
+				s.idGenerator,
+				input.TenantID,
+				targetTable,
+				datamodel.IndexJobTypeNavigation,
+				[]string{filterField.Name, orderingField.Name},
+				"create_navigation_option",
+				now,
+			)
+			if err != nil {
+				return err
+			}
+			indexJobID = indexJob.ID
 		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
 			s.idGenerator.New(),
@@ -190,7 +194,7 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 				"target_table_id":   targetTable.ID,
 				"filter_field_id":   filterField.ID,
 				"ordering_field_id": orderingField.ID,
-				"index_job_id":      indexJob.ID,
+				"index_job_id":      indexJobID,
 			},
 		))
 		return nil

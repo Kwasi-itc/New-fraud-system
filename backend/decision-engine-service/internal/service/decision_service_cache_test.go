@@ -75,6 +75,65 @@ func TestDecisionServiceGetTenantModelCachesWithinTTL(t *testing.T) {
 	}
 }
 
+func TestCloneTenantModelPreservesEventStorageMetadata(t *testing.T) {
+	t.Parallel()
+
+	cutover := time.Date(2026, time.August, 20, 12, 0, 0, 0, time.UTC)
+	legacyReadUntil := cutover.Add(24 * time.Hour)
+	original := ports.TenantModel{
+		RevisionID: "rev-1",
+		Tables: map[string]ports.TenantModelTable{
+			"transactions": {
+				ID:                  "table-1",
+				Name:                "transactions",
+				StorageClass:        "event",
+				EventTimeField:      "date",
+				EventSchemaRevision: "event-rev-1",
+				StorageCutoverAt:    &cutover,
+				LegacyReadUntil:     &legacyReadUntil,
+				Fields: map[string]ports.TenantModelField{
+					"account_ref": {Name: "account_ref", Type: "string", IsProjection: true},
+				},
+			},
+		},
+	}
+
+	cloned := cloneTenantModel(original)
+	table := cloned.Tables["transactions"]
+	if table.StorageClass != "event" {
+		t.Fatalf("storage class = %q, want event", table.StorageClass)
+	}
+	if table.EventTimeField != "date" {
+		t.Fatalf("event time field = %q, want date", table.EventTimeField)
+	}
+	if table.EventSchemaRevision != "event-rev-1" {
+		t.Fatalf("event schema revision = %q, want event-rev-1", table.EventSchemaRevision)
+	}
+	if !table.Fields["account_ref"].IsProjection {
+		t.Fatal("account_ref projection flag was not preserved")
+	}
+	if _, ok := aggregateProjectionGroupKey(ports.AggregateQuery{
+		ObjectType: "transactions",
+		Filter: &ports.AggregateFilter{
+			Kind: "predicate", Field: "account_ref", Op: "eq", Value: "acct-1",
+		},
+	}, cloned); !ok {
+		t.Fatal("cloned event model did not enable projected aggregate batching")
+	}
+	if table.StorageCutoverAt == nil || !table.StorageCutoverAt.Equal(cutover) {
+		t.Fatalf("storage cutover = %v, want %s", table.StorageCutoverAt, cutover)
+	}
+	if table.LegacyReadUntil == nil || !table.LegacyReadUntil.Equal(legacyReadUntil) {
+		t.Fatalf("legacy read until = %v, want %s", table.LegacyReadUntil, legacyReadUntil)
+	}
+	if table.StorageCutoverAt == original.Tables["transactions"].StorageCutoverAt {
+		t.Fatal("storage cutover pointer was not cloned")
+	}
+	if table.LegacyReadUntil == original.Tables["transactions"].LegacyReadUntil {
+		t.Fatal("legacy read until pointer was not cloned")
+	}
+}
+
 func TestDecisionServiceRuntimeMetricsExposeTenantModelCacheStats(t *testing.T) {
 	t.Parallel()
 

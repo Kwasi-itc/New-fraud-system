@@ -277,6 +277,11 @@ func (s PublicationService) indexPreparationState(ctx context.Context, tenantID,
 	if err != nil {
 		return nil, nil, err
 	}
+	for tableName := range tableNames {
+		if table, ok := model.Tables[tableName]; ok && table.StorageClass == "event" {
+			delete(tableNames, tableName)
+		}
+	}
 	requirements, err := collectIndexRequirements(model, scn.TriggerObjectType, iteration.TriggerFormula, rules)
 	if err != nil {
 		return nil, nil, err
@@ -379,6 +384,9 @@ func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, no
 	}
 	table, ok := model.Tables[tableName]
 	if !ok || strings.TrimSpace(table.ID) == "" {
+		return indexRequirement{}, false
+	}
+	if table.StorageClass == "event" {
 		return indexRequirement{}, false
 	}
 	filtersNode, ok := node.NamedChildren["filters"]

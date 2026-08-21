@@ -127,8 +127,60 @@ class SeedTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sorted(len(batch) for batch in clients.batches), [1, 2, 2])
         self.assertEqual(result["records"], 5)
         self.assertEqual(result["batches"], 3)
+        self.assertEqual(result["inserted_records"], 5)
+        self.assertEqual(result["inserted_batches"], 3)
+        self.assertEqual(result["replayed_records"], 0)
+        self.assertEqual(result["replayed_batches"], 0)
         self.assertEqual(len(set(clients.keys)), 3)
         self.assertTrue(all(key.startswith("production-replay-seed:") for key in clients.keys))
+
+    async def test_seed_resume_counts_replayed_batches_without_new_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_minimal_sources(root)
+            transaction_path = root / "seed-transactions.csv"
+            write_transactions(
+                transaction_path,
+                [transaction_row(source_trans_id=f"seed-{index}") for index in range(4)],
+            )
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream("seed-stream", transaction_path.name)])),
+                encoding="utf-8",
+            )
+
+            class FakeClients:
+                def __init__(self) -> None:
+                    self.calls = 0
+
+                async def ingest_batch(
+                    self,
+                    _tenant_id: str,
+                    _object_type: str,
+                    records: list[dict[str, Any]],
+                    _idempotency_key: str,
+                ) -> dict[str, Any]:
+                    self.calls += 1
+                    replayed = self.calls == 1
+                    return {"results": [{"replayed": replayed} for _record in records]}
+
+            progress: list[tuple[int, int, int, int]] = []
+            result = await seed_transactions(  # type: ignore[arg-type]
+                FakeClients(),
+                load_manifest(manifest_path),
+                "tenant-1",
+                batch_size=2,
+                max_in_flight=1,
+                progress=lambda *counts: progress.append(counts),
+            )
+
+        self.assertEqual(result["records"], 4)
+        self.assertEqual(result["batches"], 2)
+        self.assertEqual(result["replayed_records"], 2)
+        self.assertEqual(result["replayed_batches"], 1)
+        self.assertEqual(result["inserted_records"], 2)
+        self.assertEqual(result["inserted_batches"], 1)
+        self.assertEqual(progress[-1], (4, 2, 2, 2))
 
     async def test_seed_rejects_incomplete_batch_response(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

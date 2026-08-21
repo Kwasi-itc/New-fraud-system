@@ -10,73 +10,101 @@ import (
 )
 
 type CreateTableRequest struct {
-	Name         string `json:"name" binding:"required"`
-	Description  string `json:"description"`
-	Alias        string `json:"alias"`
-	SemanticType string `json:"semantic_type"`
+	Name           string `json:"name" binding:"required"`
+	Description    string `json:"description"`
+	Alias          string `json:"alias"`
+	SemanticType   string `json:"semantic_type"`
+	StorageClass   string `json:"storage_class"`
+	EventTimeField string `json:"event_time_field"`
 }
 
 type UpdateTableRequest struct {
-	Description  *string `json:"description"`
-	Alias        *string `json:"alias"`
-	SemanticType *string `json:"semantic_type"`
-	CaptionField *string `json:"caption_field"`
+	Description     *string    `json:"description"`
+	Alias           *string    `json:"alias"`
+	SemanticType    *string    `json:"semantic_type"`
+	CaptionField    *string    `json:"caption_field"`
+	StorageClass    *string    `json:"storage_class"`
+	EventTimeField  *string    `json:"event_time_field"`
+	LegacyReadUntil *time.Time `json:"legacy_read_until"`
 }
 
 type TableResponse struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Alias        string    `json:"alias"`
-	SemanticType string    `json:"semantic_type"`
-	CaptionField string    `json:"caption_field"`
-	Archived     bool      `json:"archived"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID                  uuid.UUID  `json:"id"`
+	Name                string     `json:"name"`
+	Description         string     `json:"description"`
+	Alias               string     `json:"alias"`
+	SemanticType        string     `json:"semantic_type"`
+	CaptionField        string     `json:"caption_field"`
+	StorageClass        string     `json:"storage_class"`
+	EventTimeField      string     `json:"event_time_field"`
+	EventSchemaRevision string     `json:"event_schema_revision,omitempty"`
+	EventSchemaLockedAt *time.Time `json:"event_schema_locked_at,omitempty"`
+	StorageCutoverAt    *time.Time `json:"storage_cutover_at,omitempty"`
+	LegacyReadUntil     *time.Time `json:"legacy_read_until,omitempty"`
+	Archived            bool       `json:"archived"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 func AdaptTable(table datamodel.Table) TableResponse {
 	return TableResponse{
-		ID:           table.ID,
-		Name:         table.Name,
-		Description:  table.Description,
-		Alias:        table.Alias,
-		SemanticType: table.SemanticType,
-		CaptionField: table.CaptionField,
-		Archived:     table.Archived,
-		CreatedAt:    table.CreatedAt,
-		UpdatedAt:    table.UpdatedAt,
+		ID:                  table.ID,
+		Name:                table.Name,
+		Description:         table.Description,
+		Alias:               table.Alias,
+		SemanticType:        table.SemanticType,
+		CaptionField:        table.CaptionField,
+		StorageClass:        string(table.StorageClass),
+		EventTimeField:      table.EventTimeField,
+		EventSchemaRevision: table.EventSchemaRevision,
+		EventSchemaLockedAt: table.EventSchemaLockedAt,
+		StorageCutoverAt:    table.StorageCutoverAt,
+		LegacyReadUntil:     table.LegacyReadUntil,
+		Archived:            table.Archived,
+		CreatedAt:           table.CreatedAt,
+		UpdatedAt:           table.UpdatedAt,
 	}
 }
 
 type CreateFieldRequest struct {
-	Name        string                        `json:"name" binding:"required"`
-	Description string                        `json:"description"`
-	DataType    string                        `json:"data_type" binding:"required"`
-	Nullable    bool                          `json:"nullable"`
-	IsEnum      bool                          `json:"is_enum"`
-	IsUnique    bool                          `json:"is_unique"`
-	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
+	Name                    string                        `json:"name" binding:"required"`
+	Description             string                        `json:"description"`
+	DataType                string                        `json:"data_type" binding:"required"`
+	Nullable                bool                          `json:"nullable"`
+	IsEnum                  bool                          `json:"is_enum"`
+	IsUnique                bool                          `json:"is_unique"`
+	IsProjection            bool                          `json:"is_projection"`
+	AggregationMode         string                        `json:"aggregation_mode"`
+	AggregationColdBehavior string                        `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64                      `json:"aggregation_default_value"`
+	EnumValues              []CreateFieldEnumValueRequest `json:"enum_values"`
 }
 
 type UpdateFieldRequest struct {
-	Description *string `json:"description"`
-	Nullable    *bool   `json:"nullable"`
-	IsEnum      *bool   `json:"is_enum"`
-	IsUnique    *bool   `json:"is_unique"`
+	Description             *string  `json:"description"`
+	Nullable                *bool    `json:"nullable"`
+	IsEnum                  *bool    `json:"is_enum"`
+	IsUnique                *bool    `json:"is_unique"`
+	AggregationMode         *string  `json:"aggregation_mode"`
+	AggregationColdBehavior *string  `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64 `json:"aggregation_default_value"`
 }
 
 type FieldResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	DataType    string    `json:"data_type"`
-	Nullable    bool      `json:"nullable"`
-	IsEnum      bool      `json:"is_enum"`
-	IsUnique    bool      `json:"is_unique"`
-	Archived    bool      `json:"archived"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                      uuid.UUID `json:"id"`
+	Name                    string    `json:"name"`
+	Description             string    `json:"description"`
+	DataType                string    `json:"data_type"`
+	Nullable                bool      `json:"nullable"`
+	IsEnum                  bool      `json:"is_enum"`
+	IsUnique                bool      `json:"is_unique"`
+	IsProjection            bool      `json:"is_projection"`
+	AggregationMode         string    `json:"aggregation_mode"`
+	AggregationColdBehavior string    `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64  `json:"aggregation_default_value,omitempty"`
+	Archived                bool      `json:"archived"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 type CreateFieldEnumValueRequest struct {
@@ -103,16 +131,20 @@ type FieldEnumValueResponse struct {
 
 func AdaptField(field datamodel.Field) FieldResponse {
 	return FieldResponse{
-		ID:          field.ID,
-		Name:        field.Name,
-		Description: field.Description,
-		DataType:    string(field.DataType),
-		Nullable:    field.Nullable,
-		IsEnum:      field.IsEnum,
-		IsUnique:    field.IsUnique,
-		Archived:    field.Archived,
-		CreatedAt:   field.CreatedAt,
-		UpdatedAt:   field.UpdatedAt,
+		ID:                      field.ID,
+		Name:                    field.Name,
+		Description:             field.Description,
+		DataType:                string(field.DataType),
+		Nullable:                field.Nullable,
+		IsEnum:                  field.IsEnum,
+		IsUnique:                field.IsUnique,
+		IsProjection:            field.IsProjection,
+		AggregationMode:         string(field.AggregationMode),
+		AggregationColdBehavior: string(field.AggregationColdBehavior),
+		AggregationDefaultValue: field.AggregationDefaultValue,
+		Archived:                field.Archived,
+		CreatedAt:               field.CreatedAt,
+		UpdatedAt:               field.UpdatedAt,
 	}
 }
 
@@ -314,8 +346,8 @@ type PortableImportSummary struct {
 }
 
 type PortableDataModelDocument struct {
-	Version    string                 `json:"version"`
-	RevisionID string                 `json:"revision_id,omitempty"`
+	Version    string                  `json:"version"`
+	RevisionID string                  `json:"revision_id,omitempty"`
 	Tables     []PortableTableDocument `json:"tables"`
 	Links      []PortableLinkDocument  `json:"links"`
 	Pivots     []PortablePivotDocument `json:"pivots"`
@@ -326,6 +358,8 @@ type PortableTableDocument struct {
 	Description       string                             `json:"description"`
 	Alias             string                             `json:"alias"`
 	SemanticType      string                             `json:"semantic_type"`
+	StorageClass      string                             `json:"storage_class,omitempty"`
+	EventTimeField    string                             `json:"event_time_field,omitempty"`
 	CaptionField      string                             `json:"caption_field"`
 	Fields            []PortableFieldDocument            `json:"fields"`
 	Options           *PortableTableOptionsDocument      `json:"options,omitempty"`
@@ -333,13 +367,17 @@ type PortableTableDocument struct {
 }
 
 type PortableFieldDocument struct {
-	Name        string                        `json:"name"`
-	Description string                        `json:"description"`
-	DataType    string                        `json:"data_type"`
-	Nullable    bool                          `json:"nullable"`
-	IsEnum      bool                          `json:"is_enum"`
-	IsUnique    bool                          `json:"is_unique"`
-	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
+	Name                    string                        `json:"name"`
+	Description             string                        `json:"description"`
+	DataType                string                        `json:"data_type"`
+	Nullable                bool                          `json:"nullable"`
+	IsEnum                  bool                          `json:"is_enum"`
+	IsUnique                bool                          `json:"is_unique"`
+	IsProjection            bool                          `json:"is_projection,omitempty"`
+	AggregationMode         string                        `json:"aggregation_mode,omitempty"`
+	AggregationColdBehavior string                        `json:"aggregation_cold_behavior,omitempty"`
+	AggregationDefaultValue *float64                      `json:"aggregation_default_value,omitempty"`
+	EnumValues              []CreateFieldEnumValueRequest `json:"enum_values"`
 }
 
 type PortableTableOptionsDocument struct {
@@ -377,29 +415,39 @@ type IngestionContractResponse struct {
 }
 
 type AssembledTableResponse struct {
-	ID                uuid.UUID                         `json:"id"`
-	Name              string                            `json:"name"`
-	Description       string                            `json:"description"`
-	Alias             string                            `json:"alias"`
-	SemanticType      string                            `json:"semantic_type"`
-	CaptionField      string                            `json:"caption_field"`
-	Archived          bool                              `json:"archived"`
-	Fields            map[string]AssembledFieldResponse `json:"fields"`
-	LinksToSingle     map[string]AssembledLinkResponse  `json:"links_to_single"`
-	NavigationOptions []datamodel.NavigationOption      `json:"navigation_options"`
-	Options           *TableOptionsResponse             `json:"options,omitempty"`
+	ID                  uuid.UUID                         `json:"id"`
+	Name                string                            `json:"name"`
+	Description         string                            `json:"description"`
+	Alias               string                            `json:"alias"`
+	SemanticType        string                            `json:"semantic_type"`
+	CaptionField        string                            `json:"caption_field"`
+	StorageClass        string                            `json:"storage_class"`
+	EventTimeField      string                            `json:"event_time_field"`
+	EventSchemaRevision string                            `json:"event_schema_revision,omitempty"`
+	EventSchemaLockedAt *time.Time                        `json:"event_schema_locked_at,omitempty"`
+	StorageCutoverAt    *time.Time                        `json:"storage_cutover_at,omitempty"`
+	LegacyReadUntil     *time.Time                        `json:"legacy_read_until,omitempty"`
+	Archived            bool                              `json:"archived"`
+	Fields              map[string]AssembledFieldResponse `json:"fields"`
+	LinksToSingle       map[string]AssembledLinkResponse  `json:"links_to_single"`
+	NavigationOptions   []datamodel.NavigationOption      `json:"navigation_options"`
+	Options             *TableOptionsResponse             `json:"options,omitempty"`
 }
 
 type AssembledFieldResponse struct {
-	ID          uuid.UUID                `json:"id"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	DataType    string                   `json:"data_type"`
-	Nullable    bool                     `json:"nullable"`
-	IsEnum      bool                     `json:"is_enum"`
-	IsUnique    bool                     `json:"is_unique"`
-	Archived    bool                     `json:"archived"`
-	EnumValues  []FieldEnumValueResponse `json:"enum_values"`
+	ID                      uuid.UUID                `json:"id"`
+	Name                    string                   `json:"name"`
+	Description             string                   `json:"description"`
+	DataType                string                   `json:"data_type"`
+	Nullable                bool                     `json:"nullable"`
+	IsEnum                  bool                     `json:"is_enum"`
+	IsUnique                bool                     `json:"is_unique"`
+	IsProjection            bool                     `json:"is_projection"`
+	AggregationMode         string                   `json:"aggregation_mode"`
+	AggregationColdBehavior string                   `json:"aggregation_cold_behavior"`
+	AggregationDefaultValue *float64                 `json:"aggregation_default_value,omitempty"`
+	Archived                bool                     `json:"archived"`
+	EnumValues              []FieldEnumValueResponse `json:"enum_values"`
 }
 
 type AssembledLinkResponse struct {
@@ -439,6 +487,10 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 		Pivots: make([]AssembledPivotResponse, len(model.Pivots)),
 	}
 	for key, table := range model.Tables {
+		eventSchemaRevision := table.EventSchemaRevision
+		if table.StorageClass == datamodel.StorageClassEvent {
+			eventSchemaRevision = datamodel.BuildEventSchemaRevision(table)
+		}
 		var options *TableOptionsResponse
 		if table.Options != nil {
 			fieldList := make([]datamodel.Field, 0, len(table.Fields))
@@ -460,15 +512,19 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 		fields := make(map[string]AssembledFieldResponse, len(table.Fields))
 		for fieldKey, field := range table.Fields {
 			fields[fieldKey] = AssembledFieldResponse{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    string(field.DataType),
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  adaptFieldEnumValues(field.EnumValues),
+				ID:                      field.ID,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                string(field.DataType),
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         string(field.AggregationMode),
+				AggregationColdBehavior: string(field.AggregationColdBehavior),
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				Archived:                field.Archived,
+				EnumValues:              adaptFieldEnumValues(field.EnumValues),
 			}
 		}
 		links := make(map[string]AssembledLinkResponse, len(table.LinksToSingle))
@@ -487,17 +543,23 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 			}
 		}
 		response.Tables[key] = AssembledTableResponse{
-			ID:                table.ID,
-			Name:              table.Name,
-			Description:       table.Description,
-			Alias:             table.Alias,
-			SemanticType:      table.SemanticType,
-			CaptionField:      table.CaptionField,
-			Archived:          table.Archived,
-			Fields:            fields,
-			LinksToSingle:     links,
-			NavigationOptions: table.NavigationOptions,
-			Options:           options,
+			ID:                  table.ID,
+			Name:                table.Name,
+			Description:         table.Description,
+			Alias:               table.Alias,
+			SemanticType:        table.SemanticType,
+			CaptionField:        table.CaptionField,
+			StorageClass:        string(table.StorageClass),
+			EventTimeField:      table.EventTimeField,
+			EventSchemaRevision: eventSchemaRevision,
+			EventSchemaLockedAt: table.EventSchemaLockedAt,
+			StorageCutoverAt:    table.StorageCutoverAt,
+			LegacyReadUntil:     table.LegacyReadUntil,
+			Archived:            table.Archived,
+			Fields:              fields,
+			LinksToSingle:       links,
+			NavigationOptions:   table.NavigationOptions,
+			Options:             options,
 		}
 	}
 	for i, pivot := range model.Pivots {

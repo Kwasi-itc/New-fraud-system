@@ -28,6 +28,9 @@ class FieldSpec:
     data_type: str
     nullable: bool = True
     unique: bool = False
+    projection: bool = False
+    aggregation_mode: str = "projection_only"
+    aggregation_cold_behavior: str = "query_clickhouse"
 
 
 TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
@@ -59,7 +62,7 @@ TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
         FieldSpec("description", "string"),
     ),
     "transactions": (
-        FieldSpec("transaction_id", "string", False, True),
+        FieldSpec("transaction_id", "string", False),
         FieldSpec("date", "timestamp", False),
         FieldSpec("amount", "float", False),
         FieldSpec("fees", "float"),
@@ -78,10 +81,10 @@ TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
         FieldSpec("source_account_no", "string"),
         FieldSpec("source_trans_id", "string"),
         FieldSpec("terminal_id", "string"),
-        FieldSpec("merchant_id", "string"),
+        FieldSpec("merchant_id", "string", projection=True, aggregation_mode="tiered_summary"),
         FieldSpec("product_id", "string"),
         FieldSpec("sub_merchant_id", "string"),
-        FieldSpec("account_ref", "string"),
+        FieldSpec("account_ref", "string", projection=True, aggregation_mode="adaptive_cache"),
         FieldSpec("account_name", "string"),
         FieldSpec("payment_msisdn", "string"),
         FieldSpec("narration", "string"),
@@ -172,6 +175,7 @@ class EnvironmentSetup:
         )
         existing_tables = {item["name"]: item for item in response.get("tables", [])}
         for table_name, field_specs in TABLE_FIELDS.items():
+            storage_class = "event" if table_name == "transactions" else "operational"
             table = existing_tables.get(table_name)
             if table is None:
                 table = (
@@ -185,6 +189,8 @@ class EnvironmentSetup:
                             "alias": table_name.replace("_", " ").title(),
                             "description": "Production replay stress-test data",
                             "semantic_type": "entity",
+                            "storage_class": storage_class,
+                            "event_time_field": "date" if storage_class == "event" else "",
                         },
                     )
                 )["table"]
@@ -193,17 +199,76 @@ class EnvironmentSetup:
                 self.clients.data_model, "GET", f"/v1/tables/{table['id']}/fields", 200
             )
             existing_fields = {item["name"]: item for item in fields_response.get("fields", [])}
-            self.fields[table_name] = {}
-            for spec in field_specs:
-                existing = existing_fields.get(spec.name)
-                if existing is not None and existing.get("data_type") != spec.data_type:
+
+            def validate_existing_field(spec: FieldSpec, existing: dict[str, Any]) -> None:
+                if existing.get("data_type") != spec.data_type:
                     raise APIError(
                         f"existing field {table_name}.{spec.name} has type {existing.get('data_type')!r}; expected {spec.data_type!r}"
                     )
-                if existing is not None and spec.unique and existing.get("is_unique") is not True:
+                if spec.unique and existing.get("is_unique") is not True:
                     raise APIError(f"existing field {table_name}.{spec.name} must be unique for replay setup")
-                if existing is not None and not spec.nullable and existing.get("nullable") is not False:
+                if not spec.nullable and existing.get("nullable") is not False:
                     raise APIError(f"existing field {table_name}.{spec.name} must be non-nullable for replay setup")
+                if spec.projection and existing.get("is_projection") is not True:
+                    raise APIError(
+                        f"existing event field {table_name}.{spec.name} must be projection-enabled for replay setup; use a clean tenant because event projection choices are creation-time metadata"
+                    )
+                if existing.get("aggregation_mode", "projection_only") != spec.aggregation_mode:
+                    raise APIError(
+                        f"existing event field {table_name}.{spec.name} uses aggregation mode {existing.get('aggregation_mode')!r}; expected {spec.aggregation_mode!r}"
+                    )
+                if existing.get("aggregation_cold_behavior", "query_clickhouse") != spec.aggregation_cold_behavior:
+                    raise APIError(
+                        f"existing event field {table_name}.{spec.name} uses cold behavior {existing.get('aggregation_cold_behavior')!r}; expected {spec.aggregation_cold_behavior!r}"
+                    )
+
+            for spec in field_specs:
+                existing = existing_fields.get(spec.name)
+                if existing is not None:
+                    validate_existing_field(spec, existing)
+
+            if table.get("storage_class", "operational") != storage_class:
+                if table_name != "transactions" or table.get("storage_class", "operational") != "operational":
+                    raise APIError(f"existing table {table_name!r} has incompatible storage class")
+                # The event-time field must exist before an operational table can
+                # be converted. Projection fields are deliberately deferred until
+                # after conversion because they are only valid on event tables.
+                for spec in field_specs:
+                    if spec.projection or spec.name in existing_fields:
+                        continue
+                    existing_fields[spec.name] = (
+                        await self.clients.request(
+                            self.clients.data_model,
+                            "POST",
+                            f"/v1/tables/{table['id']}/fields",
+                            201,
+                            json={
+                                "name": spec.name,
+                                "data_type": spec.data_type,
+                                "nullable": spec.nullable,
+                                "is_unique": spec.unique,
+                                "is_projection": False,
+                                "aggregation_mode": spec.aggregation_mode,
+                                "aggregation_cold_behavior": spec.aggregation_cold_behavior,
+                            },
+                        )
+                    )["field"]
+                table = (
+                    await self.clients.request(
+                        self.clients.data_model,
+                        "PATCH",
+                        f"/v1/tables/{table['id']}",
+                        200,
+                        json={"storage_class": "event", "event_time_field": "date"},
+                    )
+                )["table"]
+                self.tables[table_name] = table
+            if storage_class == "event" and table.get("event_time_field") != "date":
+                raise APIError(f"existing table {table_name!r} must use date as event_time_field")
+
+            self.fields[table_name] = {}
+            for spec in field_specs:
+                existing = existing_fields.get(spec.name)
                 if existing is None:
                     existing = (
                         await self.clients.request(
@@ -216,6 +281,9 @@ class EnvironmentSetup:
                                 "data_type": spec.data_type,
                                 "nullable": spec.nullable,
                                 "is_unique": spec.unique,
+                                "is_projection": spec.projection,
+                                "aggregation_mode": spec.aggregation_mode,
+                                "aggregation_cold_behavior": spec.aggregation_cold_behavior,
                             },
                         )
                     )["field"]

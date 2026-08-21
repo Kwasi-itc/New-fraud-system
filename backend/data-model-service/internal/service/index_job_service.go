@@ -82,6 +82,9 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 	if table.TenantID != input.TenantID {
 		return datamodel.IndexJob{}, fmt.Errorf("table does not belong to tenant")
 	}
+	if table.StorageClass == datamodel.StorageClassEvent {
+		return datamodel.IndexJob{}, fmt.Errorf("PostgreSQL index jobs are disabled for event tables")
+	}
 
 	fields, err := s.fieldRepository.ListByTable(ctx, input.TableID)
 	if err != nil {

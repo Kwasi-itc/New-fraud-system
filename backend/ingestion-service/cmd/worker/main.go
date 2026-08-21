@@ -10,12 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/datamodel"
+	eventstoreclient "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/eventstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
@@ -48,12 +50,24 @@ func main() {
 	defer stop()
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	eventRepository, err := sharedeventstore.NewRepository(cfg.EventStoreConfig(), logger)
+	if err != nil {
+		logger.Error("failed to initialize ClickHouse repository", "error", err)
+		os.Exit(1)
+	}
+	defer eventRepository.Close()
+	if err := eventRepository.Initialize(ctx); err != nil {
+		logger.Error("failed to connect to ClickHouse", "error", err)
+		os.Exit(1)
+	}
+	eventStore := eventstoreclient.NewRepository(eventRepository)
 	ingestService := service.NewIngestService(
 		dataModelReader,
 		storepostgres.NewTransactionManager(db),
 		nil,
 		uuidGenerator{},
 		systemClock{},
+		eventStore,
 	)
 	uploadLogService := service.NewUploadLogService(
 		storepostgres.NewUploadLogRepository(db),

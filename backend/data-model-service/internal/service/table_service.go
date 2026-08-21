@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -27,19 +29,24 @@ type TableService struct {
 }
 
 type CreateTableInput struct {
-	TenantID     uuid.UUID
-	Name         string
-	Description  string
-	Alias        string
-	SemanticType string
+	TenantID       uuid.UUID
+	Name           string
+	Description    string
+	Alias          string
+	SemanticType   string
+	StorageClass   string
+	EventTimeField string
 }
 
 type UpdateTableInput struct {
-	TableID      uuid.UUID
-	Description  *string
-	Alias        *string
-	SemanticType *string
-	CaptionField *string
+	TableID         uuid.UUID
+	Description     *string
+	Alias           *string
+	SemanticType    *string
+	CaptionField    *string
+	StorageClass    *string
+	EventTimeField  *string
+	LegacyReadUntil *time.Time
 }
 
 func NewTableService(
@@ -91,6 +98,21 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 	if err := datamodel.ValidateSemanticType(input.SemanticType); err != nil {
 		return datamodel.Table{}, err
 	}
+	storageClass, err := datamodel.ParseStorageClass(input.StorageClass)
+	if err != nil {
+		return datamodel.Table{}, err
+	}
+	eventTimeField := datamodel.NormalizeName(input.EventTimeField)
+	if storageClass == datamodel.StorageClassEvent {
+		if eventTimeField == "" {
+			return datamodel.Table{}, fmt.Errorf("event_time_field is required for event tables")
+		}
+		if err := datamodel.ValidateObjectName("event time field", eventTimeField); err != nil {
+			return datamodel.Table{}, err
+		}
+	} else if eventTimeField != "" {
+		return datamodel.Table{}, fmt.Errorf("event_time_field is only valid for event tables")
+	}
 
 	tenantRecord, err := s.tenantRepository.GetByID(ctx, input.TenantID)
 	if err != nil {
@@ -102,14 +124,22 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 
 	now := s.clock.Now()
 	table := datamodel.Table{
-		ID:           s.idGenerator.New(),
-		TenantID:     input.TenantID,
-		Name:         datamodel.NormalizeName(input.Name),
-		Description:  input.Description,
-		Alias:        input.Alias,
-		SemanticType: datamodel.NormalizeName(input.SemanticType),
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:             s.idGenerator.New(),
+		TenantID:       input.TenantID,
+		Name:           datamodel.NormalizeName(input.Name),
+		Description:    input.Description,
+		Alias:          input.Alias,
+		SemanticType:   datamodel.NormalizeName(input.SemanticType),
+		StorageClass:   storageClass,
+		EventTimeField: eventTimeField,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if storageClass == datamodel.StorageClassEvent {
+		table.StorageCutoverAt = &now
+		// A table created directly as event storage has no PostgreSQL history to
+		// bridge. Mark the bridge complete at creation time.
+		table.LegacyReadUntil = &now
 	}
 
 	defaultFields := []datamodel.Field{
@@ -145,16 +175,20 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 		if err := store.Tables().Create(ctx, table); err != nil {
 			return err
 		}
-		if err := store.SchemaManager().CreateTable(ctx, tenantRecord, table); err != nil {
-			return err
+		if table.StorageClass != datamodel.StorageClassEvent {
+			if err := store.SchemaManager().CreateTable(ctx, tenantRecord, table); err != nil {
+				return err
+			}
 		}
 		for _, field := range defaultFields {
 			if err := store.Fields().Create(ctx, field); err != nil {
 				return err
 			}
 		}
-		if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{"object_id"}); err != nil {
-			return err
+		if table.StorageClass != datamodel.StorageClassEvent {
+			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{"object_id"}); err != nil {
+				return err
+			}
 		}
 		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
 			s.idGenerator.New(),
@@ -164,10 +198,12 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 			table.ID,
 			now,
 			map[string]any{
-				"name":          table.Name,
-				"description":   table.Description,
-				"alias":         table.Alias,
-				"semantic_type": table.SemanticType,
+				"name":             table.Name,
+				"description":      table.Description,
+				"alias":            table.Alias,
+				"semantic_type":    table.SemanticType,
+				"storage_class":    table.StorageClass,
+				"event_time_field": table.EventTimeField,
 				"default_fields": []string{
 					"object_id",
 					"updated_at",
@@ -187,6 +223,9 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 	table, err := s.tableRepository.GetByID(ctx, input.TableID)
 	if err != nil {
 		return datamodel.Table{}, err
+	}
+	if table.StorageClass == datamodel.StorageClassEvent && table.EventSchemaLockedAt != nil {
+		return datamodel.Table{}, datamodel.ErrEventSchemaLocked
 	}
 
 	fields, err := s.fieldRepository.ListByTable(ctx, table.ID)
@@ -219,6 +258,50 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 		}
 		table.CaptionField = captionField
 	}
+	if input.StorageClass != nil {
+		storageClass, err := datamodel.ParseStorageClass(*input.StorageClass)
+		if err != nil {
+			return datamodel.Table{}, err
+		}
+		if table.StorageClass == datamodel.StorageClassEvent && storageClass != datamodel.StorageClassEvent {
+			return datamodel.Table{}, fmt.Errorf("event tables cannot be converted back to operational storage")
+		}
+		table.StorageClass = storageClass
+	}
+	if input.EventTimeField != nil {
+		table.EventTimeField = datamodel.NormalizeName(*input.EventTimeField)
+	}
+	if table.StorageClass == "" {
+		table.StorageClass = datamodel.StorageClassOperational
+	}
+	if table.StorageClass == datamodel.StorageClassEvent {
+		if table.EventTimeField == "" {
+			return datamodel.Table{}, fmt.Errorf("event_time_field is required for event tables")
+		}
+		eventField, ok := findTableFieldByName(fields, table.EventTimeField)
+		if !ok {
+			return datamodel.Table{}, fmt.Errorf("event time field %s not found on table %s", table.EventTimeField, table.Name)
+		}
+		if eventField.DataType != datamodel.DataTypeTimestamp || eventField.Nullable {
+			return datamodel.Table{}, fmt.Errorf("event time field must be a non-null timestamp field")
+		}
+		if table.StorageCutoverAt == nil {
+			cutover := s.clock.Now()
+			table.StorageCutoverAt = &cutover
+			if table.LegacyReadUntil == nil {
+				legacyReadUntil := cutover.Add(30 * 24 * time.Hour)
+				table.LegacyReadUntil = &legacyReadUntil
+			}
+		}
+	} else if strings.TrimSpace(table.EventTimeField) != "" {
+		return datamodel.Table{}, fmt.Errorf("event_time_field is only valid for event tables")
+	}
+	if input.LegacyReadUntil != nil {
+		if table.StorageClass != datamodel.StorageClassEvent {
+			return datamodel.Table{}, fmt.Errorf("legacy_read_until is only valid for event tables")
+		}
+		table.LegacyReadUntil = input.LegacyReadUntil
+	}
 	table.UpdatedAt = s.clock.Now()
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -226,12 +309,16 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			return err
 		}
 		details := map[string]any{
-			"description":   table.Description,
-			"alias":         table.Alias,
-			"semantic_type": table.SemanticType,
-			"caption_field": table.CaptionField,
+			"description":        table.Description,
+			"alias":              table.Alias,
+			"semantic_type":      table.SemanticType,
+			"caption_field":      table.CaptionField,
+			"storage_class":      table.StorageClass,
+			"event_time_field":   table.EventTimeField,
+			"storage_cutover_at": table.StorageCutoverAt,
+			"legacy_read_until":  table.LegacyReadUntil,
 		}
-		if table.CaptionField != "" {
+		if table.StorageClass != datamodel.StorageClassEvent && table.CaptionField != "" {
 			indexJob, requested, err := ensureManagedIndexJobTx(
 				ctx,
 				store,
@@ -261,6 +348,7 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			table.UpdatedAt,
 			details,
 		))
+		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, table.TenantID, schemaMigrationVersion("update_table", "table"), table.UpdatedAt)
 		return nil
 	}); err != nil {
 		return datamodel.Table{}, err
@@ -275,6 +363,9 @@ func (s TableService) Delete(ctx context.Context, tableID uuid.UUID, dryRun bool
 	table, err := s.tableRepository.GetByID(ctx, tableID)
 	if err != nil {
 		return report, err
+	}
+	if table.StorageClass == datamodel.StorageClassEvent {
+		return report, fmt.Errorf("event tables are append-only and cannot be deleted")
 	}
 	tenantRecord, err := s.tenantRepository.GetByID(ctx, table.TenantID)
 	if err != nil {

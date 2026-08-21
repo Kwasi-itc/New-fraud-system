@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"maps"
 	"regexp"
@@ -16,6 +17,11 @@ import (
 )
 
 var validNameRegex = regexp.MustCompile(`^[a-z]+[a-z0-9_]+$`)
+
+var (
+	ErrEventSchemaLocked           = errors.New("event table data model is immutable after ingestion has started")
+	ErrEventSchemaRevisionMismatch = errors.New("event table schema revision no longer matches the published data model")
+)
 
 var reservedFieldNames = map[string]struct{}{
 	"id":          {},
@@ -59,31 +65,110 @@ func ParseDataType(value string) (DataType, error) {
 }
 
 type Table struct {
-	ID           uuid.UUID
-	TenantID     uuid.UUID
-	Name         string
-	Description  string
-	Alias        string
-	SemanticType string
-	CaptionField string
-	Archived     bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID                  uuid.UUID
+	TenantID            uuid.UUID
+	Name                string
+	Description         string
+	Alias               string
+	SemanticType        string
+	CaptionField        string
+	StorageClass        StorageClass
+	EventTimeField      string
+	EventSchemaRevision string
+	EventSchemaLockedAt *time.Time
+	StorageCutoverAt    *time.Time
+	LegacyReadUntil     *time.Time
+	Archived            bool
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+type StorageClass string
+
+const (
+	StorageClassOperational StorageClass = "operational"
+	StorageClassEvent       StorageClass = "event"
+)
+
+func ParseStorageClass(value string) (StorageClass, error) {
+	storageClass := StorageClass(strings.TrimSpace(strings.ToLower(value)))
+	if storageClass == "" {
+		return StorageClassOperational, nil
+	}
+	if storageClass != StorageClassOperational && storageClass != StorageClassEvent {
+		return "", fmt.Errorf("storage_class must be operational or event")
+	}
+	return storageClass, nil
 }
 
 type Field struct {
-	ID          uuid.UUID
-	TenantID    uuid.UUID
-	TableID     uuid.UUID
-	Name        string
-	Description string
-	DataType    DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                      uuid.UUID
+	TenantID                uuid.UUID
+	TableID                 uuid.UUID
+	Name                    string
+	Description             string
+	DataType                DataType
+	Nullable                bool
+	IsEnum                  bool
+	IsUnique                bool
+	IsProjection            bool
+	AggregationMode         AggregationMode
+	AggregationColdBehavior AggregationColdBehavior
+	AggregationDefaultValue *float64
+	Archived                bool
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+}
+
+// AggregationMode controls how equality-filtered event aggregates using a
+// field are accelerated. Projection-only is deliberately the zero/default
+// policy so existing data models never begin creating summaries implicitly.
+type AggregationMode string
+
+const (
+	AggregationModeProjectionOnly AggregationMode = "projection_only"
+	AggregationModeAdaptiveCache  AggregationMode = "adaptive_cache"
+	AggregationModeTieredSummary  AggregationMode = "tiered_summary"
+	AggregationModeAlwaysOnline   AggregationMode = "always_online"
+)
+
+func ParseAggregationMode(value string) (AggregationMode, error) {
+	mode := AggregationMode(strings.TrimSpace(strings.ToLower(value)))
+	if mode == "" {
+		return AggregationModeProjectionOnly, nil
+	}
+	switch mode {
+	case AggregationModeProjectionOnly, AggregationModeAdaptiveCache, AggregationModeTieredSummary, AggregationModeAlwaysOnline:
+		return mode, nil
+	default:
+		return "", fmt.Errorf("aggregation_mode must be projection_only, adaptive_cache, tiered_summary, or always_online")
+	}
+}
+
+// AggregationColdBehavior is applied while an accelerated summary has not yet
+// been admitted or built. It makes the correctness/latency trade-off explicit
+// instead of silently falling back to an expensive historical scan.
+type AggregationColdBehavior string
+
+const (
+	AggregationColdQueryClickHouse AggregationColdBehavior = "query_clickhouse"
+	AggregationColdDurableSummary  AggregationColdBehavior = "durable_summary"
+	AggregationColdDeferAsync      AggregationColdBehavior = "defer_async"
+	AggregationColdSkipRule        AggregationColdBehavior = "skip_rule"
+	AggregationColdUseDefault      AggregationColdBehavior = "use_default"
+)
+
+func ParseAggregationColdBehavior(value string) (AggregationColdBehavior, error) {
+	behavior := AggregationColdBehavior(strings.TrimSpace(strings.ToLower(value)))
+	if behavior == "" {
+		return AggregationColdQueryClickHouse, nil
+	}
+	switch behavior {
+	case AggregationColdQueryClickHouse, AggregationColdDurableSummary, AggregationColdDeferAsync, AggregationColdSkipRule, AggregationColdUseDefault:
+		return behavior, nil
+	default:
+		return "", fmt.Errorf("aggregation_cold_behavior must be query_clickhouse, durable_summary, defer_async, skip_rule, or use_default")
+	}
 }
 
 type FieldEnumValue struct {
@@ -148,29 +233,74 @@ type AssembledDataModel struct {
 }
 
 type AssembledTable struct {
-	ID                uuid.UUID
-	Name              string
-	Description       string
-	Alias             string
-	SemanticType      string
-	CaptionField      string
-	Archived          bool
-	Fields            map[string]AssembledField
-	LinksToSingle     map[string]AssembledLink
-	NavigationOptions []NavigationOption
-	Options           *TableOptions
+	ID                  uuid.UUID
+	Name                string
+	Description         string
+	Alias               string
+	SemanticType        string
+	CaptionField        string
+	StorageClass        StorageClass
+	EventTimeField      string
+	EventSchemaRevision string
+	EventSchemaLockedAt *time.Time
+	StorageCutoverAt    *time.Time
+	LegacyReadUntil     *time.Time
+	Archived            bool
+	Fields              map[string]AssembledField
+	LinksToSingle       map[string]AssembledLink
+	NavigationOptions   []NavigationOption
+	Options             *TableOptions
 }
 
 type AssembledField struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	DataType    DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	EnumValues  []FieldEnumValue
+	ID                      uuid.UUID
+	Name                    string
+	Description             string
+	DataType                DataType
+	Nullable                bool
+	IsEnum                  bool
+	IsUnique                bool
+	IsProjection            bool
+	AggregationMode         AggregationMode
+	AggregationColdBehavior AggregationColdBehavior
+	AggregationDefaultValue *float64
+	Archived                bool
+	EnumValues              []FieldEnumValue
+}
+
+func BuildEventSchemaRevision(table AssembledTable) string {
+	// Aggregation policy is deliberately excluded: it changes runtime query
+	// behavior but does not alter the immutable physical ClickHouse schema.
+	fieldNames := slices.Sorted(maps.Keys(table.Fields))
+	h := sha1.New()
+	h.Write([]byte(table.ID.String()))
+	h.Write([]byte("|" + table.Name + "|" + string(table.StorageClass) + "|" + table.EventTimeField + "|"))
+	for _, name := range fieldNames {
+		field := table.Fields[name]
+		h.Write([]byte(field.ID.String()))
+		h.Write([]byte("|" + field.Name + "|" + string(field.DataType) + "|"))
+		h.Write([]byte(strconv.FormatBool(field.Nullable)))
+		// Keep the pre-projection revision stable for existing event schemas.
+		h.Write([]byte("|" + strconv.FormatBool(field.IsEnum) + "|" + strconv.FormatBool(field.IsUnique) + "|" + strconv.FormatBool(field.Archived) + "|"))
+		if field.IsProjection {
+			h.Write([]byte("projection|"))
+		}
+		enumValues := slices.Clone(field.EnumValues)
+		slices.SortFunc(enumValues, func(lhs, rhs FieldEnumValue) int {
+			if compared := cmp.Compare(lhs.SortOrder, rhs.SortOrder); compared != 0 {
+				return compared
+			}
+			if compared := cmp.Compare(lhs.Value, rhs.Value); compared != 0 {
+				return compared
+			}
+			return cmp.Compare(lhs.ID.String(), rhs.ID.String())
+		})
+		for _, value := range enumValues {
+			h.Write([]byte(value.ID.String()))
+			h.Write([]byte("|" + value.Value + "|" + value.Label + "|" + strconv.Itoa(value.SortOrder) + "|"))
+		}
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 type AssembledLink struct {

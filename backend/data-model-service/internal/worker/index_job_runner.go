@@ -77,6 +77,15 @@ func (r Runner) executeJob(ctx context.Context, job datamodel.IndexJob) (bool, e
 		r.failJob(ctx, job, err.Error())
 		return true, nil
 	}
+	if table.StorageClass == datamodel.StorageClassEvent {
+		completedAt := r.clock.Now()
+		message := "event table uses ClickHouse; PostgreSQL indexing disabled"
+		if err := r.indexJobs.MarkCancelled(ctx, job.ID, message, completedAt); err != nil {
+			return true, err
+		}
+		r.recordSchemaChange(ctx, job, completedAt, "cancel_index_job", "cancelled", map[string]any{"table_id": table.ID, "table_name": table.Name, "reason": message})
+		return true, nil
+	}
 
 	state, err := r.schemaManager.GetManagedIndexState(ctx, tenantRecord, table, job)
 	if err != nil {

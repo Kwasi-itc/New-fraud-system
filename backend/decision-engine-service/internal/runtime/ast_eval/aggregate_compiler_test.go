@@ -8,6 +8,7 @@ import (
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 )
 
 type aggregateTestTenantDataReader struct {
@@ -803,5 +804,27 @@ func TestEvaluateMarbleAggregatorStrictModeRejectsRemoteFailure(t *testing.T) {
 	}
 	if reader.listCalls != 0 {
 		t.Fatalf("ListRecords calls = %d, want 0", reader.listCalls)
+	}
+}
+
+func TestEvaluateFormulaTreatsSkippedColdAggregationAsNoMatch(t *testing.T) {
+	t.Parallel()
+	formula := []byte(`{
+  "function":"gt",
+  "children":[
+    {"function":"Aggregator","named_children":{"tableName":{"constant":"transactions"},"fieldName":{"constant":"amount"},"aggregator":{"constant":"COUNT"}}},
+    {"constant":0}
+  ]
+}`)
+	matched, err := EvaluateFormula(context.Background(), formula, Runtime{
+		TenantID: "tenant-1", ObjectID: "txn-1", ObjectType: "transactions",
+		Fields:           map[string]any{},
+		TenantDataReader: &aggregateTestTenantDataReader{aggregateErr: sharedeventstore.ErrAggregationSkipped},
+	})
+	if err != nil {
+		t.Fatalf("EvaluateFormula() error = %v", err)
+	}
+	if matched {
+		t.Fatal("skipped cold aggregation matched the rule")
 	}
 }

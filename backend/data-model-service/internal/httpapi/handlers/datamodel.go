@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi/dto"
@@ -139,11 +140,13 @@ func (h DataModelHandler) CreateTable(c *gin.Context) {
 		return
 	}
 	table, err := h.tableService.Create(c.Request.Context(), service.CreateTableInput{
-		TenantID:     tenantID,
-		Name:         request.Name,
-		Description:  request.Description,
-		Alias:        request.Alias,
-		SemanticType: request.SemanticType,
+		TenantID:       tenantID,
+		Name:           request.Name,
+		Description:    request.Description,
+		Alias:          request.Alias,
+		SemanticType:   request.SemanticType,
+		StorageClass:   request.StorageClass,
+		EventTimeField: request.EventTimeField,
 	})
 	if err != nil {
 		writeError(c, err)
@@ -180,11 +183,14 @@ func (h DataModelHandler) UpdateTable(c *gin.Context) {
 		return
 	}
 	table, err := h.tableService.Update(c.Request.Context(), service.UpdateTableInput{
-		TableID:      tableID,
-		Description:  request.Description,
-		Alias:        request.Alias,
-		SemanticType: request.SemanticType,
-		CaptionField: request.CaptionField,
+		TableID:         tableID,
+		Description:     request.Description,
+		Alias:           request.Alias,
+		SemanticType:    request.SemanticType,
+		CaptionField:    request.CaptionField,
+		StorageClass:    request.StorageClass,
+		EventTimeField:  request.EventTimeField,
+		LegacyReadUntil: request.LegacyReadUntil,
 	})
 	if err != nil {
 		writeError(c, err)
@@ -221,15 +227,29 @@ func (h DataModelHandler) CreateField(c *gin.Context) {
 		writeBadRequest(c, err.Error())
 		return
 	}
+	aggregationMode, err := datamodel.ParseAggregationMode(request.AggregationMode)
+	if err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	aggregationColdBehavior, err := datamodel.ParseAggregationColdBehavior(request.AggregationColdBehavior)
+	if err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
 	field, err := h.fieldService.Create(c.Request.Context(), service.CreateFieldInput{
-		TableID:     tableID,
-		Name:        request.Name,
-		Description: request.Description,
-		DataType:    dataType,
-		Nullable:    request.Nullable,
-		IsEnum:      request.IsEnum,
-		IsUnique:    request.IsUnique,
-		EnumValues:  adaptCreateFieldEnumValueSeeds(request.EnumValues),
+		TableID:                 tableID,
+		Name:                    request.Name,
+		Description:             request.Description,
+		DataType:                dataType,
+		Nullable:                request.Nullable,
+		IsEnum:                  request.IsEnum,
+		IsUnique:                request.IsUnique,
+		IsProjection:            request.IsProjection,
+		AggregationMode:         aggregationMode,
+		AggregationColdBehavior: aggregationColdBehavior,
+		AggregationDefaultValue: request.AggregationDefaultValue,
+		EnumValues:              adaptCreateFieldEnumValueSeeds(request.EnumValues),
 	})
 	if err != nil {
 		writeError(c, err)
@@ -260,12 +280,33 @@ func (h DataModelHandler) UpdateField(c *gin.Context) {
 		writeBadRequest(c, err.Error())
 		return
 	}
+	var aggregationMode *datamodel.AggregationMode
+	if request.AggregationMode != nil {
+		parsed, err := datamodel.ParseAggregationMode(*request.AggregationMode)
+		if err != nil {
+			writeBadRequest(c, err.Error())
+			return
+		}
+		aggregationMode = &parsed
+	}
+	var aggregationColdBehavior *datamodel.AggregationColdBehavior
+	if request.AggregationColdBehavior != nil {
+		parsed, err := datamodel.ParseAggregationColdBehavior(*request.AggregationColdBehavior)
+		if err != nil {
+			writeBadRequest(c, err.Error())
+			return
+		}
+		aggregationColdBehavior = &parsed
+	}
 	field, err := h.fieldService.Update(c.Request.Context(), service.UpdateFieldInput{
-		FieldID:     fieldID,
-		Description: request.Description,
-		Nullable:    request.Nullable,
-		IsEnum:      request.IsEnum,
-		IsUnique:    request.IsUnique,
+		FieldID:                 fieldID,
+		Description:             request.Description,
+		Nullable:                request.Nullable,
+		IsEnum:                  request.IsEnum,
+		IsUnique:                request.IsUnique,
+		AggregationMode:         aggregationMode,
+		AggregationColdBehavior: aggregationColdBehavior,
+		AggregationDefaultValue: request.AggregationDefaultValue,
 	})
 	if err != nil {
 		writeError(c, err)
@@ -593,9 +634,14 @@ func writeBadRequest(c *gin.Context, message string) {
 }
 
 func writeError(c *gin.Context, err error) {
+	var pgError *pgconn.PgError
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"code": "not_found", "message": err.Error()}})
+	case errors.Is(err, datamodel.ErrEventSchemaLocked), errors.Is(err, datamodel.ErrEventSchemaRevisionMismatch):
+		c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": "event_schema_locked", "message": err.Error()}})
+	case errors.As(err, &pgError) && pgError.Code == "55000":
+		c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": "event_schema_locked", "message": datamodel.ErrEventSchemaLocked.Error()}})
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"code": "bad_parameter", "message": err.Error()}})
 	}
@@ -629,13 +675,17 @@ func adaptPortableDocument(document service.PortableDataModelDocument) dto.Porta
 				}
 			}
 			fields[j] = dto.PortableFieldDocument{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                field.DataType,
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         field.AggregationMode,
+				AggregationColdBehavior: field.AggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				EnumValues:              enumValues,
 			}
 		}
 		navigationOptions := make([]dto.PortableNavigationOptionDocument, len(table.NavigationOptions))
@@ -659,6 +709,8 @@ func adaptPortableDocument(document service.PortableDataModelDocument) dto.Porta
 			Description:       table.Description,
 			Alias:             table.Alias,
 			SemanticType:      table.SemanticType,
+			StorageClass:      table.StorageClass,
+			EventTimeField:    table.EventTimeField,
 			CaptionField:      table.CaptionField,
 			Fields:            fields,
 			Options:           options,
@@ -704,13 +756,17 @@ func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) servic
 				}
 			}
 			fields[j] = service.PortableField{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                    field.Name,
+				Description:             field.Description,
+				DataType:                field.DataType,
+				Nullable:                field.Nullable,
+				IsEnum:                  field.IsEnum,
+				IsUnique:                field.IsUnique,
+				IsProjection:            field.IsProjection,
+				AggregationMode:         field.AggregationMode,
+				AggregationColdBehavior: field.AggregationColdBehavior,
+				AggregationDefaultValue: field.AggregationDefaultValue,
+				EnumValues:              enumValues,
 			}
 		}
 		navigationOptions := make([]service.PortableNavigationOption, len(table.NavigationOptions))
@@ -734,6 +790,8 @@ func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) servic
 			Description:       table.Description,
 			Alias:             table.Alias,
 			SemanticType:      table.SemanticType,
+			StorageClass:      table.StorageClass,
+			EventTimeField:    table.EventTimeField,
 			CaptionField:      table.CaptionField,
 			Fields:            fields,
 			Options:           options,

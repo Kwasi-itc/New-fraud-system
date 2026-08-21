@@ -380,17 +380,25 @@ func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName
 			targetTable, exists := model.Tables[tableNameValue]
 			if !exists {
 				errs = append(errs, fmt.Sprintf("table %q not found in tenant model", tableNameValue))
-			} else if fieldNameValue, ok := constantStringNode(node.NamedChildren["fieldName"]); ok {
-				field, exists := targetTable.Fields[fieldNameValue]
-				if !exists {
-					errs = append(errs, fmt.Sprintf("field %q not found on table %q", fieldNameValue, tableNameValue))
-				} else if aggregatorValue, ok := constantStringNode(node.NamedChildren["aggregator"]); ok {
-					resultType, aggErrs := marbleAggregatorResultType(field.Type, aggregatorValue)
-					errs = append(errs, aggErrs...)
-					if len(errs) > 0 {
-						return domainast.ValueTypeUnknown, errs
+			} else {
+				if targetTable.StorageClass == "event" {
+					filtersNode, hasFilters := node.NamedChildren["filters"]
+					if targetTable.EventTimeField == "" || !hasFilters || !aggregateNodeHasEventTimeLowerBound(filtersNode, tableNameValue, targetTable.EventTimeField) {
+						errs = append(errs, fmt.Sprintf("event table %q aggregate requires a lower-bound filter on %q", tableNameValue, targetTable.EventTimeField))
 					}
-					return resultType, nil
+				}
+				if fieldNameValue, ok := constantStringNode(node.NamedChildren["fieldName"]); ok {
+					field, exists := targetTable.Fields[fieldNameValue]
+					if !exists {
+						errs = append(errs, fmt.Sprintf("field %q not found on table %q", fieldNameValue, tableNameValue))
+					} else if aggregatorValue, ok := constantStringNode(node.NamedChildren["aggregator"]); ok {
+						resultType, aggErrs := marbleAggregatorResultType(field.Type, aggregatorValue)
+						errs = append(errs, aggErrs...)
+						if len(errs) > 0 {
+							return domainast.ValueTypeUnknown, errs
+						}
+						return resultType, nil
+					}
 				}
 			}
 		}
@@ -762,6 +770,33 @@ func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName
 	default:
 		return domainast.ValueTypeUnknown, []string{fmt.Sprintf("unsupported AST function %q", node.Function)}
 	}
+}
+
+// Aggregate filter Lists and AND nodes constrain every selected row. A lower
+// bound inside OR or NOT does not bound the full ClickHouse scan.
+func aggregateNodeHasEventTimeLowerBound(node domainast.Node, tableName, eventTimeField string) bool {
+	switch canonicalFunctionName(node.Function) {
+	case "filter":
+		filterTable, tableOK := constantStringNode(node.NamedChildren["tableName"])
+		field, fieldOK := constantStringNode(node.NamedChildren["fieldName"])
+		operator, operatorOK := constantStringNode(node.NamedChildren["operator"])
+		if !tableOK || !fieldOK || !operatorOK || filterTable != tableName || field != eventTimeField {
+			return false
+		}
+		switch strings.ToLower(strings.TrimSpace(operator)) {
+		case ">", ">=", "gt", "gte":
+			return true
+		default:
+			return false
+		}
+	case "list", "and":
+		for _, child := range node.Children {
+			if aggregateNodeHasEventTimeLowerBound(child, tableName, eventTimeField) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func ResolveRelatedPathTable(model ports.TenantModel, currentTableName, path string) (ports.TenantModelTable, []string) {

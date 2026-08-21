@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -66,11 +67,30 @@ func CompileAggregateQuery(ctx context.Context, node domainast.Node, runtime Run
 		Field:      fieldName,
 		Filter:     compiledFilter,
 	}
+	query.Filter = withEventTimeUpperBound(query.Filter, tableName, runtime)
 
 	return AggregateCompileResult{
 		Supported: true,
 		Query:     query,
 	}, nil
+}
+
+func withEventTimeUpperBound(filter *ports.AggregateFilter, tableName string, runtime Runtime) *ports.AggregateFilter {
+	if runtime.Model == nil || runtime.Now.IsZero() {
+		return filter
+	}
+	table, ok := runtime.Model.Tables[tableName]
+	if !ok || table.StorageClass != "event" || strings.TrimSpace(table.EventTimeField) == "" {
+		return filter
+	}
+	upper := ports.AggregateFilter{
+		Kind: "predicate", Field: table.EventTimeField, Op: "lte",
+		Value: runtime.Now.UTC().Format(time.RFC3339Nano),
+	}
+	if filter == nil {
+		return &upper
+	}
+	return &ports.AggregateFilter{Kind: "group", Operator: "and", Children: []ports.AggregateFilter{*filter, upper}}
 }
 
 func parseAggregateFilterExpr(ctx context.Context, node domainast.Node, runtime Runtime) (aggregateFilterExpr, bool, string, error) {

@@ -26,14 +26,30 @@ class CLITests(unittest.TestCase):
     def test_seed_defaults_to_maximum_ingestion_batch_size(self) -> None:
         args = build_parser().parse_args(["seed", "--manifest", "manifest.json"])
         self.assertEqual(args.batch_size, 500)
-        self.assertEqual(args.max_in_flight, 10)
+        self.assertEqual(args.max_in_flight, 4)
+        self.assertEqual(args.timeout, 900.0)
         self.assertFalse(args.reuse_existing)
+        self.assertFalse(args.resume)
+        self.assertFalse(args.skip)
+
+    def test_seed_resume_is_explicit(self) -> None:
+        args = build_parser().parse_args(
+            ["seed", "--manifest", "manifest.json", "--execute", "--resume"]
+        )
+        self.assertTrue(args.execute)
+        self.assertTrue(args.resume)
 
     def test_existing_seed_reuse_is_explicit(self) -> None:
         args = build_parser().parse_args(
             ["seed", "--manifest", "manifest.json", "--reuse-existing"]
         )
         self.assertTrue(args.reuse_existing)
+
+    def test_historical_seed_skip_is_explicit(self) -> None:
+        args = build_parser().parse_args(
+            ["seed", "--manifest", "manifest.json", "--skip"]
+        )
+        self.assertTrue(args.skip)
 
     def test_setup_reuse_is_explicit(self) -> None:
         args = build_parser().parse_args(
@@ -128,6 +144,8 @@ class SeedReuseTests(unittest.IsolatedAsyncioTestCase):
             args = argparse.Namespace(
                 execute=False,
                 reuse_existing=True,
+                resume=False,
+                skip=False,
                 tenant_id="tenant-1",
                 batch_size=500,
                 max_in_flight=10,
@@ -161,6 +179,42 @@ class SeedReuseTests(unittest.IsolatedAsyncioTestCase):
             summary = json.loads(summary_files[0].read_text(encoding="utf-8"))
             self.assertEqual(summary["status"], "reused_existing")
             self.assertIsNone(summary["records"])
+            self.assertFalse(summary["mutations_performed"])
+
+    async def test_skip_records_zero_write_seed_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text("{}\n", encoding="utf-8")
+            args = argparse.Namespace(
+                execute=False,
+                reuse_existing=False,
+                resume=False,
+                skip=True,
+                tenant_id="tenant-1",
+                batch_size=500,
+                max_in_flight=4,
+                progress_every=100,
+                output_root=str(root / "runs"),
+                data_model_url="http://data-model",
+                ingestion_url="http://ingestion",
+                decision_engine_url="http://decision",
+                auth_token=None,
+                timeout=30.0,
+            )
+            with patch("production_replay.cli.ServiceClients") as clients:
+                result = await _seed(
+                    args,
+                    SimpleNamespace(path=manifest_path),  # type: ignore[arg-type]
+                )
+
+            self.assertEqual(result, 0)
+            clients.assert_not_called()
+            summary_files = list((root / "runs").glob("seed-*/summary.json"))
+            self.assertEqual(len(summary_files), 1)
+            summary = json.loads(summary_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(summary["status"], "skipped")
+            self.assertEqual(summary["records"], 0)
             self.assertFalse(summary["mutations_performed"])
 
 

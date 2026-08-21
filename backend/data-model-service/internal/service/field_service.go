@@ -11,28 +11,32 @@ import (
 )
 
 type FieldService struct {
-	tenantRepository ports.TenantRepository
-	tableRepository  ports.TableRepository
-	fieldRepository  ports.FieldRepository
+	tenantRepository         ports.TenantRepository
+	tableRepository          ports.TableRepository
+	fieldRepository          ports.FieldRepository
 	fieldEnumValueRepository ports.FieldEnumValueRepository
-	linkRepository   ports.LinkRepository
-	pivotRepository  ports.PivotRepository
-	schemaChanges    ports.SchemaChangeRepository
-	schemaManager    ports.SchemaManager
-	txManager        ports.TransactionManager
-	idGenerator      ports.IDGenerator
-	clock            ports.Clock
+	linkRepository           ports.LinkRepository
+	pivotRepository          ports.PivotRepository
+	schemaChanges            ports.SchemaChangeRepository
+	schemaManager            ports.SchemaManager
+	txManager                ports.TransactionManager
+	idGenerator              ports.IDGenerator
+	clock                    ports.Clock
 }
 
 type CreateFieldInput struct {
-	TableID     uuid.UUID
-	Name        string
-	Description string
-	DataType    datamodel.DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	EnumValues  []CreateFieldEnumValueSeed
+	TableID                 uuid.UUID
+	Name                    string
+	Description             string
+	DataType                datamodel.DataType
+	Nullable                bool
+	IsEnum                  bool
+	IsUnique                bool
+	IsProjection            bool
+	AggregationMode         datamodel.AggregationMode
+	AggregationColdBehavior datamodel.AggregationColdBehavior
+	AggregationDefaultValue *float64
+	EnumValues              []CreateFieldEnumValueSeed
 }
 
 type CreateFieldEnumValueSeed struct {
@@ -42,11 +46,14 @@ type CreateFieldEnumValueSeed struct {
 }
 
 type UpdateFieldInput struct {
-	FieldID     uuid.UUID
-	Description *string
-	Nullable    *bool
-	IsEnum      *bool
-	IsUnique    *bool
+	FieldID                 uuid.UUID
+	Description             *string
+	Nullable                *bool
+	IsEnum                  *bool
+	IsUnique                *bool
+	AggregationMode         *datamodel.AggregationMode
+	AggregationColdBehavior *datamodel.AggregationColdBehavior
+	AggregationDefaultValue *float64
 }
 
 func NewFieldService(
@@ -63,17 +70,17 @@ func NewFieldService(
 	clock ports.Clock,
 ) FieldService {
 	return FieldService{
-		tenantRepository: tenantRepository,
-		tableRepository:  tableRepository,
-		fieldRepository:  fieldRepository,
+		tenantRepository:         tenantRepository,
+		tableRepository:          tableRepository,
+		fieldRepository:          fieldRepository,
 		fieldEnumValueRepository: fieldEnumValueRepository,
-		linkRepository:   linkRepository,
-		pivotRepository:  pivotRepository,
-		schemaChanges:    schemaChanges,
-		schemaManager:    schemaManager,
-		txManager:        txManager,
-		idGenerator:      idGenerator,
-		clock:            clock,
+		linkRepository:           linkRepository,
+		pivotRepository:          pivotRepository,
+		schemaChanges:            schemaChanges,
+		schemaManager:            schemaManager,
+		txManager:                txManager,
+		idGenerator:              idGenerator,
+		clock:                    clock,
 	}
 }
 
@@ -93,35 +100,75 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 	if err != nil {
 		return datamodel.Field{}, err
 	}
+	if table.StorageClass == datamodel.StorageClassEvent && table.EventSchemaLockedAt != nil {
+		return datamodel.Field{}, datamodel.ErrEventSchemaLocked
+	}
+	if input.IsProjection && table.StorageClass != datamodel.StorageClassEvent {
+		return datamodel.Field{}, fmt.Errorf("is_projection is only valid for event table fields")
+	}
+	if input.AggregationMode == "" {
+		input.AggregationMode = datamodel.AggregationModeProjectionOnly
+	}
+	if input.AggregationColdBehavior == "" {
+		input.AggregationColdBehavior = datamodel.AggregationColdQueryClickHouse
+	}
+	if input.AggregationMode != datamodel.AggregationModeProjectionOnly {
+		if table.StorageClass != datamodel.StorageClassEvent {
+			return datamodel.Field{}, fmt.Errorf("aggregation_mode is only valid for event table fields")
+		}
+		if !input.IsProjection {
+			return datamodel.Field{}, fmt.Errorf("accelerated aggregation modes require is_projection=true for safe cold queries")
+		}
+	} else if input.AggregationColdBehavior != datamodel.AggregationColdQueryClickHouse {
+		return datamodel.Field{}, fmt.Errorf("projection_only fields must use query_clickhouse cold behavior")
+	}
+	if input.AggregationColdBehavior == datamodel.AggregationColdUseDefault {
+		if input.AggregationDefaultValue == nil {
+			return datamodel.Field{}, fmt.Errorf("aggregation_default_value is required when aggregation_cold_behavior=use_default")
+		}
+	} else if input.AggregationDefaultValue != nil {
+		return datamodel.Field{}, fmt.Errorf("aggregation_default_value is only valid when aggregation_cold_behavior=use_default")
+	}
 	tenantRecord, err := s.tenantRepository.GetByID(ctx, table.TenantID)
 	if err != nil {
 		return datamodel.Field{}, err
 	}
+	if table.StorageClass == datamodel.StorageClassEvent && datamodel.NormalizeName(input.Name) == table.EventTimeField {
+		if input.DataType != datamodel.DataTypeTimestamp || input.Nullable {
+			return datamodel.Field{}, fmt.Errorf("event time field must be a non-null timestamp field")
+		}
+	}
 
 	now := s.clock.Now()
 	field := datamodel.Field{
-		ID:          s.idGenerator.New(),
-		TenantID:    table.TenantID,
-		TableID:     input.TableID,
-		Name:        datamodel.NormalizeName(input.Name),
-		Description: input.Description,
-		DataType:    input.DataType,
-		Nullable:    input.Nullable,
-		IsEnum:      input.IsEnum,
-		IsUnique:    input.IsUnique,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:                      s.idGenerator.New(),
+		TenantID:                table.TenantID,
+		TableID:                 input.TableID,
+		Name:                    datamodel.NormalizeName(input.Name),
+		Description:             input.Description,
+		DataType:                input.DataType,
+		Nullable:                input.Nullable,
+		IsEnum:                  input.IsEnum,
+		IsUnique:                input.IsUnique,
+		IsProjection:            input.IsProjection,
+		AggregationMode:         input.AggregationMode,
+		AggregationColdBehavior: input.AggregationColdBehavior,
+		AggregationDefaultValue: input.AggregationDefaultValue,
+		CreatedAt:               now,
+		UpdatedAt:               now,
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.Fields().Create(ctx, field); err != nil {
 			return err
 		}
-		if err := store.SchemaManager().AddField(ctx, tenantRecord, table, field); err != nil {
-			return err
-		}
-		if field.IsUnique {
-			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
+		if table.StorageClass != datamodel.StorageClassEvent {
+			if err := store.SchemaManager().AddField(ctx, tenantRecord, table, field); err != nil {
 				return err
+			}
+			if field.IsUnique {
+				if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
+					return err
+				}
 			}
 		}
 		for _, seed := range input.EnumValues {
@@ -165,13 +212,17 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 			field.ID,
 			now,
 			map[string]any{
-				"table_id":    field.TableID,
-				"name":        field.Name,
-				"data_type":   field.DataType,
-				"nullable":    field.Nullable,
-				"is_enum":     field.IsEnum,
-				"is_unique":   field.IsUnique,
-				"description": field.Description,
+				"table_id":                  field.TableID,
+				"name":                      field.Name,
+				"data_type":                 field.DataType,
+				"nullable":                  field.Nullable,
+				"is_enum":                   field.IsEnum,
+				"is_unique":                 field.IsUnique,
+				"is_projection":             field.IsProjection,
+				"aggregation_mode":          field.AggregationMode,
+				"aggregation_cold_behavior": field.AggregationColdBehavior,
+				"aggregation_default_value": field.AggregationDefaultValue,
+				"description":               field.Description,
 			},
 		))
 		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field", "field"), now)
@@ -196,6 +247,50 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 	table, err := s.tableRepository.GetByID(ctx, field.TableID)
 	if err != nil {
 		return datamodel.Field{}, err
+	}
+	physicalChange := (input.Description != nil && *input.Description != field.Description) ||
+		(input.Nullable != nil && *input.Nullable != field.Nullable) ||
+		(input.IsEnum != nil && *input.IsEnum != field.IsEnum) ||
+		(input.IsUnique != nil && *input.IsUnique != field.IsUnique)
+	if table.StorageClass == datamodel.StorageClassEvent && table.EventSchemaLockedAt != nil && physicalChange {
+		return datamodel.Field{}, datamodel.ErrEventSchemaLocked
+	}
+	targetMode := field.AggregationMode
+	if targetMode == "" {
+		targetMode = datamodel.AggregationModeProjectionOnly
+	}
+	if input.AggregationMode != nil {
+		targetMode = *input.AggregationMode
+	}
+	targetColdBehavior := field.AggregationColdBehavior
+	if targetColdBehavior == "" {
+		targetColdBehavior = datamodel.AggregationColdQueryClickHouse
+	}
+	if input.AggregationColdBehavior != nil {
+		targetColdBehavior = *input.AggregationColdBehavior
+	}
+	if targetMode == datamodel.AggregationModeProjectionOnly {
+		targetColdBehavior = datamodel.AggregationColdQueryClickHouse
+	}
+	targetDefaultValue := field.AggregationDefaultValue
+	if input.AggregationDefaultValue != nil {
+		targetDefaultValue = input.AggregationDefaultValue
+	}
+	if targetColdBehavior != datamodel.AggregationColdUseDefault {
+		targetDefaultValue = nil
+	}
+	if targetMode != datamodel.AggregationModeProjectionOnly {
+		if table.StorageClass != datamodel.StorageClassEvent {
+			return datamodel.Field{}, fmt.Errorf("aggregation_mode is only valid for event table fields")
+		}
+		if !field.IsProjection {
+			return datamodel.Field{}, fmt.Errorf("accelerated aggregation modes require an existing field projection")
+		}
+	} else if targetColdBehavior != datamodel.AggregationColdQueryClickHouse {
+		return datamodel.Field{}, fmt.Errorf("projection_only fields must use query_clickhouse cold behavior")
+	}
+	if targetColdBehavior == datamodel.AggregationColdUseDefault && targetDefaultValue == nil {
+		return datamodel.Field{}, fmt.Errorf("aggregation_default_value is required when aggregation_cold_behavior=use_default")
 	}
 	tenantRecord, err := s.tenantRepository.GetByID(ctx, table.TenantID)
 	if err != nil {
@@ -224,6 +319,12 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 	if input.IsUnique != nil {
 		field.IsUnique = *input.IsUnique
 	}
+	field.AggregationMode = targetMode
+	field.AggregationColdBehavior = targetColdBehavior
+	field.AggregationDefaultValue = targetDefaultValue
+	if table.StorageClass == datamodel.StorageClassEvent && field.Name == table.EventTimeField && field.Nullable {
+		return datamodel.Field{}, fmt.Errorf("event time field must be a non-null timestamp field")
+	}
 	field.UpdatedAt = s.clock.Now()
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -231,12 +332,12 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 			return err
 		}
 
-		if !previousUnique && field.IsUnique {
+		if table.StorageClass != datamodel.StorageClassEvent && !previousUnique && field.IsUnique {
 			if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
 				return err
 			}
 		}
-		if previousUnique && !field.IsUnique {
+		if table.StorageClass != datamodel.StorageClassEvent && previousUnique && !field.IsUnique {
 			if err := store.SchemaManager().DropUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
 				return err
 			}
@@ -249,12 +350,15 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 			field.ID,
 			field.UpdatedAt,
 			map[string]any{
-				"table_id":    field.TableID,
-				"name":        field.Name,
-				"nullable":    field.Nullable,
-				"is_enum":     field.IsEnum,
-				"is_unique":   field.IsUnique,
-				"description": field.Description,
+				"table_id":                  field.TableID,
+				"name":                      field.Name,
+				"nullable":                  field.Nullable,
+				"is_enum":                   field.IsEnum,
+				"is_unique":                 field.IsUnique,
+				"aggregation_mode":          field.AggregationMode,
+				"aggregation_cold_behavior": field.AggregationColdBehavior,
+				"aggregation_default_value": field.AggregationDefaultValue,
+				"description":               field.Description,
 			},
 		))
 		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field", "field"), field.UpdatedAt)
@@ -277,6 +381,9 @@ func (s FieldService) Delete(ctx context.Context, fieldID uuid.UUID, dryRun bool
 	if err != nil {
 		return report, err
 	}
+	if table.StorageClass == datamodel.StorageClassEvent && table.EventSchemaLockedAt != nil {
+		return report, datamodel.ErrEventSchemaLocked
+	}
 	tenantRecord, err := s.tenantRepository.GetByID(ctx, table.TenantID)
 	if err != nil {
 		return report, err
@@ -285,6 +392,10 @@ func (s FieldService) Delete(ctx context.Context, fieldID uuid.UUID, dryRun bool
 	if field.Name == "object_id" || field.Name == "updated_at" {
 		report.Conflicts.Reserved = true
 		return report, fmt.Errorf("field is reserved")
+	}
+	if table.StorageClass == datamodel.StorageClassEvent && field.Name == table.EventTimeField {
+		report.Conflicts.Reserved = true
+		return report, fmt.Errorf("event time field is reserved by the event storage contract")
 	}
 
 	links, err := s.linkRepository.ListByTenant(ctx, table.TenantID)
@@ -315,13 +426,15 @@ func (s FieldService) Delete(ctx context.Context, fieldID uuid.UUID, dryRun bool
 	}
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		if field.IsUnique {
+		if table.StorageClass != datamodel.StorageClassEvent && field.IsUnique {
 			if err := store.SchemaManager().DropUniqueIndex(ctx, tenantRecord, table, []string{field.Name}); err != nil {
 				return err
 			}
 		}
-		if err := store.SchemaManager().DropField(ctx, tenantRecord, table, field); err != nil {
-			return err
+		if table.StorageClass != datamodel.StorageClassEvent {
+			if err := store.SchemaManager().DropField(ctx, tenantRecord, table, field); err != nil {
+				return err
+			}
 		}
 		if err := store.Fields().Delete(ctx, fieldID); err != nil {
 			return err

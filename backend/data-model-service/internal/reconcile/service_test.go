@@ -261,6 +261,9 @@ func (*stubIndexJobRepository) MarkApplied(context.Context, uuid.UUID, time.Time
 func (*stubIndexJobRepository) MarkFailed(context.Context, uuid.UUID, string, time.Time) error {
 	return nil
 }
+func (*stubIndexJobRepository) MarkCancelled(context.Context, uuid.UUID, string, time.Time) error {
+	return nil
+}
 func (*stubIndexJobRepository) MarkPendingRetry(context.Context, uuid.UUID, string) error { return nil }
 func (*stubIndexJobRepository) Retry(context.Context, uuid.UUID, time.Time) error         { return nil }
 

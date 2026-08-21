@@ -14,18 +14,19 @@ MULTIPLIER="${PRODUCTION_REPLAY_MULTIPLIER:-${MULTIPLIER:-360}}"
 MAX_IN_FLIGHT="${PRODUCTION_REPLAY_MAX_IN_FLIGHT:-${MAX_IN_FLIGHT:-50}}"
 CHECKPOINT_EVERY="${PRODUCTION_REPLAY_CHECKPOINT_EVERY:-${CHECKPOINT_EVERY:-100}}"
 SEED_BATCH_SIZE="${PRODUCTION_REPLAY_SEED_BATCH_SIZE:-${SEED_BATCH_SIZE:-500}}"
-SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-10}}"
+SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-4}}"
 SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
-SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-300}}"
+SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-900}}"
 REUSE_EXISTING_SETUP="${PRODUCTION_REPLAY_REUSE_EXISTING_SETUP:-${REUSE_EXISTING_SETUP:-false}}"
 REUSE_EXISTING_SEED="${PRODUCTION_REPLAY_REUSE_EXISTING_SEED:-${REUSE_EXISTING_SEED:-false}}"
+RESUME_SEED="${PRODUCTION_REPLAY_RESUME_SEED:-${RESUME_SEED:-false}}"
 DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
 LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
 LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
 LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
-TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
+TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-ingestion_http}}"
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
 READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
 READ_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS:-${READ_DATABASE_MIN_CONNS:-0}}"
@@ -197,8 +198,20 @@ if [[ "$REUSE_EXISTING_SEED" != "true" && "$REUSE_EXISTING_SEED" != "false" ]]; 
   printf 'error: REUSE_EXISTING_SEED must be true or false; got %s\n' "$REUSE_EXISTING_SEED" >&2
   exit 1
 fi
+if [[ "$RESUME_SEED" != "true" && "$RESUME_SEED" != "false" ]]; then
+  printf 'error: RESUME_SEED must be true or false; got %s\n' "$RESUME_SEED" >&2
+  exit 1
+fi
 if [[ "$REUSE_EXISTING_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
   printf 'error: REUSE_EXISTING_SEED=true requires REUSE_EXISTING_SETUP=true to avoid mutating the prepared tenant\n' >&2
+  exit 1
+fi
+if [[ "$RESUME_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
+  printf 'error: RESUME_SEED=true requires REUSE_EXISTING_SETUP=true to preserve the prepared tenant\n' >&2
+  exit 1
+fi
+if [[ "$RESUME_SEED" == "true" && "$REUSE_EXISTING_SEED" == "true" ]]; then
+  printf 'error: RESUME_SEED=true cannot be combined with REUSE_EXISTING_SEED=true\n' >&2
   exit 1
 fi
 if [[ "$DECISION_MODE" != "sync" && "$DECISION_MODE" != "async" ]]; then
@@ -218,7 +231,7 @@ if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; th
   printf 'configure the remote decision service with LIVE_DECISION_MODE=sync for a real synchronous run.\n' >&2
   exit 1
 fi
-NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${LIVE_ASYNC_OBJECT_TYPES,,},"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",$(printf '%s' "$LIVE_ASYNC_OBJECT_TYPES" | tr '[:upper:]' '[:lower:]'),"
 NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES//[[:space:]]/}"
 if [[ "$DECISION_MODE" == "sync" && "$NORMALIZED_LIVE_ASYNC_OBJECT_TYPES" == *",transactions,"* ]]; then
   printf 'error: refusing a mislabeled sync replay because LIVE_ASYNC_OBJECT_TYPES includes transactions.\n' >&2
@@ -230,30 +243,13 @@ if [[ "$LIVE_ASYNC_FALLBACK_ENABLED" != "true" && "$LIVE_ASYNC_FALLBACK_ENABLED"
   exit 1
 fi
 if [[ "$TENANT_DATA_READ_MODE" != "ingestion_http" && "$TENANT_DATA_READ_MODE" != "direct_db" ]]; then
-  printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
-  exit 1
+	printf 'error: TENANT_DATA_READ_MODE must be ingestion_http or direct_db; got %s\n' "$TENANT_DATA_READ_MODE" >&2
+	exit 1
 fi
 if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" && "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "false" ]]; then
   printf 'error: ALLOW_UNSAFE_INGESTION_HTTP_REPLAY must be true or false; got %s\n' "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" >&2
   exit 1
 fi
-if [[ "$TENANT_DATA_READ_MODE" == "ingestion_http" && "$ENABLE_SEPARATE_READ_POOL" != "true" ]]; then
-  if python3 - "$MULTIPLIER" "$MAX_IN_FLIGHT" <<'PY'
-import sys
-multiplier = float(sys.argv[1])
-max_in_flight = int(sys.argv[2])
-sys.exit(0 if multiplier >= 50 or max_in_flight >= 25 else 1)
-PY
-  then
-    if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" ]]; then
-      printf 'error: refusing high-pressure replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
-      printf 'set ENABLE_SEPARATE_READ_POOL=true, switch to TENANT_DATA_READ_MODE=direct_db, or set ALLOW_UNSAFE_INGESTION_HTTP_REPLAY=true for an explicit comparison run.\n' >&2
-      exit 1
-    fi
-    printf 'warning: running an explicitly unsafe replay with TENANT_DATA_READ_MODE=ingestion_http and no separate read pool.\n' >&2
-  fi
-fi
-
 printf 'Remote replay endpoints:\n'
 printf '  data-model:      %s\n' "$DATA_MODEL_URL"
 printf '  ingestion:       %s\n' "$INGESTION_URL"
@@ -265,8 +261,8 @@ else
   printf 'Replay configuration: transactions=%s offset=%s multiplier=%sx max_in_flight=%s decision_mode=%s live_decision_mode=%s read_mode=%s separate_read_pool=%s async_fallback=%s\n' \
     "$TRANSACTIONS" "$TRANSACTION_OFFSET" "$MULTIPLIER" "$MAX_IN_FLIGHT" "$DECISION_MODE" "$LIVE_DECISION_MODE" "$TENANT_DATA_READ_MODE" "$ENABLE_SEPARATE_READ_POOL" "$LIVE_ASYNC_FALLBACK_ENABLED"
 fi
-printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
-  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
+printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s resume=%s\n' \
+  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED" "$RESUME_SEED"
 
 wait_for_service "data-model-service" "$DATA_MODEL_URL/readyz"
 wait_for_service "ingestion-service" "$INGESTION_URL/readyz"
@@ -345,6 +341,8 @@ fi
 
 if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
   printf 'Reusing the existing seed in tenant %s without performing seed writes...\n' "$TENANT_ID"
+elif [[ "$RESUME_SEED" == "true" ]]; then
+  printf 'Resuming the seed in tenant %s; completed deterministic batches will be replayed without writes...\n' "$TENANT_ID"
 else
   printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
 fi
@@ -367,6 +365,9 @@ fi
       --max-in-flight "$SEED_MAX_IN_FLIGHT"
       --progress-every "$SEED_PROGRESS_EVERY"
     )
+    if [[ "$RESUME_SEED" == "true" ]]; then
+      SEED_ARGS+=(--resume)
+    fi
   fi
   if [[ -n "$AUTH_TOKEN" ]]; then
     SEED_ARGS+=(--auth-token "$AUTH_TOKEN")
@@ -484,6 +485,9 @@ result = {
         "status": seed["status"],
         "records": seed["records"],
         "batches": seed["batches"],
+        "resume": seed.get("resume", False),
+        "inserted_records": seed.get("inserted_records"),
+        "replayed_records": seed.get("replayed_records"),
         "decision_requests": seed["decision_requests"],
     },
 }

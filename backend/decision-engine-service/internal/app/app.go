@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"time"
 
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi"
+	storeclickhouse "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/clickhouse"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 )
 
@@ -18,6 +21,7 @@ type App struct {
 	cfg        Config
 	logger     *slog.Logger
 	db         *pgxpool.Pool
+	eventStore *sharedeventstore.Repository
 	httpServer *http.Server
 }
 
@@ -28,6 +32,20 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	eventStore, err := sharedeventstore.NewRepository(cfg.EventStoreConfig(), logger)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	initCtx, cancel := context.WithTimeout(context.Background(), cfg.ClickHouseTimeout)
+	defer cancel()
+	if err := eventStore.Initialize(initCtx); err != nil {
+		eventStore.Close()
+		db.Close()
+		return nil, fmt.Errorf("initialize ClickHouse event repository: %w", err)
+	}
+	eventDataModels := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	eventDataReader := storeclickhouse.NewTenantDataReader(eventStore, eventDataModels)
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
 		AuthMode:                            cfg.ServiceAuthMode,
@@ -46,6 +64,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		RuleEvaluationConcurrency:           cfg.RuleEvaluationConcurrency,
 		ScenarioEvaluationConcurrency:       cfg.ScenarioEvaluationConcurrency,
 		AggregateRemoteConcurrencyLimit:     cfg.AggregateRemoteConcurrencyLimit,
+		EventDataReader:                     eventDataReader,
 		ScheduledExecutionMaxAttempts:       cfg.ScheduledExecutionMaxAttempts,
 		ScheduledExecutionRetryBackoff:      cfg.ScheduledExecutionRetryBackoff,
 		ScheduledExecutionQueueName:         cfg.ScheduledExecutionQueueName,
@@ -72,6 +91,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		cfg:        cfg,
 		logger:     logger,
 		db:         db,
+		eventStore: eventStore,
 		httpServer: server,
 	}, nil
 }
@@ -85,6 +105,9 @@ func (a *App) Run() error {
 }
 
 func (a *App) Close() {
+	if a.eventStore != nil {
+		a.eventStore.Close()
+	}
 	if a.db != nil {
 		a.db.Close()
 	}

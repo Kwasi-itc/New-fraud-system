@@ -2,6 +2,7 @@ package datamodel
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,6 +35,10 @@ func TestHTTPClientGetPublishedDataModelMapsContract(t *testing.T) {
 						"alias": "Transactions",
 						"semantic_type": "event",
 						"caption_field": "object_id",
+						"storage_class": "event",
+						"event_time_field": "date",
+						"event_schema_revision": "event_schema_123",
+						"event_schema_locked_at": "2026-08-20T12:00:00Z",
 						"archived": false,
 						"fields": {
 							"status": {
@@ -79,6 +84,34 @@ func TestHTTPClientGetPublishedDataModelMapsContract(t *testing.T) {
 	statusField := model.Tables["transactions"].Fields["status"]
 	if len(statusField.EnumValues) != 1 || statusField.EnumValues[0].Value != "pending" {
 		t.Fatalf("expected enum value mapping, got %+v", statusField.EnumValues)
+	}
+	transactions := model.Tables["transactions"]
+	if transactions.EventSchemaRevision != "event_schema_123" || transactions.EventSchemaLockedAt == nil {
+		t.Fatalf("expected event schema lock metadata, got %+v", transactions)
+	}
+}
+
+func TestHTTPClientLocksEventTableSchema(t *testing.T) {
+	t.Parallel()
+	tenantID := uuid.MustParse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	tableID := uuid.MustParse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/tenants/"+tenantID.String()+"/tables/"+tableID.String()+"/event-schema-lock" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode lock request: %v", err)
+		}
+		if body["schema_revision"] != "schema-123" {
+			t.Fatalf("schema_revision = %q", body["schema_revision"])
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	if err := NewHTTPClient(server.URL, time.Second).LockEventTableSchema(context.Background(), tenantID, tableID, "schema-123"); err != nil {
+		t.Fatalf("LockEventTableSchema() error = %v", err)
 	}
 }
 

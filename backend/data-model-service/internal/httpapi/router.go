@@ -61,6 +61,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeRepository := storepostgres.NewSchemaChangeRepository(db)
 	tenantSchemaMigrationRepository := storepostgres.NewTenantSchemaMigrationRepository(db)
 	indexJobRepository := storepostgres.NewIndexJobRepository(db)
+	eventSchemaRepository := storepostgres.NewEventSchemaRepository(db)
 	riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
 	indexJobEnqueuer := riverjobs.NewRiverIndexJobEnqueuer(riverClient, cfg.IndexWorkerMaxAttempts, cfg.IndexJobQueueName)
 	schemaManager := tenantdbpostgres.NewSchemaManager(db)
@@ -116,7 +117,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	)
+	).WithEventTableGuard(tableRepository)
+	eventSchemaHandler := handlers.NewEventSchemaHandler(service.NewEventSchemaService(eventSchemaRepository, systemClock{}))
 	pivotService := service.NewPivotService(
 		tableRepository,
 		fieldRepository,
@@ -202,6 +204,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/data-model/import", dataModelHandler.ImportDataModel)
 	v1.GET("/tenants/:tenantId/tables", dataModelHandler.ListTables)
 	v1.POST("/tenants/:tenantId/tables", dataModelHandler.CreateTable)
+	v1.POST("/tenants/:tenantId/tables/:tableId/event-schema-lock", eventSchemaHandler.Lock)
 	v1.GET("/tables/:tableId/fields", dataModelHandler.ListFields)
 	v1.POST("/tables/:tableId/fields", dataModelHandler.CreateField)
 	v1.GET("/fields/:fieldId/enum-values", dataModelHandler.ListFieldEnumValues)

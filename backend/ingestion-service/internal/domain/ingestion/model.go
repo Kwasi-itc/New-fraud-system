@@ -1,6 +1,10 @@
 package ingestion
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type PublishedDataModel struct {
 	TenantID            uuid.UUID
@@ -14,26 +18,36 @@ type PublishedDataModel struct {
 }
 
 type ObjectSchema struct {
-	ID           uuid.UUID
-	Name         string
-	Description  string
-	Alias        string
-	SemanticType string
-	CaptionField string
-	Archived     bool
-	Fields       map[string]FieldSchema
+	ID                  uuid.UUID
+	Name                string
+	Description         string
+	Alias               string
+	SemanticType        string
+	CaptionField        string
+	StorageClass        string
+	EventTimeField      string
+	EventSchemaRevision string
+	EventSchemaLockedAt *time.Time
+	StorageCutoverAt    *time.Time
+	LegacyReadUntil     *time.Time
+	Archived            bool
+	Fields              map[string]FieldSchema
 }
 
 type FieldSchema struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	DataType    string
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	EnumValues  []EnumValue
+	ID                      uuid.UUID
+	Name                    string
+	Description             string
+	DataType                string
+	Nullable                bool
+	IsEnum                  bool
+	IsUnique                bool
+	IsProjection            bool
+	AggregationMode         string
+	AggregationColdBehavior string
+	AggregationDefaultValue *float64
+	Archived                bool
+	EnumValues              []EnumValue
 }
 
 type EnumValue struct {

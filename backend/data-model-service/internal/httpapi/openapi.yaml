@@ -378,14 +378,10 @@ paths:
       operationId: createTable
       summary: Create table
       description: |-
-        Creates a new logical table for a tenant and applies the matching physical schema change.
-
-        The tenant must already be provisioned. The service writes metadata and creates the backing
-        tenant table in PostgreSQL as one managed workflow so logical and physical state stay aligned.
-
-        The managed create flow also establishes the platform baseline for a tenant object table,
-        including default metadata fields such as `object_id` and `updated_at`, service-owned physical
-        columns, and the default unique index on `object_id`.
+        Creates a logical table for a provisioned tenant. `operational` tables receive a backing
+        PostgreSQL table and the essential unique `object_id` index. Append-only `event` tables are
+        logical schemas whose fields become typed columns in a dedicated ClickHouse table; they do not create per-tenant
+        PostgreSQL tables or analytical indexes.
       security:
         - bearerAuth: []
       parameters:
@@ -426,6 +422,48 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/tables/{tableId}/event-schema-lock:
+    post:
+      tags: [data-model]
+      operationId: lockEventTableSchema
+      summary: Lock an event table schema before its first ingestion
+      description: |-
+        Atomically pins the published event-table schema revision. Once locked, table, field,
+        and enum mutations for the event table are rejected. This endpoint is used internally
+        by ingestion-service immediately before the first ClickHouse write.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TableId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schema_revision]
+              properties:
+                schema_revision:
+                  type: string
+      responses:
+        '200':
+          description: Event schema locked, or an identical existing lock confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  table:
+                    $ref: '#/components/schemas/Table'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The supplied schema revision does not match the locked or currently published event schema
   /v1/tables/{tableId}:
     patch:
       tags: [data-model]
@@ -438,9 +476,10 @@ paths:
         creation, so callers should treat table identity as stable and update only supported fields.
 
         Common mutable fields here are `description`, `alias`, `semantic_type`, and `caption_field`.
-        When `caption_field` is set to a valid string field, the service also auto-requests a
-        background `search` index job for that field. Reusing the same effective caption field does
-        not create a duplicate managed index job.
+        An operational table may make a one-way transition to `event` storage when it has a non-null
+        timestamp `event_time_field`; the service then starts a temporary hybrid read window and
+        cancels PostgreSQL index work for that table. Caption indexes are requested only for
+        operational tables.
       security:
         - bearerAuth: []
       parameters:
@@ -467,12 +506,15 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Event-table schema is locked because ingestion has started
     delete:
       tags: [data-model]
       operationId: deleteTable
       summary: Delete table
       description: |-
-        Deletes a table from metadata and from the tenant's physical schema.
+        Deletes an operational table from metadata and from the tenant's physical schema. Append-only
+        event tables cannot be deleted through this endpoint.
 
         Use `dry_run=true` first when you need a preflight check. The service validates whether links,
         pivots, or other internal dependencies still reference the table. If deletion is blocked, the
@@ -538,11 +580,9 @@ paths:
       operationId: createField
       summary: Create field
       description: |-
-        Creates a field and applies the matching physical column change.
-
-        The service validates field rules, writes metadata, and updates the tenant table schema in the
-        same managed flow. For enum fields, inline enum values can be created transactionally as part of
-        the request.
+        Creates a logical field. Operational tables also receive the matching PostgreSQL column;
+        event-table fields remain schema metadata for ClickHouse JSON payloads. For enum fields,
+        inline enum values can be created transactionally as part of the request.
       security:
         - bearerAuth: []
       parameters:
@@ -1610,11 +1650,21 @@ components:
         semantic_type:
           type: string
           example: entity
+        storage_class:
+          type: string
+          enum: [operational, event]
+          default: operational
+          description: Operational tables are stored in PostgreSQL; append-only event tables are stored in ClickHouse.
+        event_time_field:
+          type: string
+          description: Required for event tables; names the non-null timestamp used for partition pruning and bounded aggregates.
       example:
         name: transactions
         description: Card and transfer transactions
         alias: Transactions
         semantic_type: entity
+        storage_class: event
+        event_time_field: date
     UpdateTableRequest:
       type: object
       description: Mutable fields for a table. Omitted properties remain unchanged.
@@ -1629,6 +1679,16 @@ components:
           type: string
           description: Optional preferred record label field. When set to a valid string field, the service auto-requests a deduped background `search` index job for that field.
           example: object_id
+        storage_class:
+          type: string
+          enum: [operational, event]
+          description: Tables may move from operational to event storage, but cannot be moved back.
+        event_time_field:
+          type: string
+        legacy_read_until:
+          type: string
+          format: date-time
+          description: Optional end of the temporary hybrid PostgreSQL/ClickHouse read window.
       example:
         alias: Transactions
         caption_field: object_id
@@ -1655,6 +1715,27 @@ components:
         caption_field:
           type: string
           description: Preferred field name to use as the human-readable label for records in this table. Setting or changing this value can auto-request a background `search` index job.
+        storage_class:
+          type: string
+          enum: [operational, event]
+        event_time_field:
+          type: string
+        event_schema_revision:
+          type: string
+          description: Deterministic revision of this event table's fields and validation contract.
+        event_schema_locked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set when first ingestion pins the event table schema.
+        storage_cutover_at:
+          type: string
+          format: date-time
+          nullable: true
+        legacy_read_until:
+          type: string
+          format: date-time
+          nullable: true
         archived:
           type: boolean
           description: Whether the table is archived in the logical model.
@@ -1664,7 +1745,7 @@ components:
         updated_at:
           type: string
           format: date-time
-      required: [id, name, description, alias, semantic_type, caption_field, archived, created_at, updated_at]
+      required: [id, name, description, alias, semantic_type, caption_field, storage_class, event_time_field, archived, created_at, updated_at]
       example:
         id: 8c9b9e5d-73ea-46c6-9f47-e6b7fa9c1d7c
         name: transactions
@@ -1672,12 +1753,14 @@ components:
         alias: Transactions
         semantic_type: entity
         caption_field: object_id
+        storage_class: event
+        event_time_field: date
         archived: false
         created_at: "2026-07-13T10:10:00Z"
         updated_at: "2026-07-13T10:10:00Z"
     CreateFieldRequest:
       type: object
-      description: Payload for creating a field and its backing physical column.
+      description: Payload for creating a logical field. Operational tables receive a PostgreSQL column; event-table fields become typed columns when the dedicated ClickHouse table is created on first ingestion.
       required: [name, data_type]
       properties:
         name:
@@ -1695,6 +1778,24 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        is_projection:
+          type: boolean
+          description: For event tables, create a ClickHouse projection ordered by this field and event time. This choice becomes immutable after the first ingest.
+        aggregation_mode:
+          type: string
+          enum: [projection_only, adaptive_cache, tiered_summary, always_online]
+          default: projection_only
+          description: User-selected acceleration policy for aggregates constrained by this event field. Accelerated modes require is_projection=true.
+        aggregation_cold_behavior:
+          type: string
+          enum: [query_clickhouse, durable_summary, defer_async, skip_rule, use_default]
+          default: query_clickhouse
+          description: Behavior before an accelerated summary is ready.
+        aggregation_default_value:
+          type: number
+          format: double
+          nullable: true
+          description: Required only when aggregation_cold_behavior is use_default.
         enum_values:
           type: array
           description: Optional inline enum values created transactionally with the field when is_enum=true.
@@ -1707,9 +1808,12 @@ components:
         nullable: false
         is_enum: false
         is_unique: false
+        is_projection: false
+        aggregation_mode: projection_only
+        aggregation_cold_behavior: query_clickhouse
     UpdateFieldRequest:
       type: object
-      description: Mutable field properties. Omitted properties remain unchanged.
+      description: Mutable field properties. Omitted properties remain unchanged. Runtime aggregation policy may be changed on an event field after ingestion without changing its locked ClickHouse schema.
       properties:
         description:
           type: string
@@ -1719,9 +1823,24 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        aggregation_mode:
+          type: string
+          enum: [projection_only, adaptive_cache, tiered_summary, always_online]
+          description: Runtime aggregate acceleration policy. Accelerated modes require the event field to have been created with is_projection=true.
+        aggregation_cold_behavior:
+          type: string
+          enum: [query_clickhouse, durable_summary, defer_async, skip_rule, use_default]
+          description: Behavior before an accelerated summary is ready.
+        aggregation_default_value:
+          type: number
+          format: double
+          nullable: true
+          description: Required only when aggregation_cold_behavior is use_default.
       example:
         description: Transaction amount in account currency
         nullable: false
+        aggregation_mode: adaptive_cache
+        aggregation_cold_behavior: query_clickhouse
     CreateFieldEnumValueRequest:
       type: object
       description: Payload for creating one enum value for an enum field.
@@ -1772,6 +1891,19 @@ components:
         is_unique:
           type: boolean
           description: Whether the service should enforce uniqueness for this field.
+        is_projection:
+          type: boolean
+          description: Whether an event table has a user-selected ClickHouse projection ordered by this field.
+        aggregation_mode:
+          type: string
+          enum: [projection_only, adaptive_cache, tiered_summary, always_online]
+        aggregation_cold_behavior:
+          type: string
+          enum: [query_clickhouse, durable_summary, defer_async, skip_rule, use_default]
+        aggregation_default_value:
+          type: number
+          format: double
+          nullable: true
         archived:
           type: boolean
           description: Whether the field is archived in the logical model.
@@ -1781,7 +1913,7 @@ components:
         updated_at:
           type: string
           format: date-time
-      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at]
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, is_projection, aggregation_mode, aggregation_cold_behavior, archived, created_at, updated_at]
       example:
         id: 2d27b52d-ccf7-4f21-9815-4241e0bfdf25
         name: amount
@@ -1790,6 +1922,9 @@ components:
         nullable: false
         is_enum: false
         is_unique: false
+        is_projection: false
+        aggregation_mode: projection_only
+        aggregation_cold_behavior: query_clickhouse
         archived: false
         created_at: "2026-07-13T10:12:00Z"
         updated_at: "2026-07-13T10:12:00Z"
@@ -2230,6 +2365,11 @@ components:
           type: string
         semantic_type:
           type: string
+        storage_class:
+          type: string
+          enum: [operational, event]
+        event_time_field:
+          type: string
         caption_field:
           type: string
           description: Preferred label field name for the table. On import, setting this can trigger a managed background `search` index request through the normal table flows.
@@ -2261,11 +2401,24 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        is_projection:
+          type: boolean
+          description: For event tables, request a ClickHouse projection ordered by this field and event time.
+        aggregation_mode:
+          type: string
+          enum: [projection_only, adaptive_cache, tiered_summary, always_online]
+        aggregation_cold_behavior:
+          type: string
+          enum: [query_clickhouse, durable_summary, defer_async, skip_rule, use_default]
+        aggregation_default_value:
+          type: number
+          format: double
+          nullable: true
         enum_values:
           type: array
           items:
             $ref: '#/components/schemas/CreateFieldEnumValueRequest'
-      required: [name, description, data_type, nullable, is_enum, is_unique, enum_values]
+      required: [name, description, data_type, nullable, is_enum, is_unique, is_projection, aggregation_mode, aggregation_cold_behavior, enum_values]
     PortableTableOptionsDocument:
       type: object
       properties:
@@ -2363,6 +2516,26 @@ components:
         caption_field:
           type: string
           description: Preferred record label field name for the table. This value may have caused the service to request a managed `search` index job for the table.
+        storage_class:
+          type: string
+          enum: [operational, event]
+        event_time_field:
+          type: string
+        event_schema_revision:
+          type: string
+          description: Deterministic revision used to create and lock the typed ClickHouse schema.
+        event_schema_locked_at:
+          type: string
+          format: date-time
+          nullable: true
+        storage_cutover_at:
+          type: string
+          format: date-time
+          nullable: true
+        legacy_read_until:
+          type: string
+          format: date-time
+          nullable: true
         archived:
           type: boolean
           description: Whether the table is archived in the published model.
@@ -2384,7 +2557,7 @@ components:
         options:
           $ref: '#/components/schemas/TableOptions'
           nullable: true
-      required: [id, name, description, alias, semantic_type, caption_field, archived, fields, links_to_single, navigation_options]
+      required: [id, name, description, alias, semantic_type, caption_field, storage_class, event_time_field, archived, fields, links_to_single, navigation_options]
     AssembledField:
       type: object
       description: Field entry inside the assembled read model.
@@ -2410,6 +2583,19 @@ components:
         is_unique:
           type: boolean
           description: Whether the field should be unique across records.
+        is_projection:
+          type: boolean
+          description: Whether this event field has a ClickHouse projection.
+        aggregation_mode:
+          type: string
+          enum: [projection_only, adaptive_cache, tiered_summary, always_online]
+        aggregation_cold_behavior:
+          type: string
+          enum: [query_clickhouse, durable_summary, defer_async, skip_rule, use_default]
+        aggregation_default_value:
+          type: number
+          format: double
+          nullable: true
         archived:
           type: boolean
           description: Whether the field is archived in the published model.
@@ -2417,7 +2603,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FieldEnumValue'
-      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, enum_values]
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, is_projection, aggregation_mode, aggregation_cold_behavior, archived, enum_values]
     AssembledLink:
       type: object
       description: Link entry inside the assembled read model.

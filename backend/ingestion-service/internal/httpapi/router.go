@@ -23,6 +23,7 @@ type RouterConfig struct {
 	AuthToken                      string
 	AllowedOrigins                 []string
 	DataModelServiceURL            string
+	EventStore                     ports.EventStore
 	HTTPClientTimeout              time.Duration
 	AggregateQueryTimeout          time.Duration
 	WorkerMaxAttempts              int
@@ -94,6 +95,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		readDataReader,
 		uuidGenerator{},
 		systemClock{},
+		cfg.EventStore,
 	)
 	deferredIngestService := service.NewDeferredIngestService(
 		deferredIngestRepository,

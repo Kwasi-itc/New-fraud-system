@@ -51,16 +51,26 @@ def build_parser() -> argparse.ArgumentParser:
 
     seed = subparsers.add_parser("seed", help="Batch-ingest historical transactions without decision requests")
     _add_manifest(seed)
-    _add_services(seed)
+    _add_services(seed, timeout_default=900.0)
     seed.add_argument("--execute", action="store_true", help="Allow ingestion-only seed requests")
     seed.add_argument(
         "--reuse-existing",
         action="store_true",
         help="Verify and reuse a prior partial or complete seed without writing seed records",
     )
+    seed.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted seed by replaying deterministic batch keys; completed batches perform no writes",
+    )
+    seed.add_argument(
+        "--skip",
+        action="store_true",
+        help="Record an intentionally skipped historical seed without sending ingestion requests",
+    )
     seed.add_argument("--tenant-id", help="Tenant prepared by the setup command")
     seed.add_argument("--batch-size", type=int, default=500)
-    seed.add_argument("--max-in-flight", type=int, default=10)
+    seed.add_argument("--max-in-flight", type=int, default=4)
     seed.add_argument("--progress-every", type=int, default=100)
     seed.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
 
@@ -86,12 +96,12 @@ def _add_manifest(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--manifest", required=True, help="Version 1 replay manifest JSON")
 
 
-def _add_services(parser: argparse.ArgumentParser) -> None:
+def _add_services(parser: argparse.ArgumentParser, *, timeout_default: float = 30.0) -> None:
     parser.add_argument("--data-model-url", default=os.getenv("DATA_MODEL_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
     parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
-    parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--timeout", type=float, default=timeout_default)
 
 
 def _services(args: argparse.Namespace) -> ServiceConfig:
@@ -225,11 +235,17 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
 async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
     if args.execute and args.reuse_existing:
         raise ValueError("--execute and --reuse-existing cannot be used together")
-    if not args.execute and not args.reuse_existing:
-        print("seed not executed; pass --execute to ingest or --reuse-existing to reuse seeded data")
+    if args.resume and args.reuse_existing:
+        raise ValueError("--resume and --reuse-existing cannot be used together")
+    if args.skip and (args.execute or args.reuse_existing or args.resume):
+        raise ValueError("--skip cannot be combined with --execute, --reuse-existing, or --resume")
+    if args.resume and not args.execute:
+        raise ValueError("--resume requires --execute")
+    if not args.execute and not args.reuse_existing and not args.skip:
+        print("seed not executed; pass --execute, --reuse-existing, or --skip")
         return 0
     if not args.tenant_id:
-        raise ValueError("--tenant-id is required with --execute or --reuse-existing")
+        raise ValueError("--tenant-id is required with --execute, --reuse-existing, or --skip")
     if args.batch_size <= 0 or args.batch_size > 500:
         raise ValueError("--batch-size must be between 1 and 500")
     if args.max_in_flight <= 0:
@@ -254,12 +270,50 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
             "auth_token": "set" if args.auth_token else None,
             "decision_requests_enabled": False,
             "reuse_existing": args.reuse_existing,
+            "resume": args.resume,
+            "skip": args.skip,
         },
     )
 
-    def report_progress(records: int, batches: int) -> None:
+    if args.skip:
+        summary = {
+            "status": "skipped",
+            "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "tenant_id": args.tenant_id,
+            "manifest": str(manifest.path),
+            "decision_requests": 0,
+            "records": 0,
+            "batches": 0,
+            "inserted_records": 0,
+            "inserted_batches": 0,
+            "replayed_records": 0,
+            "replayed_batches": 0,
+            "batch_size": None,
+            "max_in_flight": None,
+            "elapsed_seconds": 0,
+            "records_per_second": None,
+            "mutations_performed": False,
+            "note": "Historical transaction pre-seeding was intentionally skipped.",
+        }
+        _write_json(run_dir / "summary.json", summary)
+        print("historical transaction seed skipped")
+        print(f"seed output: {run_dir}")
+        return 0
+
+    def report_progress(
+        records: int,
+        batches: int,
+        inserted_records: int,
+        replayed_records: int,
+    ) -> None:
         if args.progress_every and batches % args.progress_every == 0:
-            print(f"seeded {records} records in {batches} batches")
+            if args.resume:
+                print(
+                    f"resume processed {records} records in {batches} batches "
+                    f"(already seeded: {replayed_records}, newly seeded: {inserted_records})"
+                )
+            else:
+                print(f"seeded {records} records in {batches} batches")
 
     async with ServiceClients(_services(args)) as clients:
         await clients.wait_until_ingestion_ready()
@@ -286,9 +340,16 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
                 max_in_flight=args.max_in_flight,
                 progress=report_progress,
             )
+            result["resume"] = args.resume
+            result["mutations_performed"] = result["inserted_records"] > 0
 
+    status = "completed"
+    if args.reuse_existing:
+        status = "reused_existing"
+    elif args.resume:
+        status = "resumed_completed"
     summary = {
-        "status": "reused_existing" if args.reuse_existing else "completed",
+        "status": status,
         "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "tenant_id": args.tenant_id,
         "manifest": str(manifest.path),
@@ -298,6 +359,11 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
     _write_json(run_dir / "summary.json", summary)
     if args.reuse_existing:
         print(f"reused existing seed: verified transaction {summary['verified_object_id']}")
+    elif args.resume:
+        print(
+            f"seed resume completed: processed {summary['records']} records in {summary['batches']} batches "
+            f"(already seeded: {summary['replayed_records']}, newly seeded: {summary['inserted_records']})"
+        )
     else:
         print(f"seeded: {summary['records']} records in {summary['batches']} batches")
     print(f"seed output: {run_dir}")

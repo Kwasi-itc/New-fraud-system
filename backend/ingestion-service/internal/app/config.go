@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	sharedeventstore "github.com/Kwasi-itc/New-fraud-system/backend/event-store-service"
 )
 
 type Config struct {
@@ -20,6 +22,22 @@ type Config struct {
 	WorkerDatabaseMaxConns          int
 	WorkerDatabaseMinConns          int
 	DataModelServiceURL             string
+	ClickHouseURL                   string
+	ClickHouseDatabase              string
+	ClickHouseUser                  string
+	ClickHousePassword              string
+	ClickHouseTimeout               time.Duration
+	ClickHouseMaxConns              int
+	ClickHouseMaxIdleConns          int
+	ClickHouseIdleConnTimeout       time.Duration
+	ValkeyAddress                   string
+	EventAggregateFactsEnabled      bool
+	FeatureNamespace                string
+	FeatureMaxKeys                  int
+	FeatureMaxKeysPerTenant         int
+	FeatureAdmissionHits            int
+	FeatureSlowQueryMS              int
+	FeatureTTL                      time.Duration
 	ServiceAuthMode                 string
 	ServiceAuthToken                string
 	AllowedOrigins                  []string
@@ -54,6 +72,10 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	eventAggregateFactsEnabled, err := getEnvBool("EVENT_AGGREGATE_FACTS_ENABLED", true)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Port:                            getEnv("PORT", "8081"),
@@ -67,6 +89,19 @@ func LoadConfig() (Config, error) {
 		WorkerDatabaseMaxConns:          getEnvInt("WORKER_DATABASE_MAX_CONNS", 4),
 		WorkerDatabaseMinConns:          getEnvInt("WORKER_DATABASE_MIN_CONNS", 0),
 		DataModelServiceURL:             strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
+		ClickHouseURL:                   strings.TrimRight(getEnv("CLICKHOUSE_URL", "http://clickhouse:8123"), "/"),
+		ClickHouseDatabase:              getEnv("CLICKHOUSE_DATABASE", "fraud_events"),
+		ClickHouseUser:                  getEnv("CLICKHOUSE_USER", "default"),
+		ClickHousePassword:              os.Getenv("CLICKHOUSE_PASSWORD"),
+		ClickHouseMaxConns:              getEnvInt("CLICKHOUSE_MAX_CONNS", 16),
+		ClickHouseMaxIdleConns:          getEnvInt("CLICKHOUSE_MAX_IDLE_CONNS", 8),
+		ValkeyAddress:                   getEnv("VALKEY_ADDRESS", "valkey:6379"),
+		EventAggregateFactsEnabled:      eventAggregateFactsEnabled,
+		FeatureNamespace:                getEnv("FEATURE_NAMESPACE", "fraud:event-feature:v1"),
+		FeatureMaxKeys:                  getEnvInt("FEATURE_MAX_KEYS", 10000),
+		FeatureMaxKeysPerTenant:         getEnvInt("FEATURE_MAX_KEYS_PER_TENANT", 1000),
+		FeatureAdmissionHits:            getEnvInt("FEATURE_ADMISSION_HITS", 3),
+		FeatureSlowQueryMS:              getEnvInt("FEATURE_SLOW_QUERY_MS", 100),
 		ServiceAuthMode:                 getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:                os.Getenv("SERVICE_AUTH_TOKEN"),
 		AllowedOrigins:                  splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
@@ -88,6 +123,21 @@ func LoadConfig() (Config, error) {
 		ServiceCPUThresholdPct:          getEnvInt("SERVICE_CPU_THRESHOLD_PCT", 80),
 		UpstreamTimeoutRateThresholdPct: getEnvInt("UPSTREAM_TIMEOUT_RATE_THRESHOLD_PCT", 5),
 	}
+	clickHouseTimeout, err := getEnvDuration("CLICKHOUSE_TIMEOUT", 2*time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ClickHouseTimeout = clickHouseTimeout
+	clickHouseIdleConnTimeout, err := getEnvDuration("CLICKHOUSE_IDLE_CONN_TIMEOUT", 90*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ClickHouseIdleConnTimeout = clickHouseIdleConnTimeout
+	featureTTL, err := getEnvDuration("FEATURE_TTL", time.Hour)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.FeatureTTL = featureTTL
 	workerPollInterval, err := getEnvDuration("WORKER_POLL_INTERVAL", 5*time.Second)
 	if err != nil {
 		return Config{}, err
@@ -96,6 +146,15 @@ func LoadConfig() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
+	}
+	if cfg.ClickHouseURL == "" {
+		return Config{}, fmt.Errorf("CLICKHOUSE_URL is required")
+	}
+	if cfg.ClickHouseMaxConns <= 0 {
+		return Config{}, fmt.Errorf("CLICKHOUSE_MAX_CONNS must be greater than zero")
+	}
+	if cfg.ClickHouseMaxIdleConns < 0 || cfg.ClickHouseMaxIdleConns > cfg.ClickHouseMaxConns {
+		return Config{}, fmt.Errorf("CLICKHOUSE_MAX_IDLE_CONNS must be between zero and CLICKHOUSE_MAX_CONNS")
 	}
 	if cfg.DatabaseMaxConns < 0 {
 		return Config{}, fmt.Errorf("DATABASE_MAX_CONNS must be greater than or equal to zero")
@@ -173,6 +232,20 @@ func LoadConfig() (Config, error) {
 	return cfg, nil
 }
 
+func (cfg Config) EventStoreConfig() sharedeventstore.Config {
+	return sharedeventstore.Config{
+		ClickHouseURL: cfg.ClickHouseURL, ClickHouseDatabase: cfg.ClickHouseDatabase,
+		ClickHouseUser: cfg.ClickHouseUser, ClickHousePassword: cfg.ClickHousePassword,
+		HTTPTimeout: cfg.ClickHouseTimeout, MaxConns: cfg.ClickHouseMaxConns,
+		MaxIdleConns: cfg.ClickHouseMaxIdleConns, IdleConnTimeout: cfg.ClickHouseIdleConnTimeout,
+		ValkeyAddress: cfg.ValkeyAddress, FeatureNamespace: cfg.FeatureNamespace,
+		DisableAggregateFacts: !cfg.EventAggregateFactsEnabled,
+		FeatureMaxKeys:        cfg.FeatureMaxKeys, FeatureMaxKeysPerTenant: cfg.FeatureMaxKeysPerTenant,
+		FeatureAdmissionHits: cfg.FeatureAdmissionHits, FeatureSlowQueryMS: cfg.FeatureSlowQueryMS,
+		FeatureTTL: cfg.FeatureTTL,
+	}
+}
+
 func splitCSVEnv(key, fallback string) []string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -221,6 +294,21 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func getEnvBool(key string, fallback bool) (bool, error) {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if value == "" {
+		return fallback, nil
+	}
+	switch value {
+	case "1", "true", "yes", "on":
+		return true, nil
+	case "0", "false", "no", "off":
+		return false, nil
+	default:
+		return false, fmt.Errorf("%s must be a valid boolean", key)
+	}
 }
 
 func loadDotEnvIfPresent() {

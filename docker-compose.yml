@@ -37,6 +37,33 @@ services:
       timeout: 5s
       retries: 20
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3
+    environment:
+      CLICKHOUSE_DB: fraud_events
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CLICKHOUSE_FORWARDED_PORT:-8123}:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lfu"]
+    ports:
+      - "${VALKEY_FORWARDED_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   data-model-migrate:
     build:
       context: ./backend/data-model-service
@@ -53,8 +80,8 @@ services:
 
   ingestion-migrate:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/migrate"]
     command: ["up"]
     environment:
@@ -70,8 +97,8 @@ services:
 
   decision-engine-migrate:
     build:
-      context: ./backend/decision-engine-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
     entrypoint: ["/app/migrate"]
     command: ["up"]
     environment:
@@ -134,8 +161,8 @@ services:
 
   ingestion-service:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     environment:
       <<: *backend-common
       PORT: 8081
@@ -147,25 +174,60 @@ services:
       WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
       WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: fraud_events
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_TIMEOUT: ${INGESTION_CLICKHOUSE_TIMEOUT:-2m}
+      CLICKHOUSE_MAX_CONNS: ${INGESTION_CLICKHOUSE_MAX_CONNS:-16}
+      CLICKHOUSE_MAX_IDLE_CONNS: ${INGESTION_CLICKHOUSE_MAX_IDLE_CONNS:-8}
+      CLICKHOUSE_IDLE_CONN_TIMEOUT: ${CLICKHOUSE_IDLE_CONN_TIMEOUT:-90s}
+      VALKEY_ADDRESS: valkey:6379
+      EVENT_AGGREGATE_FACTS_ENABLED: ${EVENT_AGGREGATE_FACTS_ENABLED:-true}
+      FEATURE_NAMESPACE: ${FEATURE_NAMESPACE:-fraud:event-feature:v1}
+      FEATURE_MAX_KEYS: ${FEATURE_MAX_KEYS:-10000}
+      FEATURE_MAX_KEYS_PER_TENANT: ${FEATURE_MAX_KEYS_PER_TENANT:-1000}
+      FEATURE_ADMISSION_HITS: ${FEATURE_ADMISSION_HITS:-3}
+      FEATURE_SLOW_QUERY_MS: ${FEATURE_SLOW_QUERY_MS:-100}
+      FEATURE_TTL: ${FEATURE_TTL:-1h}
       WORKER_POLL_INTERVAL: 5s
       WORKER_MAX_ATTEMPTS: 3
       WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
       WRITE_PATH_OVERLOAD_MODE: ${WRITE_PATH_OVERLOAD_MODE:-defer_async}
       AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
-    depends_on: *depends-on-migrations
+    depends_on:
+      <<: *depends-on-migrations
+      clickhouse:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
     ports:
       - "${INGESTION_FORWARDED_PORT:-8081}:8081"
 
   decision-engine-service:
     build:
-      context: ./backend/decision-engine-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
     environment:
       <<: *backend-common
       PORT: 8082
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: fraud_events
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_TIMEOUT: ${DECISION_CLICKHOUSE_TIMEOUT:-30s}
+      CLICKHOUSE_MAX_CONNS: ${DECISION_CLICKHOUSE_MAX_CONNS:-64}
+      CLICKHOUSE_MAX_IDLE_CONNS: ${DECISION_CLICKHOUSE_MAX_IDLE_CONNS:-32}
+      CLICKHOUSE_IDLE_CONN_TIMEOUT: ${CLICKHOUSE_IDLE_CONN_TIMEOUT:-90s}
+      VALKEY_ADDRESS: valkey:6379
+      EVENT_AGGREGATE_FACTS_ENABLED: ${EVENT_AGGREGATE_FACTS_ENABLED:-true}
+      FEATURE_NAMESPACE: ${FEATURE_NAMESPACE:-fraud:event-feature:v1}
+      FEATURE_MAX_KEYS: ${FEATURE_MAX_KEYS:-10000}
+      FEATURE_MAX_KEYS_PER_TENANT: ${FEATURE_MAX_KEYS_PER_TENANT:-1000}
+      FEATURE_ADMISSION_HITS: ${FEATURE_ADMISSION_HITS:-3}
+      FEATURE_SLOW_QUERY_MS: ${FEATURE_SLOW_QUERY_MS:-100}
+      FEATURE_TTL: ${FEATURE_TTL:-1h}
       SCREENING_SERVICE_URL: http://screening-service:8085
       LOG_LEVEL: debug
       # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
@@ -180,8 +242,13 @@ services:
       TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
       RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
-      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
-    depends_on: *depends-on-migrations
+      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-16}
+    depends_on:
+      <<: *depends-on-migrations
+      clickhouse:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
     ports:
       - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
 
@@ -239,8 +306,8 @@ services:
 
   ingestion-worker:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
@@ -252,6 +319,21 @@ services:
       WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
       WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: fraud_events
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_TIMEOUT: ${INGESTION_WORKER_CLICKHOUSE_TIMEOUT:-2m}
+      CLICKHOUSE_MAX_CONNS: ${INGESTION_WORKER_CLICKHOUSE_MAX_CONNS:-8}
+      CLICKHOUSE_MAX_IDLE_CONNS: ${INGESTION_WORKER_CLICKHOUSE_MAX_IDLE_CONNS:-4}
+      CLICKHOUSE_IDLE_CONN_TIMEOUT: ${CLICKHOUSE_IDLE_CONN_TIMEOUT:-90s}
+      VALKEY_ADDRESS: valkey:6379
+      EVENT_AGGREGATE_FACTS_ENABLED: ${EVENT_AGGREGATE_FACTS_ENABLED:-true}
+      FEATURE_NAMESPACE: ${FEATURE_NAMESPACE:-fraud:event-feature:v1}
+      FEATURE_MAX_KEYS: ${FEATURE_MAX_KEYS:-10000}
+      FEATURE_MAX_KEYS_PER_TENANT: ${FEATURE_MAX_KEYS_PER_TENANT:-1000}
+      FEATURE_ADMISSION_HITS: ${FEATURE_ADMISSION_HITS:-3}
+      FEATURE_SLOW_QUERY_MS: ${FEATURE_SLOW_QUERY_MS:-100}
+      FEATURE_TTL: ${FEATURE_TTL:-1h}
       WORKER_POLL_INTERVAL: 5s
       WORKER_MAX_ATTEMPTS: 3
       WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
@@ -261,11 +343,15 @@ services:
       <<: *depends-on-migrations
       data-model-service:
         condition: service_started
+      clickhouse:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
 
   decision-engine-worker:
     build:
-      context: ./backend/decision-engine-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
     entrypoint: ["/app/worker"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -274,6 +360,21 @@ services:
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: fraud_events
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_TIMEOUT: ${DECISION_WORKER_CLICKHOUSE_TIMEOUT:-30s}
+      CLICKHOUSE_MAX_CONNS: ${DECISION_WORKER_CLICKHOUSE_MAX_CONNS:-32}
+      CLICKHOUSE_MAX_IDLE_CONNS: ${DECISION_WORKER_CLICKHOUSE_MAX_IDLE_CONNS:-16}
+      CLICKHOUSE_IDLE_CONN_TIMEOUT: ${CLICKHOUSE_IDLE_CONN_TIMEOUT:-90s}
+      VALKEY_ADDRESS: valkey:6379
+      EVENT_AGGREGATE_FACTS_ENABLED: ${EVENT_AGGREGATE_FACTS_ENABLED:-true}
+      FEATURE_NAMESPACE: ${FEATURE_NAMESPACE:-fraud:event-feature:v1}
+      FEATURE_MAX_KEYS: ${FEATURE_MAX_KEYS:-10000}
+      FEATURE_MAX_KEYS_PER_TENANT: ${FEATURE_MAX_KEYS_PER_TENANT:-1000}
+      FEATURE_ADMISSION_HITS: ${FEATURE_ADMISSION_HITS:-3}
+      FEATURE_SLOW_QUERY_MS: ${FEATURE_SLOW_QUERY_MS:-100}
+      FEATURE_TTL: ${FEATURE_TTL:-1h}
       SCREENING_SERVICE_URL: http://screening-service:8085
       # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
       WORKER_MODE: poll
@@ -287,13 +388,17 @@ services:
       TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
       RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
-      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${DECISION_WORKER_AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-8}
     depends_on:
       <<: *depends-on-migrations
       data-model-service:
         condition: service_started
       ingestion-service:
         condition: service_started
+      clickhouse:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
       screening-service:
         condition: service_started
       # case-manager-service:
@@ -371,3 +476,4 @@ services:
 
 volumes:
   postgres_data:
+  clickhouse_data:

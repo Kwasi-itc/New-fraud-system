@@ -1,6 +1,9 @@
 package ports
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type TenantModel struct {
 	RevisionID        string
@@ -17,15 +20,25 @@ type ManagedIndexJob struct {
 }
 
 type TenantModelTable struct {
-	ID            string
-	Name          string
-	Fields        map[string]TenantModelField
-	LinksToSingle map[string]TenantModelLink
+	ID                  string
+	Name                string
+	StorageClass        string
+	EventTimeField      string
+	EventSchemaRevision string
+	StorageCutoverAt    *time.Time
+	LegacyReadUntil     *time.Time
+	Fields              map[string]TenantModelField
+	LinksToSingle       map[string]TenantModelLink
 }
 
 type TenantModelField struct {
-	Name string
-	Type string
+	Name                    string
+	Type                    string
+	Nullable                bool
+	IsProjection            bool
+	AggregationMode         string
+	AggregationColdBehavior string
+	AggregationDefaultValue *float64
 }
 
 type TenantModelLink struct {

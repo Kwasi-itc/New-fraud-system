@@ -1,0 +1,2 @@
+ALTER TABLE core.model_fields
+  ADD COLUMN IF NOT EXISTS is_projection BOOLEAN NOT NULL DEFAULT FALSE;

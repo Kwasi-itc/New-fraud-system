@@ -24,6 +24,8 @@ export type Table = {
   alias: string;
   semantic_type: string;
   caption_field: string;
+  storage_class: "operational" | "event";
+  event_time_field: string;
   archived: boolean;
   created_at: string;
   updated_at: string;
@@ -55,6 +57,19 @@ export type UpdateFieldEnumValueRequest = {
   sort_order?: number;
 };
 
+export type AggregationMode =
+  | "projection_only"
+  | "adaptive_cache"
+  | "tiered_summary"
+  | "always_online";
+
+export type AggregationColdBehavior =
+  | "query_clickhouse"
+  | "durable_summary"
+  | "defer_async"
+  | "skip_rule"
+  | "use_default";
+
 export type CreateFieldRequest = {
   name: string;
   description?: string;
@@ -62,6 +77,10 @@ export type CreateFieldRequest = {
   nullable?: boolean;
   is_enum?: boolean;
   is_unique?: boolean;
+  is_projection?: boolean;
+  aggregation_mode?: AggregationMode;
+  aggregation_cold_behavior?: AggregationColdBehavior;
+  aggregation_default_value?: number;
   enum_values?: CreateFieldEnumValueRequest[];
 };
 
@@ -70,6 +89,9 @@ export type UpdateFieldRequest = {
   nullable?: boolean;
   is_enum?: boolean;
   is_unique?: boolean;
+  aggregation_mode?: AggregationMode;
+  aggregation_cold_behavior?: AggregationColdBehavior;
+  aggregation_default_value?: number;
 };
 
 export type CreateLinkRequest = {
@@ -140,6 +162,10 @@ export type Field = {
   nullable: boolean;
   is_enum: boolean;
   is_unique: boolean;
+  is_projection: boolean;
+  aggregation_mode: AggregationMode;
+  aggregation_cold_behavior: AggregationColdBehavior;
+  aggregation_default_value?: number;
   archived: boolean;
   created_at: string;
   updated_at: string;
@@ -153,6 +179,10 @@ export type AssembledField = {
   nullable: boolean;
   is_enum: boolean;
   is_unique: boolean;
+  is_projection: boolean;
+  aggregation_mode: AggregationMode;
+  aggregation_cold_behavior: AggregationColdBehavior;
+  aggregation_default_value?: number;
   archived: boolean;
   enum_values: FieldEnumValue[];
 };
@@ -193,6 +223,8 @@ export type AssembledTable = {
   alias: string;
   semantic_type: string;
   caption_field: string;
+  storage_class: "operational" | "event";
+  event_time_field: string;
   archived: boolean;
   fields: Record<string, AssembledField>;
   links_to_single: Record<string, AssembledLink>;
@@ -230,6 +262,10 @@ export type PortableFieldDocument = {
   nullable: boolean;
   is_enum: boolean;
   is_unique: boolean;
+  is_projection?: boolean;
+  aggregation_mode?: AggregationMode;
+  aggregation_cold_behavior?: AggregationColdBehavior;
+  aggregation_default_value?: number;
   enum_values: CreateFieldEnumValueRequest[];
 };
 

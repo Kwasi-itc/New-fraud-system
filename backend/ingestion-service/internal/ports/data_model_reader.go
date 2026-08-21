@@ -10,4 +10,5 @@ import (
 
 type DataModelReader interface {
 	GetPublishedDataModel(ctx context.Context, tenantID uuid.UUID) (ingestion.PublishedDataModel, error)
+	LockEventTableSchema(ctx context.Context, tenantID, tableID uuid.UUID, schemaRevision string) error
 }

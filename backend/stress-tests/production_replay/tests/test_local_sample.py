@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +20,44 @@ from production_replay.tests.helpers import manifest_data, stream, transaction_r
 
 
 class LocalSampleTests(unittest.TestCase):
+    def test_regenerated_sample_has_stable_source_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_root = root / "data-root"
+            output_dir = root / "sample"
+            manifest_path = root / "manifest.json"
+            output_manifest = root / "sample-manifest.json"
+
+            data_root.mkdir(parents=True)
+            write_minimal_sources(data_root)
+            merchant_dir = data_root / "data/dumps/merchant-info-dump"
+            product_dir = data_root / "data/dumps/merchant-product-dump"
+            lists_dir = data_root / "data/lists"
+            merchant_dir.mkdir(parents=True)
+            product_dir.mkdir(parents=True)
+            lists_dir.mkdir(parents=True)
+            (merchant_dir / "batch_1.json").write_text("[]", encoding="utf-8")
+            (product_dir / "batch_1.json").write_text("[]", encoding="utf-8")
+            (lists_dir / "fraud-staff.csv").write_text("NO.,STAFF_NO,NAME,EMAIL,MSISDN\n", encoding="utf-8")
+            (lists_dir / "merchants.xlsx").write_bytes(b"test-watchlist")
+            for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
+                source_path = data_root / relative_path
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                write_transactions(source_path, [transaction_row(source_trans_id=f"{stream_id}-1")])
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream(stream_id, "unused.csv") for stream_id in STREAM_SOURCE_PATHS])),
+                encoding="utf-8",
+            )
+
+            create_local_sample(manifest_path, data_root, output_dir, output_manifest, total_transactions=6)
+            first = load_manifest(output_manifest).source_fingerprint()
+            for generated in output_dir.glob("*.csv"):
+                os.utime(generated, None)
+            create_local_sample(manifest_path, data_root, output_dir, output_manifest, total_transactions=6)
+            second = load_manifest(output_manifest).source_fingerprint()
+
+            self.assertEqual(first, second)
+
     def test_creates_requested_total_across_all_streams(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

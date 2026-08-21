@@ -23,6 +23,23 @@ type OutboxEventRepository interface {
 	Create(ctx context.Context, event ingestion.OutboxEvent) error
 }
 
+type EventStore interface {
+	Write(ctx context.Context, model ingestion.PublishedDataModel, objectType, eventID, objectID, requestHash string, payload map[string]any, ingestedAt time.Time) error
+	WriteBatch(ctx context.Context, model ingestion.PublishedDataModel, objectType string, events []EventWrite) error
+	GetRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType, objectID string) (map[string]any, error)
+	ListRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType string, limit int) ([]map[string]any, error)
+	QueryRecords(ctx context.Context, model ingestion.PublishedDataModel, objectType, fieldName, value string, limit int) ([]map[string]any, error)
+	AggregateRecords(ctx context.Context, model ingestion.PublishedDataModel, query ingestion.AggregateQuery) (any, error)
+}
+
+type EventWrite struct {
+	EventID     string
+	ObjectID    string
+	RequestHash string
+	Payload     map[string]any
+	IngestedAt  time.Time
+}
+
 type UploadLogRepository interface {
 	Create(ctx context.Context, log ingestion.UploadLog) error
 	ListByTenantAndObjectType(ctx context.Context, tenantID uuid.UUID, objectType string) ([]ingestion.UploadLog, error)
