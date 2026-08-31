@@ -92,6 +92,7 @@ export function buildFieldOperandSources({
   }));
 
   const payloadOptions = fieldSelectorOptions.filter((option) => option.value.startsWith("payload:"));
+  const derivedOptions = fieldSelectorOptions.filter((option) => option.value.startsWith("derived:"));
   const databaseOptionGroups = new Map<string, OperandOption[]>();
 
   fieldSelectorOptions
@@ -126,6 +127,15 @@ export function buildFieldOperandSources({
                 id: `fields-${triggerObjectType || "trigger"}`,
                 label: `From ${triggerObjectType || "trigger"}`,
                 options: payloadOptions,
+              },
+            ]
+          : []),
+        ...(derivedOptions.length > 0
+          ? [
+              {
+                id: "fields-ip-geolocation",
+                label: "IP geolocation",
+                options: derivedOptions,
               },
             ]
           : []),

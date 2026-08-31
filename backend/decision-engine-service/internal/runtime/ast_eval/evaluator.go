@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net/netip"
 	"regexp"
 	"sort"
 	"strconv"
@@ -306,6 +307,50 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 			return nil, fmt.Errorf("ip flag repository is not configured")
 		}
 		return runtime.IPFlagRepo.HasFlag(ctx, runtime.TenantID, ipAddress, flag)
+	case "ip_country", "ip_country_code", "ip_region", "ip_region_code", "ip_continent_code", "ip_geo_found":
+		location, found, err := evaluateGeoIPLookup(ctx, node, runtime)
+		if err != nil {
+			slog.Error("geoip_rule_lookup_failed",
+				"tenant_id", runtime.TenantID,
+				"object_type", runtime.ObjectType,
+				"object_id", runtime.ObjectID,
+				"function", node.Function,
+				"error", err,
+			)
+			return nil, err
+		}
+		var resolved any
+		switch canonicalFunctionName(node.Function) {
+		case "ip_geo_found":
+			resolved = found
+		case "ip_country":
+			resolved = geoIPStringResult(location.CountryName, found)
+		case "ip_country_code":
+			resolved = geoIPStringResult(location.CountryCode, found)
+		case "ip_region":
+			resolved = geoIPStringResult(location.RegionName, found)
+		case "ip_region_code":
+			resolved = geoIPStringResult(location.RegionCode, found)
+		default:
+			resolved = geoIPStringResult(location.ContinentCode, found)
+		}
+		slog.Debug("geoip_rule_value_resolved",
+			"tenant_id", runtime.TenantID,
+			"object_type", runtime.ObjectType,
+			"object_id", runtime.ObjectID,
+			"function", node.Function,
+			"ip_address", location.Address,
+			"found", found,
+			"resolved_value", resolved,
+			"country_code", location.CountryCode,
+			"country_name", location.CountryName,
+			"region_code", location.RegionCode,
+			"region_name", location.RegionName,
+			"network", location.Network,
+			"database_type", location.DatabaseType,
+			"database_build_time", location.DatabaseBuildTime,
+		)
+		return resolved, nil
 	case "past_decision_count":
 		if runtime.DecisionRepo == nil {
 			return nil, fmt.Errorf("decision repository is not configured")
@@ -1036,6 +1081,18 @@ func canonicalFunctionName(name string) string {
 		return "payload"
 	case "databaseaccess":
 		return "database_access"
+	case "ipcountry":
+		return "ip_country"
+	case "ipcountrycode":
+		return "ip_country_code"
+	case "ipregion":
+		return "ip_region"
+	case "ipregioncode":
+		return "ip_region_code"
+	case "ipcontinentcode":
+		return "ip_continent_code"
+	case "ipgeofound":
+		return "ip_geo_found"
 	case "customlistaccess":
 		return "custom_list_access"
 	case "timeadd":
@@ -1091,6 +1148,43 @@ func canonicalFunctionName(name string) string {
 	default:
 		return strings.TrimSpace(strings.ToLower(name))
 	}
+}
+
+func evaluateGeoIPLookup(ctx context.Context, node domainast.Node, runtime Runtime) (ports.GeoIPLocation, bool, error) {
+	if len(node.Children) != 1 {
+		return ports.GeoIPLocation{}, false, fmt.Errorf("%s expects exactly one child", node.Function)
+	}
+	value, err := EvaluateNode(ctx, node.Children[0], runtime)
+	if err != nil {
+		return ports.GeoIPLocation{}, false, err
+	}
+	if value == nil {
+		return ports.GeoIPLocation{}, false, nil
+	}
+	text, ok := value.(string)
+	if !ok {
+		return ports.GeoIPLocation{}, false, fmt.Errorf("%s expects an IP address child", node.Function)
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ports.GeoIPLocation{}, false, nil
+	}
+	address, err := netip.ParseAddr(text)
+	if err != nil {
+		return ports.GeoIPLocation{}, false, fmt.Errorf("%s received invalid IP address %q: %w", node.Function, text, err)
+	}
+	cache := runtime.GeoIPResultCache
+	if cache == nil {
+		cache = NewGeoIPResultCache()
+	}
+	return cache.Lookup(ctx, runtime.GeoIPLookup, address)
+}
+
+func geoIPStringResult(value string, found bool) any {
+	if !found || strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
 }
 
 func evalStringNode(ctx context.Context, node domainast.Node, runtime Runtime, label string) (string, error) {

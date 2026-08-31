@@ -26,6 +26,7 @@ type RouterConfig struct {
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
 	TenantDataReadMode                  string
+	GeoIPLookup                         ports.GeoIPLookup
 	HTTPClientTimeout                   time.Duration
 	AggregatePushdownMode               string
 	AggregatePushdownAggregates         []string
@@ -181,6 +182,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
 	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
+	decisionService.SetGeoIPLookup(cfg.GeoIPLookup)
+	testRunService.SetGeoIPLookup(cfg.GeoIPLookup)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	snoozeService := service.NewSnoozeService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, ruleSnoozeRepo)
@@ -255,6 +258,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			"data_model_service_url": cfg.DataModelServiceURL,
 			"ingestion_service_url":  cfg.IngestionServiceURL,
 			"tenant_data_read_mode":  cfg.TenantDataReadMode,
+			"geoip_enabled":          cfg.GeoIPLookup != nil,
 		})
 	})
 	v1.GET("/rule-functions", validationHandler.ListRuleFunctions)

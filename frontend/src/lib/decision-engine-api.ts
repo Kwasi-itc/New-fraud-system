@@ -867,6 +867,7 @@ export const decisionEngineApi = {
     decisionEngineFetch<{
       payload_accessors: ASTNodeDTO[];
       database_accessors: ASTNodeDTO[];
+      derived_accessors: ASTNodeDTO[];
     }>(decisionEnginePaths.editorIdentifiers(tenantId, scenarioId)),
   listIterations: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ iterations: Iteration[] }>(

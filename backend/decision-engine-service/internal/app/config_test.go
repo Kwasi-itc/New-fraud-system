@@ -133,6 +133,20 @@ func TestLoadConfigAllowsDirectDBTenantReadModeWithoutIngestionURL(t *testing.T)
 	}
 }
 
+func TestLoadConfigReadsGeoIPSettings(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("GEOIP_MMDB_PATH", " /data/geoip/city.mmdb ")
+	t.Setenv("GEOIP_LOCALE", "fr")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if cfg.GeoIPMMDBPath != "/data/geoip/city.mmdb" || cfg.GeoIPLocale != "fr" {
+		t.Fatalf("GeoIP settings = (%q, %q)", cfg.GeoIPMMDBPath, cfg.GeoIPLocale)
+	}
+}
+
 func TestLoadConfigRejectsUnsupportedTenantReadMode(t *testing.T) {
 	setRequiredConfigEnv(t)
 	t.Setenv("TENANT_DATA_READ_MODE", "something_else")

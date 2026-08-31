@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
+import { Suspense, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
+  ClipboardCheck,
   ChevronLeft,
   ChevronRight,
   Database,
+  LayoutDashboard,
+  ListChecks,
   Shield,
   Settings,
   SquareUserRound,
   FolderSearch2,
   UserCircle2,
+  Workflow,
 } from "lucide-react";
 
 import { FdsLogo } from "@/components/fds-logo";
@@ -24,10 +28,18 @@ type AuthenticatedShellProps = {
 
 const primaryLinks = [
   {
-    href: "/detection",
-    label: "Detection",
-    icon: Shield,
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
   },
+  {
+    href: "/your-data",
+    label: "Your Data Model",
+    icon: Database,
+  },
+];
+
+const operationsLinks = [
   {
     href: "/cases",
     label: "Case Manager",
@@ -41,11 +53,6 @@ const primaryLinks = [
 ];
 
 const secondaryLinks = [
-  {
-    href: "/your-data",
-    label: "Your Data Model",
-    icon: Database,
-  },
   {
     href: "/settings",
     label: "Settings",
@@ -91,6 +98,77 @@ function NavLink({
   );
 }
 
+const detectionLinks = [
+  {
+    href: "/detection",
+    label: "Scenarios",
+    icon: Workflow,
+    tab: "Scenarios",
+  },
+  {
+    href: "/detection?tab=Lists",
+    label: "Lists",
+    icon: ListChecks,
+    tab: "Lists",
+  },
+  {
+    href: "/detection?tab=Decisions",
+    label: "Decisions",
+    icon: ClipboardCheck,
+    tab: "Decisions",
+  },
+] as const;
+
+function DetectionNavigation({ collapsed }: { collapsed: boolean }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab =
+    requestedTab === "Lists" || requestedTab === "Decisions" ? requestedTab : "Scenarios";
+  const isDetectionPath = pathname.startsWith("/detection");
+
+  return (
+    <div className="space-y-1">
+      <div
+        className={cn(
+          "flex items-center gap-3 px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-400",
+          collapsed && "justify-center px-0"
+        )}
+      >
+        <Shield className="size-4 shrink-0" />
+        <span className={cn(collapsed && "hidden")}>Detection</span>
+      </div>
+      {detectionLinks.map((link) => {
+        const Icon = link.icon;
+        const active = isDetectionPath && activeTab === link.tab;
+
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            title={collapsed ? link.label : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors",
+              collapsed ? "justify-center px-0" : "pl-6",
+              active
+                ? "bg-[#eaf2ff] text-[#2563eb]"
+                : "text-slate-700 hover:bg-slate-100/90"
+            )}
+          >
+            <Icon
+              className={cn(
+                "size-[17px] shrink-0",
+                active ? "text-[#2563eb]" : "text-slate-600"
+              )}
+            />
+            <span className={cn("truncate", collapsed && "hidden")}>{link.label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -110,7 +188,7 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
                 collapsed ? "justify-center" : "justify-between gap-3"
               )}
             >
-              <Link href="/detection" className={cn("block", collapsed && "w-full")}>
+              <Link href="/dashboard" className={cn("block", collapsed && "w-full")}>
                 <FdsLogo
                   compact={collapsed}
                   hideText
@@ -137,6 +215,12 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
             <div className={cn("mt-8", collapsed && "mt-6")}>
               <div className="space-y-1">
                 {primaryLinks.map((link) => (
+                  <NavLink key={link.href} collapsed={collapsed} {...link} />
+                ))}
+                <Suspense fallback={null}>
+                  <DetectionNavigation collapsed={collapsed} />
+                </Suspense>
+                {operationsLinks.map((link) => (
                   <NavLink key={link.href} collapsed={collapsed} {...link} />
                 ))}
               </div>

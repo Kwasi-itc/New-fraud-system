@@ -14,6 +14,8 @@ type Config struct {
 	DatabaseURL                         string
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
+	GeoIPMMDBPath                       string
+	GeoIPLocale                         string
 	TenantDataReadMode                  string
 	ServiceAuthMode                     string
 	ServiceAuthToken                    string
@@ -196,6 +198,8 @@ func LoadConfig() (Config, error) {
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
 		IngestionServiceURL:                 strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
+		GeoIPMMDBPath:                       strings.TrimSpace(os.Getenv("GEOIP_MMDB_PATH")),
+		GeoIPLocale:                         strings.TrimSpace(getEnv("GEOIP_LOCALE", "en")),
 		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "ingestion_http")),
 		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),

@@ -75,7 +75,7 @@ func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName
 			}
 			return domainast.ValueTypeUnknown, errs
 		}
-		if leftType != rightType {
+		if !comparisonTypesCompatible(leftType, rightType) {
 			errs = append(errs, fmt.Sprintf("%s expects matching operand types", node.Function))
 		}
 		if node.Function != "eq" && node.Function != "neq" {
@@ -249,7 +249,21 @@ func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName
 		}
 		return domainast.ValueTypeString, nil
 	case "has_ip_flag":
-		return validateNamedStringArgs(node, model, currentTableName, domainast.ValueTypeBool, "ip", "flag")
+		if len(node.Children) > 0 {
+			return domainast.ValueTypeUnknown, []string{"has_ip_flag does not accept positional children"}
+		}
+		ipType, errs := validateRequiredNamedChildPresence(node, model, currentTableName, "ip")
+		if ipType != domainast.ValueTypeIPAddress && ipType != domainast.ValueTypeString {
+			errs = append(errs, "has_ip_flag named child \"ip\" must resolve to ip_address")
+		}
+		_, flagErrs := validateRequiredNamedChildType(node, model, currentTableName, "flag", domainast.ValueTypeString)
+		errs = append(errs, flagErrs...)
+		if len(errs) > 0 {
+			return domainast.ValueTypeUnknown, errs
+		}
+		return domainast.ValueTypeBool, nil
+	case "ip_country", "ip_country_code", "ip_region", "ip_region_code", "ip_continent_code", "ip_geo_found":
+		return validateGeoIPFunction(node, model, currentTableName)
 	case "past_decision_count":
 		if len(node.Children) > 0 {
 			return domainast.ValueTypeUnknown, []string{"past_decision_count does not accept positional children"}
@@ -850,9 +864,36 @@ func mapFieldType(fieldType string) domainast.ValueType {
 		return domainast.ValueTypeBool
 	case "timestamp", "datetime":
 		return domainast.ValueTypeTimestamp
+	case "ip_address", "inet", "ip":
+		return domainast.ValueTypeIPAddress
 	default:
 		return domainast.ValueTypeUnknown
 	}
+}
+
+func comparisonTypesCompatible(left, right domainast.ValueType) bool {
+	if left == right {
+		return true
+	}
+	return (left == domainast.ValueTypeIPAddress && right == domainast.ValueTypeString) ||
+		(left == domainast.ValueTypeString && right == domainast.ValueTypeIPAddress)
+}
+
+func validateGeoIPFunction(node domainast.Node, model ports.TenantModel, currentTableName string) (domainast.ValueType, []string) {
+	if len(node.Children) != 1 {
+		return domainast.ValueTypeUnknown, []string{fmt.Sprintf("%s requires exactly one child", node.Function)}
+	}
+	childType, errs := ValidateNode(node.Children[0], model, currentTableName)
+	if childType != domainast.ValueTypeIPAddress {
+		errs = append(errs, fmt.Sprintf("%s expects an ip_address child", node.Function))
+	}
+	if len(errs) > 0 {
+		return domainast.ValueTypeUnknown, errs
+	}
+	if canonicalFunctionName(node.Function) == "ip_geo_found" {
+		return domainast.ValueTypeBool, nil
+	}
+	return domainast.ValueTypeString, nil
 }
 
 func validateListInput(node domainast.Node, model ports.TenantModel, currentTableName string, resultType domainast.ValueType) (domainast.ValueType, []string) {

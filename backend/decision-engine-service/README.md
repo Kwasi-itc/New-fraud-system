@@ -170,8 +170,58 @@ Relevant optional downstream variables:
 - `SCHEDULED_EXECUTION_QUEUE_WORKERS`
 - `ASYNC_EXECUTION_QUEUE_NAME`
 - `ASYNC_EXECUTION_QUEUE_WORKERS`
+- `GEOIP_MMDB_PATH`
+- `GEOIP_LOCALE` (default: `en`)
 
 `SCREENING_SERVICE_URL` is the preferred screening dispatch target for the worker. `SCREENING_PROVIDER_URL` remains as a fallback compatibility variable.
+
+## IP geolocation
+
+When `GEOIP_MMDB_PATH` is set, the API and worker open the MMDB file as a
+read-only memory map. The evaluator accesses it through the `GeoIPLookup` port;
+it does not import the data into PostgreSQL or expose the reader directly to
+rule code. Lookups are cached once per decision evaluation, including across
+concurrently evaluated rules.
+
+Fields typed `ip_address` in the tenant data model receive these derived rule
+accessors in the editor:
+
+- `(field).country`
+- `(field).country_code`
+- `(field).region`
+- `(field).region_code`
+- `(field).continent_code`
+- `(field).location_found`
+
+The corresponding AST functions are `IPCountry`, `IPCountryCode`, `IPRegion`,
+`IPRegionCode`, `IPContinentCode`, and `IPGeoFound`. Invalid IP strings fail the
+evaluation explicitly; valid addresses without an MMDB record return `null`
+for text accessors and `false` for `IPGeoFound`.
+
+DB-IP City Lite is distributed under CC BY 4.0 and requires attribution. See
+[DB-IP's download and licensing page](https://db-ip.com/db/download/ip-to-city-lite).
+
+### GeoIP diagnostics
+
+Set `LOG_LEVEL=debug` (or `DECISION_ENGINE_LOG_LEVEL=debug` when using the root
+Compose stack) to emit these structured events:
+
+- `geoip_mmdb_lookup_completed`: normalized IP, match status, matched network,
+  country, region, database type/build time, locale, and lookup duration
+- `geoip_rule_value_resolved`: rule function and the exact scalar value returned
+  to the evaluator, with tenant/object context
+- `geoip_mmdb_lookup_failed`, `geoip_mmdb_decode_failed`, or
+  `geoip_rule_lookup_failed`: explicit provider/evaluator failure details
+
+For the local Compose stack:
+
+```sh
+docker compose logs -f decision-engine-service decision-engine-worker | rg 'geoip_'
+```
+
+These debug events include full IP addresses and derived location data. Keep
+them disabled in production unless that logging is permitted by your privacy
+and retention policy.
 
 ## Aggregate Pushdown
 

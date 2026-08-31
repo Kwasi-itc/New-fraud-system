@@ -87,6 +87,7 @@ type DecisionService struct {
 	recordTagRepo                 ports.RecordTagRepository
 	riskRepo                      ports.RiskSnapshotRepository
 	ipFlagRepo                    ports.IPFlagRepository
+	geoIPLookup                   ports.GeoIPLookup
 	screeningConfigRepo           ports.ScreeningConfigRepository
 	screeningExecRepo             ports.ScreeningExecutionRepository
 	scoringConfigRepo             ports.ScoringConfigRepository
@@ -105,6 +106,13 @@ type DecisionService struct {
 	dbPoolStatsProvider           DBPoolStatsProvider
 	evaluationMetrics             *evaluationMetricsCollector
 	tenantDataReadMetrics         *tenantDataReadMetrics
+}
+
+func (s *DecisionService) SetGeoIPLookup(lookup ports.GeoIPLookup) {
+	if s == nil {
+		return
+	}
+	s.geoIPLookup = lookup
 }
 
 type cacheMetricCounters struct {
@@ -442,6 +450,7 @@ func (s DecisionService) evaluateScenario(
 		RecordTagRepo:               s.recordTagRepo,
 		RiskRepo:                    s.riskRepo,
 		IPFlagRepo:                  s.ipFlagRepo,
+		GeoIPLookup:                 s.geoIPLookup,
 		DecisionRepo:                s.decisionRepo,
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
@@ -449,6 +458,7 @@ func (s DecisionService) evaluateScenario(
 		EvalCache:                   evalCache,
 		AggregateResultCache:        aggregateCache,
 		RelatedPathCache:            asteval.NewRelatedPathCache(),
+		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
 	}
 	currentStage = "trigger_eval"
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)

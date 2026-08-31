@@ -121,7 +121,7 @@ export type SimpleRuleConditionGroup = {
   closeAfter?: number;
 };
 
-export type RuleAccessorKind = "payload" | "database";
+export type RuleAccessorKind = "payload" | "database" | "derived";
 
 export type RuleAccessorOption = {
   id: string;
@@ -560,6 +560,10 @@ function getFunctionValueType(ast: RuleAstNode): SimpleValueType {
     return "string";
   }
 
+  if (functionName === "IPGeoFound") {
+    return "boolean";
+  }
+
   return "string";
 }
 
@@ -576,6 +580,11 @@ function buildAccessorLookupId(node: ASTNodeLike, kind: RuleAccessorKind) {
     return `${kind}:${nodeName ?? "payload"}:${fieldName}`;
   }
 
+  if (kind === "derived") {
+    const source = node.children?.[0] ? normalizeAstNode(node.children[0]) : {};
+    return `${kind}:${nodeName ?? "derived"}:${JSON.stringify(source)}`;
+  }
+
   const fieldName =
     typeof node.named_children?.fieldName?.constant === "string"
       ? node.named_children.fieldName.constant
@@ -590,6 +599,19 @@ function buildAccessorLookupId(node: ASTNodeLike, kind: RuleAccessorKind) {
       : "";
 
   return `${kind}:${nodeName ?? "database"}:${tableName}:${path}:${fieldName}`;
+}
+
+function findAccessorLookupId(
+  node: ASTNodeLike,
+  accessorLookup: Map<string, RuleAccessorOption>
+) {
+  for (const kind of ["payload", "database", "derived"] as const) {
+    const id = buildAccessorLookupId(node, kind);
+    if (accessorLookup.has(id)) {
+      return id;
+    }
+  }
+  return null;
 }
 
 function normalizeAstNode(node: ASTNodeLike): RuleAstNode {
@@ -644,9 +666,40 @@ function formatDatabaseAccessorLabel(node: ASTNodeLike) {
   };
 }
 
+const geoIPDerivedLabels: Record<string, { property: string; description: string }> = {
+  IPCountry: { property: "country", description: "Country name" },
+  IPCountryCode: { property: "country_code", description: "Country code" },
+  IPRegion: { property: "region", description: "Region name" },
+  IPRegionCode: { property: "region_code", description: "Region code" },
+  IPContinentCode: { property: "continent_code", description: "Continent code" },
+  IPGeoFound: { property: "location_found", description: "Location availability" },
+};
+
+function formatDerivedAccessorLabel(node: ASTNodeLike) {
+  const functionName = getNodeFunction(node) ?? "";
+  const derived = geoIPDerivedLabels[functionName] ?? {
+    property: functionName || "value",
+    description: "Derived value",
+  };
+  const source = node.children?.[0];
+  const sourceFunction = source ? getNodeFunction(source) : null;
+  const sourceLabel =
+    source && sourceFunction === "DatabaseAccess"
+      ? formatDatabaseAccessorLabel(source).label
+      : source
+        ? formatPayloadAccessorLabel(source).label
+        : "ip_address";
+
+  return {
+    label: `(${sourceLabel}).${derived.property}`,
+    meta: `IP geolocation · ${derived.description}`,
+  };
+}
+
 export function extractAccessorOptions(
   payloadAccessors: ASTNodeDTO[],
-  databaseAccessors: ASTNodeDTO[]
+  databaseAccessors: ASTNodeDTO[],
+  derivedAccessors: ASTNodeDTO[] = []
 ): RuleAccessorOption[] {
   const payloadOptions = payloadAccessors.map((node) => {
     const normalized = normalizeAstNode(node);
@@ -674,7 +727,20 @@ export function extractAccessorOptions(
     };
   });
 
-  return [...payloadOptions, ...databaseOptions].sort((left, right) =>
+  const derivedOptions = derivedAccessors.map((node) => {
+    const normalized = normalizeAstNode(node);
+    const formatted = formatDerivedAccessorLabel(normalized);
+
+    return {
+      id: buildAccessorLookupId(normalized, "derived"),
+      kind: "derived" as const,
+      label: formatted.label,
+      meta: formatted.meta,
+      astNode: normalized,
+    };
+  });
+
+  return [...payloadOptions, ...databaseOptions, ...derivedOptions].sort((left, right) =>
     left.label.localeCompare(right.label)
   );
 }
@@ -1108,13 +1174,7 @@ function parseRightOperand(
   const nodeName = getNodeFunction(node);
 
   if (nodeName) {
-    const payloadId = buildAccessorLookupId(node, "payload");
-    const databaseId = buildAccessorLookupId(node, "database");
-    const accessorId = accessorLookup.has(payloadId)
-      ? payloadId
-      : accessorLookup.has(databaseId)
-        ? databaseId
-        : null;
+    const accessorId = findAccessorLookupId(node, accessorLookup);
 
     if (accessorId) {
       return {
@@ -1196,6 +1256,16 @@ function parseSimpleOperandNode(
       mode: "field" as const,
       value: accessorLookup.has(accessorId) ? accessorId : fieldName,
     };
+  }
+
+  if (functionName) {
+    const accessorId = findAccessorLookupId(node, accessorLookup);
+    if (accessorId) {
+      return {
+        mode: "field" as const,
+        value: accessorId,
+      };
+    }
   }
 
   const functionOperand = parseSimpleFunctionOperand(node);
@@ -1797,13 +1867,7 @@ function parseAdvancedConditionNode(
     }
 
     const leftNode = normalizeAstNode(children[0]!);
-    const payloadId = buildAccessorLookupId(leftNode, "payload");
-    const databaseId = buildAccessorLookupId(leftNode, "database");
-    const leftAccessorId = accessorLookup.has(payloadId)
-      ? payloadId
-      : accessorLookup.has(databaseId)
-        ? databaseId
-        : null;
+    const leftAccessorId = findAccessorLookupId(leftNode, accessorLookup);
 
     if (!leftAccessorId) {
       return null;
@@ -1824,13 +1888,7 @@ function parseAdvancedConditionNode(
   }
 
   const leftNode = normalizeAstNode(children[0]!);
-  const payloadId = buildAccessorLookupId(leftNode, "payload");
-  const databaseId = buildAccessorLookupId(leftNode, "database");
-  const leftAccessorId = accessorLookup.has(payloadId)
-    ? payloadId
-    : accessorLookup.has(databaseId)
-      ? databaseId
-      : null;
+  const leftAccessorId = findAccessorLookupId(leftNode, accessorLookup);
 
   if (!leftAccessorId) {
     return null;
@@ -1935,13 +1993,7 @@ function normalizeAccessorLeaf(
   accessorLookup: Map<string, RuleAccessorOption>
 ): Extract<ExpressionRuleNode, { kind: "leaf" }> | null {
   const normalized = normalizeAstNode(node);
-  const payloadId = buildAccessorLookupId(normalized, "payload");
-  const databaseId = buildAccessorLookupId(normalized, "database");
-  const accessorId = accessorLookup.has(payloadId)
-    ? payloadId
-    : accessorLookup.has(databaseId)
-      ? databaseId
-      : null;
+  const accessorId = findAccessorLookupId(normalized, accessorLookup);
 
   if (!accessorId) {
     return null;

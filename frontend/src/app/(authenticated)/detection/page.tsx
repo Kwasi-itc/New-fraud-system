@@ -7,6 +7,8 @@ import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  ArrowRight,
+  ClipboardCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +17,7 @@ import {
   Filter,
   Info,
   Lightbulb,
+  ListChecks,
   Loader2,
   Pencil,
   Plus,
@@ -33,6 +36,7 @@ import {
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import { useAssembledDataModelQuery } from "@/lib/data-model-query";
+import { markFraudManagerNavigationTourCompleted } from "@/lib/fraud-manager-onboarding";
 import { useToastStore } from "@/stores/toast-store";
 import { cn } from "@/lib/utils";
 
@@ -318,6 +322,61 @@ function InfoBanner() {
           <p>
             A scenario identifies a certain risk type, based on specific business rules, for a specific trigger event.
           </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NavigationGuideBanner({
+  step,
+  onContinue,
+  onSkip,
+}: {
+  step: "lists" | "decisions";
+  onContinue: () => void;
+  onSkip: () => void;
+}) {
+  const isListsStep = step === "lists";
+  const Icon = isListsStep ? ListChecks : ClipboardCheck;
+
+  return (
+    <Card className="rounded-2xl border border-blue-200 bg-blue-50/70 shadow-none">
+      <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#1f4f96] text-white">
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#1f4f96]">
+            Workspace tour · {isListsStep ? "1 of 2" : "2 of 2"}
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">
+            {isListsStep ? "Keep reusable values in Lists" : "Review evaluated activity in Decisions"}
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+            {isListsStep
+              ? "Create watchlists, blocklists, allowlists, or IP subnet lists once, then reference them from multiple rules. Use New List above whenever you need one."
+              : "This is where fraud managers inspect outcomes, scores, trigger objects, and the individual rules that hit. It is ready even when no decisions have arrived yet."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSkip}
+            className="rounded-xl bg-white shadow-none"
+          >
+            {isListsStep ? "Skip tour" : "Back to dashboard"}
+          </Button>
+          <Button
+            variant="accent"
+            size="sm"
+            onClick={onContinue}
+            className="rounded-xl shadow-none"
+          >
+            {isListsStep ? "Show me Decisions" : "Finish tour"}
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -701,9 +760,11 @@ function AnalyticsView() {
 function LiveDecisionsView({
   tenantId,
   scenarios,
+  initialOutcome,
 }: {
   tenantId: string;
   scenarios: DetectionScenario[];
+  initialOutcome?: string;
 }) {
   const queryClient = useQueryClient();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -714,7 +775,10 @@ function LiveDecisionsView({
   const [pageOffset, setPageOffset] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_DECISIONS_PAGE_SIZE);
   const [selectedFilters, setSelectedFilters] = useState<Array<{ type: string; value: string }>>(
-    []
+    () =>
+      initialOutcome
+        ? [{ type: "Outcome", value: formatDecisionOutcome(initialOutcome) }]
+        : []
   );
   const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome"];
   const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
@@ -1871,8 +1935,15 @@ function DetectionPageContent() {
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
   const activeTab = parseDetectionTab(searchParams.get("tab"));
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createListModalOpen, setCreateListModalOpen] = useState(false);
+  const guideStep = searchParams.get("guide");
+  const requestedAction = searchParams.get("action");
+  const initialOutcome = searchParams.get("outcome") ?? undefined;
+  const [createModalOpen, setCreateModalOpen] = useState(
+    requestedAction === "new-scenario"
+  );
+  const [createListModalOpen, setCreateListModalOpen] = useState(
+    requestedAction === "new-list"
+  );
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
@@ -1891,6 +1962,7 @@ function DetectionPageContent() {
   const triggerOptions = useMemo(() => {
     return Object.keys(assembledModelQuery.data?.data_model.tables ?? {});
   }, [assembledModelQuery.data]);
+  const effectiveScenarioTrigger = scenarioTrigger || triggerOptions[0] || "";
 
   const scenariosQuery = useQuery({
     queryKey: scenarioQueryKey(tenantId),
@@ -1913,7 +1985,7 @@ function DetectionPageContent() {
       const { scenario } = await decisionEngineApi.createScenario(tenantId, {
         name: scenarioName.trim(),
         description: scenarioDescription.trim(),
-        trigger_object_type: scenarioTrigger,
+        trigger_object_type: effectiveScenarioTrigger,
       });
 
       try {
@@ -2105,7 +2177,7 @@ function DetectionPageContent() {
   }
 
   function handleSaveScenario() {
-    if (!tenantId || !scenarioName.trim() || !scenarioTrigger) {
+    if (!tenantId || !scenarioName.trim() || !effectiveScenarioTrigger) {
       return;
     }
 
@@ -2119,13 +2191,18 @@ function DetectionPageContent() {
     createCustomListMutation.mutate();
   }
 
+  function finishNavigationTour() {
+    markFraudManagerNavigationTourCompleted(tenantId);
+    router.push("/dashboard");
+  }
+
   return (
     <>
       <div className="space-y-5">
         <PageHeader
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          action={
+          action={activeTab === "Decisions" ? null : (
             <Button
               variant="accent"
               size="lg"
@@ -2141,8 +2218,24 @@ function DetectionPageContent() {
               <Plus className="size-4" />
               {createActionLabel}
             </Button>
-          }
+          )}
         />
+
+        {activeTab === "Lists" && guideStep === "lists" ? (
+          <NavigationGuideBanner
+            step="lists"
+            onContinue={() => router.push("/detection?tab=Decisions&guide=decisions")}
+            onSkip={finishNavigationTour}
+          />
+        ) : null}
+
+        {activeTab === "Decisions" && guideStep === "decisions" ? (
+          <NavigationGuideBanner
+            step="decisions"
+            onContinue={finishNavigationTour}
+            onSkip={finishNavigationTour}
+          />
+        ) : null}
 
         {activeTab === "Scenarios" ? (
           <>
@@ -2205,7 +2298,11 @@ function DetectionPageContent() {
         ) : null}
         {/* {activeTab === "Analytics" ? <AnalyticsView /> : null} */}
         {activeTab === "Decisions" ? (
-          <LiveDecisionsView tenantId={tenantId} scenarios={scenarios} />
+          <LiveDecisionsView
+            tenantId={tenantId}
+            scenarios={scenarios}
+            initialOutcome={initialOutcome}
+          />
         ) : null}
       </div>
 
@@ -2213,7 +2310,7 @@ function DetectionPageContent() {
         isOpen={createModalOpen}
         name={scenarioName}
         description={scenarioDescription}
-        trigger={scenarioTrigger}
+        trigger={effectiveScenarioTrigger}
         triggerOptions={triggerOptions}
         setName={setScenarioName}
         setDescription={setScenarioDescription}

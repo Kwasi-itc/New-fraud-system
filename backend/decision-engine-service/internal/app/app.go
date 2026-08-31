@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/geoip"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 )
@@ -19,6 +20,7 @@ type App struct {
 	logger     *slog.Logger
 	db         *pgxpool.Pool
 	httpServer *http.Server
+	geoIP      *geoip.MMDBLookup
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
@@ -28,6 +30,15 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	var geoIPLookup *geoip.MMDBLookup
+	if cfg.GeoIPMMDBPath != "" {
+		geoIPLookup, err = geoip.OpenMMDB(cfg.GeoIPMMDBPath, cfg.GeoIPLocale)
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+		logger.Info("opened GeoIP database", "database_type", geoIPLookup.DatabaseType(), "locale", cfg.GeoIPLocale)
+	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
 		AuthMode:                            cfg.ServiceAuthMode,
@@ -36,6 +47,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		DataModelServiceURL:                 cfg.DataModelServiceURL,
 		IngestionServiceURL:                 cfg.IngestionServiceURL,
 		TenantDataReadMode:                  cfg.TenantDataReadMode,
+		GeoIPLookup:                         geoIPLookup,
 		HTTPClientTimeout:                   cfg.HTTPClientTimeout,
 		AggregatePushdownMode:               cfg.AggregatePushdownMode,
 		AggregatePushdownAggregates:         cfg.AggregatePushdownAggregates,
@@ -73,6 +85,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		logger:     logger,
 		db:         db,
 		httpServer: server,
+		geoIP:      geoIPLookup,
 	}, nil
 }
 
@@ -85,6 +98,11 @@ func (a *App) Run() error {
 }
 
 func (a *App) Close() {
+	if a.geoIP != nil {
+		if err := a.geoIP.Close(); err != nil {
+			a.logger.Warn("failed to close GeoIP database", "error", err)
+		}
+	}
 	if a.db != nil {
 		a.db.Close()
 	}
