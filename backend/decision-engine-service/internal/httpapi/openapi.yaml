@@ -27,6 +27,8 @@ tags:
     description: Tenant-scoped outbox event inspection.
   - name: Health
     description: Basic service checks and setup details, including whether the service is running and ready to use.
+  - name: Runtime Metrics
+    description: Process-local decision, data-access, and aggregate-fact diagnostic counters.
   - name: Internal
     description: Internal service-to-service callbacks used by other backend services.
 paths:
@@ -46,7 +48,7 @@ paths:
     get:
       tags: [Health]
       summary: Readiness probe
-      description: Checks whether the service is ready to handle requests.
+      description: Checks PostgreSQL and the aggregate-fact store required by fact-matched evaluations before the service receives traffic.
       responses:
         '200':
           description: Service is ready
@@ -60,6 +62,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReadyErrorResponse'
+  /v1/admin/runtime-metrics:
+    get:
+      tags: [Runtime Metrics]
+      summary: Get decision runtime metrics
+      responses:
+        '200':
+          description: Runtime metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runtime_metrics]
+                properties:
+                  runtime_metrics:
+                    type: object
+                    additionalProperties: true
+                    properties:
+                      aggregate_facts:
+                        $ref: '#/components/schemas/AggregateFactReadMetrics'
   /v1/service-info:
     get:
       tags: [Health]
@@ -2801,6 +2822,40 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    AggregateFactReadMetrics:
+      type: object
+      properties:
+        requests: {type: integer, format: int64}
+        matched_requests: {type: integer, format: int64}
+        fact_hits: {type: integer, format: int64}
+        fallback_no_matching_fact: {type: integer, format: int64}
+        fallback_registry_failure: {type: integer, format: int64}
+        incomplete_coverage_failures: {type: integer, format: int64}
+        coverage_read_failures: {type: integer, format: int64}
+        bucket_read_failures: {type: integer, format: int64}
+        pending_bucket_failures: {type: integer, format: int64}
+        no_usable_buckets_failures: {type: integer, format: int64}
+        minute_buckets_read: {type: integer, format: int64}
+        hour_buckets_read: {type: integer, format: int64}
+        day_buckets_read: {type: integer, format: int64}
+        valkey_coverage_reads:
+          $ref: '#/components/schemas/AggregateFactValkeyLatency'
+        valkey_bucket_reads:
+          $ref: '#/components/schemas/AggregateFactValkeyLatency'
+      required: [requests, matched_requests, fact_hits, fallback_no_matching_fact, fallback_registry_failure, incomplete_coverage_failures, coverage_read_failures, bucket_read_failures, pending_bucket_failures, no_usable_buckets_failures, minute_buckets_read, hour_buckets_read, day_buckets_read, valkey_coverage_reads, valkey_bucket_reads]
+    AggregateFactValkeyLatency:
+      type: object
+      properties:
+        requests: {type: integer, format: int64}
+        failures: {type: integer, format: int64}
+        buckets: {type: integer, format: int64}
+        total_micros: {type: integer, format: int64}
+        average_micros: {type: integer, format: int64}
+        p50_micros: {type: integer, format: int64}
+        p95_micros: {type: integer, format: int64}
+        p99_micros: {type: integer, format: int64}
+        max_micros: {type: integer, format: int64}
+      required: [requests, failures, buckets, total_micros, average_micros, p50_micros, p95_micros, p99_micros, max_micros]
     StatusResponse:
       type: object
       properties:
@@ -2814,6 +2869,9 @@ components:
           type: string
         error:
           type: string
+        dependency:
+          type: string
+          description: Named non-database dependency that failed, when applicable.
       required: [status, error]
     ServiceInfo:
       type: object
@@ -3079,7 +3137,7 @@ components:
       required: [id, tenant_id, scenario_id, iteration_id, action, created_at]
     PublicationPreparationStatusResponse:
       type: object
-      description: Preparation state for publishing one scenario iteration when data-model work is required first.
+      description: Index-preparation state for publishing one scenario iteration. Aggregate-fact definitions are registered when preparation starts, but this status does not report historical aggregate-fact backfill readiness.
       properties:
         scenario_id:
           type: string
@@ -3089,16 +3147,21 @@ components:
           description: Iteration being checked or prepared for publication.
         preparation_required:
           type: boolean
-          description: Whether publication currently depends on prerequisite preparation work.
+          description: Whether publication currently depends on prerequisite index work.
         preparation_started:
           type: boolean
-          description: Whether the required preparation work has already been started.
+          description: Whether the required index work has already been started.
         preparation_finished:
           type: boolean
-          description: Whether the required preparation work has finished.
+          description: Whether required index work has finished. This does not mean historical aggregate-fact backfill is complete.
         pending_items:
           type: integer
-          description: Number of remaining preparation items or related jobs still blocking publication.
+          description: Number of remaining index requirements or related index jobs still blocking publication.
+        distribution_suggestions:
+          type: array
+          description: Advisory comparisons between accepted field categories and a bounded analysis of current data. Suggestions never change metadata automatically.
+          items:
+            $ref: '#/components/schemas/DistributionSuggestionResponse'
       required: [scenario_id, iteration_id, preparation_required, preparation_started, preparation_finished, pending_items]
       example:
         scenario_id: scen_01HZY8M4TQ8XJ5G7S2B4N9K3PA
@@ -3107,6 +3170,37 @@ components:
         preparation_started: true
         preparation_finished: false
         pending_items: 2
+        distribution_suggestions: []
+    DistributionSuggestionResponse:
+      type: object
+      properties:
+        table_name:
+          type: string
+        field_name:
+          type: string
+        accepted_category:
+          type: string
+          enum: [unknown, few_value_dominated, highly_distributed, unique_or_near_unique]
+        suggested_category:
+          type: string
+          enum: [unknown, few_value_dominated, highly_distributed, unique_or_near_unique]
+        reason:
+          type: string
+        rows_analyzed:
+          type: integer
+          format: int64
+        non_null_rows:
+          type: integer
+          format: int64
+        distinct_values:
+          type: integer
+          format: int64
+        expected_same_value_rows:
+          type: number
+          format: double
+        policy_version:
+          type: string
+      required: [table_name, field_name, accepted_category, suggested_category, reason, rows_analyzed, non_null_rows, distinct_values, expected_same_value_rows, policy_version]
     CreateRuleRequest:
       type: object
       description: Payload for creating or replacing one rule inside a scenario iteration.

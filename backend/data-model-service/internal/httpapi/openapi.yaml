@@ -343,6 +343,72 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/distribution/analyze-sample:
+    post:
+      tags: [data-model]
+      operationId: analyzeFieldDistributionSample
+      summary: Analyze a representative CSV field sample
+      description: Returns an advisory Phase 1 distribution classification. It does not change field metadata.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, column]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                column:
+                  type: string
+                  description: CSV header whose value distribution should be analyzed.
+      responses:
+        '200':
+          description: Distribution analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistributionAnalysisEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/tenants/{tenantId}/distribution/analyze-stored:
+    post:
+      tags: [data-model]
+      operationId: analyzeStoredFieldDistribution
+      summary: Analyze a bounded sample of an existing field
+      description: Reads at most 250,000 stored values and returns an advisory classification without changing the accepted field category.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [table_name, field_name]
+              properties:
+                table_name:
+                  type: string
+                field_name:
+                  type: string
+      responses:
+        '200':
+          description: Distribution analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistributionAnalysisEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /v1/tenants/{tenantId}/tables:
     get:
       tags: [data-model]
@@ -1632,6 +1698,71 @@ components:
       example:
         alias: Transactions
         caption_field: object_id
+    DistributionCategory:
+      type: string
+      enum: [unknown, few_value_dominated, highly_distributed, unique_or_near_unique]
+      description: User-accepted field value-distribution category used by Phase 1 optimization planning.
+    ClassificationSource:
+      type: string
+      enum: [default, manual, sample]
+      description: How the accepted distribution category was established.
+    DistributionAnalysisEnvelope:
+      type: object
+      required: [analysis]
+      properties:
+        analysis:
+          $ref: '#/components/schemas/DistributionAnalysis'
+    DistributionAnalysis:
+      type: object
+      properties:
+        policy_version:
+          type: string
+          example: distribution-v1
+        suggested_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        reason:
+          type: string
+        rows_analyzed:
+          type: integer
+          format: int64
+        non_null_rows:
+          type: integer
+          format: int64
+        null_percentage:
+          type: number
+          format: double
+        distinct_values:
+          type: integer
+          format: int64
+        distinct_to_non_null_ratio:
+          type: number
+          format: double
+        largest_value_share:
+          type: number
+          format: double
+        top_2_share:
+          type: number
+          format: double
+        top_5_share:
+          type: number
+          format: double
+        top_10_share:
+          type: number
+          format: double
+        effective_entity_count:
+          type: number
+          format: double
+        expected_same_value_rows:
+          type: number
+          format: double
+        frequency_bands:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        truncated:
+          type: boolean
+      required: [policy_version, suggested_category, reason, rows_analyzed, non_null_rows, null_percentage, distinct_values, distinct_to_non_null_ratio, largest_value_share, top_2_share, top_5_share, top_10_share, effective_entity_count, expected_same_value_rows, frequency_bands, truncated]
     Table:
       type: object
       description: Table metadata record.
@@ -1695,6 +1826,16 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        distribution_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        classification_source:
+          $ref: '#/components/schemas/ClassificationSource'
+        classification_policy_version:
+          type: string
+          example: distribution-v1
+        classification_evidence:
+          type: object
+          additionalProperties: true
         enum_values:
           type: array
           description: Optional inline enum values created transactionally with the field when is_enum=true.
@@ -1719,6 +1860,15 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        distribution_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        classification_source:
+          $ref: '#/components/schemas/ClassificationSource'
+        classification_policy_version:
+          type: string
+        classification_evidence:
+          type: object
+          additionalProperties: true
       example:
         description: Transaction amount in account currency
         nullable: false
@@ -1772,6 +1922,19 @@ components:
         is_unique:
           type: boolean
           description: Whether the service should enforce uniqueness for this field.
+        distribution_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        classification_source:
+          $ref: '#/components/schemas/ClassificationSource'
+        classification_policy_version:
+          type: string
+        classification_evidence:
+          type: object
+          additionalProperties: true
+        classified_at:
+          type: string
+          format: date-time
+          nullable: true
         archived:
           type: boolean
           description: Whether the field is archived in the logical model.
@@ -1781,7 +1944,7 @@ components:
         updated_at:
           type: string
           format: date-time
-      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at]
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, distribution_category, classification_source, classification_policy_version, classification_evidence, archived, created_at, updated_at]
       example:
         id: 2d27b52d-ccf7-4f21-9815-4241e0bfdf25
         name: amount
@@ -1790,6 +1953,10 @@ components:
         nullable: false
         is_enum: false
         is_unique: false
+        distribution_category: highly_distributed
+        classification_source: manual
+        classification_policy_version: distribution-v1
+        classification_evidence: {}
         archived: false
         created_at: "2026-07-13T10:12:00Z"
         updated_at: "2026-07-13T10:12:00Z"
@@ -2261,6 +2428,15 @@ components:
           type: boolean
         is_unique:
           type: boolean
+        distribution_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        classification_source:
+          $ref: '#/components/schemas/ClassificationSource'
+        classification_policy_version:
+          type: string
+        classification_evidence:
+          type: object
+          additionalProperties: true
         enum_values:
           type: array
           items:
@@ -2410,6 +2586,19 @@ components:
         is_unique:
           type: boolean
           description: Whether the field should be unique across records.
+        distribution_category:
+          $ref: '#/components/schemas/DistributionCategory'
+        classification_source:
+          $ref: '#/components/schemas/ClassificationSource'
+        classification_policy_version:
+          type: string
+        classification_evidence:
+          type: object
+          additionalProperties: true
+        classified_at:
+          type: string
+          format: date-time
+          nullable: true
         archived:
           type: boolean
           description: Whether the field is archived in the published model.
@@ -2417,7 +2606,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FieldEnumValue'
-      required: [id, name, description, data_type, nullable, is_enum, is_unique, archived, enum_values]
+      required: [id, name, description, data_type, nullable, is_enum, is_unique, distribution_category, classification_source, classification_policy_version, classification_evidence, archived, enum_values]
     AssembledLink:
       type: object
       description: Link entry inside the assembled read model.

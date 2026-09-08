@@ -2,13 +2,97 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: ingestion
-      POSTGRES_USER: ingestion
-      POSTGRES_PASSWORD: ingestion
+      POSTGRES_DB: fraud
+      POSTGRES_USER: fraud
+      POSTGRES_PASSWORD: fraud
     ports:
       - "5435:5432"
     volumes:
       - ingestion_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fraud -d fraud"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  data-model-migrate:
+    build:
+      context: ../data-model-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  data-model-service:
+    build:
+      context: ../data-model-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
+    depends_on:
+      data-model-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
+
+  data-model-worker:
+    build:
+      context: ../data-model-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
+      INDEX_JOB_QUEUE_WORKERS: ${INDEX_JOB_QUEUE_WORKERS:-4}
+    depends_on:
+      data-model-migrate:
+        condition: service_completed_successfully
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "${VALKEY_APPENDONLY:-yes}", "--appendfsync", "${VALKEY_APPENDFSYNC:-everysec}"]
+    volumes:
+      - ingestion_valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ingestion-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-model-migrate:
+        condition: service_completed_successfully
+    restart: "no"
 
   ingestion-service:
     build:
@@ -16,16 +100,27 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 8081
-      DATABASE_URL: postgres://ingestion:ingestion@postgres:5432/ingestion?sslmode=disable
-      DATA_MODEL_SERVICE_URL: http://host.docker.internal:8080
-      SERVICE_AUTH_MODE: disabled
-      LOG_LEVEL: info
-      GIN_MODE: debug
-      HTTP_CLIENT_TIMEOUT: 10s
-      WORKER_POLL_INTERVAL: 5s
-      WORKER_MAX_ATTEMPTS: 3
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DATABASE_MAX_CONNS: ${DATABASE_MAX_CONNS:-12}
+      DATABASE_MIN_CONNS: ${DATABASE_MIN_CONNS:-2}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      HTTP_CLIENT_TIMEOUT: ${HTTP_CLIENT_TIMEOUT:-10s}
+      WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-3}
+      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-100000}
+      READ_QUERY_CONCURRENCY_LIMIT: ${READ_QUERY_CONCURRENCY_LIMIT:-64}
+      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
+      AGGREGATE_FACT_REDIS_URL: ${AGGREGATE_FACT_REDIS_URL:-redis://valkey:6379/0}
     depends_on:
-      - postgres
+      ingestion-migrate:
+        condition: service_completed_successfully
+      data-model-service:
+        condition: service_started
+      valkey:
+        condition: service_healthy
     ports:
       - "8081:8081"
 
@@ -33,17 +128,32 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["/ingestion-worker"]
+    entrypoint: ["/app/worker"]
     environment:
-      DATABASE_URL: postgres://ingestion:ingestion@postgres:5432/ingestion?sslmode=disable
-      DATA_MODEL_SERVICE_URL: http://host.docker.internal:8080
-      SERVICE_AUTH_MODE: disabled
-      LOG_LEVEL: info
-      HTTP_CLIENT_TIMEOUT: 10s
-      WORKER_POLL_INTERVAL: 5s
-      WORKER_MAX_ATTEMPTS: 3
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-}
+      WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
+      WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      HTTP_CLIENT_TIMEOUT: ${HTTP_CLIENT_TIMEOUT:-10s}
+      WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-3}
+      UPLOAD_LOG_QUEUE_NAME: ${UPLOAD_LOG_QUEUE_NAME:-upload_logs}
+      UPLOAD_LOG_QUEUE_WORKERS: ${UPLOAD_LOG_QUEUE_WORKERS:-4}
+      DEFERRED_INGEST_QUEUE_NAME: ${DEFERRED_INGEST_QUEUE_NAME:-deferred_ingests}
+      DEFERRED_INGEST_QUEUE_WORKERS: ${DEFERRED_INGEST_QUEUE_WORKERS:-4}
+      AGGREGATE_FACT_REDIS_URL: ${AGGREGATE_FACT_REDIS_URL:-redis://valkey:6379/0}
     depends_on:
-      - postgres
+      ingestion-migrate:
+        condition: service_completed_successfully
+      data-model-service:
+        condition: service_started
+      valkey:
+        condition: service_healthy
 
 volumes:
   ingestion_pg_data:
+  ingestion_valkey_data:

@@ -9,6 +9,26 @@ services:
       - "5434:5432"
     volumes:
       - dm_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datamodel -d datamodel"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  data-model-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      DATABASE_URL: postgres://datamodel:datamodel@postgres:5432/datamodel?sslmode=disable
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   data-model-service:
     build:
@@ -17,14 +37,36 @@ services:
     environment:
       DATABASE_URL: postgres://datamodel:datamodel@postgres:5432/datamodel?sslmode=disable
       PORT: 8080
-      SERVICE_AUTH_MODE: disabled
-      SERVICE_AUTH_TOKEN: ""
-      LOG_LEVEL: debug
-      GIN_MODE: release
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      SERVICE_ALLOWED_ORIGINS: ${SERVICE_ALLOWED_ORIGINS:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
     depends_on:
-      - postgres
+      data-model-migrate:
+        condition: service_completed_successfully
     ports:
-      - "8088:8080"
+      - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
+
+  data-model-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      DATABASE_URL: postgres://datamodel:datamodel@postgres:5432/datamodel?sslmode=disable
+      SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      GIN_MODE: ${GIN_MODE:-debug}
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
+      INDEX_JOB_QUEUE_WORKERS: ${INDEX_JOB_QUEUE_WORKERS:-4}
+    depends_on:
+      data-model-migrate:
+        condition: service_completed_successfully
 
 volumes:
   dm_pg_data:

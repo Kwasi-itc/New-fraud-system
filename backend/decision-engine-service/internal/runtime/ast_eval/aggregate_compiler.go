@@ -56,6 +56,10 @@ func CompileAggregateQuery(ctx context.Context, node domainast.Node, runtime Run
 		if !supported {
 			return AggregateCompileResult{UnsupportedReason: reason}, nil
 		}
+		filterExpr, err = addPayloadEventTimeUpperBound(ctx, filterNode, filterExpr, runtime)
+		if err != nil {
+			return AggregateCompileResult{}, err
+		}
 		filter := toAggregatePortFilter(filterExpr)
 		compiledFilter = &filter
 	}
@@ -71,6 +75,83 @@ func CompileAggregateQuery(ctx context.Context, node domainast.Node, runtime Run
 		Supported: true,
 		Query:     query,
 	}, nil
+}
+
+// addPayloadEventTimeUpperBound makes rolling windows deterministic. A rule
+// that says "date >= payload.date - P7D" also means "date <= payload.date";
+// using the server clock here would include records that occur after the
+// transaction currently being decided.
+func addPayloadEventTimeUpperBound(ctx context.Context, source domainast.Node, expr aggregateFilterExpr, runtime Runtime) (aggregateFilterExpr, error) {
+	field, valueNode, ok := rollingWindowEventTime(source)
+	if !ok || hasUpperTimePredicate(expr, field) {
+		return expr, nil
+	}
+	upper, err := EvaluateNode(ctx, valueNode, runtime)
+	if err != nil {
+		return aggregateFilterExpr{}, err
+	}
+	makeRollingLowerExclusive(&expr, field)
+	predicate := aggregateFilterExpr{Kind: "predicate", Field: field, Op: "lte", Value: upper}
+	if strings.EqualFold(expr.Kind, "group") && strings.EqualFold(expr.Operator, "and") {
+		expr.Children = append(expr.Children, predicate)
+		return expr, nil
+	}
+	return aggregateFilterExpr{Kind: "group", Operator: "and", Children: []aggregateFilterExpr{expr, predicate}}, nil
+}
+
+func makeRollingLowerExclusive(expr *aggregateFilterExpr, field string) {
+	if strings.EqualFold(expr.Kind, "predicate") && expr.Field == field && expr.Op == "gte" {
+		expr.Op = "gt"
+	}
+	for index := range expr.Children {
+		makeRollingLowerExclusive(&expr.Children[index], field)
+	}
+}
+
+func rollingWindowEventTime(node domainast.Node) (string, domainast.Node, bool) {
+	if canonicalFunctionName(node.Function) == "filter" {
+		operator, _ := constantNodeString(node.NamedChildren["operator"])
+		if normalized, _ := normalizeAggregateFilterOperator(operator, nil); normalized != "gte" && normalized != "gt" {
+			return "", domainast.Node{}, false
+		}
+		field, ok := constantNodeString(node.NamedChildren["fieldName"])
+		if !ok {
+			return "", domainast.Node{}, false
+		}
+		value := node.NamedChildren["value"]
+		if canonicalFunctionName(value.Function) != "time_add" {
+			return "", domainast.Node{}, false
+		}
+		upper, ok := value.NamedChildren["timestampField"]
+		return field, upper, ok
+	}
+	canonical := canonicalFunctionName(node.Function)
+	if canonical != "list" && canonical != "and" {
+		return "", domainast.Node{}, false
+	}
+	for _, child := range node.Children {
+		if field, upper, ok := rollingWindowEventTime(child); ok {
+			return field, upper, true
+		}
+	}
+	return "", domainast.Node{}, false
+}
+
+func hasUpperTimePredicate(expr aggregateFilterExpr, field string) bool {
+	if strings.EqualFold(expr.Kind, "predicate") {
+		return expr.Field == field && (expr.Op == "lte" || expr.Op == "lt")
+	}
+	for _, child := range expr.Children {
+		if hasUpperTimePredicate(child, field) {
+			return true
+		}
+	}
+	return false
+}
+
+func constantNodeString(node domainast.Node) (string, bool) {
+	value, ok := node.Constant.(string)
+	return strings.TrimSpace(value), ok
 }
 
 func parseAggregateFilterExpr(ctx context.Context, node domainast.Node, runtime Runtime) (aggregateFilterExpr, bool, string, error) {

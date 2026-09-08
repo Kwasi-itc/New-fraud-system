@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -114,30 +115,38 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 
 	defaultFields := []datamodel.Field{
 		{
-			ID:          s.idGenerator.New(),
-			TenantID:    input.TenantID,
-			TableID:     table.ID,
-			Name:        "object_id",
-			Description: fmt.Sprintf("required id on all objects in the %s table", table.Name),
-			DataType:    datamodel.DataTypeString,
-			Nullable:    false,
-			IsEnum:      false,
-			IsUnique:    true,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:                          s.idGenerator.New(),
+			TenantID:                    input.TenantID,
+			TableID:                     table.ID,
+			Name:                        "object_id",
+			Description:                 fmt.Sprintf("required id on all objects in the %s table", table.Name),
+			DataType:                    datamodel.DataTypeString,
+			Nullable:                    false,
+			IsEnum:                      false,
+			IsUnique:                    true,
+			DistributionCategory:        datamodel.DistributionUnknown,
+			ClassificationSource:        datamodel.ClassificationSourceDefault,
+			ClassificationPolicyVersion: "distribution-v1",
+			ClassificationEvidence:      json.RawMessage(`{}`),
+			CreatedAt:                   now,
+			UpdatedAt:                   now,
 		},
 		{
-			ID:          s.idGenerator.New(),
-			TenantID:    input.TenantID,
-			TableID:     table.ID,
-			Name:        "updated_at",
-			Description: fmt.Sprintf("required timestamp on all objects in the %s table", table.Name),
-			DataType:    datamodel.DataTypeTimestamp,
-			Nullable:    false,
-			IsEnum:      false,
-			IsUnique:    false,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:                          s.idGenerator.New(),
+			TenantID:                    input.TenantID,
+			TableID:                     table.ID,
+			Name:                        "updated_at",
+			Description:                 fmt.Sprintf("required timestamp on all objects in the %s table", table.Name),
+			DataType:                    datamodel.DataTypeTimestamp,
+			Nullable:                    false,
+			IsEnum:                      false,
+			IsUnique:                    false,
+			DistributionCategory:        datamodel.DistributionUnknown,
+			ClassificationSource:        datamodel.ClassificationSourceDefault,
+			ClassificationPolicyVersion: "distribution-v1",
+			ClassificationEvidence:      json.RawMessage(`{}`),
+			CreatedAt:                   now,
+			UpdatedAt:                   now,
 		},
 	}
 

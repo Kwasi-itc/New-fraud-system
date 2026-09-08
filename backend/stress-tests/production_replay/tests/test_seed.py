@@ -104,6 +104,7 @@ class SeedTests(unittest.IsolatedAsyncioTestCase):
                     object_type: str,
                     records: list[dict[str, Any]],
                     idempotency_key: str,
+                    **_kwargs: Any,
                 ) -> dict[str, Any]:
                     self.assert_transactions(object_type)
                     self.batches.append(records)

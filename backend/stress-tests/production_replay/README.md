@@ -45,7 +45,37 @@ make production-replay \
   MULTIPLIER=100
 ```
 
+To start from an empty transaction table and make the measured replay the only transaction history, use `SKIP_SEED=true`. Setup and scenario publication still run first, so distribution-aware indexes and prospective Redis facts are active before the first measured ingestion. `SEED_DATA_ROOT` is not required in this mode, and the run records `seed.status: skipped`:
+
+```bash
+make production-replay \
+  DATA_ROOT=/Users/kwilson/Desktop/ITC/fraud_data \
+  SKIP_SEED=true \
+  TRANSACTIONS=all \
+  MULTIPLIER=200 \
+  DECISION_MODE=sync
+```
+
+`SKIP_SEED=true` and `REUSE_EXISTING_SEED=true` are mutually exclusive.
+For a fresh setup, `TENANT_ID` may be omitted and the data-model service will generate it. If a supplied ID does not exist, the local wrapper reports that fact and creates a tenant with a server-generated ID. Reuse runs still require the exact existing `TENANT_ID`.
+
+Full-month profiling can take several minutes. After setup, the wrapper reuses the verified setup profile for the measured replay instead of scanning every source row a second time. If setup fails after profiling, retry with `PROFILE_INPUT=/path/to/the/failed/setup/profile.json`; the fingerprint is checked against the current manifest and file sizes/timestamps before reuse.
+
 The seed phase defaults to batches of 500 with 10 concurrent batch requests and a 300-second request timeout. `SEED_BATCH_SIZE` may be set from 1 through 500; `SEED_MAX_IN_FLIGHT`, `SEED_PROGRESS_EVERY`, and `SEED_REQUEST_TIMEOUT` control its concurrency, progress reporting, and per-request timeout.
+
+For an index-and-fact backfill experiment, `PUBLISH_RULES_AFTER_SEED=true` changes the order to: tenant/data model/reference setup, historical seed with no scenarios, timed scenario creation and publication, timed index completion, forced aggregate-fact backfill, then measured replay. `SEED_START_TIME` is inclusive and `SEED_END_TIME` is exclusive, so a history window can be selected without overlapping the replay data. The publication artifact records every scenario definition/publication duration, every newly requested index job's queue/creation/total duration, and every fact definition's backfill duration and output counts:
+
+```bash
+make production-replay \
+  DATA_ROOT=/Users/kwilson/Desktop/ITC/fraud_data \
+  SEED_DATA_ROOT=/Users/kwilson/Desktop/ITC/fraud_data_seed \
+  SEED_START_TIME=2026-06-24T00:00:00 \
+  SEED_END_TIME=2026-07-01T00:00:00 \
+  PUBLISH_RULES_AFTER_SEED=true \
+  TRANSACTIONS=10000 \
+  MULTIPLIER=5 \
+  DECISION_MODE=sync
+```
 
 If setup completed but the seed was interrupted, rerun with the same tenant and batch size using `REUSE_EXISTING_SETUP=true`. This performs read-only verification of the existing data model and live replay scenarios instead of trying to recreate them. Keeping the same batch size preserves the original deterministic batch idempotency keys:
 
@@ -131,13 +161,16 @@ When `DURATION`, `HOURS`, `DAYS`, or `WEEKS` is set, the transaction count is ig
 Both modes submit each event to `POST /v1/tenants/{tenant_id}/ingestion-events/record-ingested`; the request payload sets `mode` to `async` or `sync`. `production-replay` sends synchronous requests by default and the async targets send asynchronous requests. `LIVE_DECISION_MODE` remains an independent Docker/service setting: when it is present in the selected environment file, the wrapper preserves it. For EC2 async replay, use:
 
 ```bash
-make production-replay-ec2-async TRANSACTIONS=1000 MULTIPLIER=360x
+make production-replay-ec2-async \
+  BASE_URL=https://fraud-dev.example.com \
+  TRANSACTIONS=1000 \
+  MULTIPLIER=360x
 ```
 
 When the selected environment file does not define the service settings, the local wrapper uses these async-oriented fallbacks for an async target:
 
 - `LIVE_DECISION_MODE=async_only`
-- `LIVE_ASYNC_FALLBACK_ENABLED=true`
+- `LIVE_ASYNC_FALLBACK_ENABLED=false`
 - `TENANT_DATA_READ_MODE=direct_db`
 
 Without an explicit environment-file value, the synchronous target falls back to `LIVE_DECISION_MODE=sync`.

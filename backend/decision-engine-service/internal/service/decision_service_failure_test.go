@@ -79,6 +79,58 @@ func TestDecisionServiceEvaluateScenarioReturnsScoringWorkCreationFailure(t *tes
 	}
 }
 
+func TestDecisionServiceEvaluateAllLiveScenariosUsesOneTransaction(t *testing.T) {
+	t.Parallel()
+
+	txManager := &countingDecisionTxManager{
+		store: decisionMutationStoreStub{
+			decisionRepo:           contextCheckingDecisionCreateRepoStub{},
+			ruleExecutionRepo:      nilRuleExecutionRepository(nil),
+			workflowExecutionRepo:  workflowExecutionRepoStub{},
+			screeningExecutionRepo: nilScreeningExecutionRepository(nil),
+			scoringRequestRepo:     nilScoringRequestRepository(nil),
+			outboxRepo:             nilOutboxEventRepository(nil),
+		},
+	}
+	service := newFailureTestDecisionService(
+		txManager,
+		nilScoringConfigRepository(nil),
+		nilScoringRequestRepository(nil),
+		nilScreeningConfigRepository(nil),
+	)
+	liveIterationID := "iter-1"
+	service.scenarioRepo = liveScenarioRepoStub{items: []scenario.Scenario{
+		{
+			ID:                "scenario-1",
+			TenantID:          "tenant-1",
+			TriggerObjectType: "transactions",
+			LiveIterationID:   &liveIterationID,
+		},
+		{
+			ID:                "scenario-2",
+			TenantID:          "tenant-1",
+			TriggerObjectType: "transactions",
+			LiveIterationID:   &liveIterationID,
+		},
+	}}
+
+	result, err := service.EvaluateAllLiveScenarios(context.Background(), "tenant-1", failureTestEvaluationRequest())
+	if err != nil {
+		t.Fatalf("EvaluateAllLiveScenarios() error = %v", err)
+	}
+	if txManager.calls != 1 {
+		t.Fatalf("transaction count = %d, want 1", txManager.calls)
+	}
+	if len(result.Results) != 2 {
+		t.Fatalf("result count = %d, want 2", len(result.Results))
+	}
+	for i, item := range result.Results {
+		if !item.Triggered || item.Decision == nil {
+			t.Fatalf("result %d = %#v, want persisted triggered decision", i, item)
+		}
+	}
+}
+
 func newFailureTestDecisionService(
 	txManager ports.TransactionManager,
 	scoringConfigRepo ports.ScoringConfigRepository,
@@ -181,6 +233,57 @@ type rollbackTxManagerStub struct {
 	returnErr error
 }
 
+type countingDecisionTxManager struct {
+	store ports.MutationStore
+	calls int
+}
+
+func (s *countingDecisionTxManager) Run(ctx context.Context, fn func(store ports.MutationStore) error) error {
+	s.calls++
+	return fn(s.store)
+}
+
+type liveScenarioRepoStub struct {
+	items []scenario.Scenario
+}
+
+func (s liveScenarioRepoStub) Create(_ context.Context, item scenario.Scenario) (scenario.Scenario, error) {
+	return item, nil
+}
+
+func (s liveScenarioRepoStub) ListByTenant(context.Context, string) ([]scenario.Scenario, error) {
+	return s.items, nil
+}
+
+func (s liveScenarioRepoStub) ListLiveByTriggerObject(_ context.Context, tenantID, objectType string) ([]scenario.Scenario, error) {
+	items := make([]scenario.Scenario, 0, len(s.items))
+	for _, item := range s.items {
+		if item.TenantID == tenantID && item.TriggerObjectType == objectType && item.LiveIterationID != nil {
+			items = append(items, item)
+		}
+	}
+	return items, nil
+}
+
+func (s liveScenarioRepoStub) GetByID(_ context.Context, tenantID, scenarioID string) (scenario.Scenario, error) {
+	for _, item := range s.items {
+		if item.TenantID == tenantID && item.ID == scenarioID {
+			return item, nil
+		}
+	}
+	return scenario.Scenario{}, errors.New("not found")
+}
+
+func (s liveScenarioRepoStub) Update(_ context.Context, item scenario.Scenario) (scenario.Scenario, error) {
+	return item, nil
+}
+
+func (s liveScenarioRepoStub) Delete(context.Context, string, string) error { return nil }
+
+func (s liveScenarioRepoStub) SetLiveIterationID(context.Context, string, string, *string) error {
+	return nil
+}
+
 func (s rollbackTxManagerStub) Run(ctx context.Context, fn func(store ports.MutationStore) error) error {
 	if err := fn(s.store); err != nil {
 		return err
@@ -240,6 +343,17 @@ func (s decisionMutationStoreStub) IPFlags() ports.IPFlagRepository             
 func (s decisionMutationStoreStub) RawTx() pgx.Tx                               { return nil }
 
 type decisionCreateRepoStub struct{}
+
+type contextCheckingDecisionCreateRepoStub struct {
+	decisionCreateRepoStub
+}
+
+func (contextCheckingDecisionCreateRepoStub) Create(ctx context.Context, item decision.Decision) (decision.Decision, error) {
+	if err := ctx.Err(); err != nil {
+		return decision.Decision{}, err
+	}
+	return item, nil
+}
 
 func (decisionCreateRepoStub) Create(_ context.Context, item decision.Decision) (decision.Decision, error) {
 	return item, nil
@@ -384,8 +498,11 @@ func (noopWorkflowActionRepo) Delete(context.Context, string, string, string) er
 
 var (
 	_ ports.TransactionManager           = rollbackTxManagerStub{}
+	_ ports.TransactionManager           = (*countingDecisionTxManager)(nil)
+	_ ports.ScenarioRepository           = liveScenarioRepoStub{}
 	_ ports.MutationStore                = decisionMutationStoreStub{}
 	_ ports.DecisionRepository           = decisionCreateRepoStub{}
+	_ ports.DecisionRepository           = contextCheckingDecisionCreateRepoStub{}
 	_ ports.ScoringConfigRepository      = activeScoringConfigRepoStub{}
 	_ ports.ScoringRequestRepository     = failingScoringRequestRepo{}
 	_ ports.WorkflowRuleRepository       = noopWorkflowRuleRepo{}

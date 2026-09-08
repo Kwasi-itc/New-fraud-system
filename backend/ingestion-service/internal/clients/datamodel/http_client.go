@@ -81,15 +81,18 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 			}
 
 			fields[fieldKey] = ingestion.FieldSchema{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  enumValues,
+				ID:                          field.ID,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    field.DataType,
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				Archived:                    field.Archived,
+				EnumValues:                  enumValues,
+				DistributionCategory:        field.DistributionCategory,
+				ClassificationSource:        field.ClassificationSource,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
 			}
 		}
 
@@ -138,15 +141,18 @@ type assembledTableResponse struct {
 }
 
 type assembledFieldResponse struct {
-	ID          uuid.UUID             `json:"id"`
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	DataType    string                `json:"data_type"`
-	Nullable    bool                  `json:"nullable"`
-	IsEnum      bool                  `json:"is_enum"`
-	IsUnique    bool                  `json:"is_unique"`
-	Archived    bool                  `json:"archived"`
-	EnumValues  []fieldEnumValueModel `json:"enum_values"`
+	ID                          uuid.UUID             `json:"id"`
+	Name                        string                `json:"name"`
+	Description                 string                `json:"description"`
+	DataType                    string                `json:"data_type"`
+	Nullable                    bool                  `json:"nullable"`
+	IsEnum                      bool                  `json:"is_enum"`
+	IsUnique                    bool                  `json:"is_unique"`
+	Archived                    bool                  `json:"archived"`
+	EnumValues                  []fieldEnumValueModel `json:"enum_values"`
+	DistributionCategory        string                `json:"distribution_category"`
+	ClassificationSource        string                `json:"classification_source"`
+	ClassificationPolicyVersion string                `json:"classification_policy_version"`
 }
 
 type fieldEnumValueModel struct {

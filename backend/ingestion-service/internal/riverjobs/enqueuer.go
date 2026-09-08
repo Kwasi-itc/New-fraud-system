@@ -58,7 +58,7 @@ func (e RiverUploadLogEnqueuer) Enqueue(ctx context.Context, uploadLogID uuid.UU
 }
 
 func (e RiverUploadLogEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, uploadLogID uuid.UUID, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return e.enqueue(ctx, tx, uploadLogID, scheduledAt)
@@ -109,7 +109,7 @@ func (e RiverDeferredIngestEnqueuer) Enqueue(ctx context.Context, deferredIngest
 }
 
 func (e RiverDeferredIngestEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, deferredIngestID uuid.UUID, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return e.enqueue(ctx, tx, deferredIngestID, scheduledAt)

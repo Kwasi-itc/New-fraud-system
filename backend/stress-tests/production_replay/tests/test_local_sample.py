@@ -11,14 +11,56 @@ from production_replay.local_sample import (
     create_duration_sample,
     create_full_manifest,
     create_local_sample,
+    create_time_range_sample,
     parse_duration,
 )
+from datetime import datetime
 from production_replay.adapters import get_adapter
 from production_replay.manifest import load_manifest
 from production_replay.tests.helpers import manifest_data, stream, transaction_row, write_minimal_sources, write_transactions
 
 
 class LocalSampleTests(unittest.TestCase):
+    def test_time_range_sample_uses_inclusive_start_and_exclusive_end(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_root = root / "data-root"
+            output_dir = root / "sample"
+            manifest_path = root / "manifest.json"
+            output_manifest = root / "sample-manifest.json"
+
+            data_root.mkdir(parents=True)
+            write_minimal_sources(data_root)
+            for stream_id, relative_path in STREAM_SOURCE_PATHS.items():
+                source_path = data_root / relative_path
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                write_transactions(
+                    source_path,
+                    [
+                        transaction_row(source_trans_id=f"{stream_id}-before", source_date_created="2026-06-23 23:59:59"),
+                        transaction_row(source_trans_id=f"{stream_id}-start", source_date_created="2026-06-24 00:00:00"),
+                        transaction_row(source_trans_id=f"{stream_id}-inside", source_date_created="2026-06-30 23:59:59"),
+                        transaction_row(source_trans_id=f"{stream_id}-end", source_date_created="2026-07-01 00:00:00"),
+                    ],
+                )
+            manifest_path.write_text(
+                json.dumps(manifest_data([stream(stream_id, "unused.csv") for stream_id in STREAM_SOURCE_PATHS])),
+                encoding="utf-8",
+            )
+
+            total = create_time_range_sample(
+                manifest_path,
+                data_root,
+                output_dir,
+                output_manifest,
+                datetime(2026, 6, 24),
+                datetime(2026, 7, 1),
+            )
+
+            self.assertEqual(total, len(STREAM_SOURCE_PATHS) * 2)
+            selected_ids = _sample_source_ids(output_manifest)
+            self.assertTrue(all("before" not in item and "end" not in item for item in selected_ids))
+
     def test_creates_requested_total_across_all_streams(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

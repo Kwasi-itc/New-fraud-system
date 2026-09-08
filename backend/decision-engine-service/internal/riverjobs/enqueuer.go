@@ -129,7 +129,7 @@ func (e RiverAsyncDecisionExecutionCallbackEnqueuer) Enqueue(ctx context.Context
 }
 
 func (e RiverAsyncDecisionExecutionCallbackEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return enqueue(ctx, e.client, tx, AsyncDecisionExecutionCallbackArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
@@ -154,7 +154,7 @@ func (e RiverAsyncDecisionExecutionEnqueuer) Enqueue(ctx context.Context, execut
 }
 
 func (e RiverAsyncDecisionExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, executionID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return e.enqueue(ctx, tx, executionID, scheduledAt)
@@ -205,7 +205,7 @@ func (e RiverScheduledExecutionEnqueuer) Enqueue(ctx context.Context, executionI
 }
 
 func (e RiverScheduledExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, executionID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return e.enqueue(ctx, tx, executionID, scheduledAt)
@@ -252,7 +252,7 @@ func (e RiverWorkflowExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, e
 }
 
 func (e RiverWorkflowExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return enqueue(ctx, e.client, tx, WorkflowExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
@@ -279,7 +279,7 @@ func (e RiverScreeningExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, 
 }
 
 func (e RiverScreeningExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return enqueue(ctx, e.client, tx, ScreeningExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
@@ -306,7 +306,7 @@ func (e RiverScoringRequestEnqueuer) Enqueue(ctx context.Context, tenantID, requ
 }
 
 func (e RiverScoringRequestEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, requestID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return enqueue(ctx, e.client, tx, ScoringRequestArgs{TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
@@ -333,7 +333,7 @@ func (e RiverOutboxEventEnqueuer) Enqueue(ctx context.Context, tenantID, eventID
 }
 
 func (e RiverOutboxEventEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, eventID string, scheduledAt *time.Time) error {
-	if e.client == nil || tx == nil {
+	if e.client == nil {
 		return nil
 	}
 	return enqueue(ctx, e.client, tx, OutboxEventArgs{TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)

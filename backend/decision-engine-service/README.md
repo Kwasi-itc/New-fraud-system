@@ -4,7 +4,7 @@ Standalone Go service for the decision engine domain, extracted from the monolit
 
 Current location in the workspace:
 
-- `new/backend/decision-engine-service`
+- `backend/decision-engine-service`
 
 This folder now contains an active standalone service implementation plus the original planning documents.
 
@@ -151,8 +151,8 @@ Required variables:
 
 Common local defaults in `.env.example`:
 
-- `DATA_MODEL_SERVICE_URL=http://localhost:8081`
-- `INGESTION_SERVICE_URL=http://localhost:8080`
+- `DATA_MODEL_SERVICE_URL=http://localhost:8080`
+- `INGESTION_SERVICE_URL=http://localhost:8081`
 - `PORT=8082`
 
 Relevant optional downstream variables:
@@ -192,7 +192,7 @@ Current configuration:
   - `strict`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
   - comma-separated allow-list for remote pushdown
-  - default: `count`
+  - default: `count,sum,avg`
   - example expanded rollout: `count,sum,avg,min,max`
 
 Current V1 pushdown scope:

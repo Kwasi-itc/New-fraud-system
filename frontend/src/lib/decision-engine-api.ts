@@ -70,6 +70,29 @@ export type PublicationActionRequest = {
   action: "publish" | "unpublish";
 };
 
+export type DistributionSuggestion = {
+  table_name: string;
+  field_name: string;
+  accepted_category: string;
+  suggested_category: string;
+  reason: string;
+  rows_analyzed: number;
+  non_null_rows: number;
+  distinct_values: number;
+  expected_same_value_rows: number;
+  policy_version: string;
+};
+
+export type PublicationPreparationStatus = {
+  scenario_id: string;
+  iteration_id: string;
+  preparation_required: boolean;
+  preparation_started: boolean;
+  preparation_finished: boolean;
+  pending_items: number;
+  distribution_suggestions?: DistributionSuggestion[];
+};
+
 export type Rule = {
   id: string;
   iteration_id: string;
@@ -704,6 +727,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/deactivate`,
   publications: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications`,
+  publicationPreparation: (tenantId: string, scenarioId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications/preparation`,
   rules: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/rules`,
   ruleGroups: (tenantId: string, scenarioId: string) =>
@@ -927,6 +952,26 @@ export const decisionEngineApi = {
       {
         method: "POST",
         body: JSON.stringify(payload),
+      }
+    ),
+  getPublicationPreparation: async (
+    tenantId: string,
+    scenarioId: string,
+    iterationId: string
+  ) =>
+    decisionEngineFetch<{ preparation: PublicationPreparationStatus }>(
+      `${decisionEnginePaths.publicationPreparation(tenantId, scenarioId)}?iteration_id=${encodeURIComponent(iterationId)}`
+    ),
+  startPublicationPreparation: async (
+    tenantId: string,
+    scenarioId: string,
+    iterationId: string
+  ) =>
+    decisionEngineFetch<{ preparation: PublicationPreparationStatus }>(
+      decisionEnginePaths.publicationPreparation(tenantId, scenarioId),
+      {
+        method: "POST",
+        body: JSON.stringify({ iteration_id: iterationId }),
       }
     ),
   listRules: async (tenantId: string, scenarioId: string, iterationId: string) =>

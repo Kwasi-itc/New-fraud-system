@@ -383,7 +383,7 @@ Current control knobs:
   - `strict`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
   - comma-separated remote aggregate allow-list
-  - current default: `count`
+  - current default: `count,sum,avg`
 
 This means:
 

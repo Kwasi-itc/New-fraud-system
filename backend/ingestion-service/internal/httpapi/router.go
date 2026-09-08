@@ -33,6 +33,8 @@ type RouterConfig struct {
 	ReadQueryConcurrencyLimit      int
 	AggregateQueryConcurrencyLimit int
 	OverloadThresholds             OverloadThresholds
+	AggregateFactWriter            ports.AggregateFactWriter
+	AggregateFactBackfiller        ports.AggregateFactBackfiller
 }
 
 type uuidGenerator struct{}
@@ -58,7 +60,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		readDB = db
 	}
 
-	healthHandler := handlers.NewHealthHandler(logger, db)
+	readinessDependencies := make([]handlers.ReadinessDependency, 0, 1)
+	if pinger, ok := cfg.AggregateFactWriter.(handlers.ReadinessPinger); ok {
+		readinessDependencies = append(readinessDependencies, handlers.ReadinessDependency{
+			Name:   "aggregate_fact_store",
+			Pinger: pinger,
+		})
+	}
+	healthHandler := handlers.NewHealthHandler(logger, db, readinessDependencies...)
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
 	readMetrics := newReadMetricsCollector(dbPoolStatsFromPool(readDB))
@@ -95,6 +104,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		uuidGenerator{},
 		systemClock{},
 	)
+	if db != nil {
+		ingestService.SetIdempotencyReader(storepostgres.NewIdempotencyRepository(db))
+	}
+	ingestService.SetAggregateFactWriter(cfg.AggregateFactWriter)
 	deferredIngestService := service.NewDeferredIngestService(
 		deferredIngestRepository,
 		ingestService,
@@ -126,6 +139,12 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		WritePathLimiter: writePathLimiter,
 	})
 	readMetricsHandler := handlers.NewReadMetricsHandler(readMetrics)
+	var aggregateFactMetricsProvider handlers.AggregateFactMetricsProvider
+	if provider, ok := cfg.AggregateFactWriter.(handlers.AggregateFactMetricsProvider); ok {
+		aggregateFactMetricsProvider = provider
+	}
+	aggregateFactMetricsHandler := handlers.NewAggregateFactMetricsHandler(aggregateFactMetricsProvider)
+	aggregateFactBackfillHandler := handlers.NewAggregateFactBackfillHandler(cfg.AggregateFactBackfiller)
 	deferredIngestMetricsHandler := handlers.NewDeferredIngestMetricsHandler(func(c *gin.Context) (any, error) {
 		return deferredIngestService.MetricsSnapshot(c.Request.Context())
 	})
@@ -140,6 +159,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	v1.POST("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PostBatchIngest)
 	v1.PATCH("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PatchBatchIngest)
 	v1.GET("/admin/read-metrics", readMetricsHandler.Get)
+	v1.GET("/admin/aggregate-fact-metrics", aggregateFactMetricsHandler.Get)
+	v1.GET("/admin/tenants/:tenantId/aggregate-facts/status", aggregateFactBackfillHandler.Status)
+	v1.POST("/admin/tenants/:tenantId/aggregate-facts/backfill", aggregateFactBackfillHandler.Backfill)
 	v1.GET("/admin/deferred-ingest-metrics", deferredIngestMetricsHandler.Get)
 	readRoutes := v1.Group("")
 	readRoutes.GET("/tenants/:tenantId/records/:objectType", readMetrics.middleware("list_records"), ingestHandler.ListRecords)

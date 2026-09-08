@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -18,15 +20,39 @@ func NewFieldRepository(db executor) FieldRepository {
 }
 
 func (r FieldRepository) Create(ctx context.Context, field datamodel.Field) error {
+	category := field.DistributionCategory
+	if category == "" {
+		category = datamodel.DistributionUnknown
+	}
+	source := field.ClassificationSource
+	if source == "" {
+		if category == datamodel.DistributionUnknown {
+			source = datamodel.ClassificationSourceDefault
+		} else {
+			source = datamodel.ClassificationSourceManual
+		}
+	}
+	policyVersion := strings.TrimSpace(field.ClassificationPolicyVersion)
+	if policyVersion == "" {
+		policyVersion = "distribution-v1"
+	}
+	evidence := field.ClassificationEvidence
+	if len(evidence) == 0 {
+		evidence = json.RawMessage(`{}`)
+	}
 	query := `
 		INSERT INTO core.model_fields
-			(id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at)
+			(id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique,
+			 distribution_category, classification_source, classification_policy_version,
+			 classification_evidence, classified_at, archived, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	`
 	_, err := r.db.Exec(ctx, query,
 		field.ID, field.TenantID, field.TableID, field.Name, field.Description, field.DataType,
-		field.Nullable, field.IsEnum, field.IsUnique, field.Archived, field.CreatedAt, field.UpdatedAt,
+		field.Nullable, field.IsEnum, field.IsUnique, category, source,
+		policyVersion, evidence, field.ClassifiedAt,
+		field.Archived, field.CreatedAt, field.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("insert field: %w", err)
@@ -36,14 +62,18 @@ func (r FieldRepository) Create(ctx context.Context, field datamodel.Field) erro
 
 func (r FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.Field, error) {
 	query := `
-		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at
+		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique,
+		       distribution_category, classification_source, classification_policy_version,
+		       classification_evidence, classified_at, archived, created_at, updated_at
 		FROM core.model_fields
 		WHERE id = $1
 	`
 	var field datamodel.Field
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&field.ID, &field.TenantID, &field.TableID, &field.Name, &field.Description, &field.DataType,
-		&field.Nullable, &field.IsEnum, &field.IsUnique, &field.Archived, &field.CreatedAt, &field.UpdatedAt,
+		&field.Nullable, &field.IsEnum, &field.IsUnique, &field.DistributionCategory, &field.ClassificationSource,
+		&field.ClassificationPolicyVersion, &field.ClassificationEvidence, &field.ClassifiedAt,
+		&field.Archived, &field.CreatedAt, &field.UpdatedAt,
 	)
 	if err != nil {
 		return datamodel.Field{}, fmt.Errorf("get field by id: %w", err)
@@ -53,7 +83,9 @@ func (r FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.F
 
 func (r FieldRepository) ListByTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.Field, error) {
 	query := `
-		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at
+		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique,
+		       distribution_category, classification_source, classification_policy_version,
+		       classification_evidence, classified_at, archived, created_at, updated_at
 		FROM core.model_fields
 		WHERE table_id = $1
 		ORDER BY created_at ASC
@@ -69,7 +101,9 @@ func (r FieldRepository) ListByTable(ctx context.Context, tableID uuid.UUID) ([]
 		var field datamodel.Field
 		if err := rows.Scan(
 			&field.ID, &field.TenantID, &field.TableID, &field.Name, &field.Description, &field.DataType,
-			&field.Nullable, &field.IsEnum, &field.IsUnique, &field.Archived, &field.CreatedAt, &field.UpdatedAt,
+			&field.Nullable, &field.IsEnum, &field.IsUnique, &field.DistributionCategory, &field.ClassificationSource,
+			&field.ClassificationPolicyVersion, &field.ClassificationEvidence, &field.ClassifiedAt,
+			&field.Archived, &field.CreatedAt, &field.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan field: %w", err)
 		}
@@ -92,10 +126,15 @@ func (r FieldRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r FieldRepository) Update(ctx context.Context, field datamodel.Field) error {
 	query := `
 		UPDATE core.model_fields
-		SET description = $2, nullable = $3, is_enum = $4, is_unique = $5, archived = $6, updated_at = $7
+		SET description = $2, nullable = $3, is_enum = $4, is_unique = $5,
+		    distribution_category = $6, classification_source = $7,
+		    classification_policy_version = $8, classification_evidence = $9,
+		    classified_at = $10, archived = $11, updated_at = $12
 		WHERE id = $1
 	`
-	_, err := r.db.Exec(ctx, query, field.ID, field.Description, field.Nullable, field.IsEnum, field.IsUnique, field.Archived, field.UpdatedAt)
+	_, err := r.db.Exec(ctx, query, field.ID, field.Description, field.Nullable, field.IsEnum, field.IsUnique,
+		field.DistributionCategory, field.ClassificationSource, field.ClassificationPolicyVersion,
+		field.ClassificationEvidence, field.ClassifiedAt, field.Archived, field.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("update field: %w", err)
 	}

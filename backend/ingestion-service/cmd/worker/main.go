@@ -19,6 +19,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/redisfacts"
 )
 
 func main() {
@@ -43,6 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	app.LogPostgresRuntimeSettings(logger, db)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -55,6 +57,17 @@ func main() {
 		uuidGenerator{},
 		systemClock{},
 	)
+	ingestService.SetIdempotencyReader(storepostgres.NewIdempotencyRepository(db))
+	factWriter, err := redisfacts.New(cfg.AggregateFactRedisURL, db)
+	if err != nil {
+		logger.Error("failed to initialize aggregate fact writer", "error", err)
+		os.Exit(1)
+	}
+	defer factWriter.Close()
+	if err := factWriter.Ping(ctx); err != nil {
+		logger.Warn("aggregate fact store is unavailable at startup; fact-enabled jobs will retry until it recovers", "error", err)
+	}
+	ingestService.SetAggregateFactWriter(factWriter)
 	uploadLogService := service.NewUploadLogService(
 		storepostgres.NewUploadLogRepository(db),
 		ingestService,

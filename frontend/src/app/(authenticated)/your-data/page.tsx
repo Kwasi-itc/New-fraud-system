@@ -62,6 +62,8 @@ import {
   type AssembledLink,
   type AssembledPivot,
   type AssembledTable,
+  type DistributionAnalysis,
+  type DistributionCategory,
   type PortableDataModelDocument,
   type PortableImportSummary,
   type Table,
@@ -95,6 +97,94 @@ type ActionCard = {
   stat?: string;
   action?: "select-archetype" | "create-table" | "import-model" | "export-model";
 };
+
+const distributionCategoryOptions: Array<{
+  value: DistributionCategory;
+  label: string;
+  help: string;
+}> = [
+  {
+    value: "unknown",
+    label: "Unknown / current behavior",
+    help: "Keep the existing automatic indexing behavior.",
+  },
+  {
+    value: "few_value_dominated",
+    label: "Few values dominate",
+    help: "Prefer shared precomputed facts; do not lead new indexes with this field.",
+  },
+  {
+    value: "highly_distributed",
+    label: "Highly distributed",
+    help: "A shallow field-and-time index is usually selective.",
+  },
+  {
+    value: "unique_or_near_unique",
+    label: "Unique or nearly unique",
+    help: "The field usually points to one or very few records.",
+  },
+];
+
+function DistributionFieldControls({
+  category,
+  analysis,
+  analyzing,
+  onCategoryChange,
+  onSample,
+}: {
+  category: DistributionCategory;
+  analysis: DistributionAnalysis | null;
+  analyzing: boolean;
+  onCategoryChange: (category: DistributionCategory) => void;
+  onSample: (file: File) => void;
+}) {
+  const selected = distributionCategoryOptions.find((option) => option.value === category);
+  return (
+    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+      <div>
+        <label className="text-[15px] font-medium text-slate-900" htmlFor="field-distribution">
+          Value distribution
+        </label>
+        <p className="mt-1 text-sm leading-5 text-slate-500">
+          Choose how values are spread, or upload a representative CSV sample for a suggestion.
+        </p>
+      </div>
+      <select
+        id="field-distribution"
+        value={category}
+        onChange={(event) => onCategoryChange(event.target.value as DistributionCategory)}
+        className="flex h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+      >
+        {distributionCategoryOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <p className="text-sm text-slate-500">{selected?.help}</p>
+      <label className="block text-sm font-medium text-slate-700">
+        {analyzing ? "Analyzing sample..." : "Analyze representative CSV"}
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          disabled={analyzing}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) onSample(file);
+            event.currentTarget.value = "";
+          }}
+          className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
+        />
+      </label>
+      {analysis ? (
+        <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          Suggested <span className="font-semibold">{analysis.suggested_category.replaceAll("_", " ")}</span>
+          {` from ${analysis.non_null_rows.toLocaleString()} values. ${analysis.reason}`}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function buildActionCards(
   view: DataModelView,
@@ -477,6 +567,13 @@ export default function YourDataPage() {
     useState<"bool" | "int" | "float" | "string" | "timestamp" | "ip_address">("string");
   const [fieldIsEnum, setFieldIsEnum] = useState(false);
   const [fieldIsUnique, setFieldIsUnique] = useState(false);
+  const [fieldDistributionCategory, setFieldDistributionCategory] =
+    useState<DistributionCategory>("unknown");
+  const [fieldDistributionAnalysis, setFieldDistributionAnalysis] =
+    useState<DistributionAnalysis | null>(null);
+  const [fieldClassificationSource, setFieldClassificationSource] =
+    useState<"default" | "manual" | "sample">("default");
+  const [isAnalyzingDistribution, setIsAnalyzingDistribution] = useState(false);
   const [fieldEnumValues, setFieldEnumValues] = useState<LocalEnumValue[]>([]);
   const [fieldFormError, setFieldFormError] = useState<string | null>(null);
   const [linkName, setLinkName] = useState("");
@@ -917,6 +1014,10 @@ export default function YourDataPage() {
     setFieldType("string");
     setFieldIsEnum(false);
     setFieldIsUnique(false);
+    setFieldDistributionCategory("unknown");
+    setFieldDistributionAnalysis(null);
+    setFieldClassificationSource("default");
+    setIsAnalyzingDistribution(false);
     setFieldEnumValues([]);
     setFieldFormError(null);
   }
@@ -939,6 +1040,9 @@ export default function YourDataPage() {
     );
     setFieldIsEnum(field.is_enum);
     setFieldIsUnique(field.is_unique);
+    setFieldDistributionCategory(field.distribution_category ?? "unknown");
+    setFieldDistributionAnalysis(null);
+    setFieldClassificationSource(field.classification_source ?? "default");
     setFieldEnumValues(
       field.enum_values.map((enumValue) => ({
         id: enumValue.id,
@@ -967,6 +1071,33 @@ export default function YourDataPage() {
     setFieldTable(null);
     setEditingField(null);
     setFieldFormError(null);
+  }
+
+  async function analyzeFieldDistributionSample(file: File) {
+    if (!fieldName.trim()) {
+      setFieldFormError("Enter the field name before analyzing a CSV sample.");
+      return;
+    }
+    setFieldFormError(null);
+    setIsAnalyzingDistribution(true);
+    try {
+      const { analysis } = await dataModelApi.analyzeDistributionSample(file, fieldName.trim());
+      setFieldDistributionAnalysis(analysis);
+      setFieldDistributionCategory(analysis.suggested_category);
+      setFieldClassificationSource("sample");
+    } catch (analysisError) {
+      setFieldFormError(
+        analysisError instanceof Error ? analysisError.message : "Failed to analyze the CSV sample."
+      );
+    } finally {
+      setIsAnalyzingDistribution(false);
+    }
+  }
+
+  function chooseFieldDistribution(category: DistributionCategory) {
+    setFieldDistributionCategory(category);
+    setFieldDistributionAnalysis(null);
+    setFieldClassificationSource(category === "unknown" ? "default" : "manual");
   }
 
   function closeDeleteModal() {
@@ -1344,6 +1475,12 @@ export default function YourDataPage() {
           nullable: !fieldIsRequired,
           is_enum: fieldIsEnum,
           is_unique: fieldIsUnique,
+          distribution_category: fieldDistributionCategory,
+          classification_source: fieldClassificationSource,
+          classification_policy_version:
+            fieldDistributionAnalysis?.policy_version ?? "distribution-v1",
+          classification_evidence:
+            fieldClassificationSource === "sample" ? fieldDistributionAnalysis ?? undefined : {},
           enum_values: fieldIsEnum
             ? fieldEnumValues.map((item, index) => ({
                 value: item.value.trim(),
@@ -1397,6 +1534,16 @@ export default function YourDataPage() {
           nullable: !fieldIsRequired,
           is_enum: fieldIsEnum,
           is_unique: fieldIsUnique,
+          distribution_category: fieldDistributionCategory,
+          classification_source: fieldClassificationSource,
+          classification_policy_version:
+            fieldDistributionAnalysis?.policy_version ??
+            editingField.classification_policy_version ??
+            "distribution-v1",
+          classification_evidence:
+            fieldClassificationSource === "sample"
+              ? fieldDistributionAnalysis ?? editingField.classification_evidence
+              : {},
         },
       });
 
@@ -2711,6 +2858,14 @@ export default function YourDataPage() {
                   </div>
                 </div>
 
+                <DistributionFieldControls
+                  category={fieldDistributionCategory}
+                  analysis={fieldDistributionAnalysis}
+                  analyzing={isAnalyzingDistribution}
+                  onCategoryChange={chooseFieldDistribution}
+                  onSample={analyzeFieldDistributionSample}
+                />
+
                 <div className="space-y-4">
                   <label className="flex items-start gap-3">
                     <input
@@ -3256,6 +3411,14 @@ export default function YourDataPage() {
                     />
                   </div>
                 </div>
+
+                <DistributionFieldControls
+                  category={fieldDistributionCategory}
+                  analysis={fieldDistributionAnalysis}
+                  analyzing={isAnalyzingDistribution}
+                  onCategoryChange={chooseFieldDistribution}
+                  onSample={analyzeFieldDistributionSample}
+                />
 
                 <div className="space-y-4">
                   <label className="flex items-start gap-3">

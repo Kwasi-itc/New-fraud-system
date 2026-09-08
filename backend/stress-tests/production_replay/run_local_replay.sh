@@ -8,6 +8,8 @@ WORKSPACE_DIR="$(cd "$BACKEND_DIR/.." && pwd)"
 ENV_FILE="${PRODUCTION_REPLAY_ENV_FILE:-}"
 DATA_ROOT="${FRAUD_DATA_ROOT:-/Users/kwilson/Desktop/ITC/fraud_data}"
 SEED_DATA_ROOT="${PRODUCTION_REPLAY_SEED_DATA_ROOT:-${FRAUD_DATA_SEED_ROOT:-${DATA_ROOT%/}_seed}}"
+SEED_START_TIME="${PRODUCTION_REPLAY_SEED_START_TIME:-${SEED_START_TIME:-}}"
+SEED_END_TIME="${PRODUCTION_REPLAY_SEED_END_TIME:-${SEED_END_TIME:-}}"
 VENV_DIR="${PRODUCTION_REPLAY_VENV:-/tmp/fraud-production-replay-venv}"
 TRANSACTIONS="${PRODUCTION_REPLAY_TRANSACTIONS:-${TRANSACTIONS:-1000}}"
 TRANSACTION_OFFSET="${PRODUCTION_REPLAY_TRANSACTION_OFFSET:-${TRANSACTION_OFFSET:-0}}"
@@ -18,15 +20,21 @@ SEED_BATCH_SIZE="${PRODUCTION_REPLAY_SEED_BATCH_SIZE:-${SEED_BATCH_SIZE:-500}}"
 SEED_MAX_IN_FLIGHT="${PRODUCTION_REPLAY_SEED_MAX_IN_FLIGHT:-${SEED_MAX_IN_FLIGHT:-10}}"
 SEED_PROGRESS_EVERY="${PRODUCTION_REPLAY_SEED_PROGRESS_EVERY:-${SEED_PROGRESS_EVERY:-100}}"
 SEED_REQUEST_TIMEOUT="${PRODUCTION_REPLAY_SEED_REQUEST_TIMEOUT:-${SEED_REQUEST_TIMEOUT:-300}}"
+AGGREGATE_FACT_BACKFILL_TIMEOUT="${PRODUCTION_REPLAY_AGGREGATE_FACT_BACKFILL_TIMEOUT:-${AGGREGATE_FACT_BACKFILL_TIMEOUT:-7200}}"
+PUBLICATION_TIMEOUT="${PRODUCTION_REPLAY_PUBLICATION_TIMEOUT:-${PUBLICATION_TIMEOUT:-3600}}"
+PUBLISH_RULES_AFTER_SEED="${PRODUCTION_REPLAY_PUBLISH_RULES_AFTER_SEED:-${PUBLISH_RULES_AFTER_SEED:-false}}"
 REUSE_EXISTING_SETUP="${PRODUCTION_REPLAY_REUSE_EXISTING_SETUP:-${REUSE_EXISTING_SETUP:-false}}"
 REUSE_EXISTING_SEED="${PRODUCTION_REPLAY_REUSE_EXISTING_SEED:-${REUSE_EXISTING_SEED:-false}}"
-DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-async}}"
+SKIP_SEED="${PRODUCTION_REPLAY_SKIP_SEED:-${SKIP_SEED:-false}}"
+PRESERVE_RUNNING_VALKEY="${PRODUCTION_REPLAY_PRESERVE_RUNNING_VALKEY:-${PRESERVE_RUNNING_VALKEY:-false}}"
+PROFILE_INPUT="${PRODUCTION_REPLAY_PROFILE_INPUT:-${PROFILE_INPUT:-}}"
+DECISION_MODE="${PRODUCTION_REPLAY_DECISION_MODE:-${DECISION_MODE:-sync}}"
 ASYNC_WAIT_TIMEOUT_MS="${PRODUCTION_REPLAY_ASYNC_WAIT_TIMEOUT_MS:-${ASYNC_WAIT_TIMEOUT_MS:-0}}"
 ASYNC_CALLBACK_URL="${PRODUCTION_REPLAY_ASYNC_CALLBACK_URL:-${ASYNC_CALLBACK_URL:-}}"
 ASYNC_CALLBACK_PORT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_PORT:-${ASYNC_CALLBACK_PORT:-8099}}"
 ASYNC_CALLBACK_WAIT_TIMEOUT="${PRODUCTION_REPLAY_ASYNC_CALLBACK_WAIT_TIMEOUT:-${ASYNC_CALLBACK_WAIT_TIMEOUT:-120}}"
 LIVE_DECISION_MODE="${PRODUCTION_REPLAY_LIVE_DECISION_MODE:-${LIVE_DECISION_MODE:-}}"
-LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-true}}"
+LIVE_ASYNC_FALLBACK_ENABLED="${PRODUCTION_REPLAY_LIVE_ASYNC_FALLBACK_ENABLED:-${LIVE_ASYNC_FALLBACK_ENABLED:-false}}"
 LIVE_ASYNC_OBJECT_TYPES="${PRODUCTION_REPLAY_LIVE_ASYNC_OBJECT_TYPES:-${LIVE_ASYNC_OBJECT_TYPES:-}}"
 TENANT_DATA_READ_MODE="${PRODUCTION_REPLAY_TENANT_DATA_READ_MODE:-${TENANT_DATA_READ_MODE:-direct_db}}"
 ENABLE_SEPARATE_READ_POOL="${PRODUCTION_REPLAY_ENABLE_SEPARATE_READ_POOL:-${ENABLE_SEPARATE_READ_POOL:-false}}"
@@ -34,12 +42,16 @@ READ_DATABASE_URL="${PRODUCTION_REPLAY_READ_DATABASE_URL:-${READ_DATABASE_URL:-}
 READ_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MAX_CONNS:-${READ_DATABASE_MAX_CONNS:-0}}"
 READ_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_READ_DATABASE_MIN_CONNS:-${READ_DATABASE_MIN_CONNS:-0}}"
 WORKER_DATABASE_URL="${PRODUCTION_REPLAY_WORKER_DATABASE_URL:-${WORKER_DATABASE_URL:-}}"
-WORKER_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MAX_CONNS:-${WORKER_DATABASE_MAX_CONNS:-0}}"
+WORKER_DATABASE_MAX_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MAX_CONNS:-${WORKER_DATABASE_MAX_CONNS:-4}}"
 WORKER_DATABASE_MIN_CONNS="${PRODUCTION_REPLAY_WORKER_DATABASE_MIN_CONNS:-${WORKER_DATABASE_MIN_CONNS:-0}}"
 RULE_EVALUATION_CONCURRENCY="${PRODUCTION_REPLAY_RULE_EVALUATION_CONCURRENCY:-${RULE_EVALUATION_CONCURRENCY:-0}}"
 SCENARIO_EVALUATION_CONCURRENCY="${PRODUCTION_REPLAY_SCENARIO_EVALUATION_CONCURRENCY:-${SCENARIO_EVALUATION_CONCURRENCY:-0}}"
 AGGREGATE_REMOTE_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}}"
-AGGREGATE_QUERY_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_QUERY_CONCURRENCY_LIMIT:-${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}}"
+AGGREGATE_QUERY_CONCURRENCY_LIMIT="${PRODUCTION_REPLAY_AGGREGATE_QUERY_CONCURRENCY_LIMIT:-${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-0}}"
+FRONTEND_FORWARDED_PORT="${PRODUCTION_REPLAY_FRONTEND_FORWARDED_PORT:-${FRONTEND_FORWARDED_PORT:-3000}}"
+DATA_MODEL_FORWARDED_PORT="${PRODUCTION_REPLAY_DATA_MODEL_FORWARDED_PORT:-${DATA_MODEL_FORWARDED_PORT:-8080}}"
+INGESTION_FORWARDED_PORT="${PRODUCTION_REPLAY_INGESTION_FORWARDED_PORT:-${INGESTION_FORWARDED_PORT:-8081}}"
+DECISION_ENGINE_FORWARDED_PORT="${PRODUCTION_REPLAY_DECISION_ENGINE_FORWARDED_PORT:-${DECISION_ENGINE_FORWARDED_PORT:-8082}}"
 ALLOW_UNSAFE_INGESTION_HTTP_REPLAY="${PRODUCTION_REPLAY_ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-${ALLOW_UNSAFE_INGESTION_HTTP_REPLAY:-false}}"
 DURATION="${PRODUCTION_REPLAY_DURATION:-${DURATION:-}}"
 HOURS="${PRODUCTION_REPLAY_HOURS:-${HOURS:-}}"
@@ -54,6 +66,7 @@ SEED_SAMPLE_DIR="/tmp/fraud-data-local-seed-sample"
 SETUP_LOG="/tmp/fraud-data-local-setup.log"
 SEED_LOG="/tmp/fraud-data-local-seed.log"
 REPLAY_LOG="/tmp/fraud-data-local-replay.log"
+PUBLICATION_LOG="/tmp/fraud-data-local-publication.log"
 ASYNC_TRACKING_LOG="/tmp/fraud-data-local-async-decisions.ndjson"
 ASYNC_CALLBACK_LOG="/tmp/fraud-data-local-async-callbacks.ndjson"
 ASYNC_CALLBACK_SERVER_LOG="/tmp/fraud-data-local-callback-server.log"
@@ -62,6 +75,10 @@ ASYNC_BACKLOG_AFTER="/tmp/fraud-data-local-async-backlog-after.json"
 CALLBACK_SERVER_PID=""
 AUTO_CALLBACK_SERVER=0
 START_DECISION_WORKER=0
+POSTGRES_STARTUP_TIMEOUT="${PRODUCTION_REPLAY_POSTGRES_STARTUP_TIMEOUT:-1800}"
+DATA_MODEL_URL="http://127.0.0.1:$DATA_MODEL_FORWARDED_PORT"
+INGESTION_URL="http://127.0.0.1:$INGESTION_FORWARDED_PORT"
+DECISION_ENGINE_URL="http://127.0.0.1:$DECISION_ENGINE_FORWARDED_PORT"
 
 if [[ -z "$LIVE_DECISION_MODE" ]]; then
   if [[ "$DECISION_MODE" == "async" ]]; then
@@ -99,7 +116,7 @@ compose() {
 capture_async_backlog() {
   local output_path="$1"
   local label="$2"
-  local url="http://127.0.0.1:8082/v1/tenants/$TENANT_ID/async-decision-executions/status-summary"
+  local url="$DECISION_ENGINE_URL/v1/tenants/$TENANT_ID/async-decision-executions/status-summary"
   if ! curl --fail --silent --show-error "$url" >"$output_path"; then
     : >"$output_path"
     printf 'warning: unable to read async decision backlog %s replay\n' "$label" >&2
@@ -117,6 +134,24 @@ print(
     + " ".join(f"{key}={summary.get(key, 0)}" for key in ("pending", "queued", "running", "completed", "failed"))
 )
 PY
+}
+
+capture_fact_runtime_metrics() {
+  local output_dir="$1"
+  local label="$2"
+  local ingestion_output="$output_dir/ingestion-aggregate-fact-metrics-$label.json"
+  local decision_output="$output_dir/decision-runtime-metrics-$label.json"
+  mkdir -p "$output_dir"
+  if ! curl --fail --silent --show-error \
+    "$INGESTION_URL/v1/admin/aggregate-fact-metrics" >"$ingestion_output"; then
+    : >"$ingestion_output"
+    printf 'warning: unable to capture ingestion aggregate-fact metrics at %s\n' "$label" >&2
+  fi
+  if ! curl --fail --silent --show-error \
+    "$DECISION_ENGINE_URL/v1/admin/runtime-metrics" >"$decision_output"; then
+    : >"$decision_output"
+    printf 'warning: unable to capture decision runtime metrics at %s\n' "$label" >&2
+  fi
 }
 
 normalize_multiplier() {
@@ -163,6 +198,64 @@ wait_for_service() {
   exit 1
 }
 
+wait_for_postgres() {
+  local elapsed=0
+  local container_id
+  local health
+
+  printf 'Waiting for PostgreSQL to finish startup or crash recovery...\n'
+  while [[ "$elapsed" -lt "$POSTGRES_STARTUP_TIMEOUT" ]]; do
+    if compose exec -T postgres pg_isready -U fraud -d fraud >/dev/null 2>&1; then
+      container_id="$(compose ps -q postgres)"
+      health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}healthy{{end}}' "$container_id" 2>/dev/null || true)"
+      if [[ "$health" == "healthy" ]]; then
+        printf 'PostgreSQL is ready\n'
+        return
+      fi
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+    if (( elapsed % 30 == 0 )); then
+      printf 'PostgreSQL is still recovering after %ss; continuing to wait...\n' "$elapsed"
+    fi
+  done
+
+  printf 'error: PostgreSQL did not become ready within %ss\n' "$POSTGRES_STARTUP_TIMEOUT" >&2
+  compose logs --tail 100 postgres >&2 || true
+  exit 1
+}
+
+print_effective_postgres_settings() {
+  printf 'Effective PostgreSQL runtime settings:\n'
+  compose exec -T postgres psql -U fraud -d fraud -At -c "
+    SELECT name || '=' || current_setting(name)
+    FROM unnest(ARRAY[
+      'synchronous_commit',
+      'max_wal_size',
+      'min_wal_size',
+      'checkpoint_timeout',
+      'checkpoint_completion_target',
+      'wal_compression',
+      'shared_buffers',
+      'bgwriter_lru_maxpages'
+    ]) AS settings(name);
+  "
+}
+
+print_effective_valkey_settings() {
+  local appendonly
+  local appendfsync
+  local save_schedule
+  appendonly="$(compose exec -T valkey valkey-cli --raw CONFIG GET appendonly | sed -n '2p')"
+  appendfsync="$(compose exec -T valkey valkey-cli --raw CONFIG GET appendfsync | sed -n '2p')"
+  save_schedule="$(compose exec -T valkey valkey-cli --raw CONFIG GET save | sed -n '2p')"
+  if [[ -z "$save_schedule" ]]; then
+    save_schedule="disabled"
+  fi
+  printf 'Effective Valkey runtime settings: appendonly=%s appendfsync=%s save=%s\n' \
+    "$appendonly" "$appendfsync" "$save_schedule"
+}
+
 require_command curl
 require_command docker
 require_command python3
@@ -172,8 +265,8 @@ if [[ -n "$ENV_FILE" && ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-if [[ -z "$TENANT_ID" ]]; then
-  printf 'error: TENANT_ID is required; pass TENANT_ID=<existing-tenant-id> to make production-replay\n' >&2
+if [[ "$REUSE_EXISTING_SETUP" == "true" && -z "$TENANT_ID" ]]; then
+  printf 'error: TENANT_ID is required when REUSE_EXISTING_SETUP=true\n' >&2
   exit 1
 fi
 
@@ -181,8 +274,12 @@ if [[ ! -d "$DATA_ROOT" ]]; then
   printf 'error: fraud data directory does not exist: %s\n' "$DATA_ROOT" >&2
   exit 1
 fi
-if [[ ! -d "$SEED_DATA_ROOT" ]]; then
+if [[ "$SKIP_SEED" != "true" && ! -d "$SEED_DATA_ROOT" ]]; then
   printf 'error: fraud seed data directory does not exist: %s\n' "$SEED_DATA_ROOT" >&2
+  exit 1
+fi
+if [[ -n "$PROFILE_INPUT" && ! -f "$PROFILE_INPUT" ]]; then
+  printf 'error: replay profile input does not exist: %s\n' "$PROFILE_INPUT" >&2
   exit 1
 fi
 
@@ -236,12 +333,51 @@ if [[ ! "$SEED_REQUEST_TIMEOUT" =~ ^[0-9]+([.][0-9]+)?$ || "$SEED_REQUEST_TIMEOU
   printf 'error: SEED_REQUEST_TIMEOUT must be a positive number; got %s\n' "$SEED_REQUEST_TIMEOUT" >&2
   exit 1
 fi
+if [[ ! "$AGGREGATE_FACT_BACKFILL_TIMEOUT" =~ ^[0-9]+([.][0-9]+)?$ || "$AGGREGATE_FACT_BACKFILL_TIMEOUT" =~ ^0+([.]0+)?$ ]]; then
+  printf 'error: AGGREGATE_FACT_BACKFILL_TIMEOUT must be a positive number; got %s\n' "$AGGREGATE_FACT_BACKFILL_TIMEOUT" >&2
+  exit 1
+fi
+if [[ ! "$PUBLICATION_TIMEOUT" =~ ^[0-9]+([.][0-9]+)?$ || "$PUBLICATION_TIMEOUT" =~ ^0+([.]0+)?$ ]]; then
+  printf 'error: PUBLICATION_TIMEOUT must be a positive number; got %s\n' "$PUBLICATION_TIMEOUT" >&2
+  exit 1
+fi
+if [[ -n "$SEED_START_TIME" || -n "$SEED_END_TIME" ]]; then
+  if [[ -z "$SEED_START_TIME" || -z "$SEED_END_TIME" ]]; then
+    printf 'error: SEED_START_TIME and SEED_END_TIME must be supplied together\n' >&2
+    exit 1
+  fi
+fi
+if [[ "$PUBLISH_RULES_AFTER_SEED" != "true" && "$PUBLISH_RULES_AFTER_SEED" != "false" ]]; then
+  printf 'error: PUBLISH_RULES_AFTER_SEED must be true or false; got %s\n' "$PUBLISH_RULES_AFTER_SEED" >&2
+  exit 1
+fi
+if [[ "$PUBLISH_RULES_AFTER_SEED" == "true" && "$SKIP_SEED" == "true" ]]; then
+  printf 'error: PUBLISH_RULES_AFTER_SEED=true requires a seed phase\n' >&2
+  exit 1
+fi
+if [[ "$PUBLISH_RULES_AFTER_SEED" == "true" && "$REUSE_EXISTING_SETUP" == "true" ]]; then
+  printf 'error: PUBLISH_RULES_AFTER_SEED=true requires a fresh model-only setup; REUSE_EXISTING_SETUP must be false\n' >&2
+  exit 1
+fi
 if [[ "$REUSE_EXISTING_SETUP" != "true" && "$REUSE_EXISTING_SETUP" != "false" ]]; then
   printf 'error: REUSE_EXISTING_SETUP must be true or false; got %s\n' "$REUSE_EXISTING_SETUP" >&2
   exit 1
 fi
 if [[ "$REUSE_EXISTING_SEED" != "true" && "$REUSE_EXISTING_SEED" != "false" ]]; then
   printf 'error: REUSE_EXISTING_SEED must be true or false; got %s\n' "$REUSE_EXISTING_SEED" >&2
+  exit 1
+fi
+if [[ "$SKIP_SEED" != "true" && "$SKIP_SEED" != "false" ]]; then
+  printf 'error: SKIP_SEED must be true or false; got %s\n' "$SKIP_SEED" >&2
+  exit 1
+fi
+
+if [[ "$PRESERVE_RUNNING_VALKEY" != "true" && "$PRESERVE_RUNNING_VALKEY" != "false" ]]; then
+  printf 'error: PRESERVE_RUNNING_VALKEY must be true or false; got %s\n' "$PRESERVE_RUNNING_VALKEY" >&2
+  exit 1
+fi
+if [[ "$SKIP_SEED" == "true" && "$REUSE_EXISTING_SEED" == "true" ]]; then
+  printf 'error: SKIP_SEED=true cannot be combined with REUSE_EXISTING_SEED=true\n' >&2
   exit 1
 fi
 if [[ "$REUSE_EXISTING_SEED" == "true" && "$REUSE_EXISTING_SETUP" != "true" ]]; then
@@ -273,7 +409,8 @@ if [[ "$DECISION_MODE" == "sync" && "$LIVE_DECISION_MODE" == "async_only" ]]; th
   printf 'set LIVE_DECISION_MODE=sync in the selected Docker environment file for a real synchronous run.\n' >&2
   exit 1
 fi
-NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${LIVE_ASYNC_OBJECT_TYPES,,},"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="$(printf '%s' "$LIVE_ASYNC_OBJECT_TYPES" | tr '[:upper:]' '[:lower:]')"
+NORMALIZED_LIVE_ASYNC_OBJECT_TYPES=",${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES},"
 NORMALIZED_LIVE_ASYNC_OBJECT_TYPES="${NORMALIZED_LIVE_ASYNC_OBJECT_TYPES//[[:space:]]/}"
 if [[ "$DECISION_MODE" == "sync" && "$NORMALIZED_LIVE_ASYNC_OBJECT_TYPES" == *",transactions,"* ]]; then
   printf 'error: refusing a mislabeled sync replay because LIVE_ASYNC_OBJECT_TYPES includes transactions.\n' >&2
@@ -311,6 +448,12 @@ if [[ ! "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" =~ ^[0-9]+$ ]]; then
   printf 'error: AGGREGATE_QUERY_CONCURRENCY_LIMIT must be zero or a positive integer; got %s\n' "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" >&2
   exit 1
 fi
+for forwarded_port in "$FRONTEND_FORWARDED_PORT" "$DATA_MODEL_FORWARDED_PORT" "$INGESTION_FORWARDED_PORT" "$DECISION_ENGINE_FORWARDED_PORT"; do
+  if [[ ! "$forwarded_port" =~ ^[0-9]+$ ]] || (( forwarded_port < 1 || forwarded_port > 65535 )); then
+    printf 'error: forwarded ports must be integers from 1 through 65535; got %s\n' "$forwarded_port" >&2
+    exit 1
+  fi
+done
 if [[ "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "true" && "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" != "false" ]]; then
   printf 'error: ALLOW_UNSAFE_INGESTION_HTTP_REPLAY must be true or false; got %s\n' "$ALLOW_UNSAFE_INGESTION_HTTP_REPLAY" >&2
   exit 1
@@ -342,8 +485,12 @@ else
 fi
 printf 'Replay tuning: rule_eval=%s scenario_eval=%s aggregate_remote=%s aggregate_query=%s read_db_max_conns=%s\n' \
   "$RULE_EVALUATION_CONCURRENCY" "$SCENARIO_EVALUATION_CONCURRENCY" "$AGGREGATE_REMOTE_CONCURRENCY_LIMIT" "$AGGREGATE_QUERY_CONCURRENCY_LIMIT" "$READ_DATABASE_MAX_CONNS"
-printf 'Seed configuration: data_root=%s batch_size=%s max_in_flight=%s request_timeout=%ss reuse_existing_setup=%s reuse_existing_seed=%s\n' \
-  "$SEED_DATA_ROOT" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
+if [[ "$SKIP_SEED" == "true" ]]; then
+  printf 'Seed configuration: skipped; replay records will be the only transaction history\n'
+else
+  printf 'Seed configuration: data_root=%s start=%s end=%s batch_size=%s max_in_flight=%s request_timeout=%ss backfill_timeout=%ss rules_after_seed=%s reuse_existing_setup=%s reuse_existing_seed=%s\n' \
+    "$SEED_DATA_ROOT" "${SEED_START_TIME:-all}" "${SEED_END_TIME:-all}" "$SEED_BATCH_SIZE" "$SEED_MAX_IN_FLIGHT" "$SEED_REQUEST_TIMEOUT" "$AGGREGATE_FACT_BACKFILL_TIMEOUT" "$PUBLISH_RULES_AFTER_SEED" "$REUSE_EXISTING_SETUP" "$REUSE_EXISTING_SEED"
+fi
 if [[ -n "$ENV_FILE" ]]; then
   printf 'Docker environment file: %s (service values are preserved unless explicitly overridden on the Make command line)\n' "$ENV_FILE"
 fi
@@ -389,7 +536,12 @@ export PRODUCTION_REPLAY_RULE_EVALUATION_CONCURRENCY="$RULE_EVALUATION_CONCURREN
 export PRODUCTION_REPLAY_SCENARIO_EVALUATION_CONCURRENCY="$SCENARIO_EVALUATION_CONCURRENCY"
 export PRODUCTION_REPLAY_AGGREGATE_REMOTE_CONCURRENCY_LIMIT="$AGGREGATE_REMOTE_CONCURRENCY_LIMIT"
 export PRODUCTION_REPLAY_AGGREGATE_QUERY_CONCURRENCY_LIMIT="$AGGREGATE_QUERY_CONCURRENCY_LIMIT"
+export DATA_MODEL_URL
+export INGESTION_URL
+export DECISION_ENGINE_URL
 compose up -d --no-build postgres
+wait_for_postgres
+print_effective_postgres_settings
 compose run --rm data-model-migrate
 compose run --rm ingestion-migrate
 compose run --rm decision-engine-migrate
@@ -406,11 +558,21 @@ SERVICES=(
   decision-engine-service
   data-model-worker
 )
-compose up -d --no-build "${SERVICES[@]}"
+if [[ "$PRESERVE_RUNNING_VALKEY" == "true" ]]; then
+  if [[ "$(compose exec -T valkey valkey-cli --raw PING 2>/dev/null || true)" != "PONG" ]]; then
+    printf 'error: PRESERVE_RUNNING_VALKEY=true requires an already-running healthy Valkey container\n' >&2
+    exit 1
+  fi
+  printf 'Preserving the running Valkey container; starting application services without dependencies...\n'
+  compose up -d --no-build --no-deps "${SERVICES[@]}"
+else
+  compose up -d --no-build "${SERVICES[@]}"
+fi
 
-wait_for_service "data-model-service" "http://127.0.0.1:8080/readyz"
-wait_for_service "ingestion-service" "http://127.0.0.1:8081/readyz"
-wait_for_service "decision-engine-service" "http://127.0.0.1:8082/readyz"
+wait_for_service "data-model-service" "$DATA_MODEL_URL/readyz"
+wait_for_service "ingestion-service" "$INGESTION_URL/readyz"
+wait_for_service "decision-engine-service" "$DECISION_ENGINE_URL/readyz"
+print_effective_valkey_settings
 
 if [[ ! -x "$VENV_DIR/bin/python" ]]; then
   printf 'Creating replay Python environment...\n'
@@ -459,17 +621,25 @@ fi
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SAMPLE_ARGS[@]}"
 
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample \
-    --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
-    --data-root "$SEED_DATA_ROOT" \
-    --reference-data-root "$DATA_ROOT" \
-    --output-dir "$SEED_SAMPLE_DIR" \
-    --output-manifest "$SEED_MANIFEST" \
-    --transactions all
+  if [[ "$SKIP_SEED" != "true" ]]; then
+    SEED_SAMPLE_ARGS=(
+      --base-manifest "$SCRIPT_DIR/manifests/fraud-data.json" \
+      --data-root "$SEED_DATA_ROOT" \
+      --reference-data-root "$DATA_ROOT" \
+      --output-dir "$SEED_SAMPLE_DIR" \
+      --output-manifest "$SEED_MANIFEST"
+    )
+    if [[ -n "$SEED_START_TIME" ]]; then
+      SEED_SAMPLE_ARGS+=(--start-time "$SEED_START_TIME" --end-time "$SEED_END_TIME")
+    else
+      SEED_SAMPLE_ARGS+=(--transactions all)
+    fi
+    PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay.local_sample "${SEED_SAMPLE_ARGS[@]}"
+  fi
 )
 
 if [[ "$REUSE_EXISTING_SETUP" == "true" ]]; then
-  printf 'Verifying the existing local replay tenant without changing its setup...\n'
+  printf 'Verifying the existing local replay tenant and repairing aggregate facts if needed...\n'
 else
   printf 'Creating a local replay tenant and loading reference data...\n'
 fi
@@ -478,12 +648,35 @@ fi
   SETUP_ARGS=(
     --manifest "$SMOKE_MANIFEST"
     --execute
-    --tenant-id "$TENANT_ID"
     --tenant-name "Local Production Replay Smoke Test"
-    --publication-timeout 900
+    --publication-timeout "$PUBLICATION_TIMEOUT"
+    --aggregate-fact-backfill-timeout "$AGGREGATE_FACT_BACKFILL_TIMEOUT"
   )
+  if [[ "$PUBLISH_RULES_AFTER_SEED" == "true" ]]; then
+    SETUP_ARGS+=(--defer-scenarios)
+  fi
   if [[ "$REUSE_EXISTING_SETUP" == "true" ]]; then
+    SETUP_ARGS+=(--tenant-id "$TENANT_ID")
     SETUP_ARGS+=(--reuse-existing)
+  elif [[ -n "$TENANT_ID" ]]; then
+    TENANT_LOOKUP_STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+      "$DATA_MODEL_URL/v1/tenants/$TENANT_ID")"
+    case "$TENANT_LOOKUP_STATUS" in
+      200)
+        SETUP_ARGS+=(--tenant-id "$TENANT_ID")
+        ;;
+      404)
+        printf 'Requested tenant %s does not exist; creating a new tenant with a server-generated ID.\n' "$TENANT_ID" >&2
+        ;;
+      *)
+        printf 'error: unable to verify requested tenant %s; data-model-service returned HTTP %s\n' \
+          "$TENANT_ID" "$TENANT_LOOKUP_STATUS" >&2
+        exit 1
+        ;;
+    esac
+  fi
+  if [[ -n "$PROFILE_INPUT" ]]; then
+    SETUP_ARGS+=(--profile-input "$PROFILE_INPUT")
   fi
   PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay setup "${SETUP_ARGS[@]}"
 ) | tee "$SETUP_LOG"
@@ -493,43 +686,75 @@ if [[ -z "$TENANT_ID" ]]; then
   printf 'error: setup completed without returning a tenant ID\n' >&2
   exit 1
 fi
-
-if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
-  printf 'Reusing the existing seed in tenant %s without performing seed writes...\n' "$TENANT_ID"
-else
-  printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
-fi
-(
-  cd "$BACKEND_DIR"
-  SEED_ARGS=(
-    --manifest "$SEED_MANIFEST"
-    --tenant-id "$TENANT_ID"
-    --timeout "$SEED_REQUEST_TIMEOUT"
-  )
-  if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
-    SEED_ARGS+=(--reuse-existing)
-  else
-    SEED_ARGS+=(
-      --execute
-      --batch-size "$SEED_BATCH_SIZE"
-      --max-in-flight "$SEED_MAX_IN_FLIGHT"
-      --progress-every "$SEED_PROGRESS_EVERY"
-    )
-  fi
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay seed "${SEED_ARGS[@]}"
-) | tee "$SEED_LOG"
-
-SEED_RUN_DIR="$(awk -F': ' '/^seed output:/ {print $2}' "$SEED_LOG" | tail -n 1)"
-if [[ -z "$SEED_RUN_DIR" || ! -f "$SEED_RUN_DIR/summary.json" ]]; then
-  printf 'error: transaction seed completed without a summary file\n' >&2
+SETUP_RUN_DIR="$(awk -F': ' '/^setup output:/ {print $2}' "$SETUP_LOG" | tail -n 1)"
+if [[ -z "$SETUP_RUN_DIR" || ! -f "$SETUP_RUN_DIR/profile.json" ]]; then
+  printf 'error: setup completed without a reusable source profile\n' >&2
   exit 1
+fi
+capture_fact_runtime_metrics "$SETUP_RUN_DIR" "before-seed"
+
+SEED_RUN_DIR=""
+if [[ "$SKIP_SEED" == "true" ]]; then
+  printf 'Skipping pre-seeding for tenant %s; replay will use its existing transaction history.\n' "$TENANT_ID"
+else
+  if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+    printf 'Reusing the existing seed in tenant %s without performing seed writes...\n' "$TENANT_ID"
+  else
+    printf 'Pre-seeding tenant %s with every transaction from %s (ingestion only, no decisions)...\n' "$TENANT_ID" "$SEED_DATA_ROOT"
+  fi
+  (
+    cd "$BACKEND_DIR"
+    SEED_ARGS=(
+      --manifest "$SEED_MANIFEST"
+      --tenant-id "$TENANT_ID"
+      --timeout "$SEED_REQUEST_TIMEOUT"
+    )
+    if [[ "$REUSE_EXISTING_SEED" == "true" ]]; then
+      SEED_ARGS+=(--reuse-existing)
+    else
+      SEED_ARGS+=(
+        --execute
+        --batch-size "$SEED_BATCH_SIZE"
+        --max-in-flight "$SEED_MAX_IN_FLIGHT"
+        --progress-every "$SEED_PROGRESS_EVERY"
+      )
+    fi
+    PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -u -m production_replay seed "${SEED_ARGS[@]}"
+  ) | tee "$SEED_LOG"
+
+  SEED_RUN_DIR="$(awk -F': ' '/^seed output:/ {print $2}' "$SEED_LOG" | tail -n 1)"
+  if [[ -z "$SEED_RUN_DIR" || ! -f "$SEED_RUN_DIR/summary.json" ]]; then
+    printf 'error: transaction seed completed without a summary file\n' >&2
+    exit 1
+  fi
+  capture_fact_runtime_metrics "$SEED_RUN_DIR" "after-seed"
+fi
+
+PUBLICATION_RUN_DIR=""
+if [[ "$PUBLISH_RULES_AFTER_SEED" == "true" ]]; then
+  printf 'Creating and publishing replay rules after the historical seed; index jobs and aggregate-fact backfills are timed separately...\n'
+  (
+    cd "$BACKEND_DIR"
+    PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -u -m production_replay publish \
+      --manifest "$SMOKE_MANIFEST" \
+      --execute \
+      --tenant-id "$TENANT_ID" \
+      --publication-timeout "$PUBLICATION_TIMEOUT" \
+      --aggregate-fact-backfill-timeout "$AGGREGATE_FACT_BACKFILL_TIMEOUT"
+  ) | tee "$PUBLICATION_LOG"
+  PUBLICATION_RUN_DIR="$(awk -F': ' '/^publication output:/ {print $2}' "$PUBLICATION_LOG" | tail -n 1)"
+  if [[ -z "$PUBLICATION_RUN_DIR" || ! -f "$PUBLICATION_RUN_DIR/summary.json" ]]; then
+    printf 'error: delayed rule publication completed without a timing summary\n' >&2
+    exit 1
+  fi
+  capture_fact_runtime_metrics "$PUBLICATION_RUN_DIR" "after-publication-and-backfill"
 fi
 
 printf 'Building the frontend for replay tenant %s...\n' "$TENANT_ID"
 export NEXT_PUBLIC_DATA_MODEL_TENANT_ID="$TENANT_ID"
 compose build frontend
 compose up -d --no-deps frontend
-printf 'Frontend is available at http://127.0.0.1:5118 for tenant %s\n' "$TENANT_ID"
+printf 'Frontend is available at http://127.0.0.1:%s for tenant %s\n' "$FRONTEND_FORWARDED_PORT" "$TENANT_ID"
 
 if [[ -n "$REPLAY_DURATION" ]]; then
   printf 'Replaying production-format transactions from the first %s of source time...\n' "$REPLAY_DURATION"
@@ -545,17 +770,20 @@ fi
 set +e
 (
   cd "$BACKEND_DIR"
-  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -m production_replay run \
-    --manifest "$SMOKE_MANIFEST" \
-    --execute \
-    --tenant-id "$TENANT_ID" \
-    --multiplier "$MULTIPLIER" \
-    --max-in-flight "$MAX_IN_FLIGHT" \
-    --checkpoint-every "$CHECKPOINT_EVERY" \
-    --decision-mode "$DECISION_MODE" \
-    --async-wait-timeout-ms "$ASYNC_WAIT_TIMEOUT_MS" \
-    --async-callback-url "$ASYNC_CALLBACK_URL" \
+  REPLAY_ARGS=(
+    --manifest "$SMOKE_MANIFEST"
+    --execute
+    --tenant-id "$TENANT_ID"
+    --multiplier "$MULTIPLIER"
+    --max-in-flight "$MAX_IN_FLIGHT"
+    --checkpoint-every "$CHECKPOINT_EVERY"
+    --decision-mode "$DECISION_MODE"
+    --async-wait-timeout-ms "$ASYNC_WAIT_TIMEOUT_MS"
+    --async-callback-url "$ASYNC_CALLBACK_URL"
     --async-tracking-output "$ASYNC_TRACKING_LOG"
+    --profile-input "$SETUP_RUN_DIR/profile.json"
+  )
+  PYTHONPATH=stress-tests "$VENV_DIR/bin/python" -u -m production_replay run "${REPLAY_ARGS[@]}"
 ) | tee "$REPLAY_LOG"
 REPLAY_STATUS="${PIPESTATUS[0]}"
 set -e
@@ -570,7 +798,37 @@ if [[ -z "$RUN_DIR" || ! -f "$RUN_DIR/summary.json" ]]; then
   printf 'error: replay completed without a summary file\n' >&2
   exit 1
 fi
-cp "$SEED_RUN_DIR/summary.json" "$RUN_DIR/seed-summary.json"
+capture_fact_runtime_metrics "$RUN_DIR" "after-replay"
+cp "$SETUP_RUN_DIR/ingestion-aggregate-fact-metrics-before-seed.json" "$RUN_DIR/" 2>/dev/null || true
+cp "$SETUP_RUN_DIR/decision-runtime-metrics-before-seed.json" "$RUN_DIR/" 2>/dev/null || true
+if [[ -n "$SEED_RUN_DIR" ]]; then
+  cp "$SEED_RUN_DIR/ingestion-aggregate-fact-metrics-after-seed.json" "$RUN_DIR/" 2>/dev/null || true
+  cp "$SEED_RUN_DIR/decision-runtime-metrics-after-seed.json" "$RUN_DIR/" 2>/dev/null || true
+fi
+if [[ "$SKIP_SEED" == "true" ]]; then
+  "$VENV_DIR/bin/python" - "$RUN_DIR/seed-summary.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+Path(sys.argv[1]).write_text(
+    json.dumps(
+        {
+            "status": "skipped",
+            "reason": "preseeding_disabled",
+            "records": 0,
+            "batches": 0,
+            "decision_requests": 0,
+        },
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+else
+  cp "$SEED_RUN_DIR/summary.json" "$RUN_DIR/seed-summary.json"
+fi
 
 "$VENV_DIR/bin/python" - "$RUN_DIR" <<'PY'
 import json
@@ -585,6 +843,7 @@ metadata = {
         "env_file": os.getenv("PRODUCTION_REPLAY_ENV_FILE") or None,
         "precedence": "make_command_line > env_file > process_environment > built_in_default",
         "transaction_offset": int(os.getenv("TRANSACTION_OFFSET", "0")),
+        "preseeding_skipped": os.getenv("PRODUCTION_REPLAY_SKIP_SEED") == "true",
     },
     "service_modes": {
         "request_decision_mode": os.getenv("DECISION_MODE"),
@@ -656,7 +915,11 @@ print(json.dumps(result, indent=2))
 PY
 
 printf '\nTenant: %s\n' "$TENANT_ID"
-printf 'Seed results: %s\n' "$SEED_RUN_DIR"
+if [[ "$SKIP_SEED" == "true" ]]; then
+  printf 'Seed results: skipped\n'
+else
+  printf 'Seed results: %s\n' "$SEED_RUN_DIR"
+fi
 printf 'Results: %s\n' "$RUN_DIR"
 if [[ "$REPLAY_STATUS" -ne 0 ]]; then
   exit "$REPLAY_STATUS"

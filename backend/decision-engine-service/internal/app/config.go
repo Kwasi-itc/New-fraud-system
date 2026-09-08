@@ -12,6 +12,8 @@ import (
 type Config struct {
 	Port                                string
 	DatabaseURL                         string
+	DatabaseMaxConns                    int32
+	DatabaseMinConns                    int32
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
 	TenantDataReadMode                  string
@@ -63,6 +65,7 @@ type Config struct {
 	OutboxQueueWorkers                  int
 	WorkerPollInterval                  time.Duration
 	WorkerBatchLimit                    int
+	AggregateFactRedisURL               string
 }
 
 const maxRuleEvaluationConcurrency = 64
@@ -190,13 +193,23 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	databaseMaxConns, err := getEnvInt("DATABASE_MAX_CONNS", 24)
+	if err != nil {
+		return Config{}, err
+	}
+	databaseMinConns, err := getEnvInt("DATABASE_MIN_CONNS", 4)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Port:                                getEnv("PORT", "8082"),
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
+		DatabaseMaxConns:                    int32(databaseMaxConns),
+		DatabaseMinConns:                    int32(databaseMinConns),
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
 		IngestionServiceURL:                 strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
-		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "ingestion_http")),
+		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "direct_db")),
 		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "disabled"),
 		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),
 		ServiceAllowedOrigins:               parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
@@ -209,7 +222,7 @@ func LoadConfig() (Config, error) {
 		GinMode:                             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:                   httpClientTimeout,
 		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
-		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count", "sum", "avg"}),
 		LiveDecisionMode:                    strings.ToLower(getEnv("LIVE_DECISION_MODE", "sync")),
 		LiveAsyncObjectTypes:                normalizeLowercaseList(parseCSVEnv("LIVE_ASYNC_OBJECT_TYPES", nil)),
 		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
@@ -245,10 +258,17 @@ func LoadConfig() (Config, error) {
 		OutboxQueueWorkers:                  outboxQueueWorkers,
 		WorkerPollInterval:                  workerPollInterval,
 		WorkerBatchLimit:                    workerBatchLimit,
+		AggregateFactRedisURL:               strings.TrimSpace(getEnv("AGGREGATE_FACT_REDIS_URL", "redis://localhost:6379/0")),
 	}
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
+	}
+	if cfg.DatabaseMaxConns <= 0 {
+		return Config{}, fmt.Errorf("DATABASE_MAX_CONNS must be greater than zero")
+	}
+	if cfg.DatabaseMinConns < 0 || cfg.DatabaseMinConns > cfg.DatabaseMaxConns {
+		return Config{}, fmt.Errorf("DATABASE_MIN_CONNS must be between zero and DATABASE_MAX_CONNS")
 	}
 	if cfg.DataModelServiceURL == "" {
 		return Config{}, fmt.Errorf("DATA_MODEL_SERVICE_URL is required")

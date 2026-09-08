@@ -12,6 +12,14 @@ type PoolConfig struct {
 	MinConns int32
 }
 
+type RuntimeSettings struct {
+	SynchronousCommit          string
+	MaxWALSize                 string
+	CheckpointTimeout          string
+	CheckpointCompletionTarget string
+	WALCompression             string
+}
+
 func NewPool(ctx context.Context, databaseURL string, poolCfg PoolConfig) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
@@ -35,4 +43,25 @@ func NewPool(ctx context.Context, databaseURL string, poolCfg PoolConfig) (*pgxp
 	}
 
 	return pool, nil
+}
+
+func ReadRuntimeSettings(ctx context.Context, pool *pgxpool.Pool) (RuntimeSettings, error) {
+	var settings RuntimeSettings
+	err := pool.QueryRow(ctx, `
+		SELECT current_setting('synchronous_commit'),
+		       current_setting('max_wal_size'),
+		       current_setting('checkpoint_timeout'),
+		       current_setting('checkpoint_completion_target'),
+		       current_setting('wal_compression')
+	`).Scan(
+		&settings.SynchronousCommit,
+		&settings.MaxWALSize,
+		&settings.CheckpointTimeout,
+		&settings.CheckpointCompletionTarget,
+		&settings.WALCompression,
+	)
+	if err != nil {
+		return RuntimeSettings{}, fmt.Errorf("read postgres runtime settings: %w", err)
+	}
+	return settings, nil
 }

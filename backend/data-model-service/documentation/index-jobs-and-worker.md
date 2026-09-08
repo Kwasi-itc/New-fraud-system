@@ -122,29 +122,27 @@ It is not part of the HTTP server process.
 
 If the worker is not running, pending jobs stay pending.
 
-## Polling Behavior
+## Queue Behavior
 
-The worker is poll-based, not cron-based.
+The worker consumes `index_jobs` through River. It is not a custom polling loop.
 
 Current config keys:
 
-- `INDEX_WORKER_POLL_INTERVAL`
 - `INDEX_WORKER_MAX_ATTEMPTS`
-- `INDEX_WORKER_RETRY_BASE_DELAY`
-- `INDEX_WORKER_RETRY_MAX_DELAY`
+- `INDEX_JOB_QUEUE_NAME`
+- `INDEX_JOB_QUEUE_WORKERS`
 
 Default values from config:
 
-- poll interval: `2s`
 - max attempts: `5`
-- retry base delay: `5s`
-- retry max delay: `2m`
+- queue name: `index_jobs`
+- concurrent queue workers: `4`
 
 That means:
 
-- the worker starts
-- it immediately tries to claim the next due pending job
-- if no job is available, it waits until the next poll tick
+- the HTTP service inserts a River job when index work is requested
+- the separate worker claims jobs from the configured queue
+- River owns queue polling and retry scheduling
 
 ## How A Job Gets Claimed
 
@@ -319,4 +317,3 @@ If a job remains pending well past the poll interval, check these first:
 4. the job does not have a future `scheduled_at`
 
 If all of those are true and the job is still pending, that is no longer an expected operational state and should be treated as a bug or an environment mismatch.
-

@@ -22,6 +22,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/redisfacts"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
 )
 
@@ -89,12 +90,16 @@ func main() {
 	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
 	slog.SetDefault(logger)
 
-	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
+	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
+		MaxConns: cfg.DatabaseMaxConns,
+		MinConns: cfg.DatabaseMinConns,
+	})
 	if err != nil {
 		logger.Error("failed to connect database", "error", err)
 		os.Exit(1)
 	}
 	defer db.Close()
+	app.LogPostgresRuntimeSettings(logger, db)
 
 	var txManager ports.TransactionManager = storepostgres.NewTransactionManager(db)
 	var scenarioRepo ports.ScenarioRepository = storepostgres.NewScenarioRepository(db)
@@ -122,6 +127,16 @@ func main() {
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	factReader, err := redisfacts.New(cfg.AggregateFactRedisURL)
+	if err != nil {
+		logger.Error("failed to initialize aggregate fact reader", "error", err)
+		os.Exit(1)
+	}
+	defer factReader.Close()
+	if err := factReader.Ping(context.Background()); err != nil {
+		logger.Warn("aggregate fact store is unavailable at startup; unmatched aggregates can use PostgreSQL, but fact-matched evaluations will fail until it recovers", "error", err)
+	}
+	tenantDataReader = tenantdata.NewAggregateFactReader(tenantDataReader, storepostgres.NewAggregateFactRegistry(db), factReader)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{

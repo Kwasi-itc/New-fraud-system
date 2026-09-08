@@ -133,6 +133,21 @@ func TestLoadConfigAllowsDirectDBTenantReadModeWithoutIngestionURL(t *testing.T)
 	}
 }
 
+func TestLoadConfigDefaultsToDirectDBTenantReadMode(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://example")
+	t.Setenv("DATA_MODEL_SERVICE_URL", "http://localhost:8080")
+	t.Setenv("INGESTION_SERVICE_URL", "")
+	t.Setenv("TENANT_DATA_READ_MODE", "")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if cfg.TenantDataReadMode != "direct_db" {
+		t.Fatalf("cfg.TenantDataReadMode = %q, want direct_db", cfg.TenantDataReadMode)
+	}
+}
+
 func TestLoadConfigRejectsUnsupportedTenantReadMode(t *testing.T) {
 	setRequiredConfigEnv(t)
 	t.Setenv("TENANT_DATA_READ_MODE", "something_else")
@@ -153,6 +168,25 @@ func TestSortedWorkerTasksUsesPriorityOrder(t *testing.T) {
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("got[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestLoadConfigDefaultsToAllSupportedPushdownAggregates(t *testing.T) {
+	setRequiredConfigEnv(t)
+	t.Setenv("AGGREGATE_PUSHDOWN_AGGREGATES", "")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	want := []string{"count", "sum", "avg"}
+	if len(cfg.AggregatePushdownAggregates) != len(want) {
+		t.Fatalf("aggregate pushdown defaults = %v, want %v", cfg.AggregatePushdownAggregates, want)
+	}
+	for i := range want {
+		if cfg.AggregatePushdownAggregates[i] != want[i] {
+			t.Fatalf("aggregate pushdown default %d = %q, want %q", i, cfg.AggregatePushdownAggregates[i], want[i])
 		}
 	}
 }

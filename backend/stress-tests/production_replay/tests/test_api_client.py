@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from unittest.mock import AsyncMock, patch
 
 import httpx
 
@@ -9,6 +10,29 @@ from production_replay.api_client import APIError, ServiceClients, ServiceConfig
 
 
 class APIClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_backfill_aggregate_facts_uses_admin_endpoint(self) -> None:
+        observed: dict[str, object] = {}
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            observed["method"] = request.method
+            observed["path"] = request.url.path
+            observed["force"] = request.url.params.get("force")
+            return httpx.Response(
+                200,
+                json={"aggregate_fact_backfill": {"rebuilt": True, "status": {"ready": True}}},
+            )
+
+        clients = ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision"))
+        await clients.ingestion.aclose()
+        clients.ingestion = httpx.AsyncClient(base_url="http://ingestion", transport=httpx.MockTransport(handler))
+        try:
+            response = await clients.backfill_aggregate_facts("tenant-1", force=True, timeout_seconds=60)
+        finally:
+            await clients.close()
+
+        self.assertEqual(observed, {"method": "POST", "path": "/v1/admin/tenants/tenant-1/aggregate-facts/backfill", "force": "true"})
+        self.assertTrue(response["aggregate_fact_backfill"]["status"]["ready"])
+
     async def test_ingestion_retry_reuses_the_same_idempotency_key(self) -> None:
         attempts = 0
         observed_keys: list[str | None] = []
@@ -49,6 +73,45 @@ class APIClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("ReadTimeout", str(ctx.exception))
         self.assertIn("POST /v1/test failed:", str(ctx.exception))
+
+    async def test_batch_fact_retry_waits_long_enough_for_in_progress_request(self) -> None:
+        attempts = 0
+        retry_notices: list[tuple[int, float]] = []
+
+        async def handler(_request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            if attempts < 5:
+                return httpx.Response(
+                    503,
+                    json={
+                        "error": {
+                            "code": "aggregate_fact_unavailable",
+                            "message": "still in progress",
+                        }
+                    },
+                )
+            return httpx.Response(200, json={"results": [{"object_id": "tx"}]})
+
+        clients = ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision"))
+        await clients.ingestion.aclose()
+        clients.ingestion = httpx.AsyncClient(base_url="http://ingestion", transport=httpx.MockTransport(handler))
+        try:
+            with patch("production_replay.api_client.asyncio.sleep", new=AsyncMock()) as sleep:
+                response = await clients.ingest_batch(
+                    "tenant",
+                    "transactions",
+                    [{"object_id": "tx"}],
+                    "stable-key",
+                    retry_notice=lambda attempt, delay, _error: retry_notices.append((attempt, delay)),
+                )
+        finally:
+            await clients.close()
+
+        self.assertEqual(response["results"][0]["object_id"], "tx")
+        self.assertEqual(attempts, 5)
+        self.assertEqual(retry_notices, [(2, 1.0), (3, 2.0), (4, 4.0), (5, 8.0)])
+        self.assertEqual(sleep.await_count, 4)
 
     async def test_record_ingested_sends_request_mode_and_async_options(self) -> None:
         observed_request: dict[str, object] = {}

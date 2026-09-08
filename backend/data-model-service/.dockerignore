@@ -10,6 +10,7 @@
 **/.vscode
 **/.bin
 **/.cache
+**/.gocache
 **/*.*proj.user
 **/*.dbmdl
 **/*.jfm

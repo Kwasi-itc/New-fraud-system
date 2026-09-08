@@ -19,6 +19,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )
@@ -46,6 +47,16 @@ type DecisionEvaluationResult struct {
 type MultiScenarioEvaluationResult struct {
 	ObjectID string                     `json:"object_id"`
 	Results  []DecisionEvaluationResult `json:"results"`
+}
+
+// scenarioPersistencePlan defers the writes produced by one scenario so that
+// EvaluateAllLiveScenarios can persist every applicable scenario in one
+// transaction after their read-only evaluations have completed in parallel.
+type scenarioPersistencePlan struct {
+	begin    func()
+	persist  func(ctx context.Context, store ports.MutationStore) error
+	complete func(txTimings *ports.TransactionTimings) DecisionEvaluationResult
+	fail     func(err error)
 }
 
 const decisionEvaluationCacheTTL = 30 * time.Second
@@ -136,13 +147,14 @@ type decisionCacheStatsSnapshot struct {
 }
 
 type DecisionRuntimeMetrics struct {
-	Cache             DecisionCacheMetrics      `json:"cache"`
-	DBPool            *DBPoolStats              `json:"db_pool,omitempty"`
-	Pressure          DecisionRuntimePressure   `json:"pressure"`
-	AggregatePushdown AggregatePushdownMetrics  `json:"aggregate_pushdown"`
-	BroadReadHelpers  BroadReadHelperMetrics    `json:"broad_read_helpers"`
-	TenantDataReads   TenantDataReadMetrics     `json:"tenant_data_reads"`
-	Evaluation        DecisionEvaluationMetrics `json:"evaluation"`
+	Cache             DecisionCacheMetrics            `json:"cache"`
+	DBPool            *DBPoolStats                    `json:"db_pool,omitempty"`
+	Pressure          DecisionRuntimePressure         `json:"pressure"`
+	AggregatePushdown AggregatePushdownMetrics        `json:"aggregate_pushdown"`
+	AggregateFacts    tenantdata.AggregateFactMetrics `json:"aggregate_facts"`
+	BroadReadHelpers  BroadReadHelperMetrics          `json:"broad_read_helpers"`
+	TenantDataReads   TenantDataReadMetrics           `json:"tenant_data_reads"`
+	Evaluation        DecisionEvaluationMetrics       `json:"evaluation"`
 }
 
 type DecisionRuntimePressure struct {
@@ -348,7 +360,7 @@ func (s DecisionService) EvaluateScenario(
 	defer func() {
 		s.evaluationMetrics.recordSingle(time.Since(startedAt), result.Triggered, err)
 	}()
-	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), asteval.NewAggregateResultCache(), s.clock.Now())
+	return s.evaluateScenario(ctx, tenantID, scenarioID, req, asteval.NewEvaluationCache(), asteval.NewAggregateResultCache(), s.clock.Now(), nil)
 }
 
 func (s DecisionService) evaluateScenario(
@@ -358,6 +370,7 @@ func (s DecisionService) evaluateScenario(
 	evalCache *asteval.EvaluationCache,
 	aggregateCache *asteval.AggregateResultCache,
 	evaluationNow time.Time,
+	deferredPersistence *scenarioPersistencePlan,
 ) (result DecisionEvaluationResult, err error) {
 	timingStartedAt := time.Now()
 	stageStartedAt := timingStartedAt
@@ -370,10 +383,7 @@ func (s DecisionService) evaluateScenario(
 		timings[stage+"_us"] = now.Sub(stageStartedAt).Microseconds()
 		stageStartedAt = now
 	}
-	defer func() {
-		if err == nil {
-			return
-		}
+	logFailure := func(evaluationErr error) {
 		timings[currentStage+"_failed_us"] = time.Since(stageStartedAt).Microseconds()
 		logDecisionEvaluationTimings(
 			tenantID,
@@ -391,11 +401,16 @@ func (s DecisionService) evaluateScenario(
 			append(
 				[]any{
 					"failed_stage", currentStage,
-					"error", err.Error(),
+					"error", evaluationErr.Error(),
 				},
 				append(cacheStatsAttrs(s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)), s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...)...,
 			)...,
 		)
+	}
+	defer func() {
+		if err != nil {
+			logFailure(err)
+		}
 	}()
 
 	scn, err := s.getScenario(ctx, tenantID, scenarioID)
@@ -576,9 +591,11 @@ func (s DecisionService) evaluateScenario(
 	var storedScreeningExecs []screening.Execution
 	var storedScoringReqs []scoring.Request
 	var outboxEventCount int
-	txTimings := &ports.TransactionTimings{}
-	currentStage = "tx_begin"
-	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+	beginPersistence := func() {
+		currentStage = "tx_begin"
+		stageStartedAt = time.Now()
+	}
+	persist := func(persistenceCtx context.Context, store ports.MutationStore) error {
 		txStartedAt := time.Now()
 		txStageStartedAt := txStartedAt
 		markTxTiming := func(stage string) {
@@ -589,46 +606,46 @@ func (s DecisionService) evaluateScenario(
 
 		var err error
 		currentStage = "tx_decision_insert"
-		stored, err = store.Decisions().Create(ctx, item)
+		stored, err = store.Decisions().Create(persistenceCtx, item)
 		if err != nil {
 			return err
 		}
 		markTxTiming("decision_insert")
 		currentStage = "tx_rule_exec_insert"
-		storedExecs, err = store.RuleExecutions().CreateMany(ctx, ruleExecs)
+		storedExecs, err = store.RuleExecutions().CreateMany(persistenceCtx, ruleExecs)
 		if err != nil {
 			return err
 		}
 		markTxTiming("rule_exec_insert")
 		currentStage = "tx_workflow_insert"
-		storedWorkflowExecs, err = store.WorkflowExecutions().CreateMany(ctx, workflowExecs)
+		storedWorkflowExecs, err = store.WorkflowExecutions().CreateMany(persistenceCtx, workflowExecs)
 		if err != nil {
 			return err
 		}
 		for _, item := range storedWorkflowExecs {
-			if err := s.workflowExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := s.workflowExecutionEnqueuer.EnqueueTx(persistenceCtx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
 				return err
 			}
 		}
 		markTxTiming("workflow_insert")
 		currentStage = "tx_screening_insert"
-		storedScreeningExecs, err = store.ScreeningExecutions().CreateMany(ctx, screeningExecs)
+		storedScreeningExecs, err = store.ScreeningExecutions().CreateMany(persistenceCtx, screeningExecs)
 		if err != nil {
 			return err
 		}
 		for _, item := range storedScreeningExecs {
-			if err := s.screeningExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := s.screeningExecutionEnqueuer.EnqueueTx(persistenceCtx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
 				return err
 			}
 		}
 		markTxTiming("screening_insert")
 		currentStage = "tx_scoring_insert"
-		storedScoringReqs, err = store.ScoringRequests().CreateMany(ctx, scoringReqs)
+		storedScoringReqs, err = store.ScoringRequests().CreateMany(persistenceCtx, scoringReqs)
 		if err != nil {
 			return err
 		}
 		for _, item := range storedScoringReqs {
-			if err := s.scoringRequestEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := s.scoringRequestEnqueuer.EnqueueTx(persistenceCtx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
 				return err
 			}
 		}
@@ -641,10 +658,10 @@ func (s DecisionService) evaluateScenario(
 		outboxEventCount = len(outboxEvents)
 		markTxTiming("outbox_build")
 		currentStage = "tx_outbox_insert"
-		storedOutboxEvents, err := store.OutboxEvents().CreateMany(ctx, outboxEvents)
+		storedOutboxEvents, err := store.OutboxEvents().CreateMany(persistenceCtx, outboxEvents)
 		if err == nil {
 			for _, item := range storedOutboxEvents {
-				if enqueueErr := s.outboxEventEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); enqueueErr != nil {
+				if enqueueErr := s.outboxEventEnqueuer.EnqueueTx(persistenceCtx, store.RawTx(), item.TenantID, item.ID, nil); enqueueErr != nil {
 					return enqueueErr
 				}
 			}
@@ -652,36 +669,53 @@ func (s DecisionService) evaluateScenario(
 		markTxTiming("outbox_insert")
 		timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
 		return err
+	}
+	completePersistence := func(txTimings *ports.TransactionTimings) DecisionEvaluationResult {
+		timings["tx_begin_us"] = txTimings.BeginMicros
+		timings["tx_manager_body_us"] = txTimings.BodyMicros
+		timings["tx_commit_us"] = txTimings.CommitMicros
+		timings["tx_total_us"] = timings["tx_body_total_us"] + txTimings.BeginMicros + txTimings.CommitMicros
+		currentStage = "complete"
+		logDecisionEvaluationTimings(
+			tenantID,
+			scenarioID,
+			req,
+			timings,
+			timingStartedAt,
+			true,
+			len(rules),
+			len(storedExecs),
+			len(storedWorkflowExecs),
+			len(storedScreeningExecs),
+			len(storedScoringReqs),
+			outboxEventCount,
+			append(cacheStatsAttrs(s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)), s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...)...,
+		)
+
+		return DecisionEvaluationResult{
+			Triggered:      true,
+			Decision:       &stored,
+			RuleExecutions: storedExecs,
+		}
+	}
+
+	if deferredPersistence != nil {
+		deferredPersistence.begin = beginPersistence
+		deferredPersistence.persist = persist
+		deferredPersistence.complete = completePersistence
+		deferredPersistence.fail = logFailure
+		return DecisionEvaluationResult{Triggered: true}, nil
+	}
+
+	txTimings := &ports.TransactionTimings{}
+	beginPersistence()
+	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+		return persist(ctx, store)
 	})
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
-	timings["tx_begin_us"] = txTimings.BeginMicros
-	timings["tx_manager_body_us"] = txTimings.BodyMicros
-	timings["tx_commit_us"] = txTimings.CommitMicros
-	currentStage = "tx_total"
-	markTiming("tx_total")
-	logDecisionEvaluationTimings(
-		tenantID,
-		scenarioID,
-		req,
-		timings,
-		timingStartedAt,
-		true,
-		len(rules),
-		len(storedExecs),
-		len(storedWorkflowExecs),
-		len(storedScreeningExecs),
-		len(storedScoringReqs),
-		outboxEventCount,
-		append(cacheStatsAttrs(s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)), s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...)...,
-	)
-
-	return DecisionEvaluationResult{
-		Triggered:      true,
-		Decision:       &stored,
-		RuleExecutions: storedExecs,
-	}, nil
+	return completePersistence(txTimings), nil
 }
 
 func logDecisionEvaluationTimings(
@@ -1412,6 +1446,7 @@ func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
 		DBPool:            dbPool,
 		Pressure:          buildDecisionRuntimePressure(dbPool, aggregateMetrics),
 		AggregatePushdown: aggregateMetrics,
+		AggregateFacts:    tenantdata.AggregateFactMetricsSnapshot(),
 		BroadReadHelpers: BroadReadHelperMetrics{
 			RejectedCount:          broadReadSnapshot.RejectedCount,
 			RejectedByFunctionName: broadReadSnapshot.RejectedByFunctionName,
@@ -2076,6 +2111,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		ObjectID: req.ObjectID,
 		Results:  make([]DecisionEvaluationResult, len(scenarios)),
 	}
+	persistencePlans := make([]scenarioPersistencePlan, len(scenarios))
 	evalCache := asteval.NewEvaluationCache()
 	aggregateCache := asteval.NewAggregateResultCache()
 	evaluationNow := s.clock.Now()
@@ -2086,7 +2122,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		i := i
 		scn := scn
 		group.Go(func() error {
-			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, evaluationNow)
+			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, evaluationNow, &persistencePlans[i])
 			if err != nil {
 				return err
 			}
@@ -2094,8 +2130,44 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 			return nil
 		})
 	}
-	if err := group.Wait(); err != nil {
+	if err = group.Wait(); err != nil {
 		return MultiScenarioEvaluationResult{}, err
+	}
+
+	persistenceCount := 0
+	for i := range persistencePlans {
+		if persistencePlans[i].persist != nil {
+			persistenceCount++
+		}
+	}
+	if persistenceCount > 0 {
+		txTimings := &ports.TransactionTimings{}
+		failedPlanIndex := -1
+		err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+			for i := range persistencePlans {
+				plan := &persistencePlans[i]
+				if plan.persist == nil {
+					continue
+				}
+				plan.begin()
+				if persistErr := plan.persist(ctx, store); persistErr != nil {
+					failedPlanIndex = i
+					return persistErr
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			if failedPlanIndex >= 0 && persistencePlans[failedPlanIndex].fail != nil {
+				persistencePlans[failedPlanIndex].fail(err)
+			}
+			return MultiScenarioEvaluationResult{}, err
+		}
+		for i := range persistencePlans {
+			if persistencePlans[i].complete != nil {
+				results.Results[i] = persistencePlans[i].complete(txTimings)
+			}
+		}
 	}
 	if hasCacheStats {
 		cacheDelta := s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)

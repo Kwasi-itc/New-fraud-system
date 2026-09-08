@@ -282,7 +282,7 @@ Add a new executable:
 
 - `cmd/worker/main.go`
 
-Recommended first implementation:
+Historical first implementation proposal (superseded by the River migration):
 
 - polling worker, not River
 
@@ -309,7 +309,7 @@ Recommended support package:
 
 Add worker-specific config to `internal/app/config.go`.
 
-Potential settings:
+Settings proposed by this historical poller design:
 
 - `INDEX_WORKER_ENABLED`
 - `INDEX_WORKER_POLL_INTERVAL`
@@ -322,6 +322,11 @@ You may keep the HTTP server and worker as separate commands for clarity:
 - `cmd/worker`
 
 Do not combine them into one process initially.
+
+The implemented worker now uses River. Its effective settings are
+`INDEX_WORKER_MAX_ATTEMPTS`, `INDEX_JOB_QUEUE_NAME`, and
+`INDEX_JOB_QUEUE_WORKERS`; the proposed poll interval and batch-size settings
+were never runtime configuration.
 
 ## 10. HTTP API Additions
 

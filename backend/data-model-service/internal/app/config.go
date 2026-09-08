@@ -22,6 +22,14 @@ type Config struct {
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
+	indexWorkerMaxAttempts, err := getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5)
+	if err != nil {
+		return Config{}, err
+	}
+	indexJobQueueWorkers, err := getEnvInt("INDEX_JOB_QUEUE_WORKERS", 4)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Port:                   getEnv("PORT", "8080"),
@@ -31,9 +39,9 @@ func LoadConfig() (Config, error) {
 		ServiceAllowedOrigins:  getEnvCSV("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		LogLevel:               getEnv("LOG_LEVEL", "info"),
 		GinMode:                getEnv("GIN_MODE", "debug"),
-		IndexWorkerMaxAttempts: getEnvInt("INDEX_WORKER_MAX_ATTEMPTS", 5),
+		IndexWorkerMaxAttempts: indexWorkerMaxAttempts,
 		IndexJobQueueName:      getEnv("INDEX_JOB_QUEUE_NAME", "index_jobs"),
-		IndexJobQueueWorkers:   getEnvInt("INDEX_JOB_QUEUE_WORKERS", 4),
+		IndexJobQueueWorkers:   indexJobQueueWorkers,
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -41,6 +49,9 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
+	}
+	if cfg.IndexWorkerMaxAttempts <= 0 {
+		return Config{}, fmt.Errorf("INDEX_WORKER_MAX_ATTEMPTS must be greater than zero")
 	}
 	if cfg.IndexJobQueueWorkers <= 0 {
 		return Config{}, fmt.Errorf("INDEX_JOB_QUEUE_WORKERS must be greater than zero")
@@ -60,16 +71,16 @@ func getEnv(key, fallback string) string {
 	return value
 }
 
-func getEnvInt(key string, fallback int) int {
+func getEnvInt(key string, fallback int) (int, error) {
 	value := os.Getenv(key)
 	if value == "" {
-		return fallback
+		return fallback, nil
 	}
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be an integer: %w", key, err)
 	}
-	return parsed
+	return parsed, nil
 }
 
 func getEnvCSV(key string, fallback []string) []string {

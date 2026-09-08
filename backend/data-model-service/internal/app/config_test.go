@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -38,6 +39,17 @@ func TestLoadConfigRejectsInvalidQueueWorkers(t *testing.T) {
 	_, err := LoadConfig()
 	if err == nil {
 		t.Fatal("expected invalid queue worker error")
+	}
+}
+
+func TestLoadConfigRejectsNonNumericWorkerSetting(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://example")
+	t.Setenv("SERVICE_AUTH_MODE", "disabled")
+	t.Setenv("INDEX_WORKER_MAX_ATTEMPTS", "many")
+
+	_, err := LoadConfig()
+	if err == nil || !strings.Contains(err.Error(), "INDEX_WORKER_MAX_ATTEMPTS must be an integer") {
+		t.Fatalf("LoadConfig() error = %v, want invalid integer error", err)
 	}
 }
 

@@ -71,6 +71,10 @@ type IdempotencyKey struct {
 	RequestHash     string
 	ResponseKind    string
 	ResponsePayload []byte
+	FactMarker      *string
+	FactManifest    *string
+	FactStatus      *string
+	FactUpdatedAt   *time.Time
 	CreatedAt       time.Time
 }
 

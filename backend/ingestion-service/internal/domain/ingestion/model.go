@@ -25,15 +25,18 @@ type ObjectSchema struct {
 }
 
 type FieldSchema struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	DataType    string
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	EnumValues  []EnumValue
+	ID                          uuid.UUID
+	Name                        string
+	Description                 string
+	DataType                    string
+	Nullable                    bool
+	IsEnum                      bool
+	IsUnique                    bool
+	Archived                    bool
+	EnumValues                  []EnumValue
+	DistributionCategory        string
+	ClassificationSource        string
+	ClassificationPolicyVersion string
 }
 
 type EnumValue struct {

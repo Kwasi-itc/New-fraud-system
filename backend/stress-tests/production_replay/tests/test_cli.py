@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from production_replay.cli import _seed, _setup, build_parser
+from production_replay.cli import _load_profile, _seed, _setup, build_parser
 
 
 class CLITests(unittest.TestCase):
@@ -41,6 +41,57 @@ class CLITests(unittest.TestCase):
         )
         self.assertTrue(args.reuse_existing)
 
+    def test_profile_input_is_reused_after_fingerprint_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profile.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "profile_version": 1,
+                        "source_fingerprint": "source-1",
+                        "transactions": {
+                            "row_count": 1,
+                            "earliest": "2026-07-01T00:00:00Z",
+                            "latest": "2026-07-01T00:00:00Z",
+                            "average_events_per_second": 1,
+                            "p95_events_per_second": 1,
+                            "p99_events_per_second": 1,
+                            "peak_events_per_second": 1,
+                        },
+                        "reference_data": {
+                            "merchants": {"unique_keys": 1},
+                            "merchant_products": {"unique_keys": 1},
+                            "staff": {"source_rows": 1},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = SimpleNamespace(source_fingerprint=lambda: "source-1")
+
+            profile = _load_profile(str(path), manifest)  # type: ignore[arg-type]
+
+            self.assertEqual(profile["transactions"]["row_count"], 1)
+
+    def test_profile_input_rejects_changed_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profile.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "profile_version": 1,
+                        "source_fingerprint": "old-source",
+                        "transactions": {},
+                        "reference_data": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = SimpleNamespace(source_fingerprint=lambda: "current-source")
+
+            with self.assertRaisesRegex(ValueError, "fingerprint does not match"):
+                _load_profile(str(path), manifest)  # type: ignore[arg-type]
+
 
 class SetupReuseTests(unittest.IsolatedAsyncioTestCase):
     async def test_reuse_verifies_without_running_environment_setup(self) -> None:
@@ -67,6 +118,21 @@ class SetupReuseTests(unittest.IsolatedAsyncioTestCase):
             ) -> dict[str, object]:
                 self.requests.append((method, path))
                 return {"tenant": {"name": "Existing Replay"}}
+
+            async def backfill_aggregate_facts(
+                self,
+                tenant_id: str,
+                *,
+                timeout_seconds: float,
+            ) -> dict[str, object]:
+                self.requests.append(("BACKFILL", tenant_id))
+                self.assert_timeout = timeout_seconds
+                return {
+                    "aggregate_fact_backfill": {
+                        "rebuilt": False,
+                        "status": {"ready": True},
+                    }
+                }
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -99,7 +165,10 @@ class SetupReuseTests(unittest.IsolatedAsyncioTestCase):
                 )
 
             self.assertEqual(result, 0)
-            self.assertEqual(clients.requests, [("GET", "/v1/tenants/tenant-1")])
+            self.assertEqual(
+                clients.requests,
+                [("GET", "/v1/tenants/tenant-1"), ("BACKFILL", "tenant-1")],
+            )
             verify.assert_awaited_once()
             environment_setup.assert_not_called()
             setup_files = list((root / "runs").glob("setup-*/setup.json"))

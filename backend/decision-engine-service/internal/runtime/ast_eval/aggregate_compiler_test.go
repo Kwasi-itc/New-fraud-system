@@ -116,8 +116,8 @@ func TestCompileAggregateQueryResolvesPayloadAndTimeValues(t *testing.T) {
 	if result.Query.Field != "amount" {
 		t.Fatalf("query field = %q, want amount", result.Query.Field)
 	}
-	if result.Query.Filter == nil || len(result.Query.Filter.Children) != 2 {
-		t.Fatalf("query filter = %#v, want two AND children", result.Query.Filter)
+	if result.Query.Filter == nil || len(result.Query.Filter.Children) != 3 {
+		t.Fatalf("query filter = %#v, want three AND children", result.Query.Filter)
 	}
 	if got := result.Query.Filter.Children[0].Value; got != "customer-1" {
 		t.Fatalf("first filter value = %#v, want customer-1", got)
@@ -126,6 +126,14 @@ func TestCompileAggregateQueryResolvesPayloadAndTimeValues(t *testing.T) {
 		t.Fatalf("second filter value type = %T, want time.Time", result.Query.Filter.Children[1].Value)
 	} else if !got.Equal(now.Add(-24 * time.Hour)) {
 		t.Fatalf("second filter value = %v, want %v", got, now.Add(-24*time.Hour))
+	}
+	if result.Query.Filter.Children[1].Op != "gt" {
+		t.Fatalf("rolling lower-bound op = %q, want gt", result.Query.Filter.Children[1].Op)
+	}
+	if got := result.Query.Filter.Children[2]; got.Field != "created_at" || got.Op != "lte" {
+		t.Fatalf("upper filter = %#v, want created_at <= payload timestamp", got)
+	} else if upper, ok := got.Value.(string); !ok || upper != now.Format(time.RFC3339) {
+		t.Fatalf("upper filter value = %#v, want payload timestamp", got.Value)
 	}
 }
 

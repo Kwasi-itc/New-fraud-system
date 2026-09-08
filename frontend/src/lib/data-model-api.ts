@@ -63,6 +63,10 @@ export type CreateFieldRequest = {
   is_enum?: boolean;
   is_unique?: boolean;
   enum_values?: CreateFieldEnumValueRequest[];
+  distribution_category?: DistributionCategory;
+  classification_source?: "default" | "manual" | "sample";
+  classification_policy_version?: string;
+  classification_evidence?: Record<string, unknown>;
 };
 
 export type UpdateFieldRequest = {
@@ -70,6 +74,35 @@ export type UpdateFieldRequest = {
   nullable?: boolean;
   is_enum?: boolean;
   is_unique?: boolean;
+  distribution_category?: DistributionCategory;
+  classification_source?: "default" | "manual" | "sample";
+  classification_policy_version?: string;
+  classification_evidence?: Record<string, unknown>;
+};
+
+export type DistributionCategory =
+  | "unknown"
+  | "few_value_dominated"
+  | "highly_distributed"
+  | "unique_or_near_unique";
+
+export type DistributionAnalysis = {
+  policy_version: string;
+  suggested_category: DistributionCategory;
+  reason: string;
+  rows_analyzed: number;
+  non_null_rows: number;
+  null_percentage: number;
+  distinct_values: number;
+  distinct_to_non_null_ratio: number;
+  largest_value_share: number;
+  top_2_share: number;
+  top_5_share: number;
+  top_10_share: number;
+  effective_entity_count: number;
+  expected_same_value_rows: number;
+  frequency_bands: Record<string, number>;
+  truncated: boolean;
 };
 
 export type CreateLinkRequest = {
@@ -143,6 +176,10 @@ export type Field = {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  distribution_category: DistributionCategory;
+  classification_source: "default" | "manual" | "sample";
+  classification_policy_version: string;
+  classification_evidence?: Record<string, unknown>;
 };
 
 export type AssembledField = {
@@ -155,6 +192,10 @@ export type AssembledField = {
   is_unique: boolean;
   archived: boolean;
   enum_values: FieldEnumValue[];
+  distribution_category: DistributionCategory;
+  classification_source: "default" | "manual" | "sample";
+  classification_policy_version: string;
+  classification_evidence?: Record<string, unknown>;
 };
 
 export type AssembledLink = {
@@ -231,6 +272,10 @@ export type PortableFieldDocument = {
   is_enum: boolean;
   is_unique: boolean;
   enum_values: CreateFieldEnumValueRequest[];
+  distribution_category?: DistributionCategory;
+  classification_source?: "default" | "manual" | "sample";
+  classification_policy_version?: string;
+  classification_evidence?: Record<string, unknown>;
 };
 
 export type PortableTableOptionsDocument = {
@@ -388,6 +433,24 @@ export const dataModelApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  analyzeDistributionSample: async (file: File, column: string) => {
+    const form = new FormData();
+    form.set("file", file);
+    form.set("column", column);
+    const headers = new Headers({ Accept: "application/json" });
+    if (serviceToken) {
+      headers.set("Authorization", `Bearer ${serviceToken}`);
+    }
+    const response = await fetch(
+      `${resolveServiceUrl(configuredServiceBaseUrl, 8080)}/v1/distribution/analyze-sample`,
+      { method: "POST", body: form, headers }
+    );
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => null)) as ApiErrorEnvelope | null;
+      throw new Error(errorBody?.error.message ?? `Request failed with status ${response.status}`);
+    }
+    return (await response.json()) as { analysis: DistributionAnalysis };
+  },
   deleteField: async (fieldId: string) =>
     apiFetch<void>(`/v1/fields/${fieldId}`, {
       method: "DELETE",

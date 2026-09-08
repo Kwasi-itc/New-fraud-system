@@ -84,15 +84,20 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 			fieldByID[field.ID] = field
 			assembledTable := result.Tables[table.Name]
 			assembledTable.Fields[field.Name] = datamodel.AssembledField{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  []datamodel.FieldEnumValue{},
+				ID:                          field.ID,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    field.DataType,
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        field.DistributionCategory,
+				ClassificationSource:        field.ClassificationSource,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				ClassifiedAt:                field.ClassifiedAt,
+				Archived:                    field.Archived,
+				EnumValues:                  []datamodel.FieldEnumValue{},
 			}
 			if field.IsEnum {
 				enumValues, err := r.fieldEnumValueRepository.ListByField(ctx, field.ID)

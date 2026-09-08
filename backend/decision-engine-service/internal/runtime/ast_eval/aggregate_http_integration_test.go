@@ -248,13 +248,24 @@ func TestAggregateHTTPPushdownResolvesTimeWindowFilters(t *testing.T) {
 	if value != true {
 		t.Fatalf("EvaluateNode() = %#v, want true", value)
 	}
-	if got.Filter == nil || len(got.Filter.Children) != 1 {
-		t.Fatalf("got filter = %#v, want single child", got.Filter)
+	if got.Filter == nil || len(got.Filter.Children) != 2 {
+		t.Fatalf("got filter = %#v, want lower and payload-time upper bounds", got.Filter)
+	}
+	if got.Filter.Children[0].Op != "gt" {
+		t.Fatalf("lower-bound operator = %q, want gt", got.Filter.Children[0].Op)
 	}
 	if gotValue, ok := got.Filter.Children[0].Value.(string); !ok {
 		t.Fatalf("got filter value type = %T, want string", got.Filter.Children[0].Value)
 	} else if gotValue != now.Add(-24*time.Hour).Format(time.RFC3339) {
 		t.Fatalf("got filter value = %q, want %q", gotValue, now.Add(-24*time.Hour).Format(time.RFC3339))
+	}
+	if got.Filter.Children[1].Op != "lte" {
+		t.Fatalf("upper-bound operator = %q, want lte", got.Filter.Children[1].Op)
+	}
+	if gotValue, ok := got.Filter.Children[1].Value.(string); !ok {
+		t.Fatalf("got upper filter value type = %T, want string", got.Filter.Children[1].Value)
+	} else if gotValue != now.Format(time.RFC3339) {
+		t.Fatalf("got upper filter value = %q, want %q", gotValue, now.Format(time.RFC3339))
 	}
 }
 

@@ -266,7 +266,7 @@ class TransactionChain:
                         "transactions",
                         event.fields,
                         idempotency_key,
-                        max_attempts=3,
+                        max_attempts=10,
                     )
                     ingestion_response_received_at = _now_iso()
                     ingestion_latency_ms = (time.perf_counter() - ingestion_started) * 1_000

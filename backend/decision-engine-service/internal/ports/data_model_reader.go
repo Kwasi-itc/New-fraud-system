@@ -24,8 +24,12 @@ type TenantModelTable struct {
 }
 
 type TenantModelField struct {
-	Name string
-	Type string
+	Name                        string
+	Type                        string
+	DistributionCategory        string
+	ClassificationSource        string
+	ClassificationPolicyVersion string
+	ExpectedSameValueRows       float64
 }
 
 type TenantModelLink struct {
@@ -41,4 +45,18 @@ type DataModelReader interface {
 	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
 	RetryIndexJob(ctx context.Context, jobID string) error
+}
+
+type FieldDistributionSuggestion struct {
+	SuggestedCategory     string
+	Reason                string
+	RowsAnalyzed          int64
+	NonNullRows           int64
+	DistinctValues        int64
+	ExpectedSameValueRows float64
+	PolicyVersion         string
+}
+
+type DistributionSuggestionReader interface {
+	AnalyzeStoredField(ctx context.Context, tenantID, tableName, fieldName string) (FieldDistributionSuggestion, error)
 }

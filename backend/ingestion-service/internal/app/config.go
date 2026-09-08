@@ -27,7 +27,6 @@ type Config struct {
 	GinMode                         string
 	HTTPClientTimeout               time.Duration
 	AggregateQueryTimeout           time.Duration
-	WorkerPollInterval              time.Duration
 	WorkerMaxAttempts               int
 	UploadLogQueueName              string
 	UploadLogQueueWorkers           int
@@ -41,10 +40,22 @@ type Config struct {
 	RequestQueueDepthThreshold      int
 	ServiceCPUThresholdPct          int
 	UpstreamTimeoutRateThresholdPct int
+	AggregateFactRedisURL           string
 }
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
+	if err := validateIntegerEnv(
+		"DATABASE_MAX_CONNS", "DATABASE_MIN_CONNS",
+		"READ_DATABASE_MAX_CONNS", "READ_DATABASE_MIN_CONNS",
+		"WORKER_DATABASE_MAX_CONNS", "WORKER_DATABASE_MIN_CONNS",
+		"WORKER_MAX_ATTEMPTS", "UPLOAD_LOG_QUEUE_WORKERS", "DEFERRED_INGEST_QUEUE_WORKERS",
+		"WRITE_PATH_CONCURRENCY_LIMIT", "READ_QUERY_CONCURRENCY_LIMIT", "AGGREGATE_QUERY_CONCURRENCY_LIMIT",
+		"DB_POOL_SATURATION_THRESHOLD_PCT", "REQUEST_QUEUE_DEPTH_THRESHOLD",
+		"SERVICE_CPU_THRESHOLD_PCT", "UPSTREAM_TIMEOUT_RATE_THRESHOLD_PCT",
+	); err != nil {
+		return Config{}, err
+	}
 
 	httpClientTimeout, err := getEnvDuration("HTTP_CLIENT_TIMEOUT", 10*time.Second)
 	if err != nil {
@@ -58,8 +69,8 @@ func LoadConfig() (Config, error) {
 	cfg := Config{
 		Port:                            getEnv("PORT", "8081"),
 		DatabaseURL:                     os.Getenv("DATABASE_URL"),
-		DatabaseMaxConns:                getEnvInt("DATABASE_MAX_CONNS", 0),
-		DatabaseMinConns:                getEnvInt("DATABASE_MIN_CONNS", 0),
+		DatabaseMaxConns:                getEnvInt("DATABASE_MAX_CONNS", 12),
+		DatabaseMinConns:                getEnvInt("DATABASE_MIN_CONNS", 2),
 		ReadDatabaseURL:                 os.Getenv("READ_DATABASE_URL"),
 		ReadDatabaseMaxConns:            getEnvInt("READ_DATABASE_MAX_CONNS", 0),
 		ReadDatabaseMinConns:            getEnvInt("READ_DATABASE_MIN_CONNS", 0),
@@ -79,7 +90,7 @@ func LoadConfig() (Config, error) {
 		UploadLogQueueWorkers:           getEnvInt("UPLOAD_LOG_QUEUE_WORKERS", 4),
 		DeferredIngestQueueName:         getEnv("DEFERRED_INGEST_QUEUE_NAME", "deferred_ingests"),
 		DeferredIngestQueueWorkers:      getEnvInt("DEFERRED_INGEST_QUEUE_WORKERS", 4),
-		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 800),
+		WritePathConcurrencyLimit:       getEnvInt("WRITE_PATH_CONCURRENCY_LIMIT", 100000),
 		WritePathOverloadMode:           strings.ToLower(strings.TrimSpace(getEnv("WRITE_PATH_OVERLOAD_MODE", "defer_async"))),
 		ReadQueryConcurrencyLimit:       getEnvInt("READ_QUERY_CONCURRENCY_LIMIT", 64),
 		AggregateQueryConcurrencyLimit:  getEnvInt("AGGREGATE_QUERY_CONCURRENCY_LIMIT", 16),
@@ -87,13 +98,8 @@ func LoadConfig() (Config, error) {
 		RequestQueueDepthThreshold:      getEnvInt("REQUEST_QUEUE_DEPTH_THRESHOLD", 8),
 		ServiceCPUThresholdPct:          getEnvInt("SERVICE_CPU_THRESHOLD_PCT", 80),
 		UpstreamTimeoutRateThresholdPct: getEnvInt("UPSTREAM_TIMEOUT_RATE_THRESHOLD_PCT", 5),
+		AggregateFactRedisURL:           strings.TrimSpace(getEnv("AGGREGATE_FACT_REDIS_URL", "redis://localhost:6379/0")),
 	}
-	workerPollInterval, err := getEnvDuration("WORKER_POLL_INTERVAL", 5*time.Second)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.WorkerPollInterval = workerPollInterval
-
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
@@ -221,6 +227,19 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func validateIntegerEnv(keys ...string) error {
+	for _, key := range keys {
+		value := strings.TrimSpace(os.Getenv(key))
+		if value == "" {
+			continue
+		}
+		if _, err := strconv.Atoi(value); err != nil {
+			return fmt.Errorf("%s must be an integer: %w", key, err)
+		}
+	}
+	return nil
 }
 
 func loadDotEnvIfPresent() {

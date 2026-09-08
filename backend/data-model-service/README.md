@@ -4,7 +4,7 @@ Standalone Go service for tenant-aware data model management, extracted from Mar
 
 Current location in the workspace:
 
-- `new/backend/data-model-service`
+- `backend/data-model-service`
 
 This service is intended to be used by another fraud platform as a dedicated schema-management module. It owns metadata, per-tenant physical PostgreSQL schemas, schema mutation workflows, and supporting operational tooling.
 
@@ -61,13 +61,17 @@ Optional local tooling:
 
 This service now supports both styles:
 
-- plain `go run` from the service root because the app loads `.env` locally
+- copy `.env.example` to `.env`, then use plain `go run` from the service root
 - `mise exec -- ...` if you want the same workflow style used by `api/`
+
+The service-local Compose stack runs metadata migrations before starting the
+API and index worker. It is independent from the root full-platform Compose
+stack and is intended for isolated data-model development.
 
 ## Project layout
 
 ```text
-new/backend/data-model-service/
+backend/data-model-service/
   cmd/
     migrate/                 metadata migration runner
     reconcile/              schema drift report CLI

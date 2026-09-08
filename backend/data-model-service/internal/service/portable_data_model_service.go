@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"sort"
@@ -44,13 +45,17 @@ type PortableTable struct {
 }
 
 type PortableField struct {
-	Name        string
-	Description string
-	DataType    string
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	EnumValues  []CreateFieldEnumValueSeed
+	Name                        string
+	Description                 string
+	DataType                    string
+	Nullable                    bool
+	IsEnum                      bool
+	IsUnique                    bool
+	DistributionCategory        string
+	ClassificationSource        string
+	ClassificationPolicyVersion string
+	ClassificationEvidence      json.RawMessage
+	EnumValues                  []CreateFieldEnumValueSeed
 }
 
 type PortableTableOptions struct {
@@ -159,13 +164,17 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 				return lhs.SortOrder - rhs.SortOrder
 			})
 			fields = append(fields, PortableField{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    string(field.DataType),
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    string(field.DataType),
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        string(field.DistributionCategory),
+				ClassificationSource:        string(field.ClassificationSource),
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				EnumValues:                  enumValues,
 			})
 		}
 
@@ -297,15 +306,27 @@ func (s PortableDataModelService) Import(ctx context.Context, tenantID uuid.UUID
 			if err != nil {
 				return result, fmt.Errorf("parse field %s.%s data type: %w", table.Name, field.Name, err)
 			}
+			category, err := datamodel.ParseDistributionCategory(field.DistributionCategory)
+			if err != nil {
+				return result, fmt.Errorf("parse field %s.%s distribution category: %w", table.Name, field.Name, err)
+			}
+			source, err := datamodel.ParseClassificationSource(field.ClassificationSource, category)
+			if err != nil {
+				return result, fmt.Errorf("parse field %s.%s classification source: %w", table.Name, field.Name, err)
+			}
 			createdField, err := s.fieldService.Create(ctx, CreateFieldInput{
-				TableID:     createdTable.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    dataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  field.EnumValues,
+				TableID:                     createdTable.ID,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    dataType,
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        category,
+				ClassificationSource:        source,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				EnumValues:                  field.EnumValues,
 			})
 			if err != nil {
 				return result, fmt.Errorf("create field %s.%s: %w", table.Name, field.Name, err)
@@ -480,6 +501,19 @@ func validatePortableDocument(document PortableDataModelDocument) error {
 				return fmt.Errorf("duplicate field name %s on table %s", field.Name, table.Name)
 			}
 			fieldNames[fieldName] = struct{}{}
+			if _, err := datamodel.ParseDataType(field.DataType); err != nil {
+				return fmt.Errorf("parse field %s.%s data type: %w", table.Name, field.Name, err)
+			}
+			category, err := datamodel.ParseDistributionCategory(field.DistributionCategory)
+			if err != nil {
+				return fmt.Errorf("parse field %s.%s distribution category: %w", table.Name, field.Name, err)
+			}
+			if _, err := datamodel.ParseClassificationSource(field.ClassificationSource, category); err != nil {
+				return fmt.Errorf("parse field %s.%s classification source: %w", table.Name, field.Name, err)
+			}
+			if len(field.ClassificationEvidence) > 0 && !json.Valid(field.ClassificationEvidence) {
+				return fmt.Errorf("classification evidence for field %s.%s must be valid JSON", table.Name, field.Name)
+			}
 		}
 		fieldNamesByTable[tableName] = fieldNames
 	}

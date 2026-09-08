@@ -4,7 +4,7 @@ Standalone Go service for tenant-aware data ingestion, extracted from Marble's i
 
 Current location in the workspace:
 
-- `new/backend/ingestion-service`
+- `backend/ingestion-service`
 
 This service is intended to own record intake, validation against the published data model, upsert behavior into tenant data stores, batch ingestion orchestration, and downstream event publication for monitoring workflows.
 
@@ -129,7 +129,7 @@ The current webhook subsystem is outbound delivery only. It is not the ingestion
 ## Project layout
 
 ```text
-new/backend/ingestion-service/
+backend/ingestion-service/
   cmd/
     server/                 HTTP service entrypoint
     worker/                 batch ingestion worker
@@ -224,6 +224,19 @@ Current idempotency behavior:
 - duplicate key with identical payload replays the original successful response
 - duplicate key with different payload is rejected as key reuse
 - replayed results include `replayed: true`
+
+## Aggregate-fact backfill
+
+Valkey aggregate facts can be rebuilt from the authoritative tenant tables in PostgreSQL:
+
+- `GET /v1/admin/tenants/:tenantId/aggregate-facts/status`
+- `POST /v1/admin/tenants/:tenantId/aggregate-facts/backfill`
+
+The backfill is deliberately blocking for fact-enabled ingestion. It marks the current fact generations dirty, rebuilds every active definition, publishes complete historical coverage, reconciles PostgreSQL idempotency receipts, and only then makes the facts readable again. A rule that is configured to use a fact does not silently fall back to PostgreSQL while that generation is dirty or incomplete; the request fails explicitly until coverage is trustworthy.
+
+If PostgreSQL contains rows but Valkey coverage is missing, normal ingestion now fails with `aggregate_fact_unavailable` until this backfill succeeds. This prevents a memory-only Valkey restart from silently treating an incomplete cache as complete. `force=true` can be supplied to rebuild an otherwise ready tenant.
+
+The response includes per-definition dimensions, group/key counts, and elapsed time as well as whole-run totals. Production replay setup normally calls the endpoint automatically. Its delayed-publication experiment instead seeds with no facts, publishes rules and builds indexes, then forces and times the historical backfill before replay begins.
 
 ## Aggregate Query Support
 

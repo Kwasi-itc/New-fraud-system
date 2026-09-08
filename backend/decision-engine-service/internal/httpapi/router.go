@@ -51,6 +51,7 @@ type RouterConfig struct {
 	ScreeningDispatchQueueName          string
 	ScoringDispatchQueueName            string
 	OutboxQueueName                     string
+	AggregateFactBuckets                tenantdata.AggregateFactBucketReader
 }
 
 type uuidGenerator struct{}
@@ -93,7 +94,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	router.Use(gin.Recovery())
 	registerDocsRoutes(router)
 
-	healthHandler := handlers.NewHealthHandler(logger, db)
+	readinessDependencies := make([]handlers.ReadinessDependency, 0, 1)
+	if pinger, ok := cfg.AggregateFactBuckets.(handlers.ReadinessPinger); ok {
+		readinessDependencies = append(readinessDependencies, handlers.ReadinessDependency{
+			Name:   "aggregate_fact_store",
+			Pinger: pinger,
+		})
+	}
+	healthHandler := handlers.NewHealthHandler(logger, db, readinessDependencies...)
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
 
@@ -126,6 +134,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	var recordTagRepo ports.RecordTagRepository
 	var riskRepo ports.RiskSnapshotRepository
 	var ipFlagRepo ports.IPFlagRepository
+	var factRegistry ports.AggregateFactRegistry
 	var scheduledEnqueuer riverjobs.ScheduledExecutionEnqueuer = riverjobs.NoopScheduledExecutionEnqueuer{}
 	var asyncEnqueuer riverjobs.AsyncDecisionExecutionEnqueuer = riverjobs.NoopAsyncDecisionExecutionEnqueuer{}
 	var asyncCallbackEnqueuer riverjobs.AsyncDecisionExecutionCallbackEnqueuer = riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{}
@@ -161,6 +170,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		recordTagRepo = storepostgres.NewRecordTagRepository(db)
 		riskRepo = storepostgres.NewRiskSnapshotRepository(db)
 		ipFlagRepo = storepostgres.NewIPFlagRepository(db)
+		factRegistry = storepostgres.NewAggregateFactRegistry(db)
 		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
 		scheduledEnqueuer = riverjobs.NewRiverScheduledExecutionEnqueuer(riverClient, max(1, cfg.ScheduledExecutionMaxAttempts), cfg.ScheduledExecutionQueueName)
 		asyncEnqueuer = riverjobs.NewRiverAsyncDecisionExecutionEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionQueueName)
@@ -172,12 +182,16 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader = tenantdata.NewAggregateFactReader(tenantDataReader, factRegistry, cfg.AggregateFactBuckets)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)
 	validationService := service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
+	if db != nil {
+		publicationService.SetAggregateFactRegistry(factRegistry)
+	}
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
 	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)

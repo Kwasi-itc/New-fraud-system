@@ -61,11 +61,24 @@ async def seed_transactions(
     pending: set[asyncio.Task[int]] = set()
 
     async def submit(batch: SeedBatch) -> int:
+        def report_retry(next_attempt: int, delay_seconds: float, error: APIError) -> None:
+            code = None
+            if isinstance(error.response_body, dict):
+                detail = error.response_body.get("error")
+                if isinstance(detail, dict) and isinstance(detail.get("code"), str):
+                    code = detail["code"]
+            print(
+                f"seed retry: batch {batch.number}, attempt {next_attempt}, "
+                f"waiting {delay_seconds:g}s after {code or error.status_code or 'transport error'}",
+                flush=True,
+            )
+
         response = await clients.ingest_batch(
             tenant_id,
             "transactions",
             batch.records,
             _batch_idempotency_key(tenant_id, batch.object_ids),
+            retry_notice=report_retry,
         )
         results = response.get("results")
         if not isinstance(results, list) or len(results) != len(batch.records):

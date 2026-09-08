@@ -187,6 +187,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	tenantSchemaMigrationHandler := handlers.NewTenantSchemaMigrationHandler(service.NewTenantSchemaMigrationService(tenantSchemaMigrationRepository))
 	indexJobHandler := handlers.NewIndexJobHandler(indexJobService)
 	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db, indexJobEnqueuer))
+	distributionAnalysisHandler := handlers.NewDistributionAnalysisHandler(service.NewDistributionAnalysisService(), storepostgres.NewDistributionSampleRepository(db))
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{
@@ -200,6 +201,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/data-model", dataModelHandler.GetDataModel)
 	v1.GET("/tenants/:tenantId/data-model/export", dataModelHandler.ExportDataModel)
 	v1.POST("/tenants/:tenantId/data-model/import", dataModelHandler.ImportDataModel)
+	v1.POST("/distribution/analyze-sample", distributionAnalysisHandler.AnalyzeSample)
+	v1.POST("/tenants/:tenantId/distribution/analyze-stored", distributionAnalysisHandler.AnalyzeStored)
 	v1.GET("/tenants/:tenantId/tables", dataModelHandler.ListTables)
 	v1.POST("/tenants/:tenantId/tables", dataModelHandler.CreateTable)
 	v1.GET("/tables/:tableId/fields", dataModelHandler.ListFields)

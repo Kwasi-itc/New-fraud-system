@@ -221,15 +221,29 @@ func (h DataModelHandler) CreateField(c *gin.Context) {
 		writeBadRequest(c, err.Error())
 		return
 	}
+	distributionCategory, err := datamodel.ParseDistributionCategory(request.DistributionCategory)
+	if err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
+	classificationSource, err := datamodel.ParseClassificationSource(request.ClassificationSource, distributionCategory)
+	if err != nil {
+		writeBadRequest(c, err.Error())
+		return
+	}
 	field, err := h.fieldService.Create(c.Request.Context(), service.CreateFieldInput{
-		TableID:     tableID,
-		Name:        request.Name,
-		Description: request.Description,
-		DataType:    dataType,
-		Nullable:    request.Nullable,
-		IsEnum:      request.IsEnum,
-		IsUnique:    request.IsUnique,
-		EnumValues:  adaptCreateFieldEnumValueSeeds(request.EnumValues),
+		TableID:                     tableID,
+		Name:                        request.Name,
+		Description:                 request.Description,
+		DataType:                    dataType,
+		Nullable:                    request.Nullable,
+		IsEnum:                      request.IsEnum,
+		IsUnique:                    request.IsUnique,
+		DistributionCategory:        distributionCategory,
+		ClassificationSource:        classificationSource,
+		ClassificationPolicyVersion: request.ClassificationPolicyVersion,
+		ClassificationEvidence:      request.ClassificationEvidence,
+		EnumValues:                  adaptCreateFieldEnumValueSeeds(request.EnumValues),
 	})
 	if err != nil {
 		writeError(c, err)
@@ -260,12 +274,38 @@ func (h DataModelHandler) UpdateField(c *gin.Context) {
 		writeBadRequest(c, err.Error())
 		return
 	}
+	var distributionCategory *datamodel.DistributionCategory
+	if request.DistributionCategory != nil {
+		parsed, err := datamodel.ParseDistributionCategory(*request.DistributionCategory)
+		if err != nil {
+			writeBadRequest(c, err.Error())
+			return
+		}
+		distributionCategory = &parsed
+	}
+	var classificationSource *datamodel.ClassificationSource
+	if request.ClassificationSource != nil {
+		category := datamodel.DistributionUnknown
+		if distributionCategory != nil {
+			category = *distributionCategory
+		}
+		parsed, err := datamodel.ParseClassificationSource(*request.ClassificationSource, category)
+		if err != nil {
+			writeBadRequest(c, err.Error())
+			return
+		}
+		classificationSource = &parsed
+	}
 	field, err := h.fieldService.Update(c.Request.Context(), service.UpdateFieldInput{
-		FieldID:     fieldID,
-		Description: request.Description,
-		Nullable:    request.Nullable,
-		IsEnum:      request.IsEnum,
-		IsUnique:    request.IsUnique,
+		FieldID:                     fieldID,
+		Description:                 request.Description,
+		Nullable:                    request.Nullable,
+		IsEnum:                      request.IsEnum,
+		IsUnique:                    request.IsUnique,
+		DistributionCategory:        distributionCategory,
+		ClassificationSource:        classificationSource,
+		ClassificationPolicyVersion: request.ClassificationPolicyVersion,
+		ClassificationEvidence:      request.ClassificationEvidence,
 	})
 	if err != nil {
 		writeError(c, err)
@@ -629,13 +669,17 @@ func adaptPortableDocument(document service.PortableDataModelDocument) dto.Porta
 				}
 			}
 			fields[j] = dto.PortableFieldDocument{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    field.DataType,
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        field.DistributionCategory,
+				ClassificationSource:        field.ClassificationSource,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				EnumValues:                  enumValues,
 			}
 		}
 		navigationOptions := make([]dto.PortableNavigationOptionDocument, len(table.NavigationOptions))
@@ -704,13 +748,17 @@ func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) servic
 				}
 			}
 			fields[j] = service.PortableField{
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    field.DataType,
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				EnumValues:  enumValues,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    field.DataType,
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        field.DistributionCategory,
+				ClassificationSource:        field.ClassificationSource,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				EnumValues:                  enumValues,
 			}
 		}
 		navigationOptions := make([]service.PortableNavigationOption, len(table.NavigationOptions))

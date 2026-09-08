@@ -19,10 +19,24 @@ type Publication struct {
 }
 
 type PublicationPreparationStatus struct {
-	ScenarioID          string
-	IterationID         string
-	PreparationRequired bool
-	PreparationStarted  bool
-	PreparationFinished bool
-	PendingItems        int
+	ScenarioID              string
+	IterationID             string
+	PreparationRequired     bool
+	PreparationStarted      bool
+	PreparationFinished     bool
+	PendingItems            int
+	DistributionSuggestions []DistributionSuggestion
+}
+
+type DistributionSuggestion struct {
+	TableName             string
+	FieldName             string
+	AcceptedCategory      string
+	SuggestedCategory     string
+	Reason                string
+	RowsAnalyzed          int64
+	NonNullRows           int64
+	DistinctValues        int64
+	ExpectedSameValueRows float64
+	PolicyVersion         string
 }

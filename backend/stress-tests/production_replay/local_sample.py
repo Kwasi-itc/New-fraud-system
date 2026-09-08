@@ -6,7 +6,7 @@ import heapq
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from glob import glob
 from pathlib import Path
 from typing import Any, Iterator
@@ -155,6 +155,7 @@ def create_duration_sample(
     output_dir: Path,
     output_manifest_path: Path,
     duration: timedelta,
+    reference_data_root: Path | None = None,
 ) -> int:
     if duration <= timedelta(0):
         raise ValueError("duration must be positive")
@@ -185,13 +186,64 @@ def create_duration_sample(
     if total == 0:
         raise ValueError(f"duration sample selected no rows before {cutoff.isoformat()}")
 
+    references = reference_data_root or data_root
     reference_data = manifest["reference_data"]
-    reference_data["merchant_globs"] = [str(data_root / "data/dumps/merchant-info-dump/batch_*.json")]
+    reference_data["merchant_globs"] = [str(references / "data/dumps/merchant-info-dump/batch_*.json")]
     reference_data["merchant_product_globs"] = [
-        str(data_root / "data/dumps/merchant-product-dump/batch_*.json")
+        str(references / "data/dumps/merchant-product-dump/batch_*.json")
     ]
-    reference_data["staff_csv"] = str(data_root / "data/lists/fraud-staff.csv")
-    reference_data["merchant_watchlist_xlsx"] = str(data_root / "data/lists/merchants.xlsx")
+    reference_data["staff_csv"] = str(references / "data/lists/fraud-staff.csv")
+    reference_data["merchant_watchlist_xlsx"] = str(references / "data/lists/merchants.xlsx")
+    manifest["transaction_streams"] = sample_streams
+    output_manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return total
+
+
+def create_time_range_sample(
+    base_manifest_path: Path,
+    data_root: Path,
+    output_dir: Path,
+    output_manifest_path: Path,
+    start_inclusive: datetime,
+    end_exclusive: datetime,
+    reference_data_root: Path | None = None,
+) -> int:
+    if end_exclusive <= start_inclusive:
+        raise ValueError("time-range end must be after its start")
+
+    manifest = json.loads(base_manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("base replay manifest must contain a JSON object")
+
+    stream_files = _stream_files(data_root)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    configured_streams = {stream["id"]: stream for stream in manifest["transaction_streams"]}
+    sample_streams: list[dict[str, Any]] = []
+    total = 0
+    for stream_id, files in stream_files.items():
+        output_path = output_dir / f"{stream_id}.csv"
+        written = _copy_rows_between(files, output_path, start_inclusive, end_exclusive)
+        if written == 0:
+            continue
+        stream = dict(configured_streams[stream_id])
+        stream["globs"] = [str(output_path)]
+        sample_streams.append(stream)
+        total += written
+
+    if total == 0:
+        raise ValueError(
+            "time-range sample selected no rows between "
+            f"{start_inclusive.isoformat()} and {end_exclusive.isoformat()}"
+        )
+
+    references = reference_data_root or data_root
+    reference_data = manifest["reference_data"]
+    reference_data["merchant_globs"] = [str(references / "data/dumps/merchant-info-dump/batch_*.json")]
+    reference_data["merchant_product_globs"] = [
+        str(references / "data/dumps/merchant-product-dump/batch_*.json")
+    ]
+    reference_data["staff_csv"] = str(references / "data/lists/fraud-staff.csv")
+    reference_data["merchant_watchlist_xlsx"] = str(references / "data/lists/merchants.xlsx")
     manifest["transaction_streams"] = sample_streams
     output_manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return total
@@ -389,6 +441,39 @@ def _copy_rows_until(source_paths: list[Path], output_path: Path, cutoff: dateti
             target_handle.close()
 
 
+def _copy_rows_between(
+    source_paths: list[Path],
+    output_path: Path,
+    start_inclusive: datetime,
+    end_exclusive: datetime,
+) -> int:
+    count = 0
+    writer: csv.DictWriter[str] | None = None
+    target_handle = None
+    try:
+        for source_path in source_paths:
+            with source_path.open("r", encoding="utf-8-sig", newline="") as source:
+                reader = csv.DictReader(source)
+                if not reader.fieldnames:
+                    raise ValueError(f"time-range sample source has no CSV header: {source_path}")
+                for row_number, row in enumerate(reader, start=2):
+                    occurred_at = _parse_source_timestamp(row, source_path, row_number)
+                    if occurred_at < start_inclusive or occurred_at >= end_exclusive:
+                        continue
+                    if writer is None:
+                        target_handle = output_path.open("w", encoding="utf-8", newline="")
+                        writer = csv.DictWriter(target_handle, fieldnames=reader.fieldnames)
+                        writer.writeheader()
+                    elif list(writer.fieldnames or []) != list(reader.fieldnames):
+                        raise ValueError(f"{source_path} headers do not match earlier time-range sample files")
+                    writer.writerow(row)
+                    count += 1
+        return count
+    finally:
+        if target_handle is not None:
+            target_handle.close()
+
+
 def _parse_source_timestamp(row: dict[str, str], path: Path, row_number: int) -> datetime:
     try:
         return datetime.strptime(row["source_date_created"].strip(), "%Y-%m-%d %H:%M:%S")
@@ -422,10 +507,41 @@ def main() -> None:
         "--duration",
         help="Source-time replay window, for example 6h, 2d, or 1w. Overrides --transactions.",
     )
+    parser.add_argument("--start-time", help="Inclusive source timestamp for an explicit sample window.")
+    parser.add_argument("--end-time", help="Exclusive source timestamp for an explicit sample window.")
     args = parser.parse_args()
 
     if args.offset < 0:
         raise ValueError("--offset must be zero or positive")
+
+    if bool(args.start_time) != bool(args.end_time):
+        raise ValueError("--start-time and --end-time must be supplied together")
+    if args.duration and args.start_time:
+        raise ValueError("--duration cannot be combined with --start-time/--end-time")
+
+    if args.start_time:
+        if args.offset:
+            raise ValueError("--offset cannot be combined with --start-time/--end-time")
+        start = datetime.fromisoformat(args.start_time.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(args.end_time.replace("Z", "+00:00"))
+        if start.tzinfo is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        if end.tzinfo is not None:
+            end = end.astimezone(timezone.utc).replace(tzinfo=None)
+        total = create_time_range_sample(
+            args.base_manifest.resolve(),
+            args.data_root.resolve(),
+            args.output_dir.resolve(),
+            args.output_manifest.resolve(),
+            start,
+            end,
+            args.reference_data_root.resolve() if args.reference_data_root else None,
+        )
+        print(
+            "created local replay time-range sample with "
+            f"{total} transactions from {start.isoformat()} to {end.isoformat()}"
+        )
+        return
 
     if args.duration:
         if args.offset:
@@ -436,6 +552,7 @@ def main() -> None:
             args.output_dir.resolve(),
             args.output_manifest.resolve(),
             parse_duration(args.duration),
+            args.reference_data_root.resolve() if args.reference_data_root else None,
         )
         print(f"created local replay duration sample with {total} transactions")
         return

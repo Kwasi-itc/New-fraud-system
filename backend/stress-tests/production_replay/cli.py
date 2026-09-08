@@ -42,12 +42,31 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--tenant-id", help="Use an existing clean tenant; omit to create one")
     setup.add_argument("--tenant-name", default="Production Replay Stress Tenant")
     setup.add_argument("--publication-timeout", type=float, default=900.0)
+    setup.add_argument("--aggregate-fact-backfill-timeout", type=float, default=7_200.0)
+    setup.add_argument("--profile-input", help="Reuse a previously generated profile after verifying its source fingerprint")
     setup.add_argument(
         "--reuse-existing",
         action="store_true",
-        help="Read-only verification of a tenant previously prepared by this harness",
+        help="Verify a tenant previously prepared by this harness and repair aggregate facts if needed",
+    )
+    setup.add_argument(
+        "--defer-scenarios",
+        action="store_true",
+        help="Create the tenant, data model, reference data, and lists without creating or publishing replay scenarios",
     )
     setup.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
+
+    publish = subparsers.add_parser(
+        "publish",
+        help="Create and publish replay scenarios, wait for indexes, then backfill aggregate facts",
+    )
+    _add_manifest(publish)
+    _add_services(publish)
+    publish.add_argument("--execute", action="store_true", help="Allow scenario, index, and fact mutations")
+    publish.add_argument("--tenant-id", required=True, help="Tenant prepared and historically seeded before publication")
+    publish.add_argument("--publication-timeout", type=float, default=3_600.0)
+    publish.add_argument("--aggregate-fact-backfill-timeout", type=float, default=7_200.0)
+    publish.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
 
     seed = subparsers.add_parser("seed", help="Batch-ingest historical transactions without decision requests")
     _add_manifest(seed)
@@ -78,6 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--async-callback-url", default="")
     run.add_argument("--async-tracking-output", default="")
     run.add_argument("--resume-from", help="Checkpoint JSON from an interrupted replay")
+    run.add_argument("--profile-input", help="Reuse a previously generated profile after verifying its source fingerprint")
     run.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
     return parser
 
@@ -183,12 +203,32 @@ def _profile(manifest: ReplayManifest) -> dict[str, Any]:
     return result
 
 
+def _load_profile(path: str, manifest: ReplayManifest) -> dict[str, Any]:
+    profile_path = Path(path).expanduser().resolve()
+    profile = _read_json(profile_path)
+    if profile.get("profile_version") != 1:
+        raise ValueError(f"unsupported source profile version in {profile_path}")
+    expected_fingerprint = manifest.source_fingerprint()
+    if profile.get("source_fingerprint") != expected_fingerprint:
+        raise ValueError(f"source profile fingerprint does not match the current manifest and files: {profile_path}")
+    transactions = profile.get("transactions")
+    references = profile.get("reference_data")
+    if not isinstance(transactions, dict) or not isinstance(references, dict):
+        raise ValueError(f"source profile is incomplete: {profile_path}")
+    print(f"reusing verified source profile: {profile_path}")
+    _print_profile(profile)
+    return profile
+
+
 async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: dict[str, Any]) -> int:
     if not args.execute:
         print("setup not executed; pass --execute to allow service mutations")
         return 0
     if args.publication_timeout <= 0:
         raise ValueError("--publication-timeout must be positive")
+    aggregate_fact_backfill_timeout = getattr(args, "aggregate_fact_backfill_timeout", 7_200.0)
+    if aggregate_fact_backfill_timeout <= 0:
+        raise ValueError("--aggregate-fact-backfill-timeout must be positive")
     run_dir = _create_run_dir(args.output_root, "setup")
     _snapshot_manifest(manifest, run_dir)
     _write_json(run_dir / "profile.json", profile)
@@ -215,10 +255,114 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
             }
         else:
             setup = EnvironmentSetup(manifest, clients, args.tenant_id, args.tenant_name)
-            result = await setup.run(args.publication_timeout)
+            result = await setup.run(
+                args.publication_timeout,
+                defer_scenarios=getattr(args, "defer_scenarios", False),
+            )
+        if getattr(args, "defer_scenarios", False):
+            backfill_result = {
+                "status": {"ready": True, "definition_count": 0},
+                "rebuilt": False,
+                "deferred_until_rule_publication": True,
+            }
+        else:
+            backfill_response = await clients.backfill_aggregate_facts(
+                str(result["tenant_id"]),
+                timeout_seconds=aggregate_fact_backfill_timeout,
+            )
+            backfill_result = backfill_response.get("aggregate_fact_backfill", {})
+        result["aggregate_fact_backfill"] = backfill_result
+        if backfill_result.get("rebuilt"):
+            result["mutations_performed"] = True
     _write_json(run_dir / "setup.json", result)
     print(f"tenant: {result['tenant_id']}")
+    print(
+        "aggregate fact backfill: "
+        f"ready={backfill_result.get('status', {}).get('ready', False)} "
+        f"rebuilt={backfill_result.get('rebuilt', False)} "
+        f"active_definitions={backfill_result.get('status', {}).get('definition_count', 0)} "
+        f"definitions_rebuilt={backfill_result.get('definitions_rebuilt', 0)} "
+        f"groups={backfill_result.get('groups_written', 0)}"
+    )
     print(f"setup output: {run_dir}")
+    return 0
+
+
+async def _publish(args: argparse.Namespace, manifest: ReplayManifest) -> int:
+    if not args.execute:
+        print("publication not executed; pass --execute to allow scenario, index, and fact mutations")
+        return 0
+    if args.publication_timeout <= 0:
+        raise ValueError("--publication-timeout must be positive")
+    if args.aggregate_fact_backfill_timeout <= 0:
+        raise ValueError("--aggregate-fact-backfill-timeout must be positive")
+
+    run_dir = _create_run_dir(args.output_root, "publication")
+    _snapshot_manifest(manifest, run_dir)
+    started_at = datetime.now(timezone.utc)
+    started = asyncio.get_running_loop().time()
+    async with ServiceClients(_services(args)) as clients:
+        setup = EnvironmentSetup(manifest, clients, args.tenant_id, "")
+        publication = await setup.publish_scenarios(args.publication_timeout)
+        backfill_started_at = datetime.now(timezone.utc)
+        backfill_started = asyncio.get_running_loop().time()
+        backfill_response = await clients.backfill_aggregate_facts(
+            args.tenant_id,
+            force=True,
+            timeout_seconds=args.aggregate_fact_backfill_timeout,
+        )
+        backfill_completed_at = datetime.now(timezone.utc)
+        backfill = backfill_response.get("aggregate_fact_backfill", {})
+        backfill["request_started_at"] = backfill_started_at.isoformat().replace("+00:00", "Z")
+        backfill["request_completed_at"] = backfill_completed_at.isoformat().replace("+00:00", "Z")
+        backfill["request_duration_ms"] = round(
+            (asyncio.get_running_loop().time() - backfill_started) * 1_000,
+            3,
+        )
+
+    completed_at = datetime.now(timezone.utc)
+    result = {
+        "publication_version": 1,
+        "tenant_id": args.tenant_id,
+        "started_at": started_at.isoformat().replace("+00:00", "Z"),
+        "completed_at": completed_at.isoformat().replace("+00:00", "Z"),
+        "duration_ms": round((asyncio.get_running_loop().time() - started) * 1_000, 3),
+        "rule_publication": publication,
+        "aggregate_fact_backfill": backfill,
+    }
+    _write_json(run_dir / "summary.json", result)
+
+    print(
+        "rule publication: "
+        f"scenarios={len(publication.get('scenarios', {}))} "
+        f"duration_ms={publication.get('timing', {}).get('duration_ms')}",
+        flush=True,
+    )
+    for job in publication.get("index_jobs", []):
+        print(
+            "index creation: "
+            f"table={job.get('table_name')} columns={','.join(job.get('columns', []))} "
+            f"status={job.get('status')} queue_ms={job.get('queue_duration_ms')} "
+            f"creation_ms={job.get('creation_duration_ms')} total_ms={job.get('total_duration_ms')}",
+            flush=True,
+        )
+    for definition in backfill.get("definition_results", []):
+        print(
+            "fact backfill: "
+            f"table={definition.get('table_name')} dimensions={','.join(definition.get('dimension_fields', []))} "
+            f"groups={definition.get('groups_written')} keys={definition.get('bucket_keys_written')} "
+            f"duration_ms={definition.get('duration_ms')}",
+            flush=True,
+        )
+    print(
+        "aggregate fact backfill: "
+        f"ready={backfill.get('status', {}).get('ready', False)} "
+        f"active_definitions={backfill.get('status', {}).get('definition_count', 0)} "
+        f"definitions_rebuilt={backfill.get('definitions_rebuilt', 0)} "
+        f"duration_ms={backfill.get('request_duration_ms')}",
+        flush=True,
+    )
+    print(f"publication output: {run_dir}", flush=True)
     return 0
 
 
@@ -257,35 +401,68 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
         },
     )
 
-    def report_progress(records: int, batches: int) -> None:
-        if args.progress_every and batches % args.progress_every == 0:
-            print(f"seeded {records} records in {batches} batches")
+    confirmed_records = 0
+    confirmed_batches = 0
 
-    async with ServiceClients(_services(args)) as clients:
-        await clients.wait_until_ingestion_ready()
-        await _verify_seed_tenant(clients, args.tenant_id)
-        if args.reuse_existing:
-            verified_object_id = await _verify_existing_seed(clients, manifest, args.tenant_id)
-            result = {
-                "records": None,
-                "batches": None,
-                "batch_size": None,
-                "max_in_flight": None,
-                "elapsed_seconds": 0,
-                "records_per_second": None,
-                "verified_object_id": verified_object_id,
-                "mutations_performed": False,
-                "note": "Existing seed data was explicitly reused; the harness did not count or ingest seed records.",
-            }
-        else:
-            result = await seed_transactions(
-                clients,
-                manifest,
-                args.tenant_id,
-                batch_size=args.batch_size,
-                max_in_flight=args.max_in_flight,
-                progress=report_progress,
+    def report_progress(records: int, batches: int) -> None:
+        nonlocal confirmed_records, confirmed_batches
+        confirmed_records = records
+        confirmed_batches = batches
+        if args.progress_every and batches % args.progress_every == 0:
+            print(
+                f"seed status: running; {records} records confirmed in {batches} batches",
+                flush=True,
             )
+
+    print("seed status: starting; 0 records confirmed", flush=True)
+    try:
+        async with ServiceClients(_services(args)) as clients:
+            await clients.wait_until_ingestion_ready()
+            await _verify_seed_tenant(clients, args.tenant_id)
+            if args.reuse_existing:
+                verified_object_id = await _verify_existing_seed(clients, manifest, args.tenant_id)
+                result = {
+                    "records": None,
+                    "batches": None,
+                    "batch_size": None,
+                    "max_in_flight": None,
+                    "elapsed_seconds": 0,
+                    "records_per_second": None,
+                    "verified_object_id": verified_object_id,
+                    "mutations_performed": False,
+                    "note": "Existing seed data was explicitly reused; the harness did not count or ingest seed records.",
+                }
+            else:
+                result = await seed_transactions(
+                    clients,
+                    manifest,
+                    args.tenant_id,
+                    batch_size=args.batch_size,
+                    max_in_flight=args.max_in_flight,
+                    progress=report_progress,
+                )
+    except BaseException as exc:
+        failed_summary = {
+            "status": "failed",
+            "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "tenant_id": args.tenant_id,
+            "manifest": str(manifest.path),
+            "decision_requests": 0,
+            "records": confirmed_records,
+            "batches": confirmed_batches,
+            "batch_size": args.batch_size,
+            "max_in_flight": args.max_in_flight,
+            "error": f"{type(exc).__name__}: {exc}",
+            "note": "Counts include only batches whose successful response was confirmed by the seed client.",
+        }
+        _write_json(run_dir / "summary.json", failed_summary)
+        print(
+            f"seed status: failed; {confirmed_records} records confirmed in "
+            f"{confirmed_batches} batches",
+            flush=True,
+        )
+        print(f"seed output: {run_dir}", flush=True)
+        raise
 
     summary = {
         "status": "reused_existing" if args.reuse_existing else "completed",
@@ -297,10 +474,14 @@ async def _seed(args: argparse.Namespace, manifest: ReplayManifest) -> int:
     }
     _write_json(run_dir / "summary.json", summary)
     if args.reuse_existing:
-        print(f"reused existing seed: verified transaction {summary['verified_object_id']}")
+        print(f"seed status: reused; verified transaction {summary['verified_object_id']}", flush=True)
     else:
-        print(f"seeded: {summary['records']} records in {summary['batches']} batches")
-    print(f"seed output: {run_dir}")
+        print(
+            f"seed status: completed; {summary['records']} records confirmed in "
+            f"{summary['batches']} batches",
+            flush=True,
+        )
+    print(f"seed output: {run_dir}", flush=True)
     return 0
 
 
@@ -433,7 +614,10 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
                     expected_events=sort_result.event_count,
                     decision_mode=args.decision_mode,
                 )
-                print(f"checkpoint: {metrics.completed} / {sort_result.event_count} completed")
+                print(
+                    f"replay progress: {metrics.completed} / {sort_result.event_count} transactions completed",
+                    flush=True,
+                )
 
             if checkpoint_state is None:
                 _write_replay_checkpoint(
@@ -477,9 +661,9 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["success_log_output"] = str(success_log_path)
     summary["error_breakdown"] = build_error_breakdown(_read_ndjson_records(run_dir / "errors.ndjson"))
     _write_json(run_dir / "summary.json", summary)
-    print(f"status: {summary['status']}")
-    print(f"completed: {summary['completed']} / {summary['scheduled']}")
-    print(f"replay output: {run_dir}")
+    print(f"status: {summary['status']}", flush=True)
+    print(f"completed: {summary['completed']} / {summary['scheduled']}", flush=True)
+    print(f"replay output: {run_dir}", flush=True)
     return 0 if summary["status"] == "completed" else 2
 
 
@@ -569,7 +753,13 @@ async def async_main(argv: list[str] | None = None) -> int:
     manifest = load_manifest(args.manifest)
     if args.command == "seed":
         return await _seed(args, manifest)
-    profile = await asyncio.to_thread(_profile, manifest)
+    if args.command == "publish":
+        return await _publish(args, manifest)
+    profile_input = getattr(args, "profile_input", None)
+    if profile_input:
+        profile = await asyncio.to_thread(_load_profile, profile_input, manifest)
+    else:
+        profile = await asyncio.to_thread(_profile, manifest)
     if args.command == "profile":
         if args.output:
             output = Path(args.output).expanduser().resolve()

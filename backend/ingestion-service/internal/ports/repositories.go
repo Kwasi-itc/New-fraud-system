@@ -17,6 +17,7 @@ type IngestionAuditRepository interface {
 type IdempotencyRepository interface {
 	Get(ctx context.Context, tenantID uuid.UUID, key string) (*ingestion.IdempotencyKey, error)
 	Create(ctx context.Context, record ingestion.IdempotencyKey) error
+	MarkFactApplied(ctx context.Context, tenantID uuid.UUID, key, marker, manifest string) error
 }
 
 type OutboxEventRepository interface {

@@ -28,6 +28,7 @@ class FieldSpec:
     data_type: str
     nullable: bool = True
     unique: bool = False
+    distribution_category: str = "unknown"
 
 
 TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
@@ -59,29 +60,29 @@ TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
         FieldSpec("description", "string"),
     ),
     "transactions": (
-        FieldSpec("transaction_id", "string", False, True),
-        FieldSpec("date", "timestamp", False),
+        FieldSpec("transaction_id", "string", False, True, "unique_or_near_unique"),
+        FieldSpec("date", "timestamp", False, False, "highly_distributed"),
         FieldSpec("amount", "float", False),
         FieldSpec("fees", "float"),
         FieldSpec("currency", "string"),
         FieldSpec("country", "string"),
-        FieldSpec("channel", "string", False),
-        FieldSpec("direction", "string", False),
-        FieldSpec("system_type", "string", False),
+        FieldSpec("channel", "string", False, False, "few_value_dominated"),
+        FieldSpec("direction", "string", False, False, "few_value_dominated"),
+        FieldSpec("system_type", "string", False, False, "few_value_dominated"),
         FieldSpec("stream_id", "string", False),
         FieldSpec("processor", "string"),
         FieldSpec("transaction_type", "string"),
         FieldSpec("payment_type", "string"),
         FieldSpec("channel_id", "string"),
-        FieldSpec("source_id", "string"),
-        FieldSpec("thirdparty_id", "string"),
+        FieldSpec("source_id", "string", True, False, "few_value_dominated"),
+        FieldSpec("thirdparty_id", "string", True, False, "highly_distributed"),
         FieldSpec("source_account_no", "string"),
         FieldSpec("source_trans_id", "string"),
-        FieldSpec("terminal_id", "string"),
-        FieldSpec("merchant_id", "string"),
-        FieldSpec("product_id", "string"),
+        FieldSpec("terminal_id", "string", True, False, "few_value_dominated"),
+        FieldSpec("merchant_id", "string", True, False, "few_value_dominated"),
+        FieldSpec("product_id", "string", True, False, "highly_distributed"),
         FieldSpec("sub_merchant_id", "string"),
-        FieldSpec("account_ref", "string"),
+        FieldSpec("account_ref", "string", True, False, "highly_distributed"),
         FieldSpec("account_name", "string"),
         FieldSpec("payment_msisdn", "string"),
         FieldSpec("narration", "string"),
@@ -102,14 +103,23 @@ class EnvironmentSetup:
         self.tables: dict[str, dict[str, Any]] = {}
         self.fields: dict[str, dict[str, dict[str, Any]]] = {}
 
-    async def run(self, publication_timeout_seconds: float = 900.0) -> dict[str, Any]:
+    async def run(
+        self,
+        publication_timeout_seconds: float = 900.0,
+        *,
+        defer_scenarios: bool = False,
+    ) -> dict[str, Any]:
         await self.clients.wait_until_ready()
         await self._ensure_tenant()
         await self._ensure_no_scenario_collisions()
         await self._ensure_model()
         references = await self._load_reference_data()
         lists = await self._ensure_reference_lists(references[2])
-        scenarios = await self._create_scenarios(publication_timeout_seconds)
+        publication = (
+            {"status": "deferred", "scenarios": {}, "timing": None, "index_jobs": []}
+            if defer_scenarios
+            else await self._create_scenarios(publication_timeout_seconds)
+        )
         return {
             "setup_version": 1,
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -137,12 +147,26 @@ class EnvironmentSetup:
                 ),
             },
             "custom_lists": lists,
-            "scenarios": scenarios,
+            "scenarios": publication["scenarios"],
+            "rule_publication": publication,
             "notes": [
                 "Reference records were sent through ingestion in batches of at most 500.",
                 "The harness calls the decision endpoint directly during replay, so ingestion outbox depth must be monitored externally.",
             ],
         }
+
+    async def publish_scenarios(self, publication_timeout_seconds: float = 900.0) -> dict[str, Any]:
+        if not self.tenant_id:
+            raise ValueError("tenant_id is required to publish replay scenarios")
+        await self.clients.wait_until_ready()
+        await self.clients.request(
+            self.clients.data_model,
+            "GET",
+            f"/v1/tenants/{self.tenant_id}",
+            200,
+        )
+        await self._ensure_no_scenario_collisions()
+        return await self._create_scenarios(publication_timeout_seconds)
 
     async def _ensure_tenant(self) -> None:
         if self.tenant_id:
@@ -204,6 +228,20 @@ class EnvironmentSetup:
                     raise APIError(f"existing field {table_name}.{spec.name} must be unique for replay setup")
                 if existing is not None and not spec.nullable and existing.get("nullable") is not False:
                     raise APIError(f"existing field {table_name}.{spec.name} must be non-nullable for replay setup")
+                if existing is not None and existing.get("distribution_category", "unknown") != spec.distribution_category:
+                    existing = (
+                        await self.clients.request(
+                            self.clients.data_model,
+                            "PATCH",
+                            f"/v1/fields/{existing['id']}",
+                            200,
+                            json={
+                                "distribution_category": spec.distribution_category,
+                                "classification_source": "manual" if spec.distribution_category != "unknown" else "default",
+                                "classification_policy_version": "distribution-v1",
+                            },
+                        )
+                    )["field"]
                 if existing is None:
                     existing = (
                         await self.clients.request(
@@ -216,6 +254,9 @@ class EnvironmentSetup:
                                 "data_type": spec.data_type,
                                 "nullable": spec.nullable,
                                 "is_unique": spec.unique,
+                                "distribution_category": spec.distribution_category,
+                                "classification_source": "manual" if spec.distribution_category != "unknown" else "default",
+                                "classification_policy_version": "distribution-v1",
                             },
                         )
                     )["field"]
@@ -344,8 +385,13 @@ class EnvironmentSetup:
     async def _create_scenarios(self, publication_timeout_seconds: float) -> dict[str, Any]:
         definitions = build_portable_scenarios(self.manifest)
         created: list[tuple[ScenarioDef, str, str]] = []
+        workflow_started_at = datetime.now(timezone.utc)
+        workflow_started = time.monotonic()
+        scenario_timings: dict[str, dict[str, Any]] = {}
         try:
             for definition in definitions:
+                definition_started_at = datetime.now(timezone.utc)
+                definition_started = time.monotonic()
                 scenario = (
                     await self.clients.request(
                         self.clients.decision_engine,
@@ -403,23 +449,52 @@ class EnvironmentSetup:
                 if validation.get("validation", {}).get("valid") is not True:
                     raise APIError(f"scenario validation failed for {definition.name}: {json.dumps(validation, default=str)}")
                 await self.clients.request(self.clients.decision_engine, "POST", f"{base}/commit", 200)
+                scenario_timings[definition.name] = {
+                    "definition_started_at": _iso_time(definition_started_at),
+                    "definition_completed_at": _iso_time(datetime.now(timezone.utc)),
+                    "definition_duration_ms": _elapsed_ms(definition_started),
+                    "rule_count": len(definition.rules),
+                }
 
-            await self._prepare_publications(created, publication_timeout_seconds)
+            preparation = await self._prepare_publications(created, publication_timeout_seconds)
             result: dict[str, Any] = {}
             for definition, scenario_id, iteration_id in created:
+                publication_started_at = datetime.now(timezone.utc)
+                publication_started = time.monotonic()
                 await self.clients.request(
                     self.clients.decision_engine,
                     "POST",
                     f"/v1/tenants/{self.tenant_id}/scenarios/{scenario_id}/publications",
                     200,
                     json={"action": "publish", "iteration_id": iteration_id},
+                    timeout=publication_timeout_seconds,
+                )
+                publication_completed_at = datetime.now(timezone.utc)
+                scenario_timings[definition.name].update(
+                    {
+                        "publication_started_at": _iso_time(publication_started_at),
+                        "publication_completed_at": _iso_time(publication_completed_at),
+                        "publication_request_duration_ms": _elapsed_ms(publication_started),
+                        "preparation": preparation["scenarios"].get(definition.name),
+                    }
                 )
                 result[definition.name] = {
                     "scenario_id": scenario_id,
                     "iteration_id": iteration_id,
                     "rules": [rule.name for rule in definition.rules],
+                    "timing": scenario_timings[definition.name],
                 }
-            return result
+            workflow_completed_at = datetime.now(timezone.utc)
+            return {
+                "status": "completed",
+                "scenarios": result,
+                "timing": {
+                    "started_at": _iso_time(workflow_started_at),
+                    "completed_at": _iso_time(workflow_completed_at),
+                    "duration_ms": _elapsed_ms(workflow_started),
+                },
+                "index_jobs": preparation["index_jobs"],
+            }
         except Exception:
             await self._remove_created_scenarios(created)
             raise
@@ -438,11 +513,23 @@ class EnvironmentSetup:
 
     async def _prepare_publications(
         self, created: list[tuple[ScenarioDef, str, str]], timeout_seconds: float
-    ) -> None:
+    ) -> dict[str, Any]:
+        jobs_before = await self._index_jobs(timeout_seconds)
+        known_job_ids = {str(job.get("id")) for job in jobs_before}
         pending: dict[str, tuple[str, str]] = {}
+        scenario_results: dict[str, dict[str, Any]] = {}
         for definition, scenario_id, iteration_id in created:
-            status = await self._preparation_status(scenario_id, iteration_id)
+            started_at = datetime.now(timezone.utc)
+            started = time.monotonic()
+            status = await self._preparation_status(scenario_id, iteration_id, timeout_seconds)
             if self._prepared(status):
+                scenario_results[definition.name] = {
+                    "started_at": _iso_time(started_at),
+                    "completed_at": _iso_time(datetime.now(timezone.utc)),
+                    "duration_ms": _elapsed_ms(started),
+                    "created_index_job_ids": [],
+                    "status": status,
+                }
                 continue
             await self.clients.request(
                 self.clients.decision_engine,
@@ -450,30 +537,108 @@ class EnvironmentSetup:
                 f"/v1/tenants/{self.tenant_id}/scenarios/{scenario_id}/publications/preparation",
                 202,
                 json={"iteration_id": iteration_id},
+                timeout=timeout_seconds,
             )
+            jobs_after_start = await self._index_jobs(timeout_seconds)
+            new_job_ids = [
+                str(job.get("id"))
+                for job in jobs_after_start
+                if str(job.get("id")) not in known_job_ids
+            ]
+            known_job_ids.update(new_job_ids)
+            scenario_results[definition.name] = {
+                "started_at": _iso_time(started_at),
+                "completed_at": None,
+                "duration_ms": None,
+                "created_index_job_ids": new_job_ids,
+                "status": status,
+                "_started": started,
+            }
             pending[definition.name] = (scenario_id, iteration_id)
         deadline = time.monotonic() + timeout_seconds
         while pending and time.monotonic() < deadline:
             await asyncio.sleep(1.0)
             for name, (scenario_id, iteration_id) in list(pending.items()):
-                if self._prepared(await self._preparation_status(scenario_id, iteration_id)):
+                status = await self._preparation_status(scenario_id, iteration_id, timeout_seconds)
+                if self._prepared(status):
+                    completed_at = datetime.now(timezone.utc)
+                    started = scenario_results[name].pop("_started")
+                    scenario_results[name].update(
+                        {
+                            "completed_at": _iso_time(completed_at),
+                            "duration_ms": _elapsed_ms(started),
+                            "status": status,
+                        }
+                    )
                     del pending[name]
         if pending:
             raise APIError(
                 f"scenario publication indexes did not finish within {timeout_seconds:g}s: {', '.join(sorted(pending))}. "
                 "Confirm the data-model index worker is running."
             )
+        jobs_after = await self._index_jobs(timeout_seconds)
+        new_jobs = [job for job in jobs_after if str(job.get("id")) not in {str(item.get("id")) for item in jobs_before}]
+        return {
+            "scenarios": scenario_results,
+            "index_jobs": [_index_job_timing(job) for job in new_jobs],
+        }
 
-    async def _preparation_status(self, scenario_id: str, iteration_id: str) -> dict[str, Any]:
+    async def _preparation_status(
+        self,
+        scenario_id: str,
+        iteration_id: str,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         response = await self.clients.request(
             self.clients.decision_engine,
             "GET",
             f"/v1/tenants/{self.tenant_id}/scenarios/{scenario_id}/publications/preparation",
             200,
             params={"iteration_id": iteration_id},
+            **({"timeout": timeout_seconds} if timeout_seconds is not None else {}),
         )
         return response.get("preparation", response)
+
+    async def _index_jobs(self, timeout_seconds: float) -> list[dict[str, Any]]:
+        response = await self.clients.request(
+            self.clients.data_model,
+            "GET",
+            f"/v1/tenants/{self.tenant_id}/index-jobs",
+            200,
+            timeout=timeout_seconds,
+        )
+        return [job for job in response.get("index_jobs", []) if isinstance(job, dict)]
 
     @staticmethod
     def _prepared(status: dict[str, Any]) -> bool:
         return status.get("preparation_finished") is True and status.get("preparation_required") is not True
+
+
+def _elapsed_ms(started: float) -> float:
+    return round((time.monotonic() - started) * 1_000, 3)
+
+
+def _iso_time(value: datetime) -> str:
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def _parse_iso_time(value: Any) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+
+def _duration_ms(start: Any, end: Any) -> float | None:
+    parsed_start = _parse_iso_time(start)
+    parsed_end = _parse_iso_time(end)
+    if parsed_start is None or parsed_end is None:
+        return None
+    return round((parsed_end - parsed_start).total_seconds() * 1_000, 3)
+
+
+def _index_job_timing(job: dict[str, Any]) -> dict[str, Any]:
+    result = dict(job)
+    result["queue_duration_ms"] = _duration_ms(job.get("requested_at"), job.get("started_at"))
+    result["creation_duration_ms"] = _duration_ms(job.get("started_at"), job.get("completed_at"))
+    result["total_duration_ms"] = _duration_ms(job.get("requested_at"), job.get("completed_at"))
+    return result

@@ -35,6 +35,10 @@ tags:
     description: CSV upload and upload-log inspection endpoints.
   - name: Deferred Ingest
     description: Deferred ingest execution inspection and backlog monitoring endpoints.
+  - name: Runtime Metrics
+    description: Service-local operational counters for replay and production diagnostics.
+  - name: Aggregate Fact Maintenance
+    description: Explicit readiness checks and PostgreSQL-to-Valkey rebuild operations for precomputed aggregates.
 paths:
   /healthz:
     get:
@@ -60,7 +64,7 @@ paths:
         Dependency-aware readiness check.
 
         Use this before routing traffic to the service. A successful response means the service can
-        reach its configured database dependency and is ready to handle requests.
+        reach PostgreSQL and the aggregate-fact store required by fact-enabled ingestions.
       responses:
         '200':
           description: Service is ready
@@ -69,7 +73,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
         '503':
-          description: Database is unavailable
+          description: A required dependency is unavailable
           content:
             application/json:
               schema:
@@ -500,6 +504,67 @@ paths:
                 properties:
                   deferred_ingest_metrics:
                     $ref: '#/components/schemas/DeferredIngestMetrics'
+  /v1/admin/aggregate-fact-metrics:
+    get:
+      tags: [Runtime Metrics]
+      summary: Get aggregate-fact write metrics
+      description: Returns process-local counters for Redis fact preparation, commit, retry, batching, and failure behavior.
+      responses:
+        '200':
+          description: Aggregate-fact write metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [aggregate_fact_metrics]
+                properties:
+                  aggregate_fact_metrics:
+                    $ref: '#/components/schemas/AggregateFactWriteMetrics'
+  /v1/admin/tenants/{tenantId}/aggregate-facts/status:
+    get:
+      tags: [Aggregate Fact Maintenance]
+      summary: Get aggregate-fact readiness for a tenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Aggregate-fact readiness
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [aggregate_fact_backfill]
+                properties:
+                  aggregate_fact_backfill:
+                    $ref: '#/components/schemas/AggregateFactBackfillStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/admin/tenants/{tenantId}/aggregate-facts/backfill:
+    post:
+      tags: [Aggregate Fact Maintenance]
+      summary: Rebuild active aggregate facts from PostgreSQL
+      description: |-
+        Blocks fact-enabled ingestion for this service while every active tenant fact generation is rebuilt.
+        Readers fall back to PostgreSQL until complete coverage has been published.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: force
+          in: query
+          required: false
+          schema: {type: boolean, default: false}
+      responses:
+        '200':
+          description: Aggregate-fact rebuild result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [aggregate_fact_backfill]
+                properties:
+                  aggregate_fact_backfill:
+                    $ref: '#/components/schemas/AggregateFactBackfillResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   parameters:
     TenantId:
@@ -551,6 +616,9 @@ components:
           type: string
         error:
           type: string
+        dependency:
+          type: string
+          description: Named non-database dependency that failed, when applicable.
       required: [status, error]
     IngestResult:
       type: object
@@ -787,6 +855,106 @@ components:
           format: date-time
           description: Time the metrics snapshot was calculated.
       required: [queued_count, processing_count, completed_count, failed_count, retry_pending_count, retried_execution_count, oldest_queued_age_seconds, recent_success_count, recent_failure_count, recent_retry_count, drain_rate_per_minute_last_5m, snapshot_at]
+    AggregateFactWriteMetrics:
+      type: object
+      properties:
+        prepare_requests: {type: integer, format: int64}
+        prepare_failures: {type: integer, format: int64}
+        prepared_writes: {type: integer, format: int64}
+        no_active_fact_writes: {type: integer, format: int64}
+        already_applied_writes: {type: integer, format: int64}
+        records_evaluated: {type: integer, format: int64}
+        definitions_evaluated: {type: integer, format: int64}
+        commit_requests: {type: integer, format: int64}
+        commit_failures: {type: integer, format: int64}
+        committed_writes: {type: integer, format: int64}
+        grouped_deltas_committed: {type: integer, format: int64}
+        prepare_chunks: {type: integer, format: int64}
+        commit_chunks: {type: integer, format: int64}
+        finalize_chunks: {type: integer, format: int64}
+        recovered_writes: {type: integer, format: int64}
+        commit_latency_total_micros: {type: integer, format: int64}
+        aborted_writes: {type: integer, format: int64}
+        prepare_latency:
+          $ref: '#/components/schemas/AggregateFactOperationLatency'
+        commit_latency:
+          $ref: '#/components/schemas/AggregateFactOperationLatency'
+        valkey_reads:
+          $ref: '#/components/schemas/AggregateFactOperationLatency'
+        valkey_writes:
+          $ref: '#/components/schemas/AggregateFactOperationLatency'
+        bucket_apply_writes:
+          $ref: '#/components/schemas/AggregateFactOperationLatency'
+      required: [prepare_requests, prepare_failures, prepared_writes, no_active_fact_writes, already_applied_writes, records_evaluated, definitions_evaluated, commit_requests, commit_failures, committed_writes, grouped_deltas_committed, prepare_chunks, commit_chunks, finalize_chunks, recovered_writes, commit_latency_total_micros, aborted_writes, prepare_latency, commit_latency, valkey_reads, valkey_writes, bucket_apply_writes]
+    AggregateFactOperationLatency:
+      type: object
+      properties:
+        requests: {type: integer, format: int64}
+        failures: {type: integer, format: int64}
+        total_micros: {type: integer, format: int64}
+        average_micros: {type: integer, format: int64}
+        p50_micros: {type: integer, format: int64}
+        p95_micros: {type: integer, format: int64}
+        p99_micros: {type: integer, format: int64}
+        max_micros: {type: integer, format: int64}
+      required: [requests, failures, total_micros, average_micros, p50_micros, p95_micros, p99_micros, max_micros]
+    AggregateFactDefinitionStatus:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        table_name: {type: string}
+        signature: {type: string}
+        version: {type: integer, format: int64}
+        backfill_required: {type: boolean}
+        coverage_ready: {type: boolean}
+        dirty: {type: boolean}
+      required: [id, table_name, signature, version, backfill_required, coverage_ready, dirty]
+    AggregateFactBackfillStatus:
+      type: object
+      properties:
+        tenant_id: {type: string, format: uuid}
+        ready: {type: boolean}
+        definition_count: {type: integer}
+        pending_receipts: {type: integer, format: int64}
+        definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregateFactDefinitionStatus'
+      required: [tenant_id, ready, definition_count, pending_receipts, definitions]
+    AggregateFactBackfillResult:
+      type: object
+      properties:
+        tenant_id: {type: string, format: uuid}
+        rebuilt: {type: boolean}
+        definitions_rebuilt: {type: integer}
+        groups_written: {type: integer, format: int64}
+        bucket_keys_written: {type: integer, format: int64}
+        started_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+        definition_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregateFactDefinitionBackfillResult'
+        status:
+          $ref: '#/components/schemas/AggregateFactBackfillStatus'
+      required: [tenant_id, rebuilt, definitions_rebuilt, groups_written, bucket_keys_written, started_at, completed_at, definition_results, status]
+    AggregateFactDefinitionBackfillResult:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        table_name: {type: string}
+        signature: {type: string}
+        dimension_fields:
+          type: array
+          items: {type: string}
+        measure_field: {type: string}
+        max_window_seconds: {type: integer, format: int64}
+        groups_written: {type: integer, format: int64}
+        bucket_keys_written: {type: integer, format: int64}
+        started_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+        duration_ms: {type: integer, format: int64}
+      required: [id, table_name, signature, dimension_fields, measure_field, max_window_seconds, groups_written, bucket_keys_written, started_at, completed_at, duration_ms]
     AggregateQueryRequest:
       type: object
       description: Request for one constrained aggregate query evaluated inside the tenant schema.

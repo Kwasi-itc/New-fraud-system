@@ -36,6 +36,7 @@ import { useAssembledDataModelQuery } from "@/lib/data-model-query";
 import {
   type Decision,
   type Iteration,
+  type PublicationPreparationStatus,
   type Rule,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
@@ -333,12 +334,16 @@ function PublishModal({
   isOpen,
   iterationLabel,
   isSubmitting,
+  isPreparing,
+  preparation,
   onClose,
   onConfirm,
 }: {
   isOpen: boolean;
   iterationLabel: string;
   isSubmitting: boolean;
+  isPreparing: boolean;
+  preparation?: PublicationPreparationStatus;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -359,8 +364,45 @@ function PublishModal({
           </p>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[14px] text-slate-700">
             Publishing makes this version active immediately for scenario execution until
-            another version is published or the scenario is deactivated.
+            another version is published or the scenario is deactivated. If existing records
+            require aggregate-fact backfill, fact-backed decisions remain unavailable until that
+            separate backfill succeeds.
           </div>
+          {isPreparing || (preparation && !preparation.preparation_finished) ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[14px] text-blue-900">
+              {isPreparing
+                ? "Preparing indexes and registering aggregate definitions..."
+                : `Waiting for ${preparation?.pending_items ?? 0} preparation item${preparation?.pending_items === 1 ? "" : "s"}.`}
+            </div>
+          ) : preparation ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] text-emerald-900">
+              Required indexes are ready and aggregate definitions are registered. Historical
+              aggregate-fact backfill, when required, is a separate post-publication operation.
+            </div>
+          ) : null}
+          {preparation?.distribution_suggestions?.length ? (
+            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-[14px] font-semibold text-amber-950">
+                Current-data distribution suggestions
+              </p>
+              <p className="text-[13px] text-amber-900">
+                These are advisory. Update the field data model before publishing if you want
+                the suggested category to control optimization.
+              </p>
+              {preparation.distribution_suggestions.map((suggestion) => (
+                <div
+                  key={`${suggestion.table_name}.${suggestion.field_name}`}
+                  className="rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-[13px] text-amber-950"
+                >
+                  <span className="font-semibold">
+                    {suggestion.table_name}.{suggestion.field_name}
+                  </span>{" "}
+                  is {suggestion.accepted_category || "unknown"}; current data suggests{" "}
+                  {suggestion.suggested_category}. {suggestion.reason}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-3 border-t border-slate-200 px-5 py-4">
           <Button
@@ -373,11 +415,11 @@ function PublishModal({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isPreparing || !preparation?.preparation_finished}
             className="h-10 flex-1 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]"
           >
             <CheckCircle2 className="size-4" />
-            {isSubmitting ? "Publishing..." : "Publish"}
+            {isPreparing ? "Preparing..." : isSubmitting ? "Publishing..." : "Publish"}
           </Button>
         </div>
       </div>
@@ -629,6 +671,26 @@ export function ScenarioEditPage({
     iterations.find((iteration) => iteration.id === selectedIterationId) ??
     routeIteration ??
     preferredIteration;
+  const publicationPreparationQuery = useQuery({
+    queryKey: [
+      "decision-engine",
+      "publication-preparation",
+      tenantId,
+      scenarioId,
+      currentIteration?.id,
+    ],
+    queryFn: () =>
+      decisionEngineApi.getPublicationPreparation(
+        tenantId,
+        scenarioId,
+        currentIteration!.id
+      ),
+    enabled: Boolean(publishOpen && tenantId && scenarioId && currentIteration?.id),
+    refetchInterval: (query) => {
+      const preparation = query.state.data?.preparation;
+      return preparation && !preparation.preparation_finished ? 1_500 : false;
+    },
+  });
   const rulesQuery = useQuery({
     queryKey: ["decision-engine", "rules", tenantId, scenarioId, currentIteration?.id],
     queryFn: () =>
@@ -814,6 +876,38 @@ export function ScenarioEditPage({
         title: "Failed to commit iteration",
         description:
           error instanceof Error ? error.message : "The iteration could not be committed.",
+        variant: "error",
+      });
+    },
+  });
+  const startPublicationPreparationMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentIteration) {
+        throw new Error("No iteration selected.");
+      }
+      return decisionEngineApi.startPublicationPreparation(
+        tenantId,
+        scenarioId,
+        currentIteration.id
+      );
+    },
+    onSuccess: ({ preparation }) => {
+      queryClient.setQueryData(
+        [
+          "decision-engine",
+          "publication-preparation",
+          tenantId,
+          scenarioId,
+          currentIteration?.id,
+        ],
+        { preparation }
+      );
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to prepare publication",
+        description:
+          error instanceof Error ? error.message : "Publication preparation could not start.",
         variant: "error",
       });
     },
@@ -1380,8 +1474,14 @@ export function ScenarioEditPage({
               </Button>
             ) : isCommittedIteration ? (
               <Button
-                disabled={publishIterationMutation.isPending}
-                onClick={() => setPublishOpen(true)}
+                disabled={
+                  publishIterationMutation.isPending ||
+                  startPublicationPreparationMutation.isPending
+                }
+                onClick={() => {
+                  setPublishOpen(true);
+                  startPublicationPreparationMutation.mutate();
+                }}
                 className="h-12 rounded-xl bg-[#1f4f96] px-5 text-[14px] shadow-none hover:bg-[#163f79]"
               >
                 <CheckCircle2 className="size-4" />
@@ -2386,6 +2486,8 @@ export function ScenarioEditPage({
         isOpen={publishOpen}
         iterationLabel={statusLabel}
         isSubmitting={publishIterationMutation.isPending}
+        isPreparing={startPublicationPreparationMutation.isPending}
+        preparation={publicationPreparationQuery.data?.preparation}
         onClose={() => setPublishOpen(false)}
         onConfirm={() => publishIterationMutation.mutate()}
       />

@@ -1,11 +1,40 @@
 x-backend-common: &backend-common
-  SERVICE_AUTH_MODE: disabled
-  SERVICE_AUTH_TOKEN: ""
-  LOG_LEVEL: info
-  GIN_MODE: debug
-  HTTP_CLIENT_TIMEOUT: 10s
+  SERVICE_AUTH_MODE: ${SERVICE_AUTH_MODE:-disabled}
+  SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  GIN_MODE: ${GIN_MODE:-debug}
+  HTTP_CLIENT_TIMEOUT: ${HTTP_CLIENT_TIMEOUT:-10s}
   SERVICE_ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
   ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
+
+x-decision-runtime: &decision-runtime
+  AGGREGATE_PUSHDOWN_MODE: ${AGGREGATE_PUSHDOWN_MODE:-enabled}
+  AGGREGATE_PUSHDOWN_AGGREGATES: ${AGGREGATE_PUSHDOWN_AGGREGATES:-count,sum,avg}
+  LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
+  LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
+  LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
+  LIVE_DECISION_CONCURRENCY_LIMIT: ${LIVE_DECISION_CONCURRENCY_LIMIT:-0}
+  TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-direct_db}
+  RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
+  SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
+  AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+  SCHEDULED_EXECUTION_MAX_ATTEMPTS: ${SCHEDULED_EXECUTION_MAX_ATTEMPTS:-3}
+  SCHEDULED_EXECUTION_RETRY_BACKOFF: ${SCHEDULED_EXECUTION_RETRY_BACKOFF:-30s}
+  SCHEDULED_EXECUTION_QUEUE_NAME: ${SCHEDULED_EXECUTION_QUEUE_NAME:-scheduled_executions}
+  ASYNC_EXECUTION_MAX_ATTEMPTS: ${ASYNC_EXECUTION_MAX_ATTEMPTS:-3}
+  ASYNC_EXECUTION_RETRY_BACKOFF: ${ASYNC_EXECUTION_RETRY_BACKOFF:-30s}
+  ASYNC_EXECUTION_DEFAULT_WAIT_WINDOW: ${ASYNC_EXECUTION_DEFAULT_WAIT_WINDOW:-300ms}
+  ASYNC_EXECUTION_MAX_WAIT_WINDOW: ${ASYNC_EXECUTION_MAX_WAIT_WINDOW:-1s}
+  ASYNC_EXECUTION_CALLBACK_TIMEOUT: ${ASYNC_EXECUTION_CALLBACK_TIMEOUT:-5s}
+  ASYNC_EXECUTION_CALLBACK_MAX_ATTEMPTS: ${ASYNC_EXECUTION_CALLBACK_MAX_ATTEMPTS:-5}
+  ASYNC_EXECUTION_QUEUE_NAME: ${ASYNC_EXECUTION_QUEUE_NAME:-async_decision_executions}
+  ASYNC_EXECUTION_CALLBACK_QUEUE_NAME: ${ASYNC_EXECUTION_CALLBACK_QUEUE_NAME:-async_decision_execution_callbacks}
+  ASYNC_EXECUTION_CALLBACK_SIGNING_SECRET: ${ASYNC_EXECUTION_CALLBACK_SIGNING_SECRET:-}
+  WORKFLOW_DISPATCH_QUEUE_NAME: ${WORKFLOW_DISPATCH_QUEUE_NAME:-workflow_executions}
+  SCREENING_DISPATCH_QUEUE_NAME: ${SCREENING_DISPATCH_QUEUE_NAME:-screening_executions}
+  SCORING_DISPATCH_QUEUE_NAME: ${SCORING_DISPATCH_QUEUE_NAME:-scoring_requests}
+  OUTBOX_QUEUE_NAME: ${OUTBOX_QUEUE_NAME:-outbox_events}
+  AGGREGATE_FACT_REDIS_URL: ${AGGREGATE_FACT_REDIS_URL:-redis://valkey:6379/0}
 
 x-depends-on-migrations: &depends-on-migrations
   data-model-migrate:
@@ -22,6 +51,24 @@ x-depends-on-migrations: &depends-on-migrations
 services:
   postgres:
     image: postgres:16
+    command:
+      - postgres
+      - -c
+      - max_wal_size=${POSTGRES_MAX_WAL_SIZE:-32GB}
+      - -c
+      - min_wal_size=${POSTGRES_MIN_WAL_SIZE:-2GB}
+      - -c
+      - checkpoint_timeout=${POSTGRES_CHECKPOINT_TIMEOUT:-15min}
+      - -c
+      - checkpoint_completion_target=${POSTGRES_CHECKPOINT_COMPLETION_TARGET:-0.9}
+      - -c
+      - wal_compression=${POSTGRES_WAL_COMPRESSION:-on}
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-1GB}
+      - -c
+      - bgwriter_lru_maxpages=${POSTGRES_BGWRITER_LRU_MAXPAGES:-1000}
+      - -c
+      - synchronous_commit=${POSTGRES_SYNCHRONOUS_COMMIT:-on}
     environment:
       POSTGRES_DB: fraud
       POSTGRES_USER: fraud
@@ -33,6 +80,17 @@ services:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fraud -d fraud"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "${VALKEY_APPENDONLY:-no}", "--appendfsync", "${VALKEY_APPENDFSYNC:-no}"]
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -124,10 +182,8 @@ services:
       <<: *backend-common
       PORT: 8080
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-      INDEX_WORKER_POLL_INTERVAL: 2s
-      INDEX_WORKER_MAX_ATTEMPTS: 5
-      INDEX_WORKER_RETRY_BASE_DELAY: 5s
-      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
     depends_on: *depends-on-migrations
     ports:
       - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
@@ -140,19 +196,29 @@ services:
       <<: *backend-common
       PORT: 8081
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DATABASE_MAX_CONNS: ${INGESTION_DATABASE_MAX_CONNS:-12}
+      DATABASE_MIN_CONNS: ${INGESTION_DATABASE_MIN_CONNS:-2}
       READ_DATABASE_URL: ${READ_DATABASE_URL:-}
       READ_DATABASE_MAX_CONNS: ${READ_DATABASE_MAX_CONNS:-0}
       READ_DATABASE_MIN_CONNS: ${READ_DATABASE_MIN_CONNS:-0}
-      WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-}
-      WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
-      WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
-      WORKER_POLL_INTERVAL: 5s
-      WORKER_MAX_ATTEMPTS: 3
-      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
+      WORKER_MAX_ATTEMPTS: ${INGESTION_WORKER_MAX_ATTEMPTS:-3}
+      UPLOAD_LOG_QUEUE_NAME: ${UPLOAD_LOG_QUEUE_NAME:-upload_logs}
+      DEFERRED_INGEST_QUEUE_NAME: ${DEFERRED_INGEST_QUEUE_NAME:-deferred_ingests}
+      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-100000}
       WRITE_PATH_OVERLOAD_MODE: ${WRITE_PATH_OVERLOAD_MODE:-defer_async}
-      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
-    depends_on: *depends-on-migrations
+      READ_QUERY_CONCURRENCY_LIMIT: ${READ_QUERY_CONCURRENCY_LIMIT:-64}
+      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-0}
+      AGGREGATE_QUERY_TIMEOUT: ${AGGREGATE_QUERY_TIMEOUT:-3s}
+      DB_POOL_SATURATION_THRESHOLD_PCT: ${DB_POOL_SATURATION_THRESHOLD_PCT:-80}
+      REQUEST_QUEUE_DEPTH_THRESHOLD: ${REQUEST_QUEUE_DEPTH_THRESHOLD:-8}
+      SERVICE_CPU_THRESHOLD_PCT: ${SERVICE_CPU_THRESHOLD_PCT:-80}
+      UPSTREAM_TIMEOUT_RATE_THRESHOLD_PCT: ${UPSTREAM_TIMEOUT_RATE_THRESHOLD_PCT:-5}
+      AGGREGATE_FACT_REDIS_URL: ${AGGREGATE_FACT_REDIS_URL:-redis://valkey:6379/0}
+    depends_on:
+      <<: *depends-on-migrations
+      valkey:
+        condition: service_healthy
     ports:
       - "${INGESTION_FORWARDED_PORT:-8081}:8081"
 
@@ -161,27 +227,24 @@ services:
       context: ./backend/decision-engine-service
       dockerfile: Dockerfile
     environment:
-      <<: *backend-common
+      <<: [*backend-common, *decision-runtime]
       PORT: 8082
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DATABASE_MAX_CONNS: ${DECISION_DATABASE_MAX_CONNS:-24}
+      DATABASE_MIN_CONNS: ${DECISION_DATABASE_MIN_CONNS:-4}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
-      LOG_LEVEL: debug
+      LOG_LEVEL: ${DECISION_LOG_LEVEL:-debug}
       # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
-      WORKER_MODE: poll
-      WORKER_POLL_INTERVAL: 15s
-      WORKER_BATCH_LIMIT: 100
-      AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
-      LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
-      LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
-      LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
-      TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
-      RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
-      SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
-      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
-    depends_on: *depends-on-migrations
+      WORKFLOW_ACTION_URL: ${WORKFLOW_ACTION_URL:-}
+      SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
+      SCORING_PROVIDER_URL: ${SCORING_PROVIDER_URL:-}
+      OUTBOX_PUBLISHER_URL: ${OUTBOX_PUBLISHER_URL:-}
+    depends_on:
+      <<: *depends-on-migrations
+      valkey:
+        condition: service_healthy
     ports:
       - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
 
@@ -231,10 +294,9 @@ services:
     environment:
       <<: *backend-common
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-      INDEX_WORKER_POLL_INTERVAL: 2s
-      INDEX_WORKER_MAX_ATTEMPTS: 5
-      INDEX_WORKER_RETRY_BASE_DELAY: 5s
-      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+      INDEX_WORKER_MAX_ATTEMPTS: ${INDEX_WORKER_MAX_ATTEMPTS:-5}
+      INDEX_JOB_QUEUE_NAME: ${INDEX_JOB_QUEUE_NAME:-index_jobs}
+      INDEX_JOB_QUEUE_WORKERS: ${INDEX_JOB_QUEUE_WORKERS:-4}
     depends_on: *depends-on-migrations
 
   ingestion-worker:
@@ -245,22 +307,22 @@ services:
     environment:
       <<: *backend-common
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-      READ_DATABASE_URL: ${READ_DATABASE_URL:-}
-      READ_DATABASE_MAX_CONNS: ${READ_DATABASE_MAX_CONNS:-0}
-      READ_DATABASE_MIN_CONNS: ${READ_DATABASE_MIN_CONNS:-0}
       WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-}
       WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
       WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
-      WORKER_POLL_INTERVAL: 5s
-      WORKER_MAX_ATTEMPTS: 3
-      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
-      WRITE_PATH_OVERLOAD_MODE: ${WRITE_PATH_OVERLOAD_MODE:-defer_async}
-      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
+      WORKER_MAX_ATTEMPTS: ${INGESTION_WORKER_MAX_ATTEMPTS:-3}
+      UPLOAD_LOG_QUEUE_NAME: ${UPLOAD_LOG_QUEUE_NAME:-upload_logs}
+      UPLOAD_LOG_QUEUE_WORKERS: ${UPLOAD_LOG_QUEUE_WORKERS:-4}
+      DEFERRED_INGEST_QUEUE_NAME: ${DEFERRED_INGEST_QUEUE_NAME:-deferred_ingests}
+      DEFERRED_INGEST_QUEUE_WORKERS: ${DEFERRED_INGEST_QUEUE_WORKERS:-4}
+      AGGREGATE_FACT_REDIS_URL: ${AGGREGATE_FACT_REDIS_URL:-redis://valkey:6379/0}
     depends_on:
       <<: *depends-on-migrations
       data-model-service:
         condition: service_started
+      valkey:
+        condition: service_healthy
 
   decision-engine-worker:
     build:
@@ -270,24 +332,30 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      <<: *backend-common
+      <<: [*backend-common, *decision-runtime]
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DATABASE_MAX_CONNS: ${DECISION_WORKER_DATABASE_MAX_CONNS:-6}
+      DATABASE_MIN_CONNS: ${DECISION_WORKER_DATABASE_MIN_CONNS:-1}
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
       # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
-      WORKER_MODE: poll
-      WORKER_POLL_INTERVAL: 15s
-      WORKER_BATCH_LIMIT: 100
-      AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
-      LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
-      LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
-      LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
-      TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
-      RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
-      SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
-      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+      WORKFLOW_ACTION_URL: ${WORKFLOW_ACTION_URL:-}
+      SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
+      SCORING_PROVIDER_URL: ${SCORING_PROVIDER_URL:-}
+      OUTBOX_PUBLISHER_URL: ${OUTBOX_PUBLISHER_URL:-}
+      WORKER_MODE: ${DECISION_WORKER_MODE:-poll}
+      WORKER_POLL_INTERVAL: ${DECISION_WORKER_POLL_INTERVAL:-15s}
+      WORKER_BATCH_LIMIT: ${DECISION_WORKER_BATCH_LIMIT:-100}
+      WORKER_TASKS: ${DECISION_WORKER_TASKS:-scheduled,async,workflow_dispatch,screening_dispatch,scoring_dispatch,outbox}
+      WORKER_TASK_PRIORITIES: ${DECISION_WORKER_TASK_PRIORITIES:-}
+      SCHEDULED_EXECUTION_QUEUE_WORKERS: ${SCHEDULED_EXECUTION_QUEUE_WORKERS:-4}
+      ASYNC_EXECUTION_QUEUE_WORKERS: ${ASYNC_EXECUTION_QUEUE_WORKERS:-4}
+      ASYNC_EXECUTION_CALLBACK_QUEUE_WORKERS: ${ASYNC_EXECUTION_CALLBACK_QUEUE_WORKERS:-2}
+      WORKFLOW_DISPATCH_QUEUE_WORKERS: ${WORKFLOW_DISPATCH_QUEUE_WORKERS:-4}
+      SCREENING_DISPATCH_QUEUE_WORKERS: ${SCREENING_DISPATCH_QUEUE_WORKERS:-4}
+      SCORING_DISPATCH_QUEUE_WORKERS: ${SCORING_DISPATCH_QUEUE_WORKERS:-4}
+      OUTBOX_QUEUE_WORKERS: ${OUTBOX_QUEUE_WORKERS:-4}
     depends_on:
       <<: *depends-on-migrations
       data-model-service:
@@ -296,6 +364,8 @@ services:
         condition: service_started
       screening-service:
         condition: service_started
+      valkey:
+        condition: service_healthy
       # case-manager-service:
       #   condition: service_started
 
@@ -371,3 +441,4 @@ services:
 
 volumes:
   postgres_data:
+  valkey_data:

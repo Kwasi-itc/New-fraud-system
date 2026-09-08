@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -11,28 +14,32 @@ import (
 )
 
 type FieldService struct {
-	tenantRepository ports.TenantRepository
-	tableRepository  ports.TableRepository
-	fieldRepository  ports.FieldRepository
+	tenantRepository         ports.TenantRepository
+	tableRepository          ports.TableRepository
+	fieldRepository          ports.FieldRepository
 	fieldEnumValueRepository ports.FieldEnumValueRepository
-	linkRepository   ports.LinkRepository
-	pivotRepository  ports.PivotRepository
-	schemaChanges    ports.SchemaChangeRepository
-	schemaManager    ports.SchemaManager
-	txManager        ports.TransactionManager
-	idGenerator      ports.IDGenerator
-	clock            ports.Clock
+	linkRepository           ports.LinkRepository
+	pivotRepository          ports.PivotRepository
+	schemaChanges            ports.SchemaChangeRepository
+	schemaManager            ports.SchemaManager
+	txManager                ports.TransactionManager
+	idGenerator              ports.IDGenerator
+	clock                    ports.Clock
 }
 
 type CreateFieldInput struct {
-	TableID     uuid.UUID
-	Name        string
-	Description string
-	DataType    datamodel.DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	EnumValues  []CreateFieldEnumValueSeed
+	TableID                     uuid.UUID
+	Name                        string
+	Description                 string
+	DataType                    datamodel.DataType
+	Nullable                    bool
+	IsEnum                      bool
+	IsUnique                    bool
+	DistributionCategory        datamodel.DistributionCategory
+	ClassificationSource        datamodel.ClassificationSource
+	ClassificationPolicyVersion string
+	ClassificationEvidence      json.RawMessage
+	EnumValues                  []CreateFieldEnumValueSeed
 }
 
 type CreateFieldEnumValueSeed struct {
@@ -42,11 +49,15 @@ type CreateFieldEnumValueSeed struct {
 }
 
 type UpdateFieldInput struct {
-	FieldID     uuid.UUID
-	Description *string
-	Nullable    *bool
-	IsEnum      *bool
-	IsUnique    *bool
+	FieldID                     uuid.UUID
+	Description                 *string
+	Nullable                    *bool
+	IsEnum                      *bool
+	IsUnique                    *bool
+	DistributionCategory        *datamodel.DistributionCategory
+	ClassificationSource        *datamodel.ClassificationSource
+	ClassificationPolicyVersion *string
+	ClassificationEvidence      json.RawMessage
 }
 
 func NewFieldService(
@@ -63,17 +74,17 @@ func NewFieldService(
 	clock ports.Clock,
 ) FieldService {
 	return FieldService{
-		tenantRepository: tenantRepository,
-		tableRepository:  tableRepository,
-		fieldRepository:  fieldRepository,
+		tenantRepository:         tenantRepository,
+		tableRepository:          tableRepository,
+		fieldRepository:          fieldRepository,
 		fieldEnumValueRepository: fieldEnumValueRepository,
-		linkRepository:   linkRepository,
-		pivotRepository:  pivotRepository,
-		schemaChanges:    schemaChanges,
-		schemaManager:    schemaManager,
-		txManager:        txManager,
-		idGenerator:      idGenerator,
-		clock:            clock,
+		linkRepository:           linkRepository,
+		pivotRepository:          pivotRepository,
+		schemaChanges:            schemaChanges,
+		schemaManager:            schemaManager,
+		txManager:                txManager,
+		idGenerator:              idGenerator,
+		clock:                    clock,
 	}
 }
 
@@ -99,18 +110,47 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 	}
 
 	now := s.clock.Now()
+	category := input.DistributionCategory
+	if category == "" {
+		category = datamodel.DistributionUnknown
+	}
+	source := input.ClassificationSource
+	if source == "" {
+		if category == datamodel.DistributionUnknown {
+			source = datamodel.ClassificationSourceDefault
+		} else {
+			source = datamodel.ClassificationSourceManual
+		}
+	}
+	policyVersion := strings.TrimSpace(input.ClassificationPolicyVersion)
+	if policyVersion == "" {
+		policyVersion = "distribution-v1"
+	}
+	evidence := input.ClassificationEvidence
+	if len(evidence) == 0 {
+		evidence = json.RawMessage(`{}`)
+	}
+	var classifiedAt *time.Time
+	if category != datamodel.DistributionUnknown {
+		classifiedAt = &now
+	}
 	field := datamodel.Field{
-		ID:          s.idGenerator.New(),
-		TenantID:    table.TenantID,
-		TableID:     input.TableID,
-		Name:        datamodel.NormalizeName(input.Name),
-		Description: input.Description,
-		DataType:    input.DataType,
-		Nullable:    input.Nullable,
-		IsEnum:      input.IsEnum,
-		IsUnique:    input.IsUnique,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:                          s.idGenerator.New(),
+		TenantID:                    table.TenantID,
+		TableID:                     input.TableID,
+		Name:                        datamodel.NormalizeName(input.Name),
+		Description:                 input.Description,
+		DataType:                    input.DataType,
+		Nullable:                    input.Nullable,
+		IsEnum:                      input.IsEnum,
+		IsUnique:                    input.IsUnique,
+		DistributionCategory:        category,
+		ClassificationSource:        source,
+		ClassificationPolicyVersion: policyVersion,
+		ClassificationEvidence:      evidence,
+		ClassifiedAt:                classifiedAt,
+		CreatedAt:                   now,
+		UpdatedAt:                   now,
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.Fields().Create(ctx, field); err != nil {
@@ -165,13 +205,15 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 			field.ID,
 			now,
 			map[string]any{
-				"table_id":    field.TableID,
-				"name":        field.Name,
-				"data_type":   field.DataType,
-				"nullable":    field.Nullable,
-				"is_enum":     field.IsEnum,
-				"is_unique":   field.IsUnique,
-				"description": field.Description,
+				"table_id":              field.TableID,
+				"name":                  field.Name,
+				"data_type":             field.DataType,
+				"nullable":              field.Nullable,
+				"is_enum":               field.IsEnum,
+				"is_unique":             field.IsUnique,
+				"distribution_category": field.DistributionCategory,
+				"classification_source": field.ClassificationSource,
+				"description":           field.Description,
 			},
 		))
 		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field", "field"), now)
@@ -224,6 +266,32 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 	if input.IsUnique != nil {
 		field.IsUnique = *input.IsUnique
 	}
+	if input.DistributionCategory != nil {
+		field.DistributionCategory = *input.DistributionCategory
+		if input.ClassificationSource != nil {
+			field.ClassificationSource = *input.ClassificationSource
+		} else if field.DistributionCategory == datamodel.DistributionUnknown {
+			field.ClassificationSource = datamodel.ClassificationSourceDefault
+		} else {
+			field.ClassificationSource = datamodel.ClassificationSourceManual
+		}
+		if input.ClassificationPolicyVersion != nil && strings.TrimSpace(*input.ClassificationPolicyVersion) != "" {
+			field.ClassificationPolicyVersion = strings.TrimSpace(*input.ClassificationPolicyVersion)
+		} else {
+			field.ClassificationPolicyVersion = "distribution-v1"
+		}
+		if len(input.ClassificationEvidence) > 0 {
+			field.ClassificationEvidence = input.ClassificationEvidence
+		} else {
+			field.ClassificationEvidence = json.RawMessage(`{}`)
+		}
+		if field.DistributionCategory == datamodel.DistributionUnknown {
+			field.ClassifiedAt = nil
+		} else {
+			classifiedAt := s.clock.Now()
+			field.ClassifiedAt = &classifiedAt
+		}
+	}
 	field.UpdatedAt = s.clock.Now()
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -249,12 +317,14 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 			field.ID,
 			field.UpdatedAt,
 			map[string]any{
-				"table_id":    field.TableID,
-				"name":        field.Name,
-				"nullable":    field.Nullable,
-				"is_enum":     field.IsEnum,
-				"is_unique":   field.IsUnique,
-				"description": field.Description,
+				"table_id":              field.TableID,
+				"name":                  field.Name,
+				"nullable":              field.Nullable,
+				"is_enum":               field.IsEnum,
+				"is_unique":             field.IsUnique,
+				"distribution_category": field.DistributionCategory,
+				"classification_source": field.ClassificationSource,
+				"description":           field.Description,
 			},
 		))
 		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field", "field"), field.UpdatedAt)

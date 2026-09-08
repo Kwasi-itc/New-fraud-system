@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,33 +51,46 @@ func AdaptTable(table datamodel.Table) TableResponse {
 }
 
 type CreateFieldRequest struct {
-	Name        string                        `json:"name" binding:"required"`
-	Description string                        `json:"description"`
-	DataType    string                        `json:"data_type" binding:"required"`
-	Nullable    bool                          `json:"nullable"`
-	IsEnum      bool                          `json:"is_enum"`
-	IsUnique    bool                          `json:"is_unique"`
-	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
+	Name                        string                        `json:"name" binding:"required"`
+	Description                 string                        `json:"description"`
+	DataType                    string                        `json:"data_type" binding:"required"`
+	Nullable                    bool                          `json:"nullable"`
+	IsEnum                      bool                          `json:"is_enum"`
+	IsUnique                    bool                          `json:"is_unique"`
+	DistributionCategory        string                        `json:"distribution_category"`
+	ClassificationSource        string                        `json:"classification_source"`
+	ClassificationPolicyVersion string                        `json:"classification_policy_version"`
+	ClassificationEvidence      json.RawMessage               `json:"classification_evidence"`
+	EnumValues                  []CreateFieldEnumValueRequest `json:"enum_values"`
 }
 
 type UpdateFieldRequest struct {
-	Description *string `json:"description"`
-	Nullable    *bool   `json:"nullable"`
-	IsEnum      *bool   `json:"is_enum"`
-	IsUnique    *bool   `json:"is_unique"`
+	Description                 *string         `json:"description"`
+	Nullable                    *bool           `json:"nullable"`
+	IsEnum                      *bool           `json:"is_enum"`
+	IsUnique                    *bool           `json:"is_unique"`
+	DistributionCategory        *string         `json:"distribution_category"`
+	ClassificationSource        *string         `json:"classification_source"`
+	ClassificationPolicyVersion *string         `json:"classification_policy_version"`
+	ClassificationEvidence      json.RawMessage `json:"classification_evidence"`
 }
 
 type FieldResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	DataType    string    `json:"data_type"`
-	Nullable    bool      `json:"nullable"`
-	IsEnum      bool      `json:"is_enum"`
-	IsUnique    bool      `json:"is_unique"`
-	Archived    bool      `json:"archived"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                          uuid.UUID       `json:"id"`
+	Name                        string          `json:"name"`
+	Description                 string          `json:"description"`
+	DataType                    string          `json:"data_type"`
+	Nullable                    bool            `json:"nullable"`
+	IsEnum                      bool            `json:"is_enum"`
+	IsUnique                    bool            `json:"is_unique"`
+	DistributionCategory        string          `json:"distribution_category"`
+	ClassificationSource        string          `json:"classification_source"`
+	ClassificationPolicyVersion string          `json:"classification_policy_version"`
+	ClassificationEvidence      json.RawMessage `json:"classification_evidence"`
+	ClassifiedAt                *time.Time      `json:"classified_at,omitempty"`
+	Archived                    bool            `json:"archived"`
+	CreatedAt                   time.Time       `json:"created_at"`
+	UpdatedAt                   time.Time       `json:"updated_at"`
 }
 
 type CreateFieldEnumValueRequest struct {
@@ -103,16 +117,21 @@ type FieldEnumValueResponse struct {
 
 func AdaptField(field datamodel.Field) FieldResponse {
 	return FieldResponse{
-		ID:          field.ID,
-		Name:        field.Name,
-		Description: field.Description,
-		DataType:    string(field.DataType),
-		Nullable:    field.Nullable,
-		IsEnum:      field.IsEnum,
-		IsUnique:    field.IsUnique,
-		Archived:    field.Archived,
-		CreatedAt:   field.CreatedAt,
-		UpdatedAt:   field.UpdatedAt,
+		ID:                          field.ID,
+		Name:                        field.Name,
+		Description:                 field.Description,
+		DataType:                    string(field.DataType),
+		Nullable:                    field.Nullable,
+		IsEnum:                      field.IsEnum,
+		IsUnique:                    field.IsUnique,
+		DistributionCategory:        string(field.DistributionCategory),
+		ClassificationSource:        string(field.ClassificationSource),
+		ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+		ClassificationEvidence:      field.ClassificationEvidence,
+		ClassifiedAt:                field.ClassifiedAt,
+		Archived:                    field.Archived,
+		CreatedAt:                   field.CreatedAt,
+		UpdatedAt:                   field.UpdatedAt,
 	}
 }
 
@@ -314,8 +333,8 @@ type PortableImportSummary struct {
 }
 
 type PortableDataModelDocument struct {
-	Version    string                 `json:"version"`
-	RevisionID string                 `json:"revision_id,omitempty"`
+	Version    string                  `json:"version"`
+	RevisionID string                  `json:"revision_id,omitempty"`
 	Tables     []PortableTableDocument `json:"tables"`
 	Links      []PortableLinkDocument  `json:"links"`
 	Pivots     []PortablePivotDocument `json:"pivots"`
@@ -333,13 +352,17 @@ type PortableTableDocument struct {
 }
 
 type PortableFieldDocument struct {
-	Name        string                        `json:"name"`
-	Description string                        `json:"description"`
-	DataType    string                        `json:"data_type"`
-	Nullable    bool                          `json:"nullable"`
-	IsEnum      bool                          `json:"is_enum"`
-	IsUnique    bool                          `json:"is_unique"`
-	EnumValues  []CreateFieldEnumValueRequest `json:"enum_values"`
+	Name                        string                        `json:"name"`
+	Description                 string                        `json:"description"`
+	DataType                    string                        `json:"data_type"`
+	Nullable                    bool                          `json:"nullable"`
+	IsEnum                      bool                          `json:"is_enum"`
+	IsUnique                    bool                          `json:"is_unique"`
+	DistributionCategory        string                        `json:"distribution_category,omitempty"`
+	ClassificationSource        string                        `json:"classification_source,omitempty"`
+	ClassificationPolicyVersion string                        `json:"classification_policy_version,omitempty"`
+	ClassificationEvidence      json.RawMessage               `json:"classification_evidence,omitempty"`
+	EnumValues                  []CreateFieldEnumValueRequest `json:"enum_values"`
 }
 
 type PortableTableOptionsDocument struct {
@@ -391,15 +414,20 @@ type AssembledTableResponse struct {
 }
 
 type AssembledFieldResponse struct {
-	ID          uuid.UUID                `json:"id"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	DataType    string                   `json:"data_type"`
-	Nullable    bool                     `json:"nullable"`
-	IsEnum      bool                     `json:"is_enum"`
-	IsUnique    bool                     `json:"is_unique"`
-	Archived    bool                     `json:"archived"`
-	EnumValues  []FieldEnumValueResponse `json:"enum_values"`
+	ID                          uuid.UUID                `json:"id"`
+	Name                        string                   `json:"name"`
+	Description                 string                   `json:"description"`
+	DataType                    string                   `json:"data_type"`
+	Nullable                    bool                     `json:"nullable"`
+	IsEnum                      bool                     `json:"is_enum"`
+	IsUnique                    bool                     `json:"is_unique"`
+	DistributionCategory        string                   `json:"distribution_category"`
+	ClassificationSource        string                   `json:"classification_source"`
+	ClassificationPolicyVersion string                   `json:"classification_policy_version"`
+	ClassificationEvidence      json.RawMessage          `json:"classification_evidence"`
+	ClassifiedAt                *time.Time               `json:"classified_at,omitempty"`
+	Archived                    bool                     `json:"archived"`
+	EnumValues                  []FieldEnumValueResponse `json:"enum_values"`
 }
 
 type AssembledLinkResponse struct {
@@ -460,15 +488,20 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 		fields := make(map[string]AssembledFieldResponse, len(table.Fields))
 		for fieldKey, field := range table.Fields {
 			fields[fieldKey] = AssembledFieldResponse{
-				ID:          field.ID,
-				Name:        field.Name,
-				Description: field.Description,
-				DataType:    string(field.DataType),
-				Nullable:    field.Nullable,
-				IsEnum:      field.IsEnum,
-				IsUnique:    field.IsUnique,
-				Archived:    field.Archived,
-				EnumValues:  adaptFieldEnumValues(field.EnumValues),
+				ID:                          field.ID,
+				Name:                        field.Name,
+				Description:                 field.Description,
+				DataType:                    string(field.DataType),
+				Nullable:                    field.Nullable,
+				IsEnum:                      field.IsEnum,
+				IsUnique:                    field.IsUnique,
+				DistributionCategory:        string(field.DistributionCategory),
+				ClassificationSource:        string(field.ClassificationSource),
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ClassificationEvidence:      field.ClassificationEvidence,
+				ClassifiedAt:                field.ClassifiedAt,
+				Archived:                    field.Archived,
+				EnumValues:                  adaptFieldEnumValues(field.EnumValues),
 			}
 		}
 		links := make(map[string]AssembledLinkResponse, len(table.LinksToSingle))

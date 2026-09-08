@@ -312,6 +312,9 @@ func (stubIdempotencyRepo) Get(context.Context, uuid.UUID, string) (*ingestion.I
 	return nil, nil
 }
 func (stubIdempotencyRepo) Create(context.Context, ingestion.IdempotencyKey) error { return nil }
+func (stubIdempotencyRepo) MarkFactApplied(context.Context, uuid.UUID, string, string, string) error {
+	return nil
+}
 
 type stubOutboxRepo struct{}
 

@@ -89,6 +89,47 @@ func (c *HTTPClient) storeTenantModel(tenantID string, model ports.TenantModel) 
 	}
 }
 
+func (c *HTTPClient) AnalyzeStoredField(ctx context.Context, tenantID, tableName, fieldName string) (ports.FieldDistributionSuggestion, error) {
+	body, _ := json.Marshal(map[string]string{"table_name": tableName, "field_name": fieldName})
+	url := fmt.Sprintf("%s/v1/tenants/%s/distribution/analyze-stored", c.baseURL, tenantID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return ports.FieldDistributionSuggestion{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	attachRequestID(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return ports.FieldDistributionSuggestion{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ports.FieldDistributionSuggestion{}, fmt.Errorf("stored distribution analysis returned status %d", resp.StatusCode)
+	}
+	var payload struct {
+		Analysis struct {
+			SuggestedCategory     string  `json:"suggested_category"`
+			Reason                string  `json:"reason"`
+			RowsAnalyzed          int64   `json:"rows_analyzed"`
+			NonNullRows           int64   `json:"non_null_rows"`
+			DistinctValues        int64   `json:"distinct_values"`
+			ExpectedSameValueRows float64 `json:"expected_same_value_rows"`
+			PolicyVersion         string  `json:"policy_version"`
+		} `json:"analysis"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return ports.FieldDistributionSuggestion{}, err
+	}
+	return ports.FieldDistributionSuggestion{
+		SuggestedCategory: payload.Analysis.SuggestedCategory, Reason: payload.Analysis.Reason,
+		RowsAnalyzed: payload.Analysis.RowsAnalyzed, NonNullRows: payload.Analysis.NonNullRows,
+		DistinctValues: payload.Analysis.DistinctValues, ExpectedSameValueRows: payload.Analysis.ExpectedSameValueRows,
+		PolicyVersion: payload.Analysis.PolicyVersion,
+	}, nil
+}
+
+var _ ports.DistributionSuggestionReader = (*HTTPClient)(nil)
+
 func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
 	url := fmt.Sprintf("%s/v1/tenants/%s/data-model", c.baseURL, tenantID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -124,8 +165,12 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 		fields := make(map[string]ports.TenantModelField, len(table.Fields))
 		for fieldKey, field := range table.Fields {
 			fields[fieldKey] = ports.TenantModelField{
-				Name: field.Name,
-				Type: field.DataType,
+				Name:                        field.Name,
+				Type:                        field.DataType,
+				DistributionCategory:        field.DistributionCategory,
+				ClassificationSource:        field.ClassificationSource,
+				ClassificationPolicyVersion: field.ClassificationPolicyVersion,
+				ExpectedSameValueRows:       field.ClassificationEvidence.ExpectedSameValueRows,
 			}
 		}
 		links := make(map[string]ports.TenantModelLink, len(table.LinksToSingle))
@@ -269,8 +314,16 @@ type assembledTableResponse struct {
 }
 
 type assembledFieldResponse struct {
-	Name     string `json:"name"`
-	DataType string `json:"data_type"`
+	Name                        string                         `json:"name"`
+	DataType                    string                         `json:"data_type"`
+	DistributionCategory        string                         `json:"distribution_category"`
+	ClassificationSource        string                         `json:"classification_source"`
+	ClassificationPolicyVersion string                         `json:"classification_policy_version"`
+	ClassificationEvidence      classificationEvidenceResponse `json:"classification_evidence"`
+}
+
+type classificationEvidenceResponse struct {
+	ExpectedSameValueRows float64 `json:"expected_same_value_rows"`
 }
 
 type ingestionContractResponse struct {

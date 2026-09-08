@@ -67,6 +67,10 @@ func classifyServiceError(err error) (apiErrorSpec, string, string) {
 	switch {
 	case errors.Is(err, service.ErrIdempotencyKeyReused):
 		return apiErrorSpec{Status: http.StatusConflict, Category: "idempotency_conflict"}, "idempotency_key_reused", "idempotency key was reused with a different payload"
+	case errors.Is(err, service.ErrFactRecordMutationRejected):
+		return apiErrorSpec{Status: http.StatusConflict, Category: "fact_mutation_unsupported"}, "fact_mutation_unsupported", "fact-enabled event records are create-only in this release"
+	case errors.Is(err, service.ErrAggregateFactUnavailable):
+		return apiErrorSpec{Status: http.StatusServiceUnavailable, Category: "dependency_failure"}, "aggregate_fact_unavailable", "required aggregate fact update could not be confirmed; retry the same idempotent request"
 	case errors.Is(err, context.DeadlineExceeded):
 		return apiErrorSpec{Status: http.StatusGatewayTimeout, Category: "timeout"}, "request_timeout", "request timed out"
 	case errors.Is(err, context.Canceled):

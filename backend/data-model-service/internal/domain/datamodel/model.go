@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"regexp"
@@ -72,18 +73,78 @@ type Table struct {
 }
 
 type Field struct {
-	ID          uuid.UUID
-	TenantID    uuid.UUID
-	TableID     uuid.UUID
-	Name        string
-	Description string
-	DataType    DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                          uuid.UUID
+	TenantID                    uuid.UUID
+	TableID                     uuid.UUID
+	Name                        string
+	Description                 string
+	DataType                    DataType
+	Nullable                    bool
+	IsEnum                      bool
+	IsUnique                    bool
+	DistributionCategory        DistributionCategory
+	ClassificationSource        ClassificationSource
+	ClassificationPolicyVersion string
+	ClassificationEvidence      json.RawMessage
+	ClassifiedAt                *time.Time
+	Archived                    bool
+	CreatedAt                   time.Time
+	UpdatedAt                   time.Time
+}
+
+type DistributionCategory string
+
+const (
+	DistributionUnknown            DistributionCategory = "unknown"
+	DistributionFewValueDominated  DistributionCategory = "few_value_dominated"
+	DistributionHighlyDistributed  DistributionCategory = "highly_distributed"
+	DistributionUniqueOrNearUnique DistributionCategory = "unique_or_near_unique"
+)
+
+func SupportedDistributionCategories() []DistributionCategory {
+	return []DistributionCategory{
+		DistributionUnknown,
+		DistributionFewValueDominated,
+		DistributionHighlyDistributed,
+		DistributionUniqueOrNearUnique,
+	}
+}
+
+func ParseDistributionCategory(value string) (DistributionCategory, error) {
+	category := DistributionCategory(strings.ToLower(strings.TrimSpace(value)))
+	if category == "" {
+		return DistributionUnknown, nil
+	}
+	for _, supported := range SupportedDistributionCategories() {
+		if category == supported {
+			return category, nil
+		}
+	}
+	return "", fmt.Errorf("unsupported distribution category: %s", value)
+}
+
+type ClassificationSource string
+
+const (
+	ClassificationSourceDefault ClassificationSource = "default"
+	ClassificationSourceManual  ClassificationSource = "manual"
+	ClassificationSourceSample  ClassificationSource = "sample"
+)
+
+func ParseClassificationSource(value string, category DistributionCategory) (ClassificationSource, error) {
+	source := ClassificationSource(strings.ToLower(strings.TrimSpace(value)))
+	if source == "" {
+		if category == DistributionUnknown {
+			return ClassificationSourceDefault, nil
+		}
+		return ClassificationSourceManual, nil
+	}
+	switch source {
+	case ClassificationSourceDefault, ClassificationSourceManual, ClassificationSourceSample:
+		return source, nil
+	default:
+		return "", fmt.Errorf("unsupported classification source: %s", value)
+	}
 }
 
 type FieldEnumValue struct {
@@ -162,15 +223,20 @@ type AssembledTable struct {
 }
 
 type AssembledField struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	DataType    DataType
-	Nullable    bool
-	IsEnum      bool
-	IsUnique    bool
-	Archived    bool
-	EnumValues  []FieldEnumValue
+	ID                          uuid.UUID
+	Name                        string
+	Description                 string
+	DataType                    DataType
+	Nullable                    bool
+	IsEnum                      bool
+	IsUnique                    bool
+	DistributionCategory        DistributionCategory
+	ClassificationSource        ClassificationSource
+	ClassificationPolicyVersion string
+	ClassificationEvidence      json.RawMessage
+	ClassifiedAt                *time.Time
+	Archived                    bool
+	EnumValues                  []FieldEnumValue
 }
 
 type AssembledLink struct {

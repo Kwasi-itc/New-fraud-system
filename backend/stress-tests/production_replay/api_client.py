@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -141,7 +142,8 @@ class ServiceClients:
         object_type: str,
         records: list[dict[str, Any]],
         idempotency_key: str,
-        max_attempts: int = 3,
+        max_attempts: int = 15,
+        retry_notice: Callable[[int, float, APIError], None] | None = None,
     ) -> dict[str, Any]:
         if len(records) > 500:
             raise ValueError("ingestion batches cannot exceed 500 records")
@@ -161,9 +163,32 @@ class ServiceClients:
                 last_error = exc
                 if attempt == max_attempts or (exc.status_code is not None and exc.status_code not in {429, 500, 502, 503, 504}):
                     raise
-                await asyncio.sleep(0.25 * (2 ** (attempt - 1)))
+                error_code = _api_error_code(exc)
+                if error_code == "aggregate_fact_unavailable":
+                    delay_seconds = min(1.0 * (2 ** (attempt - 1)), 10.0)
+                else:
+                    delay_seconds = min(0.25 * (2 ** (attempt - 1)), 5.0)
+                if retry_notice is not None:
+                    retry_notice(attempt + 1, delay_seconds, exc)
+                await asyncio.sleep(delay_seconds)
         assert last_error is not None
         raise last_error
+
+    async def backfill_aggregate_facts(
+        self,
+        tenant_id: str,
+        *,
+        force: bool = False,
+        timeout_seconds: float = 7_200.0,
+    ) -> dict[str, Any]:
+        return await self.request(
+            self.ingestion,
+            "POST",
+            f"/v1/admin/tenants/{tenant_id}/aggregate-facts/backfill",
+            200,
+            params={"force": str(force).lower()},
+            timeout=httpx.Timeout(timeout_seconds),
+        )
 
     async def ingest_one(
         self,
@@ -171,7 +196,7 @@ class ServiceClients:
         object_type: str,
         fields: dict[str, Any],
         idempotency_key: str,
-        max_attempts: int = 3,
+        max_attempts: int = 10,
     ) -> tuple[dict[str, Any], int]:
         path = f"/v1/tenants/{tenant_id}/ingest/{object_type}"
         last_error: APIError | None = None
@@ -190,7 +215,12 @@ class ServiceClients:
                 last_error = exc
                 if attempt == max_attempts or (exc.status_code is not None and exc.status_code not in {429, 500, 502, 503, 504}):
                     raise
-                await asyncio.sleep(0.1 * (2 ** (attempt - 1)))
+                error_code = _api_error_code(exc)
+                if error_code == "aggregate_fact_unavailable":
+                    delay_seconds = min(1.0 * (2 ** (attempt - 1)), 10.0)
+                else:
+                    delay_seconds = min(0.1 * (2 ** (attempt - 1)), 2.0)
+                await asyncio.sleep(delay_seconds)
         assert last_error is not None
         raise last_error
 
@@ -236,6 +266,16 @@ def _response_body(response: httpx.Response) -> Any:
         return response.json()
     except json.JSONDecodeError:
         return response.text
+
+
+def _api_error_code(error: APIError) -> str | None:
+    if not isinstance(error.response_body, dict):
+        return None
+    detail = error.response_body.get("error")
+    if not isinstance(detail, dict):
+        return None
+    code = detail.get("code")
+    return code if isinstance(code, str) else None
 
 
 def _format_httpx_error(exc: httpx.HTTPError) -> str:

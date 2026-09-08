@@ -1,2 +1,0 @@
--- The primary fraud database is created by POSTGRES_DB=fraud in docker-compose.yml.
--- Service isolation is handled by schemas inside that single database.
