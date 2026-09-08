@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -625,7 +626,22 @@ def _iso_time(value: datetime) -> str:
 def _parse_iso_time(value: Any) -> datetime | None:
     if not value:
         return None
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    text = str(value).strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+
+    # Python 3.10's fromisoformat() only accepts selected fractional-second
+    # widths, while Go's RFC3339Nano output removes trailing zeroes. Normalize
+    # the service timestamps to Python's six-digit microsecond precision.
+    match = re.fullmatch(
+        r"(?P<prefix>.+[T ]\d{2}:\d{2}:\d{2})[.,](?P<fraction>\d+)(?P<suffix>[+-]\d{2}:?\d{2})?",
+        text,
+    )
+    if match is not None:
+        fraction = match.group("fraction")[:6].ljust(6, "0")
+        text = f"{match.group('prefix')}.{fraction}{match.group('suffix') or ''}"
+
+    return datetime.fromisoformat(text)
 
 
 def _duration_ms(start: Any, end: Any) -> float | None:
