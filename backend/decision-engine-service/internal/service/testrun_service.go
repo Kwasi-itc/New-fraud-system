@@ -48,9 +48,17 @@ type TestRunService struct {
 	recordTagRepo               ports.RecordTagRepository
 	riskRepo                    ports.RiskSnapshotRepository
 	ipFlagRepo                  ports.IPFlagRepository
+	geoIPLookup                 ports.GeoIPLookup
 	aggregatePushdownMode       string
 	aggregatePushdownAggregates []string
 	ruleEvaluationConcurrency   int
+}
+
+func (s *TestRunService) SetGeoIPLookup(lookup ports.GeoIPLookup) {
+	if s == nil {
+		return
+	}
+	s.geoIPLookup = lookup
 }
 
 func NewTestRunService(
@@ -157,11 +165,11 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		return TestRunEvaluationResult{}, fmt.Errorf("test run is expired")
 	}
 
-	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency)
+	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency, s.geoIPLookup)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
-	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency)
+	phantomEval, phantomRuleExecs, err := evaluatePhantomByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, tr.ID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency, s.geoIPLookup)
 	if err != nil {
 		return TestRunEvaluationResult{}, err
 	}
@@ -305,6 +313,7 @@ func evaluateScenarioByIteration(
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
 	ruleEvaluationConcurrency int,
+	geoIPLookups ...ports.GeoIPLookup,
 ) (DecisionEvaluationResult, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -338,9 +347,11 @@ func evaluateScenarioByIteration(
 		RecordTagRepo:               recordTagRepo,
 		RiskRepo:                    riskRepo,
 		IPFlagRepo:                  ipFlagRepo,
+		GeoIPLookup:                 firstGeoIPLookup(geoIPLookups),
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
 		AggregateResultCache:        asteval.NewAggregateResultCache(),
+		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -408,6 +419,7 @@ func evaluatePhantomByIteration(
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
 	ruleEvaluationConcurrency int,
+	geoIPLookups ...ports.GeoIPLookup,
 ) (*decision.PhantomDecision, []decision.PhantomRuleExecution, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -441,9 +453,11 @@ func evaluatePhantomByIteration(
 		RecordTagRepo:               recordTagRepo,
 		RiskRepo:                    riskRepo,
 		IPFlagRepo:                  ipFlagRepo,
+		GeoIPLookup:                 firstGeoIPLookup(geoIPLookups),
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
 		AggregateResultCache:        asteval.NewAggregateResultCache(),
+		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
 	}
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
 	if err != nil {
@@ -496,4 +510,11 @@ func evaluatePhantomByIteration(
 		CreatedAt:           now,
 	}
 	return item, ruleExecs, nil
+}
+
+func firstGeoIPLookup(lookups []ports.GeoIPLookup) ports.GeoIPLookup {
+	if len(lookups) == 0 {
+		return nil
+	}
+	return lookups[0]
 }

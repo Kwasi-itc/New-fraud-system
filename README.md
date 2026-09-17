@@ -56,6 +56,20 @@ Compose injects local/dev environment values directly. The checked-in service
 `.env.example` files remain useful for non-Docker local runs, but they are not
 the source of truth for the Docker stack.
 
+## Local IP geolocation database
+
+The decision engine and its worker mount a DB-IP City Lite MMDB file read-only.
+By default Compose expects this file at:
+
+```text
+./dbip-city-lite-2026-08.mmdb
+```
+
+To use another host path, set `GEOIP_MMDB_HOST_PATH`. The MMDB file is local
+runtime data and is ignored by Git. DB-IP Lite data is licensed under CC BY 4.0;
+the frontend includes the required DB-IP attribution wherever its derived IP
+geolocation accessors are available.
+
 ## Layout
 
 ```text

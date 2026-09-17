@@ -444,6 +444,19 @@ function RuleEditorContent({
                         disabled={!isEditable}
                       />
                     )}
+                    {accessorOptions.some((option) => option.kind === "derived") ? (
+                      <p className="text-[11px] text-slate-500">
+                        IP geolocation by{" "}
+                        <a
+                          href="https://db-ip.com"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-2"
+                        >
+                          DB-IP
+                        </a>
+                      </p>
+                    ) : null}
                   </CardContent>
                 </Card>
 
@@ -694,10 +707,12 @@ export function RuleDetailPage({
     () =>
       extractAccessorOptions(
         editorIdentifiersQuery.data?.payload_accessors ?? [],
-        editorIdentifiersQuery.data?.database_accessors ?? []
+        editorIdentifiersQuery.data?.database_accessors ?? [],
+        editorIdentifiersQuery.data?.derived_accessors ?? []
       ),
     [
       editorIdentifiersQuery.data?.database_accessors,
+      editorIdentifiersQuery.data?.derived_accessors,
       editorIdentifiersQuery.data?.payload_accessors,
     ]
   );

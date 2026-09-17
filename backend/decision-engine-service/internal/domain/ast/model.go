@@ -39,6 +39,7 @@ const (
 	ValueTypeString    ValueType = "string"
 	ValueTypeNumber    ValueType = "number"
 	ValueTypeTimestamp ValueType = "timestamp"
+	ValueTypeIPAddress ValueType = "ip_address"
 	ValueTypeNull      ValueType = "null"
 	ValueTypeList      ValueType = "list"
 	ValueTypeObject    ValueType = "object"

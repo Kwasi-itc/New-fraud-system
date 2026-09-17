@@ -100,12 +100,18 @@ func SupportedFunctionCatalog() []FunctionDescriptor {
 			ReturnType:        domainast.ValueTypeBool,
 			SupportsNamedArgs: true,
 			Arguments: []FunctionArgument{
-				{Name: "ip", Kind: "string", Required: true, Description: "IP address to inspect."},
+				{Name: "ip", Kind: "ip_address", Required: true, Description: "IP address to inspect."},
 				{Name: "flag", Kind: "string", Required: true, Description: "Flag name to check."},
 			},
 			RequiresPlatform: true,
 			Example:          `{"function":"has_ip_flag","named_children":{"ip":{"function":"field_ref","named_children":{"field":{"constant":"ip_address"}}},"flag":{"constant":"tor_exit_node"}}}`,
 		},
+		geoIPFunc("IPCountry", "Returns the localized country name for an IP address.", domainast.ValueTypeString, `{"function":"IPCountry","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
+		geoIPFunc("IPCountryCode", "Returns the ISO 3166-1 alpha-2 country code for an IP address.", domainast.ValueTypeString, `{"function":"IPCountryCode","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
+		geoIPFunc("IPRegion", "Returns the localized first administrative subdivision name for an IP address.", domainast.ValueTypeString, `{"function":"IPRegion","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
+		geoIPFunc("IPRegionCode", "Returns the first administrative subdivision code for an IP address.", domainast.ValueTypeString, `{"function":"IPRegionCode","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
+		geoIPFunc("IPContinentCode", "Returns the two-letter continent code for an IP address.", domainast.ValueTypeString, `{"function":"IPContinentCode","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
+		geoIPFunc("IPGeoFound", "Returns whether the geolocation database contains a record for an IP address.", domainast.ValueTypeBool, `{"function":"IPGeoFound","children":[{"function":"Payload","children":[{"constant":"ip_address"}]}]}`),
 		{
 			Name:              "past_decision_count",
 			Category:          "decision history",
@@ -458,6 +464,20 @@ func SupportedFunctionCatalog() []FunctionDescriptor {
 			},
 			Example: `{"function":"object_get","named_children":{"object":{"function":"group_count","named_children":{"items":{"function":"related_records","named_children":{"object_type":{"constant":"transactions"}}},"field":{"constant":"status"}}},"key":{"constant":"review"}}}`,
 		},
+	}
+}
+
+func geoIPFunc(name, description string, returnType domainast.ValueType, example string) FunctionDescriptor {
+	return FunctionDescriptor{
+		Name:             name,
+		Category:         "IP geolocation",
+		Description:      description,
+		ReturnType:       returnType,
+		PositionalArity:  intPtr(1),
+		Arguments:        []FunctionArgument{{Name: "ip", Kind: "ip_address", Required: true, Description: "An ip_address data-model field."}},
+		RequiresModel:    true,
+		RequiresPlatform: true,
+		Example:          example,
 	}
 }
 

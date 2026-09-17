@@ -41,6 +41,33 @@ func TestBuildPayloadAccessors(t *testing.T) {
 	}
 }
 
+func TestBuildGeoIPDerivedAccessorsOnlyUsesIPAddressFields(t *testing.T) {
+	t.Parallel()
+
+	items, err := buildGeoIPDerivedAccessors("transactions", ports.TenantModel{
+		Tables: map[string]ports.TenantModelTable{
+			"transactions": {
+				Name: "transactions",
+				Fields: map[string]ports.TenantModelField{
+					"client_ip": {Name: "client_ip", Type: "ip_address"},
+					"email":     {Name: "email", Type: "string"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("buildGeoIPDerivedAccessors() error = %v", err)
+	}
+	if len(items) != len(geoIPAccessorFunctions) {
+		t.Fatalf("derived accessor count = %d, want %d", len(items), len(geoIPAccessorFunctions))
+	}
+	for _, item := range items {
+		if item.Children[0].Function != "Payload" || item.Children[0].Children[0].Constant != "client_ip" {
+			t.Fatalf("derived accessor source = %#v, want Payload(client_ip)", item.Children[0])
+		}
+	}
+}
+
 func TestBuildDatabaseAccessorsAvoidsLoops(t *testing.T) {
 	t.Parallel()
 

@@ -18,6 +18,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
 	dispatchclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/geoip"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
@@ -95,6 +96,21 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	var geoIPLookup *geoip.MMDBLookup
+	if cfg.GeoIPMMDBPath != "" {
+		geoIPLookup, err = geoip.OpenMMDB(cfg.GeoIPMMDBPath, cfg.GeoIPLocale)
+		if err != nil {
+			logger.Error("failed to open GeoIP database", "error", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err := geoIPLookup.Close(); err != nil {
+				logger.Warn("failed to close GeoIP database", "error", err)
+			}
+		}()
+		logger.Info("opened GeoIP database", "database_type", geoIPLookup.DatabaseType(), "locale", cfg.GeoIPLocale)
+	}
 
 	var txManager ports.TransactionManager = storepostgres.NewTransactionManager(db)
 	var scenarioRepo ports.ScenarioRepository = storepostgres.NewScenarioRepository(db)
@@ -199,6 +215,7 @@ func main() {
 		cfg.AggregateRemoteConcurrencyLimit,
 		dbPoolStatsProvider(db),
 	)
+	decisionService.SetGeoIPLookup(geoIPLookup)
 
 	executionService := service.NewExecutionService(
 		txManager,

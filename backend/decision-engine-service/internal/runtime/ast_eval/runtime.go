@@ -2,11 +2,14 @@ package ast_eval
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"golang.org/x/sync/singleflight"
 )
 
 type Runtime struct {
@@ -21,6 +24,7 @@ type Runtime struct {
 	RecordTagRepo               ports.RecordTagRepository
 	RiskRepo                    ports.RiskSnapshotRepository
 	IPFlagRepo                  ports.IPFlagRepository
+	GeoIPLookup                 ports.GeoIPLookup
 	DecisionRepo                ports.DecisionRepository
 	AggregatePushdownMode       string
 	AggregatePushdownAggregates []string
@@ -28,6 +32,7 @@ type Runtime struct {
 	EvalCache                   *EvaluationCache
 	AggregateResultCache        *AggregateResultCache
 	RelatedPathCache            *RelatedPathCache
+	GeoIPResultCache            *GeoIPResultCache
 }
 
 const (
@@ -128,6 +133,63 @@ func cloneFieldMap(input map[string]any) map[string]any {
 		out[key] = value
 	}
 	return out
+}
+
+type geoIPResultCacheEntry struct {
+	location ports.GeoIPLocation
+	found    bool
+}
+
+// GeoIPResultCache is scoped to one decision evaluation. It prevents repeated
+// IPCountry/IPRegion accessors (including concurrent rule evaluations) from
+// decoding the same MMDB record more than once.
+type GeoIPResultCache struct {
+	mu      sync.RWMutex
+	entries map[string]geoIPResultCacheEntry
+	group   singleflight.Group
+}
+
+func NewGeoIPResultCache() *GeoIPResultCache {
+	return &GeoIPResultCache{entries: map[string]geoIPResultCacheEntry{}}
+}
+
+func (c *GeoIPResultCache) Lookup(ctx context.Context, lookup ports.GeoIPLookup, address netip.Addr) (ports.GeoIPLocation, bool, error) {
+	if lookup == nil {
+		return ports.GeoIPLocation{}, false, fmt.Errorf("geoip lookup is not configured")
+	}
+	if c == nil {
+		return lookup.Lookup(ctx, address)
+	}
+	key := address.Unmap().String()
+	c.mu.RLock()
+	entry, ok := c.entries[key]
+	c.mu.RUnlock()
+	if ok {
+		return entry.location, entry.found, nil
+	}
+
+	value, err, _ := c.group.Do(key, func() (any, error) {
+		c.mu.RLock()
+		cached, exists := c.entries[key]
+		c.mu.RUnlock()
+		if exists {
+			return cached, nil
+		}
+		location, found, err := lookup.Lookup(ctx, address)
+		if err != nil {
+			return nil, err
+		}
+		loaded := geoIPResultCacheEntry{location: location, found: found}
+		c.mu.Lock()
+		c.entries[key] = loaded
+		c.mu.Unlock()
+		return loaded, nil
+	})
+	if err != nil {
+		return ports.GeoIPLocation{}, false, err
+	}
+	loaded := value.(geoIPResultCacheEntry)
+	return loaded.location, loaded.found, nil
 }
 
 type contextKey string

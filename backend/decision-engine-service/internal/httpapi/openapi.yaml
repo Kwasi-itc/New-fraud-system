@@ -5001,7 +5001,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ASTNodeDTO'
-      required: [payload_accessors, database_accessors]
+        derived_accessors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ASTNodeDTO'
+      required: [payload_accessors, database_accessors, derived_accessors]
     DecisionEnvelope:
       type: object
       properties:

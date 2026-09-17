@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -12,6 +13,7 @@ import (
 type AccessorSet struct {
 	PayloadAccessors  []domainast.Node `json:"payload_accessors"`
 	DatabaseAccessors []domainast.Node `json:"database_accessors"`
+	DerivedAccessors  []domainast.Node `json:"derived_accessors"`
 }
 
 type AccessorService struct {
@@ -48,11 +50,101 @@ func (s AccessorService) ListByScenario(ctx context.Context, tenantID, scenarioI
 	if err != nil {
 		return AccessorSet{}, err
 	}
+	derivedAccessors, err := buildGeoIPDerivedAccessors(scn.TriggerObjectType, model)
+	if err != nil {
+		return AccessorSet{}, err
+	}
 
 	return AccessorSet{
 		PayloadAccessors:  payloadAccessors,
 		DatabaseAccessors: databaseAccessors,
+		DerivedAccessors:  derivedAccessors,
 	}, nil
+}
+
+var geoIPAccessorFunctions = []string{
+	"IPCountry",
+	"IPCountryCode",
+	"IPRegion",
+	"IPRegionCode",
+	"IPContinentCode",
+	"IPGeoFound",
+}
+
+func buildGeoIPDerivedAccessors(triggerObjectType string, model ports.TenantModel) ([]domainast.Node, error) {
+	triggerTable, ok := model.Tables[triggerObjectType]
+	if !ok {
+		return nil, fmt.Errorf("trigger object type %q not found in tenant model", triggerObjectType)
+	}
+
+	out := make([]domainast.Node, 0)
+	for fieldName, field := range triggerTable.Fields {
+		if isIPAddressFieldType(field.Type) {
+			out = appendGeoIPAccessors(out, domainast.Node{
+				Function: "Payload",
+				Children: []domainast.Node{{Constant: fieldName}},
+			})
+		}
+	}
+
+	var walk func(baseTable string, path []string, links map[string]ports.TenantModelLink, visited []string) error
+	walk = func(baseTable string, path []string, links map[string]ports.TenantModelLink, visited []string) error {
+		visited = append(visited, baseTable)
+		for linkName, link := range links {
+			table, ok := model.Tables[link.ParentTableName]
+			if !ok {
+				return fmt.Errorf("table %q not found in tenant model", link.ParentTableName)
+			}
+			if slices.Contains(visited, table.Name) {
+				continue
+			}
+
+			pathForLink := append(append([]string{}, path...), linkName)
+			for fieldName, field := range table.Fields {
+				if !isIPAddressFieldType(field.Type) {
+					continue
+				}
+				out = appendGeoIPAccessors(out, domainast.Node{
+					Function: "DatabaseAccess",
+					NamedChildren: map[string]domainast.Node{
+						"tableName": {Constant: triggerObjectType},
+						"fieldName": {Constant: fieldName},
+						"path":      {Constant: pathForLink},
+					},
+				})
+			}
+
+			nextVisited := append(append([]string{}, visited...), table.Name)
+			if err := walk(table.Name, pathForLink, table.LinksToSingle, nextVisited); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if err := walk(triggerTable.Name, nil, triggerTable.LinksToSingle, nil); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func appendGeoIPAccessors(out []domainast.Node, source domainast.Node) []domainast.Node {
+	for _, functionName := range geoIPAccessorFunctions {
+		out = append(out, domainast.Node{
+			Function: functionName,
+			Children: []domainast.Node{source},
+		})
+	}
+	return out
+}
+
+func isIPAddressFieldType(fieldType string) bool {
+	switch strings.ToLower(strings.TrimSpace(fieldType)) {
+	case "ip_address", "inet", "ip":
+		return true
+	default:
+		return false
+	}
 }
 
 func buildPayloadAccessors(triggerObjectType string, model ports.TenantModel) ([]domainast.Node, error) {

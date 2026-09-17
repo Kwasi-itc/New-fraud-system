@@ -35,9 +35,14 @@ func (h AccessorHandler) ListByScenario(c *gin.Context) {
 	for i, item := range result.DatabaseAccessors {
 		databaseAccessors[i] = dto.AdaptNode(item)
 	}
+	derivedAccessors := make([]dto.NodeResponse, len(result.DerivedAccessors))
+	for i, item := range result.DerivedAccessors {
+		derivedAccessors[i] = dto.AdaptNode(item)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"payload_accessors":  payloadAccessors,
 		"database_accessors": databaseAccessors,
+		"derived_accessors":  derivedAccessors,
 	})
 }

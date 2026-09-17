@@ -40,6 +40,11 @@ import {
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import {
+  hasFraudManagerNavigationTourStarted,
+  markFraudManagerNavigationTourStarted,
+  markFraudManagerOnboardingCompleted,
+} from "@/lib/fraud-manager-onboarding";
+import {
   compileConditionGroupsToAst,
   createSimpleRuleGroup,
   getRuleOperatorOption,
@@ -460,17 +465,19 @@ function decisionOutcomeClasses(outcome: string) {
 export function ScenarioEditPage({
   scenarioId,
   initialIterationId = null,
+  initialTab = "Trigger",
   preferLiveIteration = false,
 }: {
   scenarioId: string;
   initialIterationId?: string | null;
+  initialTab?: EditorTab;
   preferLiveIteration?: boolean;
 }) {
   const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
   const router = useRouter();
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
-  const [activeTab, setActiveTab] = useState<EditorTab>("Trigger");
+  const [activeTab, setActiveTab] = useState<EditorTab>(initialTab);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [commitOpen, setCommitOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -836,12 +843,20 @@ export function ScenarioEditPage({
       await queryClient.invalidateQueries({
         queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "scenarios", tenantId],
+      });
       setPublishOpen(false);
+      markFraudManagerOnboardingCompleted(tenantId);
       pushToast({
         title: "Iteration published",
         description: `${statusLabel} is now live.`,
         variant: "success",
       });
+      if (!hasFraudManagerNavigationTourStarted(tenantId)) {
+        markFraudManagerNavigationTourStarted(tenantId);
+        router.push("/detection?tab=Lists&guide=lists");
+      }
     },
     onError: (error) => {
       pushToast({
@@ -986,9 +1001,14 @@ export function ScenarioEditPage({
     () =>
       extractAccessorOptions(
         editorIdentifiersQuery.data?.payload_accessors ?? [],
-        editorIdentifiersQuery.data?.database_accessors ?? []
+        editorIdentifiersQuery.data?.database_accessors ?? [],
+        editorIdentifiersQuery.data?.derived_accessors ?? []
       ),
-    [editorIdentifiersQuery.data?.database_accessors, editorIdentifiersQuery.data?.payload_accessors]
+    [
+      editorIdentifiersQuery.data?.database_accessors,
+      editorIdentifiersQuery.data?.derived_accessors,
+      editorIdentifiersQuery.data?.payload_accessors,
+    ]
   );
   const stableTriggerAccessorOptions =
     triggerAccessorOptions.length > 0 ? triggerAccessorOptions : EMPTY_ACCESSOR_OPTIONS;
@@ -1737,6 +1757,21 @@ export function ScenarioEditPage({
                           !isDraftIteration || updateTriggerConditionsMutation.isPending
                         }
                       />
+                      {stableTriggerAccessorOptions.some(
+                        (option) => option.kind === "derived"
+                      ) ? (
+                        <p className="text-[11px] text-slate-500">
+                          IP geolocation by{" "}
+                          <a
+                            href="https://db-ip.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline underline-offset-2"
+                          >
+                            DB-IP
+                          </a>
+                        </p>
+                      ) : null}
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <Button
