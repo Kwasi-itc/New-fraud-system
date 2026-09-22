@@ -32,6 +32,7 @@ export FRAUD_DB_PASSWORD='replace-me'
 ./backend/stress-tests/run_database_scale_suite.sh \
   --manifest backend/stress-tests/production_replay/manifests/fraud-data.json \
   --data-root /home/ubuntu/fraud_data \
+  --seed-data-root /home/ubuntu/fraud_data_seed \
   --pg-host dev-fraud-database-1.cluster-cinofplxsbbb.eu-west-1.rds.amazonaws.com \
   --pg-port 5432 \
   --pg-user postgres \
@@ -47,6 +48,6 @@ export FRAUD_DB_PASSWORD='replace-me'
 
 The destructive guard requires `--allow-drop-database` to exactly match `--database-name`, refuses `postgres`, `template0`, and `template1`, terminates connections only for that exact database, and passes the exact name as a command argument to `dropdb`/`createdb`.
 
-The suite automatically selects a month containing enough records for the 5M phase and a consecutive month pair for the final phase. Use `--same-month YYYY-MM` and `--seed-month YYYY-MM` to choose them explicitly. Results are written under `backend/stress-tests/database-scale-runs/`; `summary.json` compares each phase with the empty-database baseline. Success requires at least 80% throughput retention and no more than a 20% p95-latency increase for both ingestion and decision evaluation in every phase.
+The suite merges transaction files from `--data-root` and the optional `--seed-data-root` before selecting months. This supports production layouts where the preceding full seed month is stored separately from the evaluation month. It automatically selects a month containing enough records for the 5M phase and a consecutive month pair for the final phase. Use `--same-month YYYY-MM` and `--seed-month YYYY-MM` to choose them explicitly. Results are written under `backend/stress-tests/database-scale-runs/`; `summary.json` compares each phase with the empty-database baseline. Success requires at least 80% throughput retention and no more than a 20% p95-latency increase for both ingestion and decision evaluation in every phase.
 
 The internal set has four scenarios and six rules: high-value account activity; odd-hour amount and burst checks; rapid account and multi-merchant activity; and a 30-day account amount-spike check.

@@ -145,6 +145,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--data-root",
         help="Rebase all manifest source paths to this directory (useful when the manifest was authored elsewhere)",
     )
+    parser.add_argument(
+        "--seed-data-root",
+        help=(
+            "Optional second data tree containing the preceding seed month; "
+            "its transactions are merged with --data-root before month selection"
+        ),
+    )
     parser.add_argument("--database-name", required=True)
     parser.add_argument(
         "--allow-drop-database",
@@ -934,6 +941,9 @@ async def async_main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     _validate_args(args)
     manifest = _rebase_manifest(load_manifest(args.manifest), args.data_root)
+    source_manifests = [manifest]
+    if args.seed_data_root:
+        source_manifests.append(_rebase_manifest(load_manifest(args.manifest), args.seed_data_root))
     root = Path(__file__).resolve().parents[3]
     output = Path(args.output_root).expanduser().resolve() / datetime.now(timezone.utc).strftime(
         "database-scale-%Y%m%dT%H%M%S-%fZ"
@@ -945,21 +955,34 @@ async def async_main(argv: list[str] | None = None) -> int:
 
     with tempfile.TemporaryDirectory(prefix="database-scale-sort-", dir=output) as sort_directory:
         print("Building privacy-safe, time-sorted source chunks...")
-        sort_result = await asyncio.to_thread(
-            build_sorted_chunks,
-            manifest,
-            Path(sort_directory),
-            args.sort_chunk_size,
-            privacy.transform_event,
-        )
-        counts = await asyncio.to_thread(_month_counts, sort_result.chunk_paths)
-        plans = _build_phase_plans(sort_result.chunk_paths, sort_result.event_count, counts, args)
+        chunk_paths: list[Path] = []
+        event_count = 0
+        for index, source_manifest in enumerate(source_manifests):
+            sort_result = await asyncio.to_thread(
+                build_sorted_chunks,
+                source_manifest,
+                Path(sort_directory) / f"source-{index:02d}",
+                args.sort_chunk_size,
+                privacy.transform_event,
+            )
+            chunk_paths.extend(sort_result.chunk_paths)
+            event_count += sort_result.event_count
+        merged_chunk_paths = tuple(chunk_paths)
+        counts = await asyncio.to_thread(_month_counts, merged_chunk_paths)
+        try:
+            plans = _build_phase_plans(merged_chunk_paths, event_count, counts, args)
+        except ValueError as exc:
+            available = ", ".join(f"{month}={count}" for month, count in sorted(counts.items()))
+            raise ValueError(f"{exc}; available source months: {available or 'none'}") from exc
         _write_json(
             output / "run-config.json",
             {
                 "manifest": str(manifest.path),
                 "data_root_override": str(Path(args.data_root).expanduser().resolve())
                 if args.data_root
+                else None,
+                "seed_data_root_override": str(Path(args.seed_data_root).expanduser().resolve())
+                if args.seed_data_root
                 else None,
                 "database_name": args.database_name,
                 "scenario_set": SCENARIO_SET_INTERNAL,
@@ -974,7 +997,7 @@ async def async_main(argv: list[str] | None = None) -> int:
                 "ingestion_concurrency": args.ingestion_concurrency,
                 "evaluation_concurrency": args.evaluation_concurrency,
                 "seed_concurrency": args.seed_concurrency,
-                "source_event_count": sort_result.event_count,
+                "source_event_count": event_count,
                 "source_month_counts": dict(sorted(counts.items())),
                 "pii": {
                     "strategy": "HMAC-SHA256 deterministic tokenization plus data minimisation",
