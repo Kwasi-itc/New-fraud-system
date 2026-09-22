@@ -1,0 +1,43 @@
+x-database-scale-environment: &database-scale-environment
+  DATABASE_URL: ${DATABASE_SCALE_DATABASE_URL:?DATABASE_SCALE_DATABASE_URL must be set}
+
+x-database-scale-ca: &database-scale-ca
+  - ${DATABASE_SCALE_SSL_ROOT_CERT:?DATABASE_SCALE_SSL_ROOT_CERT must be set}:/run/secrets/postgres-ca.pem:ro
+
+services:
+  data-model-migrate:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  ingestion-migrate:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  decision-engine-migrate:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  screening-migrate:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  data-model-service:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  ingestion-service:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  decision-engine-service:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  screening-service:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  data-model-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  ingestion-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  decision-engine-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  screening-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca

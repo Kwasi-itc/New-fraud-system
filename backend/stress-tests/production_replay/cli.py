@@ -15,7 +15,7 @@ from .api_client import APIError, ServiceClients, ServiceConfig
 from .manifest import ManifestError, ReplayManifest, load_manifest
 from .profiler import profile_manifest
 from .replay import ReplayCursor, ReplayMetrics, TransactionChain, build_error_breakdown, schedule_events
-from .scenarios import build_portable_scenarios
+from .scenarios import SCENARIO_SETS, build_portable_scenarios
 from .seed import iter_seed_batches, seed_transactions
 from .setup_environment import EnvironmentSetup
 from .sorting import build_sorted_chunks, iter_merged_events
@@ -41,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--execute", action="store_true", help="Allow tenant and service mutations")
     setup.add_argument("--tenant-id", help="Use an existing clean tenant; omit to create one")
     setup.add_argument("--tenant-name", default="Production Replay Stress Tenant")
+    setup.add_argument("--scenario-set", choices=SCENARIO_SETS, default="standard")
     setup.add_argument("--publication-timeout", type=float, default=900.0)
     setup.add_argument(
         "--reuse-existing",
@@ -69,6 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_services(run)
     run.add_argument("--execute", action="store_true", help="Allow ingestion and decision requests")
     run.add_argument("--tenant-id", help="Tenant prepared by the setup command")
+    run.add_argument("--scenario-set", choices=SCENARIO_SETS, default="standard")
     run.add_argument("--multiplier", type=float, help="Replay speed relative to source event time")
     run.add_argument("--max-in-flight", type=int, default=500)
     run.add_argument("--sort-chunk-size", type=int, default=100_000)
@@ -203,7 +205,9 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
                 f"/v1/tenants/{args.tenant_id}",
                 200,
             )
-            await _verify_replay_tenant(clients, manifest, args.tenant_id)
+            await _verify_replay_tenant(
+                clients, manifest, args.tenant_id, getattr(args, "scenario_set", "standard")
+            )
             tenant = tenant_response.get("tenant", {})
             result = {
                 "setup_version": 1,
@@ -214,7 +218,13 @@ async def _setup(args: argparse.Namespace, manifest: ReplayManifest, profile: di
                 "mutations_performed": False,
             }
         else:
-            setup = EnvironmentSetup(manifest, clients, args.tenant_id, args.tenant_name)
+            setup = EnvironmentSetup(
+                manifest,
+                clients,
+                args.tenant_id,
+                args.tenant_name,
+                scenario_set=getattr(args, "scenario_set", "standard"),
+            )
             result = await setup.run(args.publication_timeout)
     _write_json(run_dir / "setup.json", result)
     print(f"tenant: {result['tenant_id']}")
@@ -350,6 +360,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
         run_dir / "run-config.json",
         {
             "tenant_id": args.tenant_id,
+            "scenario_set": getattr(args, "scenario_set", "standard"),
             "multiplier": args.multiplier,
             "max_in_flight": args.max_in_flight,
             "sort_chunk_size": args.sort_chunk_size,
@@ -401,7 +412,9 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
             success_log_path.write_text("", encoding="utf-8")
         async with ServiceClients(_services(args)) as clients:
             await clients.wait_until_ready()
-            await _verify_replay_tenant(clients, manifest, args.tenant_id)
+            await _verify_replay_tenant(
+                clients, manifest, args.tenant_id, getattr(args, "scenario_set", "standard")
+            )
             chain = TransactionChain(
                 clients,
                 args.tenant_id,
@@ -470,6 +483,7 @@ async def _run_replay(args: argparse.Namespace, manifest: ReplayManifest, profil
     summary["manifest"] = str(manifest.path)
     summary["source_fingerprint"] = profile["source_fingerprint"]
     summary["decision_mode"] = args.decision_mode
+    summary["scenario_set"] = getattr(args, "scenario_set", "standard")
     summary["async_callback_url"] = args.async_callback_url or None
     summary["async_tracking_output"] = str(async_tracking_path) if args.decision_mode == "async" and async_tracking_path else None
     summary["resumed"] = checkpoint_state is not None
@@ -526,14 +540,19 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat().replace("+00:00", "Z") if value else None
 
 
-async def _verify_replay_tenant(clients: ServiceClients, manifest: ReplayManifest, tenant_id: str) -> None:
+async def _verify_replay_tenant(
+    clients: ServiceClients,
+    manifest: ReplayManifest,
+    tenant_id: str,
+    scenario_set: str = "standard",
+) -> None:
     model = await clients.request(clients.data_model, "GET", f"/v1/tenants/{tenant_id}/data-model", 200)
     tables = model.get("data_model", {}).get("tables", {})
     if "transactions" not in tables:
         raise APIError("tenant does not have the production replay transactions model; run setup first")
     response = await clients.request(clients.decision_engine, "GET", f"/v1/tenants/{tenant_id}/scenarios", 200)
     scenarios = {item["name"]: item for item in response.get("scenarios", [])}
-    expected = {item.name for item in build_portable_scenarios(manifest)}
+    expected = {item.name for item in build_portable_scenarios(manifest, scenario_set)}
     missing = sorted(name for name in expected if name not in scenarios or not scenarios[name].get("live_iteration_id"))
     if missing:
         raise APIError("tenant is missing live production replay scenarios: " + ", ".join(missing))

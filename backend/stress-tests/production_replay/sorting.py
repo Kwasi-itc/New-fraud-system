@@ -4,7 +4,7 @@ import heapq
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import IO, Iterator
+from typing import IO, Callable, Iterator
 
 from .adapters import get_adapter
 from .domain import TransactionEvent
@@ -17,7 +17,12 @@ class SortResult:
     event_count: int
 
 
-def build_sorted_chunks(manifest: ReplayManifest, work_dir: Path, chunk_size: int = 100_000) -> SortResult:
+def build_sorted_chunks(
+    manifest: ReplayManifest,
+    work_dir: Path,
+    chunk_size: int = 100_000,
+    transform: Callable[[TransactionEvent], TransactionEvent] | None = None,
+) -> SortResult:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -39,6 +44,8 @@ def build_sorted_chunks(manifest: ReplayManifest, work_dir: Path, chunk_size: in
     for stream in manifest.transaction_streams:
         adapter = get_adapter(stream.adapter)
         for event in adapter.iter_events(stream, manifest.stream_files(stream)):
+            if transform is not None:
+                event = transform(event)
             chunk.append(event.to_sort_record(sequence))
             sequence += 1
             if len(chunk) >= chunk_size:

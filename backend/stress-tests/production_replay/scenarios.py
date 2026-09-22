@@ -7,6 +7,11 @@ from typing import Any
 from .manifest import ReplayManifest
 
 
+SCENARIO_SET_STANDARD = "standard"
+SCENARIO_SET_INTERNAL = "internal"
+SCENARIO_SETS = (SCENARIO_SET_STANDARD, SCENARIO_SET_INTERNAL)
+
+
 @dataclass(frozen=True)
 class RuleDef:
     name: str
@@ -61,6 +66,10 @@ def gte(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     return fn("gte", left, right)
 
 
+def lt(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    return fn("lt", left, right)
+
+
 def lte(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     return fn("lte", left, right)
 
@@ -98,7 +107,14 @@ def stable_rule_id(value: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in parts)
 
 
-def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...]:
+def build_portable_scenarios(
+    manifest: ReplayManifest,
+    scenario_set: str = SCENARIO_SET_STANDARD,
+) -> tuple[ScenarioDef, ...]:
+    if scenario_set == SCENARIO_SET_INTERNAL:
+        return _build_internal_scenarios()
+    if scenario_set != SCENARIO_SET_STANDARD:
+        raise ValueError(f"unsupported scenario set {scenario_set!r}; choose one of {SCENARIO_SETS}")
     account = filter_node("account_ref", "=", field("account_ref"))
     merchant = filter_node("merchant_id", "=", field("merchant_id"))
     product = filter_node("product_id", "=", field("product_id"))
@@ -254,3 +270,93 @@ def build_portable_scenarios(manifest: ReplayManifest) -> tuple[ScenarioDef, ...
         regulatory_rules.append(RuleDef("Electronic Transfer Reporting Threshold", "Electronic Transfer Monitoring", "USD electronic transfer amount exceeds 1000.", 1, fn("and", fn("in", field("channel"), list_node(const("bank"), const("electronic_transfer"))), eq(field("currency"), const("USD")), gt(field("amount"), const(1_000)), fn("in", field("direction"), list_node(const("incoming"), const("outgoing"), const("inward"), const("outward"))))))
     scenarios.append(ScenarioDef("Regulatory Reporting Review", always_true(), tuple(regulatory_rules), regulatory=True))
     return tuple(scenarios)
+
+
+def _build_internal_scenarios() -> tuple[ScenarioDef, ...]:
+    """Compact scenario set used by the database-volume benchmark.
+
+    These rules intentionally depend only on transaction fields retained by the
+    benchmark's data-minimisation policy.
+    """
+    account_present = fn("is_not_empty", field("account_ref"))
+    account = filter_node("account_ref", "=", field("account_ref"))
+    ten_minutes = filter_node("date", ">=", time_add("PT10M"))
+    thirty_minutes = filter_node("date", ">=", time_add("PT30M"))
+    thirty_days = filter_node("date", ">=", time_add("P30D"))
+    before_current_transaction = filter_node("date", "<", field("date"))
+    local_hour = fn("TimestampExtract", timestamp=field("date"), part=const("hour"))
+    prior_account_count = aggregate("transaction_id", "COUNT", account, thirty_days, before_current_transaction)
+    prior_account_average = aggregate("amount", "AVG", account, thirty_days, before_current_transaction)
+
+    return (
+        ScenarioDef(
+            "High Value Account Activity",
+            account_present,
+            (
+                RuleDef(
+                    "High Value Transaction",
+                    "Transaction Value Risk",
+                    "Transaction amount is at least 10000.",
+                    40,
+                    gte(field("amount"), const(10_000)),
+                ),
+            ),
+        ),
+        ScenarioDef(
+            "Unusual Transaction Time",
+            lt(local_hour, const(5)),
+            (
+                RuleDef(
+                    "Odd-Hour Material Transaction",
+                    "Time-Based Risk",
+                    "A transaction of at least 1000 occurs from midnight through 04:59 Ghana time.",
+                    30,
+                    gte(field("amount"), const(1_000)),
+                ),
+                RuleDef(
+                    "Odd-Hour Account Burst",
+                    "Time-Based Velocity Risk",
+                    "At least three transactions for the account occur within thirty minutes during odd hours.",
+                    30,
+                    gte(aggregate("transaction_id", "COUNT", account, thirty_minutes), const(3)),
+                ),
+            ),
+        ),
+        ScenarioDef(
+            "Rapid Account Activity",
+            account_present,
+            (
+                RuleDef(
+                    "Rapid Succession of Transactions",
+                    "Velocity Risk",
+                    "At least five account transactions occur within ten minutes.",
+                    35,
+                    gte(aggregate("transaction_id", "COUNT", account, ten_minutes), const(5)),
+                ),
+                RuleDef(
+                    "Rapid Multi-Merchant Activity",
+                    "Merchant Diversity Risk",
+                    "An account reaches at least three merchants within thirty minutes.",
+                    35,
+                    gte(aggregate("merchant_id", "COUNT_DISTINCT", account, thirty_minutes), const(3)),
+                ),
+            ),
+        ),
+        ScenarioDef(
+            "Unusual Account Behaviour",
+            fn("and", account_present, gte(field("amount"), const(1_000))),
+            (
+                RuleDef(
+                    "Sudden Transaction Amount Spike",
+                    "Behavioural Risk",
+                    "After at least five prior transactions, amount exceeds four times the thirty-day mean.",
+                    40,
+                    fn(
+                        "and",
+                        gte(prior_account_count, const(5)),
+                        gt(field("amount"), fn("multiply", prior_account_average, const(4))),
+                    ),
+                ),
+            ),
+        ),
+    )

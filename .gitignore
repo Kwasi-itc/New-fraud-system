@@ -22,6 +22,8 @@ server.err.log
 .env
 .env.local
 .env.*.local
+pii-hmac.key
+backend/stress-tests/database-scale-runs/
 
 # IDE and OS noise
 .DS_Store

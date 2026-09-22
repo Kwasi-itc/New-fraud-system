@@ -19,7 +19,14 @@ from .reference_data import (
     load_merchant_watchlist,
     load_staff_lists,
 )
-from .scenarios import ScenarioDef, build_portable_scenarios, stable_rule_id
+from .scenarios import (
+    SCENARIO_SET_INTERNAL,
+    SCENARIO_SET_STANDARD,
+    SCENARIO_SETS,
+    ScenarioDef,
+    build_portable_scenarios,
+    stable_rule_id,
+)
 
 
 @dataclass(frozen=True)
@@ -92,13 +99,38 @@ TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
     ),
 }
 
+INTERNAL_TABLE_FIELDS: dict[str, tuple[FieldSpec, ...]] = {
+    "transactions": (
+        FieldSpec("transaction_id", "string", False, True),
+        FieldSpec("date", "timestamp", False),
+        FieldSpec("amount", "float", False),
+        FieldSpec("channel", "string", False),
+        FieldSpec("direction", "string", False),
+        FieldSpec("system_type", "string", False),
+        FieldSpec("stream_id", "string", False),
+        FieldSpec("merchant_id", "string"),
+        FieldSpec("account_ref", "string"),
+    ),
+}
+
 
 class EnvironmentSetup:
-    def __init__(self, manifest: ReplayManifest, clients: ServiceClients, tenant_id: str | None, tenant_name: str) -> None:
+    def __init__(
+        self,
+        manifest: ReplayManifest,
+        clients: ServiceClients,
+        tenant_id: str | None,
+        tenant_name: str,
+        scenario_set: str = SCENARIO_SET_STANDARD,
+    ) -> None:
+        if scenario_set not in SCENARIO_SETS:
+            raise ValueError(f"unsupported scenario set {scenario_set!r}")
         self.manifest = manifest
         self.clients = clients
         self.tenant_id = tenant_id or ""
         self.tenant_name = tenant_name
+        self.scenario_set = scenario_set
+        self.table_fields = INTERNAL_TABLE_FIELDS if scenario_set == SCENARIO_SET_INTERNAL else TABLE_FIELDS
         self.tables: dict[str, dict[str, Any]] = {}
         self.fields: dict[str, dict[str, dict[str, Any]]] = {}
 
@@ -107,16 +139,20 @@ class EnvironmentSetup:
         await self._ensure_tenant()
         await self._ensure_no_scenario_collisions()
         await self._ensure_model()
-        references = await self._load_reference_data()
-        lists = await self._ensure_reference_lists(references[2])
+        references = None
+        lists: dict[str, int] = {}
+        if self.scenario_set == SCENARIO_SET_STANDARD:
+            references = await self._load_reference_data()
+            lists = await self._ensure_reference_lists(references[2])
         scenarios = await self._create_scenarios(publication_timeout_seconds)
         return {
             "setup_version": 1,
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "tenant_id": self.tenant_id,
             "tenant_name": self.tenant_name,
-            "object_types": list(TABLE_FIELDS),
-            "reference_data": {
+            "scenario_set": self.scenario_set,
+            "object_types": list(self.table_fields),
+            "reference_data": ({
                 "merchants": asdict(references[0].stats),
                 "merchant_products": asdict(references[1].stats),
                 "staff": {
@@ -135,12 +171,16 @@ class EnvironmentSetup:
                     if references[3] is not None
                     else None
                 ),
-            },
+            } if references is not None else None),
             "custom_lists": lists,
             "scenarios": scenarios,
-            "notes": [
-                "Reference records were sent through ingestion in batches of at most 500.",
-                "The harness calls the decision endpoint directly during replay, so ingestion outbox depth must be monitored externally.",
+            "notes": (
+                ["Reference records were sent through ingestion in batches of at most 500."]
+                if references is not None
+                else ["Internal scenarios require no reference-data ingestion or custom lists."]
+            )
+            + [
+                "The harness calls the decision endpoint directly during replay, so ingestion outbox depth must be monitored externally."
             ],
         }
 
@@ -171,7 +211,7 @@ class EnvironmentSetup:
             self.clients.data_model, "GET", f"/v1/tenants/{self.tenant_id}/tables", 200
         )
         existing_tables = {item["name"]: item for item in response.get("tables", [])}
-        for table_name, field_specs in TABLE_FIELDS.items():
+        for table_name, field_specs in self.table_fields.items():
             table = existing_tables.get(table_name)
             if table is None:
                 table = (
@@ -220,7 +260,8 @@ class EnvironmentSetup:
                         )
                     )["field"]
                 self.fields[table_name][spec.name] = existing
-        await self._ensure_links()
+        if self.scenario_set == SCENARIO_SET_STANDARD:
+            await self._ensure_links()
         await self.clients.request(
             self.clients.data_model, "GET", f"/v1/tenants/{self.tenant_id}/data-model", 200
         )
@@ -329,7 +370,7 @@ class EnvironmentSetup:
         return counts
 
     async def _ensure_no_scenario_collisions(self) -> None:
-        definitions = build_portable_scenarios(self.manifest)
+        definitions = build_portable_scenarios(self.manifest, self.scenario_set)
         response = await self.clients.request(
             self.clients.decision_engine, "GET", f"/v1/tenants/{self.tenant_id}/scenarios", 200
         )
@@ -342,7 +383,7 @@ class EnvironmentSetup:
             )
 
     async def _create_scenarios(self, publication_timeout_seconds: float) -> dict[str, Any]:
-        definitions = build_portable_scenarios(self.manifest)
+        definitions = build_portable_scenarios(self.manifest, self.scenario_set)
         created: list[tuple[ScenarioDef, str, str]] = []
         try:
             for definition in definitions:
