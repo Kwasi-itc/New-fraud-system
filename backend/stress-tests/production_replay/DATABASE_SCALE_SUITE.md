@@ -15,6 +15,18 @@ Per-record ingestion audit and outbox writes remain enabled for both seeding and
 
 The suite removes unused source fields before writing sort files or sending requests. `source_account_no`, `source_trans_id`, `thirdparty_id`, `terminal_id`, `account_name`, `payment_msisdn`, `narration`, `raw_account_ref`, and `raw_account_name` are dropped. `account_ref`, which the internal rules require for grouping, is deterministically pseudonymised with keyed HMAC-SHA256. PII-derived object and transaction identifiers are also replaced with namespaced HMAC tokens. Raw PII and the HMAC key are never written to reports.
 
+For large sources, preprocessing creates smaller sanitized CSV copies once and avoids repeating HMAC work during each suite run:
+
+```bash
+./backend/stress-tests/sanitize_database_scale_sources.sh \
+  --source-root /path/to/fraud_data \
+  --output-root /path/to/fraud_data_sanitized \
+  --pii-key-file "$PWD/pii-hmac.key" \
+  --workers 6
+```
+
+Run it once for each source tree, then pass the sanitized roots to the suite with `--pre-sanitized-source`. The sanitizer preserves all transaction rows, retains only the eight CSV columns needed by the adapter, HMAC-tokenizes the account grouping key, blanks the unused source transaction identifier, and never changes the source tree. The blank identifier makes the adapter use its non-PII file-and-row identity fallback.
+
 Create a private key file once:
 
 ```bash
@@ -33,6 +45,7 @@ export FRAUD_DB_PASSWORD='replace-me'
   --manifest backend/stress-tests/production_replay/manifests/fraud-data.json \
   --data-root /home/ubuntu/fraud_data \
   --seed-data-root /home/ubuntu/fraud_data_seed \
+  --pre-sanitized-source \
   --pg-host dev-fraud-database-1.cluster-cinofplxsbbb.eu-west-1.rds.amazonaws.com \
   --pg-port 5432 \
   --pg-user postgres \

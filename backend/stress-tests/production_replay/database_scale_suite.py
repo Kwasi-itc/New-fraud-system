@@ -152,6 +152,11 @@ def build_parser() -> argparse.ArgumentParser:
             "its transactions are merged with --data-root before month selection"
         ),
     )
+    parser.add_argument(
+        "--pre-sanitized-source",
+        action="store_true",
+        help="Trust HMAC-tokenized minimal CSVs produced by sanitize_database_scale_sources.sh",
+    )
     parser.add_argument("--database-name", required=True)
     parser.add_argument(
         "--allow-drop-database",
@@ -955,6 +960,11 @@ async def async_main(argv: list[str] | None = None) -> int:
 
     with tempfile.TemporaryDirectory(prefix="database-scale-sort-", dir=output) as sort_directory:
         print("Building privacy-safe, time-sorted source chunks...")
+        event_transform = (
+            privacy.minimize_presanitized_event
+            if args.pre_sanitized_source
+            else privacy.transform_event
+        )
         chunk_paths: list[Path] = []
         event_count = 0
         for index, source_manifest in enumerate(source_manifests):
@@ -963,7 +973,7 @@ async def async_main(argv: list[str] | None = None) -> int:
                 source_manifest,
                 Path(sort_directory) / f"source-{index:02d}",
                 args.sort_chunk_size,
-                privacy.transform_event,
+                event_transform,
             )
             chunk_paths.extend(sort_result.chunk_paths)
             event_count += sort_result.event_count
@@ -984,6 +994,7 @@ async def async_main(argv: list[str] | None = None) -> int:
                 "seed_data_root_override": str(Path(args.seed_data_root).expanduser().resolve())
                 if args.seed_data_root
                 else None,
+                "pre_sanitized_source": args.pre_sanitized_source,
                 "database_name": args.database_name,
                 "scenario_set": SCENARIO_SET_INTERNAL,
                 "scenarios": [
