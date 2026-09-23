@@ -236,6 +236,10 @@ def _validate_month(value: str | None, flag: str) -> None:
         raise ValueError(f"{flag} must use YYYY-MM")
 
 
+def _sql_string_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
 class DatabaseController:
     def __init__(self, args: argparse.Namespace, root: Path) -> None:
         self.args = args
@@ -272,6 +276,11 @@ class DatabaseController:
             **os.environ,
             "DATABASE_SCALE_DATABASE_URL": self.database_url(),
             "DATABASE_SCALE_SSL_ROOT_CERT": str(self.certificate),
+            # Some production Compose files interpolate these while parsing the
+            # base file, before the database-scale override replaces DATABASE_URL.
+            "RDS_DB_USER": self.args.pg_user,
+            "RDS_DB_PASSWORD": self.password,
+            "RDS_DB_HOST": self.args.pg_host,
         }
 
     def compose_command(self, *parts: str) -> list[str]:
@@ -304,10 +313,11 @@ class DatabaseController:
         ]
         terminate_sql = (
             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-            "WHERE datname = :'target_database' AND pid <> pg_backend_pid();"
+            f"WHERE datname = {_sql_string_literal(self.args.database_name)} "
+            "AND pid <> pg_backend_pid();"
         )
         _run(
-            ["psql", *common, "-d", self.args.pg_admin_database, "-v", f"target_database={self.args.database_name}", "-c", terminate_sql],
+            ["psql", *common, "-d", self.args.pg_admin_database, "-c", terminate_sql],
             env=self.admin_env(),
         )
         _run(

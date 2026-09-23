@@ -9,7 +9,11 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from production_replay.api_client import APIError
-from production_replay.database_scale_suite import _rebase_manifest, _run_fixed_pipeline
+from production_replay.database_scale_suite import (
+    _rebase_manifest,
+    _run_fixed_pipeline,
+    _sql_string_literal,
+)
 from production_replay.domain import TransactionEvent
 from production_replay.manifest import load_manifest
 from production_replay.privacy import InternalPrivacyTransformer
@@ -49,6 +53,10 @@ def event(number: int) -> TransactionEvent:
 
 
 class DatabaseScaleSuiteTests(unittest.IsolatedAsyncioTestCase):
+    def test_database_name_is_safely_quoted_for_termination_query(self) -> None:
+        self.assertEqual(_sql_string_literal("fraud_scale_test"), "'fraud_scale_test'")
+        self.assertEqual(_sql_string_literal("quoted'name"), "'quoted''name'")
+
     def test_manifest_paths_can_be_rebased_for_the_production_host(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
