@@ -386,3 +386,9 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  # Keep this stack's service DNS namespace private. Set a different value
+  # for each independently running instance of this stack.
+  default:
+    name: ${FRAUD_INTERNAL_NETWORK:-${COMPOSE_PROJECT_NAME:-new-fraud-system}_internal}

@@ -174,15 +174,18 @@ class DatabaseScaleSuiteTests(unittest.IsolatedAsyncioTestCase):
                 return {}, 200, {}
 
         clients = FakeClients()
-        result = await _run_fixed_pipeline(
-            clients,  # type: ignore[arg-type]
-            "tenant-1",
-            [event(index) for index in range(5)],
-            target=3,
-            ingestion_concurrency=2,
-            evaluation_concurrency=2,
-            segment_size=2,
-        )
+        with TemporaryDirectory() as directory:
+            result = await _run_fixed_pipeline(
+                clients,  # type: ignore[arg-type]
+                "tenant-1",
+                [event(index) for index in range(5)],
+                target=3,
+                ingestion_concurrency=2,
+                evaluation_concurrency=2,
+                segment_size=2,
+                error_log_path=Path(directory) / "errors.ndjson",
+                phase_name="test",
+            )
 
         self.assertEqual(clients.ingestion_calls, 4)
         self.assertEqual(len(clients.decisions), 3)

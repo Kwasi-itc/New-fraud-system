@@ -174,6 +174,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ingestion-concurrency", type=int, required=True)
     parser.add_argument("--evaluation-concurrency", type=int, required=True)
     parser.add_argument("--evaluation-count", type=int, default=1_000_000)
+    parser.add_argument(
+        "--phase",
+        choices=(
+            "all", "empty", "1m", "5m", "1month",
+            "empty_database", "seed_1m_same_month", "seed_5m_same_month",
+            "seed_full_month_next_month",
+        ),
+        default="all",
+        help="Run only the selected phase; default runs the complete suite",
+    )
     parser.add_argument("--seed-batch-size", type=int, default=500)
     parser.add_argument("--seed-concurrency", type=int, default=10)
     parser.add_argument("--segment-size", type=int, default=100_000)
@@ -520,61 +530,70 @@ def _build_phase_plans(
     evaluation_count = args.evaluation_count
     if event_count < evaluation_count:
         raise ValueError(f"source has {event_count} records; baseline requires {evaluation_count}")
-    same_month_required = 5_000_000 + evaluation_count
-    same_month = args.same_month or next(
-        (month for month in sorted(counts) if counts[month] >= same_month_required), None
-    )
-    if same_month is None or counts[same_month] < same_month_required:
-        raise ValueError(
-            f"no month contains the {same_month_required} records required for the 5M seed phase"
-        )
-    seed_month = args.seed_month or next(
-        (
-            month
-            for month in sorted(counts)
-            if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count
-        ),
-        None,
-    )
-    if seed_month is None:
-        raise ValueError("no populated month is followed by a month with enough evaluation records")
-    next_month = _next_month(seed_month)
-    if counts[next_month] < evaluation_count:
-        raise ValueError(f"month {next_month} has fewer than {evaluation_count} evaluation records")
+    requested = {
+        "empty": "empty_database",
+        "1m": "seed_1m_same_month",
+        "5m": "seed_5m_same_month",
+        "1month": "seed_full_month_next_month",
+    }.get(args.phase, args.phase)
+    plans: list[PhasePlan] = []
 
     def factory(**kwargs: Any) -> Callable[[], Iterator[TransactionEvent]]:
         return lambda: _select_events(chunk_paths, **kwargs)
 
-    return [
+    if requested in ("all", "empty_database"):
+        plans.append(
         PhasePlan(
             "empty_database",
             0,
             factory(limit=0),
             factory(),
             "Empty database; ingest and evaluate the first evaluation set.",
-        ),
-        PhasePlan(
-            "seed_1m_same_month",
-            1_000_000,
-            factory(month=same_month, limit=1_000_000),
-            factory(month=same_month, skip=1_000_000),
-            f"Seed 1M from {same_month}; evaluate the next set from the same month.",
-        ),
-        PhasePlan(
-            "seed_5m_same_month",
-            5_000_000,
-            factory(month=same_month, limit=5_000_000),
-            factory(month=same_month, skip=5_000_000),
-            f"Seed 5M from {same_month}; evaluate the next set from the same month.",
-        ),
-        PhasePlan(
+        ))
+
+    if requested in ("all", "seed_1m_same_month", "seed_5m_same_month"):
+        same_month_required = (5_000_000 if requested in ("all", "seed_5m_same_month") else 1_000_000) + evaluation_count
+        same_month = args.same_month or next(
+            (month for month in sorted(counts) if counts[month] >= same_month_required), None
+        )
+        if same_month is None or counts[same_month] < same_month_required:
+            raise ValueError(
+                f"no month contains the {same_month_required} records required for the selected seed phase"
+            )
+        if requested in ("all", "seed_1m_same_month"):
+            plans.append(PhasePlan(
+                "seed_1m_same_month", 1_000_000,
+                factory(month=same_month, limit=1_000_000),
+                factory(month=same_month, skip=1_000_000),
+                f"Seed 1M from {same_month}; evaluate the next set from the same month.",
+            ))
+        if requested in ("all", "seed_5m_same_month"):
+            plans.append(PhasePlan(
+                "seed_5m_same_month", 5_000_000,
+                factory(month=same_month, limit=5_000_000),
+                factory(month=same_month, skip=5_000_000),
+                f"Seed 5M from {same_month}; evaluate the next set from the same month.",
+            ))
+
+    if requested in ("all", "seed_full_month_next_month"):
+        seed_month = args.seed_month or next(
+            (month for month in sorted(counts)
+             if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count),
+            None,
+        )
+        if seed_month is None:
+            raise ValueError("no populated month is followed by a month with enough evaluation records")
+        next_month = _next_month(seed_month)
+        if counts[next_month] < evaluation_count:
+            raise ValueError(f"month {next_month} has fewer than {evaluation_count} evaluation records")
+        plans.append(PhasePlan(
             "seed_full_month_next_month",
             counts[seed_month],
             factory(month=seed_month),
             factory(month=next_month),
             f"Seed all {counts[seed_month]} records from {seed_month}; evaluate {next_month}.",
-        ),
-    ]
+        ))
+    return plans
 
 
 async def _seed_phase(
@@ -657,6 +676,8 @@ async def _run_fixed_pipeline(
     ingestion_concurrency: int,
     evaluation_concurrency: int,
     segment_size: int,
+    error_log_path: Path,
+    phase_name: str,
 ) -> dict[str, Any]:
     metrics = PipelineMetrics(target)
     iterator = iter(events)
@@ -666,6 +687,24 @@ async def _run_fixed_pipeline(
     )
     in_progress = 0
     source_exhausted = False
+    error_log_lock = asyncio.Lock()
+    progress_reported = 0
+
+    async def log_error(stage: str, event: TransactionEvent, error: APIError) -> None:
+        record = {
+            "time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "phase": phase_name,
+            "stage": stage,
+            "tenant_id": tenant_id,
+            "object_id": event.object_id,
+            "source_file": str(event.source_file),
+            "row_number": event.row_number,
+            "status_code": error.status_code,
+            "error": str(error),
+            "response_body": error.response_body,
+        }
+        async with error_log_lock:
+            await asyncio.to_thread(_append_text, error_log_path, json.dumps(record, sort_keys=True, default=str) + "\n")
 
     async def claim() -> TransactionEvent | None:
         nonlocal in_progress, source_exhausted
@@ -709,6 +748,7 @@ async def _run_fixed_pipeline(
                     metrics.ingestion_errors[_error_class(exc)] += 1
                     metrics.ingestion_active -= 1
                     in_progress -= 1
+                await log_error("ingestion", event, exc)
             else:
                 completed = time.perf_counter()
                 async with state_lock:
@@ -721,6 +761,7 @@ async def _run_fixed_pipeline(
                 await decision_queue.put(event)
 
     async def decision_worker() -> None:
+        nonlocal progress_reported
         while True:
             event = await decision_queue.get()
             if event is None:
@@ -749,6 +790,13 @@ async def _run_fixed_pipeline(
                     metrics.decision_last_at = completed
                     metrics.decision_active -= 1
                     metrics.record_segment_if_needed(segment_size)
+                await log_error("decision", event, exc)
+                completed_decisions = metrics.decision_attempts
+                if completed_decisions >= progress_reported + segment_size or completed_decisions == target:
+                    progress_reported = (completed_decisions // segment_size) * segment_size
+                    if completed_decisions == target:
+                        progress_reported = target
+                    print(f"  completed decisions {completed_decisions:,} / {target:,}", flush=True)
             else:
                 completed = time.perf_counter()
                 async with state_lock:
@@ -758,6 +806,12 @@ async def _run_fixed_pipeline(
                     metrics.decision_last_at = completed
                     metrics.decision_active -= 1
                     metrics.record_segment_if_needed(segment_size)
+                completed_decisions = metrics.decision_attempts
+                if completed_decisions >= progress_reported + segment_size or completed_decisions == target:
+                    progress_reported = (completed_decisions // segment_size) * segment_size
+                    if completed_decisions == target:
+                        progress_reported = target
+                    print(f"  completed decisions {completed_decisions:,} / {target:,}", flush=True)
             finally:
                 decision_queue.task_done()
 
@@ -823,6 +877,7 @@ async def _run_phase(
     args: argparse.Namespace,
     manifest: ReplayManifest,
     database: DatabaseController,
+    error_log_path: Path,
 ) -> dict[str, Any]:
     print(f"\n[{phase.name}] {phase.description}")
     database.recreate()
@@ -855,6 +910,8 @@ async def _run_phase(
             ingestion_concurrency=args.ingestion_concurrency,
             evaluation_concurrency=args.evaluation_concurrency,
             segment_size=args.segment_size,
+            error_log_path=error_log_path,
+            phase_name=phase.name,
         )
     audit_counts = database.audit_counts()
     expected_per_record_entries = phase.seed_count + args.evaluation_count
@@ -1005,6 +1062,7 @@ async def async_main(argv: list[str] | None = None) -> int:
                 if args.seed_data_root
                 else None,
                 "pre_sanitized_source": args.pre_sanitized_source,
+                "phase": args.phase,
                 "database_name": args.database_name,
                 "scenario_set": SCENARIO_SET_INTERNAL,
                 "scenarios": [
@@ -1037,8 +1095,9 @@ async def async_main(argv: list[str] | None = None) -> int:
             },
         )
         results: list[dict[str, Any]] = []
+        error_log_path = output / "errors.ndjson"
         for plan in plans:
-            result = await _run_phase(plan, args, manifest, database)
+            result = await _run_phase(plan, args, manifest, database, error_log_path)
             results.append(result)
             _write_json(output / f"{plan.name}.json", result)
 
@@ -1051,11 +1110,18 @@ async def async_main(argv: list[str] | None = None) -> int:
     _write_json(output / "summary.json", suite)
     print(f"\nSuite passed: {suite['acceptance']['passed']}")
     print(f"Results: {output}")
+    print(f"Errors: {output / 'errors.ndjson'}")
     return 0 if suite["acceptance"]["passed"] else 2
 
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+
+
+def _append_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(value)
 
 
 def main(argv: list[str] | None = None) -> None:
