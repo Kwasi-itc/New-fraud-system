@@ -176,13 +176,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--evaluation-count", type=int, default=1_000_000)
     parser.add_argument(
         "--phase",
+        action="append",
         choices=(
             "all", "empty", "1m", "5m", "1month",
             "empty_database", "seed_1m_same_month", "seed_5m_same_month",
             "seed_full_month_next_month",
         ),
-        default="all",
-        help="Run only the selected phase; default runs the complete suite",
+        default=None,
+        help="Phase to run; repeat this option to run multiple phases in order (default: all)",
     )
     parser.add_argument("--seed-batch-size", type=int, default=500)
     parser.add_argument("--seed-concurrency", type=int, default=10)
@@ -530,69 +531,68 @@ def _build_phase_plans(
     evaluation_count = args.evaluation_count
     if event_count < evaluation_count:
         raise ValueError(f"source has {event_count} records; baseline requires {evaluation_count}")
-    requested = {
+    aliases = {
         "empty": "empty_database",
         "1m": "seed_1m_same_month",
         "5m": "seed_5m_same_month",
         "1month": "seed_full_month_next_month",
-    }.get(args.phase, args.phase)
+    }
+    requested_phases = [aliases.get(value, value) for value in (args.phase or ["all"])]
+    if "all" in requested_phases and len(requested_phases) > 1:
+        raise ValueError("--phase all cannot be combined with other --phase values")
+    if "all" in requested_phases:
+        requested_phases = [
+            "empty_database",
+            "seed_1m_same_month",
+            "seed_5m_same_month",
+            "seed_full_month_next_month",
+        ]
     plans: list[PhasePlan] = []
 
     def factory(**kwargs: Any) -> Callable[[], Iterator[TransactionEvent]]:
         return lambda: _select_events(chunk_paths, **kwargs)
 
-    if requested in ("all", "empty_database"):
-        plans.append(
-        PhasePlan(
-            "empty_database",
-            0,
-            factory(limit=0),
-            factory(),
-            "Empty database; ingest and evaluate the first evaluation set.",
-        ))
-
-    if requested in ("all", "seed_1m_same_month", "seed_5m_same_month"):
-        same_month_required = (5_000_000 if requested in ("all", "seed_5m_same_month") else 1_000_000) + evaluation_count
-        same_month = args.same_month or next(
-            (month for month in sorted(counts) if counts[month] >= same_month_required), None
-        )
-        if same_month is None or counts[same_month] < same_month_required:
-            raise ValueError(
-                f"no month contains the {same_month_required} records required for the selected seed phase"
+    for requested in requested_phases:
+        if requested == "empty_database":
+            plans.append(PhasePlan(
+                "empty_database", 0, factory(limit=0), factory(),
+                "Empty database; ingest and evaluate the first evaluation set.",
+            ))
+            continue
+        if requested in ("seed_1m_same_month", "seed_5m_same_month"):
+            seed_count = 5_000_000 if requested == "seed_5m_same_month" else 1_000_000
+            same_month_required = seed_count + evaluation_count
+            same_month = args.same_month or next(
+                (month for month in sorted(counts) if counts[month] >= same_month_required), None
             )
-        if requested in ("all", "seed_1m_same_month"):
+            if same_month is None or counts[same_month] < same_month_required:
+                raise ValueError(
+                    f"no month contains the {same_month_required} records required for the selected seed phase"
+                )
             plans.append(PhasePlan(
-                "seed_1m_same_month", 1_000_000,
-                factory(month=same_month, limit=1_000_000),
-                factory(month=same_month, skip=1_000_000),
-                f"Seed 1M from {same_month}; evaluate the next set from the same month.",
+                requested, seed_count,
+                factory(month=same_month, limit=seed_count),
+                factory(month=same_month, skip=seed_count),
+                f"Seed {seed_count // 1_000_000}M from {same_month}; evaluate the next set from the same month.",
             ))
-        if requested in ("all", "seed_5m_same_month"):
+            continue
+        if requested == "seed_full_month_next_month":
+            seed_month = args.seed_month or next(
+                (month for month in sorted(counts)
+                 if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count),
+                None,
+            )
+            if seed_month is None:
+                raise ValueError("no populated month is followed by a month with enough evaluation records")
+            next_month = _next_month(seed_month)
+            if counts[next_month] < evaluation_count:
+                raise ValueError(f"month {next_month} has fewer than {evaluation_count} evaluation records")
             plans.append(PhasePlan(
-                "seed_5m_same_month", 5_000_000,
-                factory(month=same_month, limit=5_000_000),
-                factory(month=same_month, skip=5_000_000),
-                f"Seed 5M from {same_month}; evaluate the next set from the same month.",
+                requested, counts[seed_month], factory(month=seed_month), factory(month=next_month),
+                f"Seed all {counts[seed_month]} records from {seed_month}; evaluate {next_month}.",
             ))
-
-    if requested in ("all", "seed_full_month_next_month"):
-        seed_month = args.seed_month or next(
-            (month for month in sorted(counts)
-             if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count),
-            None,
-        )
-        if seed_month is None:
-            raise ValueError("no populated month is followed by a month with enough evaluation records")
-        next_month = _next_month(seed_month)
-        if counts[next_month] < evaluation_count:
-            raise ValueError(f"month {next_month} has fewer than {evaluation_count} evaluation records")
-        plans.append(PhasePlan(
-            "seed_full_month_next_month",
-            counts[seed_month],
-            factory(month=seed_month),
-            factory(month=next_month),
-            f"Seed all {counts[seed_month]} records from {seed_month}; evaluate {next_month}.",
-        ))
+            continue
+        raise ValueError(f"unsupported phase: {requested}")
     return plans
 
 
