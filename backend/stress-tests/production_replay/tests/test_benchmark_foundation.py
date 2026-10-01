@@ -269,7 +269,7 @@ class AcceptanceAndReportTests(unittest.TestCase):
         self.assertFalse(_acceptance([incomplete])["passed"])
 
     def test_explicit_empty_seed_month_is_rejected(self) -> None:
-        args = argparse.Namespace(evaluation_count=1, same_month="2026-07", seed_month="2026-06")
+        args = argparse.Namespace(evaluation_count=1, same_month="2026-07", seed_month="2026-06", phase=None)
         with self.assertRaisesRegex(ValueError, "populated month"):
             _build_phase_plans((), 6_000_000, Counter({"2026-07": 6_000_000}), args)
 
