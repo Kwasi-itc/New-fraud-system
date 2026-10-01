@@ -6,13 +6,22 @@ Status: implementation started. The campaign definitions and run durations below
 
 ## Implementation progress
 
-The first implementation increment adds verified decision response/async completion handling, failure-aware acceptance, bounded pipeline execution, consumer supervision, retry accounting, atomic progress/failure reports, observer environment capture, and optional host/service metric sampling. A standalone read-only observation command permits testing collection without resetting a database. Usage and metric limitations are documented in [Database scale suite](production_replay/DATABASE_SCALE_SUITE.md).
+The next increment adds a [fixed-arrival queue campaign](QUEUE_CAMPAIGN.md)
+for prepared transaction inputs and existing test tenants. It supports ordered
+steady/burst/recovery stages on the ingestion-to-async-decision path, bounded
+in-flight work, explicit generator drops, scheduled-arrival completion deadlines,
+partial reports, response identity reconciliation and optional existing telemetry.
+Focused fake-client tests cover its behavior. Live queue stability/recovery gates,
+all-queue coverage, fault controls and hardware qualification remain unimplemented;
+this is an experiment runner, not completion of the campaign below.
+
+The first implementation increment adds verified decision response/async completion handling, failure-aware acceptance, bounded pipeline execution, consumer supervision, retry accounting, atomic progress/failure reports, observer environment capture, and optional host/service metric sampling. A standalone read-only observation command permits testing collection without resetting a database. Usage and metric limitations are documented in [Database scale suite](../production_replay/DATABASE_SCALE_SUITE.md).
 
 | Work package | Current state | Remaining work |
 |---|---|---|
 | I01 Configuration and inventory | Local observer environment, source revision/dirty-state and harness hashes captured; new options validated. | Full versioned campaign schema, deployed configuration, remote/container identity, and verified path/queue registry. |
 | I02 Harness correctness | Completion evidence, deferred policy/deadlines, failure gates, cancellation, partial reports and a disk-backed evaluation identity ledger with duplicate-input/response-ID detection implemented. | Seed identity coverage, exact scenario identity coverage, independent durable-effect reconciliation, stronger disposable-target verification, setup/seeding deadlines and automatic service restoration. |
-| I03 Load scheduling | Existing bounded concurrency pipeline retained. | Fixed-arrival scheduler, scheduled-arrival timing and cohort workloads. |
+| I03 Load scheduling | Existing bounded concurrency pipeline retained; separate queue campaign adds fixed-arrival stages, scheduled-arrival timing, explicit generator drops and input-cohort reporting. | Automated rate search, repeated qualification, mixed-path workloads and live pilot validation. |
 | I04 Telemetry | Local CPU/memory/disk/network counters, service runtime/pool snapshots and optional read-only PostgreSQL/public River collection implemented; incomplete requested collection fails acceptance. Database collector tested with fake subprocesses only. | Live SQL/query-plan validation, case_queue/non-River adapters, remote exporters, reset-aware rates, full-run server histograms, tracing and observer-overhead qualification. |
 | I05 Fault controls | Planned. | Scoped controls, persistent restoration journal and watchdog. |
 | I06 Reconciliation and report | Schema-versioned partial/final reports and response-identity reconciliation gates implemented. | Independent durable-effect reconciliation, campaign qualification gates, correlated visual reports and hardware sizing outputs. |
@@ -41,13 +50,13 @@ Repository evidence establishes the following starting points. Phase 1 must veri
 
 | Existing element | Implication for the plan |
 |---|---|
-| [Shared database requirements](../../AGENTS.md) and [Compose configuration](../../docker-compose.yml) | Measure application queries, durable jobs, and all service connection pools against one database resource budget. |
-| [Database scale suite](production_replay/database_scale_suite.py) | Retain its four historical-volume experiments, after repairing success accounting and supervision. |
-| [Ingestion worker](../ingestion-service/cmd/worker/main.go) | Inventory River upload and deferred-ingestion queues and their configured consumers. |
-| [Decision worker](../decision-engine-service/cmd/worker/main.go) | Inventory River queues and enabled legacy tasks separately. A polling setting alone does not describe all active work. |
-| [Screening case outbox](../screening-service/internal/store/postgres/case_event_outbox.go) and [case maintenance](../case-manager-service/internal/store/postgres/maintenance.go) | Measure downstream delivery, retry, and claim contention where enabled. |
-| [Runtime metrics collector](capture_runtime_read_metrics.py) | Reuse existing decision runtime and ingestion read metrics, then extend coverage. |
-| [Stress test protocol](STRESS_TEST_PROTOCOL.md) | Give every experiment an objective, controlled variables, workload, measurements, acceptance rules, procedure, interpretation, and artifacts. |
+| [Shared database requirements](../../../AGENTS.md) and [Compose configuration](../../../docker-compose.yml) | Measure application queries, durable jobs, and all service connection pools against one database resource budget. |
+| [Database scale suite](../production_replay/database_scale_suite.py) | Retain its four historical-volume experiments, after repairing success accounting and supervision. |
+| [Ingestion worker](../../ingestion-service/cmd/worker/main.go) | Inventory River upload and deferred-ingestion queues and their configured consumers. |
+| [Decision worker](../../decision-engine-service/cmd/worker/main.go) | Inventory River queues and enabled legacy tasks separately. A polling setting alone does not describe all active work. |
+| [Screening case outbox](../../screening-service/internal/store/postgres/case_event_outbox.go) and [case maintenance](../../case-manager-service/internal/store/postgres/maintenance.go) | Measure downstream delivery, retry, and claim contention where enabled. |
+| [Runtime metrics collector](../capture_runtime_read_metrics.py) | Reuse existing decision runtime and ingestion read metrics, then extend coverage. |
+| [Stress test protocol](../STRESS_TEST_PROTOCOL.md) | Give every experiment an objective, controlled variables, workload, measurements, acceptance rules, procedure, interpretation, and artifacts. |
 
 Service URLs and table names do not prove that an integration is operational. Trace a known transaction through each intended path and identify missing producers, consumers, or destinations before performance testing. Report an unimplemented or disconnected path as a coverage gap, not a successful test.
 
@@ -284,7 +293,7 @@ Create a path record for each row below. It must include the actual route, servi
 
 For P03/P04, acceptance must distinguish durable acknowledgement, execution start, completion, and delivery. If the deployed ingestion outbox has no verified route to decision execution, do not label ingestion plus a harness-generated direct decision call as the production asynchronous path.
 
-Record whether each path is required for qualification, optional and enabled, disabled by design, unsupported, or blocked by missing implementation. The case-manager router currently maps internal AI-review and auto-assignment run endpoints to a `NotImplemented` handler; verify intended supported alternatives before including those endpoints in capacity claims. See [case-manager routes](../case-manager-service/internal/httpapi/router.go).
+Record whether each path is required for qualification, optional and enabled, disabled by design, unsupported, or blocked by missing implementation. The case-manager router currently maps internal AI-review and auto-assignment run endpoints to a `NotImplemented` handler; verify intended supported alternatives before including those endpoints in capacity claims. See [case-manager routes](../../case-manager-service/internal/httpapi/router.go).
 
 ## Workload specification and source preparation
 
@@ -357,7 +366,7 @@ At reconciliation, partition each submitted logical input into exactly one prima
 
 For each path, independently reconcile required effects and their cardinalities: transaction revision, decisions for expected applicable scenarios, jobs, audit events, cases, callbacks and outbox delivery. Do not assume all transactions must create a case or all scenarios must trigger. Verify duplicate requests produce the documented response and no extra unintended business effects.
 
-The existing ingestion [read metrics collector](../ingestion-service/internal/httpapi/read_metrics.go) limits retained latency samples to 512. Its reported percentiles must be labeled with their sampling/window semantics and cannot be treated as full-run percentiles. Capture run-wide histograms or another bounded, mergeable distribution with declared precision. Preserve per-replica distributions and merge compatible histograms; do not average p95 values.
+The existing ingestion [read metrics collector](../../ingestion-service/internal/httpapi/read_metrics.go) limits retained latency samples to 512. Its reported percentiles must be labeled with their sampling/window semantics and cannot be treated as full-run percentiles. Capture run-wide histograms or another bounded, mergeable distribution with declared precision. Preserve per-replica distributions and merge compatible histograms; do not average p95 values.
 
 ## Instrumentation implementation and verification
 
@@ -396,7 +405,7 @@ The following are source defaults, not deployed facts. Record the pinned River v
 | Decision | `scoring_requests` | `SCORING_DISPATCH_QUEUE_WORKERS` and corresponding queue-name setting |
 | Decision | `outbox_events` | `OUTBOX_QUEUE_WORKERS` and `OUTBOX_QUEUE_NAME` |
 
-Sources: [ingestion configuration](../ingestion-service/internal/app/config.go) and [decision configuration](../decision-engine-service/internal/app/config.go). Add data-model index work, screening dataset/case work and case-manager maintenance/delivery from their actual implementations; do not model them as River queues without verification.
+Sources: [ingestion configuration](../../ingestion-service/internal/app/config.go) and [decision configuration](../../decision-engine-service/internal/app/config.go). Add data-model index work, screening dataset/case work and case-manager maintenance/delivery from their actual implementations; do not model them as River queues without verification.
 
 Inspect configured admission limits as separate queues/waits: ingestion write/read/aggregate concurrency, HTTP client pools, decision live/rule/scenario/remote aggregate concurrency, database pools, and the harness queue itself. Measure wait or rejection at each boundary. Increasing a worker count does not increase capacity when a smaller pool or admission limit remains binding.
 

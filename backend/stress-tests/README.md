@@ -2,6 +2,10 @@
 
 Stress tests for the ingestion service and decision-engine runtime paths.
 
+System performance and resilience campaigns are organized in
+[system_tests](system_tests/README.md), including the full test plan, queue runner,
+usage guide and harness tests.
+
 These tests are intentionally separate from `integration-tests` because they create load, depend on timing thresholds, and should not run as part of normal functional CI.
 
 ## Tool Choice
