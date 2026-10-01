@@ -22,6 +22,10 @@ type App struct {
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
+	verifier, tenantIDs, err := cfg.APIAuth()
+	if err != nil {
+		return nil, err
+	}
 	gin.SetMode(cfg.GinMode)
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
@@ -30,6 +34,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		UserVerifier: verifier, ServiceTenantIDs: tenantIDs, RequestTimeout: 15 * time.Second,
 		AuthMode:            cfg.ServiceAuthMode,
 		AuthToken:           cfg.ServiceAuthToken,
 		DecisionEngineURL:   cfg.DecisionEngineURL,
@@ -44,6 +49,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 60 * time.Second,
 	}
 
 	return &App{cfg: cfg, logger: logger, db: db, httpServer: server}, nil

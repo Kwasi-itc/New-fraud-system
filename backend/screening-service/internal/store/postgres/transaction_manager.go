@@ -38,6 +38,8 @@ type mutationStore struct {
 	tx pgx.Tx
 }
 
+func (s mutationStore) CaseEvents() ports.CaseEventRepository { return NewCaseEventRepository(s.tx) }
+
 func (s mutationStore) Screenings() ports.ScreeningRepository {
 	return NewScreeningRepository(s.tx)
 }

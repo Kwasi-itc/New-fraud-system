@@ -259,7 +259,7 @@ func main() {
 		firstNonEmpty(cfg.ScreeningServiceURL, cfg.ScreeningProviderURL),
 		cfg.ScoringProviderURL,
 		cfg.OutboxPublisherURL,
-	)
+	).WithCaseAuthToken(cfg.CaseServiceAuthToken)
 	dispatchService := service.NewDispatchService(
 		workflowExecutionRepo,
 		screeningExecutionRepo,

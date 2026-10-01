@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,6 +14,8 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/app"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/worker"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -45,6 +48,14 @@ func main() {
 	case "up":
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 			log.Fatalf("migrate up: %v", err)
+		}
+		pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer pool.Close()
+		if err := worker.Migrate(context.Background(), pool); err != nil {
+			log.Fatalf("case River migrations: %v", err)
 		}
 	case "down":
 		if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {

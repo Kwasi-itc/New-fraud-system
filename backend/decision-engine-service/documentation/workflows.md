@@ -62,6 +62,8 @@ Example:
 - the final scenario outcome becomes `decline`
 - a workflow attached to `decline` can then:
   - `create_case`
+  - `add_to_case`
+  - `add_to_case_if_possible`
   - `add_tag`
   - `emit_event`
 
@@ -98,6 +100,10 @@ This implementation does not allow arbitrary workflow action types.
 The currently valid `action_type` values are:
 
 - `create_case`
+
+- `add_to_case`
+
+- `add_to_case_if_possible`
 - `add_tag`
 - `emit_event`
 
@@ -123,7 +129,7 @@ These values are validated by the workflow domain model. Requests using any othe
 Important implementation note:
 
 - this service validates and dispatches these action types
-- it does not itself define the business meaning of every `action_config` field
+- it validates case routing and external URLs before saving or dispatching actions
 - the downstream workflow receiver is responsible for interpreting the action payload
 
 ## What `action_config` Is For
@@ -132,14 +138,14 @@ Every workflow action stores an `action_config` JSON payload.
 
 That payload is forwarded when the workflow execution is dispatched. It is the place to put downstream action parameters such as:
 
-- a target URL override
+- an explicit external URL for tag/event actions
 - a case type
 - a queue name
 - a tag name
 - an event name
 - integration-specific metadata
 
-This service treats `action_config` as opaque JSON for most purposes. It stores it, returns it, and sends it onward with the workflow execution.
+Case action configuration is validated: a UUID `inbox_id` is required; optional `tag_ids` must be UUIDs. Case actions reject per-action URLs and title-template ASTs. External `add_tag` and `emit_event` actions require an explicit HTTP(S) `url` and do not receive the internal case token. See the [case intake contract](../../case-manager-service/INTAKE_CONTRACT.md).
 
 ## Dispatch Model
 
@@ -307,7 +313,7 @@ Do not treat screening or scoring as workflow `action_type` values in this imple
 
 Instead:
 
-- workflows use `create_case`, `add_tag`, or `emit_event`
+- workflows use `create_case`, `add_to_case`, `add_to_case_if_possible`, `add_tag`, or `emit_event`
 - screening uses screening configuration routes
 - scoring uses scoring configuration routes
 
@@ -442,6 +448,8 @@ Request body fields:
   - action to dispatch when matched
   - valid values in this implementation are:
     - `create_case`
+    - `add_to_case`
+    - `add_to_case_if_possible`
     - `add_tag`
     - `emit_event`
 - `action_config`
@@ -575,6 +583,8 @@ Request body fields:
   - downstream action to perform
   - valid values in this implementation are:
     - `create_case`
+    - `add_to_case`
+    - `add_to_case_if_possible`
     - `add_tag`
     - `emit_event`
 - `action_config`

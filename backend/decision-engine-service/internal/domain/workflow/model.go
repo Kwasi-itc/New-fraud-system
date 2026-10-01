@@ -10,9 +10,11 @@ import (
 type ActionType string
 
 const (
-	ActionTypeCreateCase ActionType = "create_case"
-	ActionTypeAddTag     ActionType = "add_tag"
-	ActionTypeEmitEvent  ActionType = "emit_event"
+	ActionTypeCreateCase          ActionType = "create_case"
+	ActionTypeAddToCase           ActionType = "add_to_case"
+	ActionTypeAddToCaseIfPossible ActionType = "add_to_case_if_possible"
+	ActionTypeAddTag              ActionType = "add_tag"
+	ActionTypeEmitEvent           ActionType = "emit_event"
 )
 
 type ExecutionStatus string
@@ -62,11 +64,11 @@ func (d Definition) Validate() error {
 		return fmt.Errorf("allowed_outcomes is required")
 	}
 	switch d.ActionType {
-	case ActionTypeCreateCase, ActionTypeAddTag, ActionTypeEmitEvent:
+	case ActionTypeCreateCase, ActionTypeAddToCase, ActionTypeAddToCaseIfPossible, ActionTypeAddTag, ActionTypeEmitEvent:
 	default:
 		return fmt.Errorf("invalid action_type %q", d.ActionType)
 	}
-	return nil
+	return ValidateActionConfig(d.ActionType, d.ActionConfig)
 }
 
 type Execution struct {
@@ -150,11 +152,11 @@ func (a Action) Validate() error {
 		return fmt.Errorf("rule_id is required")
 	}
 	switch a.ActionType {
-	case ActionTypeCreateCase, ActionTypeAddTag, ActionTypeEmitEvent:
+	case ActionTypeCreateCase, ActionTypeAddToCase, ActionTypeAddToCaseIfPossible, ActionTypeAddTag, ActionTypeEmitEvent:
 	default:
 		return fmt.Errorf("invalid action_type %q", a.ActionType)
 	}
-	return nil
+	return ValidateActionConfig(a.ActionType, a.ActionConfig)
 }
 
 type StructuredRule struct {

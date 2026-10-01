@@ -293,6 +293,10 @@ This workflow model triggers from final decision outcomes such as `approve`, `re
 Current supported action types:
 
 - `create_case`
+
+- `add_to_case`
+
+- `add_to_case_if_possible`
 - `add_tag`
 - `emit_event`
 
@@ -305,6 +309,7 @@ Example `create_case` workflow:
   "allowed_outcomes": ["review"],
   "action_type": "create_case",
   "action_config": {
+    "inbox_id": "55555555-5555-4555-8555-555555555555",
     "title": "High amount transaction",
     "reason": "Transaction amount exceeded threshold",
     "source": "decision-engine"
@@ -322,6 +327,7 @@ Example `add_tag` workflow:
   "allowed_outcomes": ["review"],
   "action_type": "add_tag",
   "action_config": {
+    "url": "https://automation.example.com/workflow-actions",
     "tag": "high_amount"
   },
   "active": true
@@ -337,6 +343,7 @@ Example `emit_event` workflow:
   "allowed_outcomes": ["review"],
   "action_type": "emit_event",
   "action_config": {
+    "url": "https://automation.example.com/workflow-actions",
     "event_name": "transaction.high_amount.review",
     "severity": "medium"
   },
@@ -344,7 +351,7 @@ Example `emit_event` workflow:
 }
 ```
 
-`action_config` is currently service-owned JSON and remains downstream-integration specific. The service persists and dispatches this payload, but the final consumer contract for case-management style actions is still provisional.
+Case actions require a UUID `inbox_id` and use the configured case endpoint. The versioned [case intake contract](../case-manager-service/INTAKE_CONTRACT.md) defines create/reuse, literal titles, authoritative decision metadata, authentication, and retry deduplication. External `add_tag` and `emit_event` actions require an explicit HTTP(S) `url`; internal service credentials are not forwarded to it.
 
 ### Structured workflow-rules
 
@@ -371,6 +378,10 @@ Current condition functions are:
 Current action types are:
 
 - `create_case`
+
+- `add_to_case`
+
+- `add_to_case_if_possible`
 - `add_tag`
 - `emit_event`
 
@@ -417,6 +428,7 @@ This is enough when the only requirement is "if the final outcome is review, do 
   "allowed_outcomes": ["review"],
   "action_type": "create_case",
   "action_config": {
+    "inbox_id": "55555555-5555-4555-8555-555555555555",
     "title": "High amount transaction",
     "reason": "Transaction amount exceeded threshold",
     "source": "decision-engine"
@@ -524,6 +536,7 @@ Step 4. Add the action:
 {
   "action_type": "create_case",
   "action_config": {
+    "inbox_id": "55555555-5555-4555-8555-555555555555",
     "title": "High amount transaction",
     "reason": "Amount rule hit and outcome is review",
     "source": "decision-engine"
@@ -539,6 +552,10 @@ What this means:
 The currently supported action types are:
 
 - `create_case`
+
+- `add_to_case`
+
+- `add_to_case_if_possible`
 - `add_tag`
 - `emit_event`
 
@@ -548,6 +565,7 @@ Example `add_tag` action:
 {
   "action_type": "add_tag",
   "action_config": {
+    "url": "https://automation.example.com/workflow-actions",
     "tag": "high_amount"
   }
 }
@@ -559,6 +577,7 @@ Example `emit_event` action:
 {
   "action_type": "emit_event",
   "action_config": {
+    "url": "https://automation.example.com/workflow-actions",
     "event_name": "transaction.high_amount.review",
     "severity": "medium"
   }

@@ -24,6 +24,10 @@ func (h CaseHandler) List(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if raw := c.Query("include_snoozed"); raw != "" && raw != "true" && raw != "false" {
+		presentError(c, casepkg.Invalid("include_snoozed must be true or false"))
+		return
+	}
 	filters := casepkg.CaseFilters{
 		Name:           c.Query("name"),
 		IncludeSnoozed: c.Query("include_snoozed") == "true",
@@ -34,9 +38,11 @@ func (h CaseHandler) List(c *gin.Context) {
 	}
 	for _, raw := range c.QueryArray("inbox_id") {
 		id, err := uuid.Parse(raw)
-		if err == nil {
-			filters.InboxIDs = append(filters.InboxIDs, id)
+		if err != nil || id == uuid.Nil {
+			presentError(c, casepkg.Invalid("invalid inbox_id filter"))
+			return
 		}
+		filters.InboxIDs = append(filters.InboxIDs, id)
 	}
 	items, err := h.service.ListCases(c.Request.Context(), tid, filters, limitQuery(c, 100))
 	if err != nil {
@@ -71,7 +77,7 @@ func (h CaseHandler) Create(c *gin.Context) {
 		Type        casepkg.Type `json:"type"`
 		DecisionIDs []uuid.UUID  `json:"decision_ids"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -95,16 +101,18 @@ func (h CaseHandler) Update(c *gin.Context) {
 		Name        *string          `json:"name"`
 		Status      *casepkg.Status  `json:"status"`
 		Outcome     *casepkg.Outcome `json:"outcome"`
-		BoostReason *string          `json:"boost_reason"`
-		ReviewLevel *string          `json:"review_level"`
+		BoostReason nullable[string] `json:"boost_reason"`
+		ReviewLevel nullable[string] `json:"review_level"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
 	item, err := h.service.UpdateCase(c.Request.Context(), service.UpdateCaseInput{
 		TenantID: tid, CaseID: caseID, InboxID: body.InboxID, Name: body.Name, Status: body.Status,
-		Outcome: body.Outcome, BoostReason: body.BoostReason, ReviewLevel: body.ReviewLevel,
+		Outcome: body.Outcome, BoostReason: body.BoostReason.Value, ReviewLevel: body.ReviewLevel.Value,
+		ClearBoostReason: body.BoostReason.Present && body.BoostReason.Value == nil,
+		ClearReviewLevel: body.ReviewLevel.Present && body.ReviewLevel.Value == nil,
 	}, actorID(c))
 	if err != nil {
 		presentError(c, err)
@@ -125,7 +133,7 @@ func (h CaseHandler) AddDecision(c *gin.Context) {
 		ObjectID   string     `json:"object_id"`
 		PivotValue *string    `json:"pivot_value"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -161,7 +169,7 @@ func (h CaseHandler) CreateComment(c *gin.Context) {
 	var body struct {
 		Comment string `json:"comment"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -181,7 +189,7 @@ func (h CaseHandler) AddTag(c *gin.Context) {
 	var body struct {
 		TagID uuid.UUID `json:"tag_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -214,18 +222,20 @@ func (h CaseHandler) AddFile(c *gin.Context) {
 		return
 	}
 	var body struct {
-		FileName    string `json:"file_name"`
-		ContentType string `json:"content_type"`
-		FileSize    int64  `json:"file_size"`
-		StorageKey  string `json:"storage_key"`
-		UploadedBy  string `json:"uploaded_by"`
+		SourceFileID *uuid.UUID `json:"source_file_id"`
+		FileName     string     `json:"file_name"`
+		ContentType  string     `json:"content_type"`
+		FileSize     int64      `json:"file_size"`
+		StorageKey   string     `json:"storage_key"`
+		UploadedBy   string     `json:"uploaded_by"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
 	item, err := h.service.AddFile(c.Request.Context(), casepkg.File{
-		TenantID: tid, CaseID: caseID, FileName: body.FileName, ContentType: body.ContentType,
+		SourceFileID: body.SourceFileID,
+		TenantID:     tid, CaseID: caseID, FileName: body.FileName, ContentType: body.ContentType,
 		FileSize: body.FileSize, StorageKey: body.StorageKey, UploadedBy: body.UploadedBy,
 	}, actorID(c))
 	if err != nil {
@@ -243,7 +253,7 @@ func (h CaseHandler) Assign(c *gin.Context) {
 	var body struct {
 		AssigneeID string `json:"assignee_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -274,7 +284,7 @@ func (h CaseHandler) Snooze(c *gin.Context) {
 	var body struct {
 		Until time.Time `json:"until"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -302,19 +312,11 @@ func (h CaseHandler) Escalate(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var body struct {
-		InboxID uuid.UUID `json:"inbox_id"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := h.service.EscalateCase(c.Request.Context(), tid, caseID); err != nil {
 		presentError(c, err)
 		return
 	}
-	item, err := h.service.UpdateCase(c.Request.Context(), service.UpdateCaseInput{TenantID: tid, CaseID: caseID, InboxID: &body.InboxID}, actorID(c))
-	if err != nil {
-		presentError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"case": item})
+	c.Status(http.StatusNoContent)
 }
 
 func tenantAndCase(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {

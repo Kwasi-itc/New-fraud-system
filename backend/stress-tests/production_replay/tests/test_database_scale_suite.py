@@ -171,7 +171,7 @@ class DatabaseScaleSuiteTests(unittest.IsolatedAsyncioTestCase):
                 self, _tenant_id: str, object_id: str, *_args: Any, **_kwargs: Any
             ) -> tuple[dict[str, Any], int, dict[str, Any]]:
                 self.decisions.append(object_id)
-                return {}, 200, {}
+                return {"result": {"object_id": object_id, "results": [{"triggered": False}]}}, 200, {}
 
         clients = FakeClients()
         result = await _run_fixed_pipeline(
@@ -187,6 +187,7 @@ class DatabaseScaleSuiteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(clients.ingestion_calls, 4)
         self.assertEqual(len(clients.decisions), 3)
         self.assertEqual(result["decision"]["attempts"], 3)
+        self.assertEqual(result["decision"]["successes"], 3)
         self.assertEqual(result["ingestion"]["failures"], 1)
 
 

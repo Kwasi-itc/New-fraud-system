@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 )
 
-func TestScreeningServiceReviewMatchPublishesCaseEvent(t *testing.T) {
+func TestScreeningServiceReviewMatchQueuesCaseEvent(t *testing.T) {
 	now := time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC)
 	screenings := &fakeScreeningRepo{items: map[string]screening.Screening{
 		"screening-1": {
@@ -47,6 +48,7 @@ func TestScreeningServiceReviewMatchPublishesCaseEvent(t *testing.T) {
 	casePublisher := &fakeCasePublisher{}
 
 	store := fakeMutationStore{
+		caseEvents: casePublisher,
 		screenings: screenings,
 		matches:    matches,
 		comments:   comments,
@@ -331,6 +333,7 @@ func (f fakeTxManager) Run(_ context.Context, fn func(store ports.MutationStore)
 }
 
 type fakeMutationStore struct {
+	caseEvents  ports.CaseEventRepository
 	screenings  *fakeScreeningRepo
 	matches     *fakeMatchRepo
 	comments    *fakeCommentRepo
@@ -339,6 +342,19 @@ type fakeMutationStore struct {
 	continuous  *fakeContinuousRepo
 	monitored   *fakeMonitoredRepo
 	datasetJobs *fakeDatasetJobRepo
+}
+
+func (f fakeMutationStore) CaseEvents() ports.CaseEventRepository { return f.caseEvents }
+func (f *fakeCasePublisher) Enqueue(_ context.Context, id, tenant, kind string, payload any) error {
+	if kind != "reviewed" {
+		return fmt.Errorf("unexpected event kind %s", kind)
+	}
+	command, ok := payload.(ports.ScreeningReviewedCommand)
+	if !ok || command.EventID != id || command.TenantID != tenant {
+		return fmt.Errorf("incorrect event identity")
+	}
+	f.reviewed = append(f.reviewed, command)
+	return nil
 }
 
 func (f fakeMutationStore) Screenings() ports.ScreeningRepository               { return f.screenings }

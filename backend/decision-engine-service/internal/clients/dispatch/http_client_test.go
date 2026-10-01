@@ -29,14 +29,16 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 
 	client := NewHTTPClient(time.Second, "token", "token-1", server.URL+"/workflow", server.URL, server.URL+"/scoring", server.URL+"/outbox")
 	ctx := context.Background()
+	workflowConfig, _ := json.Marshal(map[string]string{"url": server.URL + "/workflow"})
 
 	if err := client.DispatchWorkflowExecution(ctx, workflow.Execution{
-		ID:         "wf-1",
-		TenantID:   "tenant-1",
-		WorkflowID: stringPtr("workflow-1"),
-		DecisionID: "decision-1",
-		ScenarioID: "scenario-1",
-		ActionType: workflow.ActionTypeEmitEvent,
+		ID:           "wf-1",
+		TenantID:     "tenant-1",
+		WorkflowID:   stringPtr("workflow-1"),
+		DecisionID:   "decision-1",
+		ScenarioID:   "scenario-1",
+		ActionType:   workflow.ActionTypeEmitEvent,
+		ActionConfig: workflowConfig,
 	}); err != nil {
 		t.Fatalf("DispatchWorkflowExecution() error = %v", err)
 	}

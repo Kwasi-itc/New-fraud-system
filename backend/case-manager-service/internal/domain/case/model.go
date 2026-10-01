@@ -32,6 +32,7 @@ const (
 )
 
 type Inbox struct {
+	SLADays                 *int       `json:"sla_days"`
 	ID                      uuid.UUID  `json:"id"`
 	TenantID                uuid.UUID  `json:"tenant_id"`
 	Name                    string     `json:"name"`
@@ -46,6 +47,7 @@ type Inbox struct {
 }
 
 type Case struct {
+	SLADueAt     *time.Time      `json:"sla_due_at,omitempty"`
 	ID           uuid.UUID       `json:"id"`
 	TenantID     uuid.UUID       `json:"tenant_id"`
 	InboxID      uuid.UUID       `json:"inbox_id"`
@@ -64,6 +66,7 @@ type Case struct {
 	Tags         []Tag           `json:"tags,omitempty"`
 	Files        []File          `json:"files,omitempty"`
 	Events       []Event         `json:"events,omitempty"`
+	Contributors []Contributor   `json:"contributors,omitempty"`
 }
 
 type DecisionLink struct {
@@ -100,15 +103,16 @@ type Tag struct {
 }
 
 type File struct {
-	ID          uuid.UUID `json:"id"`
-	TenantID    uuid.UUID `json:"tenant_id"`
-	CaseID      uuid.UUID `json:"case_id"`
-	FileName    string    `json:"file_name"`
-	ContentType string    `json:"content_type"`
-	FileSize    int64     `json:"file_size"`
-	StorageKey  string    `json:"storage_key"`
-	UploadedBy  string    `json:"uploaded_by"`
-	CreatedAt   time.Time `json:"created_at"`
+	SourceFileID *uuid.UUID `json:"source_file_id,omitempty"`
+	ID           uuid.UUID  `json:"id"`
+	TenantID     uuid.UUID  `json:"tenant_id"`
+	CaseID       uuid.UUID  `json:"case_id"`
+	FileName     string     `json:"file_name"`
+	ContentType  string     `json:"content_type"`
+	FileSize     int64      `json:"file_size"`
+	StorageKey   string     `json:"storage_key"`
+	UploadedBy   string     `json:"uploaded_by"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type Event struct {
@@ -126,6 +130,8 @@ type Event struct {
 }
 
 type CaseFilters struct {
+	// AccessUserID is server-owned and never accepted from a request.
+	AccessUserID   string
 	Statuses       []Status
 	InboxIDs       []uuid.UUID
 	Name           string
@@ -133,7 +139,39 @@ type CaseFilters struct {
 	AssigneeID     string
 }
 
+type InboxUser struct {
+	Capacity          int       `json:"capacity"`
+	ID                uuid.UUID `json:"id"`
+	TenantID          uuid.UUID `json:"tenant_id"`
+	InboxID           uuid.UUID `json:"inbox_id"`
+	UserID            string    `json:"user_id"`
+	AutoAssignEnabled bool      `json:"auto_assign_enabled"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+type Contributor struct {
+	UserID    string    `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type DecisionReference struct {
+	ID         uuid.UUID
+	ScenarioID uuid.UUID
+	ObjectType string
+	ObjectID   string
+}
+
+type ScreeningReference struct {
+	MatchStatus   string
+	ID            uuid.UUID
+	DecisionID    *uuid.UUID
+	ReviewInboxID *uuid.UUID
+}
+
 func ValidateStatusTransition(current, next Status) error {
+	if !ValidStatus(current) || !ValidStatus(next) {
+		return Invalid("invalid case status")
+	}
 	if current == next {
 		return nil
 	}
@@ -149,7 +187,7 @@ func ValidateStatusTransition(current, next Status) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid case status transition from %s to %s", current, next)
+	return Invalid(fmt.Sprintf("invalid case status transition from %s to %s", current, next))
 }
 
 func ValidReviewLevel(level string) bool {

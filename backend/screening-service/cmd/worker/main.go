@@ -34,8 +34,9 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 type workerRunner struct {
-	logger     *slog.Logger
-	batchLimit int
+	caseDelivery service.CaseDeliveryService
+	logger       *slog.Logger
+	batchLimit   int
 }
 
 func main() {
@@ -72,8 +73,8 @@ func main() {
 		Algorithm: cfg.OpenSanctionsAlgorithm,
 	})
 	ingestionReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
-	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
-	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
+	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
+	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
 	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.ServiceAuthMode, cfg.ServiceAuthToken, cfg.HTTPClientTimeout)
 	workers := river.NewWorkers()
@@ -110,8 +111,9 @@ func main() {
 	river.AddWorker(workers, &monitoredWorker)
 
 	runner := workerRunner{
-		logger:     logger,
-		batchLimit: cfg.WorkerBatchLimit,
+		caseDelivery: service.NewCaseDeliveryService(storepostgres.NewCaseEventRepository(db), casePublisher, logger),
+		logger:       logger,
+		batchLimit:   cfg.WorkerBatchLimit,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -175,6 +177,9 @@ func (w workerRunner) runPollLoop(ctx context.Context, interval time.Duration) e
 func (w workerRunner) runOnce(ctx context.Context) error {
 	cycleStartedAt := time.Now()
 	w.logger.Info("screening worker cycle started", "batch_limit", w.batchLimit)
+	if err := w.caseDelivery.RunBatch(ctx, w.batchLimit); err != nil {
+		return err
+	}
 	w.logger.Info("screening worker cycle completed", "duration_ms", time.Since(cycleStartedAt).Milliseconds())
 	return nil
 }

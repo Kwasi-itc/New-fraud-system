@@ -14,13 +14,15 @@ import (
 
 type HTTPClient struct {
 	baseURL string
+	token   string
 	client  *http.Client
 }
 
-func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
+func NewHTTPClient(baseURL, token string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: timeout},
+		token:   token,
+		client:  &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -33,8 +35,8 @@ func (c HTTPClient) PublishScreeningEvidenceUploaded(ctx context.Context, comman
 }
 
 func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
-	if c.baseURL == "" {
-		return nil
+	if c.baseURL == "" || c.token == "" {
+		return fmt.Errorf("case integration URL and token are required")
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -45,12 +47,13 @@ func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
 		return fmt.Errorf("create case request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("execute case request: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= http.StatusBadRequest {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("unexpected status from case-service: %d", resp.StatusCode)
 	}
 	return nil

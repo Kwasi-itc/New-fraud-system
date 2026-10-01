@@ -295,23 +295,13 @@ func (s ScreeningService) ReviewMatch(ctx context.Context, tenantID, matchID, st
 			}
 		}
 
-		return nil
+		eventID := s.idGen.New().String()
+		return store.CaseEvents().Enqueue(ctx, eventID, tenantID, "reviewed", ports.ScreeningReviewedCommand{
+			EventID: eventID, TenantID: tenantID, ScreeningID: item.ID, DecisionID: item.DecisionID, MatchID: match.ID, Status: string(nextStatus), ReviewerID: reviewerID,
+		})
 	})
 	if err == nil {
 		_ = s.publishScreeningStatusChanged(ctx, tenantID, match.ScreeningID)
-	}
-	if err == nil && s.casePublisher != nil {
-		screeningItem, getErr := s.screeningRepo.GetByID(ctx, tenantID, match.ScreeningID)
-		if getErr == nil {
-			_ = s.casePublisher.PublishScreeningReviewed(ctx, ports.ScreeningReviewedCommand{
-				TenantID:    tenantID,
-				ScreeningID: screeningItem.ID,
-				DecisionID:  screeningItem.DecisionID,
-				MatchID:     match.ID,
-				Status:      string(nextStatus),
-				ReviewerID:  reviewerID,
-			})
-		}
 	}
 	return updated, err
 }
@@ -422,16 +412,13 @@ func (s ScreeningService) CreateFile(ctx context.Context, tenantID, screeningID,
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		created, runErr = store.ScreeningFiles().Create(ctx, item)
-		return runErr
-	})
-	if err == nil && s.casePublisher != nil {
-		_ = s.casePublisher.PublishScreeningEvidenceUploaded(ctx, ports.ScreeningEvidenceUploadedCommand{
-			TenantID:    tenantID,
-			ScreeningID: screeningID,
-			FileID:      created.ID,
-			UploadedBy:  uploadedBy,
+		if runErr != nil {
+			return runErr
+		}
+		return store.CaseEvents().Enqueue(ctx, created.ID, tenantID, "evidence-uploaded", ports.ScreeningEvidenceUploadedCommand{
+			EventID: created.ID, TenantID: tenantID, ScreeningID: screeningID, FileID: created.ID, UploadedBy: uploadedBy,
 		})
-	}
+	})
 	return created, err
 }
 

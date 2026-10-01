@@ -223,6 +223,12 @@ type testMutationStore struct {
 	dataset    *testDatasetRepo
 }
 
+func (t testMutationStore) CaseEvents() ports.CaseEventRepository { return testCaseEvents{} }
+
+type testCaseEvents struct{}
+
+func (testCaseEvents) Enqueue(context.Context, string, string, string, any) error { return nil }
+
 func (t testMutationStore) Screenings() ports.ScreeningRepository               { return t.screenings }
 func (t testMutationStore) ScreeningMatches() ports.ScreeningMatchRepository    { return t.matches }
 func (t testMutationStore) ScreeningComments() ports.ScreeningCommentRepository { return t.comments }

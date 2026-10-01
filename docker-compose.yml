@@ -1,6 +1,7 @@
 x-backend-common: &backend-common
   SERVICE_AUTH_MODE: disabled
   SERVICE_AUTH_TOKEN: ""
+  CASE_SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:-}
   LOG_LEVEL: info
   GIN_MODE: debug
   HTTP_CLIENT_TIMEOUT: 10s
@@ -16,8 +17,8 @@ x-depends-on-migrations: &depends-on-migrations
     condition: service_completed_successfully
   screening-migrate:
     condition: service_completed_successfully
-  # case-manager-migrate:
-  #   condition: service_completed_successfully
+  case-manager-migrate:
+    condition: service_completed_successfully
 
 services:
   postgres:
@@ -102,19 +103,19 @@ services:
         condition: service_completed_successfully
     restart: "no"
 
-  # case-manager-migrate:
-  #   build:
-  #     context: ./backend/case-manager-service
-  #     dockerfile: Dockerfile
-  #   entrypoint: ["/app/migrate"]
-  #   command: ["up"]
-  #   environment:
-  #     <<: *backend-common
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   restart: "no"
+  case-manager-migrate:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+    depends_on:
+      screening-migrate:
+        condition: service_completed_successfully
+    restart: "no"
 
   data-model-service:
     build:
@@ -168,7 +169,7 @@ services:
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
       LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
-      # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -202,8 +203,8 @@ services:
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       DECISION_ENGINE_URL: http://decision-engine-service:8082
-      # INBOX_SERVICE_URL: http://case-manager-service:8086
-      # CASE_SERVICE_URL: http://case-manager-service:8086
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -211,24 +212,50 @@ services:
     ports:
       - "${SCREENING_FORWARDED_PORT:-8085}:8085"
 
-  # case-manager-service:
-  #   build:
-  #     context: ./backend/case-manager-service
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     <<: *backend-common
-  #     PORT: 8086
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-  #     DECISION_ENGINE_URL: http://decision-engine-service:8082
-  #     SCREENING_SERVICE_URL: http://screening-service:8085
-  #     INGESTION_SERVICE_URL: http://ingestion-service:8081
-  #     DATA_MODEL_SERVICE_URL: http://data-model-service:8080
-  #     WORKER_MODE: poll
-  #     WORKER_POLL_INTERVAL: 15s
-  #     WORKER_BATCH_LIMIT: 100
-  #   depends_on: *depends-on-migrations
-  #   ports:
-  #     - "8086:8086"
+  case-manager-service:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8086
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      SERVICE_AUTH_MODE: token
+      SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:?Set CASE_SERVICE_AUTH_TOKEN to a secret of at least 32 bytes}
+      SERVICE_AUTH_TENANT_IDS: ${CASE_SERVICE_TENANT_IDS:?Set the allowed case integration tenant UUIDs}
+      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
+      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
+      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
+      DB_POOL_MAX_CONNS: ${CASE_DB_POOL_MAX_CONNS:-8}
+      GIN_MODE: release
+    volumes:
+      - ${CASE_USER_JWT_KEYS_FILE:?Set the host path to trusted public keys}:/run/secrets/case-user-public-keys.json:ro
+    depends_on: *depends-on-migrations
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "${CASE_MANAGER_FORWARDED_PORT:-8086}:8086"
+
+  screening-case-delivery-worker:
+    build:
+      context: ./backend/screening-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/case-delivery-worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable&pool_max_conns=2
+      DATABASE_MAX_CONNS: 2
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_POLL_INTERVAL: 2s
+      WORKER_BATCH_LIMIT: 50
+    depends_on:
+      <<: *depends-on-migrations
+      case-manager-service:
+        condition: service_healthy
+    restart: unless-stopped
 
   data-model-worker:
     build:
@@ -283,7 +310,7 @@ services:
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       SCREENING_SERVICE_URL: http://screening-service:8085
-      # WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -311,8 +338,8 @@ services:
         condition: service_started
       screening-service:
         condition: service_started
-      # case-manager-service:
-      #   condition: service_started
+      case-manager-service:
+        condition: service_healthy
 
   screening-worker:
     profiles:
@@ -326,8 +353,8 @@ services:
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       DECISION_ENGINE_URL: http://decision-engine-service:8082
-      # INBOX_SERVICE_URL: http://case-manager-service:8086
-      # CASE_SERVICE_URL: http://case-manager-service:8086
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -337,28 +364,25 @@ services:
         condition: service_started
       decision-engine-service:
         condition: service_started
-      # case-manager-service:
-      #   condition: service_started
+      case-manager-service:
+        condition: service_healthy
 
-  # case-manager-worker:
-  #   build:
-  #     context: ./backend/case-manager-service
-  #     dockerfile: Dockerfile
-  #   entrypoint: ["/app/worker"]
-  #   environment:
-  #     <<: *backend-common
-  #     DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-  #     DECISION_ENGINE_URL: http://decision-engine-service:8082
-  #     SCREENING_SERVICE_URL: http://screening-service:8085
-  #     INGESTION_SERVICE_URL: http://ingestion-service:8081
-  #     DATA_MODEL_SERVICE_URL: http://data-model-service:8080
-  #     WORKER_MODE: poll
-  #     WORKER_POLL_INTERVAL: 15s
-  #     WORKER_BATCH_LIMIT: 100
-  #   depends_on:
-  #     <<: *depends-on-migrations
-  #     case-manager-service:
-  #       condition: service_started
+  case-manager-worker:
+    build:
+      context: ./backend/case-manager-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
+      DB_POOL_MAX_CONNS: 4
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      OUTBOX_PUBLISHER_URL: ${CASE_OUTBOX_PUBLISHER_URL:-}
+      OUTBOX_PUBLISHER_AUTH_TOKEN: ${CASE_OUTBOX_PUBLISHER_AUTH_TOKEN:-}
+    depends_on:
+      <<: *depends-on-migrations
+    restart: unless-stopped
 
   frontend:
     build:
@@ -370,6 +394,14 @@ services:
         NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}
         NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
     environment:
+      CASE_MANAGER_SERVICE_URL: http://case-manager-service:8086
+      DECISION_ENGINE_SERVICE_URL: http://decision-engine-service:8082
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      DECISION_ENGINE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      SCREENING_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      CASE_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
+      CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-__Host-case_session}
+      APP_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
       NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DATA_MODEL_FORWARDED_PORT:-8080}
       NEXT_PUBLIC_INGESTION_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${INGESTION_FORWARDED_PORT:-8081}
       NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}

@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ type TransactionManager interface {
 }
 
 type MutationStore interface {
+	CaseEvents() CaseEventRepository
 	Screenings() ScreeningRepository
 	ScreeningMatches() ScreeningMatchRepository
 	ScreeningComments() ScreeningCommentRepository
@@ -123,6 +125,7 @@ type InboxReader interface {
 }
 
 type ScreeningReviewedCommand struct {
+	EventID     string `json:"event_id"`
 	TenantID    string `json:"tenant_id"`
 	ScreeningID string `json:"screening_id"`
 	DecisionID  string `json:"decision_id,omitempty"`
@@ -132,10 +135,26 @@ type ScreeningReviewedCommand struct {
 }
 
 type ScreeningEvidenceUploadedCommand struct {
+	EventID     string `json:"event_id"`
 	TenantID    string `json:"tenant_id"`
 	ScreeningID string `json:"screening_id"`
 	FileID      string `json:"file_id"`
 	UploadedBy  string `json:"uploaded_by,omitempty"`
+}
+
+type CaseEventRepository interface {
+	Enqueue(context.Context, string, string, string, any) error
+}
+
+type CaseEvent struct {
+	ID       string
+	Kind     string
+	Payload  json.RawMessage
+	Attempts int
+}
+type CaseDeliveryRepository interface {
+	Claim(context.Context) (*CaseEvent, error)
+	Finish(context.Context, CaseEvent, error) error
 }
 
 type CasePublisher interface {

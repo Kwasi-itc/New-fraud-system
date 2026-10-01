@@ -5,6 +5,7 @@ import json
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -16,10 +17,12 @@ class APIError(RuntimeError):
         *,
         status_code: int | None = None,
         response_body: Any = None,
+        attempts: int = 1,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.response_body = response_body
+        self.attempts = attempts
 
 
 @dataclass(frozen=True)
@@ -158,6 +161,7 @@ class ServiceClients:
                     headers={"Idempotency-Key": idempotency_key},
                 )
             except APIError as exc:
+                exc.attempts = attempt
                 last_error = exc
                 if attempt == max_attempts or (exc.status_code is not None and exc.status_code not in {429, 500, 502, 503, 504}):
                     raise
@@ -187,12 +191,21 @@ class ServiceClients:
                 )
                 return response, attempt
             except APIError as exc:
+                exc.attempts = attempt
                 last_error = exc
                 if attempt == max_attempts or (exc.status_code is not None and exc.status_code not in {429, 500, 502, 503, 504}):
                     raise
                 await asyncio.sleep(0.1 * (2 ** (attempt - 1)))
         assert last_error is not None
         raise last_error
+
+    async def get_async_decision_execution(self, tenant_id: str, execution_id: str) -> dict[str, Any]:
+        return await self.request(
+            self.decision_engine,
+            "GET",
+            f"/v1/tenants/{quote(tenant_id, safe='')}/async-decision-executions/{quote(execution_id, safe='')}",
+            200,
+        )
 
     async def record_ingested(
         self,

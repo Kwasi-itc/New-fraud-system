@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/service"
 )
 
@@ -29,14 +30,14 @@ func (h IntegrationHandler) WorkflowAction(c *gin.Context) {
 		ActionConfig        json.RawMessage `json:"action_config"`
 		CreatedAt           time.Time       `json:"created_at"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
 	var cfg service.WorkflowActionConfig
 	if len(body.ActionConfig) > 0 {
 		if err := json.Unmarshal(body.ActionConfig, &cfg); err != nil {
-			presentError(c, err)
+			presentError(c, casepkg.Invalid("invalid action_config"))
 			return
 		}
 	}
@@ -57,6 +58,7 @@ func (h IntegrationHandler) WorkflowAction(c *gin.Context) {
 
 func (h IntegrationHandler) ScreeningReviewed(c *gin.Context) {
 	var body struct {
+		EventID     uuid.UUID  `json:"event_id"`
 		TenantID    uuid.UUID  `json:"tenant_id"`
 		ScreeningID uuid.UUID  `json:"screening_id"`
 		DecisionID  *uuid.UUID `json:"decision_id"`
@@ -64,11 +66,11 @@ func (h IntegrationHandler) ScreeningReviewed(c *gin.Context) {
 		Status      string     `json:"status"`
 		ReviewerID  *string    `json:"reviewer_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
-	if err := h.service.HandleScreeningReviewed(c.Request.Context(), body.TenantID, body.ScreeningID, body.DecisionID, body.MatchID, body.Status, body.ReviewerID); err != nil {
+	if err := h.service.ReceiveScreeningReview(c.Request.Context(), service.ScreeningReviewInput{EventID: body.EventID, TenantID: body.TenantID, ScreeningID: body.ScreeningID, DecisionID: body.DecisionID, MatchID: body.MatchID, Status: body.Status}); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -82,13 +84,13 @@ func (h IntegrationHandler) ScreeningEvidenceUploaded(c *gin.Context) {
 		FileID      uuid.UUID `json:"file_id"`
 		UploadedBy  *string   `json:"uploaded_by"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"status": "accepted"})
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "screening evidence delivery is not implemented"})
 }
 
 func (h IntegrationHandler) NotImplemented(c *gin.Context) {
-	c.JSON(http.StatusAccepted, gin.H{"status": "accepted", "note": "worker-backed parity endpoint is scaffolded"})
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "worker-backed operation is not implemented"})
 }

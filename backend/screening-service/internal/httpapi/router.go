@@ -23,6 +23,7 @@ import (
 )
 
 type RouterConfig struct {
+	CaseServiceAuthToken   string
 	AuthMode               string
 	AuthToken              string
 	ScreeningProviderURL   string
@@ -111,8 +112,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		Scope:     cfg.OpenSanctionsScope,
 		Algorithm: cfg.OpenSanctionsAlgorithm,
 	})
-	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
-	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
+	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
+	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
 	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.AuthMode, cfg.AuthToken, cfg.HTTPClientTimeout)
 	var datasetJobRepo ports.DatasetUpdateJobRepository

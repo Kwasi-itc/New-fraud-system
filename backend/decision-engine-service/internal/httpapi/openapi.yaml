@@ -1067,6 +1067,7 @@ paths:
                   allowed_outcomes: [review]
                   action_type: create_case
                   action_config:
+                    inbox_id: 55555555-5555-4555-8555-555555555555
                     title: High amount transaction
                     reason: Transaction amount exceeded threshold
                     source: decision-engine
@@ -1079,6 +1080,7 @@ paths:
                   allowed_outcomes: [review]
                   action_type: add_tag
                   action_config:
+                    url: https://automation.example.com/workflow-actions
                     tag: high_amount
                   active: true
               emitEvent:
@@ -1089,6 +1091,7 @@ paths:
                   allowed_outcomes: [review]
                   action_type: emit_event
                   action_config:
+                    url: https://automation.example.com/workflow-actions
                     event_name: transaction.high_amount.review
                     severity: medium
                   active: true
@@ -1459,6 +1462,7 @@ paths:
                 value:
                   action_type: create_case
                   action_config:
+                    inbox_id: 55555555-5555-4555-8555-555555555555
                     title: High amount transaction
                     reason: Amount rule hit and outcome is review
                     source: decision-engine
@@ -1467,12 +1471,14 @@ paths:
                 value:
                   action_type: add_tag
                   action_config:
+                    url: https://automation.example.com/workflow-actions
                     tag: high_amount
               emitEvent:
                 summary: Emit-event action for a matched workflow-rule
                 value:
                   action_type: emit_event
                   action_config:
+                    url: https://automation.example.com/workflow-actions
                     event_name: transaction.high_amount.review
                     severity: medium
       responses:
@@ -3680,10 +3686,10 @@ components:
           description: Decision outcomes that should trigger the workflow, such as approve, review, block_and_review, or decline.
         action_type:
           type: string
-          description: Supported legacy workflow actions are create_case, add_tag, and emit_event.
+          description: Supported legacy workflow actions are create_case, add_to_case, add_to_case_if_possible, add_tag, and emit_event.
         action_config:
           $ref: '#/components/schemas/JSONValue'
-          description: Action-specific payload forwarded to the downstream workflow consumer.
+          description: Case actions require a UUID inbox_id, optional UUID tag_ids, and literal name/title; per-action url and title_template are unsupported. External tag/event actions require an HTTP(S) url.
         active:
           type: boolean
           description: Whether the workflow is enabled for execution.
@@ -3694,6 +3700,7 @@ components:
         allowed_outcomes: [review]
         action_type: create_case
         action_config:
+          inbox_id: 55555555-5555-4555-8555-555555555555
           queue: manual-review
           priority: high
         active: true
@@ -3734,7 +3741,7 @@ components:
       required: [function, params]
     WorkflowActionRequest:
       type: object
-      description: Action attached to a structured workflow-rule. Supported action types are create_case, add_tag, and emit_event.
+      description: Action attached to a structured workflow-rule. Supported action types are create_case, add_to_case, add_to_case_if_possible, add_tag, and emit_event.
       properties:
         action_type:
           type: string
@@ -3795,6 +3802,7 @@ components:
         allowed_outcomes: [review]
         action_type: create_case
         action_config:
+          inbox_id: 55555555-5555-4555-8555-555555555555
           queue: manual-review
           priority: high
         active: true
@@ -3902,6 +3910,7 @@ components:
             rule_id: wrule_01HZY9BM2YJ5T3Q7N6K4A8D1PX
             action_type: create_case
             action_config:
+              inbox_id: 55555555-5555-4555-8555-555555555555
               queue: enhanced-review
             created_at: '2026-07-14T10:06:00Z'
             updated_at: '2026-07-14T10:06:00Z'

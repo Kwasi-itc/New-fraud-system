@@ -15,6 +15,9 @@ func TestValidateStatusTransition(t *testing.T) {
 		{name: "closed to investigating", current: StatusClosed, next: StatusInvestigating},
 		{name: "investigating to pending rejected", current: StatusInvestigating, next: StatusPending, wantErr: true},
 		{name: "closed to pending rejected", current: StatusClosed, next: StatusPending, wantErr: true},
+		{name: "pending to unknown rejected", current: StatusPending, next: "unknown", wantErr: true},
+		{name: "unknown unchanged rejected", current: "unknown", next: "unknown", wantErr: true},
+		{name: "empty rejected", current: StatusPending, next: "", wantErr: true},
 	}
 
 	for _, tt := range tests {

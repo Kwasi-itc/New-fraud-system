@@ -1,0 +1,24 @@
+-- Removes only the Phase 1 constraints; preserves all case data.
+BEGIN;
+ALTER TABLE case_manager.tags DROP CONSTRAINT tags_name_nonempty;
+ALTER TABLE case_manager.case_files DROP CONSTRAINT case_files_metadata_valid;
+ALTER TABLE case_manager.cases DROP CONSTRAINT cases_name_nonempty;
+ALTER TABLE case_manager.inboxes DROP CONSTRAINT inboxes_escalation_not_self;
+ALTER TABLE case_manager.inboxes DROP CONSTRAINT inboxes_status_valid;
+ALTER TABLE case_manager.inboxes DROP CONSTRAINT inboxes_name_nonempty;
+ALTER TABLE case_manager.case_tags DROP CONSTRAINT case_tags_tag_tenant_fk;
+ALTER TABLE case_manager.suspicious_activity_reports DROP CONSTRAINT suspicious_activity_reports_case_tenant_fk;
+ALTER TABLE case_manager.ai_case_reviews DROP CONSTRAINT ai_case_reviews_case_tenant_fk;
+ALTER TABLE case_manager.case_events DROP CONSTRAINT case_events_case_tenant_fk;
+ALTER TABLE case_manager.case_contributors DROP CONSTRAINT case_contributors_case_tenant_fk;
+ALTER TABLE case_manager.case_files DROP CONSTRAINT case_files_case_tenant_fk;
+ALTER TABLE case_manager.case_tags DROP CONSTRAINT case_tags_case_tenant_fk;
+ALTER TABLE case_manager.case_screenings DROP CONSTRAINT case_screenings_case_tenant_fk;
+ALTER TABLE case_manager.case_decisions DROP CONSTRAINT case_decisions_case_tenant_fk;
+ALTER TABLE case_manager.cases DROP CONSTRAINT cases_inbox_tenant_fk;
+ALTER TABLE case_manager.inbox_users DROP CONSTRAINT inbox_users_inbox_tenant_fk;
+ALTER TABLE case_manager.inboxes DROP CONSTRAINT inboxes_escalation_tenant_fk;
+ALTER TABLE case_manager.tags DROP CONSTRAINT tags_tenant_id_unique;
+ALTER TABLE case_manager.cases DROP CONSTRAINT cases_tenant_id_unique;
+ALTER TABLE case_manager.inboxes DROP CONSTRAINT inboxes_tenant_id_unique;
+COMMIT;

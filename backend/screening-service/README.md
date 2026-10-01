@@ -1,5 +1,13 @@
 # Screening Service
 
+## Reliable case callbacks
+
+Match reviews and file creation now enqueue case callbacks in `screening.case_event_outbox` in the same transaction as their mutations. The default Compose service `screening-case-delivery-worker` delivers them independently of provider jobs; its executable is `/app/case-delivery-worker`. It requires `DATABASE_URL`, `CASE_SERVICE_URL`, and `CASE_SERVICE_AUTH_TOKEN`. The case token's tenant allowlist must cover the producer tenants. Inbox lookups use `INBOX_SERVICE_URL` and the same case token.
+
+Migration `000004_case_event_outbox` must run before producers and delivery workers. Delivery uses stable event IDs, recoverable leases, exponential backoff, and visible failure state; inspect `status`, `attempts`, and `last_error` in the outbox. Missing configuration fails worker startup. Review callbacks are supported; evidence callbacks currently return 501 and remain queued/failed until evidence intake is implemented.
+
+See the [case intake contract](../case-manager-service/INTAKE_CONTRACT.md) for payloads, authentication, retry/replay operations, and coordinated migration requirements. Set `SCREENING_TEST_DATABASE_URL` to a local PostgreSQL admin DSN to enable disposable-database integration tests with `go test ./...`.
+
 Standalone backend service workspace for extracting Marble's screening domains out of the monolith and away from the decision engine runtime.
 
 Current location in the workspace:

@@ -16,6 +16,7 @@ import (
 )
 
 type HTTPClient struct {
+	caseAuthToken      string
 	client             *http.Client
 	authMode           string
 	authToken          string
@@ -25,9 +26,11 @@ type HTTPClient struct {
 	outboxPublisherURL string
 }
 
+func (c HTTPClient) WithCaseAuthToken(token string) HTTPClient { c.caseAuthToken = token; return c }
+
 func NewHTTPClient(timeout time.Duration, authMode, authToken, workflowURL, screeningURL, scoringURL, outboxPublisherURL string) HTTPClient {
 	return HTTPClient{
-		client:             &http.Client{Timeout: timeout},
+		client:             &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 		authMode:           strings.ToLower(strings.TrimSpace(authMode)),
 		authToken:          authToken,
 		workflowURL:        strings.TrimRight(workflowURL, "/"),
@@ -38,9 +41,18 @@ func NewHTTPClient(timeout time.Duration, authMode, authToken, workflowURL, scre
 }
 
 func (c HTTPClient) DispatchWorkflowExecution(ctx context.Context, item workflow.Execution) error {
+	if err := workflow.ValidateActionConfig(item.ActionType, item.ActionConfig); err != nil {
+		return err
+	}
 	url := c.workflowURL
-	if target := workflowURLFromConfig(item.ActionConfig); target != "" {
-		url = target
+	if workflow.IsCaseAction(item.ActionType) && c.caseAuthToken != "" {
+		c.authMode = "token"
+		c.authToken = c.caseAuthToken
+	}
+	if !workflow.IsCaseAction(item.ActionType) {
+		url = workflowURLFromConfig(item.ActionConfig)
+		// Never disclose the internal service credential to an action-supplied URL.
+		c.authToken = ""
 	}
 	if url == "" {
 		return fmt.Errorf("workflow dispatcher URL is not configured")

@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	CaseServiceAuthToken                string
 	Port                                string
 	DatabaseURL                         string
 	DataModelServiceURL                 string
@@ -194,6 +195,7 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		CaseServiceAuthToken:                os.Getenv("CASE_SERVICE_AUTH_TOKEN"),
 		Port:                                getEnv("PORT", "8082"),
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),

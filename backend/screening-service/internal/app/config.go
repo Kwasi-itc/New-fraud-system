@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	CaseServiceAuthToken   string
 	Port                   string
 	DatabaseURL            string
 	ServiceAuthMode        string
@@ -68,6 +69,7 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		CaseServiceAuthToken:   getEnv("CASE_SERVICE_AUTH_TOKEN", os.Getenv("SERVICE_AUTH_TOKEN")),
 		Port:                   getEnv("PORT", "8085"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
 		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "disabled"),

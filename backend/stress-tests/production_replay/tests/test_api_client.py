@@ -9,6 +9,30 @@ from production_replay.api_client import APIError, ServiceClients, ServiceConfig
 
 
 class APIClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_failed_ingestion_exposes_all_attempts(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(503, json={"error": "unavailable"})
+
+        async with ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision")) as clients:
+            await clients.ingestion.aclose()
+            clients.ingestion = httpx.AsyncClient(base_url="http://ingestion", transport=httpx.MockTransport(handler))
+            with self.assertRaises(APIError) as raised:
+                await clients.ingest_one("tenant", "transactions", {"object_id": "tx"}, "key")
+            self.assertEqual(raised.exception.attempts, 3)
+
+    async def test_async_execution_lookup_is_scoped_to_tenant_and_identity(self) -> None:
+        paths = []
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            paths.append(request.url.path)
+            return httpx.Response(200, json={"async_decision_execution": {"id": "exec-1"}})
+
+        async with ServiceClients(ServiceConfig("http://data", "http://ingestion", "http://decision")) as clients:
+            await clients.decision_engine.aclose()
+            clients.decision_engine = httpx.AsyncClient(base_url="http://decision", transport=httpx.MockTransport(handler))
+            await clients.get_async_decision_execution("tenant-1", "exec-1")
+        self.assertEqual(paths, ["/v1/tenants/tenant-1/async-decision-executions/exec-1"])
+
     async def test_ingestion_retry_reuses_the_same_idempotency_key(self) -> None:
         attempts = 0
         observed_keys: list[str | None] = []

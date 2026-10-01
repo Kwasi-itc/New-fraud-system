@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
-import json
+import math
 import os
 import re
 import subprocess
@@ -19,6 +19,11 @@ from typing import Any
 from urllib.parse import quote
 
 from .api_client import APIError, ServiceClients, ServiceConfig
+from .benchmark_reporting import RunReport, write_json_atomic
+from .benchmark_observation import RuntimeObserver, capture_environment
+from .decision_completion import DecisionCompletionError, verify_decision_completion
+from .identity_ledger import IdentityLedger
+from .postgres_observation import PostgresObserver
 from .domain import TransactionEvent
 from .manifest import ReplayManifest, load_manifest
 from .privacy import EXPLICITLY_DROPPED_PII_FIELDS, INTERNAL_RETAINED_FIELDS, InternalPrivacyTransformer
@@ -36,6 +41,7 @@ MIGRATION_SERVICES = (
     "ingestion-migrate",
     "decision-engine-migrate",
     "screening-migrate",
+    "case-manager-migrate",
 )
 RUNTIME_SERVICES = (
     "data-model-service",
@@ -45,6 +51,9 @@ RUNTIME_SERVICES = (
     "data-model-worker",
 )
 QUIESCED_SERVICES = RUNTIME_SERVICES + (
+    "case-manager-service",
+    "case-manager-worker",
+    "screening-case-delivery-worker",
     "ingestion-worker",
     "decision-engine-worker",
     "screening-worker",
@@ -70,9 +79,13 @@ class PipelineMetrics:
     decision_first_at: float | None = None
     decision_last_at: float | None = None
     ingestion_successes: int = 0
+    ingestion_started: int = 0
     ingestion_failures: int = 0
     ingestion_retries: int = 0
     decision_attempts: int = 0
+    decision_started: int = 0
+    decision_deferred: int = 0
+    decision_unresolved: int = 0
     decision_successes: int = 0
     decision_failures: int = 0
     ingestion_active: int = 0
@@ -81,6 +94,7 @@ class PipelineMetrics:
     max_decision_concurrency: int = 0
     ingestion_latency: LatencyMetric = field(default_factory=LatencyMetric)
     decision_latency: LatencyMetric = field(default_factory=LatencyMetric)
+    decision_request_latency: LatencyMetric = field(default_factory=LatencyMetric)
     ingestion_errors: Counter[str] = field(default_factory=Counter)
     decision_errors: Counter[str] = field(default_factory=Counter)
     segments: list[dict[str, Any]] = field(default_factory=list)
@@ -108,14 +122,25 @@ class PipelineMetrics:
         overall = finished - self.started_at
         ingestion_elapsed = _elapsed(self.ingestion_first_at, self.ingestion_last_at)
         decision_elapsed = _elapsed(self.decision_first_at, self.decision_last_at)
+        segments = list(self.segments)
+        remaining = self.decision_attempts - self._segment_started_count
+        if remaining:
+            elapsed = (self.decision_last_at or finished) - self._segment_started_at
+            segments.append({"through": self.decision_attempts, "requests": remaining,
+                             "elapsed_seconds": round(elapsed, 3), "partial": True,
+                             "evaluations_per_second": round(remaining / elapsed, 2) if elapsed > 0 else None})
         return {
+            "schema_version": 2,
             "target_evaluations": self.target,
             "elapsed_seconds": round(overall, 3),
             "pipeline_evaluations_per_second": round(self.decision_attempts / overall, 2) if overall else None,
+            "pipeline_successes_per_second": round(self.decision_successes / overall, 2) if overall else None,
             "ingestion": {
+                "started": self.ingestion_started,
                 "successes": self.ingestion_successes,
                 "failures": self.ingestion_failures,
                 "retries": self.ingestion_retries,
+                "unfinished": self.ingestion_started - self.ingestion_successes - self.ingestion_failures,
                 "requests_per_second": round(self.ingestion_successes / ingestion_elapsed, 2)
                 if ingestion_elapsed
                 else None,
@@ -124,17 +149,24 @@ class PipelineMetrics:
                 "errors": dict(self.ingestion_errors),
             },
             "decision": {
+                "started": self.decision_started,
                 "attempts": self.decision_attempts,
                 "successes": self.decision_successes,
                 "failures": self.decision_failures,
+                "deferred": self.decision_deferred,
+                "unresolved": self.decision_unresolved + self.decision_started - self.decision_attempts,
+                "pending_submission": self.ingestion_successes - self.decision_started,
                 "evaluations_per_second": round(self.decision_attempts / decision_elapsed, 2)
                 if decision_elapsed
                 else None,
+                "successful_evaluations_per_second": round(self.decision_successes / decision_elapsed, 2)
+                if decision_elapsed else None,
                 "latency": self.decision_latency.summary(),
+                "request_latency": self.decision_request_latency.summary(),
                 "max_observed_concurrency": self.max_decision_concurrency,
                 "errors": dict(self.decision_errors),
             },
-            "segments": self.segments,
+            "segments": segments,
         }
 
 
@@ -189,6 +221,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
     parser.add_argument("--request-timeout", type=float, default=60.0)
     parser.add_argument("--publication-timeout", type=float, default=1800.0)
+    parser.add_argument("--pipeline-timeout", type=float, default=86400.0,
+                        help="Maximum seconds for each measured ingestion/decision pipeline")
+    parser.add_argument("--deferred-policy", choices=("reject", "wait"), default="reject",
+                        help="Reject async fallback, or start the decision worker and verify terminal completion")
+    parser.add_argument("--decision-completion-timeout", type=float, default=60.0)
+    parser.add_argument("--decision-poll-interval", type=float, default=0.5)
+    parser.add_argument("--capture-metrics", action="store_true",
+                        help="Collect local host and service metrics during evaluation; incomplete capture fails acceptance")
+    parser.add_argument("--metrics-interval", type=float, default=5.0)
+    parser.add_argument("--capture-database-metrics", action="store_true",
+                        help="With --capture-metrics, sample PostgreSQL and capped public River queue prefixes")
+    parser.add_argument("--metrics-timeout", type=float, default=5.0)
     parser.add_argument("--compose-file", default="docker-compose.yml")
     parser.add_argument("--compose-project", help="Compose project name; omit to use Compose's normal project name")
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
@@ -201,6 +245,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _validate_args(args: argparse.Namespace) -> None:
+    if args.capture_database_metrics and not args.capture_metrics:
+        raise ValueError("--capture-database-metrics requires --capture-metrics")
     if not DATABASE_NAME_RE.fullmatch(args.database_name):
         raise ValueError("--database-name contains unsupported characters")
     if args.database_name.casefold() in PROTECTED_DATABASES:
@@ -218,6 +264,10 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--seed-batch-size must be between 1 and 500")
     if args.seed_concurrency <= 0 or args.sort_chunk_size <= 0:
         raise ValueError("seed concurrency and sort chunk size must be positive")
+    for name in ("request_timeout", "publication_timeout", "pipeline_timeout",
+                 "decision_completion_timeout", "decision_poll_interval", "metrics_interval", "metrics_timeout"):
+        if not math.isfinite(getattr(args, name)) or getattr(args, name) <= 0:
+            raise ValueError(f"--{name.replace('_', '-')} must be finite and positive")
     _validate_month(args.same_month, "--same-month")
     _validate_month(args.seed_month, "--seed-month")
     certificate = Path(args.pg_sslrootcert).expanduser().resolve()
@@ -348,8 +398,11 @@ class DatabaseController:
         env = self.compose_env()
         for service in MIGRATION_SERVICES:
             _run(self.compose_command("run", "--rm", "--no-deps", service, "up"), env=env)
+        services = RUNTIME_SERVICES
+        if self.args.deferred_policy == "wait":
+            services += ("decision-engine-worker",)
         _run(
-            self.compose_command("up", "-d", "--no-deps", "--force-recreate", *RUNTIME_SERVICES),
+            self.compose_command("up", "-d", "--no-deps", "--force-recreate", *services),
             env=env,
         )
 
@@ -380,6 +433,13 @@ class DatabaseController:
         )
         values = result.stdout.strip().split("|")
         return {"database_bytes": int(values[0]), "estimated_user_rows": int(values[1])}
+
+    def observer(self) -> PostgresObserver:
+        return PostgresObserver(
+            ["psql", "-h", self.args.pg_host, "-p", str(self.args.pg_port),
+             "-U", self.args.pg_user, "-d", self.args.database_name],
+            self.admin_env(), self.args.metrics_timeout,
+        )
 
     def audit_counts(self) -> dict[str, int]:
         sql = (
@@ -536,7 +596,7 @@ def _build_phase_plans(
         ),
         None,
     )
-    if seed_month is None:
+    if seed_month is None or counts[seed_month] <= 0:
         raise ValueError("no populated month is followed by a month with enough evaluation records")
     next_month = _next_month(seed_month)
     if counts[next_month] < evaluation_count:
@@ -657,7 +717,19 @@ async def _run_fixed_pipeline(
     ingestion_concurrency: int,
     evaluation_concurrency: int,
     segment_size: int,
+    pipeline_timeout: float = 86400.0,
+    allow_deferred: bool = False,
+    decision_completion_timeout: float = 60.0,
+    decision_poll_interval: float = 0.5,
+    expected_scenarios: int | None = None,
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
+    ledger: IdentityLedger | None = None,
 ) -> dict[str, Any]:
+    if min(target, ingestion_concurrency, evaluation_concurrency, segment_size) <= 0:
+        raise ValueError("pipeline counts and concurrency must be positive")
+    if any(not math.isfinite(value) or value <= 0 for value in
+           (pipeline_timeout, decision_completion_timeout, decision_poll_interval)):
+        raise ValueError("pipeline deadlines and poll interval must be finite and positive")
     metrics = PipelineMetrics(target)
     iterator = iter(events)
     state_lock = asyncio.Lock()
@@ -677,6 +749,8 @@ async def _run_fixed_pipeline(
             except StopIteration:
                 source_exhausted = True
                 return None
+            if ledger is not None:
+                ledger.register(tenant_id, event.object_id)
             in_progress += 1
             return event
 
@@ -689,10 +763,12 @@ async def _run_fixed_pipeline(
             request_started = time.perf_counter()
             metrics.ingestion_first_at = metrics.ingestion_first_at or request_started
             async with state_lock:
+                metrics.ingestion_started += 1
                 metrics.ingestion_active += 1
                 metrics.max_ingestion_concurrency = max(
                     metrics.max_ingestion_concurrency, metrics.ingestion_active
                 )
+            succeeded = False
             try:
                 _response, attempts = await clients.ingest_one(
                     tenant_id,
@@ -702,22 +778,30 @@ async def _run_fixed_pipeline(
                     max_attempts=3,
                 )
             except APIError as exc:
+                if ledger is not None:
+                    ledger.transition(tenant_id, event.object_id, "ingesting", "ingestion_failed", attempts=exc.attempts)
                 elapsed_ms = (time.perf_counter() - request_started) * 1_000
                 async with state_lock:
                     metrics.ingestion_failures += 1
+                    metrics.ingestion_retries += exc.attempts - 1
                     metrics.ingestion_latency.add(elapsed_ms)
                     metrics.ingestion_errors[_error_class(exc)] += 1
-                    metrics.ingestion_active -= 1
-                    in_progress -= 1
             else:
+                if ledger is not None:
+                    ledger.transition(tenant_id, event.object_id, "ingesting", "ingested", attempts=attempts)
+                succeeded = True
                 completed = time.perf_counter()
                 async with state_lock:
                     metrics.ingestion_successes += 1
                     metrics.ingestion_retries += attempts - 1
                     metrics.ingestion_latency.add((completed - request_started) * 1_000)
-                    metrics.ingestion_last_at = completed
+            finally:
+                async with state_lock:
+                    metrics.ingestion_last_at = time.perf_counter()
                     metrics.ingestion_active -= 1
                     in_progress -= 1
+            # Only successful calls reach the decision stage.
+            if succeeded:
                 await decision_queue.put(event)
 
     async def decision_worker() -> None:
@@ -729,26 +813,50 @@ async def _run_fixed_pipeline(
             request_started = time.perf_counter()
             async with state_lock:
                 metrics.decision_first_at = metrics.decision_first_at or request_started
+                metrics.decision_started += 1
                 metrics.decision_active += 1
                 metrics.max_decision_concurrency = max(metrics.max_decision_concurrency, metrics.decision_active)
             try:
-                await clients.record_ingested(
-                    tenant_id,
-                    event.object_id,
-                    event.fields,
-                    mode="sync",
-                    source="database_scale_suite",
+                if ledger is not None:
+                    ledger.transition(tenant_id, event.object_id, "ingested", "evaluating")
+                try:
+                    response, status_code, _payload = await clients.record_ingested(
+                        tenant_id,
+                        event.object_id,
+                        event.fields,
+                        mode="sync",
+                        source="database_scale_suite",
+                    )
+                finally:
+                    metrics.decision_request_latency.add((time.perf_counter() - request_started) * 1_000)
+                if status_code == 202 or response.get("deferred") is True:
+                    metrics.decision_deferred += 1
+                decision_ids = await verify_decision_completion(
+                    clients, tenant_id, event.object_id, response, status_code,
+                    allow_deferred=allow_deferred,
+                    timeout_seconds=decision_completion_timeout,
+                    poll_interval_seconds=decision_poll_interval,
+                    expected_scenarios=expected_scenarios,
                 )
+                if ledger is not None:
+                    ledger.transition(tenant_id, event.object_id, "evaluating", "completed", decisions=decision_ids)
             except APIError as exc:
+                if ledger is not None:
+                    state = "decision_failed" if isinstance(exc, DecisionCompletionError) and not exc.unresolved else "unresolved"
+                    ledger.transition(tenant_id, event.object_id, "evaluating", state)
                 completed = time.perf_counter()
                 async with state_lock:
                     metrics.decision_attempts += 1
                     metrics.decision_failures += 1
+                    # HTTP errors/timeouts do not establish whether the server committed a decision.
+                    if not isinstance(exc, DecisionCompletionError) or exc.unresolved:
+                        metrics.decision_unresolved += 1
                     metrics.decision_errors[_error_class(exc)] += 1
                     metrics.decision_latency.add((completed - request_started) * 1_000)
                     metrics.decision_last_at = completed
-                    metrics.decision_active -= 1
                     metrics.record_segment_if_needed(segment_size)
+                if isinstance(exc, DecisionCompletionError) and exc.category == "deferred_rejected":
+                    raise
             else:
                 completed = time.perf_counter()
                 async with state_lock:
@@ -756,36 +864,67 @@ async def _run_fixed_pipeline(
                     metrics.decision_successes += 1
                     metrics.decision_latency.add((completed - request_started) * 1_000)
                     metrics.decision_last_at = completed
-                    metrics.decision_active -= 1
                     metrics.record_segment_if_needed(segment_size)
             finally:
+                metrics.decision_active -= 1
                 decision_queue.task_done()
 
     decision_tasks = [asyncio.create_task(decision_worker()) for _ in range(evaluation_concurrency)]
     ingestion_tasks = [asyncio.create_task(ingestion_worker()) for _ in range(ingestion_concurrency)]
-    try:
+
+    async def finish_ingestion() -> None:
         await asyncio.gather(*ingestion_tasks)
         if metrics.ingestion_successes != target:
             raise ValueError(
                 f"evaluation source exhausted after {metrics.ingestion_successes} successful ingests; target is {target}"
             )
-        await decision_queue.join()
         for _ in decision_tasks:
             await decision_queue.put(None)
-        await asyncio.gather(*decision_tasks)
-    except BaseException:
-        for task in (*ingestion_tasks, *decision_tasks):
+
+    stop_progress = asyncio.Event()
+
+    def snapshot() -> dict[str, Any]:
+        summary = metrics.summary()
+        summary["configured_concurrency"] = {
+            "ingestion": ingestion_concurrency, "evaluation": evaluation_concurrency,
+        }
+        summary["deferred_policy"] = "wait" if allow_deferred else "reject"
+        if ledger is not None:
+            summary["identity_reconciliation"] = ledger.summary(target)
+        return summary
+
+    async def report_progress() -> None:
+        while not stop_progress.is_set():
+            if on_progress is not None:
+                on_progress(snapshot())
+            try:
+                await asyncio.wait_for(stop_progress.wait(), timeout=5.0)
+            except TimeoutError:
+                continue
+
+    producer = asyncio.create_task(finish_ingestion())
+
+    async def run_workers() -> None:
+        try:
+            # Observe consumers immediately, even while producers block on a full queue.
+            await asyncio.gather(producer, *decision_tasks)
+        finally:
+            stop_progress.set()
+
+    coordinator = asyncio.create_task(run_workers())
+    progress = asyncio.create_task(report_progress())
+    tasks = [*ingestion_tasks, *decision_tasks, producer, coordinator, progress]
+    try:
+        await asyncio.wait_for(asyncio.gather(coordinator, progress), timeout=pipeline_timeout)
+        if metrics.decision_attempts != target:
+            raise AssertionError(f"submitted {metrics.decision_attempts} decisions; expected {target}")
+    finally:
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*ingestion_tasks, *decision_tasks, return_exceptions=True)
-        raise
-    if metrics.decision_attempts != target:
-        raise AssertionError(f"submitted {metrics.decision_attempts} decisions; expected {target}")
-    summary = metrics.summary()
-    summary["configured_concurrency"] = {
-        "ingestion": ingestion_concurrency,
-        "evaluation": evaluation_concurrency,
-    }
-    return summary
+        await asyncio.gather(*tasks, return_exceptions=True)
+        if on_progress is not None:
+            on_progress(snapshot())
+    return snapshot()
 
 
 def _idempotency_key(tenant_id: str, object_id: str) -> str:
@@ -794,6 +933,8 @@ def _idempotency_key(tenant_id: str, object_id: str) -> str:
 
 
 def _error_class(error: APIError) -> str:
+    if isinstance(error, DecisionCompletionError):
+        return error.category
     if error.status_code is not None:
         return f"http_{error.status_code}"
     if "timeout" in str(error).lower():
@@ -823,11 +964,15 @@ async def _run_phase(
     args: argparse.Namespace,
     manifest: ReplayManifest,
     database: DatabaseController,
+    report: RunReport,
 ) -> dict[str, Any]:
     print(f"\n[{phase.name}] {phase.description}")
+    report.start_phase(phase.name, phase.description)
     database.recreate()
+    report.stage("migrating_and_starting")
     database.migrate_and_start()
     async with ServiceClients(_service_config(args)) as clients:
+        report.stage("setup")
         await clients.wait_until_ready(timeout_seconds=180.0)
         setup = EnvironmentSetup(
             manifest,
@@ -838,6 +983,8 @@ async def _run_phase(
         )
         setup_result = await setup.run(args.publication_timeout)
         tenant_id = str(setup_result["tenant_id"])
+        report.update_phase(tenant_id=tenant_id)
+        report.stage("seeding")
         seed_result = await _seed_phase(
             clients,
             tenant_id,
@@ -846,21 +993,55 @@ async def _run_phase(
             args.seed_batch_size,
             args.seed_concurrency,
         )
+        report.update_phase(seed=seed_result)
         database_before_evaluation = await asyncio.to_thread(database.stats)
-        pipeline = await _run_fixed_pipeline(
-            clients,
-            tenant_id,
-            phase.evaluation_factory(),
-            target=args.evaluation_count,
-            ingestion_concurrency=args.ingestion_concurrency,
-            evaluation_concurrency=args.evaluation_concurrency,
-            segment_size=args.segment_size,
-        )
+        report.update_phase(database={"before_evaluation": database_before_evaluation})
+        report.stage("evaluating")
+        async def evaluate() -> dict[str, Any]:
+            with IdentityLedger(report.output / f"{phase.name}.identities.sqlite3") as ledger:
+                return await _run_fixed_pipeline(
+                    clients,
+                    tenant_id,
+                    phase.evaluation_factory(),
+                    target=args.evaluation_count,
+                    ingestion_concurrency=args.ingestion_concurrency,
+                    evaluation_concurrency=args.evaluation_concurrency,
+                    segment_size=args.segment_size,
+                    pipeline_timeout=args.pipeline_timeout,
+                    allow_deferred=args.deferred_policy == "wait",
+                    decision_completion_timeout=args.decision_completion_timeout,
+                    decision_poll_interval=args.decision_poll_interval,
+                    expected_scenarios=len(setup_result["scenarios"]),
+                    on_progress=lambda evaluation: report.update_phase(evaluation=evaluation),
+                    ledger=ledger,
+                )
+
+        telemetry: dict[str, Any] = {"enabled": False, "valid": None}
+        if args.capture_metrics:
+            async with RuntimeObserver(
+                report.output / f"{phase.name}.metrics.ndjson",
+                {"decision": args.decision_engine_url, "ingestion": args.ingestion_url},
+                auth_token=args.auth_token, interval=args.metrics_interval, timeout=args.metrics_timeout,
+                database=database.observer() if args.capture_database_metrics else None,
+            ) as observer:
+                try:
+                    pipeline = await observer.run_during(evaluate)
+                finally:
+                    telemetry = observer.summary()
+                    report.update_phase(telemetry=telemetry)
+        else:
+            pipeline = await evaluate()
+    report.stage("verifying_database")
     audit_counts = database.audit_counts()
     expected_per_record_entries = phase.seed_count + args.evaluation_count
     per_record_entries_verified = all(
         count >= expected_per_record_entries for count in audit_counts.values()
     )
+    report.update_phase(database={
+        "before_evaluation": database_before_evaluation,
+        "per_record_entries": {**audit_counts, "expected_minimum_each": expected_per_record_entries,
+                               "verified": per_record_entries_verified},
+    })
     if not per_record_entries_verified:
         raise ValueError(
             "per-record audit/outbox verification failed: "
@@ -872,6 +1053,7 @@ async def _run_phase(
         "tenant_id": tenant_id,
         "seed": seed_result,
         "evaluation": pipeline,
+        "telemetry": telemetry,
         "database": {
             "before_evaluation": database_before_evaluation,
             "after_evaluation": database.stats(),
@@ -885,10 +1067,12 @@ async def _run_phase(
 
 
 def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
+    if not phases:
+        return {"passed": False, "evaluated": False, "reason": "no_completed_phases", "comparisons": []}
     baseline_evaluation = phases[0]["evaluation"]
     baseline_decision = baseline_evaluation["decision"]
     baseline_ingestion = baseline_evaluation["ingestion"]
-    baseline_decision_rate = baseline_decision["evaluations_per_second"]
+    baseline_decision_rate = baseline_decision["successful_evaluations_per_second"]
     baseline_decision_p95 = baseline_decision["latency"]["p95_ms"]
     baseline_ingestion_rate = baseline_ingestion["requests_per_second"]
     baseline_ingestion_p95 = baseline_ingestion["latency"]["p95_ms"]
@@ -899,14 +1083,30 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         decision = evaluation["decision"]
         ingestion = evaluation["ingestion"]
         decision_throughput_retention = _ratio(
-            decision["evaluations_per_second"], baseline_decision_rate
+            decision["successful_evaluations_per_second"], baseline_decision_rate
         )
         decision_p95_ratio = _ratio(decision["latency"]["p95_ms"], baseline_decision_p95)
         ingestion_throughput_retention = _ratio(
             ingestion["requests_per_second"], baseline_ingestion_rate
         )
         ingestion_p95_ratio = _ratio(ingestion["latency"]["p95_ms"], baseline_ingestion_p95)
-        phase_passed = bool(
+        reliability_failures = []
+        reconciliation = evaluation.get("identity_reconciliation")
+        if reconciliation is not None and reconciliation.get("valid") is not True:
+            reliability_failures.append("identity_reconciliation_failed")
+        telemetry = phase.get("telemetry", {"enabled": False})
+        telemetry_passed = not telemetry["enabled"] or telemetry.get("valid") is True
+        if ingestion["failures"]:
+            reliability_failures.append("ingestion_failures")
+        if decision["failures"]:
+            reliability_failures.append("decision_failures")
+        if decision["unresolved"]:
+            reliability_failures.append("unresolved_decisions")
+        if ingestion["successes"] != evaluation["target_evaluations"]:
+            reliability_failures.append("ingestion_target_not_met")
+        if decision["successes"] != evaluation["target_evaluations"]:
+            reliability_failures.append("decision_completion_target_not_met")
+        performance_passed = bool(
             decision_throughput_retention is not None
             and decision_throughput_retention >= 0.8
             and decision_p95_ratio is not None
@@ -916,10 +1116,15 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
             and ingestion_p95_ratio is not None
             and ingestion_p95_ratio <= 1.2
         )
+        phase_passed = performance_passed and not reliability_failures and telemetry_passed
         passed = passed and phase_passed
         comparisons.append(
             {
                 "phase": phase["phase"],
+                "performance_passed": performance_passed,
+                "telemetry_passed": telemetry_passed,
+                "reliability_passed": not reliability_failures,
+                "reliability_failures": reliability_failures,
                 "decision_throughput_retention": round(decision_throughput_retention, 4)
                 if decision_throughput_retention is not None
                 else None,
@@ -937,10 +1142,15 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         )
     return {
         "passed": passed,
+        "evaluated": True,
         "criteria": {
             "minimum_throughput_retention": 0.8,
             "maximum_p95_latency_ratio": 1.2,
             "applies_to": ["ingestion", "decision"],
+            "maximum_ingestion_failures": 0,
+            "maximum_decision_failures": 0,
+            "maximum_unresolved_decisions": 0,
+            "throughput_basis": "successful_completions",
         },
         "comparisons": comparisons,
     }
@@ -955,20 +1165,33 @@ def _ratio(value: float | int | None, baseline: float | int | None) -> float | N
 async def async_main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     _validate_args(args)
-    manifest = _rebase_manifest(load_manifest(args.manifest), args.data_root)
-    source_manifests = [manifest]
-    if args.seed_data_root:
-        source_manifests.append(_rebase_manifest(load_manifest(args.manifest), args.seed_data_root))
-    root = Path(__file__).resolve().parents[3]
     output = Path(args.output_root).expanduser().resolve() / datetime.now(timezone.utc).strftime(
         "database-scale-%Y%m%dT%H%M%S-%fZ"
     )
     output.mkdir(parents=True, exist_ok=False)
+    print(f"Results: {output}")
+    with RunReport(output) as report:
+        return await _execute_suite(args, output, report)
+
+
+async def _execute_suite(args: argparse.Namespace, output: Path, report: RunReport) -> int:
+    root = Path(__file__).resolve().parents[3]
+    report.stage("environment_capture")
+    environment = await asyncio.to_thread(
+        capture_environment, root, output,
+        {"decision": args.decision_engine_url, "ingestion": args.ingestion_url, "data_model": args.data_model_url},
+    )
+    _write_json(output / "environment.json", environment)
+    manifest = _rebase_manifest(load_manifest(args.manifest), args.data_root)
+    source_manifests = [manifest]
+    if args.seed_data_root:
+        source_manifests.append(_rebase_manifest(load_manifest(args.manifest), args.seed_data_root))
     key = Path(args.pii_key_file).expanduser().resolve().read_bytes().strip()
     privacy = InternalPrivacyTransformer(key)
     database = DatabaseController(args, root)
 
     with tempfile.TemporaryDirectory(prefix="database-scale-sort-", dir=output) as sort_directory:
+        report.stage("sorting")
         print("Building privacy-safe, time-sorted source chunks...")
         event_transform = (
             privacy.minimize_presanitized_event
@@ -1015,6 +1238,17 @@ async def async_main(argv: list[str] | None = None) -> int:
                     for scenario in build_portable_scenarios(manifest, SCENARIO_SET_INTERNAL)
                 ],
                 "evaluation_count": args.evaluation_count,
+                "schema_version": 2,
+                "capture_metrics": args.capture_metrics,
+                "capture_database_metrics": args.capture_database_metrics,
+                "metrics_interval_seconds": args.metrics_interval,
+                "metrics_timeout_seconds": args.metrics_timeout,
+                "deferred_policy": args.deferred_policy,
+                "pipeline_timeout_seconds": args.pipeline_timeout,
+                "decision_completion_timeout_seconds": args.decision_completion_timeout,
+                "decision_poll_interval_seconds": args.decision_poll_interval,
+                "request_timeout_seconds": args.request_timeout,
+                "publication_timeout_seconds": args.publication_timeout,
                 "ingestion_concurrency": args.ingestion_concurrency,
                 "evaluation_concurrency": args.evaluation_concurrency,
                 "seed_concurrency": args.seed_concurrency,
@@ -1038,30 +1272,25 @@ async def async_main(argv: list[str] | None = None) -> int:
         )
         results: list[dict[str, Any]] = []
         for plan in plans:
-            result = await _run_phase(plan, args, manifest, database)
+            result = await _run_phase(plan, args, manifest, database, report)
             results.append(result)
-            _write_json(output / f"{plan.name}.json", result)
+            report.finish_phase(result)
 
-    suite = {
-        "status": "completed",
-        "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "phases": results,
-        "acceptance": _acceptance(results),
-    }
-    _write_json(output / "summary.json", suite)
-    print(f"\nSuite passed: {suite['acceptance']['passed']}")
+    acceptance = _acceptance(results)
+    report.finish(acceptance)
+    print(f"\nSuite passed: {acceptance['passed']}")
     print(f"Results: {output}")
-    return 0 if suite["acceptance"]["passed"] else 2
+    return 0 if acceptance["passed"] else 2
 
 
 def _write_json(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+    write_json_atomic(path, value)
 
 
 def main(argv: list[str] | None = None) -> None:
     try:
         raise SystemExit(asyncio.run(async_main(argv)))
-    except (APIError, OSError, subprocess.CalledProcessError, ValueError) as exc:
+    except (APIError, OSError, subprocess.CalledProcessError, ValueError, TimeoutError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

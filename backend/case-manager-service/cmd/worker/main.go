@@ -10,6 +10,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/app"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/worker"
 )
 
 func main() {
@@ -29,23 +30,31 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	runOnce := func() {
-		logger.Info("case manager worker cycle completed", "batch_limit", cfg.WorkerBatchLimit)
+	w := &worker.Worker{Store: storepostgres.Maintenance{DB: db}, Limit: cfg.WorkerBatchLimit, PublisherURL: cfg.OutboxPublisherURL, PublisherToken: os.Getenv("OUTBOX_PUBLISHER_AUTH_TOKEN")}
+	client, err := worker.NewClient(db, w, cfg.WorkerPollInterval)
+	if err != nil {
+		logger.Error("invalid worker configuration", "error", err)
+		os.Exit(1)
+	}
+	if cfg.OutboxPublisherURL == "" {
+		logger.Warn("outbound delivery disabled; events remain pending")
 	}
 	if cfg.WorkerMode != "poll" {
-		runOnce()
+		if err := w.Run(ctx); err != nil {
+			logger.Error("maintenance failed", "error", err)
+			os.Exit(1)
+		}
 		return
 	}
-	ticker := time.NewTicker(cfg.WorkerPollInterval)
-	defer ticker.Stop()
-	runOnce()
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("case manager worker stopping")
-			return
-		case <-ticker.C:
-			runOnce()
-		}
+	if err := client.Start(ctx); err != nil {
+		logger.Error("start River", "error", err)
+		os.Exit(1)
+	}
+	<-ctx.Done()
+	stopCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := client.Stop(stopCtx); err != nil {
+		logger.Error("stop River", "error", err)
+		os.Exit(1)
 	}
 }

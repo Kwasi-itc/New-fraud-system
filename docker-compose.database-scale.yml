@@ -17,6 +17,18 @@ services:
   screening-migrate:
     environment: *database-scale-environment
     volumes: *database-scale-ca
+  case-manager-migrate:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  case-manager-service:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  case-manager-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
+  screening-case-delivery-worker:
+    environment: *database-scale-environment
+    volumes: *database-scale-ca
   data-model-service:
     environment: *database-scale-environment
     volumes: *database-scale-ca

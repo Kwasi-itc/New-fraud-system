@@ -9,6 +9,10 @@ import (
 )
 
 type Config struct {
+	UserJWTKeysFile     string
+	UserJWTIssuer       string
+	UserJWTAudience     string
+	ServiceTenantIDs    string
 	Port                string
 	DatabaseURL         string
 	ServiceAuthMode     string
@@ -44,6 +48,10 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		UserJWTKeysFile:     os.Getenv("USER_JWT_KEYS_FILE"),
+		UserJWTIssuer:       os.Getenv("USER_JWT_ISSUER"),
+		UserJWTAudience:     os.Getenv("USER_JWT_AUDIENCE"),
+		ServiceTenantIDs:    os.Getenv("SERVICE_AUTH_TENANT_IDS"),
 		Port:                getEnv("PORT", "8086"),
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
 		ServiceAuthMode:     strings.ToLower(getEnv("SERVICE_AUTH_MODE", "disabled")),

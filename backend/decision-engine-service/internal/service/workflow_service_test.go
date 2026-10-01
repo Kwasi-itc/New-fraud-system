@@ -46,7 +46,7 @@ func TestWorkflowServiceCreateAssignsNextDisplayOrder(t *testing.T) {
 		"",
 		[]string{"review"},
 		string(workflow.ActionTypeAddTag),
-		json.RawMessage(`{"tag":"vip"}`),
+		json.RawMessage(`{"tag":"vip","url":"https://events.example.test/tags"}`),
 		true,
 	)
 	if err != nil {

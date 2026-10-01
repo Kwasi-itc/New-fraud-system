@@ -13,9 +13,11 @@ This is not a blind one-for-one replacement. Some current flows are closer to a 
 
 ## Current state
 
-The new backend does **not** use River today.
+This section originally described the pre-migration baseline. The current working tree uses River in the decision, data-model and screening workers; deployment must still be verified independently.
 
-Current queue-like implementations:
+Case-management Phase 4 uses River 0.26 for periodic maintenance in the case-owned `case_queue` schema, within the same logical PostgreSQL database. The separate schema isolates periodic scheduler leadership because other services do not register case maintenance jobs. `case-manager-migrate up` applies these River migrations; case rollback does not drop another service's River schema. Snooze expiry, automatic assignment and abandoned-upload cleanup reconcile durable case state. Outbound delivery retains the case outbox's leases, attempt tokens, backoff and stable delivery IDs; River schedules the work, while investigation history and delivery state remain separate. Real PostgreSQL/River/HTTP tests verify this implementation, including recurring execution. See `case-manager-service/INVESTIGATOR_CONTRACT.md` for configuration and recovery.
+
+Original queue-like implementations (historical baseline):
 
 - `decision-engine-service`
   - async decision executions

@@ -56,7 +56,7 @@ func (h InboxHandler) Create(c *gin.Context) {
 		Name              string     `json:"name"`
 		EscalationInboxID *uuid.UUID `json:"escalation_inbox_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
@@ -80,21 +80,24 @@ func (h InboxHandler) Update(c *gin.Context) {
 		return
 	}
 	var body struct {
-		Name                    *string    `json:"name"`
-		Status                  *string    `json:"status"`
-		EscalationInboxID       *uuid.UUID `json:"escalation_inbox_id"`
-		AutoAssignEnabled       *bool      `json:"auto_assign_enabled"`
-		CaseReviewManual        *bool      `json:"case_review_manual"`
-		CaseReviewOnCaseCreated *bool      `json:"case_review_on_case_created"`
-		CaseReviewOnEscalate    *bool      `json:"case_review_on_escalate"`
+		Name                    *string             `json:"name"`
+		SLADays                 nullable[int]       `json:"sla_days"`
+		Status                  *string             `json:"status"`
+		EscalationInboxID       nullable[uuid.UUID] `json:"escalation_inbox_id"`
+		AutoAssignEnabled       *bool               `json:"auto_assign_enabled"`
+		CaseReviewManual        *bool               `json:"case_review_manual"`
+		CaseReviewOnCaseCreated *bool               `json:"case_review_on_case_created"`
+		CaseReviewOnEscalate    *bool               `json:"case_review_on_escalate"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
 	item, err := h.service.UpdateInbox(c.Request.Context(), service.UpdateInboxInput{
-		TenantID: tid, InboxID: inboxID, Name: body.Name, Status: body.Status, EscalationInboxID: body.EscalationInboxID,
-		AutoAssignEnabled: body.AutoAssignEnabled, CaseReviewManual: body.CaseReviewManual,
+		SLADays: body.SLADays.Value, ClearSLA: body.SLADays.Present && body.SLADays.Value == nil,
+		TenantID: tid, InboxID: inboxID, Name: body.Name, Status: body.Status, EscalationInboxID: body.EscalationInboxID.Value,
+		ClearEscalationInbox: body.EscalationInboxID.Present && body.EscalationInboxID.Value == nil,
+		AutoAssignEnabled:    body.AutoAssignEnabled, CaseReviewManual: body.CaseReviewManual,
 		CaseReviewOnCaseCreated: body.CaseReviewOnCaseCreated, CaseReviewOnEscalate: body.CaseReviewOnEscalate,
 	})
 	if err != nil {

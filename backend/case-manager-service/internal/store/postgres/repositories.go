@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,7 +13,9 @@ import (
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 )
 
-type InboxRepository struct{ db queryable }
+type InboxRepository struct {
+	db queryable
+}
 
 func NewInboxRepository(db queryable) InboxRepository { return InboxRepository{db: db} }
 
@@ -20,30 +23,40 @@ func (r InboxRepository) Create(ctx context.Context, inbox casepkg.Inbox) (casep
 	row := r.db.QueryRow(ctx, `
 		INSERT INTO case_manager.inboxes (
 			id, tenant_id, name, status, escalation_inbox_id, auto_assign_enabled,
-			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at, sla_days
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		RETURNING id, tenant_id, name, status, escalation_inbox_id, auto_assign_enabled,
-			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at`,
+			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at, sla_days`,
 		inbox.ID, inbox.TenantID, inbox.Name, inbox.Status, inbox.EscalationInboxID, inbox.AutoAssignEnabled,
-		inbox.CaseReviewManual, inbox.CaseReviewOnCaseCreated, inbox.CaseReviewOnEscalate, inbox.CreatedAt, inbox.UpdatedAt)
+		inbox.CaseReviewManual, inbox.CaseReviewOnCaseCreated, inbox.CaseReviewOnEscalate, inbox.CreatedAt, inbox.UpdatedAt, inbox.SLADays)
 	return scanInbox(row)
 }
 
 func (r InboxRepository) Get(ctx context.Context, tenantID, inboxID uuid.UUID) (casepkg.Inbox, error) {
+	return r.get(ctx, tenantID, inboxID, "")
+}
+func (r InboxRepository) LockShared(ctx context.Context, tenantID, inboxID uuid.UUID) (casepkg.Inbox, error) {
+	return r.get(ctx, tenantID, inboxID, " FOR SHARE")
+}
+func (r InboxRepository) LockUpdate(ctx context.Context, tenantID, inboxID uuid.UUID) (casepkg.Inbox, error) {
+	return r.get(ctx, tenantID, inboxID, " FOR UPDATE")
+}
+func (r InboxRepository) get(ctx context.Context, tenantID, inboxID uuid.UUID, lock string) (casepkg.Inbox, error) {
 	return scanInbox(r.db.QueryRow(ctx, `
 		SELECT id, tenant_id, name, status, escalation_inbox_id, auto_assign_enabled,
-			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at
+			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at, sla_days
 		FROM case_manager.inboxes
-		WHERE tenant_id=$1 AND id=$2`, tenantID, inboxID))
+		WHERE tenant_id=$1 AND id=$2`+lock, tenantID, inboxID))
 }
 
-func (r InboxRepository) List(ctx context.Context, tenantID uuid.UUID) ([]casepkg.Inbox, error) {
+func (r InboxRepository) List(ctx context.Context, tenantID uuid.UUID, accessUserID string) ([]casepkg.Inbox, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, tenant_id, name, status, escalation_inbox_id, auto_assign_enabled,
-			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at
+			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at, sla_days
 		FROM case_manager.inboxes
-		WHERE tenant_id=$1
-		ORDER BY created_at DESC`, tenantID)
+		WHERE tenant_id=$1 AND ($2 = '' OR EXISTS (
+		 SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=$1 AND u.inbox_id=inboxes.id AND u.user_id=$2))
+		ORDER BY created_at DESC`, tenantID, accessUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,15 +68,17 @@ func (r InboxRepository) Update(ctx context.Context, inbox casepkg.Inbox) (casep
 	return scanInbox(r.db.QueryRow(ctx, `
 		UPDATE case_manager.inboxes
 		SET name=$3, status=$4, escalation_inbox_id=$5, auto_assign_enabled=$6,
-			case_review_manual=$7, case_review_on_case_created=$8, case_review_on_escalate=$9, updated_at=$10
+			case_review_manual=$7, case_review_on_case_created=$8, case_review_on_escalate=$9, updated_at=$10, sla_days=$11
 		WHERE tenant_id=$1 AND id=$2
 		RETURNING id, tenant_id, name, status, escalation_inbox_id, auto_assign_enabled,
-			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at`,
+			case_review_manual, case_review_on_case_created, case_review_on_escalate, created_at, updated_at, sla_days`,
 		inbox.TenantID, inbox.ID, inbox.Name, inbox.Status, inbox.EscalationInboxID, inbox.AutoAssignEnabled,
-		inbox.CaseReviewManual, inbox.CaseReviewOnCaseCreated, inbox.CaseReviewOnEscalate, inbox.UpdatedAt))
+		inbox.CaseReviewManual, inbox.CaseReviewOnCaseCreated, inbox.CaseReviewOnEscalate, inbox.UpdatedAt, inbox.SLADays))
 }
 
-type CaseRepository struct{ db queryable }
+type CaseRepository struct {
+	db queryable
+}
 
 func NewCaseRepository(db queryable) CaseRepository { return CaseRepository{db: db} }
 
@@ -80,11 +95,20 @@ func (r CaseRepository) Create(ctx context.Context, item casepkg.Case) (casepkg.
 }
 
 func (r CaseRepository) Get(ctx context.Context, tenantID, caseID uuid.UUID) (casepkg.Case, error) {
+	return r.get(ctx, tenantID, caseID, "")
+}
+func (r CaseRepository) Lock(ctx context.Context, tenantID, caseID uuid.UUID) (casepkg.Case, error) {
+	return r.get(ctx, tenantID, caseID, " FOR UPDATE")
+}
+func (r CaseRepository) LockShared(ctx context.Context, tenantID, caseID uuid.UUID) (casepkg.Case, error) {
+	return r.get(ctx, tenantID, caseID, " FOR SHARE")
+}
+func (r CaseRepository) get(ctx context.Context, tenantID, caseID uuid.UUID, lock string) (casepkg.Case, error) {
 	return scanCase(r.db.QueryRow(ctx, `
 		SELECT id, tenant_id, inbox_id, name, status, outcome, type, assigned_to,
 			snoozed_until, boost_reason, review_level, created_at, updated_at
 		FROM case_manager.cases
-		WHERE tenant_id=$1 AND id=$2`, tenantID, caseID))
+		WHERE tenant_id=$1 AND id=$2`+lock, tenantID, caseID))
 }
 
 func (r CaseRepository) List(ctx context.Context, tenantID uuid.UUID, filters casepkg.CaseFilters, limit int) ([]casepkg.Case, error) {
@@ -93,6 +117,10 @@ func (r CaseRepository) List(ctx context.Context, tenantID uuid.UUID, filters ca
 	}
 	args := []any{tenantID}
 	conditions := []string{"tenant_id=$1"}
+	if filters.AccessUserID != "" {
+		args = append(args, filters.AccessUserID)
+		conditions = append(conditions, fmt.Sprintf("EXISTS (SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=$1 AND u.inbox_id=cases.inbox_id AND u.user_id=$%d)", len(args)))
+	}
 	if len(filters.Statuses) > 0 {
 		statuses := make([]string, 0, len(filters.Statuses))
 		for _, status := range filters.Statuses {
@@ -145,14 +173,20 @@ func (r CaseRepository) Update(ctx context.Context, item casepkg.Case) (casepkg.
 }
 
 func (r CaseRepository) Assign(ctx context.Context, tenantID, caseID uuid.UUID, assignee *string, updatedAt time.Time) error {
-	_, err := r.db.Exec(ctx, `UPDATE case_manager.cases SET assigned_to=$3, updated_at=$4 WHERE tenant_id=$1 AND id=$2`,
+	tag, err := r.db.Exec(ctx, `UPDATE case_manager.cases SET assigned_to=$3, updated_at=$4 WHERE tenant_id=$1 AND id=$2`,
 		tenantID, caseID, assignee, updatedAt)
+	if err == nil && tag.RowsAffected() == 0 {
+		return casepkg.ErrNotFound
+	}
 	return err
 }
 
 func (r CaseRepository) Snooze(ctx context.Context, tenantID, caseID uuid.UUID, until *time.Time, updatedAt time.Time) error {
-	_, err := r.db.Exec(ctx, `UPDATE case_manager.cases SET snoozed_until=$3, updated_at=$4 WHERE tenant_id=$1 AND id=$2`,
+	tag, err := r.db.Exec(ctx, `UPDATE case_manager.cases SET snoozed_until=$3, updated_at=$4 WHERE tenant_id=$1 AND id=$2`,
 		tenantID, caseID, until, updatedAt)
+	if err == nil && tag.RowsAffected() == 0 {
+		return casepkg.ErrNotFound
+	}
 	return err
 }
 
@@ -198,8 +232,9 @@ func (r DecisionLinkRepository) FindOpenByPivot(ctx context.Context, tenantID uu
 		FROM case_manager.cases c
 		JOIN case_manager.case_decisions d ON d.case_id=c.id AND d.tenant_id=c.tenant_id
 		WHERE c.tenant_id=$1 AND d.pivot_value=$2 AND c.status <> 'closed'`+inboxCondition+`
-		ORDER BY c.created_at DESC
-		LIMIT 1`, args...)
+		AND EXISTS (SELECT 1 FROM case_manager.inboxes i WHERE i.tenant_id=c.tenant_id AND i.id=c.inbox_id AND i.status='active')
+		ORDER BY c.created_at DESC, c.id DESC
+		LIMIT 1 FOR UPDATE OF c`, args...)
 	item, err := scanCase(row)
 	if err == pgx.ErrNoRows {
 		return nil, nil
@@ -220,7 +255,7 @@ func (r ScreeningLinkRepository) Create(ctx context.Context, item casepkg.Screen
 	return scanScreeningLink(r.db.QueryRow(ctx, `
 		INSERT INTO case_manager.case_screenings (id, tenant_id, case_id, screening_id, match_id, status, created_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7)
-		ON CONFLICT (tenant_id, case_id, screening_id) DO UPDATE SET status=EXCLUDED.status
+		ON CONFLICT (tenant_id, case_id, screening_id, match_id) WHERE match_id IS NOT NULL DO UPDATE SET status=EXCLUDED.status
 		RETURNING id, tenant_id, case_id, screening_id, match_id, status, created_at`,
 		item.ID, item.TenantID, item.CaseID, item.ScreeningID, item.MatchID, item.Status, item.CreatedAt))
 }
@@ -254,7 +289,11 @@ func (r TagRepository) Get(ctx context.Context, tenantID, tagID uuid.UUID) (case
 	return scanTag(r.db.QueryRow(ctx, `
 		SELECT id, tenant_id, target, name, color, deleted_at, created_at, updated_at
 		FROM case_manager.tags
-		WHERE tenant_id=$1 AND id=$2`, tenantID, tagID))
+		WHERE tenant_id=$1 AND id=$2 FOR SHARE`, tenantID, tagID))
+}
+
+func (r TagRepository) Lock(ctx context.Context, tenantID, tagID uuid.UUID) (casepkg.Tag, error) {
+	return scanTag(r.db.QueryRow(ctx, `SELECT id,tenant_id,target,name,color,deleted_at,created_at,updated_at FROM case_manager.tags WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenantID, tagID))
 }
 
 func (r TagRepository) List(ctx context.Context, tenantID uuid.UUID, target string) ([]casepkg.Tag, error) {
@@ -311,7 +350,7 @@ func (r TagRepository) ListByCase(ctx context.Context, tenantID, caseID uuid.UUI
 		SELECT t.id, t.tenant_id, t.target, t.name, t.color, t.deleted_at, t.created_at, t.updated_at
 		FROM case_manager.tags t
 		JOIN case_manager.case_tags ct ON ct.tag_id=t.id AND ct.tenant_id=t.tenant_id
-		WHERE ct.tenant_id=$1 AND ct.case_id=$2 AND ct.deleted_at IS NULL AND t.deleted_at IS NULL
+		WHERE ct.tenant_id=$1 AND ct.case_id=$2 AND ct.deleted_at IS NULL
 		ORDER BY t.name ASC`, tenantID, caseID)
 	if err != nil {
 		return nil, err
@@ -325,12 +364,29 @@ type EventRepository struct{ db queryable }
 func NewEventRepository(db queryable) EventRepository { return EventRepository{db: db} }
 
 func (r EventRepository) Create(ctx context.Context, event casepkg.Event) (casepkg.Event, error) {
-	return scanEvent(r.db.QueryRow(ctx, `
+	created, err := scanEvent(r.db.QueryRow(ctx, `
 		INSERT INTO case_manager.case_events (
 			id, tenant_id, case_id, user_id, event_type, additional_note, resource_id, resource_type, new_value, previous_value, created_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		RETURNING id, tenant_id, case_id, user_id, event_type, additional_note, resource_id, resource_type, new_value, previous_value, created_at`,
 		event.ID, event.TenantID, event.CaseID, event.UserID, event.EventType, event.AdditionalNote, event.ResourceID, event.ResourceType, event.NewValue, event.PreviousValue, event.CreatedAt))
+	if err != nil {
+		return casepkg.Event{}, err
+	}
+	// EventRepository is transaction-scoped for every service mutation. An event
+	// and its pending notification must either both commit or both roll back.
+	payload, err := json.Marshal(created)
+	if err != nil {
+		return casepkg.Event{}, err
+	}
+	_, err = r.db.Exec(ctx, `INSERT INTO case_manager.outbox_events
+		(id, tenant_id, aggregate_type, aggregate_id, event_type, payload, status, created_at)
+		VALUES ($1,$2,'case',$3,$4,$5,'pending',$6)`,
+		created.ID, created.TenantID, created.CaseID.String(), created.EventType, payload, created.CreatedAt)
+	if err != nil {
+		return casepkg.Event{}, err
+	}
+	return created, nil
 }
 
 func (r EventRepository) ListByCase(ctx context.Context, tenantID, caseID uuid.UUID, limit int) ([]casepkg.Event, error) {
@@ -356,15 +412,15 @@ func NewFileRepository(db queryable) FileRepository { return FileRepository{db: 
 
 func (r FileRepository) Create(ctx context.Context, file casepkg.File) (casepkg.File, error) {
 	return scanFile(r.db.QueryRow(ctx, `
-		INSERT INTO case_manager.case_files (id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-		RETURNING id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at`,
-		file.ID, file.TenantID, file.CaseID, file.FileName, file.ContentType, file.FileSize, file.StorageKey, file.UploadedBy, file.CreatedAt))
+		INSERT INTO case_manager.case_files (id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at, source_file_id)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		RETURNING id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at, source_file_id`,
+		file.ID, file.TenantID, file.CaseID, file.FileName, file.ContentType, file.FileSize, file.StorageKey, file.UploadedBy, file.CreatedAt, file.SourceFileID))
 }
 
 func (r FileRepository) ListByCase(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.File, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at
+		SELECT id, tenant_id, case_id, file_name, content_type, file_size, storage_key, uploaded_by, created_at, source_file_id
 		FROM case_manager.case_files
 		WHERE tenant_id=$1 AND case_id=$2
 		ORDER BY created_at DESC`, tenantID, caseID)
@@ -378,7 +434,7 @@ func (r FileRepository) ListByCase(ctx context.Context, tenantID, caseID uuid.UU
 func scanInbox(row pgx.Row) (casepkg.Inbox, error) {
 	var item casepkg.Inbox
 	err := row.Scan(&item.ID, &item.TenantID, &item.Name, &item.Status, &item.EscalationInboxID, &item.AutoAssignEnabled,
-		&item.CaseReviewManual, &item.CaseReviewOnCaseCreated, &item.CaseReviewOnEscalate, &item.CreatedAt, &item.UpdatedAt)
+		&item.CaseReviewManual, &item.CaseReviewOnCaseCreated, &item.CaseReviewOnEscalate, &item.CreatedAt, &item.UpdatedAt, &item.SLADays)
 	return item, err
 }
 
@@ -415,7 +471,7 @@ func scanEvent(row pgx.Row) (casepkg.Event, error) {
 
 func scanFile(row pgx.Row) (casepkg.File, error) {
 	var item casepkg.File
-	err := row.Scan(&item.ID, &item.TenantID, &item.CaseID, &item.FileName, &item.ContentType, &item.FileSize, &item.StorageKey, &item.UploadedBy, &item.CreatedAt)
+	err := row.Scan(&item.ID, &item.TenantID, &item.CaseID, &item.FileName, &item.ContentType, &item.FileSize, &item.StorageKey, &item.UploadedBy, &item.CreatedAt, &item.SourceFileID)
 	return item, err
 }
 
@@ -429,4 +485,10 @@ func collectRows[T any](rows pgx.Rows, scan func(pgx.Row) (T, error)) ([]T, erro
 		out = append(out, item)
 	}
 	return out, rows.Err()
+}
+
+func scanWorkspaceCase(row pgx.Row) (casepkg.Case, error) {
+	var item casepkg.Case
+	err := row.Scan(&item.ID, &item.TenantID, &item.InboxID, &item.Name, &item.Status, &item.Outcome, &item.Type, &item.AssignedTo, &item.SnoozedUntil, &item.BoostReason, &item.ReviewLevel, &item.CreatedAt, &item.UpdatedAt, &item.SLADueAt)
+	return item, err
 }
