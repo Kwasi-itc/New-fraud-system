@@ -481,6 +481,76 @@ class DatabaseController:
         values = result.stdout.strip().split("|")
         return {"ingestion_audit": int(values[0]), "outbox_events": int(values[1])}
 
+    def record_cardinality(self, tenant_id: str) -> dict[str, Any]:
+        tenant_literal = _sql_string_literal(tenant_id)
+        sql = f"""
+            WITH ids AS (
+                SELECT object_id
+                FROM core_ingestion.ingestion_audit
+                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
+                GROUP BY object_id
+            ), audit AS (
+                SELECT object_id, count(*)::bigint AS records
+                FROM core_ingestion.ingestion_audit
+                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
+                GROUP BY object_id
+            ), outbox AS (
+                SELECT aggregate_key AS object_id, count(*)::bigint AS records
+                FROM core_ingestion.outbox_events
+                WHERE tenant_id = {tenant_literal}::uuid AND aggregate_type = 'transactions'
+                GROUP BY aggregate_key
+            ), decisions AS (
+                SELECT object_id, count(*)::bigint AS records
+                FROM core.decisions
+                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
+                GROUP BY object_id
+            ), rule_execs AS (
+                SELECT d.object_id, count(re.id)::bigint AS records
+                FROM core.decisions d
+                JOIN core.rule_executions re ON re.decision_id = d.id
+                WHERE d.tenant_id = {tenant_literal}::uuid AND d.object_type = 'transactions'
+                GROUP BY d.object_id
+            ), per_transaction AS (
+                SELECT ids.object_id,
+                       coalesce(audit.records, 0) AS ingestion_audit,
+                       coalesce(outbox.records, 0) AS outbox_events,
+                       coalesce(decisions.records, 0) AS decisions,
+                       coalesce(rule_execs.records, 0) AS rule_executions,
+                       coalesce(audit.records, 0) + coalesce(outbox.records, 0) +
+                       coalesce(decisions.records, 0) + coalesce(rule_execs.records, 0) AS total_records
+                FROM ids
+                LEFT JOIN audit USING (object_id)
+                LEFT JOIN outbox USING (object_id)
+                LEFT JOIN decisions USING (object_id)
+                LEFT JOIN rule_execs USING (object_id)
+            )
+            SELECT json_build_object(
+                'transactions', count(*)::bigint,
+                'min_records', min(total_records),
+                'max_records', max(total_records),
+                'average_records', round(avg(total_records)::numeric, 4),
+                'p50_records', percentile_cont(0.50) WITHIN GROUP (ORDER BY total_records),
+                'p95_records', percentile_cont(0.95) WITHIN GROUP (ORDER BY total_records),
+                'by_category', json_build_object(
+                    'ingestion_audit', coalesce(sum(ingestion_audit), 0),
+                    'outbox_events', coalesce(sum(outbox_events), 0),
+                    'decisions', coalesce(sum(decisions), 0),
+                    'rule_executions', coalesce(sum(rule_executions), 0)
+                )
+            )
+            FROM per_transaction;
+        """
+        result = _run(
+            [
+                "psql", "-h", self.args.pg_host, "-p", str(self.args.pg_port),
+                "-U", self.args.pg_user, "-d", self.args.database_name,
+                "-At", "-q", "-v", "ON_ERROR_STOP=1", "-c", sql,
+            ],
+            env=self.admin_env(),
+            capture=True,
+        )
+        return json.loads(result.stdout.strip())
+
 
 def _run(
     command: list[str],
@@ -1053,7 +1123,13 @@ async def _run_phase(
         )
         report.update_phase(seed=seed_result)
         database_before_evaluation = await asyncio.to_thread(database.stats)
-        report.update_phase(database={"before_evaluation": database_before_evaluation})
+        postgres_before_evaluation = None
+        if getattr(args, "capture_database_metrics", False):
+            postgres_before_evaluation = await database.observer()()
+        report.update_phase(database={
+            "before_evaluation": database_before_evaluation,
+            "postgres_before_evaluation": postgres_before_evaluation,
+        })
         report.stage("evaluating")
         async def evaluate() -> dict[str, Any]:
             with IdentityLedger(report.output / f"{phase.name}.identities.sqlite3") as ledger:
@@ -1082,7 +1158,7 @@ async def _run_phase(
                 report.output / f"{phase.name}.metrics.ndjson",
                 {"decision": args.decision_engine_url, "ingestion": args.ingestion_url},
                 auth_token=args.auth_token, interval=args.metrics_interval, timeout=args.metrics_timeout,
-                database=database.observer() if args.capture_database_metrics else None,
+                database=database.observer() if getattr(args, "capture_database_metrics", False) else None,
             ) as observer:
                 try:
                     pipeline = await observer.run_during(evaluate)
@@ -1093,12 +1169,20 @@ async def _run_phase(
             pipeline = await evaluate()
     report.stage("verifying_database")
     audit_counts = database.audit_counts()
+    database_after_evaluation = database.stats()
+    postgres_after_evaluation = None
+    if getattr(args, "capture_database_metrics", False):
+        postgres_after_evaluation = await database.observer()()
+    record_cardinality = database.record_cardinality(tenant_id)
     expected_per_record_entries = phase.seed_count + args.evaluation_count
     per_record_entries_verified = all(
         count >= expected_per_record_entries for count in audit_counts.values()
     )
     report.update_phase(database={
         "before_evaluation": database_before_evaluation,
+        "postgres_before_evaluation": postgres_before_evaluation,
+        "postgres_after_evaluation": postgres_after_evaluation,
+        "record_cardinality": record_cardinality,
         "per_record_entries": {**audit_counts, "expected_minimum_each": expected_per_record_entries,
                                "verified": per_record_entries_verified},
     })
@@ -1116,7 +1200,10 @@ async def _run_phase(
         "telemetry": telemetry,
         "database": {
             "before_evaluation": database_before_evaluation,
-            "after_evaluation": database.stats(),
+            "after_evaluation": database_after_evaluation,
+            "postgres_before_evaluation": postgres_before_evaluation,
+            "postgres_after_evaluation": postgres_after_evaluation,
+            "record_cardinality": record_cardinality,
             "per_record_entries": {
                 **audit_counts,
                 "expected_minimum_each": expected_per_record_entries,
