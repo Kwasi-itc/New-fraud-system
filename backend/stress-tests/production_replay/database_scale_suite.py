@@ -13,7 +13,7 @@ import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,10 +21,11 @@ from urllib.parse import quote
 
 from .api_client import APIError, ServiceClients, ServiceConfig
 from .benchmark_reporting import RunReport, write_json_atomic
-from .benchmark_observation import RuntimeObserver, capture_environment
+from .benchmark_observation import RuntimeObserver, capture_environment, capture_deployment
 from .decision_completion import DecisionCompletionError, verify_decision_completion
 from .identity_ledger import IdentityLedger
-from .postgres_observation import PostgresObserver
+from .postgres_observation import PostgresObserver, counter_deltas
+from .database_reconciliation import reconcile_database
 from .domain import TransactionEvent
 from .manifest import ReplayManifest, load_manifest
 from .privacy import EXPLICITLY_DROPPED_PII_FIELDS, INTERNAL_RETAINED_FIELDS, InternalPrivacyTransformer
@@ -101,6 +102,9 @@ class PipelineMetrics:
     segments: list[dict[str, Any]] = field(default_factory=list)
     _segment_started_at: float = field(default_factory=time.perf_counter)
     _segment_started_count: int = 0
+    _source_digest: Any = field(default_factory=hashlib.sha256, repr=False)
+    source_first_at: str | None = None
+    source_last_at: str | None = None
 
     def record_segment_if_needed(self, every: int) -> None:
         while self.decision_attempts - self._segment_started_count >= every:
@@ -121,6 +125,9 @@ class PipelineMetrics:
     def summary(self) -> dict[str, Any]:
         finished = time.perf_counter()
         overall = finished - self.started_at
+        pipeline_end = max(value for value in (self.ingestion_last_at, self.decision_last_at, self.ingestion_first_at)
+                           if value is not None) if self.ingestion_first_at is not None else None
+        pipeline_elapsed = _elapsed(self.ingestion_first_at, pipeline_end)
         ingestion_elapsed = _elapsed(self.ingestion_first_at, self.ingestion_last_at)
         decision_elapsed = _elapsed(self.decision_first_at, self.decision_last_at)
         segments = list(self.segments)
@@ -134,8 +141,13 @@ class PipelineMetrics:
             "schema_version": 2,
             "target_evaluations": self.target,
             "elapsed_seconds": round(overall, 3),
-            "pipeline_evaluations_per_second": round(self.decision_attempts / overall, 2) if overall else None,
-            "pipeline_successes_per_second": round(self.decision_successes / overall, 2) if overall else None,
+            "pipeline_evaluations_per_second": round(self.decision_attempts / pipeline_elapsed, 2) if pipeline_elapsed else None,
+            "pipeline_successes_per_second": round(self.decision_successes / pipeline_elapsed, 2) if pipeline_elapsed else None,
+            "throughput_windows_seconds": {"ingestion": ingestion_elapsed, "decision": decision_elapsed,
+                                           "end_to_end": pipeline_elapsed},
+            "evaluation_source": {"sha256": self._source_digest.hexdigest(),
+                                  "records_selected": self.ingestion_started,
+                                  "first_event_at": self.source_first_at, "last_event_at": self.source_last_at},
             "ingestion": {
                 "started": self.ingestion_started,
                 "successes": self.ingestion_successes,
@@ -207,9 +219,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ingestion-concurrency", type=int, required=True)
     parser.add_argument("--evaluation-concurrency", type=int, required=True)
     parser.add_argument("--evaluation-count", type=int, default=1_000_000)
+    parser.add_argument("--evaluation-cohort", choices=("fixed", "phase-specific"), default="fixed",
+                        help="Reuse one evaluation corpus across phases (default); phase-specific retains legacy selections")
+    parser.add_argument("--evaluation-offset", type=int, default=5_000_000,
+                        help="Records reserved ahead of the fixed evaluation corpus in its month")
+    parser.add_argument("--database-instance-class", default="db.r7g.large",
+                        help="Declared RDS instance class for the report; cannot be verified through psql")
+    parser.add_argument("--verification-timeout", type=float, default=1800,
+                        help="Deadline for exact post-run database reconciliation")
     parser.add_argument(
         "--phase",
-        action="append",
+        action="extend",
+        nargs="+",
         choices=(
             "all", "empty", "1m", "5m", "1month",
             "empty_database", "seed_1m_same_month", "seed_5m_same_month",
@@ -257,6 +278,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _validate_args(args: argparse.Namespace) -> None:
+    if getattr(args, "evaluation_offset", 5_000_000) < 0:
+        raise ValueError("--evaluation-offset must be nonnegative")
+    if not math.isfinite(getattr(args, "verification_timeout", 1800)) or getattr(args, "verification_timeout", 1800) <= 0:
+        raise ValueError("--verification-timeout must be finite and positive")
     if args.capture_database_metrics and not args.capture_metrics:
         raise ValueError("--capture-database-metrics requires --capture-metrics")
     if not DATABASE_NAME_RE.fullmatch(args.database_name):
@@ -361,6 +386,9 @@ class DatabaseController:
     def stop_runtime(self) -> None:
         if self.args.no_manage_services:
             return
+        # Validate the merged project before touching services or the disposable DB.
+        # Required authentication settings in the base file must not be bypassed.
+        _run(self.compose_command("config", "--quiet"), env=self.compose_env(), timeout=30)
         _run(self.compose_command("stop", *QUIESCED_SERVICES), env=self.compose_env())
 
     def recreate(self) -> None:
@@ -426,6 +454,8 @@ class DatabaseController:
         result = _run(
             [
                 "psql",
+                "-X",
+                "-w",
                 "-h",
                 self.args.pg_host,
                 "-p",
@@ -440,8 +470,10 @@ class DatabaseController:
                 "-c",
                 sql,
             ],
-            env=self.admin_env(),
+            env={**self.admin_env(), "PGOPTIONS": "-c default_transaction_read_only=on -c statement_timeout=30000 -c lock_timeout=1000",
+                 "PGCONNECT_TIMEOUT": "10"},
             capture=True,
+            timeout=35,
         )
         values = result.stdout.strip().split("|")
         return {"database_bytes": int(values[0]), "estimated_user_rows": int(values[1])}
@@ -453,103 +485,19 @@ class DatabaseController:
             self.admin_env(), self.args.metrics_timeout,
         )
 
-    def audit_counts(self) -> dict[str, int]:
-        sql = (
-            "SELECT (SELECT count(*) FROM core_ingestion.ingestion_audit), "
-            "(SELECT count(*) FROM core_ingestion.outbox_events);"
-        )
-        result = _run(
-            [
-                "psql",
-                "-h",
-                self.args.pg_host,
-                "-p",
-                str(self.args.pg_port),
-                "-U",
-                self.args.pg_user,
-                "-d",
-                self.args.database_name,
-                "-At",
-                "-F",
-                "|",
-                "-c",
-                sql,
-            ],
-            env=self.admin_env(),
-            capture=True,
-        )
-        values = result.stdout.strip().split("|")
-        return {"ingestion_audit": int(values[0]), "outbox_events": int(values[1])}
+    async def reconcile(self, ledger: IdentityLedger, tenant_id: str, seed_count: int,
+                        evaluation_count: int) -> dict[str, Any]:
+        return await reconcile_database(self.observer().command, self.admin_env(), ledger, tenant_id,
+                                        seed_count, evaluation_count, self.args.verification_timeout,
+                                        math.ceil(seed_count / self.args.seed_batch_size))
 
-    def record_cardinality(self, tenant_id: str) -> dict[str, Any]:
-        tenant_literal = _sql_string_literal(tenant_id)
-        sql = f"""
-            WITH ids AS (
-                SELECT object_id
-                FROM core_ingestion.ingestion_audit
-                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
-                GROUP BY object_id
-            ), audit AS (
-                SELECT object_id, count(*)::bigint AS records
-                FROM core_ingestion.ingestion_audit
-                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
-                GROUP BY object_id
-            ), outbox AS (
-                SELECT aggregate_key AS object_id, count(*)::bigint AS records
-                FROM core_ingestion.outbox_events
-                WHERE tenant_id = {tenant_literal}::uuid AND aggregate_type = 'transactions'
-                GROUP BY aggregate_key
-            ), decisions AS (
-                SELECT object_id, count(*)::bigint AS records
-                FROM core.decisions
-                WHERE tenant_id = {tenant_literal}::uuid AND object_type = 'transactions'
-                GROUP BY object_id
-            ), rule_execs AS (
-                SELECT d.object_id, count(re.id)::bigint AS records
-                FROM core.decisions d
-                JOIN core.rule_executions re ON re.decision_id = d.id
-                WHERE d.tenant_id = {tenant_literal}::uuid AND d.object_type = 'transactions'
-                GROUP BY d.object_id
-            ), per_transaction AS (
-                SELECT ids.object_id,
-                       coalesce(audit.records, 0) AS ingestion_audit,
-                       coalesce(outbox.records, 0) AS outbox_events,
-                       coalesce(decisions.records, 0) AS decisions,
-                       coalesce(rule_execs.records, 0) AS rule_executions,
-                       coalesce(audit.records, 0) + coalesce(outbox.records, 0) +
-                       coalesce(decisions.records, 0) + coalesce(rule_execs.records, 0) AS total_records
-                FROM ids
-                LEFT JOIN audit USING (object_id)
-                LEFT JOIN outbox USING (object_id)
-                LEFT JOIN decisions USING (object_id)
-                LEFT JOIN rule_execs USING (object_id)
-            )
-            SELECT json_build_object(
-                'transactions', count(*)::bigint,
-                'min_records', min(total_records),
-                'max_records', max(total_records),
-                'average_records', round(avg(total_records)::numeric, 4),
-                'p50_records', percentile_cont(0.50) WITHIN GROUP (ORDER BY total_records),
-                'p95_records', percentile_cont(0.95) WITHIN GROUP (ORDER BY total_records),
-                'by_category', json_build_object(
-                    'ingestion_audit', coalesce(sum(ingestion_audit), 0),
-                    'outbox_events', coalesce(sum(outbox_events), 0),
-                    'decisions', coalesce(sum(decisions), 0),
-                    'rule_executions', coalesce(sum(rule_executions), 0)
-                )
-            )
-            FROM per_transaction;
-        """
-        result = _run(
-            [
-                "psql", "-h", self.args.pg_host, "-p", str(self.args.pg_port),
-                "-U", self.args.pg_user, "-d", self.args.database_name,
-                "-At", "-q", "-v", "ON_ERROR_STOP=1", "-c", sql,
-            ],
-            env=self.admin_env(),
-            capture=True,
-        )
-        return json.loads(result.stdout.strip())
+    def deployment(self) -> dict[str, Any]:
+        if self.args.no_manage_services:
+            return {"status": "unavailable", "reason": "services_managed_externally"}
+        services = RUNTIME_SERVICES + (("decision-engine-worker",) if self.args.deferred_policy == "wait" else ())
+        return capture_deployment(self.compose_command(), self.compose_env(), services, self.args.database_name,
+                                  self.args.pg_host, self.args.pg_port)
+
 
 
 def _run(
@@ -558,6 +506,7 @@ def _run(
     env: dict[str, str],
     check: bool = True,
     capture: bool = False,
+    timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
@@ -566,6 +515,7 @@ def _run(
         check=check,
         stdout=subprocess.PIPE if capture else None,
         stderr=subprocess.PIPE if capture else None,
+        timeout=timeout,
     )
 
 
@@ -669,6 +619,8 @@ def _build_phase_plans(
         "1month": "seed_full_month_next_month",
     }
     requested_phases = [aliases.get(value, value) for value in (args.phase or ["all"])]
+    if len(set(requested_phases)) != len(requested_phases):
+        raise ValueError("duplicate --phase selections are not allowed")
     if "all" in requested_phases and len(requested_phases) > 1:
         raise ValueError("--phase all cannot be combined with other --phase values")
     if "all" in requested_phases:
@@ -710,7 +662,8 @@ def _build_phase_plans(
         if requested == "seed_full_month_next_month":
             seed_month = args.seed_month or next(
                 (month for month in sorted(counts)
-                 if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count),
+                 if counts[month] > 0 and counts[_next_month(month)] >= evaluation_count +
+                    (args.evaluation_offset if getattr(args, "evaluation_cohort", "phase-specific") == "fixed" else 0)),
                 None,
             )
             if seed_month is None or counts[seed_month] <= 0:
@@ -724,6 +677,31 @@ def _build_phase_plans(
             ))
             continue
         raise ValueError(f"unsupported phase: {requested}")
+    if getattr(args, "evaluation_cohort", "phase-specific") == "fixed":
+        offset = args.evaluation_offset
+        seeded_same_month = max((plan.seed_count for plan in plans if plan.name in
+                                 ("seed_1m_same_month", "seed_5m_same_month")), default=0)
+        if offset < seeded_same_month:
+            raise ValueError("--evaluation-offset must be at least the largest same-month seed to avoid overlap")
+        full_month = next((plan for plan in plans if plan.name == "seed_full_month_next_month"), None)
+        # The chosen evaluation month must follow the full-month seed where requested.
+        if full_month:
+            selected_seed = next(iter(full_month.seed_factory()))
+            evaluation_month = _next_month(_month(selected_seed))
+            if args.same_month and args.same_month != evaluation_month:
+                raise ValueError("--same-month must be the month following --seed-month for a fixed cohort")
+        else:
+            evaluation_month = args.same_month or next(
+                (month for month in sorted(counts) if counts[month] >= offset + evaluation_count), None)
+        if evaluation_month is None or counts[evaluation_month] < offset + evaluation_count:
+            raise ValueError("fixed evaluation cohort requires offset + evaluation-count records in its month")
+        for i, plan in enumerate(plans):
+            seed_factory = plan.seed_factory
+            if plan.name in ("seed_1m_same_month", "seed_5m_same_month"):
+                seed_factory = factory(month=evaluation_month, limit=plan.seed_count)
+            plans[i] = replace(plan, seed_factory=seed_factory,
+                               evaluation_factory=factory(month=evaluation_month, skip=offset),
+                               description=f"{plan.name}: seed {plan.seed_count:,}; evaluate fixed corpus from {evaluation_month}, offset {offset:,}.")
     return plans
 
 
@@ -734,6 +712,7 @@ async def _seed_phase(
     expected: int,
     batch_size: int,
     concurrency: int,
+    ledger: IdentityLedger | None = None,
 ) -> dict[str, Any]:
     if expected == 0:
         return {"records": 0, "batches": 0, "elapsed_seconds": 0.0, "records_per_second": None}
@@ -768,6 +747,8 @@ async def _seed_phase(
     batch: list[TransactionEvent] = []
     try:
         for event in events:
+            if ledger is not None:
+                ledger.register_seed(tenant_id, event.object_id)
             batch.append(event)
             if len(batch) < batch_size:
                 continue
@@ -841,12 +822,9 @@ async def _run_fixed_pipeline(
             "phase": phase_name,
             "stage": stage,
             "tenant_id": tenant_id,
-            "object_id": event.object_id,
-            "source_file": str(event.source_file),
-            "row_number": event.row_number,
             "status_code": error.status_code,
-            "error": str(error),
-            "response_body": error.response_body,
+            "error_category": _error_class(error),
+            "error_type": type(error).__name__,
         }
         async with error_log_lock:
             await asyncio.to_thread(_append_text, error_log_path, json.dumps(record, sort_keys=True, default=str) + "\n")
@@ -863,6 +841,9 @@ async def _run_fixed_pipeline(
                 return None
             if ledger is not None:
                 ledger.register(tenant_id, event.object_id)
+            metrics._source_digest.update(json.dumps(event.fields, sort_keys=True, separators=(",", ":"), default=str).encode() + b"\n")
+            metrics.source_first_at = metrics.source_first_at or event.occurred_at.isoformat()
+            metrics.source_last_at = event.occurred_at.isoformat()
             in_progress += 1
             return event
 
@@ -1094,11 +1075,33 @@ async def _run_phase(
     report: RunReport,
     error_log_path: Path | None = None,
 ) -> dict[str, Any]:
+    with IdentityLedger(report.output / f"{phase.name}.identities.sqlite3") as ledger:
+        try:
+            return await _run_phase_with_ledger(phase, args, manifest, database, report, error_log_path, ledger)
+        except BaseException:
+            if getattr(args, "capture_database_metrics", False) and report.phase is not None:
+                captured = report.phase.get("database", {})
+                if "postgres_before_evaluation" in captured and "postgres_after_evaluation" not in captured:
+                    snapshot = await database.observer()(storage=True)
+                    report.update_phase(database={**captured, "postgres_after_failure": snapshot},
+                                        telemetry={**report.phase.get("telemetry", {}), "valid": False})
+            raise
+
+
+async def _run_phase_with_ledger(
+    phase: PhasePlan, args: argparse.Namespace, manifest: ReplayManifest,
+    database: DatabaseController, report: RunReport, error_log_path: Path | None,
+    ledger: IdentityLedger,
+) -> dict[str, Any]:
     print(f"\n[{phase.name}] {phase.description}")
     report.start_phase(phase.name, phase.description)
     database.recreate()
     report.stage("migrating_and_starting")
     database.migrate_and_start()
+    deployment = await asyncio.to_thread(database.deployment)
+    report.update_phase(deployment=deployment)
+    if deployment.get("status") == "error":
+        raise ValueError("deployment_inventory_failed_or_wrong_database")
     async with ServiceClients(_service_config(args)) as clients:
         report.stage("setup")
         await clients.wait_until_ready(timeout_seconds=180.0)
@@ -1111,7 +1114,8 @@ async def _run_phase(
         )
         setup_result = await setup.run(args.publication_timeout)
         tenant_id = str(setup_result["tenant_id"])
-        report.update_phase(tenant_id=tenant_id)
+        report.update_phase(tenant_id=tenant_id, published_scenarios=setup_result["scenarios"])
+        database_before_seed = await asyncio.to_thread(database.stats)
         report.stage("seeding")
         seed_result = await _seed_phase(
             clients,
@@ -1120,37 +1124,39 @@ async def _run_phase(
             phase.seed_count,
             args.seed_batch_size,
             args.seed_concurrency,
+            ledger,
         )
         report.update_phase(seed=seed_result)
         database_before_evaluation = await asyncio.to_thread(database.stats)
         postgres_before_evaluation = None
         if getattr(args, "capture_database_metrics", False):
-            postgres_before_evaluation = await database.observer()()
+            postgres_before_evaluation = await database.observer()(storage=True)
         report.update_phase(database={
             "before_evaluation": database_before_evaluation,
             "postgres_before_evaluation": postgres_before_evaluation,
         })
+        if postgres_before_evaluation is not None and postgres_before_evaluation.get("status") != "ok":
+            raise ValueError("required PostgreSQL baseline snapshot failed; see phase JSON")
         report.stage("evaluating")
         async def evaluate() -> dict[str, Any]:
-            with IdentityLedger(report.output / f"{phase.name}.identities.sqlite3") as ledger:
-                return await _run_fixed_pipeline(
-                    clients,
-                    tenant_id,
-                    phase.evaluation_factory(),
-                    target=args.evaluation_count,
-                    ingestion_concurrency=args.ingestion_concurrency,
-                    evaluation_concurrency=args.evaluation_concurrency,
-                    segment_size=args.segment_size,
-                    pipeline_timeout=args.pipeline_timeout,
-                    allow_deferred=args.deferred_policy == "wait",
-                    decision_completion_timeout=args.decision_completion_timeout,
-                    decision_poll_interval=args.decision_poll_interval,
-                    expected_scenarios=len(setup_result["scenarios"]),
-                    on_progress=lambda evaluation: report.update_phase(evaluation=evaluation),
-                    ledger=ledger,
-                    error_log_path=error_log_path,
-                    phase_name=phase.name,
-                )
+            return await _run_fixed_pipeline(
+                clients,
+                tenant_id,
+                phase.evaluation_factory(),
+                target=args.evaluation_count,
+                ingestion_concurrency=args.ingestion_concurrency,
+                evaluation_concurrency=args.evaluation_concurrency,
+                segment_size=args.segment_size,
+                pipeline_timeout=args.pipeline_timeout,
+                allow_deferred=args.deferred_policy == "wait",
+                decision_completion_timeout=args.decision_completion_timeout,
+                decision_poll_interval=args.decision_poll_interval,
+                expected_scenarios=len(setup_result["scenarios"]),
+                on_progress=lambda evaluation: report.update_phase(evaluation=evaluation),
+                ledger=ledger,
+                error_log_path=error_log_path,
+                phase_name=phase.name,
+            )
 
         telemetry: dict[str, Any] = {"enabled": False, "valid": None}
         if args.capture_metrics:
@@ -1167,29 +1173,50 @@ async def _run_phase(
                     report.update_phase(telemetry=telemetry)
         else:
             pipeline = await evaluate()
-    report.stage("verifying_database")
-    audit_counts = database.audit_counts()
-    database_after_evaluation = database.stats()
     postgres_after_evaluation = None
     if getattr(args, "capture_database_metrics", False):
-        postgres_after_evaluation = await database.observer()()
-    record_cardinality = database.record_cardinality(tenant_id)
+        postgres_after_evaluation = await database.observer()(storage=True)
+        boundaries_valid = all(value is not None and value.get("status") == "ok"
+                               for value in (postgres_before_evaluation, postgres_after_evaluation))
+        telemetry["boundary_snapshots_valid"] = boundaries_valid
+        telemetry["valid"] = telemetry.get("valid") is True and boundaries_valid
+        postgres_delta = counter_deltas(postgres_before_evaluation, postgres_after_evaluation)
+        telemetry["database_deltas_valid"] = postgres_delta["valid"]
+        telemetry["valid"] = telemetry["valid"] and postgres_delta["valid"]
+    else:
+        postgres_delta = None
+    # Persist boundaries before expensive verification, so failures retain them.
+    report.update_phase(telemetry=telemetry, database={
+        "before_seed": database_before_seed, "before_evaluation": database_before_evaluation,
+        "postgres_before_evaluation": postgres_before_evaluation,
+        "postgres_after_evaluation": postgres_after_evaluation, "postgres_evaluation_delta": postgres_delta,
+    })
+    report.stage("verifying_database")
+    database_after_evaluation = await asyncio.to_thread(database.stats)
+    reconciliation = await database.reconcile(ledger, tenant_id, phase.seed_count, args.evaluation_count)
+    pipeline["identity_reconciliation"]["durable_database_effects_verified"] = reconciliation.get("valid") is True
+    record_cardinality = reconciliation.get("record_cardinality", {})
+    audit_counts = {name: reconciliation.get("persisted_totals", {}).get(name, 0)
+                    for name in ("ingestion_audit", "outbox_events")}
     expected_per_record_entries = phase.seed_count + args.evaluation_count
-    per_record_entries_verified = all(
-        count >= expected_per_record_entries for count in audit_counts.values()
-    )
+    per_record_entries_verified = reconciliation.get("valid") is True
     report.update_phase(database={
+        "before_seed": database_before_seed,
         "before_evaluation": database_before_evaluation,
+        "after_evaluation": database_after_evaluation,
         "postgres_before_evaluation": postgres_before_evaluation,
         "postgres_after_evaluation": postgres_after_evaluation,
         "record_cardinality": record_cardinality,
-        "per_record_entries": {**audit_counts, "expected_minimum_each": expected_per_record_entries,
+        "durable_reconciliation": reconciliation,
+        "postgres_evaluation_delta": postgres_delta,
+        "storage_growth_bytes": {"seeding": database_before_evaluation["database_bytes"] - database_before_seed["database_bytes"],
+                                 "evaluation": database_after_evaluation["database_bytes"] - database_before_evaluation["database_bytes"]},
+        "per_record_entries": {**audit_counts, "expected_exact_each": expected_per_record_entries,
                                "verified": per_record_entries_verified},
     })
     if not per_record_entries_verified:
         raise ValueError(
-            "per-record audit/outbox verification failed: "
-            f"expected at least {expected_per_record_entries}, found {audit_counts}"
+            "durable database reconciliation failed; see phase JSON discrepancies"
         )
     return {
         "phase": phase.name,
@@ -1198,15 +1225,22 @@ async def _run_phase(
         "seed": seed_result,
         "evaluation": pipeline,
         "telemetry": telemetry,
+        "deployment": deployment,
+        "published_scenarios": setup_result["scenarios"],
         "database": {
+            "before_seed": database_before_seed,
             "before_evaluation": database_before_evaluation,
             "after_evaluation": database_after_evaluation,
             "postgres_before_evaluation": postgres_before_evaluation,
             "postgres_after_evaluation": postgres_after_evaluation,
             "record_cardinality": record_cardinality,
+            "durable_reconciliation": reconciliation,
+            "postgres_evaluation_delta": postgres_delta,
+            "storage_growth_bytes": {"seeding": database_before_evaluation["database_bytes"] - database_before_seed["database_bytes"],
+                                     "evaluation": database_after_evaluation["database_bytes"] - database_before_evaluation["database_bytes"]},
             "per_record_entries": {
                 **audit_counts,
-                "expected_minimum_each": expected_per_record_entries,
+                "expected_exact_each": expected_per_record_entries,
                 "verified": per_record_entries_verified,
             },
         },
@@ -1216,7 +1250,8 @@ async def _run_phase(
 def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
     if not phases:
         return {"passed": False, "evaluated": False, "reason": "no_completed_phases", "comparisons": []}
-    baseline_evaluation = phases[0]["evaluation"]
+    baseline = next((phase for phase in phases if phase["phase"] == "empty_database"), None)
+    baseline_evaluation = (baseline or phases[0])["evaluation"]
     baseline_decision = baseline_evaluation["decision"]
     baseline_ingestion = baseline_evaluation["ingestion"]
     baseline_decision_rate = baseline_decision["successful_evaluations_per_second"]
@@ -1239,10 +1274,16 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         ingestion_p95_ratio = _ratio(ingestion["latency"]["p95_ms"], baseline_ingestion_p95)
         reliability_failures = []
         reconciliation = evaluation.get("identity_reconciliation")
-        if reconciliation is not None and reconciliation.get("valid") is not True:
+        if reconciliation is None or reconciliation.get("valid") is not True:
             reliability_failures.append("identity_reconciliation_failed")
         telemetry = phase.get("telemetry", {"enabled": False})
         telemetry_passed = not telemetry["enabled"] or telemetry.get("valid") is True
+        durable = phase.get("database", {}).get("durable_reconciliation")
+        if durable is None or durable.get("valid") is not True:
+            reliability_failures.append("durable_reconciliation_failed")
+        source = evaluation.get("evaluation_source", {})
+        baseline_source = baseline_evaluation.get("evaluation_source", {})
+        cohort_matches = bool(source.get("sha256")) and source.get("sha256") == baseline_source.get("sha256")
         if ingestion["failures"]:
             reliability_failures.append("ingestion_failures")
         if decision["failures"]:
@@ -1254,7 +1295,9 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         if decision["successes"] != evaluation["target_evaluations"]:
             reliability_failures.append("decision_completion_target_not_met")
         performance_passed = bool(
-            decision_throughput_retention is not None
+            baseline is not None
+            and cohort_matches
+            and decision_throughput_retention is not None
             and decision_throughput_retention >= 0.8
             and decision_p95_ratio is not None
             and decision_p95_ratio <= 1.2
@@ -1269,6 +1312,7 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
             {
                 "phase": phase["phase"],
                 "performance_passed": performance_passed,
+                "evaluation_cohort_matches_baseline": cohort_matches,
                 "telemetry_passed": telemetry_passed,
                 "reliability_passed": not reliability_failures,
                 "reliability_failures": reliability_failures,
@@ -1289,7 +1333,8 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         )
     return {
         "passed": passed,
-        "evaluated": True,
+        "evaluated": baseline is not None,
+        "reason": None if baseline is not None else "empty_database_baseline_not_in_run",
         "criteria": {
             "minimum_throughput_retention": 0.8,
             "maximum_p95_latency_ratio": 1.2,
@@ -1298,6 +1343,8 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
             "maximum_decision_failures": 0,
             "maximum_unresolved_decisions": 0,
             "throughput_basis": "successful_completions",
+            "baseline_phase": "empty_database",
+            "identical_evaluation_cohort_required": True,
         },
         "comparisons": comparisons,
     }
@@ -1375,9 +1422,16 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
                 if args.seed_data_root
                 else None,
                 "pre_sanitized_source": args.pre_sanitized_source,
+                "evaluation_cohort": args.evaluation_cohort,
+                "evaluation_offset": args.evaluation_offset,
+                "runs_per_phase": 1,
+                "database_instance_class": {"declared": args.database_instance_class, "verified": False},
+                "verification_timeout_seconds": args.verification_timeout,
                 "phase": args.phase,
                 "database_name": args.database_name,
                 "scenario_set": SCENARIO_SET_INTERNAL,
+                "scenario_definitions": [asdict(scenario) for scenario in
+                                         build_portable_scenarios(manifest, SCENARIO_SET_INTERNAL)],
                 "scenarios": [
                     {
                         "name": scenario.name,

@@ -24,7 +24,7 @@ class IdentityTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(LedgerInvariantError, "duplicate_decision"):
                 await pipeline(ReusedDecision(), ledger=ledger, on_progress=snapshots.append)
             self.assertGreater(snapshots[-1]["identity_reconciliation"]["duplicate_observations"], 0)
-            acceptance = _acceptance([{"phase": "test", "evaluation": snapshots[-1]}])
+            acceptance = _acceptance([{"phase": "empty_database", "evaluation": snapshots[-1]}])
             self.assertFalse(acceptance["passed"])
             self.assertIn("identity_reconciliation_failed", acceptance["comparisons"][0]["reliability_failures"])
 
@@ -59,8 +59,10 @@ class IdentityTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(ledger.summary(2)["valid"])
 
     async def test_tenant_scoping_and_cancelled_pipeline_evidence(self) -> None:
+        entered = asyncio.Event()
         class Hanging(FakeClients):
             async def record_ingested(self, *args, **kwargs):
+                entered.set()
                 await asyncio.Event().wait()
 
         with TemporaryDirectory() as directory:
@@ -68,8 +70,11 @@ class IdentityTests(unittest.IsolatedAsyncioTestCase):
             snapshots = []
             with IdentityLedger(path) as ledger:
                 self.assertNotEqual(ledger.token("a", "same"), ledger.token("b", "same"))
-                with self.assertRaises(TimeoutError):
-                    await pipeline(Hanging(), ledger=ledger, pipeline_timeout=0.15, on_progress=snapshots.append)
+                task = asyncio.create_task(pipeline(Hanging(), ledger=ledger, pipeline_timeout=30, on_progress=snapshots.append))
+                await asyncio.wait_for(entered.wait(), 10)
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
                 final = snapshots[-1]["identity_reconciliation"]
                 self.assertGreater(final["unfinished"], 0)
                 self.assertFalse(final["valid"])

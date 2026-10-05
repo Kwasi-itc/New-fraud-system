@@ -21,6 +21,63 @@ import httpx
 import psutil
 
 from .benchmark_reporting import write_json_atomic
+from .postgres_observation import counter_deltas
+
+
+# Only explicit runtime controls may be persisted. Never copy the full environment.
+RUNTIME_SETTINGS = frozenset({
+    "LIVE_DECISION_MODE", "LIVE_DECISION_CONCURRENCY_LIMIT", "LIVE_ASYNC_FALLBACK_ENABLED",
+    "TENANT_DATA_READ_MODE", "HTTP_CLIENT_TIMEOUT", "RULE_EVALUATION_CONCURRENCY",
+    "SCENARIO_EVALUATION_CONCURRENCY", "AGGREGATE_PUSHDOWN_MODE", "AGGREGATE_REMOTE_CONCURRENCY_LIMIT",
+    "WRITE_PATH_CONCURRENCY_LIMIT", "WRITE_PATH_OVERLOAD_MODE", "GIN_MODE", "LOG_LEVEL",
+    "WORKER_MODE", "WORKER_POLL_INTERVAL", "WORKER_BATCH_LIMIT",
+    "DB_MAX_CONNS", "DB_MIN_CONNS", "DATABASE_MAX_CONNS", "DATABASE_MIN_CONNS",
+    "READ_DATABASE_MAX_CONNS", "READ_DATABASE_MIN_CONNS", "WORKER_DATABASE_MAX_CONNS", "WORKER_DATABASE_MIN_CONNS",
+})
+
+
+def project_container(item: dict[str, Any]) -> dict[str, Any]:
+    config, host, state = item.get("Config", {}), item.get("HostConfig", {}), item.get("State", {})
+    env = dict(value.split("=", 1) for value in config.get("Env", []) if "=" in value)
+    targets = {}
+    for name in ("DATABASE_URL", "READ_DATABASE_URL", "WORKER_DATABASE_URL"):
+        if env.get(name):
+            parsed = urlsplit(env[name])
+            targets[name] = {"host": parsed.hostname, "port": parsed.port or 5432,
+                             "database": parsed.path.lstrip("/")}
+    return {"name": item.get("Name", "").lstrip("/"),
+            "service": config.get("Labels", {}).get("com.docker.compose.service"),
+            "image_reference": config.get("Image"),
+            "image_id": item.get("Image"), "started_at": state.get("StartedAt"),
+            "restart_count": item.get("RestartCount"), "status": state.get("Status"),
+            "limits": {key: host.get(key) for key in ("Memory", "NanoCpus", "CpuQuota", "CpuPeriod", "CpusetCpus")},
+            "runtime_settings": {key: env[key] for key in sorted(RUNTIME_SETTINGS) if key in env},
+            "database_targets": targets,
+            "networks": sorted(item.get("NetworkSettings", {}).get("Networks", {}))}
+
+
+def capture_deployment(compose: list[str], env: dict[str, str], services: tuple[str, ...],
+                       expected_database: str, expected_host: str, expected_port: int) -> dict[str, Any]:
+    try:
+        ids = subprocess.run([*compose, "ps", "--all", "-q", *services], env=env,
+                             capture_output=True, text=True, check=True, timeout=15).stdout.split()
+        if not ids:
+            return {"status": "error", "error_type": "NoContainers"}
+        raw = subprocess.run(["docker", "inspect", *ids], env=env, capture_output=True,
+                             text=True, check=True, timeout=15)
+        containers = [project_container(item) for item in json.loads(raw.stdout)]
+        missing = sorted(set(services) - {item["service"] for item in containers})
+        running = all(item["status"] == "running" for item in containers)
+        correct_targets = all(item["database_targets"].get("DATABASE_URL") and
+                              all(target == {"database": expected_database, "host": expected_host, "port": expected_port}
+                                  for target in item["database_targets"].values()) for item in containers)
+        return {"status": "ok" if correct_targets and running and not missing else "error", "containers": containers,
+                "database_names_match": correct_targets,
+                "all_running": running, "missing_services": missing,
+                "limitations": ["image_id_is_local_content_id", "settings_show_explicit_env_only",
+                                "pool_limits_observed_via_service_metrics", "remote_database_hardware_not_observed"]}
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError) as exc:
+        return {"status": "error", "error_type": type(exc).__name__}
 
 
 def _now() -> str:
@@ -96,8 +153,13 @@ def sample_local(output: Path) -> dict[str, Any]:
                 measurements[name] = value._asdict()
         except (OSError, psutil.Error, NotImplementedError) as exc:
             errors[name] = type(exc).__name__
+    boot_time = None
+    try:
+        boot_time = psutil.boot_time()
+    except (OSError, psutil.Error, NotImplementedError) as exc:
+        errors["boot_time"] = type(exc).__name__
     return {"status": "partial" if errors else "ok", "measurements": measurements, "errors": errors,
-            "scope": "observer_host_and_process", "boot_time_epoch_seconds": psutil.boot_time()}
+            "scope": "observer_host_and_process", "boot_time_epoch_seconds": boot_time}
 
 
 def _numeric_fields(value: Any) -> dict[str, int | float]:
@@ -146,6 +208,7 @@ class RuntimeObserver:
         self.failures = 0
         self.started = time.monotonic()
         self.file: Any = None
+        self.previous_sample: dict[str, Any] | None = None
 
     async def __aenter__(self) -> RuntimeObserver:
         self.output.parent.mkdir(parents=True, exist_ok=True)
@@ -203,6 +266,27 @@ class RuntimeObserver:
                   "complete": not failed}
         if database is not None:
             sample["database"] = database
+        previous = self.previous_sample
+        if previous is not None:
+            elapsed = sample["elapsed_seconds"] - previous["elapsed_seconds"]
+            if elapsed > 0 and local.get("boot_time_epoch_seconds") is not None and local.get("boot_time_epoch_seconds") == previous["local"].get("boot_time_epoch_seconds"):
+                rates = {}
+                for group in ("cpu_seconds", "process_cpu_seconds", "disk_io_cumulative", "network_io_cumulative"):
+                    now_values = local.get("measurements", {}).get(group, {})
+                    old_values = previous["local"].get("measurements", {}).get(group, {})
+                    deltas = {key: value - old_values[key] for key, value in now_values.items()
+                              if key in old_values and isinstance(value, (int, float))}
+                    rates[group] = ({key: value / elapsed for key, value in deltas.items()}
+                                    if deltas and all(value >= 0 for value in deltas.values()) else None)
+                sample["local_counter_rates"] = rates
+                cpu = rates.get("cpu_seconds")
+                if cpu and sum(cpu.values()) > 0:
+                    sample["host_cpu_utilization_pct"] = 100 * (1 - (cpu.get("idle", 0) + cpu.get("iowait", 0)) / sum(cpu.values()))
+            if database is not None and previous.get("database") is not None:
+                sample["postgres_interval_delta"] = counter_deltas(previous["database"], database)
+                failed = failed or not sample["postgres_interval_delta"]["valid"]
+                sample["complete"] = not failed
+        self.previous_sample = sample
         self.file.write(json.dumps(sample, allow_nan=False) + "\n")
         self.file.flush()
         self.samples += 1
@@ -216,7 +300,7 @@ class RuntimeObserver:
                              *(["postgresql", "public_river_active_jobs"] if self.database else [])],
                 "limitations": ["numeric_projection", "service_percentiles_are_endpoint_window_samples",
                                 "no_remote_host_collection", "partial_queue_coverage",
-                                "raw_cumulative_counters_no_rates"]}
+                                "counter_rates_require_consecutive_valid_samples"]}
 
     async def run_during(self, workload: Callable[[], Awaitable[Any]]) -> Any:
         await self.sample()

@@ -2,14 +2,54 @@
 
 This command runs all four phases in order with the `internal` scenario set:
 
-1. Empty database: ingest and evaluate 1,000,000 records.
-2. Seed 1,000,000 records, then ingest and evaluate the next 1,000,000 records from the same month.
-3. Seed 5,000,000 records, then ingest and evaluate the next 1,000,000 records from the same month.
-4. Seed one complete month, then ingest and evaluate 1,000,000 records from the following month.
+1. Empty database: ingest and evaluate the fixed 1,000,000-record evaluation corpus.
+2. Seed the first 1,000,000 records of the evaluation month, then use the same evaluation corpus.
+3. Seed the first 5,000,000 records of that month, then use the same evaluation corpus.
+4. Seed the complete preceding month, then use the same evaluation corpus from its following month.
+
+Run each selected phase once. The declared RDS instance class defaults to `db.r7g.large`;
+it is recorded as user-supplied information because SQL access cannot verify AWS hardware.
+Keep the RDS instance, application images/settings, internal rules, source data, and
+ingestion/evaluation concurrency unchanged. Tenant IDs are newly created per phase;
+account and transaction distributions are retained through deterministic pseudonymisation.
+
+The default `--evaluation-cohort fixed` reserves the first 5M records in the evaluation
+month (`--evaluation-offset 5000000`) and takes the next 1M for every phase. This prevents
+overlap with seeds and changing transaction mix from being confused with volume effects.
+`--same-month` must agree with the month following `--seed-month` when both are supplied.
+For a small empty-only smoke run use `--evaluation-offset 0`. The legacy
+`--evaluation-cohort phase-specific` uses each phase's original next-record selection;
+different evaluation fingerprints disqualify a controlled volume comparison.
 
 The runner uses separate bounded ingestion and decision worker pools. A decision is submitted only after its corresponding ingestion succeeds. Failed ingestions are replaced with later source records until the exact decision-request target is reached, but any such failure now fails suite acceptance. Configured concurrency is an upper bound; queue backpressure and source selection can reduce active requests.
 
-Per-record ingestion audit and outbox writes remain enabled for both seeding and measured ingestion. After each phase, the runner counts both tables and fails the phase if either contains fewer entries than the expected successful ingestion count. It also reports per-transaction record cardinality across ingestion-audit rows, ingestion outbox events, decisions, and rule executions, including min/max/average/p50/p95 and category totals. This is a total-count check, not identity-level reconciliation or proof of delivery.
+Per-record ingestion audit and outbox writes remain enabled for seeding and measured ingestion.
+After measurement, tenant-scoped SQL streams exact transaction and decision identities into
+the local keyed-token ledger. Verification checks seed and completed evaluation identities,
+exactly one persisted transaction, successful audit and ingestion outbox row per expected
+object, and exact agreement between returned decision IDs and persisted decision IDs.
+Missing, additional or duplicate effects fail verification. Scenario conditions that do not
+trigger legitimately produce no decision row; 1M evaluations need not mean 1M decisions.
+
+Record cardinality is reported **separately for seed and evaluated transactions** with
+min/max/average, nearest-rank p50/p95, a constant-count indicator and category totals.
+Categories are tenant transaction rows, successful ingestion audit, per-record ingestion outbox,
+decisions, rule executions, single-ingestion idempotency keys and decision outbox. Seed
+batches also create one shared idempotency key and one `batch.ingestion.completed` outbox
+row per batch. These are counted and verified separately, with
+`average_records_including_shared` to allocate their cost across seeded transactions;
+they are never counted once for every transaction in the batch. Reference data,
+River jobs and downstream delivery records are excluded explicitly. Database bytes are
+also captured before seeding, before evaluation and after evaluation to distinguish seed
+growth from evaluation growth. Table/index sizes and vacuum/analyze timestamps accompany
+PostgreSQL boundary snapshots.
+
+Exact reconciliation happens outside throughput timing and can scan all selected tenant
+records; it is not run every five seconds. Output streams into bounded-cache SQLite, so
+memory does not grow with all identities, but local disk usage does. Allow disk capacity for
+the seed and evaluation ledgers. `--verification-timeout` defaults to 1800 seconds, with
+read-only PostgreSQL sessions and a lock timeout. This verifies persisted identities and
+counts, not rule detection accuracy or outbox delivery.
 
 ## Completion and failure accounting
 
@@ -37,13 +77,38 @@ Ingestion retry counts include retries on ultimately failed records. Partial sum
 
 Each measured phase now writes `<phase>.identities.sqlite3`, a local test artifact containing keyed identity tokens and stage transitions. It rejects duplicate evaluation input identities and decision IDs reused across responses for the same tenant. Triggered decisions contribute their validated IDs; non-triggered scenario results may complete without a decision ID. The phase's `identity_reconciliation` summary requires exactly the requested number of completed identities, no additional identities, no duplicates and no unfinished work. Failed ingestions remain visible even when replaced by later records.
 
-The ledger uses a bounded SQLite cache and disk indexes rather than retaining all identities in Python memory. Raw transaction fields, object IDs, decision IDs and the per-artifact token key are not saved. Tokens cannot be joined across runs or used for restart/resume. Normal failure/cancellation commits partial state; abrupt process termination can lose up to 255 transitions since the last checkpoint. Ledger I/O is included in measured throughput and needs overhead qualification. This reconciles observed responses only: seed records, unobserved duplicate server effects, exact scenario identity coverage, persisted decisions, callbacks and business delivery still need independent verification.
+The ledger uses a bounded SQLite cache and disk indexes rather than retaining all identities in Python memory. Raw transaction fields, object IDs, decision IDs and the per-artifact token key are not saved. Tokens cannot be joined across runs or used for restart/resume. Normal failure/cancellation commits partial state; abrupt process termination can lose up to 255 transitions since the last checkpoint. Ledger I/O is included in measured throughput and needs overhead qualification. Seed and durable transaction/decision identities are checked after measurement; rule detection accuracy, callbacks and business delivery remain outside this verification.
 
-When database capture is enabled, `psql` ignores startup files, disables password prompts and uses read-only sessions with connection, statement, lock and process timeouts. Errors are recorded by type/exit code without stderr. Five active River states are sampled independently, ordered by scheduled time, up to 1,001 jobs each. A capped state marks every returned queue count as a **lower bound**; queues absent from a capped prefix have unknown backlog. Age is time since the earliest sampled scheduled time, clamped at zero, rather than enqueue age or execution duration. `case_queue`, non-River queues and terminal job history are not collected yet. Validate query plans and sampling overhead on the disposable target before a capacity campaign; bounded output does not guarantee a cheap query plan. PostgreSQL counters include `stats_reset` for later reset-aware rate calculations; this collector does not calculate rates. Activity visibility depends on the database role.
+When database capture is enabled, `psql` ignores startup files, disables password prompts and uses read-only sessions with connection, statement, lock and process timeouts. Errors are recorded by type/exit code without stderr. Five active River states are sampled independently, ordered by scheduled time, up to 1,001 jobs each. A capped state marks every returned queue count as a **lower bound**; queues absent from a capped prefix have unknown backlog. Age is time since the earliest sampled scheduled time, clamped at zero, rather than enqueue age or execution duration. `case_queue`, non-River queues and terminal job history are not collected yet. Validate query plans and sampling overhead on the disposable target before a capacity campaign; bounded output does not guarantee a cheap query plan. Activity visibility depends on the database role.
 
-Each phase also records read-only PostgreSQL snapshots immediately before evaluation and after verification. These snapshots contain the database's cumulative `pg_stat_database` counters, active connection state/wait groups, selected PostgreSQL settings, and capped active River queues. During-evaluation samples are written to `<phase>.metrics.ndjson`; the before/after snapshots are in the phase JSON and `summary.json`. Compare the cumulative counters with the recorded `stats_reset` and timestamps; they are not hardware CPU, memory, IOPS, or remote RDS metrics.
+With both capture flags, each phase records PostgreSQL snapshots before evaluation and
+immediately after the pipeline, **before exact verification queries**. During-evaluation
+samples go into `<phase>.metrics.ndjson`; boundaries and `postgres_evaluation_delta` go
+into phase JSON and `summary.json`. Counters include transactions/rollbacks, buffer reads
+and hits, tuples, temp spills, deadlocks and read/write timing. Activity groups include
+wait event names, blocked connection counts and oldest transaction age. Settings include
+PostgreSQL version, max connections, shared buffers, work memory and I/O timing mode.
+Differences, per-second rates and buffer-hit ratios are calculated only when timestamps
+and `stats_reset` permit valid subtraction. Zero I/O time with `track_io_timing=off` is
+not evidence of zero disk latency. SQL counters include observer/background database work.
+Any failed required boundary snapshot or invalid boundary delta fails telemetry acceptance.
+RDS CPU, memory, provisioned IOPS and physical storage latency remain unavailable through
+this SQL-only access; they cannot be supplied by host `psutil` samples.
 
-Throughput fields use explicit windows: ingestion `requests_per_second` is successful ingestion completions divided by the first-ingestion-start to last-ingestion-completion window; decision `evaluations_per_second` is all decision attempts divided by the first-decision-start to last-decision-completion window; decision `successful_evaluations_per_second` is successful decision completions over that same decision window; and `pipeline_successes_per_second` is successful decisions divided by the end-to-end pipeline window from first ingestion start to final decision completion. Use successful decision EPS as the primary business metric, with ingestion and end-to-end rates as supporting measures.
+Throughput fields use explicit windows, also saved in `throughput_windows_seconds`:
+
+| Rate | Numerator | Measurement window |
+|---|---|---|
+| Ingestion `requests_per_second` | Successful logical ingestions | First ingestion start to final ingestion completion, including failures/retries |
+| Decision `evaluations_per_second` | Completed evaluation attempts, success or failure | First decision start to final decision completion |
+| Decision `successful_evaluations_per_second` | Verified successful evaluations | Same decision window |
+| End-to-end `pipeline_successes_per_second` | Verified successful evaluations | First ingestion start to final pipeline completion |
+
+Sorting, setup, seeding, resource snapshots and exact reconciliation are excluded from
+these rates. Ingestion and decision overlap: the pipeline can make their rates similar
+because decisions consume successfully ingested records. Successful decision EPS remains
+the primary metric; this is a coupled pipeline test, not an isolated maximum decision-capacity
+test. Average/p50/p95/p99 latency, failures, retries and observed concurrency accompany rates.
 
 ## Progress and interrupted runs
 
@@ -51,7 +116,22 @@ The output directory is printed before preprocessing. `summary.json` records the
 
 An interrupted or failed run has `acceptance.passed=false` and `acceptance.evaluated=false`. Error types are saved without exception text or raw server payloads. Abrupt process termination can leave the latest snapshot marked running; the snapshots are not a restart/resume ledger. Counter snapshots do not replace transaction-level outcome reconciliation.
 
-`environment.json` captures the observer machine's OS/Python, CPU counts, memory, output filesystem, dependency versions, Git revision/dirty-state summary and harness file hashes. Service URLs are recorded without credentials, paths or query strings. It explicitly identifies remote hardware, deployed image digests and effective service configuration as missing. Local hardware is not assumed to be the service/database hardware.
+`environment.json` captures observer OS/Python, CPU counts, memory, filesystem, dependencies,
+Git revision/dirty-state and harness hashes. Each phase's `deployment` captures running
+container image IDs/references, start time/restarts, configured resource limits, networks,
+and an explicit allowlist of runtime controls. Database credentials and arbitrary environment
+variables are excluded. Primary/read/worker database targets must match the test endpoint.
+The Compose override forces synchronous mode and directs all three database URLs to the
+test database. `--no-manage-services` records deployment inspection as unavailable.
+The merged Compose project is validated before stopping services or recreating the database.
+The current base file still requires its case-manager authentication variables during parsing
+(`CASE_SERVICE_AUTH_TOKEN`, `CASE_SERVICE_TENANT_IDS`, `CASE_USER_JWT_ISSUER`,
+`CASE_USER_JWT_KEYS_FILE`). Supply valid existing configuration; the benchmark does not
+invent authentication credentials or weaken those production requirements. Case-manager
+runtime services stay stopped during this experiment.
+Run configuration records the declared RDS class and one run per phase; evaluation source
+fingerprints/time ranges and published scenario IDs are saved per phase. `run-config.json`
+also saves the internal scenario definitions, including trigger/rule formulas and thresholds.
 
 ## Read-only observation pilot
 
@@ -77,7 +157,10 @@ Authentication comes from `SERVICE_AUTH_TOKEN`, or the environment variable name
 
 Artifacts are `environment.json`, `observations.ndjson`, and `observation-summary.json`. The JSON lines include UTC timestamps, monotonic elapsed time, sampling duration, host/process CPU time, memory, disk and network cumulative counters, output filesystem space, and a numeric projection of known service metric groups. Dynamic endpoint labels are hashed, and arbitrary string values are omitted. The service percentiles retain their endpoint's sampling semantics; they are not full-run percentiles.
 
-Host disk/network counters are cumulative totals across the observer host, not service-attributed rates or measurements of link RTT, TLS cost, retransmissions, remote disks, or container quotas. Raw counter reset handling/rate derivation, remote exporters, database query/queue adapters, distributed tracing and controlled fault injection remain planned work. The current observer is the collection foundation, not complete architecture coverage.
+Host disk/network counters and consecutive-sample rates apply to the observer host.
+CPU utilization is derived from consecutive CPU counters. These do not measure remote RDS
+hardware or attribute all host activity to the fraud services. Remote exporters, tracing,
+network fault injection and non-River queue coverage remain outside this volume test.
 
 ## Verification
 
@@ -87,7 +170,14 @@ From `backend/stress-tests`, run the replay tests with:
 python -B -m unittest discover -s production_replay/tests -t . -q
 ```
 
-These tests use fake services/HTTP transports and local temporary artifacts. They do not recreate the PostgreSQL database. They cover completion contracts, tenant/result mismatch, async failure/deadline, producer/consumer cancellation, all-failure acceptance, partial artifacts, metrics errors and local observation. A real disposable-system load run is still required to establish capacity or verify the full deployed path.
+The default tests use fake services/HTTP transports and local temporary artifacts. They cover completion contracts, tenant/result mismatch, async failure/deadline, cancellation, partial artifacts, stage timing, fixed corpus selection, missing-baseline rejection, metrics failures, statistics resets, credential-safe deployment inspection and durable reconciliation.
+
+An opt-in SQL contract test uses only localhost and the disposable database
+`fraud_scale_observation_test`: set `FRAUD_SCALE_TEST_PG_PORT` before running tests.
+It replaces its fixture schemas in that database and verifies observation SQL, tenant isolation,
+shared batch accounting and an indexed River sample plan with 20,000 terminal jobs.
+It does not run application migrations or the full services. A real disposable-system load
+run is still required to establish RDS capacity, plans at millions of records, or observer overhead.
 
 ## Privacy
 
@@ -139,6 +229,16 @@ export FRAUD_DB_PASSWORD='replace-me'
 
 The destructive guard requires `--allow-drop-database` to exactly match `--database-name`, refuses `postgres`, `template0`, and `template1`, terminates connections only for that exact database, and passes the exact name as a command argument to `dropdb`/`createdb`.
 
-The suite merges transaction files from `--data-root` and the optional `--seed-data-root` before selecting months. This supports production layouts where the preceding full seed month is stored separately from the evaluation month. It automatically selects a month containing enough records for the 5M phase and a populated consecutive month pair for the final phase. Use `--same-month YYYY-MM` and `--seed-month YYYY-MM` to choose them explicitly. Results are written under `backend/stress-tests/database-scale-runs/`; `summary.json` compares each phase with the empty-database baseline. Performance acceptance requires at least 80% throughput retention and no more than a 20% p95-latency increase for both ingestion and decision evaluation in every phase, alongside the completion, reliability and requested-telemetry gates described above.
+The suite merges both source trees before selecting months. Use `--same-month YYYY-MM`
+and `--seed-month YYYY-MM` to choose them explicitly. `--phase empty 1m 5m 1month` or
+repeated `--phase` flags select phases; omission runs all. Duplicate selections are rejected.
+Results go under `backend/stress-tests/database-scale-runs/`. `summary.json` compares with
+the named empty-database baseline only. Without that baseline, measurements are saved but
+regression acceptance is marked not evaluated. Acceptance requires identical evaluation
+fingerprints, at least 80% throughput retention and at most 1.2x p95 for ingestion and
+decisioning, together with zero unexplained failures/unresolved work, exact durable
+reconciliation and complete requested telemetry. A single run per phase gives a volume
+comparison without estimating run-to-run variation. Database recreation does not guarantee
+a cold RDS cache, and the database remains after the final phase for inspection.
 
 The internal set has four scenarios and six rules: high-value account activity; odd-hour amount and burst checks; rapid account and multi-merchant activity; and a 30-day account amount-spike check.

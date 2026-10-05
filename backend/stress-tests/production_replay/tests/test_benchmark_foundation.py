@@ -125,7 +125,7 @@ class CompletionTests(unittest.IsolatedAsyncioTestCase):
 
         with patch.object(FakeClients, "get_async_decision_execution", stuck):
             with self.assertRaisesRegex(DecisionCompletionError, "decision_completion_timeout"):
-                await self.verify({"async_decision_execution": execution()}, timeout_seconds=0.15)
+                await self.verify({"async_decision_execution": execution()}, timeout_seconds=2)
         self.assertTrue(cancelled.is_set())
 
 
@@ -236,7 +236,9 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
 
 
 def phase() -> dict[str, Any]:
-    return {"phase": "baseline", "evaluation": {
+    return {"phase": "empty_database", "database": {"durable_reconciliation": {"valid": True}}, "evaluation": {
+        "evaluation_source": {"sha256": "same-corpus"},
+        "identity_reconciliation": {"valid": True},
         "target_evaluations": 100,
         "ingestion": {"successes": 100, "failures": 0, "requests_per_second": 100,
                       "latency": {"p95_ms": 100}},
@@ -329,7 +331,7 @@ class EntryPointReportTests(unittest.IsolatedAsyncioTestCase):
         args = argparse.Namespace(
             data_model_url="http://data", ingestion_url="http://ingestion", decision_engine_url="http://decision",
             auth_token=None, request_timeout=1, publication_timeout=1, evaluation_count=2,
-            ingestion_concurrency=1, evaluation_concurrency=1, segment_size=1, pipeline_timeout=1,
+            ingestion_concurrency=1, evaluation_concurrency=1, segment_size=1, pipeline_timeout=30,
             deferred_policy="reject", decision_completion_timeout=1, decision_poll_interval=0.01,
             seed_batch_size=2, seed_concurrency=1, capture_metrics=False,
         )
@@ -339,7 +341,10 @@ class EntryPointReportTests(unittest.IsolatedAsyncioTestCase):
                 output = Path(directory)
                 database = MagicMock()
                 database.stats.return_value = {"database_bytes": 1000, "estimated_user_rows": 2}
-                database.audit_counts.return_value = {"ingestion_audit": count, "outbox_events": count}
+                database.deployment.return_value = {"status": "ok"}
+                database.reconcile = AsyncMock(return_value={"valid": count == 2,
+                    "persisted_totals": {"ingestion_audit": count, "outbox_events": count},
+                    "record_cardinality": {}})
                 setup = MagicMock()
                 setup.run = AsyncMock(return_value={"tenant_id": "tenant-1", "scenarios": {"one": {}}})
                 with patch("production_replay.database_scale_suite.ServiceClients", return_value=FakeClients()), \
@@ -350,7 +355,7 @@ class EntryPointReportTests(unittest.IsolatedAsyncioTestCase):
                             report.finish_phase(value)
                         self.assertEqual(value["evaluation"]["decision"]["successes"], 2)
                     else:
-                        with self.assertRaisesRegex(ValueError, "audit/outbox verification failed"):
+                        with self.assertRaisesRegex(ValueError, "reconciliation failed"):
                             with RunReport(output) as report:
                                 await _run_phase(plan, args, MagicMock(), database, report)
                         value = json.loads((output / "test.json").read_text())

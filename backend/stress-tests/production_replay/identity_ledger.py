@@ -38,6 +38,15 @@ class IdentityLedger:
             CREATE TABLE decision_effects (
                 decision TEXT PRIMARY KEY, identity TEXT NOT NULL
             );
+            CREATE INDEX effects_identity ON decision_effects(identity);
+            CREATE TABLE seeds (identity TEXT PRIMARY KEY);
+            CREATE TABLE persisted (
+                identity TEXT PRIMARY KEY, transactions INTEGER, ingestion_audit INTEGER,
+                outbox_events INTEGER, decisions INTEGER, rule_executions INTEGER,
+                idempotency_keys INTEGER, decision_outbox INTEGER
+            );
+            CREATE TABLE persisted_decisions (decision TEXT PRIMARY KEY, identity TEXT NOT NULL);
+            CREATE TABLE shared_seed_records (idempotency_keys INTEGER, batch_outbox INTEGER);
         """)
         self.counts: Counter[str] = Counter()
         self.duplicates = 0
@@ -64,6 +73,8 @@ class IdentityLedger:
             self.pending = 0
 
     def register(self, tenant: str, identity: str) -> None:
+        if self.connection.execute("SELECT 1 FROM seeds WHERE identity=?", (self.token(tenant, identity),)).fetchone():
+            raise LedgerInvariantError("seed_evaluation_overlap")
         try:
             self.connection.execute("INSERT INTO identities VALUES (?, 'ingesting', 0, ?)",
                                     (self.token(tenant, identity), time.perf_counter() - self.started))
@@ -71,6 +82,13 @@ class IdentityLedger:
             self.duplicates += 1
             raise LedgerInvariantError("duplicate_input_identity") from exc
         self.counts["ingesting"] += 1
+        self._checkpoint()
+
+    def register_seed(self, tenant: str, identity: str) -> None:
+        try:
+            self.connection.execute("INSERT INTO seeds VALUES (?)", (self.token(tenant, identity),))
+        except sqlite3.IntegrityError as exc:
+            raise LedgerInvariantError("duplicate_seed_identity") from exc
         self._checkpoint()
 
     def transition(self, tenant: str, identity: str, previous: str, state: str,
