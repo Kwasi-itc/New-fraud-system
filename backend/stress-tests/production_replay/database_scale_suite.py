@@ -1007,29 +1007,33 @@ async def _run_fixed_pipeline(
                 on_progress(snapshot())
             try:
                 await asyncio.wait_for(stop_progress.wait(), timeout=5.0)
-            except TimeoutError:
+            except (asyncio.TimeoutError, TimeoutError):
                 continue
 
     producer = asyncio.create_task(finish_ingestion())
+    workers = asyncio.gather(producer, *decision_tasks)
 
     async def run_workers() -> None:
         try:
             # Observe consumers immediately, even while producers block on a full queue.
-            await asyncio.gather(producer, *decision_tasks)
+            await workers
         finally:
             stop_progress.set()
 
     coordinator = asyncio.create_task(run_workers())
     progress = asyncio.create_task(report_progress())
     tasks = [*ingestion_tasks, *decision_tasks, producer, coordinator, progress]
+    joined = asyncio.gather(coordinator, progress)
     try:
-        await asyncio.wait_for(asyncio.gather(coordinator, progress), timeout=pipeline_timeout)
+        await asyncio.wait_for(joined, timeout=pipeline_timeout)
         if metrics.decision_attempts != target:
             raise AssertionError(f"submitted {metrics.decision_attempts} decisions; expected {target}")
     finally:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        # Retrieve group outcomes too, including cancellation before wait_for starts.
+        await asyncio.gather(workers, joined, return_exceptions=True)
         if on_progress is not None:
             on_progress(snapshot())
     return snapshot()
@@ -1500,7 +1504,7 @@ def _append_text(path: Path, value: str) -> None:
 def main(argv: list[str] | None = None) -> None:
     try:
         raise SystemExit(asyncio.run(async_main(argv)))
-    except (APIError, OSError, subprocess.CalledProcessError, ValueError, TimeoutError) as exc:
+    except (APIError, OSError, subprocess.CalledProcessError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

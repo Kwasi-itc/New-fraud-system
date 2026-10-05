@@ -245,7 +245,7 @@ class RuntimeObserver:
             metrics = await asyncio.wait_for(fetch(), timeout=self.timeout)
             return {"status": "ok", "metrics": metrics,
                     "observation_request_ms": round((time.monotonic() - started) * 1000, 3)}
-        except (httpx.HTTPError, ValueError, TimeoutError) as exc:
+        except (httpx.HTTPError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
             failure: dict[str, Any] = {"status": "error", "error_type": type(exc).__name__}
             if isinstance(exc, httpx.HTTPStatusError):
                 failure["http_status"] = exc.response.status_code
@@ -316,7 +316,7 @@ class RuntimeObserver:
             while not stopped.is_set():
                 try:
                     await asyncio.wait_for(stopped.wait(), timeout=self.interval)
-                except TimeoutError:
+                except (asyncio.TimeoutError, TimeoutError):
                     await self.sample()
 
         work = asyncio.create_task(run())

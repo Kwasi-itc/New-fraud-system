@@ -103,7 +103,7 @@ class PostgresObserver:
                                     "activity_visibility_depends_on_database_role",
                                     "raw_counters_require_stats_reset_aware_deltas",
                                     "query_plans_require_validation_on_target_database"]}
-        except (OSError, ValueError, TimeoutError) as exc:
+        except (OSError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
             return {"status": "error", "error_type": type(exc).__name__}
         finally:
             if process is not None and process.returncode is None:

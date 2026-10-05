@@ -191,7 +191,7 @@ async def reconcile_database(command: list[str], env: dict[str, str], ledger: Id
         ledger.connection.set_progress_handler(lambda: int(time.monotonic() >= deadline), 10000)
         return {**durable_summary(ledger, seed_count, evaluation_count, expected_seed_batches),
                 "elapsed_seconds": time.monotonic() - started}
-    except (OSError, ValueError, TimeoutError, sqlite3.Error) as exc:
+    except (OSError, ValueError, asyncio.TimeoutError, TimeoutError, sqlite3.Error) as exc:
         return {"valid": False, "error_type": "TimeoutError" if time.monotonic() >= deadline else type(exc).__name__}
     finally:
         ledger.connection.set_progress_handler(None, 0)

@@ -201,7 +201,7 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.Event().wait()
 
         snapshots = []
-        with self.assertRaises(TimeoutError):
+        with self.assertRaises((asyncio.TimeoutError, TimeoutError)):
             await pipeline(Stuck(), pipeline_timeout=0.02, on_progress=snapshots.append)
         self.assertEqual(snapshots[-1]["ingestion"]["unfinished"], 2)
 

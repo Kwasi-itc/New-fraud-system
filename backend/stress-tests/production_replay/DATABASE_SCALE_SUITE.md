@@ -71,6 +71,12 @@ For an explicit mixed synchronous/asynchronous experiment, use `--deferred-polic
 
 All timeouts/intervals must be finite and positive. Async observation occupies an evaluation worker slot, so configured evaluation concurrency now bounds outstanding logical operations, including their polling. Compare runs with the same deferred policy; enabling a worker changes the workload competing for PostgreSQL resources.
 
+Python 3.10 and later are supported. Asynchronous deadline handlers catch both
+`asyncio.TimeoutError` and the built-in `TimeoutError`, which are distinct in 3.10.
+Expiration of a sampling/progress interval schedules another observation; it is not
+a workload failure. Actual request, database and completion deadlines still produce
+failed evidence, and cancellation reaps background tasks and subprocesses.
+
 `decision.request_latency` measures the original HTTP request. `decision.latency` measures the outcome-observation duration, including deferred waiting where enabled. Both include failed observations; unresolved work is explicitly counted. HTTP failures are conservatively unresolved because the server may have committed work before the response failed. There is no automatic resubmission of ambiguous decisions.
 
 Ingestion retry counts include retries on ultimately failed records. Partial summaries show unfinished ingestion, unresolved started decisions and successfully ingested records still awaiting decision submission. Segments include the final incomplete block.
