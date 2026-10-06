@@ -239,6 +239,15 @@ type AsyncDecisionExecutionRepository interface {
 	ResetForRetry(ctx context.Context, id string, status execution.Status) error
 }
 
+// AsyncValidationFailureRepository atomically persists structured terminal failure evidence.
+type AsyncValidationFailureRepository interface {
+	MarkValidationFailed(ctx context.Context, tenantID, id string, body []byte, summary string, failedAt time.Time, callbackStatus string) error
+}
+
+type AsyncValidationRecoveryRepository interface {
+	RequeueValidationPersistenceFailure(ctx context.Context, tenantID, id string) error
+}
+
 type ScreeningConfigRepository interface {
 	Create(ctx context.Context, item screening.Config) (screening.Config, error)
 	GetByID(ctx context.Context, tenantID, scenarioID, configID string) (screening.Config, error)

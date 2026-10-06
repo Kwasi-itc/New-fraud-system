@@ -1,10 +1,12 @@
 package evalerrors
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 )
 
 type Classification struct {
@@ -13,6 +15,18 @@ type Classification struct {
 }
 
 func Classify(err error) Classification {
+	var contract *payload.ModelContractError
+	if errors.As(err, &contract) {
+		return Classification{Status: http.StatusBadGateway, Category: "dependency_failure"}
+	}
+	var validation *payload.Error
+	if errors.As(err, &validation) {
+		status := http.StatusUnprocessableEntity
+		if validation.Category == "stored_record_invalid" {
+			status = http.StatusInternalServerError
+		}
+		return Classification{Status: status, Category: validation.Category}
+	}
 	if err == nil {
 		return Classification{Status: http.StatusInternalServerError, Category: "internal_error"}
 	}

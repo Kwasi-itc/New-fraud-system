@@ -1,5 +1,37 @@
 # Decision Engine Service
 
+## Execution-time object validation
+
+Single-scenario, all-scenario, ingestion-triggered, live/phantom test-run, scheduled and async evaluations prepare each object before evaluating formulas or writing decision effects. Supplied fields are full objects: every active non-nullable business field is required, nullable omissions become NULL, and explicit NULL is accepted only for nullable fields. Unknown and archived fields are rejected. Empty or omitted fields retain stored-record lookup behavior; fetched records undergo the same validation, with invalid stored records classified as internal data-integrity failures.
+
+The top-level object ID is authoritative. Preparation injects the model's record lookup field when omitted and rejects a conflicting supplied identity. Managed metadata is optional for evaluation. Present managed values follow their declared model type or the fixed physical-column contract (`id` is a string; `updated_at`, `valid_from`, `valid_until` are timestamps; `valid_until` may be NULL). Unrecognized managed names without a declared type are rejected.
+
+Normalization accepts ingestion-compatible string forms for booleans, integers, floats, timestamps and IP addresses. Strings remain strings. Integers preserve signed 64-bit precision; unsafe already-rounded floating-point integers and non-finite floats are rejected. Timestamps normalize to UTC and IP addresses to canonical text. Enum membership uses the normalized value. HTTP payloads, persisted execution requests and record readers preserve JSON numeric text before normalization. Formula constants and arithmetic retain existing evaluator behavior; this change does not promise arbitrary-precision arithmetic.
+
+One prepared object owns a new normalized map and one model snapshot. Scenario fan-out and live/phantom comparison reuse them. Direct PostgreSQL reads receive that snapshot and reject a different tenant; HTTP ingestion reads retain their independent service model resolution and cannot guarantee the same revision. The resolved revision is returned as `model_revision` and persisted with prepared decision request evidence. Model freshness follows the existing model-cache policy; execution-time resolution does not mean a fresh network request on every execution. The compiled validation cache is bounded to 128 tenant/object/revision entries with a 30-second TTL.
+
+Malformed JSON returns 400. Supplied-object validation returns 422 with the existing structured `error`, plus `model_revision`, `validation_errors` and optional `truncated`. Issues are sorted by field/code, capped at 100 and never echo supplied values. Stored-record violations return 500 without exposing field details in the live response; invalid model type metadata returns 502. API client errors retain structured metadata and include field issues in the displayed message.
+
+Async admission retains its existing transport contract. Validation occurs in the worker using the model resolved then. Invalid input terminates the execution without evaluation retries. Status, inline waits and callbacks expose `result_body.error` with category, revision, issues and truncation; `last_error` remains a safe summary. Terminal status, failure evidence, callback job and enabled lifecycle outbox writes commit together. Callback delivery retains its separate retry policy. If that transaction rolls back, a tenant-scoped recovery update makes the row claimable by the job retry and preserves any already-committed terminal result. Database unavailability during both persistence and recovery remains an operational recovery case. Scheduled failures stop retrying deterministic validation errors and include structured evidence in enabled lifecycle events; their status record retains its existing summary format.
+
+No migration is required: failure evidence uses existing decision-owned JSONB storage in the shared database. Batch items and scenarios retain their existing partial-commit behavior after successful preparation.
+
+### Verification and rollout
+
+`go test ./...` and `go vet ./...` passed on 2026-10-06. Contract tests cover completeness, NULL, normalization, enums, identity, archives, integer fidelity, tenant/revision isolation, concurrent bounded caching, no decision effects on invalid preparation, and async transactional rollback. PostgreSQL integration tests compile but skip without `DECISION_ENGINE_TEST_DATABASE_URL`. The execution test helper now creates a disposable database using that explicit connection's CREATE DATABASE privilege and never falls back to `DATABASE_URL`. The added integration test uses real decision-engine migrations for rollback, tenant isolation and terminal-state guards. Race instrumentation was unavailable because cgo is disabled and no GCC compiler is installed. Frontend dependencies were unavailable, so client type/build checks remain pending.
+
+Warm local validation benchmarks on Windows/amd64, Intel i7-1355U (three runs; float fields) measured:
+
+| Fields | Time per object | Bytes per object | Allocations |
+| --- | --- | --- | --- |
+| 10 | 0.96–1.00 µs | 824 | 16 |
+| 100 | 6.92–7.22 µs | 5,832 | 106 |
+| 1,000 | 78.15–89.42 µs | 90,128 | 1,008 |
+
+These measurements include normalization and construction of the new map, but exclude model copying/loading, record reads, cold compilation and scenario execution. Runtime metrics expose preparation latency/errors, model-resolution time and compiled-schema hits/builds/entries. End-to-end scale comparisons, database query plans, cold-cache/concurrent load measurements and an agreed overhead budget remain rollout gates. No production optimization claim is established by the local benchmark.
+
+Before rollout, update producers and queued requests that send partial objects, or deliberately use stored-record lookup. API examples are illustrative and must contain every required field of the actual tenant model. Rebuild APIs and workers together, confirm data-model metadata availability, and run the disposable database and representative scale checks. The code changes do not deploy or restart running services.
+
 Standalone Go service for the decision engine domain, extracted from the monolithic `api` service and designed to work alongside `data-model-service` and `ingestion-service`.
 
 Current location in the workspace:

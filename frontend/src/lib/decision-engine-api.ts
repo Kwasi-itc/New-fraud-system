@@ -4,9 +4,23 @@ export type DecisionEngineApiErrorEnvelope = {
   error?: {
     code?: string;
     message?: string;
+    category?: string;
+    request_id?: string;
+    details?: string;
   };
   details?: string;
+  model_revision?: string;
+  validation_errors?: { field: string; code: string; message: string }[];
+  truncated?: boolean;
 };
+
+export class DecisionEngineApiError extends Error {
+  constructor(public readonly status: number, public readonly body: DecisionEngineApiErrorEnvelope | null) {
+    const issues = body?.validation_errors?.map((issue) => `${issue.field}: ${issue.message}`).join("; ");
+    super(issues || body?.error?.message || body?.details || `Request failed with status ${status}`);
+    this.name = "DecisionEngineApiError";
+  }
+}
 
 export type JSONPrimitive = string | number | boolean | null;
 export type JSONValue =
@@ -218,6 +232,7 @@ export type RuleEvaluationNode = {
 };
 
 export type DecisionEvaluationResult = {
+  model_revision?: string;
   triggered: boolean;
   decision: Decision;
   rule_executions: RuleExecution[];
@@ -225,11 +240,13 @@ export type DecisionEvaluationResult = {
 
 export type TestRunEvaluationResult = {
   live: {
+    model_revision?: string;
     triggered: boolean;
     decision?: Decision;
     rule_executions?: RuleExecution[];
   };
   phantom: {
+    model_revision?: string;
     triggered: boolean;
     decision?: Decision;
     rule_executions?: RuleExecution[];
@@ -243,6 +260,7 @@ export type IngestionTriggerRequest = {
 };
 
 export type MultiDecisionEvaluationResult = {
+  model_revision?: string;
   results: DecisionEvaluationResult[];
 };
 
@@ -516,6 +534,8 @@ export type AsyncDecisionExecution = {
   object_type: string;
   status: string;
   request_body: JSONValue;
+  result_body?: JSONValue;
+  last_error?: string;
   created_at: string;
 };
 
@@ -671,11 +691,7 @@ async function decisionEngineFetch<T>(
     const errorBody = (await response.json().catch(() => null)) as
       | DecisionEngineApiErrorEnvelope
       | null;
-    throw new Error(
-      errorBody?.error?.message ??
-        errorBody?.details ??
-        `Request failed with status ${response.status}`
-    );
+    throw new DecisionEngineApiError(response.status, errorBody);
   }
 
   if (response.status === 204) {

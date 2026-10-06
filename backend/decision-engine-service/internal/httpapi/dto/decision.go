@@ -81,14 +81,16 @@ type RuleExecutionResponse struct {
 }
 
 type DecisionEvaluationResponse struct {
+	ModelRevision  string                  `json:"model_revision,omitempty"`
 	Triggered      bool                    `json:"triggered"`
 	Decision       *DecisionResponse       `json:"decision,omitempty"`
 	RuleExecutions []RuleExecutionResponse `json:"rule_executions,omitempty"`
 }
 
 type MultiDecisionEvaluationResponse struct {
-	ObjectID string                       `json:"object_id"`
-	Results  []DecisionEvaluationResponse `json:"results"`
+	ModelRevision string                       `json:"model_revision,omitempty"`
+	ObjectID      string                       `json:"object_id"`
+	Results       []DecisionEvaluationResponse `json:"results"`
 }
 
 type DecisionListEnvelope struct {
@@ -142,6 +144,7 @@ func AdaptRuleExecution(r decision.RuleExecution) RuleExecutionResponse {
 
 func AdaptDecisionEvaluation(result service.DecisionEvaluationResult) DecisionEvaluationResponse {
 	out := DecisionEvaluationResponse{
+		ModelRevision:  result.ModelRevision,
 		Triggered:      result.Triggered,
 		RuleExecutions: make([]RuleExecutionResponse, len(result.RuleExecutions)),
 	}
@@ -157,8 +160,9 @@ func AdaptDecisionEvaluation(result service.DecisionEvaluationResult) DecisionEv
 
 func AdaptMultiDecisionEvaluation(result service.MultiScenarioEvaluationResult) MultiDecisionEvaluationResponse {
 	out := MultiDecisionEvaluationResponse{
-		ObjectID: result.ObjectID,
-		Results:  make([]DecisionEvaluationResponse, len(result.Results)),
+		ModelRevision: result.ModelRevision,
+		ObjectID:      result.ObjectID,
+		Results:       make([]DecisionEvaluationResponse, len(result.Results)),
 	}
 	for i, item := range result.Results {
 		out.Results[i] = AdaptDecisionEvaluation(item)

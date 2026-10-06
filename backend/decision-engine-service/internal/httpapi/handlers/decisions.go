@@ -47,7 +47,7 @@ func NewDecisionHandler(decisionService service.DecisionService, executionServic
 
 func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 	var req dto.EvaluateDecisionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		writeBadRequestError(c, "invalid_request", "evaluate scenario request is invalid", err)
 		return
 	}
@@ -79,7 +79,7 @@ func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 
 func (h DecisionHandler) CreateDecision(c *gin.Context) {
 	var req dto.CreateDecisionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		writeBadRequestError(c, "invalid_request", "create decision request is invalid", err)
 		return
 	}
@@ -109,7 +109,7 @@ func (h DecisionHandler) CreateDecision(c *gin.Context) {
 
 func (h DecisionHandler) CreateAllDecisions(c *gin.Context) {
 	var req dto.EvaluateDecisionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		writeBadRequestError(c, "invalid_request", "create all decisions request is invalid", err)
 		return
 	}
@@ -393,7 +393,7 @@ func normalizeDecisionOutcomeFilter(value string) string {
 
 func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {
 	var req dto.IngestionTriggerRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		writeBadRequestError(c, "invalid_request", "record ingested request is invalid", err)
 		return
 	}

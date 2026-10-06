@@ -3,9 +3,10 @@ package ports
 import "context"
 
 type TenantModel struct {
-	RevisionID        string
-	RecordLookupField string
-	Tables            map[string]TenantModelTable
+	RevisionID          string
+	RecordLookupField   string
+	ManagedSystemFields []string
+	Tables              map[string]TenantModelTable
 }
 
 type ManagedIndexJob struct {
@@ -19,13 +20,18 @@ type ManagedIndexJob struct {
 type TenantModelTable struct {
 	ID            string
 	Name          string
+	Archived      bool
 	Fields        map[string]TenantModelField
 	LinksToSingle map[string]TenantModelLink
 }
 
 type TenantModelField struct {
-	Name string
-	Type string
+	Name       string
+	Type       string
+	Nullable   bool
+	Archived   bool
+	IsEnum     bool
+	EnumValues []string
 }
 
 type TenantModelLink struct {

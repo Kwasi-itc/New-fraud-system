@@ -8,32 +8,32 @@ import (
 )
 
 type tenantDataReadMetrics struct {
-	getRecordCount            atomic.Uint64
-	getRecordErrorCount       atomic.Uint64
-	listRecordsCount          atomic.Uint64
-	listRecordsErrorCount     atomic.Uint64
-	listRecordsLimitTotal     atomic.Uint64
-	listRecordsMaxLimit       atomic.Uint64
-	queryRecordsCount         atomic.Uint64
-	queryRecordsErrorCount    atomic.Uint64
-	queryRecordsLimitTotal    atomic.Uint64
-	queryRecordsMaxLimit      atomic.Uint64
-	aggregateRecordsCount     atomic.Uint64
+	getRecordCount             atomic.Uint64
+	getRecordErrorCount        atomic.Uint64
+	listRecordsCount           atomic.Uint64
+	listRecordsErrorCount      atomic.Uint64
+	listRecordsLimitTotal      atomic.Uint64
+	listRecordsMaxLimit        atomic.Uint64
+	queryRecordsCount          atomic.Uint64
+	queryRecordsErrorCount     atomic.Uint64
+	queryRecordsLimitTotal     atomic.Uint64
+	queryRecordsMaxLimit       atomic.Uint64
+	aggregateRecordsCount      atomic.Uint64
 	aggregateRecordsErrorCount atomic.Uint64
 }
 
 type TenantDataReadMetrics struct {
-	GetRecordCount         uint64 `json:"get_record_count"`
-	GetRecordErrorCount    uint64 `json:"get_record_error_count"`
-	ListRecordsCount       uint64 `json:"list_records_count"`
-	ListRecordsErrorCount  uint64 `json:"list_records_error_count"`
-	ListRecordsLimitTotal  uint64 `json:"list_records_limit_total"`
-	ListRecordsMaxLimit    uint64 `json:"list_records_max_limit"`
-	QueryRecordsCount      uint64 `json:"query_records_count"`
-	QueryRecordsErrorCount uint64 `json:"query_records_error_count"`
-	QueryRecordsLimitTotal uint64 `json:"query_records_limit_total"`
-	QueryRecordsMaxLimit   uint64 `json:"query_records_max_limit"`
-	AggregateRecordsCount  uint64 `json:"aggregate_records_count"`
+	GetRecordCount             uint64 `json:"get_record_count"`
+	GetRecordErrorCount        uint64 `json:"get_record_error_count"`
+	ListRecordsCount           uint64 `json:"list_records_count"`
+	ListRecordsErrorCount      uint64 `json:"list_records_error_count"`
+	ListRecordsLimitTotal      uint64 `json:"list_records_limit_total"`
+	ListRecordsMaxLimit        uint64 `json:"list_records_max_limit"`
+	QueryRecordsCount          uint64 `json:"query_records_count"`
+	QueryRecordsErrorCount     uint64 `json:"query_records_error_count"`
+	QueryRecordsLimitTotal     uint64 `json:"query_records_limit_total"`
+	QueryRecordsMaxLimit       uint64 `json:"query_records_max_limit"`
+	AggregateRecordsCount      uint64 `json:"aggregate_records_count"`
 	AggregateRecordsErrorCount uint64 `json:"aggregate_records_error_count"`
 }
 
@@ -42,17 +42,17 @@ func (m *tenantDataReadMetrics) snapshot() TenantDataReadMetrics {
 		return TenantDataReadMetrics{}
 	}
 	return TenantDataReadMetrics{
-		GetRecordCount:            m.getRecordCount.Load(),
-		GetRecordErrorCount:       m.getRecordErrorCount.Load(),
-		ListRecordsCount:          m.listRecordsCount.Load(),
-		ListRecordsErrorCount:     m.listRecordsErrorCount.Load(),
-		ListRecordsLimitTotal:     m.listRecordsLimitTotal.Load(),
-		ListRecordsMaxLimit:       m.listRecordsMaxLimit.Load(),
-		QueryRecordsCount:         m.queryRecordsCount.Load(),
-		QueryRecordsErrorCount:    m.queryRecordsErrorCount.Load(),
-		QueryRecordsLimitTotal:    m.queryRecordsLimitTotal.Load(),
-		QueryRecordsMaxLimit:      m.queryRecordsMaxLimit.Load(),
-		AggregateRecordsCount:     m.aggregateRecordsCount.Load(),
+		GetRecordCount:             m.getRecordCount.Load(),
+		GetRecordErrorCount:        m.getRecordErrorCount.Load(),
+		ListRecordsCount:           m.listRecordsCount.Load(),
+		ListRecordsErrorCount:      m.listRecordsErrorCount.Load(),
+		ListRecordsLimitTotal:      m.listRecordsLimitTotal.Load(),
+		ListRecordsMaxLimit:        m.listRecordsMaxLimit.Load(),
+		QueryRecordsCount:          m.queryRecordsCount.Load(),
+		QueryRecordsErrorCount:     m.queryRecordsErrorCount.Load(),
+		QueryRecordsLimitTotal:     m.queryRecordsLimitTotal.Load(),
+		QueryRecordsMaxLimit:       m.queryRecordsMaxLimit.Load(),
+		AggregateRecordsCount:      m.aggregateRecordsCount.Load(),
 		AggregateRecordsErrorCount: m.aggregateRecordsErrorCount.Load(),
 	}
 }
@@ -90,6 +90,13 @@ func updateMax(slot *atomic.Uint64, candidate uint64) {
 type instrumentedTenantDataReader struct {
 	reader  ports.TenantDataReader
 	metrics *tenantDataReadMetrics
+}
+
+func (r instrumentedTenantDataReader) WithModel(tenantID string, model ports.TenantModel) ports.TenantDataReader {
+	if scoped, ok := r.reader.(ports.ModelScopedReader); ok {
+		r.reader = scoped.WithModel(tenantID, model)
+	}
+	return r
 }
 
 func (r instrumentedTenantDataReader) GetRecord(ctx context.Context, tenantID, objectType, objectID string) (ports.TenantRecord, error) {

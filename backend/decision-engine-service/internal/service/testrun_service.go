@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
@@ -32,6 +33,7 @@ type TestRunRuleStat struct {
 }
 
 type TestRunService struct {
+	payloadValidator            *payload.Validator
 	txManager                   ports.TransactionManager
 	idGen                       ports.IDGenerator
 	clock                       ports.Clock
@@ -83,6 +85,7 @@ func NewTestRunService(
 	ruleEvaluationConcurrency int,
 ) TestRunService {
 	return TestRunService{
+		payloadValidator:            payload.NewValidator(),
 		txManager:                   txManager,
 		idGen:                       idGen,
 		clock:                       clock,
@@ -164,6 +167,25 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 	if s.clock.Now().After(tr.ExpiresAt) {
 		return TestRunEvaluationResult{}, fmt.Errorf("test run is expired")
 	}
+	scn, err := s.scenarioRepo.GetByID(ctx, tenantID, tr.ScenarioID)
+	if err != nil {
+		return TestRunEvaluationResult{}, err
+	}
+	if req.ObjectType != scn.TriggerObjectType {
+		return TestRunEvaluationResult{}, fmt.Errorf("object_type does not match scenario trigger object type")
+	}
+	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	if err != nil {
+		return TestRunEvaluationResult{}, err
+	}
+	validator := s.payloadValidator
+	if validator == nil {
+		validator = payload.NewValidator()
+	}
+	req, err = prepareObject(ctx, tenantID, req, model, s.tenantDataReader, validator)
+	if err != nil {
+		return TestRunEvaluationResult{}, err
+	}
 
 	liveResult, err := evaluateScenarioByIteration(ctx, s.idGen, s.clock, tr.TenantID, tr.ScenarioID, tr.LiveIterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency, s.geoIPLookup)
 	if err != nil {
@@ -193,7 +215,7 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		_ = storedExecs
 	}
 
-	phantomResult := DecisionEvaluationResult{Triggered: false}
+	phantomResult := DecisionEvaluationResult{Triggered: false, ModelRevision: model.RevisionID}
 	if phantomEval != nil {
 		d := decision.Decision{
 			ID:                  storedPhantom.ID,
@@ -220,6 +242,7 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 			}
 		}
 		phantomResult = DecisionEvaluationResult{
+			ModelRevision:  model.RevisionID,
 			Triggered:      true,
 			Decision:       &d,
 			RuleExecutions: phantomRuleResults,
@@ -319,21 +342,21 @@ func evaluateScenarioByIteration(
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
-	if len(req.Fields) == 0 && tenantDataReader != nil {
-		record, err := tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
+	if req.prepared == nil {
+		if dataModelReader == nil {
+			return DecisionEvaluationResult{}, fmt.Errorf("tenant model is not configured")
+		}
+		model, err := dataModelReader.GetTenantModel(ctx, tenantID)
 		if err != nil {
 			return DecisionEvaluationResult{}, err
 		}
-		req.Fields = record.Fields
-	}
-	var model *ports.TenantModel
-	if dataModelReader != nil {
-		tenantModel, err := dataModelReader.GetTenantModel(ctx, tenantID)
+		req, err = prepareObject(ctx, tenantID, req, model, tenantDataReader, payload.NewValidator())
 		if err != nil {
 			return DecisionEvaluationResult{}, err
 		}
-		model = &tenantModel
 	}
+	model := &req.prepared.model
+	tenantDataReader = req.prepared.reader
 	runtime := asteval.Runtime{
 		TenantID:                    tenantID,
 		ObjectID:                    req.ObjectID,
@@ -358,7 +381,7 @@ func evaluateScenarioByIteration(
 		return DecisionEvaluationResult{}, err
 	}
 	if !triggered {
-		return DecisionEvaluationResult{Triggered: false}, nil
+		return DecisionEvaluationResult{Triggered: false, ModelRevision: model.RevisionID}, nil
 	}
 	rules, err := ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
@@ -398,7 +421,7 @@ func evaluateScenarioByIteration(
 		Triggered:           true,
 		CreatedAt:           now,
 	}
-	return DecisionEvaluationResult{Triggered: true, Decision: &item, RuleExecutions: ruleExecs}, nil
+	return DecisionEvaluationResult{Triggered: true, Decision: &item, RuleExecutions: ruleExecs, ModelRevision: model.RevisionID}, nil
 }
 
 func evaluatePhantomByIteration(
@@ -425,21 +448,21 @@ func evaluatePhantomByIteration(
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(req.Fields) == 0 && tenantDataReader != nil {
-		record, err := tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
+	if req.prepared == nil {
+		if dataModelReader == nil {
+			return nil, nil, fmt.Errorf("tenant model is not configured")
+		}
+		model, err := dataModelReader.GetTenantModel(ctx, tenantID)
 		if err != nil {
 			return nil, nil, err
 		}
-		req.Fields = record.Fields
-	}
-	var model *ports.TenantModel
-	if dataModelReader != nil {
-		tenantModel, err := dataModelReader.GetTenantModel(ctx, tenantID)
+		req, err = prepareObject(ctx, tenantID, req, model, tenantDataReader, payload.NewValidator())
 		if err != nil {
 			return nil, nil, err
 		}
-		model = &tenantModel
 	}
+	model := &req.prepared.model
+	tenantDataReader = req.prepared.reader
 	runtime := asteval.Runtime{
 		TenantID:                    tenantID,
 		ObjectID:                    req.ObjectID,

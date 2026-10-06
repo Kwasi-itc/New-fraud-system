@@ -1,15 +1,23 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/evalerrors"
 )
 
 type apiErrorEnvelope struct {
-	Error apiErrorBody `json:"error"`
+	Error            apiErrorBody    `json:"error"`
+	ValidationErrors []payload.Issue `json:"validation_errors,omitempty"`
+	ModelRevision    string          `json:"model_revision,omitempty"`
+	Truncated        bool            `json:"truncated,omitempty"`
 }
 
 type apiErrorBody struct {
@@ -51,7 +59,28 @@ func writeAPIError(c *gin.Context, spec apiErrorSpec, code, message string, err 
 	if err != nil && spec.Status < http.StatusInternalServerError {
 		body.Error.Details = err.Error()
 	}
+	var validation *payload.Error
+	if errors.As(err, &validation) {
+		body.ModelRevision = validation.ModelRevision
+		if validation.Category != "stored_record_invalid" {
+			body.ValidationErrors, body.Truncated = validation.Issues, validation.Truncated
+		}
+	}
 	c.JSON(spec.Status, body)
+}
+
+// bindEvaluationJSON preserves numeric text for full-object validation and rejects trailing bodies.
+func bindEvaluationJSON(c *gin.Context, target any) error {
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return fmt.Errorf("request must contain one JSON object")
+	}
+	return nil
 }
 
 func classifyDecisionEvaluationError(err error) apiErrorSpec {

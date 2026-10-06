@@ -12,6 +12,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	scenarioDomain "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
@@ -24,28 +25,36 @@ import (
 )
 
 type DecisionEvaluationRequest struct {
-	ObjectID   string         `json:"object_id"`
-	ObjectType string         `json:"object_type"`
-	Fields     map[string]any `json:"fields"`
+	ObjectID     string         `json:"object_id"`
+	ObjectType   string         `json:"object_type"`
+	Fields       map[string]any `json:"fields"`
+	prepared     *preparedObject
+	storedSource bool
 }
 
 func (r DecisionEvaluationRequest) JSONBody() (json.RawMessage, error) {
-	return json.Marshal(map[string]any{
+	body := map[string]any{
 		"object_id":   r.ObjectID,
 		"object_type": r.ObjectType,
 		"fields":      r.Fields,
-	})
+	}
+	if r.prepared != nil {
+		body["model_revision"] = r.prepared.model.RevisionID
+	}
+	return json.Marshal(body)
 }
 
 type DecisionEvaluationResult struct {
+	ModelRevision  string                   `json:"model_revision,omitempty"`
 	Triggered      bool                     `json:"triggered"`
 	Decision       *decision.Decision       `json:"decision,omitempty"`
 	RuleExecutions []decision.RuleExecution `json:"rule_executions,omitempty"`
 }
 
 type MultiScenarioEvaluationResult struct {
-	ObjectID string                     `json:"object_id"`
-	Results  []DecisionEvaluationResult `json:"results"`
+	ModelRevision string                     `json:"model_revision,omitempty"`
+	ObjectID      string                     `json:"object_id"`
+	Results       []DecisionEvaluationResult `json:"results"`
 }
 
 const decisionEvaluationCacheTTL = 30 * time.Second
@@ -66,6 +75,8 @@ type DBPoolStats struct {
 type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
+	preparationMetrics            *preparationMetrics
+	payloadValidator              *payload.Validator
 	txManager                     ports.TransactionManager
 	idGen                         ports.IDGenerator
 	clock                         ports.Clock
@@ -144,6 +155,8 @@ type decisionCacheStatsSnapshot struct {
 }
 
 type DecisionRuntimeMetrics struct {
+	Preparation       PreparationMetrics        `json:"preparation"`
+	PayloadSchemas    payload.Metrics           `json:"payload_schemas"`
 	Cache             DecisionCacheMetrics      `json:"cache"`
 	DBPool            *DBPoolStats              `json:"db_pool,omitempty"`
 	Pressure          DecisionRuntimePressure   `json:"pressure"`
@@ -340,6 +353,8 @@ func NewDecisionService(
 		scenarioEvaluationConcurrency: scenarioEvaluationConcurrency,
 		aggregateRemoteConcurrency:    aggregateRemoteConcurrency,
 		evaluationCache:               newDecisionEvaluationCache(decisionEvaluationCacheTTL),
+		preparationMetrics:            &preparationMetrics{operation: newOperationMetricsState()},
+		payloadValidator:              payload.NewValidator(),
 		metadataLoadGroup:             &singleflight.Group{},
 		dbPoolStatsProvider:           dbPoolStatsProvider,
 		evaluationMetrics:             newEvaluationMetricsCollector(),
@@ -367,6 +382,10 @@ func (s DecisionService) evaluateScenario(
 	aggregateCache *asteval.AggregateResultCache,
 	evaluationNow time.Time,
 ) (result DecisionEvaluationResult, err error) {
+	req, err = s.prepare(ctx, tenantID, req)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
 	timingStartedAt := time.Now()
 	stageStartedAt := timingStartedAt
 	timings := make(map[string]int64, 20)
@@ -423,21 +442,7 @@ func (s DecisionService) evaluateScenario(
 	if req.ObjectType != scn.TriggerObjectType {
 		return DecisionEvaluationResult{}, fmt.Errorf("object_type does not match scenario trigger object type")
 	}
-	if len(req.Fields) == 0 {
-		currentStage = "record_get"
-		record, err := s.tenantDataReader.GetRecord(ctx, tenantID, req.ObjectType, req.ObjectID)
-		if err != nil {
-			return DecisionEvaluationResult{}, err
-		}
-		req.Fields = record.Fields
-		markTiming("record_get")
-	}
-	currentStage = "tenant_model_get"
-	model, err := s.getTenantModel(ctx, tenantID)
-	if err != nil {
-		return DecisionEvaluationResult{}, err
-	}
-	markTiming("tenant_model_get")
+	model := req.prepared.model
 	runtime := asteval.Runtime{
 		TenantID:                    tenantID,
 		ObjectID:                    req.ObjectID,
@@ -445,7 +450,7 @@ func (s DecisionService) evaluateScenario(
 		Fields:                      req.Fields,
 		Now:                         evaluationNow,
 		Model:                       &model,
-		TenantDataReader:            s.tenantDataReader,
+		TenantDataReader:            req.prepared.reader,
 		CustomListRepo:              s.customListRepo,
 		RecordTagRepo:               s.recordTagRepo,
 		RiskRepo:                    s.riskRepo,
@@ -482,7 +487,7 @@ func (s DecisionService) evaluateScenario(
 			0,
 			s.dbPoolStatsAttrs(poolStatsBefore, hasPoolStats)...,
 		)
-		return DecisionEvaluationResult{Triggered: false}, nil
+		return DecisionEvaluationResult{Triggered: false, ModelRevision: model.RevisionID}, nil
 	}
 
 	currentStage = "rules_list"
@@ -688,6 +693,7 @@ func (s DecisionService) evaluateScenario(
 	)
 
 	return DecisionEvaluationResult{
+		ModelRevision:  model.RevisionID,
 		Triggered:      true,
 		Decision:       &stored,
 		RuleExecutions: storedExecs,
@@ -1418,6 +1424,8 @@ func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
 		TopRemoteShapes:                  aggregateSnapshot.TopRemoteShapes,
 	}
 	return DecisionRuntimeMetrics{
+		Preparation:       s.preparationMetrics.snapshot(),
+		PayloadSchemas:    s.payloadValidator.Metrics(),
 		Cache:             cache,
 		DBPool:            dbPool,
 		Pressure:          buildDecisionRuntimePressure(dbPool, aggregateMetrics),
@@ -1796,18 +1804,21 @@ func cloneScenarioRules(items []scenarioDomain.Rule) []scenarioDomain.Rule {
 
 func cloneTenantModel(item ports.TenantModel) ports.TenantModel {
 	out := ports.TenantModel{
-		RevisionID:        item.RevisionID,
-		RecordLookupField: item.RecordLookupField,
-		Tables:            make(map[string]ports.TenantModelTable, len(item.Tables)),
+		RevisionID:          item.RevisionID,
+		RecordLookupField:   item.RecordLookupField,
+		ManagedSystemFields: append([]string(nil), item.ManagedSystemFields...),
+		Tables:              make(map[string]ports.TenantModelTable, len(item.Tables)),
 	}
 	for name, table := range item.Tables {
 		clonedTable := ports.TenantModelTable{
 			ID:            table.ID,
 			Name:          table.Name,
+			Archived:      table.Archived,
 			Fields:        make(map[string]ports.TenantModelField, len(table.Fields)),
 			LinksToSingle: make(map[string]ports.TenantModelLink, len(table.LinksToSingle)),
 		}
 		for fieldName, field := range table.Fields {
+			field.EnumValues = append([]string(nil), field.EnumValues...)
 			clonedTable.Fields[fieldName] = field
 		}
 		for linkName, link := range table.LinksToSingle {
@@ -2077,14 +2088,19 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		s.evaluationMetrics.recordMulti(time.Since(startedAt), len(result.Results), err)
 	}()
 	cacheStatsBefore, hasCacheStats := s.snapshotCacheStats()
+	req, err = s.prepare(ctx, tenantID, req)
+	if err != nil {
+		return MultiScenarioEvaluationResult{}, err
+	}
 	scenarios, err := s.getLiveScenariosByTriggerObject(ctx, tenantID, req.ObjectType)
 	if err != nil {
 		return MultiScenarioEvaluationResult{}, err
 	}
 
 	results := MultiScenarioEvaluationResult{
-		ObjectID: req.ObjectID,
-		Results:  make([]DecisionEvaluationResult, len(scenarios)),
+		ModelRevision: req.prepared.model.RevisionID,
+		ObjectID:      req.ObjectID,
+		Results:       make([]DecisionEvaluationResult, len(scenarios)),
 	}
 	evalCache := asteval.NewEvaluationCache()
 	aggregateCache := asteval.NewAggregateResultCache()

@@ -116,16 +116,25 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 	}
 
 	model := ports.TenantModel{
-		RevisionID:        payload.DataModel.RevisionID,
-		RecordLookupField: payload.DataModel.IngestionContract.RecordLookupField,
-		Tables:            make(map[string]ports.TenantModelTable, len(payload.DataModel.Tables)),
+		RevisionID:          payload.DataModel.RevisionID,
+		RecordLookupField:   payload.DataModel.IngestionContract.RecordLookupField,
+		ManagedSystemFields: append([]string(nil), payload.DataModel.IngestionContract.ManagedSystemFields...),
+		Tables:              make(map[string]ports.TenantModelTable, len(payload.DataModel.Tables)),
 	}
 	for key, table := range payload.DataModel.Tables {
 		fields := make(map[string]ports.TenantModelField, len(table.Fields))
 		for fieldKey, field := range table.Fields {
+			values := make([]string, len(field.EnumValues))
+			for i, value := range field.EnumValues {
+				values[i] = value.Value
+			}
 			fields[fieldKey] = ports.TenantModelField{
-				Name: field.Name,
-				Type: field.DataType,
+				Name:       field.Name,
+				Type:       field.DataType,
+				Nullable:   field.Nullable,
+				Archived:   field.Archived,
+				IsEnum:     field.IsEnum,
+				EnumValues: values,
 			}
 		}
 		links := make(map[string]ports.TenantModelLink, len(table.LinksToSingle))
@@ -141,6 +150,7 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 		model.Tables[key] = ports.TenantModelTable{
 			ID:            table.ID,
 			Name:          table.Name,
+			Archived:      table.Archived,
 			Fields:        fields,
 			LinksToSingle: links,
 		}
@@ -262,6 +272,7 @@ type publishedDataModelResponse struct {
 }
 
 type assembledTableResponse struct {
+	Archived      bool                              `json:"archived"`
 	ID            string                            `json:"id"`
 	Name          string                            `json:"name"`
 	Fields        map[string]assembledFieldResponse `json:"fields"`
@@ -269,12 +280,19 @@ type assembledTableResponse struct {
 }
 
 type assembledFieldResponse struct {
-	Name     string `json:"name"`
-	DataType string `json:"data_type"`
+	Name       string `json:"name"`
+	DataType   string `json:"data_type"`
+	Nullable   bool   `json:"nullable"`
+	Archived   bool   `json:"archived"`
+	IsEnum     bool   `json:"is_enum"`
+	EnumValues []struct {
+		Value string `json:"value"`
+	} `json:"enum_values"`
 }
 
 type ingestionContractResponse struct {
-	RecordLookupField string `json:"record_lookup_field"`
+	RecordLookupField   string   `json:"record_lookup_field"`
+	ManagedSystemFields []string `json:"managed_system_fields"`
 }
 
 type assembledLinkResponse struct {

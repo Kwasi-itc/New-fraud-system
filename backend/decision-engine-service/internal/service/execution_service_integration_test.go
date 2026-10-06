@@ -314,14 +314,32 @@ func executionIntegrationUUIDSequence(count int) []uuid.UUID {
 
 func executionIntegrationDatabaseURL(t *testing.T) string {
 	t.Helper()
-	if url := os.Getenv("DECISION_ENGINE_TEST_DATABASE_URL"); url != "" {
-		return url
+	url := os.Getenv("DECISION_ENGINE_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("set DECISION_ENGINE_TEST_DATABASE_URL with CREATE DATABASE permission; each test uses a disposable database")
 	}
-	if url := os.Getenv("DATABASE_URL"); url != "" {
-		return url
+	config, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		t.Fatal(err)
 	}
-	t.Skip("set DECISION_ENGINE_TEST_DATABASE_URL or DATABASE_URL to run PostgreSQL integration tests")
-	return ""
+	admin, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "decision_test_" + uuid.New().String()
+	// Generated identifiers are quoted; only this freshly created database is dropped.
+	if _, err := admin.Exec(context.Background(), `CREATE DATABASE "`+name+`"`); err != nil {
+		admin.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		defer admin.Close()
+		if _, err := admin.Exec(context.Background(), `DROP DATABASE "`+name+`" WITH (FORCE)`); err != nil {
+			t.Errorf("drop disposable test database: %v", err)
+		}
+	})
+	config.ConnConfig.Database = name
+	return config.ConnConfig.ConnString()
 }
 
 func executionIntegrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {

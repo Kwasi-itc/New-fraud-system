@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,13 @@ type txExecutor interface {
 type TenantDataReader struct {
 	db              txExecutor
 	dataModelReader ports.DataModelReader
+	snapshot        *ports.TenantModel
+	snapshotTenant  string
+}
+
+func (r TenantDataReader) WithModel(tenantID string, model ports.TenantModel) ports.TenantDataReader {
+	r.snapshot, r.snapshotTenant = &model, tenantID
+	return r
 }
 
 func NewTenantDataReader(db txExecutor, dataModelReader ports.DataModelReader) TenantDataReader {
@@ -148,7 +156,16 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, tenantID string,
 }
 
 func (r TenantDataReader) resolveTable(ctx context.Context, tenantID, objectType string) (ports.TenantModel, ports.TenantModelTable, string, error) {
-	model, err := r.dataModelReader.GetTenantModel(ctx, tenantID)
+	var model ports.TenantModel
+	var err error
+	if r.snapshot != nil {
+		if tenantID != r.snapshotTenant {
+			return ports.TenantModel{}, ports.TenantModelTable{}, "", fmt.Errorf("model snapshot tenant mismatch")
+		}
+		model = *r.snapshot
+	} else {
+		model, err = r.dataModelReader.GetTenantModel(ctx, tenantID)
+	}
 	if err != nil {
 		return ports.TenantModel{}, ports.TenantModelTable{}, "", err
 	}
@@ -177,7 +194,9 @@ func recordFromRow(rows pgx.Rows, recordLookupField, objectType string) (ports.T
 		return ports.TenantRecord{}, err
 	}
 	fields := map[string]any{}
-	if err := json.Unmarshal(payload, &fields); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	if err := decoder.Decode(&fields); err != nil {
 		return ports.TenantRecord{}, err
 	}
 	return ports.TenantRecord{
@@ -268,6 +287,9 @@ func buildAggregatePredicateSQL(model ports.TenantModel, table ports.TenantModel
 	case "eq":
 		*args = append(*args, filter.Value)
 		return fmt.Sprintf("%s = $%d", column, len(*args)), nil
+	case "neq":
+		*args = append(*args, filter.Value)
+		return fmt.Sprintf("%s <> $%d", column, len(*args)), nil
 	case "gt":
 		*args = append(*args, filter.Value)
 		return fmt.Sprintf("%s > $%d", column, len(*args)), nil

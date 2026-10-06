@@ -64,7 +64,9 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	}
 
 	var payload getRecordResponse
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	decoder := json.NewDecoder(resp.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(&payload); err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("decode response: %w", err)
 	}
 	return ports.TenantRecord{
@@ -98,7 +100,9 @@ func (c HTTPClient) ListRecords(ctx context.Context, tenantID, objectType string
 	}
 
 	var payload listRecordsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	decoder := json.NewDecoder(resp.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(&payload); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	records := make([]ports.TenantRecord, len(payload.Records))
@@ -135,7 +139,9 @@ func (c HTTPClient) QueryRecords(ctx context.Context, tenantID, objectType, fiel
 	}
 
 	var payload listRecordsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	decoder := json.NewDecoder(resp.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(&payload); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	records := make([]ports.TenantRecord, len(payload.Records))

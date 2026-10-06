@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -172,6 +173,53 @@ func TestAggregateRecordsUsesDataModelContract(t *testing.T) {
 	}
 }
 
+func TestAggregateRecordsCountsWalletsOnOtherAccounts(t *testing.T) {
+	t.Parallel()
+
+	model := ports.TenantModel{
+		RecordLookupField: "object_id",
+		Tables: map[string]ports.TenantModelTable{
+			"wallets": {
+				Name: "wallets",
+				Fields: map[string]ports.TenantModelField{
+					"wallet_number_hash": {Name: "wallet_number_hash", Type: "string"},
+					"user_id":            {Name: "user_id", Type: "string"},
+				},
+			},
+		},
+	}
+	// SQL-like input must remain a bound value rather than changing the query.
+	userID := "account' OR true --"
+	db := &fakeAggregateExecutor{value: int64(1)}
+	reader := NewTenantDataReader(db, fakeTenantModelReader{model: model})
+	value, err := reader.AggregateRecords(context.Background(), "11111111-1111-1111-1111-111111111111", ports.AggregateQuery{
+		ObjectType: "wallets",
+		Aggregate:  "count",
+		Field:      "object_id",
+		Filter: &ports.AggregateFilter{
+			Kind:     "group",
+			Operator: "and",
+			Children: []ports.AggregateFilter{
+				{Kind: "predicate", Field: "wallet_number_hash", Op: "eq", Value: "wallet-hash"},
+				{Kind: "predicate", Field: "user_id", Op: "neq", Value: userID},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("AggregateRecords() error = %v", err)
+	}
+	if value != int64(1) {
+		t.Fatalf("AggregateRecords() value = %#v, want 1", value)
+	}
+	wantSQL := `SELECT COUNT("object_id") FROM "tenant_11111111111111111111111111111111"."wallets" WHERE ("wallet_number_hash" = $1) AND ("user_id" <> $2)`
+	if db.lastSQL != wantSQL {
+		t.Fatalf("AggregateRecords() SQL = %q, want %q", db.lastSQL, wantSQL)
+	}
+	if len(db.lastArgs) != 2 || db.lastArgs[0] != "wallet-hash" || db.lastArgs[1] != userID {
+		t.Fatalf("AggregateRecords() args = %#v", db.lastArgs)
+	}
+}
+
 func TestGetRecordUsesTypedDirectReadAdapter(t *testing.T) {
 	t.Parallel()
 
@@ -189,7 +237,7 @@ func TestGetRecordUsesTypedDirectReadAdapter(t *testing.T) {
 	if record.ObjectID != "txn-1" || record.ObjectType != "transactions" {
 		t.Fatalf("GetRecord() = %#v", record)
 	}
-	if got := record.Fields["amount"]; got != float64(42) {
+	if got := record.Fields["amount"]; got != json.Number("42") {
 		t.Fatalf("record.Fields[amount] = %#v", got)
 	}
 }

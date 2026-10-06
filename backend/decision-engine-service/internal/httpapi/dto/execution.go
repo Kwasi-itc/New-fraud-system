@@ -67,6 +67,7 @@ type CreateAsyncDecisionExecutionRequest struct {
 }
 
 type AsyncDecisionExecutionResponse struct {
+	LastError            string          `json:"last_error,omitempty"`
 	ID                   string          `json:"id"`
 	TenantID             string          `json:"tenant_id"`
 	ScenarioID           string          `json:"scenario_id"`
@@ -123,6 +124,7 @@ func AdaptScheduledExecution(item execution.ScheduledExecution) ScheduledExecuti
 
 func AdaptAsyncDecisionExecution(item execution.AsyncDecisionExecution) AsyncDecisionExecutionResponse {
 	return AsyncDecisionExecutionResponse{
+		LastError:            item.LastError,
 		ID:                   item.ID,
 		TenantID:             item.TenantID,
 		ScenarioID:           item.ScenarioID,
