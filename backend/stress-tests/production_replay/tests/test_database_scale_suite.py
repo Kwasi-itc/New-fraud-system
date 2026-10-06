@@ -7,12 +7,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from unittest.mock import AsyncMock
 
 from production_replay.api_client import APIError
 from production_replay.database_scale_suite import (
     _rebase_manifest,
     _run_fixed_pipeline,
     _sql_string_literal,
+    _durable_verification,
 )
 from production_replay.domain import TransactionEvent
 from production_replay.manifest import load_manifest
@@ -53,6 +55,20 @@ def event(number: int) -> TransactionEvent:
 
 
 class DatabaseScaleSuiteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_skip_verification_does_not_read_database_or_certify_results(self):
+        database = AsyncMock()
+        result = await _durable_verification(database, None, "tenant", 0, 100, skip=True)
+        database.reconcile.assert_not_awaited()
+        self.assertEqual(result["status"], "skipped")
+        self.assertIsNone(result["valid"])
+
+    async def test_verification_remains_enabled_by_default(self):
+        database = AsyncMock()
+        database.reconcile.return_value = {"valid": True}
+        result = await _durable_verification(database, None, "tenant", 0, 100)
+        database.reconcile.assert_awaited_once_with(None, "tenant", 0, 100)
+        self.assertTrue(result["valid"])
+
     def test_database_name_is_safely_quoted_for_termination_query(self) -> None:
         self.assertEqual(_sql_string_literal("fraud_scale_test"), "'fraud_scale_test'")
         self.assertEqual(_sql_string_literal("quoted'name"), "'quoted''name'")

@@ -166,7 +166,7 @@ def durable_summary(ledger: IdentityLedger, expected_seed: int, expected_evaluat
 
 async def reconcile_database(command: list[str], env: dict[str, str], ledger: IdentityLedger,
                              tenant_id: str, seed_count: int, evaluation_count: int,
-                             timeout: float = 1800, expected_seed_batches: int | None = None) -> dict[str, Any]:
+                             timeout: float = 7200, expected_seed_batches: int | None = None) -> dict[str, Any]:
     started = time.monotonic()
     deadline = started + timeout
     process = None

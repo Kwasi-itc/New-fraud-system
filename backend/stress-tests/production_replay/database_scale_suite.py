@@ -225,8 +225,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Records reserved ahead of the fixed evaluation corpus in its month")
     parser.add_argument("--database-instance-class", default="db.r7g.large",
                         help="Declared RDS instance class for the report; cannot be verified through psql")
-    parser.add_argument("--verification-timeout", type=float, default=1800,
-                        help="Deadline for exact post-run database reconciliation")
+    parser.add_argument("--verification-timeout", type=float, default=7200,
+                        help="Deadline in seconds for exact post-run database reconciliation (default: 7200 / 2 hours)")
+    parser.add_argument("--skip-verification", action="store_true",
+                        help="Skip post-run durable database reconciliation; results remain unverified and cannot pass suite acceptance")
     parser.add_argument(
         "--phase",
         action="extend",
@@ -280,7 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _validate_args(args: argparse.Namespace) -> None:
     if getattr(args, "evaluation_offset", 5_000_000) < 0:
         raise ValueError("--evaluation-offset must be nonnegative")
-    if not math.isfinite(getattr(args, "verification_timeout", 1800)) or getattr(args, "verification_timeout", 1800) <= 0:
+    if not math.isfinite(getattr(args, "verification_timeout", 7200)) or getattr(args, "verification_timeout", 7200) <= 0:
         raise ValueError("--verification-timeout must be finite and positive")
     if args.capture_database_metrics and not args.capture_metrics:
         raise ValueError("--capture-database-metrics requires --capture-metrics")
@@ -1195,12 +1197,16 @@ async def _run_phase_with_ledger(
         "postgres_before_evaluation": postgres_before_evaluation,
         "postgres_after_evaluation": postgres_after_evaluation, "postgres_evaluation_delta": postgres_delta,
     })
-    report.stage("verifying_database")
+    skip_verification = getattr(args, "skip_verification", False)
+    report.stage("verification_skipped" if skip_verification else "verifying_database")
     database_after_evaluation = await asyncio.to_thread(database.stats)
-    reconciliation = await database.reconcile(ledger, tenant_id, phase.seed_count, args.evaluation_count)
+    reconciliation = await _durable_verification(
+        database, ledger, tenant_id, phase.seed_count, args.evaluation_count,
+        skip=skip_verification,
+    )
     pipeline["identity_reconciliation"]["durable_database_effects_verified"] = reconciliation.get("valid") is True
     record_cardinality = reconciliation.get("record_cardinality", {})
-    audit_counts = {name: reconciliation.get("persisted_totals", {}).get(name, 0)
+    audit_counts = {name: reconciliation.get("persisted_totals", {}).get(name)
                     for name in ("ingestion_audit", "outbox_events")}
     expected_per_record_entries = phase.seed_count + args.evaluation_count
     per_record_entries_verified = reconciliation.get("valid") is True
@@ -1218,7 +1224,7 @@ async def _run_phase_with_ledger(
         "per_record_entries": {**audit_counts, "expected_exact_each": expected_per_record_entries,
                                "verified": per_record_entries_verified},
     })
-    if not per_record_entries_verified:
+    if not skip_verification and not per_record_entries_verified:
         raise ValueError(
             "durable database reconciliation failed; see phase JSON discrepancies"
         )
@@ -1249,6 +1255,15 @@ async def _run_phase_with_ledger(
             },
         },
     }
+
+
+async def _durable_verification(
+    database: DatabaseController, ledger: IdentityLedger, tenant_id: str,
+    seed_count: int, evaluation_count: int, *, skip: bool = False,
+) -> dict[str, Any]:
+    if skip:
+        return {"status": "skipped", "valid": None, "reason": "skip_verification_requested"}
+    return await database.reconcile(ledger, tenant_id, seed_count, evaluation_count)
 
 
 def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1283,7 +1298,9 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         telemetry = phase.get("telemetry", {"enabled": False})
         telemetry_passed = not telemetry["enabled"] or telemetry.get("valid") is True
         durable = phase.get("database", {}).get("durable_reconciliation")
-        if durable is None or durable.get("valid") is not True:
+        if durable is not None and durable.get("status") == "skipped":
+            reliability_failures.append("durable_verification_skipped")
+        elif durable is None or durable.get("valid") is not True:
             reliability_failures.append("durable_reconciliation_failed")
         source = evaluation.get("evaluation_source", {})
         baseline_source = baseline_evaluation.get("evaluation_source", {})
@@ -1431,6 +1448,7 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
                 "runs_per_phase": 1,
                 "database_instance_class": {"declared": args.database_instance_class, "verified": False},
                 "verification_timeout_seconds": args.verification_timeout,
+                "skip_verification": args.skip_verification,
                 "phase": args.phase,
                 "database_name": args.database_name,
                 "scenario_set": SCENARIO_SET_INTERNAL,

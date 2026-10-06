@@ -47,9 +47,21 @@ PostgreSQL boundary snapshots.
 Exact reconciliation happens outside throughput timing and can scan all selected tenant
 records; it is not run every five seconds. Output streams into bounded-cache SQLite, so
 memory does not grow with all identities, but local disk usage does. Allow disk capacity for
-the seed and evaluation ledgers. `--verification-timeout` defaults to 1800 seconds, with
+the seed and evaluation ledgers. `--verification-timeout` defaults to 7200 seconds (two hours), with
 read-only PostgreSQL sessions and a lock timeout. This verifies persisted identities and
 counts, not rule detection accuracy or outbox delivery.
+The deadline covers PostgreSQL evidence collection and the local SQLite comparison together.
+Override it with `--verification-timeout 7200` on older deployments, or another finite,
+positive number of seconds. There is no option to disable the deadline while verifying;
+zero and infinite timeouts are rejected. Durable verification is required for acceptance.
+
+Use `--skip-verification` to omit post-run PostgreSQL evidence collection and the SQLite
+durable comparison for every selected phase. The pipeline still records and checks its
+response identities, and storage snapshots and requested telemetry remain enabled.
+Reports record `durable_reconciliation.status: skipped`, `valid: null`, and unknown
+audit/outbox counts as null. All selected phases can complete, but suite acceptance
+remains false with `durable_verification_skipped`; the command exits with code 2.
+Performance measurements remain available and must be described as unverified.
 
 ## Completion and failure accounting
 

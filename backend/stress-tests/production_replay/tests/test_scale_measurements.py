@@ -21,6 +21,13 @@ from production_replay.tests.test_database_scale_suite import event
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_skipped_verification_cannot_pass_acceptance(self):
+        value = phase()
+        value["database"]["durable_reconciliation"] = {"status": "skipped", "valid": None}
+        result = _acceptance([value])
+        self.assertFalse(result["passed"])
+        self.assertIn("durable_verification_skipped", result["comparisons"][0]["reliability_failures"])
+
     def test_throughput_uses_stage_windows_not_harness_lifetime(self):
         metrics = PipelineMetrics(100, started_at=1, ingestion_first_at=10, ingestion_last_at=20,
                                   decision_first_at=12, decision_last_at=25,
