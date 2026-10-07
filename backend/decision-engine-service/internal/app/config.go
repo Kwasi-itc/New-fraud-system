@@ -13,6 +13,8 @@ type Config struct {
 	CaseServiceAuthToken                string
 	Port                                string
 	DatabaseURL                         string
+	DatabaseMaxConns                    int
+	DatabaseMinConns                    int
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
 	GeoIPMMDBPath                       string
@@ -194,10 +196,26 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
+	databaseMaxConns, err := getEnvInt("DATABASE_MAX_CONNS", 0)
+	if err != nil {
+		return Config{}, err
+	}
+	databaseMinConns, err := getEnvInt("DATABASE_MIN_CONNS", 0)
+	if err != nil {
+		return Config{}, err
+	}
+	if databaseMaxConns < 0 || databaseMaxConns > 2147483647 || databaseMinConns < 0 || databaseMinConns > 2147483647 {
+		return Config{}, fmt.Errorf("DATABASE_MAX_CONNS and DATABASE_MIN_CONNS must fit a nonnegative int32")
+	}
+	if databaseMaxConns > 0 && databaseMinConns > databaseMaxConns {
+		return Config{}, fmt.Errorf("DATABASE_MIN_CONNS must not exceed DATABASE_MAX_CONNS")
+	}
 	cfg := Config{
 		CaseServiceAuthToken:                os.Getenv("CASE_SERVICE_AUTH_TOKEN"),
 		Port:                                getEnv("PORT", "8082"),
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
+		DatabaseMaxConns:                    databaseMaxConns,
+		DatabaseMinConns:                    databaseMinConns,
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
 		IngestionServiceURL:                 strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
 		GeoIPMMDBPath:                       strings.TrimSpace(os.Getenv("GEOIP_MMDB_PATH")),

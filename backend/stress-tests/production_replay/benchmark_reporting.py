@@ -52,7 +52,16 @@ class RunReport:
                 "interrupted" if isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) else "failed"
             )
             # Exception messages can contain response payloads, PII, or credential-bearing commands.
-            self.state["error"] = {"type": type(exc).__name__}
+            frames = []
+            trace = traceback
+            module_root = Path(__file__).resolve().parent
+            while trace is not None:
+                code = trace.tb_frame.f_code
+                path = Path(code.co_filename).resolve()
+                if path.parent == module_root:
+                    frames.append({"module": path.name, "function": code.co_name, "line": trace.tb_lineno})
+                trace = trace.tb_next
+            self.state["error"] = {"type": type(exc).__name__, "frames": frames}
             self.state["acceptance"] = {"passed": False, "evaluated": False}
             if self.phase is not None:
                 self.phase["status"] = self.state["status"]

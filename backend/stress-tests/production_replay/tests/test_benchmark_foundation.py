@@ -31,6 +31,12 @@ def execution(status: str = "queued", **overrides: Any) -> dict[str, Any]:
 
 
 class FakeClients:
+    decision_engine = "decision"
+    ingestion = "ingestion"
+
+    async def request(self, _client, _method, path, _expected):
+        envelope = "runtime_metrics" if path.endswith("runtime-metrics") else "read_metrics"
+        return {envelope: {"db_pool": {"MaxConns": 8}}}
     async def __aenter__(self) -> FakeClients:
         return self
 
@@ -236,7 +242,8 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
 
 
 def phase() -> dict[str, Any]:
-    return {"phase": "empty_database", "database": {"durable_reconciliation": {"valid": True}}, "evaluation": {
+    return {"phase": "empty_database", "runtime_pools": {"status": "ok"},
+            "database": {"durable_reconciliation": {"valid": True}}, "evaluation": {
         "evaluation_source": {"sha256": "same-corpus"},
         "identity_reconciliation": {"valid": True},
         "target_evaluations": 100,
@@ -305,6 +312,21 @@ class AcceptanceAndReportTests(unittest.TestCase):
                 with RunReport(output):
                     raise asyncio.CancelledError()
             self.assertEqual(json.loads((output / "summary.json").read_text())["status"], "interrupted")
+
+    def test_failure_locations_are_saved_without_exception_message_or_full_paths(self):
+        from production_replay.database_scale_suite import _validate_month
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            with self.assertRaises(ValueError), RunReport(output):
+                _validate_month("INVALID_PRIVATE_VALUE", "SECRET_FLAG")
+            raw = (output / "summary.json").read_text()
+            self.assertNotIn("SECRET_FLAG", raw)
+            self.assertNotIn("INVALID_PRIVATE_VALUE", raw)
+            self.assertNotIn(str(Path(__file__).resolve().parent), raw)
+            error = json.loads(raw)["error"]
+            self.assertEqual(error["type"], "ValueError")
+            self.assertEqual(error["frames"][-1]["function"], "_validate_month")
+            self.assertEqual(error["frames"][-1]["module"], "database_scale_suite.py")
 
     def test_atomic_write_retains_previous_report_on_serialization_failure(self) -> None:
         with TemporaryDirectory() as directory:

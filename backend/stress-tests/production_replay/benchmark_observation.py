@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 import httpx
 import psutil
 
+from .api_client import APIError
 from .benchmark_reporting import write_json_atomic
 from .postgres_observation import counter_deltas
 
@@ -78,6 +79,45 @@ def capture_deployment(compose: list[str], env: dict[str, str], services: tuple[
                                 "pool_limits_observed_via_service_metrics", "remote_database_hardware_not_observed"]}
     except (OSError, subprocess.SubprocessError, ValueError, TypeError) as exc:
         return {"status": "error", "error_type": type(exc).__name__}
+
+
+async def check_runtime_pools(clients: Any, deployment: dict[str, Any], timeout: float) -> dict[str, Any]:
+    """Compare API-reported pool limits to explicit deployment settings.
+
+    A running container's environment is intent, not proof its image supports
+    the setting. Workers and secondary pools lack equivalent HTTP evidence.
+    """
+    containers = {item["service"]: item for item in deployment.get("containers", [])}
+
+    async def check(name: str, client: Any, route: str, envelope: str) -> dict[str, Any]:
+        try:
+            payload = await asyncio.wait_for(clients.request(client, "GET", route, 200), timeout)
+            pool = payload[envelope]["db_pool"]
+            if not isinstance(pool, dict):
+                raise ValueError("invalid_pool_metrics")
+            maximum = pool.get("MaxConns", pool.get("max_conns"))
+            if type(maximum) is not int or maximum <= 0:
+                raise ValueError("invalid_pool_metrics")
+            configured = containers.get(name, {}).get("runtime_settings", {}).get("DATABASE_MAX_CONNS")
+            expected = int(configured) if configured is not None else 0
+            if expected < 0:
+                raise ValueError("invalid_pool_configuration")
+            return {"status": "ok" if expected == 0 or maximum == expected else "error",
+                    "configured_max_connections": expected or None, "effective_max_connections": maximum,
+                    "matches_explicit_configuration": maximum == expected if expected else None}
+        except (APIError, KeyError, TypeError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
+            return {"status": "error", "error_type": type(exc).__name__}
+
+    names = ("decision-engine-service", "ingestion-service")
+    checks = await asyncio.gather(
+        check(names[0], clients.decision_engine, "/v1/admin/runtime-metrics", "runtime_metrics"),
+        check(names[1], clients.ingestion, "/v1/admin/read-metrics", "read_metrics"),
+    )
+    return {"status": "ok" if all(item["status"] == "ok" for item in checks) else "error",
+            "services": dict(zip(names, checks)),
+            "limitations": ["api_primary_pools_only", "minimum_connections_not_exposed",
+                            "unset_or_zero_max_uses_driver_or_connection_string_configuration",
+                            "worker_and_secondary_pool_limits_not_verified"]}
 
 
 def _now() -> str:

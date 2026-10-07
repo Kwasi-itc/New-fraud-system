@@ -9,6 +9,31 @@ func setRequiredConfigEnv(t *testing.T) {
 	t.Setenv("INGESTION_SERVICE_URL", "http://localhost:8081")
 }
 
+func TestLoadConfigDatabasePoolLimits(t *testing.T) {
+	setRequiredConfigEnv(t)
+	for _, tc := range []struct {
+		max, min string
+		valid    bool
+	}{
+		{"0", "0", true}, {"24", "4", true},
+		{"-1", "0", false}, {"24", "-1", false},
+		{"4", "24", false}, {"invalid", "0", false},
+		{"2147483648", "0", false}, {"0", "2147483648", false},
+	} {
+		t.Run(tc.max+"/"+tc.min, func(t *testing.T) {
+			t.Setenv("DATABASE_MAX_CONNS", tc.max)
+			t.Setenv("DATABASE_MIN_CONNS", tc.min)
+			cfg, err := LoadConfig()
+			if (err == nil) != tc.valid {
+				t.Fatalf("LoadConfig error = %v, valid = %v", err, tc.valid)
+			}
+			if tc.max == "24" && tc.valid && (cfg.DatabaseMaxConns != 24 || cfg.DatabaseMinConns != 4) {
+				t.Fatalf("unexpected pool limits %d/%d", cfg.DatabaseMaxConns, cfg.DatabaseMinConns)
+			}
+		})
+	}
+}
+
 func TestLoadConfigRejectsRuleEvaluationConcurrencyAboveGuardrail(t *testing.T) {
 	setRequiredConfigEnv(t)
 	t.Setenv("RULE_EVALUATION_CONCURRENCY", "65")

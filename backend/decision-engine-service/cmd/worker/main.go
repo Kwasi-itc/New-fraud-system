@@ -90,7 +90,9 @@ func main() {
 	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
 	slog.SetDefault(logger)
 
-	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
+	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
+		MaxConns: int32(cfg.DatabaseMaxConns), MinConns: int32(cfg.DatabaseMinConns),
+	})
 	if err != nil {
 		logger.Error("failed to connect database", "error", err)
 		os.Exit(1)

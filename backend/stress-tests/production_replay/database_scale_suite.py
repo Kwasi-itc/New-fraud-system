@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
@@ -21,7 +22,7 @@ from urllib.parse import quote
 
 from .api_client import APIError, ServiceClients, ServiceConfig
 from .benchmark_reporting import RunReport, write_json_atomic
-from .benchmark_observation import RuntimeObserver, capture_environment, capture_deployment
+from .benchmark_observation import RuntimeObserver, capture_environment, capture_deployment, check_runtime_pools
 from .decision_completion import DecisionCompletionError, verify_decision_completion
 from .identity_ledger import IdentityLedger
 from .postgres_observation import PostgresObserver, counter_deltas
@@ -32,7 +33,7 @@ from .privacy import EXPLICITLY_DROPPED_PII_FIELDS, INTERNAL_RETAINED_FIELDS, In
 from .replay import LatencyMetric
 from .scenarios import SCENARIO_SET_INTERNAL, build_portable_scenarios
 from .setup_environment import EnvironmentSetup
-from .sorting import build_sorted_chunks, iter_merged_events
+from .sorting import AsyncEventSource, build_sorted_chunks, iter_merged_events
 
 
 DEFAULT_OUTPUT_ROOT = Path(__file__).resolve().parent.parent / "database-scale-runs"
@@ -70,6 +71,9 @@ class PhasePlan:
     seed_factory: Callable[[], Iterator[TransactionEvent]]
     evaluation_factory: Callable[[], Iterator[TransactionEvent]]
     description: str
+    evaluation_month: str | None = None
+    evaluation_offset: int = 0
+    prepared_source: dict[str, Any] | None = None
 
 
 @dataclass
@@ -659,6 +663,7 @@ def _build_phase_plans(
                 factory(month=same_month, limit=seed_count),
                 factory(month=same_month, skip=seed_count),
                 f"Seed {seed_count // 1_000_000}M from {same_month}; evaluate the next set from the same month.",
+                evaluation_month=same_month, evaluation_offset=seed_count,
             ))
             continue
         if requested == "seed_full_month_next_month":
@@ -676,6 +681,7 @@ def _build_phase_plans(
             plans.append(PhasePlan(
                 requested, counts[seed_month], factory(month=seed_month), factory(month=next_month),
                 f"Seed all {counts[seed_month]} records from {seed_month}; evaluate {next_month}.",
+                evaluation_month=next_month,
             ))
             continue
         raise ValueError(f"unsupported phase: {requested}")
@@ -703,8 +709,64 @@ def _build_phase_plans(
                 seed_factory = factory(month=evaluation_month, limit=plan.seed_count)
             plans[i] = replace(plan, seed_factory=seed_factory,
                                evaluation_factory=factory(month=evaluation_month, skip=offset),
+                               evaluation_month=evaluation_month, evaluation_offset=offset,
                                description=f"{plan.name}: seed {plan.seed_count:,}; evaluate fixed corpus from {evaluation_month}, offset {offset:,}.")
     return plans
+
+
+def _prepare_evaluation_sources(plans: list[PhasePlan], directory: Path, target: int,
+                                cancelled: threading.Event | None = None) -> list[PhasePlan]:
+    """Materialize each distinct selection once, before any DB reset or timing.
+
+    Retain the selected tail (not just target records), so failed ingestions can
+    still be replaced in source order. Prepared files are private temporary test
+    artifacts containing only the already-minimized transaction fields.
+    """
+    prepared: dict[tuple[str | None, int], tuple[Path, dict[str, Any]]] = {}
+    result = []
+    for plan in plans:
+        key = (plan.evaluation_month, plan.evaluation_offset)
+        if key not in prepared:
+            path = directory / f"evaluation-{len(prepared):02d}.ndjson"
+            started = time.monotonic()
+            count = 0
+            digest = hashlib.sha256()
+            with path.open("x", encoding="utf-8") as output:
+                source = plan.evaluation_factory()
+                try:
+                    for count, event in enumerate(source, 1):
+                        if cancelled is not None and cancelled.is_set():
+                            raise InterruptedError("evaluation_source_preparation_cancelled")
+                        output.write(json.dumps(event.to_sort_record(event.sequence if event.sequence is not None else count - 1),
+                                                separators=(",", ":")) + "\n")
+                        if count <= target:
+                            digest.update(json.dumps(event.fields, sort_keys=True, separators=(",", ":"), default=str).encode() + b"\n")
+                finally:
+                    if hasattr(source, "close"):
+                        source.close()
+            if count < target:
+                raise ValueError("prepared evaluation source has fewer records than the target")
+            prepared[key] = (path, {"records_available": count, "target_records": target,
+                                    "target_sha256": digest.hexdigest(),
+                                    "preparation_seconds": time.monotonic() - started,
+                                    "bytes": path.stat().st_size})
+        path, evidence = prepared[key]
+        result.append(replace(plan, evaluation_factory=lambda path=path: iter_merged_events((path,)),
+                              prepared_source=evidence))
+    return result
+
+
+async def _prepare_sources(plans: list[PhasePlan], directory: Path, target: int) -> list[PhasePlan]:
+    cancelled = threading.Event()
+    work = asyncio.create_task(asyncio.to_thread(_prepare_evaluation_sources, plans, directory, target, cancelled))
+    try:
+        return await asyncio.shield(work)
+    except asyncio.CancelledError:
+        cancelled.set()
+        # Do not let the enclosing TemporaryDirectory remove files while the
+        # preparation thread is still reading/writing them.
+        await asyncio.gather(work, return_exceptions=True)
+        raise
 
 
 async def _seed_phase(
@@ -806,7 +868,7 @@ async def _run_fixed_pipeline(
            (pipeline_timeout, decision_completion_timeout, decision_poll_interval)):
         raise ValueError("pipeline deadlines and poll interval must be finite and positive")
     metrics = PipelineMetrics(target)
-    iterator = iter(events)
+    source = AsyncEventSource(events)
     state_lock = asyncio.Lock()
     decision_queue: asyncio.Queue[TransactionEvent | None] = asyncio.Queue(
         maxsize=max(ingestion_concurrency, evaluation_concurrency) * 4
@@ -836,9 +898,8 @@ async def _run_fixed_pipeline(
         async with state_lock:
             if metrics.ingestion_successes + in_progress >= target or source_exhausted:
                 return None
-            try:
-                event = next(iterator)
-            except StopIteration:
+            event = await source.next()
+            if event is None:
                 source_exhausted = True
                 return None
             if ledger is not None:
@@ -1036,6 +1097,7 @@ async def _run_fixed_pipeline(
         await asyncio.gather(*tasks, return_exceptions=True)
         # Retrieve group outcomes too, including cancellation before wait_for starts.
         await asyncio.gather(workers, joined, return_exceptions=True)
+        await source.close()
         if on_progress is not None:
             on_progress(snapshot())
     return snapshot()
@@ -1101,6 +1163,7 @@ async def _run_phase_with_ledger(
 ) -> dict[str, Any]:
     print(f"\n[{phase.name}] {phase.description}")
     report.start_phase(phase.name, phase.description)
+    report.update_phase(prepared_source=phase.prepared_source)
     database.recreate()
     report.stage("migrating_and_starting")
     database.migrate_and_start()
@@ -1111,6 +1174,12 @@ async def _run_phase_with_ledger(
     async with ServiceClients(_service_config(args)) as clients:
         report.stage("setup")
         await clients.wait_until_ready(timeout_seconds=180.0)
+        report.stage("checking_runtime_pools")
+        runtime_pools = await check_runtime_pools(clients, deployment, getattr(args, "metrics_timeout", 5.0))
+        report.update_phase(runtime_pools=runtime_pools)
+        if runtime_pools["status"] != "ok":
+            raise ValueError("runtime_pool_preflight_failed; see phase JSON; rebuild images if configured and effective limits differ")
+        report.stage("setup")
         setup = EnvironmentSetup(
             manifest,
             clients,
@@ -1236,6 +1305,8 @@ async def _run_phase_with_ledger(
         "evaluation": pipeline,
         "telemetry": telemetry,
         "deployment": deployment,
+        "runtime_pools": runtime_pools,
+        "prepared_source": phase.prepared_source,
         "published_scenarios": setup_result["scenarios"],
         "database": {
             "before_seed": database_before_seed,
@@ -1292,6 +1363,8 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         )
         ingestion_p95_ratio = _ratio(ingestion["latency"]["p95_ms"], baseline_ingestion_p95)
         reliability_failures = []
+        if phase.get("runtime_pools", {}).get("status") != "ok":
+            reliability_failures.append("runtime_pool_preflight_failed")
         reconciliation = evaluation.get("identity_reconciliation")
         if reconciliation is None or reconciliation.get("valid") is not True:
             reliability_failures.append("identity_reconciliation_failed")
@@ -1303,6 +1376,12 @@ def _acceptance(phases: list[dict[str, Any]]) -> dict[str, Any]:
         elif durable is None or durable.get("valid") is not True:
             reliability_failures.append("durable_reconciliation_failed")
         source = evaluation.get("evaluation_source", {})
+        prepared_source = phase.get("prepared_source")
+        if prepared_source is not None and (
+            source.get("sha256") != prepared_source.get("target_sha256")
+            or source.get("records_selected") != prepared_source.get("target_records")
+        ):
+            reliability_failures.append("prepared_evaluation_cohort_mismatch")
         baseline_source = baseline_evaluation.get("evaluation_source", {})
         cohort_matches = bool(source.get("sha256")) and source.get("sha256") == baseline_source.get("sha256")
         if ingestion["failures"]:
@@ -1428,10 +1507,13 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
         merged_chunk_paths = tuple(chunk_paths)
         counts = await asyncio.to_thread(_month_counts, merged_chunk_paths)
         try:
-            plans = _build_phase_plans(merged_chunk_paths, event_count, counts, args)
+            plans = await asyncio.to_thread(_build_phase_plans, merged_chunk_paths, event_count, counts, args)
         except ValueError as exc:
             available = ", ".join(f"{month}={count}" for month, count in sorted(counts.items()))
             raise ValueError(f"{exc}; available source months: {available or 'none'}") from exc
+        report.stage("preparing_evaluation_sources")
+        print("Preparing reusable evaluation sources before database reset...")
+        plans = await _prepare_sources(plans, Path(sort_directory), args.evaluation_count)
         _write_json(
             output / "run-config.json",
             {

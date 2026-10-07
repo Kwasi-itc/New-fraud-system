@@ -26,7 +26,9 @@ type App struct {
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
 
-	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
+	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
+		MaxConns: int32(cfg.DatabaseMaxConns), MinConns: int32(cfg.DatabaseMinConns),
+	})
 	if err != nil {
 		return nil, err
 	}

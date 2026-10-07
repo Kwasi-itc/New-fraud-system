@@ -21,6 +21,16 @@ from production_replay.tests.test_database_scale_suite import event
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_actual_evaluation_must_match_prepared_cohort(self):
+        value = phase()
+        value["prepared_source"] = {"target_sha256": "same-corpus", "target_records": 100}
+        value["evaluation"]["evaluation_source"]["records_selected"] = 100
+        self.assertTrue(_acceptance([value])["passed"])
+        value["prepared_source"]["target_sha256"] = "different"
+        result = _acceptance([value])
+        self.assertFalse(result["passed"])
+        self.assertIn("prepared_evaluation_cohort_mismatch", result["comparisons"][0]["reliability_failures"])
+
     def test_skipped_verification_cannot_pass_acceptance(self):
         value = phase()
         value["database"]["durable_reconciliation"] = {"status": "skipped", "valid": None}

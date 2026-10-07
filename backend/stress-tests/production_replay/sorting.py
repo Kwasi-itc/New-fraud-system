@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import heapq
 import json
+import asyncio
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import IO, Callable, Iterator
+from typing import IO, Callable, Iterable, Iterator
 
 from .adapters import get_adapter
 from .domain import TransactionEvent
@@ -86,3 +89,55 @@ def _read_record(handle: IO[str]) -> dict[str, object] | None:
     if not isinstance(value, dict):
         raise ValueError("sort chunk line must be a JSON object")
     return value
+
+
+class AsyncEventSource:
+    """Read a bounded batch on one thread; close the iterator after cancellation.
+
+    Iterator creation, advancement and closure all have the same thread owner.
+    Input must have bounded read latency: cancellation joins the outstanding read
+    before closing its files, rather than abandoning a live reader thread.
+    """
+
+    def __init__(self, events: Iterable[TransactionEvent], batch_size: int = 128) -> None:
+        if batch_size <= 0:
+            raise ValueError("source batch size must be positive")
+        self.events = events
+        self.batch_size = batch_size
+        self.buffer: deque[TransactionEvent] = deque()
+        self.iterator: Iterator[TransactionEvent] | None = None
+        self.exhausted = False
+        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="scale-source")
+        self.pending: asyncio.Future[list[TransactionEvent]] | None = None
+
+    def _read(self) -> list[TransactionEvent]:
+        if self.iterator is None:
+            self.iterator = iter(self.events)
+        batch = []
+        for _ in range(self.batch_size):
+            try:
+                batch.append(next(self.iterator))
+            except StopIteration:
+                break
+        return batch
+
+    async def next(self) -> TransactionEvent | None:
+        # The caller serializes claims so buffering never reorders source records.
+        if not self.buffer and not self.exhausted:
+            self.pending = asyncio.get_running_loop().run_in_executor(self.executor, self._read)
+            batch = await asyncio.shield(self.pending)
+            self.pending = None
+            self.buffer.extend(batch)
+            self.exhausted = len(batch) < self.batch_size
+        return self.buffer.popleft() if self.buffer else None
+
+    async def close(self) -> None:
+        if self.pending is not None:
+            await asyncio.gather(self.pending, return_exceptions=True)
+        def close_iterator() -> None:
+            if self.iterator is not None and hasattr(self.iterator, "close"):
+                self.iterator.close()
+        try:
+            await asyncio.get_running_loop().run_in_executor(self.executor, close_iterator)
+        finally:
+            self.executor.shutdown(wait=True)

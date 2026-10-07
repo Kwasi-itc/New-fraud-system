@@ -23,6 +23,19 @@ different evaluation fingerprints disqualify a controlled volume comparison.
 
 The runner uses separate bounded ingestion and decision worker pools. A decision is submitted only after its corresponding ingestion succeeds. Failed ingestions are replaced with later source records until the exact decision-request target is reached, but any such failure now fails suite acceptance. Configured concurrency is an upper bound; queue backpressure and source selection can reduce active requests.
 
+Before recreating any database, `preparing_evaluation_sources` materializes each distinct
+month/offset selection once. Fixed-cohort phases reuse that same prepared source. The
+remaining selected records are retained for replacement of failed ingestions; preparation
+does not truncate the source at the evaluation target. Phase JSON records the prepared
+target fingerprint, record count, preparation time and bytes, and acceptance checks the
+actual submitted cohort against the prepared target. Preparation and the potentially large
+month/prefix scan are excluded from workload timers and periodic workload observation.
+During measurement a single reader thread supplies ordered batches of at most 128 records,
+so file reads/JSON decoding do not stall HTTP requests or progress timers. Cancellation
+joins outstanding reads before closing files. Allow additional temporary disk space for
+these prepared sources alongside the sort chunks; they are removed with the sort directory,
+not retained as restart/resume files.
+
 Per-record ingestion audit and outbox writes remain enabled for seeding and measured ingestion.
 After measurement, tenant-scoped SQL streams exact transaction and decision identities into
 the local keyed-token ledger. Verification checks seed and completed evaluation identities,
@@ -132,7 +145,7 @@ test. Average/p50/p95/p99 latency, failures, retries and observed concurrency ac
 
 The output directory is printed before preprocessing. `summary.json` records the current stage and phase; each active phase has its own JSON snapshot. Pipeline counters are saved every five seconds and on orderly cancellation or failure. Completed phases remain available when a later phase fails. JSON files are replaced atomically, so a reader sees a complete previous or new snapshot.
 
-An interrupted or failed run has `acceptance.passed=false` and `acceptance.evaluated=false`. Error types are saved without exception text or raw server payloads. Abrupt process termination can leave the latest snapshot marked running; the snapshots are not a restart/resume ledger. Counter snapshots do not replace transaction-level outcome reconciliation.
+An interrupted or failed run has `acceptance.passed=false` and `acceptance.evaluated=false`. Error types and in-harness module/function/line locations are saved without exception text, local variables, full filesystem paths or raw server payloads. Abrupt process termination can leave the latest snapshot marked running; the snapshots are not a restart/resume ledger. Counter snapshots do not replace transaction-level outcome reconciliation.
 
 `environment.json` captures observer OS/Python, CPU counts, memory, filesystem, dependencies,
 Git revision/dirty-state and harness hashes. Each phase's `deployment` captures running
@@ -150,6 +163,24 @@ runtime services stay stopped during this experiment.
 Run configuration records the declared RDS class and one run per phase; evaluation source
 fingerprints/time ranges and published scenario IDs are saved per phase. `run-config.json`
 also saves the internal scenario definitions, including trigger/rule formulas and thresholds.
+
+Every phase also runs `checking_runtime_pools` after readiness and before setup/seeding,
+even without capture flags. The decision and ingestion metrics endpoints must report a
+positive effective primary pool maximum. If a positive `DATABASE_MAX_CONNS` is explicitly
+configured for that container, it must match. A mismatch or unavailable/invalid endpoint
+fails the run and saves `runtime_pools` evidence; container environment alone is not proof
+that a deployed image supports its settings. Minimum connections, secondary pools and
+worker pools are not verified through these API endpoints.
+
+The base Compose file exposes independent controls: `DECISION_DATABASE_MAX_CONNS` /
+`DECISION_DATABASE_MIN_CONNS`, `INGESTION_DATABASE_MAX_CONNS` /
+`INGESTION_DATABASE_MIN_CONNS`, and `DECISION_WORKER_DATABASE_MAX_CONNS` /
+`DECISION_WORKER_DATABASE_MIN_CONNS`. These map to each service's `DATABASE_*` variables.
+Zero preserves the connection-string/driver defaults. The decision API and worker now
+honor positive maximum/minimum settings and reject invalid effective limits. Budget all
+API, read and worker pools and all replicas against the shared database; these controls do
+not reserve connections or automatically enforce a database-wide budget. Rebuild the
+affected images before rerunning; the runner recreates containers but does not build images.
 
 ## Read-only observation pilot
 
