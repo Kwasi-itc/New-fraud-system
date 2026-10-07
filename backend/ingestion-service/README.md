@@ -145,6 +145,20 @@ new/backend/ingestion-service/
   MF_HANDOFF.md
 ```
 
+## Database pool metrics
+
+`GET /v1/admin/read-metrics` uses the configured service authentication and exposes
+`read_metrics.db_pools.primary` (write/API pool), `.read` (record lookup/aggregate pool),
+and `.read_uses_primary` (whether both roles share one pool). Each pool includes its
+effective `max_conns`, connection counts, and acquisition/wait counters; metrics do
+not expose connection URLs or credentials. The existing `read_metrics.db_pool` field
+remains an alias for the **read** pool, including read-pressure calculations.
+
+`DATABASE_MAX_CONNS` configures the primary pool. When `READ_DATABASE_URL` is nonempty,
+even if it names the same database, reads use a separate pool configured by
+`READ_DATABASE_MAX_CONNS`. Otherwise reads share the primary pool and its limits.
+Zero/unset maxima preserve driver/connection-string defaults. When
+`read_uses_primary=true`, do not add primary/read counters or budgets twice.
 ## High-level architecture
 
 - `httpapi`

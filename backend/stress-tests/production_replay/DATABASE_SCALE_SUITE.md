@@ -165,12 +165,21 @@ fingerprints/time ranges and published scenario IDs are saved per phase. `run-co
 also saves the internal scenario definitions, including trigger/rule formulas and thresholds.
 
 Every phase also runs `checking_runtime_pools` after readiness and before setup/seeding,
-even without capture flags. The decision and ingestion metrics endpoints must report a
-positive effective primary pool maximum. If a positive `DATABASE_MAX_CONNS` is explicitly
-configured for that container, it must match. A mismatch or unavailable/invalid endpoint
-fails the run and saves `runtime_pools` evidence; container environment alone is not proof
-that a deployed image supports its settings. Minimum connections, secondary pools and
-worker pools are not verified through these API endpoints.
+even without capture flags. Decision metrics must report a positive effective primary
+pool maximum. Ingestion's `/v1/admin/read-metrics` must additionally expose
+`read_metrics.db_pools.primary`, `.read`, and `.read_uses_primary`. The legacy ingestion
+`db_pool` field describes the **read** pool and is not used as primary/write-pool evidence.
+Each primary pool is checked against its container's positive `DATABASE_MAX_CONNS`.
+A separate ingestion read pool is checked against positive `READ_DATABASE_MAX_CONNS`;
+when reads share the primary pool, both use `DATABASE_MAX_CONNS` instead. A nonempty
+`READ_DATABASE_URL` creates a separate pool even if it points to the same logical database.
+Unset or zero limits retain driver/connection-string defaults: the effective positive
+limit is recorded, but there is no explicit environment maximum to compare it against.
+A mismatch, inconsistent shared-pool topology, or unavailable/incomplete metrics fails
+the run and saves per-pool `runtime_pools` evidence. Older ingestion images exposing only
+`db_pool` must be rebuilt; they cannot establish primary-pool correctness.
+Periodic metrics preserve both pool identities and their numeric counters; do not sum
+shared-pool counters twice. Minimum connections and worker pools remain unverified.
 
 The base Compose file exposes independent controls: `DECISION_DATABASE_MAX_CONNS` /
 `DECISION_DATABASE_MIN_CONNS`, `INGESTION_DATABASE_MAX_CONNS` /

@@ -25,6 +25,14 @@ type DBPoolStats struct {
 
 type dbPoolStatsProvider func() DBPoolStats
 
+// DBPoolsStats identifies the pools used for writes and reads. When they share
+// one pool, consumers must not add their counters or connection budgets twice.
+type DBPoolsStats struct {
+	Primary         *DBPoolStats `json:"primary,omitempty"`
+	Read            *DBPoolStats `json:"read,omitempty"`
+	ReadUsesPrimary bool         `json:"read_uses_primary"`
+}
+
 type OverloadThresholds struct {
 	DBPoolSaturationPct    int `json:"db_pool_saturation_pct"`
 	RequestQueueDepth      int `json:"request_queue_depth"`
@@ -35,10 +43,12 @@ type OverloadThresholds struct {
 const latencySampleLimit = 512
 
 type readMetricsCollector struct {
-	mu         sync.Mutex
-	endpoints  map[string]*endpointMetrics
-	provider   dbPoolStatsProvider
-	thresholds OverloadThresholds
+	mu              sync.Mutex
+	endpoints       map[string]*endpointMetrics
+	readProvider    dbPoolStatsProvider
+	primaryProvider dbPoolStatsProvider
+	readUsesPrimary bool
+	thresholds      OverloadThresholds
 }
 
 type endpointMetrics struct {
@@ -94,6 +104,7 @@ type aggregateShapeMetrics struct {
 type readMetricsSnapshot struct {
 	Endpoints  map[string]endpointMetrics `json:"endpoints"`
 	DBPool     *DBPoolStats               `json:"db_pool,omitempty"`
+	DBPools    *DBPoolsStats              `json:"db_pools,omitempty"`
 	Thresholds OverloadThresholds         `json:"thresholds"`
 	Pressure   readMetricsPressure        `json:"pressure"`
 }
@@ -108,10 +119,12 @@ type readMetricsPressure struct {
 	AggregateOverloadCount  int64    `json:"aggregate_overload_count"`
 }
 
-func newReadMetricsCollector(provider dbPoolStatsProvider) *readMetricsCollector {
+func newReadMetricsCollector(primary, read dbPoolStatsProvider, readUsesPrimary bool) *readMetricsCollector {
 	return &readMetricsCollector{
-		endpoints: map[string]*endpointMetrics{},
-		provider:  provider,
+		endpoints:       map[string]*endpointMetrics{},
+		readProvider:    read,
+		primaryProvider: primary,
+		readUsesPrimary: readUsesPrimary,
 	}
 }
 
@@ -295,10 +308,24 @@ func (c *readMetricsCollector) snapshot() readMetricsSnapshot {
 		Endpoints:  endpoints,
 		Thresholds: c.thresholds,
 	}
-	if c.provider != nil {
-		stats := c.provider()
-		snapshot.DBPool = &stats
+	pools := DBPoolsStats{ReadUsesPrimary: c.readUsesPrimary}
+	if c.primaryProvider != nil {
+		stats := c.primaryProvider()
+		pools.Primary = &stats
 	}
+	if c.readProvider != nil {
+		if c.readUsesPrimary && pools.Primary != nil {
+			pools.Read = pools.Primary
+		} else {
+			stats := c.readProvider()
+			pools.Read = &stats
+		}
+	}
+	if pools.Primary != nil || pools.Read != nil {
+		snapshot.DBPools = &pools
+	}
+	// Preserve the legacy read-pool metric and its pressure assessment.
+	snapshot.DBPool = pools.Read
 	snapshot.Pressure = buildReadMetricsPressure(snapshot)
 	return snapshot
 }

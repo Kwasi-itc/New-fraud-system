@@ -36,7 +36,11 @@ class FakeClients:
 
     async def request(self, _client, _method, path, _expected):
         envelope = "runtime_metrics" if path.endswith("runtime-metrics") else "read_metrics"
-        return {envelope: {"db_pool": {"MaxConns": 8}}}
+        metrics = {"db_pool": {"MaxConns": 8}}
+        if envelope == "read_metrics":
+            metrics["db_pools"] = {"primary": {"max_conns": 8}, "read": {"max_conns": 8},
+                                   "read_uses_primary": True}
+        return {envelope: metrics}
     async def __aenter__(self) -> FakeClients:
         return self
 
@@ -363,7 +367,10 @@ class EntryPointReportTests(unittest.IsolatedAsyncioTestCase):
                 output = Path(directory)
                 database = MagicMock()
                 database.stats.return_value = {"database_bytes": 1000, "estimated_user_rows": 2}
-                database.deployment.return_value = {"status": "ok"}
+                database.deployment.return_value = {"status": "ok", "containers": [
+                    {"service": name, "runtime_settings": {}, "database_targets": {}}
+                    for name in ("decision-engine-service", "ingestion-service")
+                ]}
                 database.reconcile = AsyncMock(return_value={"valid": count == 2,
                     "persisted_totals": {"ingestion_audit": count, "outbox_events": count},
                     "record_cardinality": {}})

@@ -61,7 +61,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	healthHandler := handlers.NewHealthHandler(logger, db)
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
-	readMetrics := newReadMetricsCollector(dbPoolStatsFromPool(readDB))
+	readMetrics := newReadMetricsCollector(dbPoolStatsFromPool(db), dbPoolStatsFromPool(readDB), readDB == db)
 	readMetrics.SetThresholds(cfg.OverloadThresholds)
 	var writePathLimiter chan struct{}
 	if cfg.WritePathConcurrencyLimit > 0 {

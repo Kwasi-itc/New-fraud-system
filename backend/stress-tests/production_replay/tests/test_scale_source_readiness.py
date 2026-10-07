@@ -155,6 +155,105 @@ class PoolReadinessTests(unittest.IsolatedAsyncioTestCase):
                 "runtime_settings": {"DATABASE_MAX_CONNS": maximum}}
                 for name in ("decision-engine-service", "ingestion-service")]}
 
+    def split_deployment(self, primary="12", read="0"):
+        target = {"host": "database.invalid", "database": "test", "port": 5432}
+        return {"status": "ok", "containers": [
+            {"service": "decision-engine-service", "runtime_settings": {"DATABASE_MAX_CONNS": "24"}},
+            {"service": "ingestion-service", "runtime_settings": {
+                "DATABASE_MAX_CONNS": primary, "READ_DATABASE_MAX_CONNS": read,
+            }, "database_targets": {"DATABASE_URL": target, "READ_DATABASE_URL": target}},
+        ]}
+
+    def split_clients(self, primary=12, read=8, shared=False):
+        clients = FakeClients()
+        async def request(client, method, path, expected):
+            self.assertEqual((method, expected), ("GET", 200))
+            if client == clients.decision_engine:
+                self.assertEqual(path, "/v1/admin/runtime-metrics")
+                return {"runtime_metrics": {"db_pool": {"MaxConns": 24}}}
+            self.assertEqual(path, "/v1/admin/read-metrics")
+            return {"read_metrics": {"db_pool": {"max_conns": read}, "db_pools": {
+                "primary": {"max_conns": primary}, "read": {"max_conns": read}, "read_uses_primary": shared,
+            }}}
+        clients.request = request
+        return clients
+
+    async def test_remote_regression_primary_12_read_default_8_decision_24(self):
+        report = await check_runtime_pools(self.split_clients(), self.split_deployment(), .1)
+        self.assertEqual(report["status"], "ok")
+        ingestion = report["services"]["ingestion-service"]
+        self.assertEqual(ingestion["effective_max_connections"], 12)
+        self.assertFalse(ingestion["read_uses_primary"])
+        read = ingestion["pools"]["read"]
+        self.assertEqual(read["configuration_setting"], "READ_DATABASE_MAX_CONNS")
+        self.assertEqual(read["effective_max_connections"], 8)
+        self.assertIsNone(read["configured_max_connections"])
+        self.assertIsNone(read["matches_explicit_configuration"])
+        self.assertIn("worker_pool_limits_not_verified", report["limitations"])
+
+    async def test_each_pool_uses_its_own_explicit_limit(self):
+        for primary, read, failing in ((8, 16, "primary"), (12, 8, "read"), (12, 16, None)):
+            with self.subTest(primary=primary, read=read):
+                report = await check_runtime_pools(self.split_clients(primary, read), self.split_deployment(read="16"), .1)
+                self.assertEqual(report["status"], "error" if failing else "ok")
+                pools = report["services"]["ingestion-service"]["pools"]
+                for name in ("primary", "read"):
+                    self.assertEqual(pools[name]["status"], "error" if name == failing else "ok")
+
+    async def test_shared_read_pool_uses_primary_limit_not_unused_read_setting(self):
+        deployment = self.split_deployment(read="16")
+        deployment["containers"][1]["database_targets"].pop("READ_DATABASE_URL")
+        report = await check_runtime_pools(self.split_clients(read=12, shared=True), deployment, .1)
+        self.assertEqual(report["status"], "ok")
+        read = report["services"]["ingestion-service"]["pools"]["read"]
+        self.assertEqual(read["configuration_setting"], "DATABASE_MAX_CONNS")
+        self.assertEqual(read["configured_max_connections"], 12)
+
+    async def test_pool_topology_must_match_deployed_connection_targets(self):
+        report = await check_runtime_pools(self.split_clients(read=12, shared=True), self.split_deployment(), .1)
+        self.assertEqual(report["status"], "error")
+        self.assertEqual(report["services"]["ingestion-service"]["reason"], "read_pool_topology_mismatch")
+        deployment = self.split_deployment()
+        deployment["containers"][1]["database_targets"].pop("READ_DATABASE_URL")
+        report = await check_runtime_pools(self.split_clients(), deployment, .1)
+        self.assertEqual(report["services"]["ingestion-service"]["reason"], "read_pool_topology_mismatch")
+
+    async def test_shared_pool_cannot_report_different_capacities(self):
+        deployment = self.split_deployment(primary="0")
+        deployment["containers"][1]["database_targets"].pop("READ_DATABASE_URL")
+        report = await check_runtime_pools(self.split_clients(shared=True), deployment, .1)
+        self.assertEqual(report["status"], "error")
+        self.assertEqual(report["services"]["ingestion-service"]["reason"], "inconsistent_shared_pool_metrics")
+
+    async def test_missing_or_invalid_ingestion_contract_is_not_primary_evidence(self):
+        for metrics in ({"db_pool": {"max_conns": 12}},
+                        {"db_pools": {"primary": {"max_conns": 12}, "read_uses_primary": False}},
+                        {"db_pools": {"primary": {"max_conns": 12}, "read": {"max_conns": 8}, "read_uses_primary": "false"}}):
+            with self.subTest(metrics=metrics):
+                clients = self.split_clients()
+                request = clients.request
+                async def response(client, *args):
+                    return {"read_metrics": metrics} if client == clients.ingestion else await request(client, *args)
+                clients.request = response
+                report = await check_runtime_pools(clients, self.split_deployment(), .1)
+                self.assertEqual(report["status"], "error")
+                self.assertEqual(report["services"]["decision-engine-service"]["status"], "ok")
+                if "db_pools" not in metrics:
+                    self.assertEqual(report["services"]["ingestion-service"]["reason"], "ingestion_pool_metrics_contract_missing")
+
+    async def test_invalid_read_metric_or_configuration_cannot_pass(self):
+        for maximum in (None, True, "8", 0, -1):
+            with self.subTest(maximum=maximum):
+                report = await check_runtime_pools(self.split_clients(read=maximum), self.split_deployment(), .1)
+                self.assertEqual(report["services"]["ingestion-service"]["pools"]["read"]["status"], "error")
+        for configured in ("bad", "-1", True, 8):
+            with self.subTest(configured=configured):
+                report = await check_runtime_pools(self.split_clients(), self.split_deployment(read=configured), .1)
+                self.assertEqual(report["services"]["ingestion-service"]["pools"]["read"]["status"], "error")
+
+    async def test_missing_deployment_inventory_cannot_pass(self):
+        self.assertEqual((await check_runtime_pools(FakeClients(), {"containers": []}, .1))["status"], "error")
+
     async def test_maximum_is_verified_not_assumed_from_environment(self):
         for maximum, status in (("8", "ok"), ("24", "error"), ("0", "ok"), ("bad", "error")):
             with self.subTest(maximum=maximum):
@@ -194,3 +293,23 @@ class PoolReadinessTests(unittest.IsolatedAsyncioTestCase):
             evidence = json.loads((Path(directory)/"test.json").read_text())
             self.assertEqual(evidence["runtime_pools"]["status"], "error")
             self.assertEqual(evidence["stage"], "checking_runtime_pools")
+
+    async def test_read_pool_mismatch_stops_phase_before_setup_or_seeding(self):
+        from argparse import Namespace
+        args = Namespace(data_model_url="http://data", ingestion_url="http://ingestion", decision_engine_url="http://decision",
+                         auth_token=None, request_timeout=1, ingestion_concurrency=1, evaluation_concurrency=1)
+        database = MagicMock()
+        database.deployment.return_value = self.split_deployment(read="16")
+        plan = PhasePlan("test", 0, lambda: iter(()), lambda: iter(()), "test")
+        clients = self.split_clients()
+        with TemporaryDirectory() as directory, \
+             patch("production_replay.database_scale_suite.ServiceClients", return_value=clients), \
+             patch("production_replay.database_scale_suite.EnvironmentSetup") as setup:
+            with self.assertRaisesRegex(ValueError, "runtime_pool_preflight_failed"), RunReport(Path(directory)) as report:
+                await _run_phase(plan, args, MagicMock(), database, report)
+            setup.assert_not_called()
+            database.stats.assert_not_called()
+            evidence = json.loads((Path(directory)/"test.json").read_text())
+            pools = evidence["runtime_pools"]["services"]["ingestion-service"]["pools"]
+            self.assertEqual(pools["primary"]["status"], "ok")
+            self.assertEqual(pools["read"]["status"], "error")

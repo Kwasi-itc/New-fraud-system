@@ -85,26 +85,63 @@ async def check_runtime_pools(clients: Any, deployment: dict[str, Any], timeout:
     """Compare API-reported pool limits to explicit deployment settings.
 
     A running container's environment is intent, not proof its image supports
-    the setting. Workers and secondary pools lack equivalent HTTP evidence.
+    the setting. Ingestion exposes both primary and read pools; its legacy
+    db_pool field describes reads, not necessarily the primary/write pool.
+    Workers lack equivalent HTTP evidence.
     """
     containers = {item["service"]: item for item in deployment.get("containers", [])}
 
-    async def check(name: str, client: Any, route: str, envelope: str) -> dict[str, Any]:
+    def check_pool(pool: Any, settings: dict[str, Any], setting: str) -> dict[str, Any]:
         try:
-            payload = await asyncio.wait_for(clients.request(client, "GET", route, 200), timeout)
-            pool = payload[envelope]["db_pool"]
             if not isinstance(pool, dict):
                 raise ValueError("invalid_pool_metrics")
             maximum = pool.get("MaxConns", pool.get("max_conns"))
             if type(maximum) is not int or maximum <= 0:
                 raise ValueError("invalid_pool_metrics")
-            configured = containers.get(name, {}).get("runtime_settings", {}).get("DATABASE_MAX_CONNS")
+            configured = settings.get(setting)
+            if configured is not None and not isinstance(configured, str):
+                raise ValueError("invalid_pool_configuration")
             expected = int(configured) if configured is not None else 0
             if expected < 0:
                 raise ValueError("invalid_pool_configuration")
             return {"status": "ok" if expected == 0 or maximum == expected else "error",
+                    "configuration_setting": setting,
                     "configured_max_connections": expected or None, "effective_max_connections": maximum,
                     "matches_explicit_configuration": maximum == expected if expected else None}
+        except (TypeError, ValueError) as exc:
+            return {"status": "error", "configuration_setting": setting, "error_type": type(exc).__name__}
+
+    async def check(name: str, client: Any, route: str, envelope: str) -> dict[str, Any]:
+        try:
+            container = containers[name]
+            settings = container.get("runtime_settings", {})
+            payload = await asyncio.wait_for(clients.request(client, "GET", route, 200), timeout)
+            metrics = payload[envelope]
+            if name == "decision-engine-service":
+                primary = check_pool(metrics["db_pool"], settings, "DATABASE_MAX_CONNS")
+                return {**primary, "pools": {"primary": primary}}
+
+            # Fail closed on old images: the legacy field cannot prove which
+            # primary pool is running. Do not treat it as primary evidence.
+            if not isinstance(metrics, dict) or "db_pools" not in metrics:
+                return {"status": "error", "reason": "ingestion_pool_metrics_contract_missing"}
+            pools = metrics["db_pools"]
+            shared = pools["read_uses_primary"]
+            if type(shared) is not bool:
+                raise ValueError("invalid_pool_metrics")
+            primary = check_pool(pools["primary"], settings, "DATABASE_MAX_CONNS")
+            read = check_pool(pools["read"], settings,
+                              "DATABASE_MAX_CONNS" if shared else "READ_DATABASE_MAX_CONNS")
+            evidence = {**primary, "read_uses_primary": shared, "pools": {"primary": primary, "read": read}}
+            evidence["status"] = "ok" if primary["status"] == read["status"] == "ok" else "error"
+            # A nonempty READ_DATABASE_URL creates a separate pool even when
+            # its host/database are identical to the primary target.
+            expected_shared = "READ_DATABASE_URL" not in container.get("database_targets", {})
+            if shared != expected_shared:
+                evidence.update(status="error", reason="read_pool_topology_mismatch")
+            elif shared and primary.get("effective_max_connections") != read.get("effective_max_connections"):
+                evidence.update(status="error", reason="inconsistent_shared_pool_metrics")
+            return evidence
         except (APIError, KeyError, TypeError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
             return {"status": "error", "error_type": type(exc).__name__}
 
@@ -115,9 +152,9 @@ async def check_runtime_pools(clients: Any, deployment: dict[str, Any], timeout:
     )
     return {"status": "ok" if all(item["status"] == "ok" for item in checks) else "error",
             "services": dict(zip(names, checks)),
-            "limitations": ["api_primary_pools_only", "minimum_connections_not_exposed",
+            "limitations": ["api_primary_and_ingestion_read_pools_only", "minimum_connections_not_exposed",
                             "unset_or_zero_max_uses_driver_or_connection_string_configuration",
-                            "worker_and_secondary_pool_limits_not_verified"]}
+                            "worker_pool_limits_not_verified"]}
 
 
 def _now() -> str:
@@ -217,6 +254,14 @@ def project_metrics(payload: Any, envelope: str) -> dict[str, Any]:
     for group in ("db_pool", "pressure", "evaluation", "aggregate_pushdown", "broad_read_helpers", "tenant_data_reads"):
         if group in body:
             projected[group] = _numeric_fields(body[group])
+    pools = body.get("db_pools")
+    if isinstance(pools, dict):
+        projected_pools = {name: _numeric_fields(pools[name])
+                           for name in ("primary", "read") if isinstance(pools.get(name), dict)}
+        if any(projected_pools.values()):
+            if type(pools.get("read_uses_primary")) is bool:
+                projected_pools["read_uses_primary"] = pools["read_uses_primary"]
+            projected["db_pools"] = projected_pools
     # Dynamic endpoint labels are hashed; arbitrary labels and string values are never copied.
     endpoints = body.get("endpoints")
     if isinstance(endpoints, dict):

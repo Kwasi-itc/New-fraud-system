@@ -16,6 +16,26 @@ from production_replay.benchmark_observation import (
 
 
 class ObservationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_capture_preserves_pool_roles_and_drops_unrecognized_or_sensitive_values(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"read_metrics": {
+                "db_pool": {"max_conns": 8},
+                "db_pools": {"primary": {"max_conns": 12, "password": "SECRET"},
+                             "read": {"max_conns": 8, "acquired_conns": 3}, "read_uses_primary": False,
+                             "SECRET": {"max_conns": 99}, "database_url": "SECRET"},
+            }})
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "metrics.ndjson"
+            async with RuntimeObserver(output, {"ingestion": "http://ingestion"},
+                                       transport=httpx.MockTransport(handler)) as observer:
+                await observer.sample()
+                self.assertTrue(observer.summary()["valid"])
+            self.assertNotIn("SECRET", output.read_text())
+            metrics = json.loads(output.read_text())["services"]["ingestion"]["metrics"]
+            self.assertEqual(metrics["db_pools"], {"primary": {"max_conns": 12},
+                             "read": {"max_conns": 8, "acquired_conns": 3}, "read_uses_primary": False})
+            self.assertEqual(metrics["db_pool"]["max_conns"], 8)
+
     async def test_samples_services_without_storing_tokens_strings_or_payloads(self) -> None:
         requests = []
 
@@ -114,6 +134,12 @@ class ObservationTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ObservationContractTests(unittest.TestCase):
+    def test_pool_topology_alone_is_not_a_valid_metrics_sample(self) -> None:
+        for pools in ({"read_uses_primary": False},
+                      {"primary": {"password": "SECRET"}, "read_uses_primary": True}):
+            with self.subTest(pools=pools), self.assertRaises(ValueError):
+                project_metrics({"read_metrics": {"db_pools": pools}}, "read_metrics")
+
     def test_environment_endpoint_identity_omits_credentials_and_query(self) -> None:
         self.assertEqual(endpoint_identity("https://user:SECRET@example.com:8443/private?token=SECRET"),
                          "https://example.com:8443")

@@ -1,14 +1,75 @@
 package httpapi
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
 
+func TestReadMetricsSeparatesPrimaryAndReadPools(t *testing.T) {
+	t.Parallel()
+	collector := newReadMetricsCollector(
+		func() DBPoolStats { return DBPoolStats{MaxConns: 12, AcquiredConns: 1} },
+		func() DBPoolStats { return DBPoolStats{MaxConns: 8, AcquiredConns: 6} },
+		false,
+	)
+	snapshot := collector.snapshot()
+	if snapshot.DBPools == nil || snapshot.DBPools.Primary.MaxConns != 12 || snapshot.DBPools.Read.MaxConns != 8 || snapshot.DBPools.ReadUsesPrimary {
+		t.Fatalf("expected independent primary=12/read=8 pools, got %+v", snapshot.DBPools)
+	}
+	if snapshot.DBPool != snapshot.DBPools.Read {
+		t.Fatal("legacy db_pool must remain the read pool")
+	}
+	if snapshot.Pressure.DBPoolSaturationPct != 75 {
+		t.Fatalf("read pressure must use read capacity, got %d", snapshot.Pressure.DBPoolSaturationPct)
+	}
+}
+
+func TestReadMetricsSharedPoolIsSampledOnce(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	collector := newReadMetricsCollector(
+		func() DBPoolStats { calls++; return DBPoolStats{MaxConns: 12, AcquireCount: int64(calls)} },
+		func() DBPoolStats { t.Fatal("shared pool must reuse primary snapshot"); return DBPoolStats{} },
+		true,
+	)
+	snapshot := collector.snapshot()
+	if calls != 1 || snapshot.DBPools == nil || !snapshot.DBPools.ReadUsesPrimary || snapshot.DBPools.Primary != snapshot.DBPools.Read || snapshot.DBPool != snapshot.DBPools.Read {
+		t.Fatalf("expected one shared snapshot, got %+v, calls=%d", snapshot.DBPools, calls)
+	}
+}
+
+func TestReadMetricsConcurrentPoolSnapshots(t *testing.T) {
+	t.Parallel()
+	collector := newReadMetricsCollector(
+		func() DBPoolStats { return DBPoolStats{MaxConns: 12} },
+		func() DBPoolStats { return DBPoolStats{MaxConns: 8} },
+		false,
+	)
+	var workers sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for j := 0; j < 50; j++ {
+				collector.begin("aggregate_records")
+				collector.finish("aggregate_records", 200, time.Millisecond, "count", "shape", "wallets", 1, 0, "")
+				if snapshot := collector.snapshot(); snapshot.DBPools.Primary.MaxConns != 12 || snapshot.DBPools.Read.MaxConns != 8 {
+					t.Error("pool identity changed during concurrent sampling")
+				}
+			}
+		}()
+	}
+	workers.Wait()
+	if got := collector.snapshot().Endpoints["aggregate_records"].Requests; got != 400 {
+		t.Fatalf("requests = %d, want 400", got)
+	}
+}
+
 func TestReadMetricsCollectorSnapshotIncludesPercentilesAndCancellation(t *testing.T) {
 	t.Parallel()
 
-	collector := newReadMetricsCollector(nil)
+	collector := newReadMetricsCollector(nil, nil, false)
 	collector.begin("aggregate_records")
 	collector.finish("aggregate_records", 408, 2*time.Millisecond, "count", "transactions|count|amount|group:and()", "transactions", 2, 0, "canceled")
 	collector.begin("aggregate_records")
@@ -38,7 +99,7 @@ func TestReadMetricsCollectorSnapshotIncludesPercentilesAndCancellation(t *testi
 func TestReadMetricsCollectorSnapshotIncludesThresholds(t *testing.T) {
 	t.Parallel()
 
-	collector := newReadMetricsCollector(nil)
+	collector := newReadMetricsCollector(nil, nil, false)
 	collector.SetThresholds(OverloadThresholds{
 		DBPoolSaturationPct:    80,
 		RequestQueueDepth:      8,
@@ -64,9 +125,9 @@ func TestReadMetricsCollectorSnapshotIncludesThresholds(t *testing.T) {
 func TestReadMetricsCollectorSnapshotIncludesPressureAssessment(t *testing.T) {
 	t.Parallel()
 
-	collector := newReadMetricsCollector(func() DBPoolStats {
+	collector := newReadMetricsCollector(nil, func() DBPoolStats {
 		return DBPoolStats{MaxConns: 10, AcquiredConns: 9}
-	})
+	}, false)
 	collector.SetThresholds(OverloadThresholds{
 		DBPoolSaturationPct:    80,
 		RequestQueueDepth:      2,
@@ -93,7 +154,7 @@ func TestReadMetricsCollectorSnapshotIncludesPressureAssessment(t *testing.T) {
 func TestReadMetricsCollectorSnapshotTracksListLimits(t *testing.T) {
 	t.Parallel()
 
-	collector := newReadMetricsCollector(nil)
+	collector := newReadMetricsCollector(nil, nil, false)
 	collector.begin("list_records")
 	collector.finish("list_records", 200, 2*time.Millisecond, "", "", "transactions", 0, 100, "")
 	collector.begin("list_records")
