@@ -4,10 +4,13 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from .local_storage import LocalStorageError
 
 
 def write_json_atomic(path: Path, value: Any) -> None:
@@ -62,11 +65,21 @@ class RunReport:
                     frames.append({"module": path.name, "function": code.co_name, "line": trace.tb_lineno})
                 trace = trace.tb_next
             self.state["error"] = {"type": type(exc).__name__, "frames": frames}
+            if isinstance(exc, LocalStorageError):
+                self.state["error"]["details"] = exc.details
             self.state["acceptance"] = {"passed": False, "evaluated": False}
             if self.phase is not None:
                 self.phase["status"] = self.state["status"]
+                self.phase["error"] = self.state["error"]
             self.state["finished_at"] = _now()
-            self.save()
+            try:
+                self.save()
+            except OSError as write_error:
+                # A full filesystem can also prevent failure reporting. Preserve
+                # the original error and last atomic artifacts, never mark success.
+                print(f"warning: failure report could not be saved "
+                      f"({type(write_error).__name__}, errno={write_error.errno}); "
+                      "original run error preserved", file=sys.stderr)
 
     def save(self) -> None:
         self.state["updated_at"] = _now()

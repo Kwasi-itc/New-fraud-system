@@ -75,6 +75,11 @@ def reconciliation_sql(tenant_id: str) -> str:
 
 
 def record_observation(ledger: IdentityLedger, tenant: str, row: dict[str, Any]) -> None:
+    with ledger.storage_operation("verification_write"):
+        _record_observation(ledger, tenant, row)
+
+
+def _record_observation(ledger: IdentityLedger, tenant: str, row: dict[str, Any]) -> None:
     if "shared_seed" in row:
         value = row["shared_seed"]
         ledger.connection.execute("INSERT INTO shared_seed_records VALUES (?,?)",
@@ -95,8 +100,14 @@ def record_observation(ledger: IdentityLedger, tenant: str, row: dict[str, Any])
 
 def durable_summary(ledger: IdentityLedger, expected_seed: int, expected_evaluations: int,
                     expected_seed_batches: int | None = None) -> dict[str, Any]:
+    ledger.flush()
+    with ledger.storage_operation("verification_summary"):
+        return _durable_summary(ledger, expected_seed, expected_evaluations, expected_seed_batches)
+
+
+def _durable_summary(ledger: IdentityLedger, expected_seed: int, expected_evaluations: int,
+                    expected_seed_batches: int | None = None) -> dict[str, Any]:
     db = ledger.connection
-    db.commit()
     totals = dict(zip(CATEGORIES, db.execute(
         "SELECT " + ",".join(f"coalesce(sum({name}),0)" for name in CATEGORIES) + " FROM persisted"
     ).fetchone()))

@@ -75,6 +75,15 @@ Reports record `durable_reconciliation.status: skipped`, `valid: null`, and unkn
 audit/outbox counts as null. All selected phases can complete, but suite acceptance
 remains false with `durable_verification_skipped`; the command exits with code 2.
 Performance measurements remain available and must be described as unverified.
+With this flag, each phase's SQLite ledger and any SQLite journal/WAL/SHM
+sidecars are deleted **after the connection closes**, on normal completion,
+failure or orderly cancellation. The SQLite tracking/duplicate checks still run
+during the phase; deletion does not reduce its peak disk requirement. JSON
+results, telemetry and error logs remain. `identity_ledger_artifact` records the
+retention policy and actual cleanup status. No old run files are deleted, and
+runs without this flag retain their ledgers. A hard kill or host crash can leave
+temporary ledgers behind for manual cleanup. Deletion is permanent, so detailed
+per-identity evidence is unavailable afterward; reported counters remain.
 
 ## Completion and failure accounting
 
@@ -109,6 +118,34 @@ Ingestion retry counts include retries on ultimately failed records. Partial sum
 Each measured phase now writes `<phase>.identities.sqlite3`, a local test artifact containing keyed identity tokens and stage transitions. It rejects duplicate evaluation input identities and decision IDs reused across responses for the same tenant. Triggered decisions contribute their validated IDs; non-triggered scenario results may complete without a decision ID. The phase's `identity_reconciliation` summary requires exactly the requested number of completed identities, no additional identities, no duplicates and no unfinished work. Failed ingestions remain visible even when replaced by later records.
 
 The ledger uses a bounded SQLite cache and disk indexes rather than retaining all identities in Python memory. Raw transaction fields, object IDs, decision IDs and the per-artifact token key are not saved. Tokens cannot be joined across runs or used for restart/resume. Normal failure/cancellation commits partial state; abrupt process termination can lose up to 255 transitions since the last checkpoint. Ledger I/O is included in measured throughput and needs overhead qualification. Seed and durable transaction/decision identities are checked after measurement; rule detection accuracy, callbacks and business delivery remain outside this verification.
+
+### Local artifact disk capacity
+
+`--min-free-disk-mib` defaults to **1024 MiB** of free space on the output
+filesystem. The runner checks it before preprocessing and before every database
+reset. Space checks also run while writing sort chunks, prepared sources, the
+identity/seed ledger and verification evidence, at most once per second per
+writer. They do not depend on either metrics flag. Crossing the threshold aborts
+the run with `insufficient_local_disk_space`; the remaining headroom lets it
+commit partial evidence and write failure reports. This is a configurable safety
+reserve, **not** a prediction of total storage required or an RDS capacity check.
+Keep additional room for all sort/prepared files, each selected phase's retained
+ledger, verification rows, SQLite journals, container logs and image builds.
+Other processes can fill the disk between checks, so the guard cannot guarantee
+that subsequent writes will succeed. Check `df -h` for the actual output mount
+before starting and free space or expand that filesystem as needed.
+
+SQLite disk-full/I/O errors can roll back an entire uncommitted batch, not just
+the failing statement. The ledger now retains the original storage error,
+rejects further mutations, restores reported counts to its last successful
+checkpoint, and fails reconciliation/acceptance. Its JSON `storage_error`
+records a safe category, operation and rollback/durability status. An uncertain
+commit or failed rollback means those checkpoint counts are not a complete
+description of the remaining artifact. HTTP response counters may be higher:
+requests already committed by the application are not undone by losing local
+test evidence. Such a run cannot be accepted or resumed. If even the failure
+report cannot be written, stderr warns about that secondary failure while
+preserving the original error and last complete atomic JSON snapshot.
 
 When database capture is enabled, `psql` ignores startup files, disables password prompts and uses read-only sessions with connection, statement, lock and process timeouts. Errors are recorded by type/exit code without stderr. Five active River states are sampled independently, ordered by scheduled time, up to 1,001 jobs each. A capped state marks every returned queue count as a **lower bound**; queues absent from a capped prefix have unknown backlog. Age is time since the earliest sampled scheduled time, clamped at zero, rather than enqueue age or execution duration. `case_queue`, non-River queues and terminal job history are not collected yet. Validate query plans and sampling overhead on the disposable target before a capacity campaign; bounded output does not guarantee a cheap query plan. Activity visibility depends on the database role.
 

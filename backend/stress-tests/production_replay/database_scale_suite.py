@@ -25,6 +25,7 @@ from .benchmark_reporting import RunReport, write_json_atomic
 from .benchmark_observation import RuntimeObserver, capture_environment, capture_deployment, check_runtime_pools
 from .decision_completion import DecisionCompletionError, verify_decision_completion
 from .identity_ledger import IdentityLedger
+from .local_storage import DEFAULT_MIN_FREE_DISK_MIB, DiskSpaceGuard, LocalStorageError
 from .postgres_observation import PostgresObserver, counter_deltas
 from .database_reconciliation import reconcile_database
 from .domain import TransactionEvent
@@ -232,7 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verification-timeout", type=float, default=7200,
                         help="Deadline in seconds for exact post-run database reconciliation (default: 7200 / 2 hours)")
     parser.add_argument("--skip-verification", action="store_true",
-                        help="Skip post-run durable database reconciliation; results remain unverified and cannot pass suite acceptance")
+                        help="Skip durable reconciliation and delete each phase's SQLite ledger after closing it; results remain unverified and cannot pass acceptance")
     parser.add_argument(
         "--phase",
         action="extend",
@@ -275,6 +276,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--compose-file", default="docker-compose.yml")
     parser.add_argument("--compose-project", help="Compose project name; omit to use Compose's normal project name")
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
+    parser.add_argument("--min-free-disk-mib", type=int, default=DEFAULT_MIN_FREE_DISK_MIB,
+                        help="Local artifact filesystem headroom (default: 1024 MiB); not total run storage or RDS capacity")
     parser.add_argument(
         "--no-manage-services",
         action="store_true",
@@ -284,6 +287,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _validate_args(args: argparse.Namespace) -> None:
+    if getattr(args, "min_free_disk_mib", DEFAULT_MIN_FREE_DISK_MIB) <= 0:
+        raise ValueError("--min-free-disk-mib must be positive")
     if getattr(args, "evaluation_offset", 5_000_000) < 0:
         raise ValueError("--evaluation-offset must be nonnegative")
     if not math.isfinite(getattr(args, "verification_timeout", 7200)) or getattr(args, "verification_timeout", 7200) <= 0:
@@ -715,7 +720,8 @@ def _build_phase_plans(
 
 
 def _prepare_evaluation_sources(plans: list[PhasePlan], directory: Path, target: int,
-                                cancelled: threading.Event | None = None) -> list[PhasePlan]:
+                                cancelled: threading.Event | None = None,
+                                storage_check: Callable[[], None] | None = None) -> list[PhasePlan]:
     """Materialize each distinct selection once, before any DB reset or timing.
 
     Retain the selected tail (not just target records), so failed ingestions can
@@ -727,6 +733,8 @@ def _prepare_evaluation_sources(plans: list[PhasePlan], directory: Path, target:
     for plan in plans:
         key = (plan.evaluation_month, plan.evaluation_offset)
         if key not in prepared:
+            if storage_check is not None:
+                storage_check()
             path = directory / f"evaluation-{len(prepared):02d}.ndjson"
             started = time.monotonic()
             count = 0
@@ -735,6 +743,8 @@ def _prepare_evaluation_sources(plans: list[PhasePlan], directory: Path, target:
                 source = plan.evaluation_factory()
                 try:
                     for count, event in enumerate(source, 1):
+                        if storage_check is not None and count % 256 == 0:
+                            storage_check()
                         if cancelled is not None and cancelled.is_set():
                             raise InterruptedError("evaluation_source_preparation_cancelled")
                         output.write(json.dumps(event.to_sort_record(event.sequence if event.sequence is not None else count - 1),
@@ -756,9 +766,10 @@ def _prepare_evaluation_sources(plans: list[PhasePlan], directory: Path, target:
     return result
 
 
-async def _prepare_sources(plans: list[PhasePlan], directory: Path, target: int) -> list[PhasePlan]:
+async def _prepare_sources(plans: list[PhasePlan], directory: Path, target: int,
+                           storage_check: Callable[[], None] | None = None) -> list[PhasePlan]:
     cancelled = threading.Event()
-    work = asyncio.create_task(asyncio.to_thread(_prepare_evaluation_sources, plans, directory, target, cancelled))
+    work = asyncio.create_task(asyncio.to_thread(_prepare_evaluation_sources, plans, directory, target, cancelled, storage_check))
     try:
         return await asyncio.shield(work)
     except asyncio.CancelledError:
@@ -1087,10 +1098,14 @@ async def _run_fixed_pipeline(
     progress = asyncio.create_task(report_progress())
     tasks = [*ingestion_tasks, *decision_tasks, producer, coordinator, progress]
     joined = asyncio.gather(coordinator, progress)
+    failure: BaseException | None = None
     try:
         await asyncio.wait_for(joined, timeout=pipeline_timeout)
         if metrics.decision_attempts != target:
             raise AssertionError(f"submitted {metrics.decision_attempts} decisions; expected {target}")
+    except BaseException as exc:
+        failure = exc
+        raise
     finally:
         for task in tasks:
             task.cancel()
@@ -1099,7 +1114,13 @@ async def _run_fixed_pipeline(
         await asyncio.gather(workers, joined, return_exceptions=True)
         await source.close()
         if on_progress is not None:
-            on_progress(snapshot())
+            try:
+                on_progress(snapshot())
+            except Exception as exc:
+                if failure is None:
+                    raise
+                print(f"warning: final pipeline snapshot failed ({type(exc).__name__}); "
+                      "original workload error preserved", file=sys.stderr)
     return snapshot()
 
 
@@ -1143,17 +1164,47 @@ async def _run_phase(
     report: RunReport,
     error_log_path: Path | None = None,
 ) -> dict[str, Any]:
-    with IdentityLedger(report.output / f"{phase.name}.identities.sqlite3") as ledger:
-        try:
-            return await _run_phase_with_ledger(phase, args, manifest, database, report, error_log_path, ledger)
-        except BaseException:
-            if getattr(args, "capture_database_metrics", False) and report.phase is not None:
-                captured = report.phase.get("database", {})
-                if "postgres_before_evaluation" in captured and "postgres_after_evaluation" not in captured:
-                    snapshot = await database.observer()(storage=True)
-                    report.update_phase(database={**captured, "postgres_after_failure": snapshot},
-                                        telemetry={**report.phase.get("telemetry", {}), "valid": False})
-            raise
+    storage_guard = DiskSpaceGuard(report.output, getattr(args, "min_free_disk_mib", DEFAULT_MIN_FREE_DISK_MIB) * 1024 * 1024)
+    # Check the actual output filesystem before any destructive database reset.
+    storage_guard.check(force=True)
+    ledger = IdentityLedger(report.output / f"{phase.name}.identities.sqlite3", storage_guard,
+                            retain_artifact=not getattr(args, "skip_verification", False))
+    result: dict[str, Any] | None = None
+    failure: BaseException | None = None
+    try:
+        with ledger:
+            try:
+                result = await _run_phase_with_ledger(phase, args, manifest, database, report, error_log_path, ledger)
+            except BaseException:
+                if getattr(args, "capture_database_metrics", False) and report.phase is not None:
+                    captured = report.phase.get("database", {})
+                    if "postgres_before_evaluation" in captured and "postgres_after_evaluation" not in captured:
+                        try:
+                            snapshot = await database.observer()(storage=True)
+                            report.update_phase(database={**captured, "postgres_after_failure": snapshot},
+                                                telemetry={**report.phase.get("telemetry", {}), "valid": False})
+                        except Exception as exc:
+                            print(f"warning: failure snapshot unavailable ({type(exc).__name__}); "
+                                  "original workload error preserved", file=sys.stderr)
+                raise
+    except BaseException as exc:
+        failure = exc
+        raise
+    finally:
+        artifact = ledger.artifact_summary()
+        if result is not None:
+            result["identity_ledger_artifact"] = artifact
+        if report.phase is not None:
+            report.phase["identity_ledger_artifact"] = artifact
+            try:
+                report.save()
+            except Exception as exc:
+                if failure is None:
+                    raise
+                print(f"warning: ledger cleanup report failed ({type(exc).__name__}); "
+                      "original workload error preserved", file=sys.stderr)
+    assert result is not None
+    return result
 
 
 async def _run_phase_with_ledger(
@@ -1243,7 +1294,14 @@ async def _run_phase_with_ledger(
             ) as observer:
                 try:
                     pipeline = await observer.run_during(evaluate)
-                finally:
+                except BaseException:
+                    try:
+                        report.update_phase(telemetry=observer.summary())
+                    except Exception as exc:
+                        print(f"warning: final telemetry report failed ({type(exc).__name__}); "
+                              "original workload error preserved", file=sys.stderr)
+                    raise
+                else:
                     telemetry = observer.summary()
                     report.update_phase(telemetry=telemetry)
         else:
@@ -1465,6 +1523,7 @@ async def async_main(argv: list[str] | None = None) -> int:
     output.mkdir(parents=True, exist_ok=False)
     print(f"Results: {output}")
     with RunReport(output) as report:
+        DiskSpaceGuard(output, getattr(args, "min_free_disk_mib", DEFAULT_MIN_FREE_DISK_MIB) * 1024 * 1024).check(force=True)
         return await _execute_suite(args, output, report)
 
 
@@ -1501,6 +1560,7 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
                 Path(sort_directory) / f"source-{index:02d}",
                 args.sort_chunk_size,
                 event_transform,
+                DiskSpaceGuard(output, args.min_free_disk_mib * 1024 * 1024).check,
             )
             chunk_paths.extend(sort_result.chunk_paths)
             event_count += sort_result.event_count
@@ -1513,7 +1573,8 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
             raise ValueError(f"{exc}; available source months: {available or 'none'}") from exc
         report.stage("preparing_evaluation_sources")
         print("Preparing reusable evaluation sources before database reset...")
-        plans = await _prepare_sources(plans, Path(sort_directory), args.evaluation_count)
+        plans = await _prepare_sources(plans, Path(sort_directory), args.evaluation_count,
+                                       DiskSpaceGuard(output, args.min_free_disk_mib * 1024 * 1024).check)
         _write_json(
             output / "run-config.json",
             {
@@ -1545,6 +1606,8 @@ async def _execute_suite(args: argparse.Namespace, output: Path, report: RunRepo
                 ],
                 "evaluation_count": args.evaluation_count,
                 "schema_version": 2,
+                "local_storage": {"minimum_free_bytes": args.min_free_disk_mib * 1024 * 1024,
+                                  "check_interval_seconds": 1.0, "capacity_guaranteed": False},
                 "capture_metrics": args.capture_metrics,
                 "capture_database_metrics": args.capture_database_metrics,
                 "metrics_interval_seconds": args.metrics_interval,
@@ -1604,7 +1667,7 @@ def _append_text(path: Path, value: str) -> None:
 def main(argv: list[str] | None = None) -> None:
     try:
         raise SystemExit(asyncio.run(async_main(argv)))
-    except (APIError, OSError, subprocess.CalledProcessError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
+    except (APIError, LocalStorageError, OSError, subprocess.CalledProcessError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

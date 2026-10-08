@@ -25,6 +25,7 @@ def build_sorted_chunks(
     work_dir: Path,
     chunk_size: int = 100_000,
     transform: Callable[[TransactionEvent], TransactionEvent] | None = None,
+    storage_check: Callable[[], None] | None = None,
 ) -> SortResult:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
@@ -36,10 +37,14 @@ def build_sorted_chunks(
     def flush() -> None:
         if not chunk:
             return
+        if storage_check is not None:
+            storage_check()
         chunk.sort(key=lambda item: (str(item["occurred_at"]), int(item["sequence"])))
         path = work_dir / f"chunk-{len(chunk_paths):06d}.ndjson"
         with path.open("w", encoding="utf-8") as handle:
-            for item in chunk:
+            for index, item in enumerate(chunk):
+                if storage_check is not None and index % 256 == 0:
+                    storage_check()
                 handle.write(json.dumps(item, separators=(",", ":"), ensure_ascii=True) + "\n")
         chunk_paths.append(path)
         chunk.clear()
