@@ -25,7 +25,7 @@ from .domain import TransactionEvent
 from .local_sample import create_full_manifest
 from .local_storage import DiskSpaceGuard
 from .manifest import ReplayManifest, load_manifest
-from .privacy import InternalPrivacyTransformer
+from .privacy import InternalPrivacyTransformer, minimize_internal_event
 from .reference_data import ReferenceRecords, load_merchants, load_merchant_products
 from .replay import LatencyMetric
 from .scenarios import SCENARIO_SET_INTERNAL
@@ -61,7 +61,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--manifest", type=Path, default=ROOT / "production_replay/manifests/fraud-data.json")
     result.add_argument("--data-root", type=Path, help="Remap the standard six-stream production data layout")
     result.add_argument("--reference-data-root", type=Path, help="Merchant dump root; defaults to data-root")
-    result.add_argument("--pii-key-file", type=Path, required=True, help="HMAC key of at least 16 bytes")
+    result.add_argument("--pii-key-file", type=Path, help="Optional opt-in HMAC key of at least 16 bytes; default leaves identifiers unchanged")
     result.add_argument("--pre-sanitized-source", action="store_true", help="Retain existing HMAC account tokens")
     result.add_argument("--tenant-id", help="Optional clean test tenant UUID; omitted creates a new tenant")
     result.add_argument("--tenant-name", default="Internal Synchronous Merchant Replay")
@@ -112,8 +112,12 @@ def prepare_sources(
     references = (load_merchants(manifest.merchant_files()), load_merchant_products(manifest.merchant_product_files()))
     if any(not source.records for source in references):
         raise ValueError("merchant and merchant product sources must both contain records")
-    transformer = InternalPrivacyTransformer(args.pii_key_file.read_bytes())
-    transform = transformer.minimize_presanitized_event if args.pre_sanitized_source else transformer.transform_event
+    if args.pre_sanitized_source:
+        transform = InternalPrivacyTransformer.minimize_presanitized_event
+    elif args.pii_key_file is not None:
+        transform = InternalPrivacyTransformer(args.pii_key_file.read_bytes()).transform_event
+    else:
+        transform = minimize_internal_event
     def safe_transform(event: TransactionEvent) -> TransactionEvent:
         if not math.isfinite(event.fields["amount"]):
             raise ValueError("transaction amount must be finite")
@@ -340,6 +344,7 @@ async def execute(args: argparse.Namespace) -> int:
                               "transactions": args.transactions, "transaction_offset": args.transaction_offset,
                               "ingestion_concurrency": args.ingestion_concurrency,
                               "evaluation_concurrency": args.evaluation_concurrency,
+                              "account_identifiers": "hmac_sha256" if args.pii_key_file is not None and not args.pre_sanitized_source else "unchanged",
                               "database_recreated": False, "mutations_performed": False,
                               "limitations": ["API completion evidence, not PostgreSQL reconciliation",
                                               "No server telemetry or deployment image verification",

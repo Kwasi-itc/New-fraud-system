@@ -234,8 +234,27 @@ class SourceTests(unittest.TestCase):
             for name in ("a.csv", "b.csv"):
                 write_transactions(root / name, [transaction_row(source_account_no=token)])
             args.pre_sanitized_source = True
+            args.pii_key_file = None
+            (root / "key").unlink()
             _, _, selected, _ = prepare_sources(args, root, DiskSpaceGuard(root, 1))
             self.assertTrue(all(row.fields["account_ref"] == token for row in iter_merged_events([selected])))
+
+    def test_without_a_key_identifiers_are_unchanged_and_unused_fields_are_dropped(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            args = self.make_sources(root)
+            args.pii_key_file = None
+            (root / "key").unlink()
+            _, _, selected, _ = prepare_sources(args, root, DiskSpaceGuard(root, 1))
+            rows = list(iter_merged_events([selected]))
+            self.assertTrue(all(row.fields["account_ref"] == "233200000001" for row in rows))
+            self.assertTrue(all(row.object_id.startswith("production-replay:") for row in rows))
+            self.assertTrue(all("account_name" not in row.fields and "narration" not in row.fields for row in rows))
+
+    def test_parser_does_not_require_a_key(self):
+        args = parser().parse_args(["--data-model-url", "http://data", "--ingestion-url", "http://ingestion",
+                                   "--decision-engine-url", "http://decision"])
+        self.assertIsNone(args.pii_key_file)
 
     def test_duplicate_selected_ids_are_rejected(self):
         with TemporaryDirectory() as directory:

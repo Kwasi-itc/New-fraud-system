@@ -38,6 +38,14 @@ EXPLICITLY_DROPPED_PII_FIELDS = frozenset(
 )
 
 
+def minimize_internal_event(event: TransactionEvent) -> TransactionEvent:
+    """Project the internal transaction model without changing identifiers."""
+    fields = {name: value for name, value in event.fields.items() if name in INTERNAL_RETAINED_FIELDS}
+    fields["object_id"] = event.object_id
+    fields["transaction_id"] = event.object_id
+    return replace(event, fields=fields)
+
+
 class InternalPrivacyTransformer:
     """Minimise benchmark records and deterministically pseudonymise join keys."""
 
@@ -53,16 +61,15 @@ class InternalPrivacyTransformer:
         fields["transaction_id"] = object_id
         return replace(event, object_id=object_id, fields=fields)
 
-    def minimize_presanitized_event(self, event: TransactionEvent) -> TransactionEvent:
+    @staticmethod
+    def minimize_presanitized_event(event: TransactionEvent) -> TransactionEvent:
         """Minimise a row whose source identifiers were already HMAC-tokenized."""
 
-        fields = {name: value for name, value in event.fields.items() if name in INTERNAL_RETAINED_FIELDS}
-        account_ref = fields.get("account_ref")
+        minimized = minimize_internal_event(event)
+        account_ref = minimized.fields.get("account_ref")
         if account_ref is not None and not str(account_ref).startswith("hmac256:"):
             raise ValueError("pre-sanitized account_ref is not an HMAC token")
-        fields["object_id"] = event.object_id
-        fields["transaction_id"] = event.object_id
-        return replace(event, fields=fields)
+        return minimized
 
     def transform_fields(self, fields: dict[str, Any]) -> dict[str, Any]:
         result = {name: value for name, value in fields.items() if name in INTERNAL_RETAINED_FIELDS}

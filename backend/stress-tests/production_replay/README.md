@@ -19,7 +19,6 @@ py -3 -m venv .venv-replay
 .\.venv-replay\Scripts\python.exe backend\stress-tests\run_internal_sync_replay.py `
   --execute `
   --data-root "C:\fraud_data" `
-  --pii-key-file "C:\fraud_data\pii-hmac.key" `
   --data-model-url "http://YOUR_SERVER:8093" `
   --ingestion-url "http://YOUR_SERVER:8094" `
   --decision-engine-url "http://YOUR_SERVER:8095" `
@@ -30,11 +29,16 @@ py -3 -m venv .venv-replay
 
 Use your actual published service ports and a private or otherwise appropriately
 protected connection. Set `SERVICE_AUTH_TOKEN` in the environment if API
-authentication is enabled; do not put tokens in URLs. The HMAC key must contain
-at least 16 bytes and remain unchanged for consistent account pseudonyms. For an
-already sanitized transaction dataset, add `--pre-sanitized-source` to avoid
-rehashing account tokens. Merchant reference fields are not anonymized: use
-approved test data and protect the source dumps and target tenant.
+authentication is enabled; do not put tokens in URLs. By default this runner
+does not encrypt or HMAC-tokenize identifiers, and no key file is required.
+It still drops transaction fields not used by the internal model/rules.
+Account identifiers, merchant reference fields and temporary source chunks can
+contain sensitive data: use approved test data and protect the source dumps,
+artifact directory, API connection and target tenant. Optional
+`--pii-key-file "C:\path\pii-hmac.key"` enables HMAC pseudonymization for raw
+transaction data; that key must contain at least 16 bytes. For already sanitized
+transaction data, `--pre-sanitized-source` validates/preserves account tokens
+without reading a key file. Existing database-scale privacy behavior is unchanged.
 
 `--data-root` expects the existing six transaction stream directories and merchant
 JSON arrays at `data/dumps/merchant-info-dump/batch_*.json` and
