@@ -2,6 +2,92 @@
 
 This standalone Python harness profiles internal reference and transaction dumps, prepares one isolated tenant, and replays all configured transaction streams against the existing ingestion and decision-engine APIs. It does not require changes to any service.
 
+## Windows: merchant-seeded synchronous internal replay
+
+Use the cross-platform Python runner when you want merchant and merchant-product
+reference data followed by **one million evaluated transaction inputs**, rather
+than timestamp-multiplied traffic or the four-phase database-scale suite.
+The fraud services must already be running and reachable from the Windows machine.
+Python 3.11+ is required; the requirements include Windows timezone data.
+
+From the repository root in PowerShell:
+
+```powershell
+py -3 -m venv .venv-replay
+.\.venv-replay\Scripts\python.exe -m pip install -r backend\stress-tests\production_replay\requirements.txt
+
+.\.venv-replay\Scripts\python.exe backend\stress-tests\run_internal_sync_replay.py `
+  --execute `
+  --data-root "C:\fraud_data" `
+  --pii-key-file "C:\fraud_data\pii-hmac.key" `
+  --data-model-url "http://YOUR_SERVER:8093" `
+  --ingestion-url "http://YOUR_SERVER:8094" `
+  --decision-engine-url "http://YOUR_SERVER:8095" `
+  --transactions 1000000 `
+  --ingestion-concurrency 10 `
+  --evaluation-concurrency 10
+```
+
+Use your actual published service ports and a private or otherwise appropriately
+protected connection. Set `SERVICE_AUTH_TOKEN` in the environment if API
+authentication is enabled; do not put tokens in URLs. The HMAC key must contain
+at least 16 bytes and remain unchanged for consistent account pseudonyms. For an
+already sanitized transaction dataset, add `--pre-sanitized-source` to avoid
+rehashing account tokens. Merchant reference fields are not anonymized: use
+approved test data and protect the source dumps and target tenant.
+
+`--data-root` expects the existing six transaction stream directories and merchant
+JSON arrays at `data/dumps/merchant-info-dump/batch_*.json` and
+`data/dumps/merchant-product-dump/batch_*.json`. Use `--reference-data-root` if
+merchant dumps live under another root. Alternatively omit `--data-root` and
+provide `--manifest` with your own Windows paths. Staff CSV and watchlist files
+are **not** required for this runner. For a small smoke run set `--transactions 20`.
+Omit `--execute` to validate/prepare sources without making any API calls.
+
+The runner validates and sorts source data before API writes. It creates a new
+test tenant by default, provisions all three tables through the data-model API,
+loads deduplicated merchants and products in batches of at most 500 through
+ingestion, then validates/prepares/publishes the four internal scenarios. It does
+not create staff lists, switch to the standard rules, seed historical transactions,
+start Docker, build images, run SQL, or drop any database. An optional `--tenant-id`
+must identify a dedicated clean tenant with no scenarios. This is not a resume
+command: a partially prepared tenant is retained after errors, not deleted.
+
+Transactions are selected in source-time order (`--transaction-offset` is available).
+Ingestion and decision HTTP requests have independent concurrency bounds and a
+bounded handoff queue, with no multiplier. Concurrent requests can finish out of
+order. A transaction is evaluated only after a successful, identity-checked
+ingestion response. Ingestion uses idempotent bounded retries; decision requests
+are never automatically retried because a timeout may follow a committed write.
+HTTP 202/deferred responses, malformed results, incorrect tenant/object identities,
+unexpected triggered scenarios, and incomplete scenario result lists are failures,
+not successful synchronous evaluations. No asynchronous polling or fallback is
+performed by the runner.
+
+The count selects exactly one million inputs, not one million decision rows.
+Failures are reported without selecting replacement transactions; only a fully
+successful run guarantees one million completed synchronous evaluations. The
+internal rules still aggregate transaction history, not merchant/product rows.
+
+Results are in `backend/stress-tests/internal-sync-replay-runs/<run>/`:
+`setup.json` identifies the tenant/scenarios and reference deduplication counts;
+`progress.json` records live counters; `errors.ndjson` contains redacted failure
+categories; `summary.json` records the final status and metrics. Source chunks
+are temporary and removed after the run; the tenant and database records remain.
+Progress is also printed every 10,000 finished inputs. Exit codes are 0 for
+success/preparation-only, 2 for a completed run with request failures, 1 for setup
+or infrastructure failure, and 130 for interruption.
+
+Throughput is measured, not estimated from average latency: ingestion successes
+over its first-request-to-last-response window, completed synchronous transaction
+evaluations over the equivalent decision window, and successful ingestion-plus-
+evaluation chains over the entire pipeline window. End-to-end latency includes
+the handoff queue wait; ingestion latency includes retry/backoff time. Reference
+seeding, sorting and scenario setup are outside these windows. Decision row counts
+are reported separately. Percentiles are approximate. This runner does not perform
+PostgreSQL reconciliation or collect server/RDS telemetry, and cannot reconstruct
+scenario IDs for untriggered entries because the API does not expose them.
+
 ## One-Command Local Test
 
 From `New-fraud-system`, run:

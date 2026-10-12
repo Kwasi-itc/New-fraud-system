@@ -122,6 +122,8 @@ class EnvironmentSetup:
         tenant_id: str | None,
         tenant_name: str,
         scenario_set: str = SCENARIO_SET_STANDARD,
+        *,
+        merchant_references: tuple[ReferenceRecords, ReferenceRecords] | None = None,
     ) -> None:
         if scenario_set not in SCENARIO_SETS:
             raise ValueError(f"unsupported scenario set {scenario_set!r}")
@@ -131,6 +133,15 @@ class EnvironmentSetup:
         self.tenant_name = tenant_name
         self.scenario_set = scenario_set
         self.table_fields = INTERNAL_TABLE_FIELDS if scenario_set == SCENARIO_SET_INTERNAL else TABLE_FIELDS
+        self.merchant_references = merchant_references
+        if merchant_references is not None:
+            if scenario_set != SCENARIO_SET_INTERNAL:
+                raise ValueError("explicit merchant references require the internal scenario set")
+            self.table_fields = {
+                **INTERNAL_TABLE_FIELDS,
+                "merchants": TABLE_FIELDS["merchants"],
+                "merchant_products": TABLE_FIELDS["merchant_products"],
+            }
         self.tables: dict[str, dict[str, Any]] = {}
         self.fields: dict[str, dict[str, dict[str, Any]]] = {}
 
@@ -144,6 +155,9 @@ class EnvironmentSetup:
         if self.scenario_set == SCENARIO_SET_STANDARD:
             references = await self._load_reference_data()
             lists = await self._ensure_reference_lists(references[2])
+        elif self.merchant_references is not None:
+            for object_type, source in zip(("merchants", "merchant_products"), self.merchant_references):
+                await self._ingest_reference(object_type, source.records, verify_results=True)
         scenarios = await self._create_scenarios(publication_timeout_seconds)
         return {
             "setup_version": 1,
@@ -171,12 +185,16 @@ class EnvironmentSetup:
                     if references[3] is not None
                     else None
                 ),
-            } if references is not None else None),
+            } if references is not None else (
+                {name: asdict(source.stats) for name, source in
+                 zip(("merchants", "merchant_products"), self.merchant_references)}
+                if self.merchant_references is not None else None
+            )),
             "custom_lists": lists,
             "scenarios": scenarios,
             "notes": (
                 ["Reference records were sent through ingestion in batches of at most 500."]
-                if references is not None
+                if references is not None or self.merchant_references is not None
                 else ["Internal scenarios require no reference-data ingestion or custom lists."]
             )
             + [
@@ -315,12 +333,26 @@ class EnvironmentSetup:
             ) from exc
         return merchants, products, staff, merchant_watchlist
 
-    async def _ingest_reference(self, object_type: str, records: list[dict[str, Any]]) -> None:
+    async def _ingest_reference(
+        self, object_type: str, records: list[dict[str, Any]], *, verify_results: bool = False
+    ) -> None:
         for batch_number, start in enumerate(range(0, len(records), 500), start=1):
             batch = records[start : start + 500]
             digest = hashlib.sha256(json.dumps(batch, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:24]
             key = f"production-replay-setup:{object_type}:{batch_number}:{digest}"
-            await self.clients.ingest_batch(self.tenant_id, object_type, batch, key)
+            response = await self.clients.ingest_batch(self.tenant_id, object_type, batch, key)
+            if verify_results:
+                results = response.get("results")
+                if not isinstance(results, list) or len(results) != len(batch):
+                    raise APIError("invalid_reference_batch_result")
+                expected_ids = {record["object_id"] for record in batch}
+                if any(not isinstance(result, dict) for result in results):
+                    raise APIError("invalid_reference_batch_result")
+                returned_ids = [result.get("object_id") for result in results]
+                if any(not isinstance(value, str) for value in returned_ids) or set(returned_ids) != expected_ids:
+                    raise APIError("invalid_reference_batch_identity")
+                if any(result.get("action") != "created" or not result.get("revision_id") for result in results):
+                    raise APIError("reference_batch_not_created")
 
     async def _ensure_reference_lists(self, staff: StaffLists) -> dict[str, int]:
         values: dict[str, tuple[str, tuple[str, ...]]] = {
