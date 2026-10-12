@@ -40,7 +40,7 @@ func (systemClock) Now() time.Time { return time.Now().UTC() }
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
-	router.Use(gin.Recovery())
+	router.Use(recoverRequest())
 	if cfg.RequestTimeout <= 0 {
 		cfg.RequestTimeout = 15 * time.Second
 	}
@@ -57,7 +57,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	integrationHandler := handlers.NewIntegrationHandler(caseService)
 
 	v1 := router.Group("/v1")
-	v1.Use(userMiddleware(cfg.UserVerifier))
+	v1.Use(userMiddleware(cfg.UserVerifier, db))
 	v1.GET("/service-info", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                "case-manager-service",
@@ -83,6 +83,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/case-bulk", caseHandler.Bulk)
 	v1.GET("/tenants/:tenantId/cases/:caseId/evidence-access/:kind/:resourceId", caseHandler.EvidenceAccess)
 	v1.GET("/tenants/:tenantId/cases/:caseId/overview", caseHandler.Overview)
+	v1.POST("/tenants/:tenantId/cases/:caseId/explore", caseHandler.Explore)
+	v1.POST("/tenants/:tenantId/cases/:caseId/explore/attach", caseHandler.AttachExploredDecision)
 	v1.GET("/tenants/:tenantId/cases/:caseId/reports", caseHandler.ListReports)
 	v1.POST("/tenants/:tenantId/cases/:caseId/reports", caseHandler.CreateReport)
 	v1.GET("/tenants/:tenantId/cases/:caseId/reports/:reportId", caseHandler.GetReport)
@@ -96,6 +98,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/cases/:caseId", caseHandler.Get)
 	v1.PATCH("/tenants/:tenantId/cases/:caseId", caseHandler.Update)
 	v1.POST("/tenants/:tenantId/cases/:caseId/decisions", caseHandler.AddDecision)
+	v1.POST("/tenants/:tenantId/cases/:caseId/decision-transfers", caseHandler.TransferDecision)
 	v1.GET("/tenants/:tenantId/cases/:caseId/events", caseHandler.ListEvents)
 	v1.POST("/tenants/:tenantId/cases/:caseId/comments", caseHandler.CreateComment)
 	v1.POST("/tenants/:tenantId/cases/:caseId/tags", caseHandler.AddTag)
@@ -117,6 +120,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	callbacks := router.Group("/v1/screening-events")
 	callbacks.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
 	callbacks.POST("/reviewed", integrationHandler.ScreeningReviewed)
+	callbacks.POST("/requires-review", integrationHandler.ScreeningRequiresReview)
 	callbacks.POST("/evidence-uploaded", integrationHandler.ScreeningEvidenceUploaded)
 
 	internal := router.Group("/internal")

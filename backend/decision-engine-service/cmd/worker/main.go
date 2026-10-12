@@ -136,7 +136,7 @@ func main() {
 	var scoringConfigRepo ports.ScoringConfigRepository = storepostgres.NewScoringConfigRepository(db)
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
-	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
 	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()

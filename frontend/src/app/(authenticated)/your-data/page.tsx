@@ -714,7 +714,7 @@ export default function YourDataPage() {
   function mapPortableDataModelTransferError(error: unknown, action: "export" | "import") {
     const message = (error as Error).message;
     if (message.includes("status 404")) {
-      return `${action === "export" ? "Export" : "Import"} endpoint returned 404. The frontend is probably pointing at an older data-model-service instance on ${process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_URL ?? "http://localhost:8080"}. Restart the backend service so the new import/export routes are loaded.`;
+      return `${action === "export" ? "Export" : "Import"} is currently unavailable. Please contact your administrator.`;
     }
     return message;
   }

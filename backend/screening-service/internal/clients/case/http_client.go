@@ -30,6 +30,10 @@ func (c HTTPClient) PublishScreeningReviewed(ctx context.Context, command ports.
 	return c.post(ctx, "/v1/screening-events/reviewed", command)
 }
 
+func (c HTTPClient) PublishScreeningRequiresReview(ctx context.Context, command ports.ScreeningRequiresReviewCommand) error {
+	return c.post(ctx, "/v1/screening-events/requires-review", command)
+}
+
 func (c HTTPClient) PublishScreeningEvidenceUploaded(ctx context.Context, command ports.ScreeningEvidenceUploadedCommand) error {
 	return c.post(ctx, "/v1/screening-events/evidence-uploaded", command)
 }

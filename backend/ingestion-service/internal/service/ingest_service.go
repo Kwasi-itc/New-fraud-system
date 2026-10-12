@@ -73,7 +73,7 @@ func NewIngestService(
 }
 
 func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion.RecordResult, []ingestion.ValidationError, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, input.TenantID)
+	model, err := s.readTableModel(ctx, input.TenantID, input.ObjectType)
 	if err != nil {
 		return ingestion.RecordResult{}, nil, err
 	}
@@ -135,7 +135,7 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			return err
 		}
 
-		if err := store.Audits().Create(ctx, ingestion.IngestionAudit{
+		audit := ingestion.IngestionAudit{
 			ID:              s.idGenerator.New().String(),
 			TenantID:        input.TenantID.String(),
 			ObjectType:      input.ObjectType,
@@ -147,8 +147,6 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			ValidationError: []byte("[]"),
 			IdempotencyKey:  input.IdempotencyKey,
 			CreatedAt:       now,
-		}); err != nil {
-			return err
 		}
 
 		eventType := "record.ingested"
@@ -165,7 +163,7 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 			"record":      normalized,
 			"ingested_at": now,
 		})
-		if err := store.OutboxEvents().Create(ctx, ingestion.OutboxEvent{
+		if err := store.RecordIngestion(ctx, audit, ingestion.OutboxEvent{
 			ID:            s.idGenerator.New().String(),
 			TenantID:      input.TenantID.String(),
 			EventType:     eventType,
@@ -210,7 +208,7 @@ func (s IngestService) Ingest(ctx context.Context, input IngestInput) (ingestion
 }
 
 func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) ([]ingestion.RecordResult, []ingestion.ValidationError, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, input.TenantID)
+	model, err := s.readTableModel(ctx, input.TenantID, input.ObjectType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -322,7 +320,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 				return err
 			}
 
-			if err := store.Audits().Create(ctx, ingestion.IngestionAudit{
+			audit := ingestion.IngestionAudit{
 				ID:              s.idGenerator.New().String(),
 				TenantID:        input.TenantID.String(),
 				ObjectType:      input.ObjectType,
@@ -334,8 +332,6 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 				ValidationError: []byte("[]"),
 				IdempotencyKey:  input.IdempotencyKey,
 				CreatedAt:       now,
-			}); err != nil {
-				return err
 			}
 
 			eventType := "record.ingested"
@@ -352,7 +348,7 @@ func (s IngestService) BatchIngest(ctx context.Context, input BatchIngestInput) 
 				"record":      record.normalized,
 				"ingested_at": now,
 			})
-			if err := store.OutboxEvents().Create(ctx, ingestion.OutboxEvent{
+			if err := store.RecordIngestion(ctx, audit, ingestion.OutboxEvent{
 				ID:            s.idGenerator.New().String(),
 				TenantID:      input.TenantID.String(),
 				EventType:     eventType,
@@ -448,7 +444,7 @@ func filterErrorsForObject(errors []ingestion.ValidationError, objectID string) 
 }
 
 func (s IngestService) GetRecord(ctx context.Context, tenantID uuid.UUID, objectType, objectID string) (RecordLookupResult, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	model, err := s.readTableModel(ctx, tenantID, objectType)
 	if err != nil {
 		return RecordLookupResult{}, err
 	}
@@ -486,7 +482,7 @@ func (s IngestService) GetRecord(ctx context.Context, tenantID uuid.UUID, object
 }
 
 func (s IngestService) ListRecords(ctx context.Context, tenantID uuid.UUID, objectType string, limit int) (RecordListResult, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	model, err := s.readTableModel(ctx, tenantID, objectType)
 	if err != nil {
 		return RecordListResult{}, err
 	}
@@ -539,7 +535,7 @@ func (s IngestService) ListRecords(ctx context.Context, tenantID uuid.UUID, obje
 }
 
 func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, objectType, fieldName, value string, limit int) (RecordQueryResult, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	model, err := s.readTableModel(ctx, tenantID, objectType)
 	if err != nil {
 		return RecordQueryResult{}, err
 	}
@@ -592,7 +588,7 @@ func (s IngestService) QueryRecords(ctx context.Context, tenantID uuid.UUID, obj
 }
 
 func (s IngestService) AggregateRecords(ctx context.Context, tenantID uuid.UUID, query ingestion.AggregateQuery) (AggregateResult, error) {
-	model, err := s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
+	model, err := s.readTableModel(ctx, tenantID, query.ObjectType)
 	if err != nil {
 		return AggregateResult{}, err
 	}
@@ -618,4 +614,11 @@ func (s IngestService) AggregateRecords(ctx context.Context, tenantID uuid.UUID,
 		return AggregateResult{}, err
 	}
 	return AggregateResult{Value: value}, nil
+}
+
+func (s IngestService) readTableModel(ctx context.Context, tenantID uuid.UUID, objectType string) (ingestion.PublishedDataModel, error) {
+	if reader, ok := s.dataModelReader.(ports.TableDataModelReader); ok {
+		return reader.GetPublishedTable(ctx, tenantID, objectType)
+	}
+	return s.dataModelReader.GetPublishedDataModel(ctx, tenantID)
 }

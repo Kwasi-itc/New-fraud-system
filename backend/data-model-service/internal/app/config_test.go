@@ -33,6 +33,8 @@ func TestLoadConfigAcceptsDisabledAuthWithoutToken(t *testing.T) {
 
 func TestLoadConfigRejectsInvalidQueueWorkers(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://example")
+	t.Setenv("SERVICE_AUTH_MODE", "token")
+	t.Setenv("SERVICE_AUTH_TOKEN", "test-service-token")
 	t.Setenv("INDEX_JOB_QUEUE_WORKERS", "0")
 
 	_, err := LoadConfig()

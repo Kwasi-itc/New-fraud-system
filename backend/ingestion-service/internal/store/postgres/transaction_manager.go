@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
 )
 
@@ -36,6 +37,15 @@ func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore
 
 type mutationStore struct {
 	tx pgx.Tx
+}
+
+func (s mutationStore) RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error {
+	batch := &pgx.Batch{}
+	batch.Queue(insertAuditSQL, auditArgs(audit)...)
+	batch.Queue(insertOutboxSQL, outboxArgs(event)...)
+	// Close drains results and propagates either statement's error. The outer
+	// transaction rolls back the record as well as both supporting writes.
+	return s.tx.SendBatch(ctx, batch).Close()
 }
 
 func (s mutationStore) Audits() ports.IngestionAuditRepository {

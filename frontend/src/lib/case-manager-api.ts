@@ -11,7 +11,7 @@ export type CaseRecord = {
 };
 export type CaseEvent = { id: string; event_type: string; user_id?: string; additional_note: string; new_value: string; previous_value: string; created_at: string };
 export type DecisionLink = { id: string; decision_id: string; object_id: string; object_type: string; pivot_value?: string; created_at: string };
-export type ScreeningLink = { id: string; screening_id: string; match_id?: string; status: string; created_at: string };
+export type ScreeningLink = { id: string; screening_id: string; match_id?: string; status: string; partial?: boolean; created_at: string };
 export type CaseFile = { storage_key?: string; id: string; file_name: string; content_type: string; file_size: number; uploaded_by: string; created_at: string };
 export type QueuePage = { cases: CaseRecord[]; counts: Partial<Record<CaseStatus, number>>; next_cursor?: string };
 export type LinkPage<T> = { items: T[]; next_cursor?: string };
@@ -31,6 +31,10 @@ export async function requestCase<T>(tenant: string, path: string, init: Request
   });
   const data = response.status === 204 ? undefined : await response.json();
   if (!response.ok) throw new CaseApiError(typeof data?.error === "string" ? data.error : data?.error?.message ?? "Case request failed.", response.status);
+  // Empty Go slices can arrive as null. Keep collection consumers on the
+  // array contract, including inbox/tag administration and the case queue.
+  const collection = ({ inboxes: "inboxes", tags: "tags", "case-queue": "cases" } as Record<string, string>)[path.split("?")[0]];
+  if (collection && data?.[collection] === null) data[collection] = [];
   return data as T;
 }
 export function writeCase<T>(tenant: string, path: string, payload: unknown = {}, method = "POST") {

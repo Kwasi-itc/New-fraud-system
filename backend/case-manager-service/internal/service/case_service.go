@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 )
 
 type CaseService struct {
+	explorer     ports.ExplorationRepository
 	analytics    ports.AnalyticsRepository
 	reports      ports.ReportRepository
 	uploads      ports.UploadRepository
@@ -50,6 +53,7 @@ func NewCaseService(
 }
 
 func (s CaseService) withRepositories(r ports.Repositories) CaseService {
+	s.explorer = r.Explorer
 	s.analytics = r.Analytics
 	s.reports = r.Reports
 	s.uploads = r.Uploads
@@ -67,6 +71,7 @@ func transact[T any](ctx context.Context, s CaseService, fn func(CaseService) (T
 		return fn(s)
 	}
 	var result T
+	started := time.Now()
 	err := s.uow.WithinTransaction(ctx, func(r ports.Repositories) error {
 		txService := s.withRepositories(r)
 		txService.uow = nil
@@ -76,9 +81,18 @@ func transact[T any](ctx context.Context, s CaseService, fn func(CaseService) (T
 		return err
 	})
 	if err != nil {
+		observability.Logger(ctx).Debug("case transaction unsuccessful", append([]any{"event", "case.transaction.failed", "duration_ms", time.Since(started).Milliseconds()}, observability.ErrorFields(err)...)...)
 		var zero T
 		return zero, err
 	}
+	fields := []any{"event", "case.transaction.committed", "duration_ms", time.Since(started).Milliseconds()}
+	switch item := any(result).(type) {
+	case casepkg.Case:
+		fields = append(fields, "tenant_id", item.TenantID, "case_id", item.ID, "inbox_id", item.InboxID, "status", item.Status, "outcome", item.Outcome)
+	case casepkg.DecisionLink:
+		fields = append(fields, "tenant_id", item.TenantID, "case_id", item.CaseID, "decision_id", item.DecisionID)
+	}
+	observability.Logger(ctx).Debug("case transaction committed", fields...)
 	return result, nil
 }
 
@@ -301,7 +315,11 @@ func (s CaseService) createCase(ctx context.Context, in CreateCaseInput, actorID
 			return casepkg.Case{}, err
 		}
 	}
-	for _, decisionID := range in.DecisionIDs {
+	// Consistent insertion order prevents reversed multi-decision creates from
+	// taking uniqueness locks in opposite order.
+	decisionIDs := append([]uuid.UUID(nil), in.DecisionIDs...)
+	sort.Slice(decisionIDs, func(i, j int) bool { return decisionIDs[i].String() < decisionIDs[j].String() })
+	for _, decisionID := range decisionIDs {
 		if _, err := s.AddDecision(ctx, AddDecisionInput{TenantID: in.TenantID, CaseID: item.ID, DecisionID: decisionID}, actorID); err != nil {
 			return casepkg.Case{}, err
 		}
@@ -410,6 +428,12 @@ type UpdateCaseInput struct {
 }
 
 func (s CaseService) updateCase(ctx context.Context, in UpdateCaseInput, actorID *string) (casepkg.Case, error) {
+	if in.Status != nil && *in.Status == casepkg.StatusClosed {
+		return casepkg.Case{}, casepkg.Invalid("use the close action with an outcome and closing findings")
+	}
+	if in.Outcome != nil && (*in.Outcome != casepkg.OutcomeUnset || in.Status == nil || *in.Status != casepkg.StatusInvestigating) {
+		return casepkg.Case{}, casepkg.Invalid("outcome can only be set by closing or reset by reopening")
+	}
 	if in.Name != nil && strings.TrimSpace(*in.Name) == "" {
 		return casepkg.Case{}, casepkg.Invalid("name is required")
 	}
@@ -459,15 +483,14 @@ func (s CaseService) updateCase(ctx context.Context, in UpdateCaseInput, actorID
 			return casepkg.Case{}, err
 		}
 	}
-	// Membership removal permits historical assignments on closed cases. Before
-	// reopening, require that assignment to be valid again in the destination.
-	if item.Status == casepkg.StatusClosed && in.Status != nil && *in.Status != casepkg.StatusClosed && in.InboxID == nil {
-		if _, err := s.activeInbox(ctx, in.TenantID, item.InboxID); err != nil {
-			return casepkg.Case{}, err
-		}
-		if err := s.eligibleAssignee(ctx, in.TenantID, item.InboxID, item.AssignedTo); err != nil {
-			return casepkg.Case{}, err
-		}
+	reopening := item.Status == casepkg.StatusClosed && in.Status != nil && *in.Status == casepkg.StatusInvestigating
+	// A repeated reopen PATCH must not claim a previously unassigned case.
+	keepAssignment := reopening || (item.Status == casepkg.StatusInvestigating && in.Status != nil && *in.Status == casepkg.StatusInvestigating)
+	if in.Outcome != nil && !reopening {
+		return casepkg.Case{}, casepkg.Invalid("outcome can only be reset when reopening a closed case")
+	}
+	if reopening && in.BoostReason != nil && *in.BoostReason != "" {
+		return casepkg.Case{}, casepkg.Invalid("reopening clears attention boost")
 	}
 	now := s.clock.Now()
 	var events []casepkg.Event
@@ -486,21 +509,22 @@ func (s CaseService) updateCase(ctx context.Context, in UpdateCaseInput, actorID
 		item.Name = strings.TrimSpace(*in.Name)
 		addEvent("name_updated", item.Name, prev)
 	}
-	if in.Status != nil {
+	previousBoost, previousReview := stringValue(item.BoostReason), stringValue(item.ReviewLevel)
+	if reopening {
+		before := item
+		if err := s.applyLifecycle(ctx, &item, casepkg.StatusInvestigating, casepkg.OutcomeUnset, ""); err != nil {
+			return casepkg.Case{}, err
+		}
+		addEvent("status_updated", string(item.Status), string(before.Status))
+		addEvent("outcome_updated", string(item.Outcome), string(before.Outcome))
+		if before.SnoozedUntil != nil {
+			addEvent("case_unsnoozed", "", before.SnoozedUntil.UTC().Format(time.RFC3339Nano))
+		}
+	} else if in.Status != nil {
 		prev := string(item.Status)
 		item.Status = *in.Status
 		addEvent("status_updated", string(item.Status), prev)
-		if item.Status == casepkg.StatusClosed && item.SnoozedUntil != nil {
-			addEvent("case_unsnoozed", "", item.SnoozedUntil.UTC().Format(time.RFC3339Nano))
-			item.SnoozedUntil = nil
-		}
 	}
-	if in.Outcome != nil {
-		prev := string(item.Outcome)
-		item.Outcome = *in.Outcome
-		addEvent("outcome_updated", string(item.Outcome), prev)
-	}
-	previousBoost, previousReview := stringValue(item.BoostReason), stringValue(item.ReviewLevel)
 	if in.BoostReason != nil {
 		item.BoostReason = in.BoostReason
 		if *in.BoostReason == "" {
@@ -530,7 +554,13 @@ func (s CaseService) updateCase(ctx context.Context, in UpdateCaseInput, actorID
 			return casepkg.Case{}, err
 		}
 	}
-	if err := s.investigate(ctx, &item, in.Status == nil || *in.Status == casepkg.StatusPending); err != nil {
+	if keepAssignment {
+		if actor := access.Actor(ctx); actor != nil {
+			if err := s.contributors.Add(ctx, in.TenantID, item.ID, *actor, now); err != nil {
+				return casepkg.Case{}, err
+			}
+		}
+	} else if err := s.investigate(ctx, &item, in.Status == nil || *in.Status == casepkg.StatusPending); err != nil {
 		return casepkg.Case{}, err
 	}
 	return s.GetCase(ctx, in.TenantID, in.CaseID)
@@ -562,15 +592,25 @@ func (s CaseService) addDecision(ctx context.Context, in AddDecisionInput, actor
 	if item.Type != casepkg.TypeDecision {
 		return casepkg.DecisionLink{}, casepkg.Invalid("decision links require a decision case")
 	}
-	if item.Status == casepkg.StatusClosed {
-		return casepkg.DecisionLink{}, casepkg.Invalid("cannot add a decision to a closed case")
-	}
 	if err := s.loadDecisions(ctx, in.TenantID, []uuid.UUID{in.DecisionID}); err != nil {
 		return casepkg.DecisionLink{}, err
 	}
 	ref := s.decisionRefs[in.DecisionID]
 	if err := validateDecisionMetadata(ref, in.ScenarioID, in.ObjectType, in.ObjectID); err != nil {
 		return casepkg.DecisionLink{}, err
+	}
+	existing, err := s.decisions.Membership(ctx, in.TenantID, in.DecisionID)
+	if err != nil {
+		return casepkg.DecisionLink{}, err
+	}
+	if existing != nil {
+		if existing.CaseID != in.CaseID {
+			return casepkg.DecisionLink{}, casepkg.ErrConflict
+		}
+		return *existing, nil // Authorized replay, including closed cases, has no effects.
+	}
+	if item.Status == casepkg.StatusClosed {
+		return casepkg.DecisionLink{}, casepkg.Invalid("cannot add a decision to a closed case")
 	}
 	in.ScenarioID = &ref.ScenarioID
 	in.ObjectType = ref.ObjectType
@@ -880,6 +920,15 @@ func (s CaseService) handleWorkflowAction(ctx context.Context, in WorkflowAction
 	if err := s.intake.Lock(ctx, in.TenantID, "pivot", pivot); err != nil {
 		return casepkg.Case{}, err
 	}
+	// A distinct workflow execution for an already-owned decision keeps its
+	// primary case, even after closure or a deliberate transfer.
+	owned, err := s.decisions.FindCase(ctx, in.TenantID, in.DecisionID)
+	if err != nil {
+		return casepkg.Case{}, err
+	}
+	if owned != nil {
+		return s.GetCase(ctx, in.TenantID, owned.ID)
+	}
 	name := firstNonEmpty(in.ActionConfig.Name, in.ActionConfig.Title, "Workflow case")
 	var item casepkg.Case
 	if in.ActionType == "add_to_case" || in.ActionType == "add_to_case_if_possible" {
@@ -943,12 +992,42 @@ func (s CaseService) handleScreeningReviewed(ctx context.Context, tenantID, scre
 	if decisionID != nil && (ref.DecisionID == nil || *decisionID != *ref.DecisionID) {
 		return casepkg.Invalid("screening decision does not match")
 	}
-	item, err := s.screenings.FindCase(ctx, tenantID, screeningID)
+	continuous, err := s.references.ContinuousScreening(ctx, tenantID, screeningID)
 	if err != nil {
 		return err
 	}
-	if item == nil && ref.DecisionID != nil {
+	if continuous != nil {
+		item, err := s.ensureContinuousCase(ctx, tenantID, screeningID, *continuous)
+		if err != nil {
+			return err
+		}
+		_, err = s.events.Create(ctx, newEvent(s.ids.New(), tenantID, item.ID, nil, "screening_match_reviewed", "", matchID, "continuous_screening_match", status, "", s.clock.Now()))
+		return err
+	}
+	var item *casepkg.Case
+	if ref.DecisionID != nil {
+		arrival, err := s.references.DecisionScreening(ctx, tenantID, screeningID)
+		if err != nil {
+			return err
+		}
+		if arrival != nil && arrival.Published {
+			item, err := s.ensureDecisionScreeningCase(ctx, tenantID, screeningID, *arrival)
+			if err != nil {
+				return err
+			}
+			_, err = s.events.Create(ctx, newEvent(s.ids.New(), tenantID, item.ID, nil, "screening_match_reviewed", "", matchID, "decision_screening_match", status, "", s.clock.Now()))
+			return err
+		}
 		item, err = s.decisions.FindCase(ctx, tenantID, *ref.DecisionID)
+		if err != nil {
+			return err
+		}
+		if item == nil {
+			return casepkg.Invalid("legacy decision screening requires a primary case; no authoritative arrival route")
+		}
+	}
+	if item == nil {
+		item, err = s.screenings.FindCase(ctx, tenantID, screeningID)
 		if err != nil {
 			return err
 		}
@@ -966,7 +1045,21 @@ func (s CaseService) handleScreeningReviewed(ctx context.Context, tenantID, scre
 	if _, err := s.caseForMutation(ctx, tenantID, item.ID, nil); err != nil {
 		return err
 	}
+	if ref.DecisionID != nil {
+		current, err := s.decisions.Membership(ctx, tenantID, *ref.DecisionID)
+		if err != nil {
+			return err
+		}
+		if current != nil && current.CaseID != item.ID {
+			return casepkg.ErrConflict
+		} // Transfer won; retry against current primary.
+	}
 	now := s.clock.Now()
+	// Re-read after the case lock to match the investigator lock order.
+	ref, err = s.references.Screening(ctx, tenantID, screeningID, matchID)
+	if err != nil {
+		return err
+	}
 	// Delivery may be reordered after retries. Preserve the event in history,
 	// but display the match's current authoritative status rather than regressing.
 	if _, err := s.screenings.Create(ctx, casepkg.ScreeningLink{ID: s.ids.New(), TenantID: tenantID, CaseID: item.ID, ScreeningID: screeningID, MatchID: &matchID, Status: ref.MatchStatus, CreatedAt: now}); err != nil {

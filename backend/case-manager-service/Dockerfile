@@ -1,10 +1,11 @@
 FROM golang:1.24.2 AS builder
 
-WORKDIR /app
-COPY go.mod go.sum ./
+WORKDIR /app/case-manager-service
+COPY case-manager-service/go.mod case-manager-service/go.sum ./
+COPY investigator ../investigator
 RUN go mod download
 
-COPY . .
+COPY case-manager-service/ .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/server ./cmd/server
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/worker ./cmd/worker
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/migrate ./cmd/migrate
@@ -17,7 +18,7 @@ COPY --from=builder /bin/server /app/server
 COPY --from=builder /bin/worker /app/worker
 COPY --from=builder /bin/migrate /app/migrate
 COPY --from=builder /bin/outbox /app/outbox
-COPY --from=builder /app/internal/migrations /app/internal/migrations
+COPY --from=builder /app/case-manager-service/internal/migrations /app/internal/migrations
 
 EXPOSE 8086
 ENTRYPOINT ["/app/server"]

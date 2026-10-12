@@ -34,6 +34,7 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 type workerRunner struct {
+	projector    storepostgres.ExecutionProjector
 	caseDelivery service.CaseDeliveryService
 	logger       *slog.Logger
 	batchLimit   int
@@ -96,9 +97,9 @@ func main() {
 		logger.Error("failed to initialize river client", "error", err)
 		os.Exit(1)
 	}
-	screeningEnqueuer := riverjobs.NewRiverScreeningEnqueuer(riverClient, 1, cfg.ScreeningQueueName)
+	screeningEnqueuer := riverjobs.NewRiverScreeningEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.ScreeningQueueName)
 	datasetJobEnqueuer := riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
-	monitoredEnqueuer := riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, 1, cfg.MonitoredQueueName)
+	monitoredEnqueuer := riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.MonitoredQueueName)
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	dispatchService := service.NewDispatchService(txManager, systemClock{}, screeningRepo, matchRepo, providerClient, decisionPublisher)
 	continuousWorker := service.NewContinuousWorkerService(txManager, systemClock{}, continuousRepo, monitoredObjRepo, ingestionReader, screeningService)
@@ -111,6 +112,7 @@ func main() {
 	river.AddWorker(workers, &monitoredWorker)
 
 	runner := workerRunner{
+		projector:    storepostgres.NewExecutionProjector(db),
 		caseDelivery: service.NewCaseDeliveryService(storepostgres.NewCaseEventRepository(db), casePublisher, logger),
 		logger:       logger,
 		batchLimit:   cfg.WorkerBatchLimit,
@@ -177,6 +179,11 @@ func (w workerRunner) runPollLoop(ctx context.Context, interval time.Duration) e
 func (w workerRunner) runOnce(ctx context.Context) error {
 	cycleStartedAt := time.Now()
 	w.logger.Info("screening worker cycle started", "batch_limit", w.batchLimit)
+	if failed, err := w.projector.RunBatch(ctx, w.batchLimit); err != nil {
+		return err
+	} else if failed > 0 {
+		w.logger.Warn("execution projections retained for retry", "count", failed)
+	}
 	if err := w.caseDelivery.RunBatch(ctx, w.batchLimit); err != nil {
 		return err
 	}

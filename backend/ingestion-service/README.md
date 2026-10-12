@@ -34,6 +34,94 @@ Current implementation status:
 
 ## Purpose
 
+### Published table contracts and cache
+
+`DATA_MODEL_READ_MODE=sql` is the default for the API and CSV worker. Apply
+data-model migration `000005_ingestion_contracts` **before** starting these
+processes. Startup validates the read views and fails if they are missing.
+Both services use the same logical PostgreSQL database. Metadata reads use the
+primary/write pool, including for requests whose record queries use a read pool.
+
+Each lookup reads only the requested table through the data-model-owned
+`core.ingestion_contracts_v1` view. One indexed query checks the current version
+and tenant status; it returns the stored JSON only on a cache miss or change.
+An unknown table requires a second tenant lookup. No ingestion lookup assembles
+the tenant's full model or scans schema migration history. Schema mutations
+publish the compact contract and a new opaque UUID version in their transaction;
+rollback also rolls back publication. Tenant status is always read live.
+
+The per-process cache is keyed by tenant and table, bounded by
+`DATA_MODEL_CACHE_MAX_ENTRIES` (128) and `DATA_MODEL_CACHE_MAX_BYTES` (16777216).
+Byte accounting covers encoded payloads; decoded objects and concurrent copies
+consume additional heap. Either limit set to zero disables retention. Negative
+limits fail startup. Callers receive independent copies. Database errors fail
+the request; there is no stale-cache or automatic HTTP fallback.
+
+For separate database roles, grant the ingestion role `USAGE ON SCHEMA core`
+and `SELECT ON core.ingestion_contracts_v1, core.ingestion_tenants_v1`, alongside
+its existing ingestion/tenant-data permissions. Do not grant metadata mutation
+rights. Shared development credentials do not enforce this role separation.
+
+The contract query is one consistent database snapshot. It does not lock schema
+metadata for the lifetime of ingestion; destructive schema changes still require
+coordinated maintenance. Publication is synchronous work on schema edits, not
+record writes. The migration backfills existing tables while blocking metadata
+writes; schedule it accordingly for large installations.
+
+### Write round trips
+
+New full records use `INSERT ... ON CONFLICT DO NOTHING RETURNING id`, with a
+following `UPDATE ... RETURNING id` only on conflict. PATCH first attempts the
+update, inserting only when absent. This removes the existence pre-read and
+reports exactly one creation under concurrent inserts. Existing full records
+still require two statements. A concurrent deletion can return an error rather
+than falsely reporting success. Audit and outbox inserts share one pgx batch
+inside the same transaction as the record and idempotency state; any failure
+rolls the transaction back. PostgreSQL still maintains indexes during writes.
+
+Database-backed tests cover publication rollback, concurrent schema edits,
+tenant separation, version/status revalidation, migration backfill/revert,
+concurrent creates, PATCH preservation, and audit/outbox rollback. A 2,001-table
+fixture checks the contract lookup's indexed query plan. These establish behavior
+and query shape, not production latency: benchmark representative payloads,
+indexes, concurrency, and database-wide pool budgets before claiming a speedup.
+Use `CONTRACT_TEST_DATABASE_URL` pointing to a disposable localhost `contract_*`
+database to run the new tests; they create and remove their own isolated databases.
+
+### HTTP compatibility mode
+
+Set `DATA_MODEL_READ_MODE=http` and `DATA_MODEL_SERVICE_URL` to use the existing
+full-model HTTP contract. To roll back migration 000005, first switch all API and
+worker processes to HTTP mode and restart them. Existing full-model HTTP
+consumers retain their existing response and revision semantics.
+
+The API and worker each keep a private, tenant-keyed LRU cache of decoded models.
+Every lookup still contacts the data-model service with `If-None-Match`; a cached
+model is returned only after a matching `304 Not Modified`. There is no TTL-based
+reuse, stale-on-error fallback, or cross-request sharing of mutable model maps.
+Dependency failures and malformed revalidation responses fail the lookup.
+
+`DATA_MODEL_CACHE_MAX_ENTRIES` defaults to 128 and `DATA_MODEL_CACHE_MAX_BYTES`
+defaults to 16777216 per process. The byte limit accounts for encoded response size;
+decoded Go objects and concurrent requests consume additional memory. Setting
+either limit to zero disables retention. Negative limits fail startup. Responses
+larger than 32 MiB are rejected; responses larger than the cache budget are usable
+but not retained. Servers without ETags remain compatible and return full models.
+
+The data-model server validates against the full response, including writability
+and enum values, rather than trusting the migration-derived revision alone.
+Deploying either service first is supported. This saves response transfer and
+client decoding on revalidation hits; it does **not** remove the upstream request
+or model-assembly SQL. No measured latency improvement is claimed. The existing
+multi-query model assembly and schema-change-versus-ingest race remain; this cache
+does not provide a database snapshot or serialize ingestion with schema changes.
+
+Configuration example: `DATA_MODEL_CACHE_MAX_ENTRIES=0` disables the cache for an
+A/B comparison. Keep workload, model size, concurrency, and database state fixed;
+compare completed-ingest latency, errors, bytes transferred, and process memory.
+
+## Ingestion responsibilities
+
 The service should manage:
 
 - synchronous single-record ingestion

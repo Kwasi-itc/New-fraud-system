@@ -380,6 +380,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
               <span>ID {decision.id}</span>
               <Copy className="size-4 text-slate-500" />
             </div>
+            <Link className="text-sm font-semibold text-blue-700 underline" href={`/cases/decisions/${encodeURIComponent(decision.id)}?${new URLSearchParams({ tenant: tenantId })}`}>Case investigation</Link>
           </div>
         </div>
       </div>

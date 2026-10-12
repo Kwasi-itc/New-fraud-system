@@ -44,6 +44,7 @@ type WorkspaceFilters struct {
 	Unassigned             bool
 	ReviewLevel            string
 	RelatedTo              *uuid.UUID
+	DecisionID             *uuid.UUID
 }
 type QueuePage struct {
 	Cases      []Case           `json:"cases"`

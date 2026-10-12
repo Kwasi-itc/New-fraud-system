@@ -33,6 +33,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 
+	logger.Info("database pool initialized", "event", "database.pool_initialized", "pool_max_connections", db.Config().MaxConns, "user_auth_enabled", verifier != nil, "integration_tenant_count", len(tenantIDs))
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
 		UserVerifier: verifier, ServiceTenantIDs: tenantIDs, RequestTimeout: 15 * time.Second,
 		AuthMode:            cfg.ServiceAuthMode,
@@ -56,7 +57,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 }
 
 func (a *App) Run() error {
-	a.logger.Info("starting case manager service", "port", a.cfg.Port)
+	a.logger.Info("starting case manager service", "event", "api.starting", "port", a.cfg.Port, "request_timeout_ms", 15000, "log_level", a.cfg.LogLevel)
 	if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("listen and serve: %w", err)
 	}

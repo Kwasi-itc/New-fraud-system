@@ -1,6 +1,6 @@
 "use client";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { requestCase, writeCase, type CaseSession, type Inbox, type Tag, type QueuePage, type LinkPage, type ReportPage } from "./case-manager-api";
+import { CaseApiError, requestCase, writeCase, type CaseSession, type Inbox, type Tag, type QueuePage, type LinkPage, type ReportPage } from "./case-manager-api";
 
 export const caseKeys = { scope: (tenant: string, session: string) => ["cases", tenant, session] as const };
 export function useCaseReports(tenant: string, session: string, id: string) {
@@ -30,5 +30,6 @@ export function useCaseLinks<T>(tenant: string, session: string, id: string, kin
 export function useCaseWrite(tenant: string, session: string) {
   const client = useQueryClient();
   return useMutation({ mutationFn: ({ path, payload, method }: { path: string; payload?: unknown; method?: string }) => writeCase(tenant, path, payload, method),
+    onError: async error => { if (error instanceof CaseApiError && (error.status === 409 || error.status === 403)) await client.invalidateQueries({ queryKey: caseKeys.scope(tenant, session) }); },
     onSuccess: async () => { await client.invalidateQueries({ queryKey: caseKeys.scope(tenant, session) }); } });
 }

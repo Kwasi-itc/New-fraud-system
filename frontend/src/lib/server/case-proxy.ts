@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { platformSession } from "./auth";
 
 export const privateHeaders = { "Cache-Control": "private, no-store" };
 export function failure(message: string, status: number) {
@@ -7,7 +7,7 @@ export function failure(message: string, status: number) {
 }
 
 export async function caseToken() {
-  return (await cookies()).get(process.env.CASE_SESSION_COOKIE ?? "__Host-case_session")?.value;
+  return (await platformSession())?.access_token;
 }
 
 export async function caseFetch(path: string, init: RequestInit = {}, contentType = "application/json") {

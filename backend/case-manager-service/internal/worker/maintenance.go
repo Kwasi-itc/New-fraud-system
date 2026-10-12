@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -36,7 +38,8 @@ type DeliveryWorker struct {
 	Worker *Worker
 }
 
-func (w *DeliveryWorker) Work(ctx context.Context, _ *river.Job[DeliveryArgs]) error {
+func (w *DeliveryWorker) Work(ctx context.Context, job *river.Job[DeliveryArgs]) error {
+	ctx = observability.WithLogger(ctx, w.Worker.logger().With("job_id", job.ID, "job_attempt", job.Attempt, "queue", DeliveryQueue))
 	return w.Worker.Deliver(ctx)
 }
 
@@ -46,28 +49,73 @@ type Worker struct {
 	Limit          int
 	PublisherURL   string
 	PublisherToken string
+	Logger         *slog.Logger
 }
 
-func (w *Worker) Work(ctx context.Context, _ *river.Job[Args]) error { return w.Maintain(ctx) }
+func (w *Worker) logger() *slog.Logger {
+	if w.Logger != nil {
+		return w.Logger
+	}
+	return slog.Default()
+}
+func (w *Worker) Work(ctx context.Context, job *river.Job[Args]) error {
+	ctx = observability.WithLogger(ctx, w.logger().With("job_id", job.ID, "job_attempt", job.Attempt, "queue", Queue))
+	return w.Maintain(ctx)
+}
 func (w *Worker) Run(ctx context.Context) error {
 	if err := w.Maintain(ctx); err != nil {
 		return err
 	}
 	return w.Deliver(ctx)
 }
-func (w *Worker) Maintain(ctx context.Context) error {
+func (w *Worker) Maintain(ctx context.Context) (result error) {
+	started := time.Now()
+	log := observability.Logger(ctx)
+	stage := "clean_uploads"
+	woken, assigned := 0, 0
+	log.Debug("maintenance started", "event", "worker.maintenance.started", "batch_limit", w.Limit)
+	defer func() {
+		fields := []any{"event", "worker.maintenance.completed", "duration_ms", time.Since(started).Milliseconds(), "cases_woken", woken, "cases_assigned", assigned, "last_stage", stage}
+		if result != nil {
+			log.Error("maintenance failed", append(fields, observability.ErrorFields(result)...)...)
+			return
+		}
+		level := slog.LevelDebug
+		if woken+assigned > 0 {
+			level = slog.LevelInfo
+		}
+		log.Log(ctx, level, "maintenance completed", fields...)
+		if w.Store.DB != nil {
+			stat := w.Store.DB.Stat()
+			log.Debug("database pool status", "event", "database.pool", "connections", stat.TotalConns(), "acquired", stat.AcquiredConns(), "idle", stat.IdleConns(), "max", stat.MaxConns(), "canceled_acquires_total", stat.CanceledAcquireCount())
+		}
+	}()
 	if err := w.Store.CleanUploads(ctx, w.Limit); err != nil {
 		return err
 	}
-	if _, err := w.Store.WakeSnoozed(ctx, w.Limit); err != nil {
+	stage = "wake_snoozed"
+	var err error
+	if woken, err = w.Store.WakeSnoozed(ctx, w.Limit); err != nil {
 		return err
 	}
-	if _, err := w.Store.AssignWaiting(ctx, w.Limit); err != nil {
+	stage = "assign_waiting"
+	if assigned, err = w.Store.AssignWaiting(ctx, w.Limit); err != nil {
 		return err
 	}
 	return nil
 }
-func (w *Worker) Deliver(ctx context.Context) error {
+func (w *Worker) Deliver(ctx context.Context) (result error) {
+	started := time.Now()
+	log := observability.Logger(ctx)
+	delivered, retried := 0, 0
+	defer func() {
+		fields := []any{"event", "worker.delivery.completed", "duration_ms", time.Since(started).Milliseconds(), "delivered", delivered, "unsuccessful", retried, "enabled", w.PublisherURL != ""}
+		if result != nil {
+			log.Error("delivery batch failed", append(fields, observability.ErrorFields(result)...)...)
+			return
+		}
+		log.Debug("delivery batch completed", fields...)
+	}()
 	if w.PublisherURL == "" {
 		return nil
 	} // Explicitly disabled: pending events remain durable.
@@ -80,6 +128,8 @@ func (w *Worker) Deliver(ctx context.Context) error {
 		if d == nil {
 			return nil
 		}
+		eventLog := log.With("event_id", d.ID, "tenant_id", d.TenantID, "aggregate_type", d.AggregateType, "aggregate_id", d.AggregateID, "event_type", d.EventType, "attempt", d.Attempt)
+		eventLog.Debug("outbound event claimed", "event", "outbox.claimed")
 		body, err := json.Marshal(d)
 		if err != nil {
 			return err
@@ -93,11 +143,14 @@ func (w *Worker) Deliver(ctx context.Context) error {
 		if w.PublisherToken != "" {
 			req.Header.Set("Authorization", "Bearer "+w.PublisherToken)
 		}
+		deliveryStarted := time.Now()
 		response, err := client.Do(req)
+		status := 0
 		failure := ""
 		if err != nil {
 			failure = "delivery transport failed"
 		} else {
+			status = response.StatusCode
 			if response.StatusCode < 200 || response.StatusCode >= 300 {
 				failure = fmt.Sprintf("delivery HTTP %d", response.StatusCode)
 			}
@@ -108,7 +161,21 @@ func (w *Worker) Deliver(ctx context.Context) error {
 			}
 		}
 		if err := w.Store.FinishDelivery(ctx, *d, failure); err != nil {
+			eventLog.Error("delivery acknowledgement not persisted", append([]any{"event", "outbox.ack_failed", "http_status", status}, observability.ErrorFields(err)...)...)
 			return err
+		}
+		if failure == "" {
+			delivered++
+			eventLog.Info("outbound event delivered", "event", "outbox.delivered", "http_status", status, "duration_ms", time.Since(deliveryStarted).Milliseconds())
+		} else {
+			retried++
+			state := "pending"
+			level := slog.LevelWarn
+			if d.Attempt >= 12 {
+				state = "failed"
+				level = slog.LevelError
+			}
+			eventLog.Log(ctx, level, "outbound event delivery unsuccessful", "event", "outbox.delivery_failed", "delivery_state", state, "http_status", status, "reason", failure, "duration_ms", time.Since(deliveryStarted).Milliseconds(), "retry_delay_seconds", (time.Duration(1<<min(d.Attempt, 12)) * time.Second).Seconds(), "retry_scheduled", state == "pending")
 		}
 	}
 	return nil
@@ -137,6 +204,7 @@ func NewClient(db *pgxpool.Pool, w *Worker, interval time.Duration) (*river.Clie
 	river.AddWorker(workers, &DeliveryWorker{Worker: w})
 	unique := river.UniqueOpts{ByQueue: true, ByState: []rivertype.JobState{rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateRetryable, rivertype.JobStateScheduled}}
 	return river.NewClient(riverpgxv5.New(db), &river.Config{
+		Logger: w.logger(),
 		Schema: Schema, Workers: workers, Queues: map[string]river.QueueConfig{Queue: {MaxWorkers: 1}, DeliveryQueue: {MaxWorkers: 1}},
 		JobTimeout: 30 * time.Minute,
 		PeriodicJobs: []*river.PeriodicJob{river.NewPeriodicJob(river.PeriodicInterval(interval), func() (river.JobArgs, *river.InsertOpts) {

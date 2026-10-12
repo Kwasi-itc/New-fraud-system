@@ -3,12 +3,14 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 )
@@ -197,13 +199,18 @@ func NewDecisionLinkRepository(db queryable) DecisionLinkRepository {
 }
 
 func (r DecisionLinkRepository) Create(ctx context.Context, item casepkg.DecisionLink) (casepkg.DecisionLink, error) {
-	return scanDecisionLink(r.db.QueryRow(ctx, `
+	created, err := scanDecisionLink(r.db.QueryRow(ctx, `
 		INSERT INTO case_manager.case_decisions (
 			id, tenant_id, case_id, decision_id, scenario_id, object_type, object_id, pivot_value, created_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		ON CONFLICT (tenant_id, case_id, decision_id) DO UPDATE SET pivot_value=EXCLUDED.pivot_value
 		RETURNING id, tenant_id, case_id, decision_id, scenario_id, object_type, object_id, pivot_value, created_at`,
 		item.ID, item.TenantID, item.CaseID, item.DecisionID, item.ScenarioID, item.ObjectType, item.ObjectID, item.PivotValue, item.CreatedAt))
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return casepkg.DecisionLink{}, casepkg.ErrConflict
+	}
+	return created, err
 }
 
 func (r DecisionLinkRepository) ListByCase(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.DecisionLink, error) {

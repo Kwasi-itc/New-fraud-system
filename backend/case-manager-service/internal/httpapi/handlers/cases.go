@@ -97,20 +97,24 @@ func (h CaseHandler) Update(c *gin.Context) {
 		return
 	}
 	var body struct {
-		InboxID     *uuid.UUID       `json:"inbox_id"`
-		Name        *string          `json:"name"`
-		Status      *casepkg.Status  `json:"status"`
-		Outcome     *casepkg.Outcome `json:"outcome"`
-		BoostReason nullable[string] `json:"boost_reason"`
-		ReviewLevel nullable[string] `json:"review_level"`
+		InboxID     *uuid.UUID                `json:"inbox_id"`
+		Name        *string                   `json:"name"`
+		Status      nullable[casepkg.Status]  `json:"status"`
+		Outcome     nullable[casepkg.Outcome] `json:"outcome"`
+		BoostReason nullable[string]          `json:"boost_reason"`
+		ReviewLevel nullable[string]          `json:"review_level"`
 	}
 	if err := bindJSON(c, &body); err != nil {
 		presentError(c, err)
 		return
 	}
+	if (body.Status.Present && body.Status.Value == nil) || (body.Outcome.Present && body.Outcome.Value == nil) {
+		presentError(c, casepkg.Invalid("status and outcome cannot be null"))
+		return
+	}
 	item, err := h.service.UpdateCase(c.Request.Context(), service.UpdateCaseInput{
-		TenantID: tid, CaseID: caseID, InboxID: body.InboxID, Name: body.Name, Status: body.Status,
-		Outcome: body.Outcome, BoostReason: body.BoostReason.Value, ReviewLevel: body.ReviewLevel.Value,
+		TenantID: tid, CaseID: caseID, InboxID: body.InboxID, Name: body.Name, Status: body.Status.Value,
+		Outcome: body.Outcome.Value, BoostReason: body.BoostReason.Value, ReviewLevel: body.ReviewLevel.Value,
 		ClearBoostReason: body.BoostReason.Present && body.BoostReason.Value == nil,
 		ClearReviewLevel: body.ReviewLevel.Present && body.ReviewLevel.Value == nil,
 	}, actorID(c))
@@ -146,6 +150,28 @@ func (h CaseHandler) AddDecision(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"decision": item})
+}
+
+func (h CaseHandler) TransferDecision(c *gin.Context) {
+	tenant, source, ok := tenantAndCase(c)
+	if !ok {
+		return
+	}
+	var body struct {
+		DecisionID  uuid.UUID `json:"decision_id"`
+		ToCaseID    uuid.UUID `json:"to_case_id"`
+		OperationID uuid.UUID `json:"operation_id"`
+		Reason      string    `json:"reason"`
+	}
+	if err := bindJSON(c, &body); err != nil {
+		presentError(c, err)
+		return
+	}
+	if err := h.service.TransferDecision(c.Request.Context(), service.TransferDecisionInput{TenantID: tenant, FromCaseID: source, ToCaseID: body.ToCaseID, DecisionID: body.DecisionID, OperationID: body.OperationID, Reason: body.Reason}); err != nil {
+		presentError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (h CaseHandler) ListEvents(c *gin.Context) {

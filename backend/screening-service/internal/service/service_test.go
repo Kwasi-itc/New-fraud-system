@@ -304,6 +304,7 @@ func (f fakeTenantReader) GetRecord(context.Context, string, string, string) (po
 }
 
 type fakeCasePublisher struct {
+	ports.CasePublisher
 	reviewed []ports.ScreeningReviewedCommand
 	evidence []ports.ScreeningEvidenceUploadedCommand
 }
@@ -368,6 +369,7 @@ func (f fakeMutationStore) DatasetUpdateJobs() ports.DatasetUpdateJobRepository 
 func (f fakeMutationStore) RawTx() pgx.Tx                                       { return nil }
 
 type fakeScreeningRepo struct {
+	ports.ScreeningRepository
 	items map[string]screening.Screening
 }
 
@@ -382,13 +384,20 @@ func (f *fakeScreeningRepo) GetByID(_ context.Context, tenantID, screeningID str
 	}
 	return item, nil
 }
+func (f *fakeScreeningRepo) CreateContinuousRun(context.Context, string, string, string, string, time.Time) error {
+	return nil
+}
+
+func (f *fakeScreeningRepo) Lock(ctx context.Context, tenant, id string) (screening.Screening, error) {
+	return f.GetByID(ctx, tenant, id)
+}
 func (f *fakeScreeningRepo) GetByIdempotencyKey(_ context.Context, tenantID, idempotencyKey string) (screening.Screening, error) {
 	for _, item := range f.items {
 		if item.TenantID == tenantID && item.IdempotencyKey == idempotencyKey {
 			return item, nil
 		}
 	}
-	return screening.Screening{}, errors.New("not found")
+	return screening.Screening{}, pgx.ErrNoRows
 }
 func (f *fakeScreeningRepo) ListByDecision(_ context.Context, tenantID, decisionID string) ([]screening.Screening, error) {
 	var out []screening.Screening
@@ -449,14 +458,19 @@ func (f *fakeMatchRepo) Update(_ context.Context, item screening.Match) (screeni
 	f.items[item.ID] = item
 	return item, nil
 }
-func (f *fakeMatchRepo) CountPendingByScreening(_ context.Context, screeningID string) (int, error) {
-	count := 0
+func (f *fakeMatchRepo) ReviewCounts(_ context.Context, tenantID, screeningID string) (int, int, error) {
+	pending, confirmed := 0, 0
 	for _, item := range f.items {
-		if item.ScreeningID == screeningID && item.Status == screening.MatchStatusPending {
-			count++
+		if item.TenantID == tenantID && item.ScreeningID == screeningID {
+			if item.Status == screening.MatchStatusPending {
+				pending++
+			}
+			if item.Status == screening.MatchStatusConfirmedHit {
+				confirmed++
+			}
 		}
 	}
-	return count, nil
+	return pending, confirmed, nil
 }
 
 type fakeCommentRepo struct{ items []screening.Comment }
@@ -552,6 +566,10 @@ func (f *fakeContinuousRepo) Delete(_ context.Context, _, configID string) error
 
 type fakeMonitoredRepo struct {
 	items map[string]screening.MonitoredObject
+}
+
+func (f *fakeMonitoredRepo) Lock(ctx context.Context, tenant, id string) (screening.MonitoredObject, error) {
+	return f.GetByID(ctx, tenant, id)
 }
 
 func (f *fakeMonitoredRepo) Create(_ context.Context, item screening.MonitoredObject) (screening.MonitoredObject, error) {

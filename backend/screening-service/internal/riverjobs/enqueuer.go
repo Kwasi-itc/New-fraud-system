@@ -13,6 +13,10 @@ type ScreeningEnqueuer interface {
 	EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, screeningID string, scheduledAt *time.Time) error
 }
 
+// Infrastructure/result-publication failures must survive the first job attempt.
+// Provider failures remain explicit failed screenings with the existing retry action.
+const IntakeMaxAttempts = 10
+
 type DatasetJobEnqueuer interface {
 	Enqueue(ctx context.Context, tenantID, jobID string, scheduledAt *time.Time) error
 	EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, jobID string, scheduledAt *time.Time) error
@@ -140,12 +144,11 @@ func (e RiverMonitoredObjectEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, 
 }
 
 func (e RiverScreeningEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, tenantID, screeningID string, scheduledAt *time.Time) error {
+	// Retry may be requested after failure commits but before the previous job
+	// completes. Row claims fence execution; queue uniqueness must not drop it.
 	opts := &river.InsertOpts{
 		MaxAttempts: e.maxAttempts,
 		Queue:       e.queueName,
-		UniqueOpts: river.UniqueOpts{
-			ByArgs: true,
-		},
 	}
 	if scheduledAt != nil {
 		opts.ScheduledAt = *scheduledAt
@@ -188,12 +191,11 @@ func (e RiverDatasetJobEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, tenantI
 }
 
 func (e RiverMonitoredObjectEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, tenantID, monitoredObjectID string, scheduledAt *time.Time) error {
+	// A new dataset change can arrive while the previous job is still running.
+	// The monitored-row transaction deduplicates work without losing that signal.
 	opts := &river.InsertOpts{
 		MaxAttempts: e.maxAttempts,
 		Queue:       e.queueName,
-		UniqueOpts: river.UniqueOpts{
-			ByArgs: true,
-		},
 	}
 	if scheduledAt != nil {
 		opts.ScheduledAt = *scheduledAt

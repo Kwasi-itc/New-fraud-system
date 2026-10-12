@@ -193,6 +193,31 @@ Minimum verification routine after changes:
 - hit `/readyz` against a configured database
 - hit `/metrics` after a few requests to confirm request accounting is working
 
+## Continuous screening case intake
+
+The continuous worker creates the screening, its `continuous_runs` provenance, the River job, and the monitored-object advancement in one transaction. It locks only the monitored row during this mutation; tenant-data HTTP lookup occurs beforehand. Retrying an already advanced monitored run does nothing. Marking the object pending again for a later dataset update produces a distinct run and investigation.
+
+Screening and monitored-object enqueue operations deliberately do not deduplicate by River arguments: a retained completed job or a finishing failed attempt must not suppress a later legitimate request for that same source ID. The monitored-row transaction and screening claims provide execution idempotency. Redundant jobs can be queued but cannot publish duplicate runs/results. Dataset-job enqueue behavior is unchanged.
+
+Processing uses a six-minute UUID claim. The River worker timeout is five minutes. A live claim snoozes another job attempt for one minute; expired/legacy processing claims can be recovered. Result publication locks and verifies the claim token, so an older provider response cannot overwrite a replacement worker's results. Failed publication/cancellation releases its own claim back to pending. Process crashes rely on lease expiry and River rescue/retry. Provider failures retain the existing explicit failed-screening/retry workflow. Retry now rechecks the failed state under the screening row lock before clearing matches. New screening and monitored jobs allow ten attempts for infrastructure failures; existing jobs retain their recorded attempt policy. Exhausted jobs require operator inspection and requeue.
+
+For newly created continuous runs and decision-linked screenings, results with matches **or partial results** atomically persist result, matches, and a `requires-review` case outbox event. Partial zero-match results become `awaiting_review`; complete zero-match results become `no_hit` without an arrival event. Freeform screening eligibility is unchanged. Version 1 sends only event/tenant/screening identities; the consumer reads tenant-scoped origin/configuration and current match state from the shared database. Event ID is UUID v5, URL namespace, name `screening.requires-review/v1/<tenant UUID>/<screening UUID>`.
+
+Decision-linked intake reuses primary decision membership. Without membership it creates a pending decision case in the originating scenario screening configuration's explicit `review_inbox_id`. Missing/invalid routing retains delivery for retry; do not infer a destination from continuous-monitoring configuration. Apply decision-engine migration `000017_screening_review_inbox` and case migrations through 000012, deploy the accepting case consumer and configure routes before enabling this producer extension. See [decision-engine rollout](../decision-engine-service/README.md#screening-review-routing). No additional screening migration or event transport is required. Historical unpublished decision reviews synchronize only to an existing primary case; they do not synthesize case arrival. New arrivals and reviewed-first delivery share the same intake path. Primary closure/snooze state is preserved, and transfers determine subsequent evidence routing. Review remains an independent owner operation; this is asynchronous intake, not a blocking review gate.
+
+Run `cmd/case-delivery-worker` with `CASE_SERVICE_URL` and its service token configured. It posts to `/v1/screening-events/requires-review`, independently from result publication. Failed requests retain retry state; existing delivery policy retries up to 20 attempts, then marks the event failed. Case creation failure does not erase results or rerun the provider. After fixing routing/authentication/consumer availability, operators must inspect and replay exhausted deliveries using the same event ID/payload. Do not create a replacement event or discard the source record. Keep published arrival records: the consumer uses them as durable eligibility evidence for subsequent reviewed callbacks.
+
+Roll out in this order:
+
+1. Pause/drain screening processing and delivery workers while upgrading; do not run old unfenced workers alongside new workers. Retain the shared database and existing service migration histories.
+2. Apply screening migration `000005_continuous_case_arrival` and case-manager migration `000011_continuous_intake` after their existing predecessors. Screening provenance must exist before the new case API handles reviewed callbacks. Migrations use bounded lock waits; validate index/constraint build duration on representative data before production rollout.
+3. Deploy the new case-manager consumer first, then screening API/processing/delivery workers and frontend. Resume producers only with the compatible consumer in place. Verify tenant allowlists, current enabled config/inbox routing, worker readiness and delivery backlog.
+4. Verify a new matched run appears as pending before review, partial zero-match visibility, retry deduplication, and a reviewed callback updating that same case. No automatic historical backfill is performed.
+
+For rollback, pause producers/delivery and preserve database additions, source outbox records and canonical routes. New history blocks destructive down migrations. Processing tokens also block producer downgrade. An application rollback must retain a compatible reviewed/arrival consumer for new runs; an old consumer is not safe for them. Empty-schema up/down/up is supported and tested. Provenance FKs deliberately prevent deleting originating configurations/monitored objects that have runs; disable monitoring instead of deleting investigation history. This is an additive shared-schema contract, not a separate application database.
+
+Verification: `SCREENING_TEST_DATABASE_URL` enables isolated PostgreSQL tests. Build the case-manager `cmd/server` executable, set `CASE_MANAGER_INTEGRATION_BINARY` to its absolute path, and run `go test ./... -count=1` here to include `TestContinuousProducerToCaseHTTPJourney`. That test creates a disposable shared database, applies owner migrations, runs real River processing, starts the actual case HTTP server, exercises delivery failure/retry and source review, and removes its database/processes. Provider/tenant-data responses are controlled inputs; external sanctions-provider availability and production identity/deployment are not certified.
+
 ## Important boundary note on lists
 
 The future `screening-service` is expected to own:
@@ -214,3 +239,15 @@ So the planning assumption is:
 
 - general custom lists remain a shared platform or decision-support capability outside `screening-service`
 - screening-specific whitelist state remains inside `screening-service`
+
+## Initial investigator review
+
+The case workspace now uses human-authenticated owner review commands. See [the investigator review contract](../investigator/README.md) for API semantics, migration order, shared Docker build context, trusted JWT configuration, and synchronization limitations.
+
+## Durable execution projection
+
+Screening status now reconciles through an atomic source queue and decision-owned SQL contract. See [deployment and recovery](../screening-service/EXECUTION_PROJECTION.md) for migrations, worker operation, callback compatibility and source-managed retry behavior.
+
+## Screening evidence configuration
+
+An empty blob-service URL now fails upload/download requests explicitly. It does not provide a local storage fallback or create file metadata for an upload with no destination. Configure a working blob integration before using screening-owned files. Source byte finalization, authenticated case download and the durable case evidence callback remain tracked in R09 of the Case Management implementation plan; native case-manager uploads are separate and unchanged.

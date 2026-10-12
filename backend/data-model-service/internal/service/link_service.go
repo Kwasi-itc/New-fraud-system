@@ -81,6 +81,9 @@ func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamod
 	if parentTable.TenantID != input.TenantID || childTable.TenantID != input.TenantID {
 		return datamodel.Link{}, fmt.Errorf("tables do not belong to tenant")
 	}
+	if parentField.TenantID != input.TenantID || childField.TenantID != input.TenantID || parentField.TableID != parentTable.ID || childField.TableID != childTable.ID {
+		return datamodel.Link{}, fmt.Errorf("link fields do not belong to the selected tenant and tables")
+	}
 	if !parentField.IsUnique {
 		return datamodel.Link{}, fmt.Errorf("parent field must be unique")
 	}

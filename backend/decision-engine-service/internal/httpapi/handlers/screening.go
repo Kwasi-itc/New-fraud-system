@@ -25,7 +25,7 @@ func (h ScreeningHandler) CreateConfig(c *gin.Context) {
 	}
 	tenantID := c.Param("tenantId")
 	scenarioID := c.Param("scenarioId")
-	item, err := h.screeningService.CreateConfig(c.Request.Context(), tenantID, scenarioID, req.Name, req.AllowedOutcomes, req.Provider, req.ConfigJSON, req.Active)
+	item, err := h.screeningService.CreateConfig(c.Request.Context(), tenantID, scenarioID, req.Name, req.AllowedOutcomes, req.Provider, req.ConfigJSON, req.Active, req.ReviewInboxID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "create_screening_config_failed", "details": err.Error()})
 		return
@@ -69,7 +69,7 @@ func (h ScreeningHandler) UpdateConfig(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	scenarioID := c.Param("scenarioId")
 	configID := c.Param("configId")
-	item, err := h.screeningService.UpdateConfig(c.Request.Context(), tenantID, scenarioID, configID, req.Name, req.AllowedOutcomes, req.Provider, req.ConfigJSON, req.Active)
+	item, err := h.screeningService.UpdateConfig(c.Request.Context(), tenantID, scenarioID, configID, req.Name, req.AllowedOutcomes, req.Provider, req.ConfigJSON, req.Active, req.ReviewInboxID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "update_screening_config_failed", "details": err.Error()})
 		return

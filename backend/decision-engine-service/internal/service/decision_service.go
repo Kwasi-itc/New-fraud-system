@@ -1834,6 +1834,10 @@ func cloneWorkflowDefinitions(items []workflow.Definition) []workflow.Definition
 func cloneScreeningConfigs(items []screening.Config) []screening.Config {
 	out := append([]screening.Config(nil), items...)
 	for i := range out {
+		if out[i].ReviewInboxID != nil {
+			value := *out[i].ReviewInboxID
+			out[i].ReviewInboxID = &value
+		}
 		out[i].AllowedOutcomes = append([]string(nil), out[i].AllowedOutcomes...)
 		out[i].ConfigJSON = cloneRawMessage(out[i].ConfigJSON)
 	}
@@ -2150,7 +2154,8 @@ func resolveScenarioEvaluationConcurrency(configured, scenarioCount int) int {
 }
 
 func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime) ([]workflow.Execution, error) {
-	structuredRules, err := s.getWorkflowRules(ctx, item.TenantID, item.ScenarioID)
+	// One statement snapshot prevents mixing conditions and actions from different edits.
+	structuredRules, err := s.workflowRuleRepo.ListStructured(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
 	}
@@ -2182,19 +2187,12 @@ func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decis
 	return out, nil
 }
 
-func (s DecisionService) buildStructuredWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime, rules []workflow.Rule) ([]workflow.Execution, error) {
+func (s DecisionService) buildStructuredWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime, rules []workflow.StructuredRule) ([]workflow.Execution, error) {
 	now := s.clock.Now()
 	var out []workflow.Execution
 RuleLoop:
-	for _, rule := range rules {
-		conditions, err := s.workflowCondRepo.ListByRule(ctx, item.TenantID, rule.ID)
-		if err != nil {
-			return nil, err
-		}
-		actions, err := s.workflowActionRepo.ListByRule(ctx, item.TenantID, rule.ID)
-		if err != nil {
-			return nil, err
-		}
+	for _, configured := range rules {
+		rule, conditions, actions := configured.Rule, configured.Conditions, configured.Actions
 		if len(actions) == 0 {
 			continue
 		}

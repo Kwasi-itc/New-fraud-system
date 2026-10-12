@@ -159,7 +159,9 @@ func TestPostgresWorkspaceEscalationCloseAndEvidence(t *testing.T) {
 	if err := s.EvidenceAccess(ctx, tenant, c.ID, "decisions", uuid.New()); !errors.Is(err, casepkg.ErrNotFound) {
 		t.Fatal("unlinked evidence allowed", err)
 	}
-	related, err := s.CreateCase(ctx, service.CreateCaseInput{TenantID: tenant, InboxID: inbox.ID, Name: "Related investigation", DecisionIDs: []uuid.UUID{decision}}, nil)
+	// Related context shares the authoritative customer, not decision ownership.
+	relatedDecision := seedDecision(t, db, tenant)
+	related, err := s.CreateCase(ctx, service.CreateCaseInput{TenantID: tenant, InboxID: inbox.ID, Name: "Related investigation", DecisionIDs: []uuid.UUID{relatedDecision}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

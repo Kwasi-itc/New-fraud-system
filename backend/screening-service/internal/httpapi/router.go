@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 )
 
 type RouterConfig struct {
+	InvestigatorVerifier   *identity.Verifier
 	CaseServiceAuthToken   string
 	AuthMode               string
 	AuthToken              string
@@ -99,9 +101,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			},
 		})
 		if err == nil {
-			screeningEnqueuer = riverjobs.NewRiverScreeningEnqueuer(riverClient, 1, cfg.ScreeningQueueName)
+			screeningEnqueuer = riverjobs.NewRiverScreeningEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.ScreeningQueueName)
 			datasetJobEnqueuer = riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
-			monitoredEnqueuer = riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, 1, cfg.MonitoredQueueName)
+			monitoredEnqueuer = riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.MonitoredQueueName)
 		}
 	}
 
@@ -121,6 +123,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
 	}
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
+	registerInvestigator(router, db, cfg.InvestigatorVerifier, screeningService)
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
 	whitelistHandler := handlers.NewWhitelistHandler(screeningService)
 	continuousHandler := handlers.NewContinuousHandler(screeningService)

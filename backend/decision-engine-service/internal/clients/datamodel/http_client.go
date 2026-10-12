@@ -20,13 +20,24 @@ const tenantModelCacheTTL = 30 * time.Second
 const requestIDHeader = "X-Request-ID"
 
 type HTTPClient struct {
-	baseURL string
-	client  *http.Client
-	now     func() time.Time
+	authToken string
+	baseURL   string
+	client    *http.Client
+	now       func() time.Time
 
 	mu               sync.RWMutex
 	tenantModelCache map[string]cachedTenantModel
 	tenantModelGroup singleflight.Group
+}
+
+// WithAuthToken must be called during wiring, before the client is shared.
+func (c *HTTPClient) WithAuthToken(token string) *HTTPClient { c.authToken = token; return c }
+
+func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	return c.client.Do(req)
 }
 
 type cachedTenantModel struct {
@@ -38,7 +49,8 @@ func NewHTTPClient(baseURL string, timeout time.Duration) *HTTPClient {
 	return &HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		client: &http.Client{
-			Timeout: timeout,
+			Timeout:       timeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 		now:              time.Now,
 		tenantModelCache: make(map[string]cachedTenantModel),
@@ -97,7 +109,7 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 	}
 	attachRequestID(req)
 
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return ports.TenantModel{}, fmt.Errorf("perform request: %w", err)
 	}
@@ -167,7 +179,7 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 	req.Header.Set("Content-Type", "application/json")
 	attachRequestID(req)
 
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return ports.ManagedIndexJob{}, fmt.Errorf("perform request: %w", err)
 	}
@@ -204,7 +216,7 @@ func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]port
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("perform request: %w", err)
 	}
@@ -239,7 +251,7 @@ func (c *HTTPClient) RetryIndexJob(ctx context.Context, jobID string) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return fmt.Errorf("perform request: %w", err)
 	}

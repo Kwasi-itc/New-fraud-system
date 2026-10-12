@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -426,7 +427,19 @@ func TestPostgresSharedDatabasePoolAndLockBudgets(t *testing.T) {
 
 func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 	db := testDatabase(t, true)
-	_, tenant, inbox, c := fixture(t, db)
+	s, tenant, inbox, c := fixture(t, db)
+	decision := seedDecision(t, db, tenant)
+	if _, err := s.AddDecision(serviceContext(tenant), service.AddDecisionInput{TenantID: tenant, CaseID: c.ID, DecisionID: decision}, nil); err != nil {
+		t.Fatal(err)
+	}
+	target, err := s.CreateCase(serviceContext(tenant), service.CreateCaseInput{TenantID: tenant, InboxID: inbox.ID, Name: "Transfer destination"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferJSON, err := json.Marshal(map[string]any{"decision_id": decision, "to_case_id": target.ID, "operation_id": uuid.New(), "reason": "Correct grouping"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
@@ -456,14 +469,43 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 		want                      int
 	}{
 		{"GET", casePath, sign("analyst-1", tenant), "", 200},
+		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String() + "&include_snoozed=true", sign("analyst-1", tenant), "", 200},
+		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String(), sign("analyst-1", uuid.New()), "", 403},
 		{"GET", casePath, sign("outsider", tenant), "", 403},
 		{"GET", casePath, sign("analyst-1", uuid.New()), "", 403},
 		{"GET", casePath, "service-token", "", 401},
+		{"POST", casePath + "/decision-transfers", "service-token", string(transferJSON), 401},
+		{"POST", casePath + "/decision-transfers", sign("outsider", tenant), string(transferJSON), 403},
+		{"POST", casePath + "/decision-transfers", sign("analyst-1", uuid.New()), string(transferJSON), 403},
+		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), `{}`, 400},
+		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), string(transferJSON), 204},
+		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), string(transferJSON), 204},
 		{"POST", casePath + "/comments", sign("analyst-1", tenant), `{"comment":"Verified action"}`, 201},
 		{"GET", inboxPath, "service-token", "", 200},
 		{"GET", inboxPath, sign("analyst-1", tenant), "", 401},
 		{"POST", "/internal/v1/auto-assignment/run", "service-token", "{}", 501},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"closed"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"closed","outcome":"confirmed_risk","comment":"bypass"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":"confirmed_risk"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","outcome":"unset"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":null}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":null}`, 400},
+		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"confirmed_risk","comment":"  "}`, 400},
+		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"unset","comment":"findings"}`, 400},
+		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":null,"comment":"findings"}`, 400},
+		{"POST", casePath + "/close", sign("outsider", tenant), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
+		{"POST", casePath + "/close", sign("analyst-1", uuid.New()), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
+		{"POST", casePath + "/close", "service-token", `{"outcome":"confirmed_risk","comment":"findings"}`, 401},
+		{"POST", casePath + "/close", "", `{"outcome":"confirmed_risk","comment":"findings"}`, 401},
+		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"confirmed_risk","comment":"verified findings"}`, 200},
+		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"false_positive","comment":"duplicate"}`, 409},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":"unset"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","outcome":"false_positive"}`, 400},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","boost_reason":"new_decision"}`, 400},
+		{"PATCH", casePath, sign("outsider", tenant), `{"status":"investigating"}`, 403},
+		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating"}`, 200},
 	} {
+		beforeEvents, beforeOutbox := count(t, db, "case_events"), count(t, db, "outbox_events")
 		req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
 		req.Header.Set("Authorization", "Bearer "+tt.token)
 		req.Header.Set("Content-Type", "application/json")
@@ -472,6 +514,9 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 		router.ServeHTTP(w, req)
 		if w.Code != tt.want {
 			t.Fatalf("%s %s: want %d got %d: %s", tt.method, tt.path, tt.want, w.Code, w.Body.String())
+		}
+		if tt.want >= 400 && (count(t, db, "case_events") != beforeEvents || count(t, db, "outbox_events") != beforeOutbox) {
+			t.Fatalf("failed request wrote audit/outbox: %s %s", tt.method, tt.body)
 		}
 	}
 	var actor string

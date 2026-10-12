@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,9 @@ type RouterConfig struct {
 	AuthToken                      string
 	AllowedOrigins                 []string
 	DataModelServiceURL            string
+	DataModelReadMode              string
+	DataModelCacheMaxEntries       int
+	DataModelCacheMaxBytes         int
 	HTTPClientTimeout              time.Duration
 	AggregateQueryTimeout          time.Duration
 	WorkerMaxAttempts              int
@@ -68,7 +72,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		writePathLimiter = make(chan struct{}, cfg.WritePathConcurrencyLimit)
 	}
 
-	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	if cfg.DataModelReadMode == "sql" {
+		dataModelReader = datamodel.NewContractReader(storepostgres.NewIngestionContractStore(db), dataModelReader, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
+	}
 	var txManager ports.TransactionManager
 	var uploadLogRepository ports.UploadLogRepository
 	var deferredIngestRepository ports.DeferredIngestRepository

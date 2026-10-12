@@ -3,6 +3,7 @@ package screening
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"time"
 )
@@ -26,11 +27,17 @@ type Config struct {
 	Provider        string
 	ConfigJSON      json.RawMessage
 	Active          bool
+	ReviewInboxID   *string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
 func (c Config) Validate() error {
+	if c.ReviewInboxID != nil {
+		if id, err := uuid.Parse(*c.ReviewInboxID); err != nil || id == uuid.Nil {
+			return fmt.Errorf("review_inbox_id must be a nonzero UUID")
+		}
+	}
 	if strings.TrimSpace(c.TenantID) == "" {
 		return fmt.Errorf("tenant_id is required")
 	}

@@ -1,0 +1,29 @@
+{
+  "realm": "fraud",
+  "enabled": true,
+  "displayName": "ITC Fraud System",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "fraud-auth",
+      "name": "Fraud auth service",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${FRAUD_OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["${FRAUD_AUTH_REDIRECT_URI}"],
+      "webOrigins": [],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "defaultClientScopes": ["profile", "email"]
+    }
+  ]
+}

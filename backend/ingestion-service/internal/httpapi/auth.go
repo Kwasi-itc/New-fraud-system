@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -18,11 +19,11 @@ func authMiddleware(cfg AuthConfig) gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		if cfg.Mode != "token" {
+		if cfg.Mode != "token" || strings.TrimSpace(cfg.Token) == "" {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"error": gin.H{
 					"code":    "auth_misconfigured",
-					"message": "unsupported auth mode",
+					"message": "invalid service authentication configuration",
 				},
 			})
 			return
@@ -39,7 +40,7 @@ func authMiddleware(cfg AuthConfig) gin.HandlerFunc {
 			})
 			return
 		}
-		if token != cfg.Token {
+		if subtle.ConstantTimeCompare([]byte(token), []byte(cfg.Token)) != 1 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": gin.H{
 					"code":    "unauthorized",

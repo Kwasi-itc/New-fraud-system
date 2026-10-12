@@ -79,22 +79,39 @@ func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, ite
 		return fmt.Errorf("no screening queries could be derived for monitored object %s", item.ID)
 	}
 
-	if _, err := s.screeningService.CreateScreening(ctx, item.TenantID, screening.SearchRequest{
-		Provider:   config.Provider,
-		ScenarioID: "",
-		ObjectType: item.ObjectType,
-		ObjectID:   item.ObjectID,
-		Queries:    queries,
-	}); err != nil {
-		return err
-	}
-
-	now := s.clock.Now()
-	item.Status = screening.MonitoredObjectStatusActive
-	item.UpdatedAt = now
-	item.LastScreenedAt = &now
 	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		_, err := store.MonitoredObjects().Update(ctx, item)
+		current, err := store.MonitoredObjects().Lock(ctx, item.TenantID, item.ID)
+		if err != nil {
+			return err
+		}
+		if current.Status != screening.MonitoredObjectStatusPending {
+			return nil
+		}
+		if !current.UpdatedAt.Equal(item.UpdatedAt) || current.ConfigID != item.ConfigID {
+			return fmt.Errorf("monitored object changed; retry current run")
+		}
+		currentConfig, err := store.ContinuousConfigs().GetByID(ctx, item.TenantID, item.ConfigID)
+		if err != nil {
+			return err
+		}
+		if !currentConfig.Enabled {
+			return fmt.Errorf("continuous configuration is disabled")
+		}
+		if !currentConfig.UpdatedAt.Equal(config.UpdatedAt) {
+			return fmt.Errorf("continuous configuration changed; retry current run")
+		}
+		created, err := s.screeningService.createScreening(ctx, store, item.TenantID, screening.SearchRequest{Provider: config.Provider, ObjectType: item.ObjectType, ObjectID: item.ObjectID, Queries: queries})
+		if err != nil {
+			return err
+		}
+		now := s.clock.Now()
+		if err := store.Screenings().CreateContinuousRun(ctx, item.TenantID, created.ID, item.ConfigID, item.ID, now); err != nil {
+			return err
+		}
+		current.Status = screening.MonitoredObjectStatusActive
+		current.UpdatedAt = now
+		current.LastScreenedAt = &now
+		_, err = store.MonitoredObjects().Update(ctx, current)
 		return err
 	})
 }

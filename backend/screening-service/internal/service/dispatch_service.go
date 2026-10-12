@@ -3,10 +3,16 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 )
+
+var ErrScreeningBusy = ports.ErrScreeningBusy
 
 type DispatchService struct {
 	txManager         ports.TransactionManager
@@ -41,8 +47,13 @@ func (s DispatchService) ProcessPendingScreenings(ctx context.Context, limit int
 		return err
 	}
 
+	processing, err := s.screeningRepo.ListRecoverable(ctx, s.clock.Now(), limit)
+	if err != nil {
+		return err
+	}
+	items = append(items, processing...)
 	for _, item := range items {
-		if err := s.processScreening(ctx, item); err != nil {
+		if err := s.RunScreening(ctx, item.TenantID, item.ID); err != nil && !errors.Is(err, ErrScreeningBusy) {
 			return err
 		}
 	}
@@ -54,37 +65,58 @@ func (s DispatchService) RunScreening(ctx context.Context, tenantID, screeningID
 	if err != nil {
 		return err
 	}
-	if item.Status != screening.StatusPending {
+	if item.Status != screening.StatusPending && item.Status != screening.StatusProcessing {
 		return nil
 	}
 	return s.processScreening(ctx, item)
 }
 
-func (s DispatchService) processScreening(ctx context.Context, item screening.Screening) error {
+func (s DispatchService) processScreening(ctx context.Context, item screening.Screening) (resultErr error) {
 	now := s.clock.Now()
+	token := uuid.NewString()
+	claimed, err := s.screeningRepo.Claim(ctx, item.TenantID, item.ID, token, now)
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		latest, err := s.screeningRepo.GetByID(ctx, item.TenantID, item.ID)
+		if err != nil {
+			return err
+		}
+		if latest.Status == screening.StatusProcessing {
+			return ErrScreeningBusy
+		}
+		return nil
+	}
+	defer func() {
+		if resultErr != nil {
+			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer cancel()
+			if err := s.screeningRepo.ReleaseClaim(cleanup, item.TenantID, item.ID, token); err != nil {
+				resultErr = errors.Join(resultErr, fmt.Errorf("release screening claim: %w", err))
+			}
+		}
+	}()
 	item.Status = screening.StatusProcessing
 	item.UpdatedAt = now
 	item.SentAt = &now
 
-	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		_, err := store.Screenings().Update(ctx, item)
-		return err
-	}); err != nil {
-		return err
-	}
-
 	var request screening.SearchRequest
 	if err := json.Unmarshal(item.RequestJSON, &request); err != nil {
-		return s.failScreening(ctx, item, err.Error())
+		return s.failScreening(ctx, item, token, err.Error())
 	}
 
 	result, err := s.provider.Search(ctx, request)
 	if err != nil {
-		return s.failScreening(ctx, item, err.Error())
+		return s.failScreening(ctx, item, token, err.Error())
 	}
 
 	item.Status = screening.StatusNoHit
-	if len(result.Matches) > 0 {
+	continuous, err := s.screeningRepo.IsContinuousRun(ctx, item.TenantID, item.ID)
+	if err != nil {
+		return err
+	}
+	if len(result.Matches) > 0 || ((continuous || item.DecisionID != "") && result.Partial) {
 		item.Status = screening.StatusAwaitingReview
 	}
 	item.ResponseJSON = result.RawResponse
@@ -107,7 +139,7 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 			Name:                         providerMatch.Name,
 			Score:                        providerMatch.Score,
 			Payload:                      providerMatch.Payload,
-			MatchedTexts:                 providerMatch.MatchedTexts,
+			MatchedTexts:                 append([]string{}, providerMatch.MatchedTexts...),
 			UniqueCounterpartyIdentifier: providerMatch.UniqueCounterpartyIdentifier,
 			Enriched:                     false,
 			CreatedAt:                    item.UpdatedAt,
@@ -116,11 +148,25 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 	}
 
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		if err := store.Screenings().LockClaim(ctx, item.TenantID, item.ID, token); err != nil {
+			return err
+		}
 		if err := store.ScreeningMatches().ReplaceForScreening(ctx, item.ID, matches); err != nil {
 			return err
 		}
-		_, err := store.Screenings().Update(ctx, item)
-		return err
+		if _, err := store.Screenings().Update(ctx, item); err != nil {
+			return err
+		}
+		continuous, err := store.Screenings().IsContinuousRun(ctx, item.TenantID, item.ID)
+		if err != nil {
+			return err
+		}
+		if (continuous || item.DecisionID != "") && item.Status == screening.StatusAwaitingReview {
+			// One immutable arrival identity per published screening run.
+			eventID := uuid.NewSHA1(uuid.NameSpaceURL, []byte("screening.requires-review/v1/"+item.TenantID+"/"+item.ID)).String()
+			return store.CaseEvents().Enqueue(ctx, eventID, item.TenantID, "requires-review", ports.ScreeningRequiresReviewCommand{Version: 1, EventID: eventID, TenantID: item.TenantID, ScreeningID: item.ID})
+		}
+		return nil
 	})
 	if err == nil {
 		_ = s.publishScreeningStatusChanged(ctx, item, len(matches))
@@ -128,7 +174,7 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 	return err
 }
 
-func (s DispatchService) failScreening(ctx context.Context, item screening.Screening, message string) error {
+func (s DispatchService) failScreening(ctx context.Context, item screening.Screening, token, message string) error {
 	now := s.clock.Now()
 	item.Status = screening.StatusFailed
 	item.LastError = message
@@ -136,6 +182,9 @@ func (s DispatchService) failScreening(ctx context.Context, item screening.Scree
 	item.FailedAt = &now
 	item.CompletedAt = nil
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		if err := store.Screenings().LockClaim(ctx, item.TenantID, item.ID, token); err != nil {
+			return err
+		}
 		_, err := store.Screenings().Update(ctx, item)
 		return err
 	})

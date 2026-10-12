@@ -44,7 +44,7 @@ func (r ReferenceRepository) Screening(ctx context.Context, tenantID, screeningI
 	var objectType, objectID string
 	err := r.db.QueryRow(ctx, `SELECT s.id,s.decision_id,s.object_type,s.object_id,m.status FROM screening.screenings s
 	JOIN screening.screening_matches m ON m.screening_id=s.id AND m.tenant_id=s.tenant_id
-	WHERE s.tenant_id=$1 AND s.id=$2 AND m.id=$3 FOR SHARE OF s,m`, tenantID, screeningID, matchID).Scan(&ref.ID, &ref.DecisionID, &objectType, &objectID, &ref.MatchStatus)
+	WHERE s.tenant_id=$1 AND s.id=$2 AND m.id=$3`, tenantID, screeningID, matchID).Scan(&ref.ID, &ref.DecisionID, &objectType, &objectID, &ref.MatchStatus)
 	if err != nil {
 		return ref, err
 	}
@@ -89,8 +89,12 @@ func (r ReferenceRepository) ScreeningFile(ctx context.Context, tenantID, caseID
 }
 
 func (r DecisionLinkRepository) FindCase(ctx context.Context, tenantID, decisionID uuid.UUID) (*casepkg.Case, error) {
-	return findLinkedCase(ctx, r.db, `SELECT c.id FROM case_manager.case_decisions d JOIN case_manager.cases c ON c.id=d.case_id AND c.tenant_id=d.tenant_id
-	WHERE d.tenant_id=$1 AND d.decision_id=$2 ORDER BY (c.status='closed'),c.created_at DESC,c.id DESC LIMIT 1`, tenantID, decisionID)
+	link, err := r.Membership(ctx, tenantID, decisionID)
+	if err != nil || link == nil {
+		return nil, err
+	}
+	item, err := NewCaseRepository(r.db).Get(ctx, tenantID, link.CaseID)
+	return &item, err
 }
 func (r ScreeningLinkRepository) FindCase(ctx context.Context, tenantID, screeningID uuid.UUID) (*casepkg.Case, error) {
 	return findLinkedCase(ctx, r.db, `SELECT c.id FROM case_manager.case_screenings s JOIN case_manager.cases c ON c.id=s.case_id AND c.tenant_id=s.tenant_id

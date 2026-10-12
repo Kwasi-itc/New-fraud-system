@@ -225,6 +225,9 @@ func (nilWorkflowRuleRepository) Create(context.Context, workflow.Rule) (workflo
 func (nilWorkflowRuleRepository) GetByID(context.Context, string, string, string) (workflow.Rule, error) {
 	return workflow.Rule{}, nil
 }
+func (nilWorkflowRuleRepository) ListStructured(context.Context, string, string) ([]workflow.StructuredRule, error) {
+	return nil, nil
+}
 func (nilWorkflowRuleRepository) ListByScenario(context.Context, string, string) ([]workflow.Rule, error) {
 	return nil, nil
 }

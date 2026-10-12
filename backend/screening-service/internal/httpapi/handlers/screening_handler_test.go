@@ -240,6 +240,7 @@ func (t testMutationStore) DatasetUpdateJobs() ports.DatasetUpdateJobRepository 
 func (t testMutationStore) RawTx() pgx.Tx                                       { return nil }
 
 type testScreeningRepo struct {
+	ports.ScreeningRepository
 	items map[string]screening.Screening
 }
 
@@ -260,7 +261,7 @@ func (t *testScreeningRepo) GetByIdempotencyKey(_ context.Context, tenantID, ide
 			return item, nil
 		}
 	}
-	return screening.Screening{}, http.ErrMissingFile
+	return screening.Screening{}, pgx.ErrNoRows
 }
 func (t *testScreeningRepo) ListByDecision(_ context.Context, _, _ string) ([]screening.Screening, error) {
 	return nil, nil
@@ -287,7 +288,9 @@ func (t *testMatchRepo) GetByID(context.Context, string, string) (screening.Matc
 func (t *testMatchRepo) Update(_ context.Context, item screening.Match) (screening.Match, error) {
 	return item, nil
 }
-func (t *testMatchRepo) CountPendingByScreening(context.Context, string) (int, error) { return 0, nil }
+func (t *testMatchRepo) ReviewCounts(context.Context, string, string) (int, int, error) {
+	return 0, 0, nil
+}
 
 type testCommentRepo struct{}
 
@@ -342,6 +345,7 @@ func (t *testContinuousRepo) Update(_ context.Context, item screening.Continuous
 func (t *testContinuousRepo) Delete(context.Context, string, string) error { return nil }
 
 type testMonitoredRepo struct {
+	ports.MonitoredObjectRepository
 	items map[string]screening.MonitoredObject
 }
 

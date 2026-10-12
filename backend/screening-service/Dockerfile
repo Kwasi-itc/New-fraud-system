@@ -1,10 +1,11 @@
 FROM golang:1.24.2 AS builder
 
-WORKDIR /app
-COPY go.mod go.sum ./
+WORKDIR /app/screening-service
+COPY screening-service/go.mod screening-service/go.sum ./
+COPY investigator ../investigator
 RUN go mod download
 
-COPY . .
+COPY screening-service/ .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/server ./cmd/server
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/worker ./cmd/worker
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/case-delivery-worker ./cmd/case-delivery-worker
@@ -17,7 +18,7 @@ COPY --from=builder /bin/server /app/server
 COPY --from=builder /bin/worker /app/worker
 COPY --from=builder /bin/case-delivery-worker /app/case-delivery-worker
 COPY --from=builder /bin/migrate /app/migrate
-COPY --from=builder /app/internal/migrations /app/internal/migrations
+COPY --from=builder /app/screening-service/internal/migrations /app/internal/migrations
 
 EXPOSE 8085
 ENTRYPOINT ["/app/server"]

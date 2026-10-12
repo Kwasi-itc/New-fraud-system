@@ -1,5 +1,15 @@
 # Decision Engine Service
 
+## Screening review routing
+
+Scenario screening configuration create/update/read APIs now include nullable `review_inbox_id` (a nonzero UUID). Apply migration `000017_screening_review_inbox` before deploying these API/repository changes or the new case consumer. The field is separate from provider `config_json` and is not sent to the sanctions provider. Configuration update replaces the field; omission/null clears it. Existing configurations remain readable with a null route. UUID syntax is validated on save; case-manager validates tenant, destination existence and active state when first creating an investigation.
+
+On a newly published decision-linked screening requiring review, case-manager reuses the decision's primary case. If none exists, it uses the originating configuration's review inbox to create a pending decision case and attach the decision and screening evidence atomically. A missing, archived or wrong-tenant destination leaves case delivery retryable; no inbox is inferred from monitoring or unrelated workflow actions. Configure routes before enabling new result producers. A configuration becoming inactive prevents future decision dispatch, but does not cancel already published results. No automatic historical backfill is performed.
+
+Deployment order: pause/drain result producers, apply owner migration 000017 and required case migrations through 000012 (including primary-membership preflight), deploy the accepting case consumer and decision-engine API, configure routes, then deploy/resume screening producers and delivery workers. Preserve screening arrival outbox records: consumers verify source publication. Downgrade refuses to drop populated routing; a coordinated rollback must preserve/export and explicitly clear routes only after draining dependent work. Do not deploy an older consumer while new decision-arrival events are pending.
+
+`DECISION_TEST_DATABASE_URL` enables the isolated configuration persistence/migration test. It creates/drops its own disposable database; it does not migrate the supplied application database. The investigator UI reuses case evidence views; a screening-configuration editor is not introduced in this slice.
+
 Standalone Go service for the decision engine domain, extracted from the monolithic `api` service and designed to work alongside `data-model-service` and `ingestion-service`.
 
 Current location in the workspace:
@@ -885,3 +895,11 @@ Persisted screening/scoring execution records now include:
 - `sent_at`
 - `completed_at`
 - `failed_at`
+
+## Initial investigator review
+
+The case workspace now uses human-authenticated owner review commands. See [the investigator review contract](../investigator/README.md) for API semantics, migration order, shared Docker build context, trusted JWT configuration, and synchronization limitations.
+
+## Durable execution projection
+
+Screening status now reconciles through an atomic source queue and decision-owned SQL contract. See [deployment and recovery](../screening-service/EXECUTION_PROJECTION.md) for migrations, worker operation, callback compatibility and source-managed retry behavior.

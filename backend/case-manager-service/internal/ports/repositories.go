@@ -19,6 +19,7 @@ type Clock interface {
 
 // Repositories is one consistent repository scope: either a pool or one transaction.
 type Repositories struct {
+	Explorer     ExplorationRepository
 	Analytics    AnalyticsRepository
 	Reports      ReportRepository
 	Uploads      UploadRepository
@@ -34,6 +35,13 @@ type Repositories struct {
 	Memberships  MembershipRepository
 	Contributors ContributorRepository
 	References   ReferenceRepository
+}
+
+// ExplorationRepository reads model metadata and tenant records without mutating
+// either owner. The service must authorize the case and root decision first.
+type ExplorationRepository interface {
+	Explore(context.Context, uuid.UUID, casepkg.DecisionReference, casepkg.ExplorationRequest) (casepkg.Exploration, error)
+	Decisions(context.Context, uuid.UUID, string, string, string, bool, *casepkg.Cursor) ([]casepkg.ExplorationDecision, error)
 }
 
 type UploadRepository interface {
@@ -89,6 +97,8 @@ type CaseRepository interface {
 }
 
 type DecisionLinkRepository interface {
+	Membership(context.Context, uuid.UUID, uuid.UUID) (*casepkg.DecisionLink, error)
+	Transfer(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) error
 	FindCase(ctx context.Context, tenantID, decisionID uuid.UUID) (*casepkg.Case, error)
 	Create(ctx context.Context, item casepkg.DecisionLink) (casepkg.DecisionLink, error)
 	ListByCase(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.DecisionLink, error)
@@ -96,6 +106,9 @@ type DecisionLinkRepository interface {
 }
 
 type ScreeningLinkRepository interface {
+	CanonicalCase(context.Context, uuid.UUID, uuid.UUID) (*casepkg.Case, error)
+	BindContinuous(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (bool, error)
+	SyncContinuous(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, time.Time) error
 	FindCase(ctx context.Context, tenantID, screeningID uuid.UUID) (*casepkg.Case, error)
 	Create(ctx context.Context, item casepkg.ScreeningLink) (casepkg.ScreeningLink, error)
 	ListByCase(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.ScreeningLink, error)
@@ -139,7 +152,21 @@ type ContributorRepository interface {
 
 // ReferenceRepository is a read-only contract over service-owned shared schemas.
 type ReferenceRepository interface {
+	DecisionScreening(context.Context, uuid.UUID, uuid.UUID) (*DecisionScreeningReference, error)
+	ContinuousScreening(context.Context, uuid.UUID, uuid.UUID) (*ContinuousScreeningReference, error)
 	Decisions(ctx context.Context, tenantID uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]casepkg.DecisionReference, error)
 	Screening(ctx context.Context, tenantID, screeningID uuid.UUID, matchID string) (casepkg.ScreeningReference, error)
 	ScreeningFile(ctx context.Context, tenantID, caseID, fileID uuid.UUID) (casepkg.File, error)
+}
+
+type ContinuousScreeningReference struct {
+	ReviewInboxID *string
+	Enabled       bool
+	Published     bool
+}
+
+type DecisionScreeningReference struct {
+	DecisionID    uuid.UUID
+	ReviewInboxID *uuid.UUID
+	Published     bool
 }

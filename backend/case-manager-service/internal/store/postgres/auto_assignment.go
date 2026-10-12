@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"os"
 	"time"
 )
 
@@ -43,11 +44,15 @@ func (m Maintenance) AssignWaiting(ctx context.Context, limit int) (int, error) 
 }
 
 func assignOne(ctx context.Context, tx pgx.Tx) (bool, error) {
+	identityFilter := ""
+	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
+		identityFilter = ` AND EXISTS(SELECT 1 FROM identity.memberships im JOIN identity.users iu ON iu.id=im.user_id WHERE im.tenant_id=u.tenant_id AND im.user_id::text=u.user_id AND im.active AND iu.active AND im.roles && ARRAY['case_investigator','case_manager_admin']::text[])`
+	}
 	var tenant, inbox, id uuid.UUID
 	err := tx.QueryRow(ctx, `WITH eligible_inboxes AS MATERIALIZED (
  SELECT DISTINCT u.tenant_id,u.inbox_id FROM case_manager.inbox_users u
  JOIN case_manager.inboxes i ON i.tenant_id=u.tenant_id AND i.id=u.inbox_id
- WHERE i.status='active' AND i.auto_assign_enabled AND u.auto_assign_enabled
+ WHERE i.status='active' AND i.auto_assign_enabled AND u.auto_assign_enabled `+identityFilter+`
  AND u.capacity>(SELECT count(*) FROM case_manager.cases a WHERE a.tenant_id=u.tenant_id AND a.inbox_id=u.inbox_id AND a.assigned_to=u.user_id AND a.status<>'closed'))
  SELECT c.tenant_id,c.inbox_id,c.id FROM case_manager.cases c
  JOIN eligible_inboxes i ON i.tenant_id=c.tenant_id AND i.inbox_id=c.inbox_id
@@ -68,7 +73,7 @@ func assignOne(ctx context.Context, tx pgx.Tx) (bool, error) {
 	}
 	var user string
 	err = tx.QueryRow(ctx, `SELECT u.user_id FROM case_manager.inbox_users u
- WHERE u.tenant_id=$1 AND u.inbox_id=$2 AND u.auto_assign_enabled
+ WHERE u.tenant_id=$1 AND u.inbox_id=$2 AND u.auto_assign_enabled `+identityFilter+`
  AND u.capacity>(SELECT count(*) FROM case_manager.cases c WHERE c.tenant_id=u.tenant_id AND c.inbox_id=u.inbox_id AND c.assigned_to=u.user_id AND c.status<>'closed')
  ORDER BY (SELECT count(*) FROM case_manager.cases c WHERE c.tenant_id=u.tenant_id AND c.inbox_id=u.inbox_id AND c.assigned_to=u.user_id AND c.status<>'closed'),u.user_id
  LIMIT 1 FOR UPDATE OF u SKIP LOCKED`, tenant, inbox).Scan(&user)

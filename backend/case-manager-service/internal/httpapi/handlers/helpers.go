@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
 	"net/http"
 	"strconv"
 
@@ -79,6 +80,17 @@ func presentError(c *gin.Context, err error) {
 	}
 	if status == http.StatusInternalServerError {
 		_ = c.Error(err)
+	}
+	c.Set("log_error_code", code)
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	fields := append([]any{"event", "case.operation.rejected", "route", c.FullPath(), "status", status, "error_code", code}, observability.ErrorFields(err)...)
+	if status >= 500 {
+		observability.Logger(ctx).Error("case operation failed", fields...)
+	} else {
+		observability.Logger(ctx).Warn("case operation rejected", fields...)
 	}
 	c.JSON(status, gin.H{"error": message, "code": code})
 }

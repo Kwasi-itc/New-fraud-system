@@ -49,6 +49,12 @@ func (s CaseDeliveryService) RunBatch(ctx context.Context, limit int) error {
 }
 func (s CaseDeliveryService) deliver(ctx context.Context, item ports.CaseEvent) error {
 	switch item.Kind {
+	case "requires-review":
+		var cmd ports.ScreeningRequiresReviewCommand
+		if err := json.Unmarshal(item.Payload, &cmd); err != nil {
+			return err
+		}
+		return s.publisher.PublishScreeningRequiresReview(ctx, cmd)
 	case "reviewed":
 		var cmd ports.ScreeningReviewedCommand
 		if err := json.Unmarshal(item.Payload, &cmd); err != nil {

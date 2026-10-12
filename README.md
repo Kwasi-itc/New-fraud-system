@@ -28,6 +28,29 @@ Compose rejects missing required settings instead of exposing an unauthenticated
 case API. This configuration is also required when rendering the database-scale
 Compose override.
 
+For local development, generate the provider and platform trust once:
+
+```sh
+node backend/auth-service/scripts/setup-local-provider.mjs
+node backend/auth-service/scripts/setup-platform.mjs
+```
+
+The platform script stores private material in ignored `.local/auth-provider/`,
+sets the API public-key trust, and configures opaque browser sessions. Auth now
+provides real login, tenant roles and current-state permission checks. Follow
+[operator provisioning and login](backend/auth-service/PLATFORM_AUTH.md) to bind
+a provider user to an existing Data Model tenant. No default application account
+or password is created. Historical case actor mapping and remaining directory/
+production requirements are tracked in the [auth roadmap](backend/auth-service/IMPLEMENTATION_TODO.md).
+
+If the local GeoIP MMDB file is absent, set `GEOIP_MMDB_PATH=` in `.env` to disable
+optional GeoIP lookup until a valid file is mounted; other decision behavior remains
+available. To enable it, set the host path and remove that empty override.
+
+Enable the local provider once with `node backend/auth-service/scripts/setup-local-provider.mjs`,
+then run `docker compose up -d keycloak`. Its administration console is at
+`http://localhost:8090/admin/`; generated credentials stay in ignored local files.
+
 Start the default stack:
 
 ```sh
@@ -48,8 +71,9 @@ The default stack starts:
 
 Migrations run data-model → ingestion → decision-engine → screening → case-manager
 against the same database. Case-manager exposes `/healthz` and `/readyz`, and its
-dependent delivery workers wait for readiness. The case-manager worker remains
-disabled because its later-phase jobs are not implemented.
+dependent delivery workers wait for readiness. The case-manager worker runs
+assignment and snooze maintenance by default. Outbound event delivery requires
+`CASE_OUTBOX_PUBLISHER_URL`; without it, events remain pending.
 
 Decision workers dispatch case workflows to the authenticated case intake route.
 Screening reviews and file metadata atomically enqueue callbacks for durable

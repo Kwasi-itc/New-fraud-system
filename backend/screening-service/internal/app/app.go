@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
 	"net/http"
 	"time"
@@ -29,7 +30,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 
+	verifier, err := identity.FromEnvironment()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		InvestigatorVerifier:   verifier,
 		CaseServiceAuthToken:   cfg.CaseServiceAuthToken,
 		AuthMode:               cfg.ServiceAuthMode,
 		AuthToken:              cfg.ServiceAuthToken,

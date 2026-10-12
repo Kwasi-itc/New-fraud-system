@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	WorkflowAuthoringToken              string
 	CaseServiceAuthToken                string
 	Port                                string
 	DatabaseURL                         string
@@ -196,6 +197,7 @@ func LoadConfig() (Config, error) {
 
 	cfg := Config{
 		CaseServiceAuthToken:                os.Getenv("CASE_SERVICE_AUTH_TOKEN"),
+		WorkflowAuthoringToken:              os.Getenv("WORKFLOW_AUTHORING_TOKEN"),
 		Port:                                getEnv("PORT", "8082"),
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		DataModelServiceURL:                 strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
@@ -203,7 +205,7 @@ func LoadConfig() (Config, error) {
 		GeoIPMMDBPath:                       strings.TrimSpace(os.Getenv("GEOIP_MMDB_PATH")),
 		GeoIPLocale:                         strings.TrimSpace(getEnv("GEOIP_LOCALE", "en")),
 		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "ingestion_http")),
-		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "token"),
 		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),
 		ServiceAllowedOrigins:               parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		WorkflowActionURL:                   strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
@@ -265,7 +267,10 @@ func LoadConfig() (Config, error) {
 	if cfg.TenantDataReadMode == "ingestion_http" && cfg.IngestionServiceURL == "" {
 		return Config{}, fmt.Errorf("INGESTION_SERVICE_URL is required")
 	}
-	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
+	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
+		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
+	}
+	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if cfg.WorkerMode != "batch" && cfg.WorkerMode != "poll" {

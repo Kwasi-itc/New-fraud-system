@@ -86,6 +86,7 @@ func testDatabase(t *testing.T, migrate bool) *pgxpool.Pool {
 		applyMigration(t, db, "000003_phase1_access.up.sql")
 		applyMigration(t, db, "000004_reliable_intake.up.sql")
 		applyMigration(t, db, "000007_assignment_sla.up.sql")
+		applyMigration(t, db, "000012_decision_membership.up.sql")
 	}
 	return db
 }

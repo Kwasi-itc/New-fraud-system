@@ -59,3 +59,7 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require github.com/Kwasi-itc/New-fraud-system/backend/investigator v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator

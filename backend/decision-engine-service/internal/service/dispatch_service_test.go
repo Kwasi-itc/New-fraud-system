@@ -70,6 +70,9 @@ func (s *stubScreeningExecutionRepo) Update(ctx context.Context, item screening.
 	return item, nil
 }
 
+func (s *stubScreeningExecutionRepo) ReconcileSource(context.Context, string, string, string, string) (screening.Execution, error) {
+	return screening.Execution{}, nil
+}
 func (s *stubScreeningExecutionRepo) UpdateStatus(ctx context.Context, id string, status screening.ExecutionStatus) error {
 	if s.updatedStatus == nil {
 		s.updatedStatus = map[string]screening.ExecutionStatus{}

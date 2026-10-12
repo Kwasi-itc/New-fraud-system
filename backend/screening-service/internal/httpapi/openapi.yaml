@@ -21,6 +21,55 @@ tags:
   - name: Internal
     description: Internal service-to-service screening intake routes.
 paths:
+  /v1/investigator/tenants/{tenantId}/cases/{caseId}/review:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: caseId, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Read current linked-resource investigator review eligibility
+      description: Requires the original signed human JWT and current tenant, case, inbox and exact resource access. Service credentials cannot authorize this route.
+      security: [{investigatorJWT: []}]
+      parameters:
+        - {name: resource_id, in: query, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Authoritative review state; closed cases and inactive inboxes are not eligible.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InvestigatorReviewState'}
+        '400': {description: Invalid identifiers}
+        '401': {description: Invalid investigator session}
+        '403': {description: Current case or resource access denied}
+        '500': {description: Owner state could not be read}
+    post:
+      summary: Record the first human review with atomic case history
+      description: Open linked case and active inbox required. Findings are trimmed and limited to 10000 UTF-8 bytes. Original actor is verified from JWT; extra fields are rejected. Retry uncertain responses with the identical operation ID and payload. Human review does not change case lifecycle or machine outcome.
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [operation_id, resource_id, expected_version, action, findings]
+              properties:
+                operation_id: {type: string, format: uuid}
+                resource_id: {type: string}
+                expected_version: {type: string}
+                action: {type: string, enum: [confirmed_hit, no_hit]}
+                findings: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: Committed result or authorized identical-operation replay.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InvestigatorReviewState'}
+        '400': {description: Invalid command or case lifecycle}
+        '401': {description: Invalid investigator session}
+        '403': {description: Current case or resource access denied}
+        '409': {description: Stale state or conflicting operation}
+        '500': {description: Database failure or uncertain acknowledgement. Retry the same operation to determine the committed result.}
   /healthz:
     get:
       tags: [Service]
@@ -784,6 +833,11 @@ paths:
           $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
+    investigatorJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 human session with trusted issuer/audience, tenant_id and case_investigator or case_manager_admin role.
     bearerAuth:
       type: http
       scheme: bearer
@@ -867,6 +921,15 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    InvestigatorReviewState:
+      type: object
+      required: [status, version, eligible, actions]
+      properties:
+        status: {type: string}
+        version: {type: string}
+        eligible: {type: boolean}
+        actions: {type: array, items: {type: string}}
+        machine_outcome: {type: string, description: Original machine result for decisions only}
     GenericObject:
       type: object
       additionalProperties: true

@@ -1,4 +1,3 @@
-import { resolveServiceUrl } from "@/lib/service-url";
 
 export type ApiErrorEnvelope = {
   error: {
@@ -312,9 +311,6 @@ export type IndexJob = {
   updated_at: string;
 };
 
-const configuredServiceBaseUrl =
-  process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_URL;
-const serviceToken = process.env.NEXT_PUBLIC_DATA_MODEL_SERVICE_TOKEN;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -324,13 +320,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  if (serviceToken) {
-    headers.set("Authorization", `Bearer ${serviceToken}`);
-  }
-
-  const response = await fetch(`${resolveServiceUrl(configuredServiceBaseUrl, 8080)}${path}`, {
+  const response = await fetch(`/api/data-model${path.replace(/^\/v1/, "")}`, {
     ...init,
     headers,
+    cache: "no-store",
   });
 
   if (!response.ok) {

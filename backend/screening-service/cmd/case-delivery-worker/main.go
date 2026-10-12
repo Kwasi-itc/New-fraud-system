@@ -33,6 +33,26 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	// Keep projection recovery independent of slow case HTTP callbacks.
+	projectionDone := make(chan struct{})
+	go func() {
+		defer close(projectionDone)
+		timer := time.NewTicker(cfg.WorkerPollInterval)
+		defer timer.Stop()
+		for {
+			if failed, err := store.NewExecutionProjector(db).RunBatch(ctx, cfg.WorkerBatchLimit); err != nil && ctx.Err() == nil {
+				logger.Error("execution projection cycle failed", "error", err)
+			} else if failed > 0 {
+				logger.Warn("execution projections retained for retry", "count", failed)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-timer.C:
+			}
+		}
+	}()
+	defer func() { stop(); <-projectionDone }()
 	delivery := service.NewCaseDeliveryService(store.NewCaseEventRepository(db), caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, 10*time.Second), logger)
 	ticker := time.NewTicker(cfg.WorkerPollInterval)
 	defer ticker.Stop()

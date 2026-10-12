@@ -339,6 +339,9 @@ func (noopWorkflowRuleRepo) Create(context.Context, workflow.Rule) (workflow.Rul
 func (noopWorkflowRuleRepo) GetByID(context.Context, string, string, string) (workflow.Rule, error) {
 	return workflow.Rule{}, nil
 }
+func (noopWorkflowRuleRepo) ListStructured(context.Context, string, string) ([]workflow.StructuredRule, error) {
+	return nil, nil
+}
 func (noopWorkflowRuleRepo) ListByScenario(context.Context, string, string) ([]workflow.Rule, error) {
 	return nil, nil
 }

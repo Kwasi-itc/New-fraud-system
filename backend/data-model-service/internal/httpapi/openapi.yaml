@@ -230,13 +230,28 @@ paths:
         This is the main read-model endpoint for consumers such as `ingestion-service`. The response
         includes the published `revision_id`, tenant writability metadata, managed system fields, and
         the assembled table, field, link, pivot, navigation-option, and table-option graph.
+        Supports If-None-Match revalidation using an ETag of the full representation.
+        Current model reads and authentication precede revalidation; this is not a TTL cache.
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - in: header
+          name: If-None-Match
+          schema:
+            type: string
+          description: Previously received ETag; a match returns 304 with no response body.
       responses:
         '200':
           description: Assembled data model
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+              description: private, no-cache
           content:
             application/json:
               schema:
@@ -281,6 +296,15 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '304':
+          description: Current representation matches If-None-Match. No response body.
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
   /v1/tenants/{tenantId}/data-model/export:
     get:
       tags: [data-model]

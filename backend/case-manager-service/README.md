@@ -1,5 +1,14 @@
 # Case Manager Service
 
+Identity update (2026-10-06): Docker uses the [platform auth service](../auth-service/PLATFORM_AUTH.md).
+The browser holds an opaque session; Next resolves it privately to a signed,
+short-lived human credential. `USER_REQUIRE_SESSION=true` requires session/version
+claims and current identity checks. Auth schema migration runs before Case Manager;
+human mutation transactions acquire identity locks before domain locks, enforcing
+committed suspension, role change and logout. Case roles and inbox permissions
+remain Case Manager responsibilities. Provision real operator UUIDs using the
+linked setup guide; arbitrary actor strings are rejected by strict inbox admission.
+
 Phase 1 implements the correctness and authorization foundation in the shared application PostgreSQL database. This service owns the case_manager schema. This document covers Phase 1 contracts; see the [implementation plan](../../CASE_MANAGEMENT_IMPLEMENTATION_PLAN.md) for current progress on subsequent phases and the [intake contract](INTAKE_CONTRACT.md) for reliable integration behavior.
 
 ## Implemented behavior
@@ -13,6 +22,13 @@ Phase 1 implements the correctness and authorization foundation in the shared ap
 - Unimplemented background actions return 501. Pending outbox rows do not imply delivery. See the intake contract for callback behavior added after Phase 1.
 
 ## Authentication
+
+Real accounts, browser sessions and the operator directory are planned in the
+[auth-service tracker](../auth-service/IMPLEMENTATION_TODO.md). The
+[integration contract](../auth-service/CASE_MANAGER_INTEGRATION.md) documents
+consumer changes, revocation, assignment eligibility and migration requirements.
+That folder now includes a tested [identity inventory tool](../auth-service/PREFLIGHT.md)
+but does not yet provide an identity runtime.
 
 The API fails startup unless both identity contracts are configured:
 
@@ -60,6 +76,50 @@ Budget all service API/worker replicas together: their maximum connections plus 
 
 ## Verification
 
+### Structured operational logs
+
+API and worker write JSON to stdout with `service`, `component`, `event` and
+severity. `LOG_LEVEL` is honored (`debug`, `info`, `warn`, `error`); Compose maps
+workspace-root `CASE_LOG_LEVEL` to both processes. Local development can use
+`CASE_LOG_LEVEL=debug`; use `info` for routine operation. Invalid levels emit a
+warning and fall back to info. These logs supplement persisted case history.
+
+- HTTP: generated `X-Request-ID`, method, route template, validated resource IDs,
+  authenticated actor, status, response size and elapsed time. Successful health
+  probes are debug; 4xx are warning; 5xx are error. Unknown raw paths, query
+  strings, bodies, cookies and headers are excluded. Panic recovery emits a
+  stack without the panic value or a request dump.
+- Operations: classified rejections and PostgreSQL SQLSTATE; correlated debug
+  transaction duration and committed case/decision IDs and lifecycle state.
+  Bulk item logs include operation identity, success, replay and failure class.
+  Commit logs are emitted after commit returns successfully; they are not a
+  replacement for atomic audit events.
+- Worker: configuration, queue/job/attempt identity, start/stop, maintenance
+  duration, committed wake/assignment counts, failing stage and pool usage.
+  Idle cycles and pool snapshots are debug; useful maintenance work is info.
+- Outbox: claim at debug; persisted delivery at info; retry at warning; exhausted
+  delivery at error. Includes event/tenant/aggregate identity, attempt, HTTP
+  status, elapsed time, retry delay and whether a retry remains scheduled.
+  A failed acknowledgement is logged separately because the remote receiver
+  may already have accepted the event. Payloads, receiver URLs, response bodies
+  and auth tokens are excluded; database messages/details are replaced with
+  error class/type and SQLSTATE. No full-backlog count runs every poll.
+
+`outbox.disabled` means `CASE_OUTBOX_PUBLISHER_URL` is empty. Assignment and
+snooze maintenance continue, and outbound events remain durable. Configure a
+real receiver implementing the investigator contract to enable delivery; do not
+point this setting at the case API or a discard endpoint. Inspect pending events:
+
+```powershell
+docker compose exec case-manager-worker /app/outbox -tenant <tenant-uuid> -status pending
+docker compose up -d --build --no-deps case-manager-service case-manager-worker
+docker compose logs -f --tail=200 case-manager-service case-manager-worker
+```
+
+The first command is read-only. The second rebuilds and recreates only the API
+and worker to apply code and logging-level changes; run it after the stack's
+migrations have completed. This does not configure a receiver or sign-in flow.
+
 Run go test ./... and go vet ./... in this module and screening-service.
 
 PostgreSQL tests are skipped unless CASE_MANAGER_TEST_DATABASE_URL points to a dedicated test instance with database-creation privileges. Each test creates and drops only a unique test database, applying real owning-service and case-manager migrations. No application database is migrated.
@@ -76,3 +136,7 @@ go test ./internal/store/postgres -run 'TestPostgres(BoundedQueue|SharedDatabase
 Phase 3 adds the live Cases UI and authorized paginated queue/history APIs, transactional close-with-findings, and configured escalation. Apply migration `000005_workspace_indexes` before rollout. See the [investigator contract](INVESTIGATOR_CONTRACT.md) for identity integration, runtime settings, supported operations, query costs, and verification limits. Live sign-in/provider integration remains pending.
 
 Phase 4 adds automatic assignment with per-member capacity, transactional snooze expiry, inbox SLAs, bounded evidence upload/finalize/download, bulk operations, tag administration and leased outbound delivery. Apply case migrations 000006–000008 and the case-owned River schema using `/app/migrate up` before starting the new API/worker. Compose enables `case-manager-worker` with four pooled connections; outbound delivery remains disabled until its publisher URL is configured. `/app/outbox` provides tenant-scoped failure inspection and replay. The [investigator contract](INVESTIGATOR_CONTRACT.md#phase-4-queue-operations) specifies capacity, SLA, file retention, partial-failure and retry semantics. Identity-provider deployment and mixed-service load verification remain open.
+
+## Initial investigator review
+
+The case workspace now uses human-authenticated owner review commands. See [the investigator review contract](../investigator/README.md) for API semantics, migration order, shared Docker build context, trusted JWT configuration, and synchronization limitations.

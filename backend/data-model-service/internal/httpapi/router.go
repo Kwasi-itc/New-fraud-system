@@ -31,6 +31,7 @@ func (systemClock) Now() time.Time {
 }
 
 type RouterConfig struct {
+	UserVerifier           platformVerifier
 	AuthMode               string
 	AuthToken              string
 	AllowedOrigins         []string
@@ -190,8 +191,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
+		Mode:     cfg.AuthMode,
+		Token:    cfg.AuthToken,
+		Verifier: cfg.UserVerifier,
+		DB:       db,
 	}))
 	v1.POST("/tenants", tenantHandler.Create)
 	v1.GET("/tenants", tenantHandler.List)

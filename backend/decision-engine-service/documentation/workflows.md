@@ -1,5 +1,120 @@
 # Workflows
 
+## Case workflow editor — 2026-10-09
+
+The scenario Workflow page now saves real structured case rules. It loads the
+current tenant from the authenticated session and selects real, accessible case
+inboxes and tags. Supported conditions are decision outcomes (`approve`, `review`,
+`block_and_review`, `decline`); supported actions are `create_case` and
+`add_to_case_if_possible`. Titles are literal text. New rules start disabled and
+require explicit confirmation to save. Enabled saves affect future evaluations;
+already queued execution snapshots are not cancelled or rewritten.
+
+The editor supports creating, editing, enabling and disabling these rules. Earlier
+matching rules can stop evaluation, including rules outside the viewer's inbox
+access. Existing advanced rules are preserved and are not editable here. Active
+flat/legacy workflows block saves because the evaluator prioritizes structured
+rules; migration must be deliberate. Old browser-only drafts are not imported or
+activated automatically. Reordering, advanced expressions and title templates are
+outside this editor's current scope.
+
+### Authorization and atomicity
+
+Browser requests use `/api/workflows/scenarios/:scenarioId[/rules/:ruleId]`.
+The private gateway derives tenant, user, session and membership version from Auth;
+caller-supplied identity headers are never forwarded. Mutations require the
+configured application origin. Reads require a platform role plus case access;
+saves require `platform_admin` plus membership of the destination inbox (or
+`case_manager_admin`). `tenant_admin` alone does not grant platform or case access.
+The Decision Engine rechecks current identity through Auth's versioned SQL read
+contracts, locking identity rows before workflow mutations. Both old and new
+destinations are checked when changing routing. Foreign tags/inboxes are rejected;
+enabling also requires active resources. Authorized rules can still be disabled
+after an inbox is archived or a tag is soft-deleted. No identity or Case Manager
+tables are written by this feature.
+
+Rule metadata, condition, action and a Decision Engine-owned audit snapshot commit
+together. Stable client-generated rule IDs make identical retries safe; `updated_at`
+provides optimistic conflict detection. Existing action IDs are preserved so edits
+do not cascade-delete past or queued executions. Evaluation reads structured rules,
+conditions and actions in one statement snapshot, ordered by priority, creation
+time and ID. It uses the existing tenant/scenario and rule-child indexes, with a
+500-rule scenario limit; it no longer makes per-rule condition/action round trips.
+This does not establish a production throughput benchmark.
+
+### Configuration and rollout
+
+- Apply Decision Engine migration `000020_workflow_authoring_audit` and the existing
+  shared owner migrations, including Auth v2, before using the editor.
+- Set the same **server-only**, distinct secret of at least 32 bytes as
+  `WORKFLOW_AUTHORING_TOKEN` on the frontend and Decision Engine. Compose forwards
+  this value to both; an empty value leaves authoring unavailable. Never use a
+  `NEXT_PUBLIC_*` variable for this credential.
+- The private owner routes are GET
+  `/internal/workflow-authoring/tenants/:tenantId/scenarios/:scenarioId` and PUT
+  the same path with `/rules/:ruleId`. They require the dedicated bearer credential
+  and gateway-derived `X-Workflow-User`, `X-Workflow-Session`, `X-Workflow-Version`.
+- Legacy `/v1/.../workflows` and `/v1/.../workflow-rules` configuration APIs now
+  require `X-Workflow-Authoring-Token` in addition to their existing service auth.
+  These are trusted operator APIs, not browser authoring endpoints. Existing
+  operator integrations must be updated; this guard also applies in development
+  when general service authentication is disabled.
+- Keep the workflow dispatcher running with `WORKFLOW_ACTION_URL` pointing to
+  Case Manager intake and matching `CASE_SERVICE_AUTH_TOKEN` credentials. The
+  existing intake applies single-primary membership, grouping, audit and retry
+  receipts. Saving a workflow does not itself create a case.
+
+Implementation is now deployed to the local Docker stack (rollout record below).
+Signed-in end-to-end case creation has not yet been accepted against that stack.
+Verification covers real shared-schema PostgreSQL saves/permissions/rollback,
+configured outcome evaluation and authenticated dispatch contracts, frontend build
+and browser fixtures. Browser fixtures do not replace live end-to-end acceptance.
+
+Verified on 2026-10-09: full Decision Engine `go test -count=1 -p 2 ./...`
+with `DECISION_TEST_DATABASE_URL`, and `go vet ./...`; a final targeted database
+rerun also passed after the archived-inbox fix. Case Manager's PostgreSQL workflow
+intake tests (`-run Workflow`) passed against the same disposable database host.
+Frontend production build/TypeScript and targeted ESLint passed. The full browser
+run passed 41 existing tests and two new workflow tests; the third hit an ambiguous
+test selector. After correcting it, all three workflow tests passed, including a
+final rerun against the rebuilt frontend. No live service or application database
+was used for these checks.
+
+### Local rollout — 2026-10-09
+
+The local stack was upgraded to Auth schema v3 and Decision Engine migration 20.
+The private workflow credential was generated in the ignored root `.env`; no
+credential was printed or added to source control. The missing private Data Model
+integration credential was also generated. Auth, Data Model and its worker,
+ingestion API/worker, Decision Engine API/worker, Case Manager API and frontend
+were rebuilt and restarted together where required. Existing Data Model (5),
+ingestion (2) and Case Manager (13) migration versions already matched the code.
+
+All nine runtime probes passed: frontend/login availability, signed-out workflow
+rejection, Auth/Decision/Case readiness, matching gateway credentials, missing and
+nonexistent identity rejection, and protection of the legacy configuration API.
+Data Model rejected anonymous access (401), accepted its private integration
+credential (200), and all five Data Model/ingestion/decision API and worker clients
+had matching credentials and were running. The decision worker registered the
+`workflow_executions` queue with four workers.
+
+Existing memberships and workflow rules were not changed. Current local account
+administrators must explicitly add `platform_admin` through **Users & access**
+(`/administration/users`) before editing workflows, then sign in again after the
+role change. Case-admin or destination-inbox access is also required. No production
+deployment, live rule activation, or signed-in decision-to-case acceptance was
+performed by these read-only runtime probes.
+
+For subsequent local setups, `node backend/scripts/setup-workflow-authoring.mjs`
+adds the missing workflow secret and preserves an existing valid value. Prepare
+the platform/Data Model prerequisites described in
+[Data Model authorization](../../auth-service/DATA_MODEL_AUTH.md) as well.
+To rerun the read-only runtime probes from PowerShell at the project root:
+
+```powershell
+Get-Content -Raw backend/scripts/verify-workflow-runtime.mjs | docker compose exec -T frontend node --input-type=module
+```
+
 This document explains both the flat workflow endpoints and the structured workflow rule/condition/action endpoints.
 
 ## What A Workflow Is

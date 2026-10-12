@@ -20,6 +20,9 @@ type Config struct {
 	WorkerDatabaseMaxConns          int
 	WorkerDatabaseMinConns          int
 	DataModelServiceURL             string
+	DataModelReadMode               string
+	DataModelCacheMaxEntries        int
+	DataModelCacheMaxBytes          int
 	ServiceAuthMode                 string
 	ServiceAuthToken                string
 	AllowedOrigins                  []string
@@ -54,6 +57,14 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	cacheEntries, err := getCacheLimit("DATA_MODEL_CACHE_MAX_ENTRIES", 128)
+	if err != nil {
+		return Config{}, err
+	}
+	cacheBytes, err := getCacheLimit("DATA_MODEL_CACHE_MAX_BYTES", 16<<20)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Port:                            getEnv("PORT", "8081"),
@@ -67,7 +78,10 @@ func LoadConfig() (Config, error) {
 		WorkerDatabaseMaxConns:          getEnvInt("WORKER_DATABASE_MAX_CONNS", 4),
 		WorkerDatabaseMinConns:          getEnvInt("WORKER_DATABASE_MIN_CONNS", 0),
 		DataModelServiceURL:             strings.TrimRight(os.Getenv("DATA_MODEL_SERVICE_URL"), "/"),
-		ServiceAuthMode:                 getEnv("SERVICE_AUTH_MODE", "disabled"),
+		DataModelReadMode:               getEnv("DATA_MODEL_READ_MODE", "sql"),
+		DataModelCacheMaxEntries:        cacheEntries,
+		DataModelCacheMaxBytes:          cacheBytes,
+		ServiceAuthMode:                 getEnv("SERVICE_AUTH_MODE", "token"),
 		ServiceAuthToken:                os.Getenv("SERVICE_AUTH_TOKEN"),
 		AllowedOrigins:                  splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		LogLevel:                        getEnv("LOG_LEVEL", "info"),
@@ -124,10 +138,16 @@ func LoadConfig() (Config, error) {
 	if cfg.WorkerDatabaseMaxConns > 0 && cfg.WorkerDatabaseMinConns > cfg.WorkerDatabaseMaxConns {
 		return Config{}, fmt.Errorf("WORKER_DATABASE_MIN_CONNS must be less than or equal to WORKER_DATABASE_MAX_CONNS")
 	}
-	if cfg.DataModelServiceURL == "" {
-		return Config{}, fmt.Errorf("DATA_MODEL_SERVICE_URL is required")
+	if cfg.DataModelReadMode == "http" && cfg.DataModelServiceURL == "" {
+		return Config{}, fmt.Errorf("DATA_MODEL_SERVICE_URL is required in http mode")
 	}
-	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
+	if cfg.DataModelReadMode != "sql" && cfg.DataModelReadMode != "http" {
+		return Config{}, fmt.Errorf("DATA_MODEL_READ_MODE must be sql or http")
+	}
+	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
+		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
+	}
+	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if strings.TrimSpace(cfg.UploadLogQueueName) == "" {
@@ -207,6 +227,18 @@ func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
 		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
+	}
+	return parsed, nil
+}
+
+func getCacheLimit(key string, fallback int) (int, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 {
+		return 0, fmt.Errorf("%s must be a nonnegative integer", key)
 	}
 	return parsed, nil
 }

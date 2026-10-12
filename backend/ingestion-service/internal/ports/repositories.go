@@ -56,6 +56,7 @@ const (
 )
 
 type MutationStore interface {
+	RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error
 	Audits() IngestionAuditRepository
 	Idempotency() IdempotencyRepository
 	OutboxEvents() OutboxEventRepository

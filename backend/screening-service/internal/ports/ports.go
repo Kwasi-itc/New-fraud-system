@@ -3,6 +3,7 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 )
+
+var ErrScreeningBusy = errors.New("screening is being processed by another attempt")
 
 type IDGenerator interface {
 	New() uuid.UUID
@@ -37,6 +40,13 @@ type MutationStore interface {
 }
 
 type ScreeningRepository interface {
+	ListRecoverable(context.Context, time.Time, int) ([]screening.Screening, error)
+	Lock(context.Context, string, string) (screening.Screening, error)
+	Claim(context.Context, string, string, string, time.Time) (bool, error)
+	LockClaim(context.Context, string, string, string) error
+	ReleaseClaim(context.Context, string, string, string) error
+	CreateContinuousRun(context.Context, string, string, string, string, time.Time) error
+	IsContinuousRun(context.Context, string, string) (bool, error)
 	Create(ctx context.Context, item screening.Screening) (screening.Screening, error)
 	GetByID(ctx context.Context, tenantID, screeningID string) (screening.Screening, error)
 	GetByIdempotencyKey(ctx context.Context, tenantID, idempotencyKey string) (screening.Screening, error)
@@ -50,7 +60,7 @@ type ScreeningMatchRepository interface {
 	ListByScreening(ctx context.Context, tenantID, screeningID string) ([]screening.Match, error)
 	GetByID(ctx context.Context, tenantID, matchID string) (screening.Match, error)
 	Update(ctx context.Context, item screening.Match) (screening.Match, error)
-	CountPendingByScreening(ctx context.Context, screeningID string) (int, error)
+	ReviewCounts(ctx context.Context, tenantID, screeningID string) (pending, confirmed int, err error)
 }
 
 type ScreeningCommentRepository interface {
@@ -79,6 +89,7 @@ type ContinuousConfigRepository interface {
 }
 
 type MonitoredObjectRepository interface {
+	Lock(context.Context, string, string) (screening.MonitoredObject, error)
 	Create(ctx context.Context, item screening.MonitoredObject) (screening.MonitoredObject, error)
 	GetByID(ctx context.Context, tenantID, monitoredObjectID string) (screening.MonitoredObject, error)
 	ListByConfig(ctx context.Context, tenantID, configID string) ([]screening.MonitoredObject, error)
@@ -158,8 +169,16 @@ type CaseDeliveryRepository interface {
 }
 
 type CasePublisher interface {
+	PublishScreeningRequiresReview(context.Context, ScreeningRequiresReviewCommand) error
 	PublishScreeningReviewed(ctx context.Context, command ScreeningReviewedCommand) error
 	PublishScreeningEvidenceUploaded(ctx context.Context, command ScreeningEvidenceUploadedCommand) error
+}
+
+type ScreeningRequiresReviewCommand struct {
+	Version     int    `json:"version"`
+	EventID     string `json:"event_id"`
+	TenantID    string `json:"tenant_id"`
+	ScreeningID string `json:"screening_id"`
 }
 
 type ScreeningStatusChangedCommand struct {

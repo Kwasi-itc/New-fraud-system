@@ -63,7 +63,7 @@ func (r ScreeningRepository) Create(ctx context.Context, item screening.Screenin
 			unique_counterparty_identifier, created_at, updated_at, sent_at, completed_at, failed_at
 	`
 	return scanScreening(r.q.QueryRow(ctx, stmt,
-		item.ID, item.TenantID, nullIfEmpty(item.DecisionID), nullIfEmpty(item.ScenarioID), nullIfEmpty(item.ScreeningConfigID), nullIfEmpty(item.IdempotencyKey),
+		item.ID, item.TenantID, nullIfEmpty(item.DecisionID), nullIfEmpty(item.ScenarioID), nullIfEmpty(item.ScreeningConfigID), item.IdempotencyKey,
 		item.Provider, item.ObjectType, item.ObjectID, string(item.Status), item.RequestJSON, item.ResponseJSON, item.ProviderReference,
 		item.LastError, item.IsManual, item.IsArchived, item.Partial, item.UniqueCounterpartyIdentifier,
 		item.CreatedAt, item.UpdatedAt, item.SentAt, item.CompletedAt, item.FailedAt,
@@ -177,7 +177,7 @@ func (r ScreeningRepository) Update(ctx context.Context, item screening.Screenin
 			unique_counterparty_identifier, created_at, updated_at, sent_at, completed_at, failed_at
 	`
 	return scanScreening(r.q.QueryRow(ctx, stmt,
-		nullIfEmpty(item.DecisionID), nullIfEmpty(item.ScenarioID), nullIfEmpty(item.ScreeningConfigID), nullIfEmpty(item.IdempotencyKey),
+		nullIfEmpty(item.DecisionID), nullIfEmpty(item.ScenarioID), nullIfEmpty(item.ScreeningConfigID), item.IdempotencyKey,
 		item.Provider, item.ObjectType, item.ObjectID, string(item.Status), item.RequestJSON, item.ResponseJSON,
 		item.ProviderReference, item.LastError, item.IsManual, item.IsArchived, item.Partial,
 		item.UniqueCounterpartyIdentifier, item.UpdatedAt, item.SentAt, item.CompletedAt, item.FailedAt,
@@ -263,15 +263,15 @@ func (r ScreeningMatchRepository) Update(ctx context.Context, item screening.Mat
 		pq.Array(item.MatchedTexts), item.UniqueCounterpartyIdentifier, item.Enriched, item.UpdatedAt, item.TenantID, item.ID))
 }
 
-func (r ScreeningMatchRepository) CountPendingByScreening(ctx context.Context, screeningID string) (int, error) {
+func (r ScreeningMatchRepository) ReviewCounts(ctx context.Context, tenantID, screeningID string) (int, int, error) {
 	const stmt = `
-		select count(*)
+		select count(*) filter (where status='pending'), count(*) filter (where status='confirmed_hit')
 		from screening.screening_matches
-		where screening_id = $1 and status = 'pending'
+		where tenant_id=$1 and screening_id=$2
 	`
-	var count int
-	err := r.q.QueryRow(ctx, stmt, screeningID).Scan(&count)
-	return count, err
+	var pending, confirmed int
+	err := r.q.QueryRow(ctx, stmt, tenantID, screeningID).Scan(&pending, &confirmed)
+	return pending, confirmed, err
 }
 
 func (r ScreeningCommentRepository) Create(ctx context.Context, item screening.Comment) (screening.Comment, error) {
@@ -746,7 +746,7 @@ func scanMatch(row scanner) (screening.Match, error) {
 		&item.Name,
 		&item.Score,
 		&item.Payload,
-		pq.Array(&item.MatchedTexts),
+		&item.MatchedTexts,
 		&item.UniqueCounterpartyIdentifier,
 		&item.Enriched,
 		&item.CreatedAt,

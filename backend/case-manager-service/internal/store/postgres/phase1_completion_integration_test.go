@@ -20,8 +20,8 @@ func TestPostgresReopenChecksCurrentInboxAndAssignee(t *testing.T) {
 	if err := s.Assign(ctx, tenant, c.ID, &assignee, nil); err != nil {
 		t.Fatal(err)
 	}
-	closed, investigating := casepkg.StatusClosed, casepkg.StatusInvestigating
-	if _, err := s.UpdateCase(ctx, service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, Status: &closed}, nil); err != nil {
+	investigating := casepkg.StatusInvestigating
+	if _, err := s.CloseCase(ctx, tenant, c.ID, casepkg.OutcomeFalsePositive, "Investigation completed"); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.RemoveInboxUser(ctx, tenant, inbox.ID, assignee); err != nil {

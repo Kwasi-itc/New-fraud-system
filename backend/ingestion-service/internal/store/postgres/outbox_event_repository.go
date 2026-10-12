@@ -14,11 +14,17 @@ func NewOutboxEventRepository(db txExecutor) OutboxEventRepository {
 	return OutboxEventRepository{db: db}
 }
 
-func (r OutboxEventRepository) Create(ctx context.Context, event ingestion.OutboxEvent) error {
-	_, err := r.db.Exec(ctx, `
+const insertOutboxSQL = `
 		INSERT INTO core_ingestion.outbox_events (
 			id, tenant_id, event_type, aggregate_type, aggregate_key, payload, status, created_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-	`, event.ID, event.TenantID, event.EventType, event.AggregateType, event.AggregateKey, event.Payload, event.Status, event.CreatedAt)
+	`
+
+func outboxArgs(event ingestion.OutboxEvent) []any {
+	return []any{event.ID, event.TenantID, event.EventType, event.AggregateType, event.AggregateKey, event.Payload, event.Status, event.CreatedAt}
+}
+
+func (r OutboxEventRepository) Create(ctx context.Context, event ingestion.OutboxEvent) error {
+	_, err := r.db.Exec(ctx, insertOutboxSQL, outboxArgs(event)...)
 	return err
 }

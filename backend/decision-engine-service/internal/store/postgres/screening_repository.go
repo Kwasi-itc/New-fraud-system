@@ -3,6 +3,9 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 )
@@ -20,45 +23,45 @@ func NewScreeningExecutionRepository(q queryable) ScreeningExecutionRepository {
 func (r ScreeningConfigRepository) Create(ctx context.Context, item screening.Config) (screening.Config, error) {
 	const stmt = `
 		insert into core.screening_configs (
-			id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-		returning id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at
+			id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		returning id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id
 	`
 	var out screening.Config
-	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ScenarioID, item.Name, item.AllowedOutcomes, item.Provider, item.ConfigJSON, item.Active, item.CreatedAt, item.UpdatedAt).
-		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt)
+	err := r.q.QueryRow(ctx, stmt, item.ID, item.TenantID, item.ScenarioID, item.Name, item.AllowedOutcomes, item.Provider, item.ConfigJSON, item.Active, item.CreatedAt, item.UpdatedAt, item.ReviewInboxID).
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt, &out.ReviewInboxID)
 	return out, err
 }
 
 func (r ScreeningConfigRepository) GetByID(ctx context.Context, tenantID, scenarioID, configID string) (screening.Config, error) {
 	const stmt = `
-		select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at
+		select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id
 		from core.screening_configs where tenant_id = $1 and scenario_id = $2 and id = $3
 	`
 	var out screening.Config
 	err := r.q.QueryRow(ctx, stmt, tenantID, scenarioID, configID).
-		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt)
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt, &out.ReviewInboxID)
 	return out, err
 }
 
 func (r ScreeningConfigRepository) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]screening.Config, error) {
-	return r.list(ctx, `select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at from core.screening_configs where tenant_id = $1 and scenario_id = $2 order by created_at desc`, tenantID, scenarioID)
+	return r.list(ctx, `select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id from core.screening_configs where tenant_id = $1 and scenario_id = $2 order by created_at desc`, tenantID, scenarioID)
 }
 
 func (r ScreeningConfigRepository) ListActiveByScenario(ctx context.Context, tenantID, scenarioID string) ([]screening.Config, error) {
-	return r.list(ctx, `select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at from core.screening_configs where tenant_id = $1 and scenario_id = $2 and active = true order by created_at desc`, tenantID, scenarioID)
+	return r.list(ctx, `select id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id from core.screening_configs where tenant_id = $1 and scenario_id = $2 and active = true order by created_at desc`, tenantID, scenarioID)
 }
 
 func (r ScreeningConfigRepository) Update(ctx context.Context, item screening.Config) (screening.Config, error) {
 	const stmt = `
 		update core.screening_configs
-		set name = $1, allowed_outcomes = $2, provider = $3, config_json = $4, active = $5, updated_at = $6
+		set name = $1, allowed_outcomes = $2, provider = $3, config_json = $4, active = $5, updated_at = $6, review_inbox_id = $10
 		where tenant_id = $7 and scenario_id = $8 and id = $9
-		returning id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at
+		returning id, tenant_id, scenario_id, name, allowed_outcomes, provider, config_json, active, created_at, updated_at, review_inbox_id
 	`
 	var out screening.Config
-	err := r.q.QueryRow(ctx, stmt, item.Name, item.AllowedOutcomes, item.Provider, item.ConfigJSON, item.Active, item.UpdatedAt, item.TenantID, item.ScenarioID, item.ID).
-		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt)
+	err := r.q.QueryRow(ctx, stmt, item.Name, item.AllowedOutcomes, item.Provider, item.ConfigJSON, item.Active, item.UpdatedAt, item.TenantID, item.ScenarioID, item.ID, item.ReviewInboxID).
+		Scan(&out.ID, &out.TenantID, &out.ScenarioID, &out.Name, &out.AllowedOutcomes, &out.Provider, &out.ConfigJSON, &out.Active, &out.CreatedAt, &out.UpdatedAt, &out.ReviewInboxID)
 	return out, err
 }
 
@@ -77,7 +80,7 @@ func (r ScreeningConfigRepository) list(ctx context.Context, stmt, tenantID, sce
 	var items []screening.Config
 	for rows.Next() {
 		var item screening.Config
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.Name, &item.AllowedOutcomes, &item.Provider, &item.ConfigJSON, &item.Active, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.ScenarioID, &item.Name, &item.AllowedOutcomes, &item.Provider, &item.ConfigJSON, &item.Active, &item.CreatedAt, &item.UpdatedAt, &item.ReviewInboxID); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -197,13 +200,16 @@ func (r ScreeningExecutionRepository) Update(ctx context.Context, item screening
 			sent_at = $6,
 			completed_at = $7,
 			failed_at = $8
-		where id = $9
+		where id = $9 AND projection_source_id IS NULL
 		returning id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at, sent_at, completed_at, failed_at
 	`
 	var out screening.Execution
 	var status string
 	err := r.q.QueryRow(ctx, stmt, string(item.Status), responseJSON, item.ProviderReference, item.LastError, item.UpdatedAt, item.SentAt, item.CompletedAt, item.FailedAt, item.ID).
 		Scan(&out.ID, &out.TenantID, &out.ConfigID, &out.DecisionID, &out.ScenarioID, &status, &out.RequestJSON, &out.ResponseJSON, &out.ProviderReference, &out.LastError, &out.CreatedAt, &out.UpdatedAt, &out.SentAt, &out.CompletedAt, &out.FailedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return screening.Execution{}, fmt.Errorf("execution is missing or source-managed; retry the screening through screening-service")
+	}
 	out.Status = screening.ExecutionStatus(status)
 	return out, err
 }
@@ -216,8 +222,17 @@ func (r ScreeningExecutionRepository) UpdateStatus(ctx context.Context, id strin
 			sent_at = case when $1 = 'sent' then now() else sent_at end,
 			completed_at = case when $1 = 'completed' then now() else completed_at end,
 			failed_at = case when $1 = 'failed' then now() else failed_at end
-		where id = $2
+		where id = $2 AND projection_source_id IS NULL
 	`
 	_, err := r.q.Exec(ctx, stmt, string(status), id)
 	return err
+}
+
+func (r ScreeningExecutionRepository) ReconcileSource(ctx context.Context, tenantID, sourceID, decisionID, configID string) (screening.Execution, error) {
+	var id string
+	err := r.q.QueryRow(ctx, `SELECT core.reconcile_screening_source($1,$2,$3,$4)::text`, tenantID, sourceID, decisionID, configID).Scan(&id)
+	if err != nil {
+		return screening.Execution{}, err
+	}
+	return r.GetByID(ctx, tenantID, id)
 }

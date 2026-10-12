@@ -70,6 +70,9 @@ func workspaceWhere(tenant uuid.UUID, f casepkg.WorkspaceFilters) (string, []any
 	if f.TagID != nil {
 		add("EXISTS (SELECT 1 FROM case_manager.case_tags t WHERE t.tenant_id=c.tenant_id AND t.case_id=c.id AND t.tag_id=$%d AND t.deleted_at IS NULL)", *f.TagID)
 	}
+	if f.DecisionID != nil {
+		add("EXISTS (SELECT 1 FROM case_manager.case_decisions d WHERE d.tenant_id=c.tenant_id AND d.case_id=c.id AND d.decision_id=$%d)", *f.DecisionID)
+	}
 	if f.RelatedTo != nil {
 		args = append(args, *f.RelatedTo)
 		n := len(args)

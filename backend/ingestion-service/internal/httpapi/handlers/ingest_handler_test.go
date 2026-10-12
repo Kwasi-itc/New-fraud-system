@@ -274,6 +274,10 @@ func (s capturingTransactionManager) Run(ctx context.Context, fn func(ports.Muta
 
 type stubMutationStore struct{}
 
+func (stubMutationStore) RecordIngestion(context.Context, ingestion.IngestionAudit, ingestion.OutboxEvent) error {
+	return nil
+}
+
 func (stubMutationStore) Audits() ports.IngestionAuditRepository    { return stubAuditRepo{} }
 func (stubMutationStore) Idempotency() ports.IdempotencyRepository  { return stubIdempotencyRepo{} }
 func (stubMutationStore) OutboxEvents() ports.OutboxEventRepository { return stubOutboxRepo{} }
@@ -287,6 +291,10 @@ func (stubMutationStore) RawTx() pgx.Tx                        { return nil }
 
 type capturingMutationStore struct {
 	reader ports.TenantDataReader
+}
+
+func (capturingMutationStore) RecordIngestion(context.Context, ingestion.IngestionAudit, ingestion.OutboxEvent) error {
+	return nil
 }
 
 func (capturingMutationStore) Audits() ports.IngestionAuditRepository    { return stubAuditRepo{} }

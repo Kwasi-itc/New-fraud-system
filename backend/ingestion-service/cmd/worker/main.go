@@ -16,6 +16,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/app"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
@@ -43,11 +44,23 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	if cfg.DataModelReadMode == "sql" {
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
+		err := storepostgres.NewIngestionContractStore(db).Validate(ctx)
+		cancel()
+		if err != nil {
+			logger.Error("incompatible data model read contract", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	if cfg.DataModelReadMode == "sql" {
+		dataModelReader = datamodel.NewContractReader(storepostgres.NewIngestionContractStore(db), dataModelReader, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
+	}
 	ingestService := service.NewIngestService(
 		dataModelReader,
 		storepostgres.NewTransactionManager(db),

@@ -66,13 +66,15 @@ func TestScreeningServiceUpdateExecutionStatusFromScreeningCallback(t *testing.T
 	now := time.Date(2026, 5, 29, 9, 0, 0, 0, time.UTC)
 	repo := &screeningExecutionRepoForTest{
 		items: []screening.Execution{{
-			ID:          "exec-1",
-			TenantID:    "tenant-1",
-			ConfigID:    "cfg-1",
-			DecisionID:  "decision-1",
-			ScenarioID:  "scenario-1",
-			Status:      screening.ExecutionStatusPending,
-			RequestJSON: json.RawMessage(`{"idempotency_key":"exec-1"}`),
+			ID:                "exec-1",
+			TenantID:          "tenant-1",
+			ConfigID:          "cfg-1",
+			DecisionID:        "decision-1",
+			ScenarioID:        "scenario-1",
+			Status:            screening.ExecutionStatusCompleted,
+			ProviderReference: "provider-1",
+			ResponseJSON:      json.RawMessage(`{"screening_id":"scr-1","status":"confirmed_hit"}`),
+			RequestJSON:       json.RawMessage(`{"idempotency_key":"exec-1"}`),
 		}},
 	}
 	svc := NewScreeningService(
@@ -90,7 +92,7 @@ func TestScreeningServiceUpdateExecutionStatusFromScreeningCallback(t *testing.T
 		DecisionID:        "decision-1",
 		ScenarioID:        "scenario-1",
 		ScreeningConfigID: "cfg-1",
-		Status:            "awaiting_review",
+		Status:            "failed", // Stale callback fields must not become the projection.
 		Provider:          "opensanctions",
 		ObjectType:        "company",
 		ObjectID:          "obj-1",
@@ -117,6 +119,13 @@ func TestScreeningServiceUpdateExecutionStatusFromScreeningCallback(t *testing.T
 
 type screeningExecutionRepoForTest struct {
 	items []screening.Execution
+}
+
+func (r *screeningExecutionRepoForTest) ReconcileSource(ctx context.Context, tenant, source, decision, config string) (screening.Execution, error) {
+	if tenant != "tenant-1" || source != "scr-1" || decision != "decision-1" || config != "cfg-1" {
+		return screening.Execution{}, errors.New("wrong source relationship")
+	}
+	return r.items[0], nil
 }
 
 func (r *screeningExecutionRepoForTest) CreateMany(context.Context, []screening.Execution) ([]screening.Execution, error) {

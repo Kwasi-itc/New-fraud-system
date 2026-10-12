@@ -377,6 +377,7 @@ export type ScreeningConfig = {
   provider: string;
   config_json: JSONValue;
   active: boolean;
+  review_inbox_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -387,6 +388,7 @@ export type CreateScreeningConfigRequest = {
   provider: string;
   config_json: JSONValue;
   active: boolean;
+  review_inbox_id?: string | null;
 };
 
 export type ScreeningExecution = {

@@ -68,7 +68,7 @@ func (h CaseHandler) Queue(c *gin.Context) {
 		}
 		f.InboxIDs = append(f.InboxIDs, id)
 	}
-	for key, dest := range map[string]**uuid.UUID{"tag_id": &f.TagID, "related_to": &f.RelatedTo} {
+	for key, dest := range map[string]**uuid.UUID{"tag_id": &f.TagID, "related_to": &f.RelatedTo, "decision_id": &f.DecisionID} {
 		if v := c.Query(key); v != "" {
 			id, e := uuid.Parse(v)
 			if e != nil || id == uuid.Nil {

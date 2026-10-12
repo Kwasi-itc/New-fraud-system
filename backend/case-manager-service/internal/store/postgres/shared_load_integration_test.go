@@ -37,6 +37,13 @@ func TestPostgresConcurrentSharedSchemaLoad(t *testing.T) {
 		pools[i] = pool
 	}
 	const workers, commands = 4, 15
+	// Each new case owns a distinct decision under primary membership.
+	var caseDecisions [workers][commands]uuid.UUID
+	for worker := range caseDecisions {
+		for n := range caseDecisions[worker] {
+			caseDecisions[worker][n] = seedDecision(t, db, tenant)
+		}
+	}
 	start := make(chan struct{})
 	errors := make(chan error, len(owners)*workers)
 	var wg sync.WaitGroup
@@ -63,7 +70,7 @@ func TestPostgresConcurrentSharedSchemaLoad(t *testing.T) {
 					case "case-manager":
 						s := newService(pool)
 						_, err = s.CreateCase(serviceContext(tenant), service.CreateCaseInput{
-							TenantID: tenant, InboxID: inbox.ID, Name: fmt.Sprintf("Load %d/%d", worker, n), DecisionIDs: []uuid.UUID{decision},
+							TenantID: tenant, InboxID: inbox.ID, Name: fmt.Sprintf("Load %d/%d", worker, n), DecisionIDs: []uuid.UUID{caseDecisions[worker][n]},
 						}, nil)
 					}
 					if err != nil {

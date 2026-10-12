@@ -1,0 +1,47 @@
+import { expect, test } from "@playwright/test";
+const scenario = "88888888-8888-4888-8888-888888888888";
+const url = `/api/workflows/scenarios/${scenario}`;
+test.beforeEach(async ({ request }) => { await request.get("http://127.0.0.1:3199/reset"); });
+test("workflow gateway rejects signed-out, foreign-origin and investigator-only writes", async ({ context, request }) => {
+  expect((await request.get(url)).status()).toBe(401);
+  expect((await request.put(`${url}/rules/${scenario}`, { headers: { Origin: "https://foreign.example" }, data: {} })).status()).toBe(403);
+  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
+  expect((await context.request.put(`${url}/rules/${scenario}`, { headers: { Origin: "http://127.0.0.1:3100" }, data: {} })).status()).toBe(403);
+});
+test("save, reload and disable a case workflow using real inbox IDs", async ({ context, page }) => {
+  await context.addCookies([{ name: "case_test_session", value: "fixture-workflow", domain: "127.0.0.1", path: "/" }]);
+  await page.goto(`/detection/${scenario}/workflow`);
+  await page.getByRole("button", { name: "Add case workflow" }).click();
+  await page.getByLabel("Rule name", { exact: true }).fill("Review payments");
+  await page.getByLabel("Case title", { exact: true }).fill("Payment investigation");
+  await page.getByLabel("Destination inbox").selectOption("22222222-2222-4222-8222-222222222222");
+  await page.getByLabel("Enable for future decisions").check();
+  page.on("dialog", d => d.accept());
+  await page.getByRole("button", { name: "Save workflow", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Workflow saved");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Review payments" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit Review payments" }).click();
+  await page.getByLabel("Enable for future decisions").uncheck();
+  await page.getByRole("button", { name: "Save workflow", exact: true }).click();
+  await expect(page.locator("article")).toContainText("Disabled");
+  const response = await page.request.get(url, { headers: { Authorization: "Bearer untrusted", "X-Workflow-User": "spoofed" } });
+  expect(response.status()).toBe(200); expect(response.headers()["cache-control"]).toContain("no-store");
+  const body = await response.json(); expect(body.rules).toHaveLength(1); expect(body.rules[0].action_type).toBe("create_case");
+});
+test("lost save response refreshes saved state and revoked access blocks changes", async ({ context, page, request }) => {
+  await context.addCookies([{ name: "case_test_session", value: "fixture-workflow", domain: "127.0.0.1", path: "/" }]);
+  await page.goto(`/detection/${scenario}/workflow`);
+  await page.getByRole("button", { name: "Add case workflow" }).click();
+  await page.getByLabel("Rule name", { exact: true }).fill("Lost response");
+  await page.getByLabel("Case title", { exact: true }).fill("Review");
+  await page.getByLabel("Destination inbox").selectOption("22222222-2222-4222-8222-222222222222");
+  await request.get("http://127.0.0.1:3199/fixture/workflow-lost-ack"); page.on("dialog", d => d.accept());
+  await page.getByRole("button", { name: "Save workflow", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Response lost" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lost response", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Rule name", { exact: true })).toHaveValue("Lost response");
+  await request.get("http://127.0.0.1:3199/fixture/workflow-denied");
+  await page.reload(); await expect(page.getByRole("alert").filter({ hasText: "Workflow access denied" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add case workflow" })).toHaveCount(0);
+});

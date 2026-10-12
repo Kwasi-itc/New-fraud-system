@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CaseAnalytics } from "@/lib/case-manager-api";
 import { useCaseContext, useCaseQuery } from "@/lib/case-manager-query";
-import { CaseNav, Panel, Problem, TenantField, fieldClass, labelClass, timestamp } from "./shared";
+import { CaseNav, Panel, Problem, fieldClass, labelClass, timestamp } from "./shared";
 
 const cell = "whitespace-nowrap px-3 py-2 text-left";
 function hours(seconds: number | null) { return seconds === null ? "Unavailable" : `${(seconds / 3600).toFixed(1)} h`; }
@@ -24,7 +24,6 @@ export function CaseAnalyticsPage({ tenant, session, initialFrom, initialTo }: {
   const maxDaily = Math.max(1, ...(result?.daily.map(day => day.total) ?? []));
   return <div className="space-y-6">
     <CaseNav tenant={tenant} /><header className="space-y-2"><h1 className="text-3xl font-semibold">Case analytics</h1><p className="text-sm text-slate-600">Current state of cases created in the selected UTC range, restricted to your permitted inboxes.</p></header>
-    <TenantField tenant={tenant} />
     <form className="flex flex-wrap items-end gap-3" onSubmit={event => {
       event.preventDefault(); const data = new FormData(event.currentTarget);
       const from = String(data.get("from")); const to = String(data.get("to"));

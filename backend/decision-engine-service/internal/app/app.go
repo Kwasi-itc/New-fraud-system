@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
 	"net/http"
 	"time"
@@ -40,7 +41,14 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		logger.Info("opened GeoIP database", "database_type", geoIPLookup.DatabaseType(), "locale", cfg.GeoIPLocale)
 	}
 
+	verifier, err := identity.FromEnvironment()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		WorkflowAuthoringToken:              cfg.WorkflowAuthoringToken,
+		InvestigatorVerifier:                verifier,
 		AuthMode:                            cfg.ServiceAuthMode,
 		AuthToken:                           cfg.ServiceAuthToken,
 		AllowedOrigins:                      cfg.ServiceAllowedOrigins,

@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,8 @@ import (
 )
 
 type RouterConfig struct {
+	WorkflowAuthoringToken              string
+	InvestigatorVerifier                *identity.Verifier
 	AuthMode                            string
 	AuthToken                           string
 	AllowedOrigins                      []string
@@ -92,6 +96,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	router.Use(requestContextMiddleware(logger))
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(gin.Recovery())
+	registerInvestigator(router, db, cfg.InvestigatorVerifier)
 	registerDocsRoutes(router)
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
@@ -171,7 +176,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		scoringEnqueuer = riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
 		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
-	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
+	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
 	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
@@ -237,6 +242,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	testRunHandler := handlers.NewTestRunHandler(testRunService)
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
 	workflowRuleHandler := handlers.NewWorkflowRuleHandler(workflowRuleService)
+	// Dedicated gateway credential: never use the browser-visible legacy API token.
+	if db != nil && len(cfg.WorkflowAuthoringToken) >= 32 {
+		author := handlers.WorkflowAuthoringHandler{Service: service.WorkflowAuthoringService{Store: storepostgres.WorkflowAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
+		group := router.Group("/internal/workflow-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.WorkflowAuthoringToken}))
+		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
+		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
+	}
 	snoozeHandler := handlers.NewSnoozeHandler(snoozeService)
 	outboxHandler := handlers.NewOutboxHandler(outboxService)
 	executionHandler := handlers.NewExecutionHandler(executionService)
@@ -247,6 +259,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	runtimeMetricsHandler := handlers.NewRuntimeMetricsHandler(decisionService)
 
 	v1 := router.Group("/v1")
+	v1.Use(workflowConfigurationBoundary(cfg.WorkflowAuthoringToken))
 	v1.Use(authMiddleware(AuthConfig{
 		Mode:  cfg.AuthMode,
 		Token: cfg.AuthToken,

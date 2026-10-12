@@ -570,6 +570,10 @@ func (nilScreeningConfigRepository) Delete(context.Context, string, string, stri
 
 type nilScreeningExecutionRepository []struct{}
 
+func (nilScreeningExecutionRepository) ReconcileSource(context.Context, string, string, string, string) (screening.Execution, error) {
+	return screening.Execution{}, nil
+}
+
 func (nilScreeningExecutionRepository) CreateMany(context.Context, []screening.Execution) ([]screening.Execution, error) {
 	return nil, nil
 }

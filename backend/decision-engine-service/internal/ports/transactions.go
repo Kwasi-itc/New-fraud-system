@@ -176,6 +176,7 @@ type WorkflowExecutionRepository interface {
 }
 
 type WorkflowRuleRepository interface {
+	ListStructured(ctx context.Context, tenantID, scenarioID string) ([]workflow.StructuredRule, error)
 	Create(ctx context.Context, item workflow.Rule) (workflow.Rule, error)
 	GetByID(ctx context.Context, tenantID, scenarioID, ruleID string) (workflow.Rule, error)
 	ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]workflow.Rule, error)
@@ -249,6 +250,7 @@ type ScreeningConfigRepository interface {
 }
 
 type ScreeningExecutionRepository interface {
+	ReconcileSource(ctx context.Context, tenantID, sourceID, decisionID, configID string) (screening.Execution, error)
 	CreateMany(ctx context.Context, items []screening.Execution) ([]screening.Execution, error)
 	GetByID(ctx context.Context, tenantID, executionID string) (screening.Execution, error)
 	ListByDecision(ctx context.Context, tenantID, decisionID string) ([]screening.Execution, error)

@@ -10,6 +10,38 @@ This service is intended to be used by another fraud platform as a dedicated sch
 
 ## Purpose
 
+Migration `000005_ingestion_contracts` publishes a compact validation contract for
+each table in `core.ingestion_contracts`. Data-model-owned triggers update it in
+the same transaction as table, field, and enum mutations. Only changes to the
+contract payload replace its opaque UUID version. Description/display changes
+do not invalidate it. Concurrent schema edits serialize on their table metadata
+row; ingestion takes no such lock. Tenant-inconsistent fields/enums are rejected.
+
+Shared-database consumers read `core.ingestion_contracts_v1` and
+`core.ingestion_tenants_v1`, which expose current tenant status and schema name.
+Grant consumers schema usage and SELECT on these views only; metadata and
+publication writes remain owned by data-model-service. A separately configured
+data-model runtime role needs permission to execute the publication functions
+and modify the publication table; the migration revokes public function access.
+Role provisioning remains a deployment responsibility.
+
+Apply this migration before deploying SQL-mode ingestion readers. It backfills
+existing metadata under write locks on the three source metadata tables; plan a
+metadata maintenance window proportional to schema size. It does not rebuild
+record indexes. Switch ingestion API and workers to HTTP mode and restart them
+before reverting the migration. See the [ingestion README](../ingestion-service/README.md)
+for cache, write-path, and validation details. The full-model endpoint below
+retains its existing assembly behavior for compatibility.
+
+`GET /v1/tenants/:tenantId/data-model` supports conditional GET with an `ETag`
+derived from SHA-256 of the complete JSON representation. `If-None-Match` matches
+return `304` without a body; other requests return the current model. Both carry
+`Cache-Control: private, no-cache`, requiring revalidation before reuse. Normal
+authentication and model reads happen before the validator is evaluated. The
+validator includes tenant status and schema content even if the public revision
+ID has not changed. This reduces transfer on unchanged responses, but does not
+cache server-side queries or make the existing multi-query assembly atomic.
+
 The service manages:
 
 - tenant registration and provisioning
@@ -200,7 +232,24 @@ Authenticated `/v1` routes:
 
 ## Auth
 
+Data Model also accepts signed platform-session JWTs when `USER_JWT_KEYS_FILE`,
+`USER_JWT_ISSUER` and `USER_JWT_AUDIENCE` are configured. This requires token mode
+and auth schema version 2. Tenant-scoped platform roles grant reads; only
+`platform_admin` grants writes. Ownership and current sessions are checked in the
+backend, including inside mutation transactions. Global tenant administration and
+reconcile remain service-only. See [permissions and coordinated rollout](../auth-service/DATA_MODEL_AUTH.md).
+
+`DATA_MODEL_SERVICE_TOKEN` supplies the private integration credential and takes
+precedence over the legacy `SERVICE_AUTH_TOKEN`. Never expose either in browser
+configuration. Docker builds now use `backend` as context with
+`-f data-model-service/Dockerfile`.
+
 Supported service auth modes:
+
+An omitted mode defaults to `token`; startup requires a nonblank private
+`SERVICE_AUTH_TOKEN`. Unknown modes fail startup. `disabled` is an explicit
+development opt-out. See the [legacy API rollout](../auth-service/LEGACY_API_AUTH.md)
+for the remaining user/tenant authorization and deployment work.
 
 - `disabled`
 - `token`

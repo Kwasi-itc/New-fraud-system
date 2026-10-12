@@ -4,7 +4,7 @@ import type { CaseRecord, Inbox } from "@/lib/case-manager-api";
 import { useCaseWrite } from "@/lib/case-manager-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Panel, Problem, fieldClass, labelClass } from "./shared";
+import { ClosingFindings, Panel, Problem, fieldClass, labelClass } from "./shared";
 
 type Result = { case_id: string; success: boolean; replayed: boolean; error?: string };
 export function BulkActions({ tenant, session, cases, inboxes }: { tenant: string; session: string; cases: CaseRecord[]; inboxes: Inbox[] }) {
@@ -26,7 +26,7 @@ export function BulkActions({ tenant, session, cases, inboxes }: { tenant: strin
       <div className="space-y-3"><label className={labelClass}>Bulk action<select value={action} disabled={write.isPending} onChange={event => setAction(event.target.value)} className={fieldClass}><option value="assign">Assign / unassign</option><option value="move">Move</option><option value="close">Close</option><option value="reopen">Reopen</option></select></label>
       {action === "assign" && <label className={labelClass}>Assignee subject (blank unassigns)<Input name="assignee" /></label>}
       {action === "move" && <label className={labelClass}>Destination inbox<select name="inbox" required className={fieldClass}><option value="">Select destination</option>{inboxes.filter(i => i.status === "active").map(i => <option value={i.id} key={i.id}>{i.name}</option>)}</select></label>}
-      {action === "close" && <><label className={labelClass}>Bulk closing outcome<select name="outcome" className={fieldClass}><option value="false_positive">False positive</option><option value="valuable_alert">Valuable alert</option><option value="confirmed_risk">Confirmed risk</option></select></label><label className={labelClass}>Bulk closing findings<textarea name="comment" required maxLength={10000} className={fieldClass} /></label></>}
+      {action === "close" && <><label className={labelClass}>Bulk closing outcome<select name="outcome" required className={fieldClass}><option value="false_positive">False positive</option><option value="valuable_alert">Valuable alert</option><option value="confirmed_risk">Confirmed risk</option></select></label><ClosingFindings label="Bulk closing findings" /></>}
       <Button type="submit" disabled={write.isPending || !cases.length}>Apply bulk action</Button></div>
     </form>
     <Problem error={write.error} />

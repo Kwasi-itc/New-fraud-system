@@ -72,7 +72,7 @@ func LoadConfig() (Config, error) {
 		CaseServiceAuthToken:   getEnv("CASE_SERVICE_AUTH_TOKEN", os.Getenv("SERVICE_AUTH_TOKEN")),
 		Port:                   getEnv("PORT", "8085"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
-		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "disabled"),
+		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "token"),
 		ServiceAuthToken:       os.Getenv("SERVICE_AUTH_TOKEN"),
 		ScreeningProviderURL:   strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
 		ScreeningProviderURLs:  os.Getenv("SCREENING_PROVIDER_URLS"),
@@ -103,7 +103,10 @@ func LoadConfig() (Config, error) {
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
-	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
+	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
+		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
+	}
+	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if cfg.WorkerMode != "batch" && cfg.WorkerMode != "poll" {

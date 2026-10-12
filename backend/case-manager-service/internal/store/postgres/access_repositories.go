@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"time"
 
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
@@ -27,6 +28,12 @@ func (r MembershipRepository) RecordChange(ctx context.Context, tenantID, inboxI
 	return err
 }
 func (r MembershipRepository) Has(ctx context.Context, tenantID, inboxID uuid.UUID, userID string) (bool, error) {
+	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
+		active, err := r.activeIdentity(ctx, tenantID, userID)
+		if err != nil || !active {
+			return false, err
+		}
+	}
 	var exists bool
 	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM case_manager.inbox_users WHERE tenant_id=$1 AND inbox_id=$2 AND user_id=$3)`, tenantID, inboxID, userID).Scan(&exists)
 	return exists, err
@@ -48,6 +55,15 @@ func (r MembershipRepository) List(ctx context.Context, tenantID, inboxID uuid.U
 	return out, rows.Err()
 }
 func (r MembershipRepository) Put(ctx context.Context, m casepkg.InboxUser) (casepkg.InboxUser, error) {
+	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
+		active, err := r.activeIdentity(ctx, m.TenantID, m.UserID)
+		if err != nil {
+			return m, err
+		}
+		if !active {
+			return m, casepkg.Invalid("inbox member must be an active tenant investigator")
+		}
+	}
 	err := r.db.QueryRow(ctx, `INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,auto_assign_enabled,created_at,capacity) VALUES($1,$2,$3,$4,$5,$6,$7)
 	ON CONFLICT(tenant_id,inbox_id,user_id) DO UPDATE SET auto_assign_enabled=EXCLUDED.auto_assign_enabled,capacity=EXCLUDED.capacity
 	RETURNING id,created_at`, m.ID, m.TenantID, m.InboxID, m.UserID, m.AutoAssignEnabled, m.CreatedAt, m.Capacity).Scan(&m.ID, &m.CreatedAt)
@@ -69,6 +85,16 @@ func (r MembershipRepository) Remove(ctx context.Context, tenantID, inboxID uuid
 }
 
 type ContributorRepository struct{ db queryable }
+
+func (r MembershipRepository) activeIdentity(ctx context.Context, tenant uuid.UUID, subject string) (bool, error) {
+	id, err := uuid.Parse(subject)
+	if err != nil {
+		return false, nil
+	}
+	var active bool
+	err = r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.active AND u.active AND m.roles && ARRAY['case_investigator','case_manager_admin']::text[])`, tenant, id).Scan(&active)
+	return active, err
+}
 
 func (r ContributorRepository) Add(ctx context.Context, tenantID, caseID uuid.UUID, userID string, at time.Time) error {
 	_, err := r.db.Exec(ctx, `INSERT INTO case_manager.case_contributors(id,tenant_id,case_id,user_id,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(tenant_id,case_id,user_id) DO NOTHING`, uuid.New(), tenantID, caseID, userID, at)

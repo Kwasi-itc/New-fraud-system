@@ -77,6 +77,19 @@ func (h IntegrationHandler) ScreeningReviewed(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h IntegrationHandler) ScreeningRequiresReview(c *gin.Context) {
+	var body service.ScreeningArrivalInput
+	if err := bindJSON(c, &body); err != nil {
+		presentError(c, err)
+		return
+	}
+	if err := h.service.ReceiveScreeningArrival(c.Request.Context(), body); err != nil {
+		presentError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h IntegrationHandler) ScreeningEvidenceUploaded(c *gin.Context) {
 	var body struct {
 		TenantID    uuid.UUID `json:"tenant_id"`

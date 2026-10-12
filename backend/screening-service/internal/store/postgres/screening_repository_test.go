@@ -86,7 +86,7 @@ func TestScanMatch(t *testing.T) {
 		"Acme Corp",
 		0.91,
 		json.RawMessage(`{"entity":"x"}`),
-		"{alpha,beta}",
+		[]string{"alpha", "beta"},
 		counterparty,
 		true,
 		now,

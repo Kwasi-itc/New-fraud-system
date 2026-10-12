@@ -68,6 +68,9 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 		if err != nil {
 			return datamodel.Pivot{}, err
 		}
+		if field.TenantID != input.TenantID || field.TableID != input.BaseTableID {
+			return datamodel.Pivot{}, fmt.Errorf("pivot field does not belong to the selected tenant and base table")
+		}
 		if field.DataType != datamodel.DataTypeString {
 			return datamodel.Pivot{}, fmt.Errorf("pivot field must be a string field")
 		}

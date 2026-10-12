@@ -18,10 +18,12 @@ const (
 )
 
 type Principal struct {
-	Kind     Kind
-	Subject  string
-	TenantID uuid.UUID
-	Admin    bool
+	Kind         Kind
+	Subject      string
+	TenantID     uuid.UUID
+	Admin        bool
+	SessionID    uuid.UUID
+	AuthzVersion int64
 	// Service principals can operate only within explicitly configured tenants.
 	ServiceTenants []uuid.UUID
 }

@@ -1,0 +1,46 @@
+import { expect, test } from "@playwright/test";
+const tenant = "11111111-1111-4111-8111-111111111111", caseId = "33333333-3333-4333-8333-333333333333";
+test("investigator explores a relationship, follows the trail and saves a case note", async ({ page, context, request }) => {
+  await request.get("http://127.0.0.1:3199/reset");
+  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.goto(`/cases/${caseId}?tenant=${tenant}`);
+  await page.getByRole("button", { name: "Explore connections", exact: true }).click();
+  const explorer = page.getByRole("region", { name: "Record connections" });
+  await expect(explorer.getByRole("heading", { name: "customer: customer-42", exact: true })).toBeVisible();
+  await explorer.getByRole("combobox").selectOption("reverse:fixture-link");
+  await expect(explorer.getByText("Connected because: customer.object_id = payment.customer_id")).toBeVisible();
+  await explorer.getByRole("button", { name: "Open payment: payment-1" }).click();
+  await expect(explorer.getByRole("heading", { name: "payment: payment-1", exact: true })).toBeVisible();
+  await expect(explorer.getByText("250", { exact: true })).toBeVisible();
+  const decisions = explorer.getByRole("region", { name: "Associated decisions" });
+  await expect(decisions.getByText("Velocity check — review", { exact: true })).toBeVisible();
+  await expect(decisions.getByRole("link", { name: "Related accessible case" })).toHaveAttribute("href", /77777777-7777-4777-8777-777777777777/);
+  await decisions.getByRole("button", { name: "Older decisions" }).click();
+  await expect(decisions.getByText("Older velocity check — approve", { exact: true })).toBeVisible();
+  await decisions.getByRole("button", { name: "Newest decisions" }).click();
+  page.once("dialog", d => d.accept()); await decisions.getByRole("button", { name: "Attach decision to this case" }).click();
+  await expect(explorer.getByRole("status")).toHaveText("Decision attached to this case.");
+  await expect(decisions.getByText(/Already in this case:/)).toBeVisible();
+  await expect(decisions.getByRole("button", { name: "Attach decision to this case" })).toHaveCount(0);
+  page.once("dialog", d => d.accept()); await explorer.getByRole("button", { name: "Save connection trail to case notes" }).click();
+  await expect(explorer.getByRole("status")).toHaveText("Connection trail added to case notes.");
+  await expect(page.getByText(/Investigation connection trail\nDecision:/)).toBeVisible();
+  await explorer.getByRole("button", { name: "Decision record", exact: true }).click();
+  await expect(explorer.getByRole("heading", { name: "customer: customer-42", exact: true })).toBeVisible();
+});
+
+test("uncertain attachment refreshes membership and revoked exploration hides decisions", async ({ page, context, request }) => {
+  await request.get("http://127.0.0.1:3199/reset"); await request.get("http://127.0.0.1:3199/fixture/explorer-lost-ack");
+  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.goto(`/cases/${caseId}?tenant=${tenant}`); await page.getByRole("button", { name: "Explore connections", exact: true }).click();
+  const explorer = page.getByRole("region", { name: "Record connections" });
+  await explorer.getByRole("combobox").selectOption("reverse:fixture-link"); await explorer.getByRole("button", { name: "Open payment: payment-1" }).click();
+  page.once("dialog", d => d.accept()); await explorer.getByRole("button", { name: "Attach decision to this case" }).click();
+  await expect(explorer.getByText("Attachment response unavailable. Refresh to check membership.")).toBeVisible();
+  await expect(explorer.getByText(/Already in this case:/)).toBeVisible();
+  await expect(explorer.getByRole("button", { name: "Attach decision to this case" })).toHaveCount(0);
+  await request.get("http://127.0.0.1:3199/fixture/explorer-denied");
+  await explorer.getByRole("button", { name: "Older decisions" }).click();
+  await expect(explorer.getByText("Investigation access was revoked.")).toBeVisible();
+  await expect(explorer.getByRole("region", { name: "Associated decisions" })).toHaveCount(0);
+});

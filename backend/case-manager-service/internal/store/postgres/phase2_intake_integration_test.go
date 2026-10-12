@@ -150,23 +150,23 @@ func TestPostgresWorkflowIntakeRetryAndGrouping(t *testing.T) {
 	if count(t, db, "cases") != 2 || count(t, db, "intake_receipts") != workers+1 {
 		t.Fatal("incorrect grouping receipts")
 	}
-	if count(t, db, "case_events") != before+workers {
+	if count(t, db, "case_events") != before {
 		t.Fatal("unexpected logical action count")
 	}
-	closed := casepkg.StatusClosed
-	if _, err := s.UpdateCase(adminContext(tenant), service.UpdateCaseInput{TenantID: tenant, CaseID: first, Status: &closed}, nil); err != nil {
+	if _, err := s.CloseCase(adminContext(tenant), tenant, first, casepkg.OutcomeFalsePositive, "Investigation completed"); err != nil {
 		t.Fatal(err)
 	}
 	next := in
 	next.WorkflowExecutionID = uuid.New()
 	next.ActionType = "add_to_case"
-	if _, err := s.HandleWorkflowAction(ctx, next); !errors.Is(err, casepkg.ErrNotFound) {
-		t.Fatalf("add-only created a case: %v", err)
+	if item, err := s.HandleWorkflowAction(ctx, next); err != nil || item.ID != first || item.Status != casepkg.StatusClosed {
+		t.Fatalf("closed primary membership changed: %+v %v", item, err)
 	}
+	next.WorkflowExecutionID = uuid.New()
 	next.ActionType = "add_to_case_if_possible"
 	item, err := s.HandleWorkflowAction(ctx, next)
-	if err != nil || item.ID == first {
-		t.Fatalf("closed case reused: %+v %v", item, err)
+	if err != nil || item.ID != first || item.Status != casepkg.StatusClosed {
+		t.Fatalf("closed primary membership changed: %+v %v", item, err)
 	}
 }
 

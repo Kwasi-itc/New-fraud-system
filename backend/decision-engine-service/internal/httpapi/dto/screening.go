@@ -13,6 +13,7 @@ type CreateScreeningConfigRequest struct {
 	Provider        string          `json:"provider"`
 	ConfigJSON      json.RawMessage `json:"config_json"`
 	Active          bool            `json:"active"`
+	ReviewInboxID   *string         `json:"review_inbox_id"`
 }
 
 type UpdateScreeningConfigRequest struct {
@@ -21,6 +22,7 @@ type UpdateScreeningConfigRequest struct {
 	Provider        string          `json:"provider"`
 	ConfigJSON      json.RawMessage `json:"config_json"`
 	Active          bool            `json:"active"`
+	ReviewInboxID   *string         `json:"review_inbox_id"`
 }
 
 type ScreeningConfigResponse struct {
@@ -32,6 +34,7 @@ type ScreeningConfigResponse struct {
 	Provider        string          `json:"provider"`
 	ConfigJSON      json.RawMessage `json:"config_json"`
 	Active          bool            `json:"active"`
+	ReviewInboxID   *string         `json:"review_inbox_id"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 }
@@ -71,6 +74,7 @@ func AdaptScreeningConfig(item screening.Config) ScreeningConfigResponse {
 		Provider:        item.Provider,
 		ConfigJSON:      item.ConfigJSON,
 		Active:          item.Active,
+		ReviewInboxID:   item.ReviewInboxID,
 		CreatedAt:       item.CreatedAt,
 		UpdatedAt:       item.UpdatedAt,
 	}

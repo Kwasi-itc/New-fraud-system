@@ -2,12 +2,14 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
@@ -27,18 +29,19 @@ func (w TenantDataWriter) UpsertRecord(ctx context.Context, model ingestion.Publ
 	}
 
 	objectID, _ := record[model.RecordLookupField].(string)
-	schemaName := tenantSchemaName(model.TenantID)
-	exists, err := w.objectExists(ctx, schemaName, table.Name, objectID)
-	if err != nil {
-		return "", err
-	}
-	if exists && mode == ingestion.ModePatch {
-		return "updated", w.patchRecord(ctx, schemaName, table.Name, model.RecordLookupField, objectID, record, now)
+	schemaName := schemaNameForModel(model)
+	if mode == ingestion.ModePatch {
+		err := w.patchRecord(ctx, schemaName, table.Name, model.RecordLookupField, objectID, record, now)
+		if err == nil {
+			return "updated", nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
 	}
 
 	columnNames := []string{"id", model.RecordLookupField, "updated_at"}
 	values := []any{uuid.New(), objectID, now}
-	updateAssignments := []string{fmt.Sprintf("%s = EXCLUDED.%s", sanitizeIdentifier("updated_at"), sanitizeIdentifier("updated_at"))}
 
 	fieldNames := make([]string, 0, len(record))
 	for fieldName := range record {
@@ -51,7 +54,6 @@ func (w TenantDataWriter) UpsertRecord(ctx context.Context, model ingestion.Publ
 	for _, fieldName := range fieldNames {
 		columnNames = append(columnNames, fieldName)
 		values = append(values, record[fieldName])
-		updateAssignments = append(updateAssignments, fmt.Sprintf("%s = EXCLUDED.%s", sanitizeIdentifier(fieldName), sanitizeIdentifier(fieldName)))
 	}
 
 	placeholders := make([]string, len(values))
@@ -66,22 +68,28 @@ func (w TenantDataWriter) UpsertRecord(ctx context.Context, model ingestion.Publ
 	query := fmt.Sprintf(`
 		INSERT INTO %s (%s)
 		VALUES (%s)
-		ON CONFLICT (%s) DO UPDATE SET %s
+		ON CONFLICT (%s) DO NOTHING
+		RETURNING id
 	`,
 		sanitizeIdentifier(schemaName, table.Name),
 		strings.Join(insertColumns, ", "),
 		strings.Join(placeholders, ", "),
 		sanitizeIdentifier(model.RecordLookupField),
-		strings.Join(updateAssignments, ", "),
 	)
-	if _, err := w.db.Exec(ctx, query, values...); err != nil {
+	var insertedID uuid.UUID
+	err := w.db.QueryRow(ctx, query, values...).Scan(&insertedID)
+	if err == nil {
+		return "created", nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
 	}
-
-	if exists {
-		return "updated", nil
+	// A concurrent insert is visible to this next READ COMMITTED statement.
+	// UPDATE RETURNING prevents reporting success if the row disappeared.
+	if err := w.patchRecord(ctx, schemaName, table.Name, model.RecordLookupField, objectID, record, now); err != nil {
+		return "", err
 	}
-	return "created", nil
+	return "updated", nil
 }
 
 func (w TenantDataWriter) patchRecord(ctx context.Context, schemaName, tableName, lookupField, objectID string, record map[string]any, now time.Time) error {
@@ -106,23 +114,22 @@ func (w TenantDataWriter) patchRecord(ctx context.Context, schemaName, tableName
 		UPDATE %s
 		SET %s
 		WHERE %s = $%d
+		RETURNING id
 	`,
 		sanitizeIdentifier(schemaName, tableName),
 		strings.Join(assignments, ", "),
 		sanitizeIdentifier(lookupField),
 		len(values),
 	)
-	_, err := w.db.Exec(ctx, query, values...)
-	return err
+	var id uuid.UUID
+	return w.db.QueryRow(ctx, query, values...).Scan(&id)
 }
 
-func (w TenantDataWriter) objectExists(ctx context.Context, schemaName, tableName, objectID string) (bool, error) {
-	var exists bool
-	query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM %s WHERE object_id = $1)`, sanitizeIdentifier(schemaName, tableName))
-	if err := w.db.QueryRow(ctx, query, objectID).Scan(&exists); err != nil {
-		return false, err
+func schemaNameForModel(model ingestion.PublishedDataModel) string {
+	if model.SchemaName != "" {
+		return model.SchemaName
 	}
-	return exists, nil
+	return tenantSchemaName(model.TenantID)
 }
 
 func tenantSchemaName(tenantID uuid.UUID) string {

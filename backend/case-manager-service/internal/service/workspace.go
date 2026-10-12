@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"sort"
 	"strings"
+	"time"
 )
 
 func (s CaseService) EvidenceAccess(ctx context.Context, tenant, id uuid.UUID, kind string, resource uuid.UUID) error {
@@ -46,6 +47,11 @@ func (s CaseService) WorkspaceQueue(ctx context.Context, tenant uuid.UUID, f cas
 	}
 	if f.ReviewLevel != "" && !casepkg.ValidReviewLevel(f.ReviewLevel) {
 		return empty, casepkg.Invalid("invalid review level")
+	}
+	if f.DecisionID != nil {
+		if err := requireIDs(*f.DecisionID); err != nil {
+			return empty, err
+		}
 	}
 	if f.Unassigned && f.AssigneeID != "" {
 		return empty, casepkg.Invalid("conflicting assignment filters")
@@ -197,17 +203,50 @@ func (s CaseService) EscalateCase(ctx context.Context, tenant, id uuid.UUID) err
 }
 
 func (s CaseService) CloseCase(ctx context.Context, tenant, id uuid.UUID, outcome casepkg.Outcome, comment string) (casepkg.Case, error) {
-	if strings.TrimSpace(comment) == "" {
-		return casepkg.Case{}, casepkg.Invalid("a closing comment is required")
+	if _, err := access.Tenant(ctx, tenant); err != nil {
+		return casepkg.Case{}, err
 	}
-	if !casepkg.ValidOutcome(outcome) || outcome == casepkg.OutcomeUnset {
-		return casepkg.Case{}, casepkg.Invalid("a closing outcome is required")
+	actor := access.Actor(ctx)
+	if actor == nil {
+		return casepkg.Case{}, casepkg.ErrForbidden
+	}
+	if err := validateClosingFindings(outcome, comment); err != nil {
+		return casepkg.Case{}, err
 	}
 	return transact(ctx, s, func(tx CaseService) (casepkg.Case, error) {
-		if _, err := tx.CreateComment(ctx, tenant, id, comment, access.Actor(ctx)); err != nil {
+		item, err := tx.caseForMutation(ctx, tenant, id, actor)
+		if err != nil {
 			return casepkg.Case{}, err
 		}
-		status := casepkg.StatusClosed
-		return tx.UpdateCase(ctx, UpdateCaseInput{TenantID: tenant, CaseID: id, Status: &status, Outcome: &outcome}, access.Actor(ctx))
+		before := item
+		if err := tx.applyLifecycle(ctx, &item, casepkg.StatusClosed, outcome, comment); err != nil {
+			return casepkg.Case{}, err
+		}
+		item.UpdatedAt = tx.clock.Now()
+		if _, err := tx.cases.Update(ctx, item); err != nil {
+			return casepkg.Case{}, err
+		}
+		events := []casepkg.Event{
+			newEvent(tx.ids.New(), tenant, id, actor, "comment_added", strings.TrimSpace(comment), "", "", "", "", item.UpdatedAt),
+			newEvent(tx.ids.New(), tenant, id, actor, "status_updated", "", "", "", string(item.Status), string(before.Status), item.UpdatedAt),
+		}
+		if before.Outcome != item.Outcome {
+			events = append(events, newEvent(tx.ids.New(), tenant, id, actor, "outcome_updated", "", "", "", string(item.Outcome), string(before.Outcome), item.UpdatedAt))
+		}
+		if before.SnoozedUntil != nil {
+			events = append(events, newEvent(tx.ids.New(), tenant, id, actor, "case_unsnoozed", "", "", "", "", before.SnoozedUntil.UTC().Format(time.RFC3339Nano), item.UpdatedAt))
+		}
+		if before.BoostReason != nil {
+			events = append(events, newEvent(tx.ids.New(), tenant, id, actor, "boost_updated", "", "", "", "", *before.BoostReason, item.UpdatedAt))
+		}
+		for _, event := range events {
+			if _, err := tx.events.Create(ctx, event); err != nil {
+				return casepkg.Case{}, err
+			}
+		}
+		if err := tx.contributors.Add(ctx, tenant, id, *actor, item.UpdatedAt); err != nil {
+			return casepkg.Case{}, err
+		}
+		return tx.GetCase(ctx, tenant, id)
 	})
 }

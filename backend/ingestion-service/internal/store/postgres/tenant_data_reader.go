@@ -27,7 +27,7 @@ func (r TenantDataReader) GetRecord(ctx context.Context, model ingestion.Publish
 	if !ok {
 		return nil, fmt.Errorf("object type %s is not available", objectType)
 	}
-	schemaName := tenantSchemaName(model.TenantID)
+	schemaName := schemaNameForModel(model)
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE %s = $1 LIMIT 1`, sanitizeIdentifier(schemaName, table.Name), sanitizeIdentifier(model.RecordLookupField))
 
 	rows, err := r.db.Query(ctx, query, objectID)
@@ -60,7 +60,7 @@ func (r TenantDataReader) ListRecords(ctx context.Context, model ingestion.Publi
 	if limit <= 0 {
 		limit = 100
 	}
-	schemaName := tenantSchemaName(model.TenantID)
+	schemaName := schemaNameForModel(model)
 	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY %s DESC LIMIT $1`, sanitizeIdentifier(schemaName, table.Name), sanitizeIdentifier("updated_at"))
 	rows, err := r.db.Query(ctx, query, limit)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r TenantDataReader) QueryRecords(ctx context.Context, model ingestion.Publ
 	if limit <= 0 {
 		limit = 100
 	}
-	schemaName := tenantSchemaName(model.TenantID)
+	schemaName := schemaNameForModel(model)
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE %s = $1 ORDER BY %s DESC LIMIT $2`, sanitizeIdentifier(schemaName, table.Name), sanitizeIdentifier(fieldName), sanitizeIdentifier("updated_at"))
 	rows, err := r.db.Query(ctx, query, value, limit)
 	if err != nil {
@@ -164,7 +164,7 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, model ingestion.
 		}
 	}
 
-	schemaName := tenantSchemaName(model.TenantID)
+	schemaName := schemaNameForModel(model)
 	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, aggregateExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
 	var value any
 	if err := r.db.QueryRow(ctx, sql, args...).Scan(&value); err != nil {

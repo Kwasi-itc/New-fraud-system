@@ -38,6 +38,10 @@ type mutationStore struct {
 	tx pgx.Tx
 }
 
+// RepositoriesInTransaction composes the owner review with the authorized
+// shared-database case contract without nesting a transaction.
+func RepositoriesInTransaction(tx pgx.Tx) ports.MutationStore { return mutationStore{tx: tx} }
+
 func (s mutationStore) CaseEvents() ports.CaseEventRepository { return NewCaseEventRepository(s.tx) }
 
 func (s mutationStore) Screenings() ports.ScreeningRepository {

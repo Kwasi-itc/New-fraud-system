@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/access"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -102,7 +103,7 @@ func (h DataModelHandler) GetDataModel(c *gin.Context) {
 		writeError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	writeConditionalModel(c, gin.H{
 		"data_model": dto.AdaptAssembledDataModel(
 			publishedModel.Model,
 			publishedModel.RevisionID,
@@ -593,6 +594,11 @@ func writeBadRequest(c *gin.Context, message string) {
 }
 
 func writeError(c *gin.Context, err error) {
+	var authError *access.Error
+	if errors.As(err, &authError) {
+		c.JSON(authError.Status, gin.H{"error": gin.H{"code": "authorization_failed", "message": authError.Message}})
+		return
+	}
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"code": "not_found", "message": err.Error()}})

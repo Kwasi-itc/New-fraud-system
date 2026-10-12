@@ -26,11 +26,7 @@ func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 
 func (c HTTPClient) CreateUploadSession(ctx context.Context, tenantID, screeningID, fileName, contentType string, fileSize int64) (ports.BlobUploadSession, error) {
 	if c.baseURL == "" {
-		return ports.BlobUploadSession{
-			StorageKey: fmt.Sprintf("%s/%s/%s", tenantID, screeningID, fileName),
-			UploadURL:  "",
-			Method:     http.MethodPut,
-		}, nil
+		return ports.BlobUploadSession{}, fmt.Errorf("blob store is not configured")
 	}
 	body, err := json.Marshal(map[string]any{
 		"tenant_id":    tenantID,
@@ -66,7 +62,7 @@ func (c HTTPClient) CreateUploadSession(ctx context.Context, tenantID, screening
 
 func (c HTTPClient) GetDownloadURL(ctx context.Context, storageKey string) (ports.BlobDownload, error) {
 	if c.baseURL == "" {
-		return ports.BlobDownload{DownloadURL: storageKey}, nil
+		return ports.BlobDownload{}, fmt.Errorf("blob store is not configured")
 	}
 	body, err := json.Marshal(map[string]any{
 		"storage_key": storageKey,

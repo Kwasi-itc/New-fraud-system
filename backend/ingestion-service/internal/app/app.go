@@ -33,6 +33,15 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.DataModelReadMode == "sql" {
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
+		err := storepostgres.NewIngestionContractStore(db).Validate(ctx)
+		cancel()
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
 	readDB := db
 	if strings.TrimSpace(cfg.ReadDatabaseURL) != "" {
 		readDB, err = storepostgres.NewPool(context.Background(), cfg.ReadDatabaseURL, storepostgres.PoolConfig{
@@ -50,6 +59,9 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		AuthToken:                      cfg.ServiceAuthToken,
 		AllowedOrigins:                 cfg.AllowedOrigins,
 		DataModelServiceURL:            cfg.DataModelServiceURL,
+		DataModelReadMode:              cfg.DataModelReadMode,
+		DataModelCacheMaxEntries:       cfg.DataModelCacheMaxEntries,
+		DataModelCacheMaxBytes:         cfg.DataModelCacheMaxBytes,
 		HTTPClientTimeout:              cfg.HTTPClientTimeout,
 		AggregateQueryTimeout:          cfg.AggregateQueryTimeout,
 		WorkerMaxAttempts:              cfg.WorkerMaxAttempts,

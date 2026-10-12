@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
 	"log/slog"
 	"strings"
 
@@ -57,10 +58,13 @@ func (s CaseService) Bulk(ctx context.Context, tenant uuid.UUID, in BulkInput) (
 	}
 	switch in.Action {
 	case "close":
-		if !casepkg.ValidOutcome(in.Outcome) || in.Outcome == casepkg.OutcomeUnset || strings.TrimSpace(in.Comment) == "" || len(in.Comment) > 10000 {
-			return nil, casepkg.Invalid("closing outcome and comment (at most 10000 bytes) required")
+		if err := validateClosingFindings(in.Outcome, in.Comment); err != nil {
+			return nil, err
 		}
 	case "reopen":
+		if in.Outcome != "" && in.Outcome != casepkg.OutcomeUnset {
+			return nil, casepkg.Invalid("reopening resets outcome to unset")
+		}
 	case "assign":
 		if in.Assignee != nil && strings.TrimSpace(*in.Assignee) == "" {
 			return nil, casepkg.Invalid("assignee cannot be empty")
@@ -75,9 +79,14 @@ func (s CaseService) Bulk(ctx context.Context, tenant uuid.UUID, in BulkInput) (
 	results := make([]BulkResult, 0, len(in.CaseIDs))
 	for _, id := range in.CaseIDs {
 		replayed, err := s.bulkOne(ctx, tenant, id, in)
-		if bulkError(err) == "internal_error" {
-			slog.ErrorContext(ctx, "bulk case operation failed", "tenant_id", tenant, "case_id", id, "action", in.Action, "error", err)
+		level := slog.LevelInfo
+		if err != nil {
+			level = slog.LevelWarn
 		}
+		if bulkError(err) == "internal_error" {
+			level = slog.LevelError
+		}
+		observability.Logger(ctx).Log(ctx, level, "bulk case item completed", append([]any{"event", "case.bulk.item", "tenant_id", tenant, "case_id", id, "operation_id", in.OperationID, "action", in.Action, "success", err == nil, "replayed", replayed}, observability.ErrorFields(err)...)...)
 		results = append(results, BulkResult{CaseID: id, Success: err == nil, Replayed: replayed, Error: bulkError(err)})
 	}
 	return results, nil
@@ -120,26 +129,13 @@ func (s CaseService) bulkOne(ctx context.Context, tenant, id uuid.UUID, in BulkI
 		now := tx.clock.Now()
 		switch in.Action {
 		case "close":
-			if item.Status == casepkg.StatusClosed {
-				return false, casepkg.ErrConflict
+			if err := tx.applyLifecycle(ctx, &item, casepkg.StatusClosed, in.Outcome, in.Comment); err != nil {
+				return false, err
 			}
-			item.Status = casepkg.StatusClosed
-			item.Outcome = in.Outcome
-			item.SnoozedUntil = nil
-			item.BoostReason = nil
 		case "reopen":
-			if item.Status != casepkg.StatusClosed {
-				return false, casepkg.ErrConflict
-			}
-			if _, err := tx.activeInbox(ctx, tenant, item.InboxID); err != nil {
+			if err := tx.applyLifecycle(ctx, &item, casepkg.StatusInvestigating, casepkg.OutcomeUnset, ""); err != nil {
 				return false, err
 			}
-			if err := tx.eligibleAssignee(ctx, tenant, item.InboxID, item.AssignedTo); err != nil {
-				return false, err
-			}
-			item.Status = casepkg.StatusInvestigating
-			item.Outcome = casepkg.OutcomeUnset
-			item.SnoozedUntil = nil
 		case "assign":
 			if item.Status == casepkg.StatusClosed {
 				return false, casepkg.ErrConflict
@@ -175,7 +171,7 @@ func (s CaseService) bulkOne(ctx context.Context, tenant, id uuid.UUID, in BulkI
 		if err != nil {
 			return false, err
 		}
-		_, err = tx.events.Create(ctx, newEvent(tx.ids.New(), tenant, id, actor, "bulk_"+in.Action, in.Comment, in.OperationID.String(), "bulk_operation", string(newJSON), string(oldJSON), now))
+		_, err = tx.events.Create(ctx, newEvent(tx.ids.New(), tenant, id, actor, "bulk_"+in.Action, strings.TrimSpace(in.Comment), in.OperationID.String(), "bulk_operation", string(newJSON), string(oldJSON), now))
 		if err != nil {
 			return false, err
 		}

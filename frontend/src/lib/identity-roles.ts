@@ -1,0 +1,2 @@
+export const identityRoles = ["tenant_admin", "case_manager_admin", "case_investigator", "platform_viewer", "platform_builder", "platform_publisher", "platform_admin"];
+export const identityRoleLabels: Record<string, string> = { tenant_admin: "Account administrator", case_manager_admin: "Case administrator", case_investigator: "Investigator", platform_viewer: "Platform viewer", platform_builder: "Platform builder", platform_publisher: "Platform publisher", platform_admin: "Platform administrator" };

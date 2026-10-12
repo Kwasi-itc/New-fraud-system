@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
@@ -86,6 +88,16 @@ func NewScreeningService(
 }
 
 func (s ScreeningService) CreateScreening(ctx context.Context, tenantID string, request screening.SearchRequest) (screening.Screening, error) {
+	var created screening.Screening
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		var err error
+		created, err = s.createScreening(ctx, store, tenantID, request)
+		return err
+	})
+	return created, err
+}
+
+func (s ScreeningService) createScreening(ctx context.Context, store ports.MutationStore, tenantID string, request screening.SearchRequest) (screening.Screening, error) {
 	if len(request.Queries) == 0 {
 		return screening.Screening{}, fmt.Errorf("queries are required")
 	}
@@ -118,22 +130,20 @@ func (s ScreeningService) CreateScreening(ctx context.Context, tenantID string, 
 		return screening.Screening{}, err
 	}
 
-	var created screening.Screening
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		if item.IdempotencyKey != "" {
-			existing, lookupErr := store.Screenings().GetByIdempotencyKey(ctx, tenantID, item.IdempotencyKey)
-			if lookupErr == nil {
-				created = existing
-				return nil
-			}
+	if item.IdempotencyKey != "" {
+		existing, err := store.Screenings().GetByIdempotencyKey(ctx, tenantID, item.IdempotencyKey)
+		if err == nil {
+			return existing, nil
 		}
-		var runErr error
-		created, runErr = store.Screenings().Create(ctx, item)
-		if runErr != nil {
-			return runErr
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return screening.Screening{}, err
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
-	})
+	}
+	created, err := store.Screenings().Create(ctx, item)
+	if err != nil {
+		return screening.Screening{}, err
+	}
+	err = s.enqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
 	return created, err
 }
 
@@ -183,26 +193,25 @@ func (s ScreeningService) GetDetails(ctx context.Context, tenantID, screeningID 
 }
 
 func (s ScreeningService) Retry(ctx context.Context, tenantID, screeningID string) (screening.Screening, error) {
-	item, err := s.screeningRepo.GetByID(ctx, tenantID, screeningID)
-	if err != nil {
-		return screening.Screening{}, err
-	}
-	if item.Status != screening.StatusFailed {
-		return screening.Screening{}, fmt.Errorf("screening status %q cannot be retried", item.Status)
-	}
-
-	now := s.clock.Now()
-	item.Status = screening.StatusPending
-	item.LastError = ""
-	item.ProviderReference = ""
-	item.ResponseJSON = json.RawMessage(`{}`)
-	item.UpdatedAt = now
-	item.SentAt = nil
-	item.CompletedAt = nil
-	item.FailedAt = nil
-
 	var updated screening.Screening
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		// Recheck under the same row lock used by processing claims. A delayed
+		// second retry must not erase a result published after the first retry.
+		item, err := store.Screenings().Lock(ctx, tenantID, screeningID)
+		if err != nil {
+			return err
+		}
+		if item.Status != screening.StatusFailed {
+			return fmt.Errorf("screening status %q cannot be retried", item.Status)
+		}
+		item.Status = screening.StatusPending
+		item.LastError = ""
+		item.ProviderReference = ""
+		item.ResponseJSON = json.RawMessage(`{}`)
+		item.UpdatedAt = s.clock.Now()
+		item.SentAt = nil
+		item.CompletedAt = nil
+		item.FailedAt = nil
 		if err := store.ScreeningMatches().ReplaceForScreening(ctx, item.ID, nil); err != nil {
 			return err
 		}
@@ -217,7 +226,19 @@ func (s ScreeningService) Retry(ctx context.Context, tenantID, screeningID strin
 }
 
 func (s ScreeningService) ReviewMatch(ctx context.Context, tenantID, matchID, status, comment, reviewerID string, whitelist bool) (screening.Match, error) {
-	match, err := s.matchRepo.GetByID(ctx, tenantID, matchID)
+	var updated screening.Match
+	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+		var err error
+		updated, err = s.reviewMatch(ctx, store, tenantID, matchID, status, comment, reviewerID, whitelist, true)
+		return err
+	})
+	if err == nil {
+		_ = s.publishScreeningStatusChanged(ctx, tenantID, updated.ScreeningID)
+	}
+	return updated, err
+}
+func (s ScreeningService) reviewMatch(ctx context.Context, store ports.MutationStore, tenantID, matchID, status, comment, reviewerID string, whitelist bool, publish bool) (screening.Match, error) {
+	match, err := store.ScreeningMatches().GetByID(ctx, tenantID, matchID)
 	if err != nil {
 		return screening.Match{}, err
 	}
@@ -231,12 +252,19 @@ func (s ScreeningService) ReviewMatch(ctx context.Context, tenantID, matchID, st
 	}
 
 	now := s.clock.Now()
-	match.Status = nextStatus
-	match.UpdatedAt = now
-
 	var updated screening.Match
-	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		var runErr error
+	apply := func() error {
+		// Serialize sibling reviews with processing/retry on this screening only.
+		item, runErr := store.Screenings().Lock(ctx, tenantID, match.ScreeningID)
+		if runErr != nil {
+			return runErr
+		}
+		match, runErr := store.ScreeningMatches().GetByID(ctx, tenantID, matchID)
+		if runErr != nil {
+			return runErr
+		}
+		match.Status = nextStatus
+		match.UpdatedAt = now
 		updated, runErr = store.ScreeningMatches().Update(ctx, match)
 		if runErr != nil {
 			return runErr
@@ -256,22 +284,17 @@ func (s ScreeningService) ReviewMatch(ctx context.Context, tenantID, matchID, st
 			}
 		}
 
-		item, runErr := store.Screenings().GetByID(ctx, tenantID, match.ScreeningID)
+		pending, confirmed, runErr := store.ScreeningMatches().ReviewCounts(ctx, tenantID, match.ScreeningID)
 		if runErr != nil {
 			return runErr
 		}
-
-		switch nextStatus {
-		case screening.MatchStatusConfirmedHit:
+		switch {
+		case confirmed > 0:
 			item.Status = screening.StatusConfirmedHit
-		case screening.MatchStatusNoHit:
-			pendingCount, countErr := store.ScreeningMatches().CountPendingByScreening(ctx, match.ScreeningID)
-			if countErr != nil {
-				return countErr
-			}
-			if pendingCount == 0 {
-				item.Status = screening.StatusNoHit
-			}
+		case pending > 0:
+			item.Status = screening.StatusAwaitingReview
+		default:
+			item.Status = screening.StatusNoHit
 		}
 		item.UpdatedAt = now
 		if item.Status == screening.StatusConfirmedHit || item.Status == screening.StatusNoHit {
@@ -295,14 +318,15 @@ func (s ScreeningService) ReviewMatch(ctx context.Context, tenantID, matchID, st
 			}
 		}
 
+		if !publish {
+			return nil
+		}
 		eventID := s.idGen.New().String()
 		return store.CaseEvents().Enqueue(ctx, eventID, tenantID, "reviewed", ports.ScreeningReviewedCommand{
 			EventID: eventID, TenantID: tenantID, ScreeningID: item.ID, DecisionID: item.DecisionID, MatchID: match.ID, Status: string(nextStatus), ReviewerID: reviewerID,
 		})
-	})
-	if err == nil {
-		_ = s.publishScreeningStatusChanged(ctx, tenantID, match.ScreeningID)
 	}
+	err = apply()
 	return updated, err
 }
 
@@ -372,17 +396,25 @@ func (s ScreeningService) EnrichMatch(ctx context.Context, tenantID, matchID str
 	if err != nil {
 		return screening.Match{}, err
 	}
-	merged, err := mergePayloads(match.Payload, result.RawPayload)
-	if err != nil {
-		return screening.Match{}, err
-	}
-	match.Payload = merged
-	match.Enriched = true
-	match.UpdatedAt = s.clock.Now()
-
 	var updated screening.Match
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		var runErr error
+		// Provider IO stays outside the transaction. Preserve any review committed
+		// while enrichment was in flight by merging into the current row.
+		if _, err := store.Screenings().Lock(ctx, tenantID, match.ScreeningID); err != nil {
+			return err
+		}
+		current, runErr := store.ScreeningMatches().GetByID(ctx, tenantID, matchID)
+		if runErr != nil {
+			return runErr
+		}
+		merged, runErr := mergePayloads(current.Payload, result.RawPayload)
+		if runErr != nil {
+			return runErr
+		}
+		match = current
+		match.Payload = merged
+		match.Enriched = true
+		match.UpdatedAt = s.clock.Now()
 		updated, runErr = store.ScreeningMatches().Update(ctx, match)
 		return runErr
 	})

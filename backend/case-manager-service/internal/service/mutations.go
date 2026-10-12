@@ -138,6 +138,9 @@ func (s CaseService) HandleScreeningReviewed(ctx context.Context, tenantID, scre
 	}
 	reviewerID = nil // Service callbacks do not establish a human identity.
 	_, err := transact(ctx, s, func(tx CaseService) (struct{}, error) {
+		if err := tx.intake.Lock(ctx, tenantID, "screening", screeningID.String()); err != nil {
+			return struct{}{}, err
+		}
 		return struct{}{}, tx.handleScreeningReviewed(ctx, tenantID, screeningID, decisionID, matchID, status, reviewerID)
 	})
 	return err

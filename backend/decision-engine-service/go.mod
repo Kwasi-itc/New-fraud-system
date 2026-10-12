@@ -26,6 +26,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -60,3 +61,7 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require github.com/Kwasi-itc/New-fraud-system/backend/investigator v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator

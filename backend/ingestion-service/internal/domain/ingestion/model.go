@@ -4,6 +4,7 @@ import "github.com/google/uuid"
 
 type PublishedDataModel struct {
 	TenantID            uuid.UUID
+	SchemaName          string
 	RevisionID          string
 	TenantStatus        string
 	Writable            bool

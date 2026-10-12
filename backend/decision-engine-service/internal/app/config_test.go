@@ -4,6 +4,8 @@ import "testing"
 
 func setRequiredConfigEnv(t *testing.T) {
 	t.Helper()
+	t.Setenv("SERVICE_AUTH_MODE", "token")
+	t.Setenv("SERVICE_AUTH_TOKEN", "test-service-token")
 	t.Setenv("DATABASE_URL", "postgres://example")
 	t.Setenv("DATA_MODEL_SERVICE_URL", "http://localhost:8080")
 	t.Setenv("INGESTION_SERVICE_URL", "http://localhost:8081")
@@ -120,6 +122,8 @@ func TestLoadConfigParsesWorkerTaskPriorities(t *testing.T) {
 }
 
 func TestLoadConfigAllowsDirectDBTenantReadModeWithoutIngestionURL(t *testing.T) {
+	t.Setenv("SERVICE_AUTH_MODE", "token")
+	t.Setenv("SERVICE_AUTH_TOKEN", "test-service-token")
 	t.Setenv("DATABASE_URL", "postgres://example")
 	t.Setenv("DATA_MODEL_SERVICE_URL", "http://localhost:8080")
 	t.Setenv("TENANT_DATA_READ_MODE", "direct_db")

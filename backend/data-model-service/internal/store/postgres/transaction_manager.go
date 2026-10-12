@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/access"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,6 +24,15 @@ func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore
 	tx, err := m.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(context.Background())
+	if grant, ok := access.FromContext(ctx); ok {
+		if !grant.Write {
+			return access.Denied()
+		}
+		if err := access.Check(ctx, tx, grant, true); err != nil {
+			return err
+		}
 	}
 
 	store := mutationStore{

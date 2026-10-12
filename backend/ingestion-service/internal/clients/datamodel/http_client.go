@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,17 +16,30 @@ import (
 )
 
 type HTTPClient struct {
-	baseURL string
-	client  *http.Client
+	authToken string
+	baseURL   string
+	client    *http.Client
+	cache     *modelCache
 }
+
+// WithAuthToken configures the private Data Model integration credential.
+func (c HTTPClient) WithAuthToken(token string) HTTPClient { c.authToken = token; return c }
 
 const requestIDHeader = "X-Request-ID"
 
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
+	return NewHTTPClientWithCacheLimits(baseURL, timeout, defaultCacheEntries, defaultCacheBytes)
+}
+
+// Zero capacity disables caching. Each request still revalidates with the origin
+// when caching is enabled; the limits do not introduce a stale-data window.
+func NewHTTPClientWithCacheLimits(baseURL string, timeout time.Duration, maxEntries, maxBytes int) HTTPClient {
 	return HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
+		cache:   newModelCache(maxEntries, maxBytes),
 		client: &http.Client{
-			Timeout: timeout,
+			Timeout:       timeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 	}
 }
@@ -37,19 +51,45 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 		return ingestion.PublishedDataModel{}, fmt.Errorf("create request: %w", err)
 	}
 	attachRequestID(req)
+	req.Header.Set("Cache-Control", "no-cache")
+	cached, hasCached := c.cache.get(tenantID)
+	if hasCached {
+		req.Header.Set("If-None-Match", cached.etag)
+	}
 
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return ingestion.PublishedDataModel{}, fmt.Errorf("perform request: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotModified {
+		if !hasCached || resp.Header.Get("ETag") != cached.etag {
+			return ingestion.PublishedDataModel{}, fmt.Errorf("invalid data-model-service cache revalidation")
+		}
+		if strings.Contains(strings.ToLower(resp.Header.Get("Cache-Control")), "no-store") {
+			c.cache.forget(tenantID)
+		}
+		return cloneModel(cached.model), nil
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return ingestion.PublishedDataModel{}, fmt.Errorf("unexpected status from data-model-service: %d", resp.StatusCode)
 	}
 
+	// Bound response allocation as well as retained cache size.
+	const maxResponseBytes = 32 << 20
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
+	if err != nil {
+		return ingestion.PublishedDataModel{}, fmt.Errorf("read response: %w", err)
+	}
+	if len(body) > maxResponseBytes {
+		return ingestion.PublishedDataModel{}, fmt.Errorf("data model exceeds maximum response size")
+	}
 	var payload getDataModelResponse
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		return ingestion.PublishedDataModel{}, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -105,6 +145,11 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 		}
 	}
 
+	if etag := resp.Header.Get("ETag"); etag != "" && !strings.Contains(strings.ToLower(resp.Header.Get("Cache-Control")), "no-store") && c.cache != nil && c.cache.maxEntries > 0 && len(body) <= c.cache.maxBytes {
+		c.cache.put(cacheEntry{tenantID: tenantID, etag: etag, model: cloneModel(model), encodedBytes: len(body)})
+	} else {
+		c.cache.forget(tenantID)
+	}
 	return model, nil
 }
 

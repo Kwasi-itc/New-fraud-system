@@ -2,6 +2,8 @@ package riverjobs
 
 import (
 	"context"
+	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -22,7 +24,11 @@ func NewScreeningWorker(runner ScreeningRunner) ScreeningWorker {
 }
 
 func (w *ScreeningWorker) Work(ctx context.Context, job *river.Job[ScreeningArgs]) error {
-	return w.runner.RunScreening(ctx, job.Args.TenantID, job.Args.ScreeningID)
+	err := w.runner.RunScreening(ctx, job.Args.TenantID, job.Args.ScreeningID)
+	if errors.Is(err, ports.ErrScreeningBusy) {
+		return river.JobSnooze(time.Minute)
+	}
+	return err
 }
 
 func (w *ScreeningWorker) Timeout(*river.Job[ScreeningArgs]) time.Duration {
