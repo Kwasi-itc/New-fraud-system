@@ -300,8 +300,8 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
                 )
 
         metrics = ReplayMetrics()
-        error_log = Path(self.id().replace("/", "_") + ".errors.ndjson")
-        try:
+        with tempfile.TemporaryDirectory() as directory:
+            error_log = Path(directory) / "errors.ndjson"
             chain = TransactionChain(  # type: ignore[arg-type]
                 FakeClients(),
                 "tenant",
@@ -316,9 +316,6 @@ class ReplayTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(record["response"], {"status_code": 429, "body": response_body})
             self.assertEqual(metrics.ingestion_failures, 1)
             self.assertEqual(len(metrics.errors), 1)
-        finally:
-            if error_log.exists():
-                error_log.unlink()
 
 
 if __name__ == "__main__":

@@ -72,8 +72,8 @@ func (h TestRunHandler) Cancel(c *gin.Context) {
 
 func (h TestRunHandler) Evaluate(c *gin.Context) {
 	var req dto.EvaluateDecisionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
+	if err := bindEvaluationJSON(c, &req); err != nil {
+		writeBadRequestError(c, "invalid_request", "test run request is invalid", err)
 		return
 	}
 	tenantID := c.Param("tenantId")
@@ -84,7 +84,7 @@ func (h TestRunHandler) Evaluate(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "evaluate_test_run_failed", "details": err.Error()})
+		writeDecisionEvaluationError(c, "evaluate_test_run_failed", "test run evaluation failed", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"result": dto.AdaptTestRunEvaluation(result)})

@@ -30,3 +30,9 @@ type TenantDataReader interface {
 	QueryRecords(ctx context.Context, tenantID, objectType, fieldName, value string, limit int) ([]TenantRecord, error)
 	AggregateRecords(ctx context.Context, tenantID string, query AggregateQuery) (any, error)
 }
+
+// ModelScopedReader binds direct reads to the same tenant model used for object preparation.
+// HTTP readers retain their owning service's independent model contract.
+type ModelScopedReader interface {
+	WithModel(tenantID string, model TenantModel) TenantDataReader
+}

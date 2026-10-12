@@ -100,7 +100,7 @@ func newFailureTestDecisionService(
 						Name: "transactions",
 						Fields: map[string]ports.TenantModelField{
 							"object_id": {Name: "object_id", Type: "string"},
-							"amount":    {Name: "amount", Type: "number"},
+							"amount":    {Name: "amount", Type: "float"},
 						},
 					},
 				},

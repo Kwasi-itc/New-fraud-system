@@ -1,5 +1,7 @@
 x-database-scale-environment: &database-scale-environment
   DATABASE_URL: ${DATABASE_SCALE_DATABASE_URL:?DATABASE_SCALE_DATABASE_URL must be set}
+  READ_DATABASE_URL: ${DATABASE_SCALE_DATABASE_URL:?DATABASE_SCALE_DATABASE_URL must be set}
+  WORKER_DATABASE_URL: ${DATABASE_SCALE_DATABASE_URL:?DATABASE_SCALE_DATABASE_URL must be set}
 
 x-database-scale-ca: &database-scale-ca
   - ${DATABASE_SCALE_SSL_ROOT_CERT:?DATABASE_SCALE_SSL_ROOT_CERT must be set}:/run/secrets/postgres-ca.pem:ro
@@ -36,7 +38,10 @@ services:
     environment: *database-scale-environment
     volumes: *database-scale-ca
   decision-engine-service:
-    environment: *database-scale-environment
+    environment:
+      <<: *database-scale-environment
+      LIVE_DECISION_MODE: sync
+      LIVE_ASYNC_FALLBACK_ENABLED: ${DATABASE_SCALE_ASYNC_FALLBACK:-false}
     volumes: *database-scale-ca
   screening-service:
     environment: *database-scale-environment

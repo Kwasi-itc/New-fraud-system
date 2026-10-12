@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -251,11 +252,11 @@ func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.
 	}
 }
 
-func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testing.T) {
+func TestEvaluateScenarioByIterationRejectsMissingRequiredField(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC)
-	result, err := evaluateScenarioByIteration(
+	_, err := evaluateScenarioByIteration(
 		context.Background(),
 		ruleTestIDGen{value: uuid.MustParse("22222222-2222-2222-2222-222222222222")},
 		ruleTestClock{now: now},
@@ -306,7 +307,7 @@ func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testi
 						Name: "transactions",
 						Fields: map[string]ports.TenantModelField{
 							"object_id": {Name: "object_id", Type: "string"},
-							"amount":    {Name: "amount", Type: "number"},
+							"amount":    {Name: "amount", Type: "float"},
 						},
 					},
 				},
@@ -322,20 +323,8 @@ func TestEvaluateScenarioByIterationTreatsMissingFieldComparisonAsNoHit(t *testi
 		nil,
 		0,
 	)
-	if err != nil {
-		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
-	}
-	if !result.Triggered {
-		t.Fatalf("evaluateScenarioByIteration() Triggered = false, want true")
-	}
-	if result.Decision == nil {
-		t.Fatalf("evaluateScenarioByIteration() Decision = nil")
-	}
-	if result.Decision.Score != 0 {
-		t.Fatalf("evaluateScenarioByIteration() score = %d, want 0", result.Decision.Score)
-	}
-	if len(result.RuleExecutions) != 1 || result.RuleExecutions[0].Outcome != "no_hit" {
-		t.Fatalf("evaluateScenarioByIteration() rule executions = %#v", result.RuleExecutions)
+	if err == nil || !strings.Contains(err.Error(), "payload_validation_failed") {
+		t.Fatalf("expected missing required payload rejection, got %v", err)
 	}
 }
 

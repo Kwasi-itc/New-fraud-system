@@ -21,7 +21,7 @@ func NewExecutionHandler(executionService service.ExecutionService) ExecutionHan
 
 func (h ExecutionHandler) CreateScheduledExecution(c *gin.Context) {
 	var req dto.CreateScheduledExecutionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
 		return
 	}
@@ -87,7 +87,7 @@ func (h ExecutionHandler) RetryScheduledExecution(c *gin.Context) {
 
 func (h ExecutionHandler) CreateAsyncDecisionExecution(c *gin.Context) {
 	var req dto.CreateAsyncDecisionExecutionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := bindEvaluationJSON(c, &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "details": err.Error()})
 		return
 	}

@@ -704,6 +704,8 @@ paths:
                 $ref: '#/components/schemas/DecisionEvaluationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PayloadValidation'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/decisions:
     get:
       tags: [Decisions]
@@ -904,6 +906,8 @@ paths:
                 $ref: '#/components/schemas/MultiDecisionEvaluationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PayloadValidation'
   /v1/tenants/{tenantId}/decisions/{decisionId}:
     get:
       tags: [Decisions]
@@ -949,6 +953,8 @@ paths:
                 $ref: '#/components/schemas/AsyncDecisionExecutionEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PayloadValidation'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs:
     get:
       tags: [Test Runs]
@@ -1077,6 +1083,8 @@ paths:
                 $ref: '#/components/schemas/TestRunEvaluationEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PayloadValidation'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows:
     get:
       tags: [Workflows]
@@ -2837,6 +2845,12 @@ components:
         type: string
         format: uuid
   responses:
+    PayloadValidation:
+      description: Supplied object violates the execution-time model; deterministic field issues contain no raw values.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     BadRequest:
       description: Request validation or domain validation failed
       content:
@@ -2903,9 +2917,31 @@ components:
       type: object
       properties:
         error:
-          type: string
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                code: {type: string}
+                message: {type: string}
+                category: {type: string}
+                request_id: {type: string}
+                details: {type: string}
         details:
           type: string
+        model_revision:
+          type: string
+        truncated:
+          type: boolean
+        validation_errors:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            properties:
+              field: {type: string}
+              code: {type: string}
+              message: {type: string}
+            required: [field, code, message]
       required: [error]
     JSONValue:
       type: object
@@ -3368,8 +3404,8 @@ components:
         fields:
           type: object
           additionalProperties: true
-          description: Raw record fields supplied to the evaluator.
-      required: [object_id, object_type, fields]
+          description: Full object fields validated against the execution-time tenant model. All active non-nullable business fields are required. Nullable omissions normalize to NULL; unknown or archived fields are rejected. Empty or omitted fields request stored-record lookup. The object_id envelope is authoritative.
+      required: [object_id, object_type]
       example:
         object_id: txn_100234
         object_type: transactions
@@ -3604,6 +3640,9 @@ components:
       type: object
       description: Immediate evaluation result returned by the live decisioning API.
       properties:
+        model_revision:
+          type: string
+          description: Tenant model revision used to prepare and evaluate this object.
         triggered:
           type: boolean
           description: Whether the evaluation produced a triggered decision result.
@@ -3622,6 +3661,8 @@ components:
       type: object
       description: Evaluation results for all live scenarios triggered by one ingested record.
       properties:
+        model_revision:
+          type: string
         object_id:
           type: string
           description: External record identifier that was evaluated across scenarios.
@@ -4273,7 +4314,7 @@ components:
           format: byte
           description: Serialized request payload submitted for async evaluation.
         result_body:
-          description: Serialized terminal result payload returned when the async execution completes successfully.
+          description: Terminal evaluation result, or an error object containing category, model_revision, validation_errors and truncated when execution-time payload validation fails. Validation failures are terminal without evaluation retries; callback delivery has its own retries.
           oneOf:
             - type: object
             - type: array
@@ -4281,6 +4322,9 @@ components:
             - type: number
             - type: integer
             - type: boolean
+        last_error:
+          type: string
+          description: Safe terminal failure summary; field issues are in result_body.error.
         callback_url:
           type: string
           description: Callback destination that should receive the terminal result, when configured.

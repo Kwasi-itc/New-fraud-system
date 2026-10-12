@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
@@ -559,7 +561,9 @@ func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, lim
 
 func (s ExecutionService) runScheduledExecution(ctx context.Context, item execution.ScheduledExecution) error {
 	var req ScheduledExecutionRequest
-	if err := json.Unmarshal(item.RequestBody, &req); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(item.RequestBody))
+	decoder.UseNumber()
+	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
 	if len(req.Items) == 0 {
@@ -575,9 +579,10 @@ func (s ExecutionService) runScheduledExecution(ctx context.Context, item execut
 		req.Items = make([]DecisionEvaluationRequest, len(records))
 		for i, record := range records {
 			req.Items[i] = DecisionEvaluationRequest{
-				ObjectID:   record.ObjectID,
-				ObjectType: record.ObjectType,
-				Fields:     record.Fields,
+				ObjectID:     record.ObjectID,
+				ObjectType:   record.ObjectType,
+				Fields:       record.Fields,
+				storedSource: true,
 			}
 		}
 	}
@@ -591,7 +596,9 @@ func (s ExecutionService) runScheduledExecution(ctx context.Context, item execut
 
 func (s ExecutionService) runAsyncExecution(ctx context.Context, item execution.AsyncDecisionExecution) ([]byte, error) {
 	var req AsyncDecisionExecutionRequest
-	if err := json.Unmarshal(item.RequestBody, &req); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(item.RequestBody))
+	decoder.UseNumber()
+	if err := decoder.Decode(&req); err != nil {
 		return nil, err
 	}
 	var result any
@@ -629,11 +636,13 @@ func adaptExecutionStatusSummary(counts map[execution.Status]int) ExecutionStatu
 
 func (s ExecutionService) handleScheduledExecutionFailure(ctx context.Context, item execution.ScheduledExecution, runErr error) error {
 	now := s.clock.Now()
-	if item.AttemptCount >= max(1, item.MaxAttempts) {
+	var validation *payload.Error
+	if errors.As(runErr, &validation) || item.AttemptCount >= max(1, item.MaxAttempts) {
 		if err := s.scheduledRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
 			return err
 		}
 		return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.failed", map[string]any{
+			"validation":    validation,
 			"status":        execution.StatusFailed,
 			"scenario_id":   item.ScenarioID,
 			"attempt_count": item.AttemptCount,
@@ -681,6 +690,17 @@ func (s ExecutionService) handleScheduledExecutionFailure(ctx context.Context, i
 
 func (s ExecutionService) handleAsyncExecutionFailure(ctx context.Context, item execution.AsyncDecisionExecution, runErr error) error {
 	now := s.clock.Now()
+	var validation *payload.Error
+	if errors.As(runErr, &validation) {
+		if err := s.failAsyncValidation(ctx, item, validation, now); err != nil {
+			// A rolled-back terminal write must remain claimable by the job retry.
+			if recovery, ok := s.asyncRepo.(ports.AsyncValidationRecoveryRepository); ok {
+				return errors.Join(err, recovery.RequeueValidationPersistenceFailure(ctx, item.TenantID, item.ID))
+			}
+			return errors.Join(err, fmt.Errorf("async validation recovery repository is not configured"))
+		}
+		return nil
+	}
 	if item.AttemptCount >= max(1, item.MaxAttempts) {
 		if err := s.asyncRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
 			return err

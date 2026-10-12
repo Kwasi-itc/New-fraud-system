@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"math/big"
 	"net/netip"
 	"regexp"
 	"sort"
@@ -2201,6 +2202,29 @@ func compareValues(op string, left, right any) (bool, error) {
 			return false, fmt.Errorf("unsupported operator %q", op)
 		}
 	}
+	// Preserve integer identity above 2^53 rather than rounding int64 through float64.
+	if exactNumericOperand(left) || exactNumericOperand(right) {
+		l, lok := numericRat(left)
+		r, rok := numericRat(right)
+		if !lok || !rok {
+			return false, fmt.Errorf("%s expects numeric operands", op)
+		}
+		comparison := l.Cmp(r)
+		switch op {
+		case "eq":
+			return comparison == 0, nil
+		case "neq":
+			return comparison != 0, nil
+		case "gt":
+			return comparison > 0, nil
+		case "gte":
+			return comparison >= 0, nil
+		case "lt":
+			return comparison < 0, nil
+		case "lte":
+			return comparison <= 0, nil
+		}
+	}
 	switch l := left.(type) {
 	case bool:
 		r, ok := right.(bool)
@@ -2285,6 +2309,9 @@ func compareFloat(op string, left, right float64) bool {
 
 func toFloat(v any) (float64, bool) {
 	switch n := v.(type) {
+	case json.Number:
+		value, err := n.Float64()
+		return value, err == nil && !math.IsNaN(value) && !math.IsInf(value, 0)
 	case float64:
 		return n, true
 	case float32:
@@ -2296,4 +2323,35 @@ func toFloat(v any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func exactNumericOperand(value any) bool {
+	switch n := value.(type) {
+	case int:
+		return int64(n) > 1<<53-1 || int64(n) < -(1<<53-1)
+	case int64:
+		return n > 1<<53-1 || n < -(1<<53-1)
+	case json.Number:
+		return true
+	}
+	return false
+}
+
+func numericRat(value any) (*big.Rat, bool) {
+	switch n := value.(type) {
+	case int:
+		return new(big.Rat).SetInt64(int64(n)), true
+	case int64:
+		return new(big.Rat).SetInt64(n), true
+	case json.Number:
+		r, ok := new(big.Rat).SetString(string(n))
+		return r, ok
+	case float64:
+		r := new(big.Rat).SetFloat64(n)
+		return r, r != nil
+	case float32:
+		r := new(big.Rat).SetFloat64(float64(n))
+		return r, r != nil
+	}
+	return nil, false
 }

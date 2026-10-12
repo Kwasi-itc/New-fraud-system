@@ -106,5 +106,5 @@ async def verify_decision_completion(
 
     try:
         return await asyncio.wait_for(follow(), timeout=timeout_seconds)
-    except TimeoutError as exc:
+    except (asyncio.TimeoutError, TimeoutError) as exc:
         raise DecisionCompletionError("decision_completion_timeout") from exc

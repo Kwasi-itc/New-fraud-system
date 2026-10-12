@@ -20,7 +20,141 @@ from urllib.parse import urlsplit
 import httpx
 import psutil
 
+from .api_client import APIError
 from .benchmark_reporting import write_json_atomic
+from .postgres_observation import counter_deltas
+
+
+# Only explicit runtime controls may be persisted. Never copy the full environment.
+RUNTIME_SETTINGS = frozenset({
+    "LIVE_DECISION_MODE", "LIVE_DECISION_CONCURRENCY_LIMIT", "LIVE_ASYNC_FALLBACK_ENABLED",
+    "TENANT_DATA_READ_MODE", "HTTP_CLIENT_TIMEOUT", "RULE_EVALUATION_CONCURRENCY",
+    "SCENARIO_EVALUATION_CONCURRENCY", "AGGREGATE_PUSHDOWN_MODE", "AGGREGATE_REMOTE_CONCURRENCY_LIMIT",
+    "WRITE_PATH_CONCURRENCY_LIMIT", "WRITE_PATH_OVERLOAD_MODE", "GIN_MODE", "LOG_LEVEL",
+    "WORKER_MODE", "WORKER_POLL_INTERVAL", "WORKER_BATCH_LIMIT",
+    "DB_MAX_CONNS", "DB_MIN_CONNS", "DATABASE_MAX_CONNS", "DATABASE_MIN_CONNS",
+    "READ_DATABASE_MAX_CONNS", "READ_DATABASE_MIN_CONNS", "WORKER_DATABASE_MAX_CONNS", "WORKER_DATABASE_MIN_CONNS",
+})
+
+
+def project_container(item: dict[str, Any]) -> dict[str, Any]:
+    config, host, state = item.get("Config", {}), item.get("HostConfig", {}), item.get("State", {})
+    env = dict(value.split("=", 1) for value in config.get("Env", []) if "=" in value)
+    targets = {}
+    for name in ("DATABASE_URL", "READ_DATABASE_URL", "WORKER_DATABASE_URL"):
+        if env.get(name):
+            parsed = urlsplit(env[name])
+            targets[name] = {"host": parsed.hostname, "port": parsed.port or 5432,
+                             "database": parsed.path.lstrip("/")}
+    return {"name": item.get("Name", "").lstrip("/"),
+            "service": config.get("Labels", {}).get("com.docker.compose.service"),
+            "image_reference": config.get("Image"),
+            "image_id": item.get("Image"), "started_at": state.get("StartedAt"),
+            "restart_count": item.get("RestartCount"), "status": state.get("Status"),
+            "limits": {key: host.get(key) for key in ("Memory", "NanoCpus", "CpuQuota", "CpuPeriod", "CpusetCpus")},
+            "runtime_settings": {key: env[key] for key in sorted(RUNTIME_SETTINGS) if key in env},
+            "database_targets": targets,
+            "networks": sorted(item.get("NetworkSettings", {}).get("Networks", {}))}
+
+
+def capture_deployment(compose: list[str], env: dict[str, str], services: tuple[str, ...],
+                       expected_database: str, expected_host: str, expected_port: int) -> dict[str, Any]:
+    try:
+        ids = subprocess.run([*compose, "ps", "--all", "-q", *services], env=env,
+                             capture_output=True, text=True, check=True, timeout=15).stdout.split()
+        if not ids:
+            return {"status": "error", "error_type": "NoContainers"}
+        raw = subprocess.run(["docker", "inspect", *ids], env=env, capture_output=True,
+                             text=True, check=True, timeout=15)
+        containers = [project_container(item) for item in json.loads(raw.stdout)]
+        missing = sorted(set(services) - {item["service"] for item in containers})
+        running = all(item["status"] == "running" for item in containers)
+        correct_targets = all(item["database_targets"].get("DATABASE_URL") and
+                              all(target == {"database": expected_database, "host": expected_host, "port": expected_port}
+                                  for target in item["database_targets"].values()) for item in containers)
+        return {"status": "ok" if correct_targets and running and not missing else "error", "containers": containers,
+                "database_names_match": correct_targets,
+                "all_running": running, "missing_services": missing,
+                "limitations": ["image_id_is_local_content_id", "settings_show_explicit_env_only",
+                                "pool_limits_observed_via_service_metrics", "remote_database_hardware_not_observed"]}
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError) as exc:
+        return {"status": "error", "error_type": type(exc).__name__}
+
+
+async def check_runtime_pools(clients: Any, deployment: dict[str, Any], timeout: float) -> dict[str, Any]:
+    """Compare API-reported pool limits to explicit deployment settings.
+
+    A running container's environment is intent, not proof its image supports
+    the setting. Ingestion exposes both primary and read pools; its legacy
+    db_pool field describes reads, not necessarily the primary/write pool.
+    Workers lack equivalent HTTP evidence.
+    """
+    containers = {item["service"]: item for item in deployment.get("containers", [])}
+
+    def check_pool(pool: Any, settings: dict[str, Any], setting: str) -> dict[str, Any]:
+        try:
+            if not isinstance(pool, dict):
+                raise ValueError("invalid_pool_metrics")
+            maximum = pool.get("MaxConns", pool.get("max_conns"))
+            if type(maximum) is not int or maximum <= 0:
+                raise ValueError("invalid_pool_metrics")
+            configured = settings.get(setting)
+            if configured is not None and not isinstance(configured, str):
+                raise ValueError("invalid_pool_configuration")
+            expected = int(configured) if configured is not None else 0
+            if expected < 0:
+                raise ValueError("invalid_pool_configuration")
+            return {"status": "ok" if expected == 0 or maximum == expected else "error",
+                    "configuration_setting": setting,
+                    "configured_max_connections": expected or None, "effective_max_connections": maximum,
+                    "matches_explicit_configuration": maximum == expected if expected else None}
+        except (TypeError, ValueError) as exc:
+            return {"status": "error", "configuration_setting": setting, "error_type": type(exc).__name__}
+
+    async def check(name: str, client: Any, route: str, envelope: str) -> dict[str, Any]:
+        try:
+            container = containers[name]
+            settings = container.get("runtime_settings", {})
+            payload = await asyncio.wait_for(clients.request(client, "GET", route, 200), timeout)
+            metrics = payload[envelope]
+            if name == "decision-engine-service":
+                primary = check_pool(metrics["db_pool"], settings, "DATABASE_MAX_CONNS")
+                return {**primary, "pools": {"primary": primary}}
+
+            # Fail closed on old images: the legacy field cannot prove which
+            # primary pool is running. Do not treat it as primary evidence.
+            if not isinstance(metrics, dict) or "db_pools" not in metrics:
+                return {"status": "error", "reason": "ingestion_pool_metrics_contract_missing"}
+            pools = metrics["db_pools"]
+            shared = pools["read_uses_primary"]
+            if type(shared) is not bool:
+                raise ValueError("invalid_pool_metrics")
+            primary = check_pool(pools["primary"], settings, "DATABASE_MAX_CONNS")
+            read = check_pool(pools["read"], settings,
+                              "DATABASE_MAX_CONNS" if shared else "READ_DATABASE_MAX_CONNS")
+            evidence = {**primary, "read_uses_primary": shared, "pools": {"primary": primary, "read": read}}
+            evidence["status"] = "ok" if primary["status"] == read["status"] == "ok" else "error"
+            # A nonempty READ_DATABASE_URL creates a separate pool even when
+            # its host/database are identical to the primary target.
+            expected_shared = "READ_DATABASE_URL" not in container.get("database_targets", {})
+            if shared != expected_shared:
+                evidence.update(status="error", reason="read_pool_topology_mismatch")
+            elif shared and primary.get("effective_max_connections") != read.get("effective_max_connections"):
+                evidence.update(status="error", reason="inconsistent_shared_pool_metrics")
+            return evidence
+        except (APIError, KeyError, TypeError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
+            return {"status": "error", "error_type": type(exc).__name__}
+
+    names = ("decision-engine-service", "ingestion-service")
+    checks = await asyncio.gather(
+        check(names[0], clients.decision_engine, "/v1/admin/runtime-metrics", "runtime_metrics"),
+        check(names[1], clients.ingestion, "/v1/admin/read-metrics", "read_metrics"),
+    )
+    return {"status": "ok" if all(item["status"] == "ok" for item in checks) else "error",
+            "services": dict(zip(names, checks)),
+            "limitations": ["api_primary_and_ingestion_read_pools_only", "minimum_connections_not_exposed",
+                            "unset_or_zero_max_uses_driver_or_connection_string_configuration",
+                            "worker_pool_limits_not_verified"]}
 
 
 def _now() -> str:
@@ -96,8 +230,13 @@ def sample_local(output: Path) -> dict[str, Any]:
                 measurements[name] = value._asdict()
         except (OSError, psutil.Error, NotImplementedError) as exc:
             errors[name] = type(exc).__name__
+    boot_time = None
+    try:
+        boot_time = psutil.boot_time()
+    except (OSError, psutil.Error, NotImplementedError) as exc:
+        errors["boot_time"] = type(exc).__name__
     return {"status": "partial" if errors else "ok", "measurements": measurements, "errors": errors,
-            "scope": "observer_host_and_process", "boot_time_epoch_seconds": psutil.boot_time()}
+            "scope": "observer_host_and_process", "boot_time_epoch_seconds": boot_time}
 
 
 def _numeric_fields(value: Any) -> dict[str, int | float]:
@@ -115,6 +254,14 @@ def project_metrics(payload: Any, envelope: str) -> dict[str, Any]:
     for group in ("db_pool", "pressure", "evaluation", "aggregate_pushdown", "broad_read_helpers", "tenant_data_reads"):
         if group in body:
             projected[group] = _numeric_fields(body[group])
+    pools = body.get("db_pools")
+    if isinstance(pools, dict):
+        projected_pools = {name: _numeric_fields(pools[name])
+                           for name in ("primary", "read") if isinstance(pools.get(name), dict)}
+        if any(projected_pools.values()):
+            if type(pools.get("read_uses_primary")) is bool:
+                projected_pools["read_uses_primary"] = pools["read_uses_primary"]
+            projected["db_pools"] = projected_pools
     # Dynamic endpoint labels are hashed; arbitrary labels and string values are never copied.
     endpoints = body.get("endpoints")
     if isinstance(endpoints, dict):
@@ -146,6 +293,7 @@ class RuntimeObserver:
         self.failures = 0
         self.started = time.monotonic()
         self.file: Any = None
+        self.previous_sample: dict[str, Any] | None = None
 
     async def __aenter__(self) -> RuntimeObserver:
         self.output.parent.mkdir(parents=True, exist_ok=True)
@@ -182,7 +330,7 @@ class RuntimeObserver:
             metrics = await asyncio.wait_for(fetch(), timeout=self.timeout)
             return {"status": "ok", "metrics": metrics,
                     "observation_request_ms": round((time.monotonic() - started) * 1000, 3)}
-        except (httpx.HTTPError, ValueError, TimeoutError) as exc:
+        except (httpx.HTTPError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
             failure: dict[str, Any] = {"status": "error", "error_type": type(exc).__name__}
             if isinstance(exc, httpx.HTTPStatusError):
                 failure["http_status"] = exc.response.status_code
@@ -203,6 +351,27 @@ class RuntimeObserver:
                   "complete": not failed}
         if database is not None:
             sample["database"] = database
+        previous = self.previous_sample
+        if previous is not None:
+            elapsed = sample["elapsed_seconds"] - previous["elapsed_seconds"]
+            if elapsed > 0 and local.get("boot_time_epoch_seconds") is not None and local.get("boot_time_epoch_seconds") == previous["local"].get("boot_time_epoch_seconds"):
+                rates = {}
+                for group in ("cpu_seconds", "process_cpu_seconds", "disk_io_cumulative", "network_io_cumulative"):
+                    now_values = local.get("measurements", {}).get(group, {})
+                    old_values = previous["local"].get("measurements", {}).get(group, {})
+                    deltas = {key: value - old_values[key] for key, value in now_values.items()
+                              if key in old_values and isinstance(value, (int, float))}
+                    rates[group] = ({key: value / elapsed for key, value in deltas.items()}
+                                    if deltas and all(value >= 0 for value in deltas.values()) else None)
+                sample["local_counter_rates"] = rates
+                cpu = rates.get("cpu_seconds")
+                if cpu and sum(cpu.values()) > 0:
+                    sample["host_cpu_utilization_pct"] = 100 * (1 - (cpu.get("idle", 0) + cpu.get("iowait", 0)) / sum(cpu.values()))
+            if database is not None and previous.get("database") is not None:
+                sample["postgres_interval_delta"] = counter_deltas(previous["database"], database)
+                failed = failed or not sample["postgres_interval_delta"]["valid"]
+                sample["complete"] = not failed
+        self.previous_sample = sample
         self.file.write(json.dumps(sample, allow_nan=False) + "\n")
         self.file.flush()
         self.samples += 1
@@ -216,7 +385,7 @@ class RuntimeObserver:
                              *(["postgresql", "public_river_active_jobs"] if self.database else [])],
                 "limitations": ["numeric_projection", "service_percentiles_are_endpoint_window_samples",
                                 "no_remote_host_collection", "partial_queue_coverage",
-                                "raw_cumulative_counters_no_rates"]}
+                                "counter_rates_require_consecutive_valid_samples"]}
 
     async def run_during(self, workload: Callable[[], Awaitable[Any]]) -> Any:
         await self.sample()
@@ -232,7 +401,7 @@ class RuntimeObserver:
             while not stopped.is_set():
                 try:
                     await asyncio.wait_for(stopped.wait(), timeout=self.interval)
-                except TimeoutError:
+                except (asyncio.TimeoutError, TimeoutError):
                     await self.sample()
 
         work = asyncio.create_task(run())
