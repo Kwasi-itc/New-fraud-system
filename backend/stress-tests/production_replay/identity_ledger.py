@@ -235,7 +235,7 @@ class IdentityLedger:
 
     def _transition(self, tenant: str, identity: str, previous: str, state: str,
                     *, attempts: int = 0, decisions: tuple[str, ...] = ()) -> None:
-        allowed = {("ingesting", "ingested"), ("ingesting", "ingestion_failed"),
+        allowed = {("ingesting", "ingested"), ("ingesting", "ingestion_failed"), ("ingested", "completed"),
                    ("ingested", "evaluating"), ("evaluating", "completed"),
                    ("evaluating", "decision_failed"), ("evaluating", "unresolved")}
         if (previous, state) not in allowed or (decisions and state != "completed"):

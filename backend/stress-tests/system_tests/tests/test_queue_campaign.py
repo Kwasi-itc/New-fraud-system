@@ -143,7 +143,7 @@ class CampaignTests(unittest.IsolatedAsyncioTestCase):
 
     def test_stage_rejects_nonfinite_or_nonpositive_values(self):
         import argparse
-        for value in ("x:nan:1", "x:1:inf", "x:0:1", "../x:1:1"):
+        for value in ("x:nan:1", "x:1:inf", "x:0:1", "../x:1:1", "x:1e308:1e308"):
             with self.assertRaises(argparse.ArgumentTypeError):
                 parse_stage(value)
 

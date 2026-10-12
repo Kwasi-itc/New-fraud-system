@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "mode": "discovery",
+  "continue_on_failure": false,
+  "defaults": {
+    "tenant_id": "REPLACE_WITH_PREPARED_TEST_TENANT",
+    "expected_scenarios": 4,
+    "deadline": 5,
+    "max_inflight": 100,
+    "max_operations": 10000,
+    "max_duration": 600
+  },
+  "runs": [
+    {
+      "name": "ingestion-smoke",
+      "profile": "current-local-configuration",
+      "hypothesis": "Ten unique inputs are accepted by ingestion within the deadline.",
+      "options": {"input": "../runs/inputs/ingestion.ndjson", "path": "ingestion", "stage": ["smoke:2:5"]}
+    },
+    {
+      "name": "sync-smoke",
+      "profile": "current-local-configuration",
+      "options": {"input": "../runs/inputs/sync.ndjson", "path": "ingest-sync", "stage": ["smoke:2:5"]}
+    },
+    {
+      "name": "async-burst",
+      "profile": "current-local-configuration",
+      "options": {"input": "../runs/inputs/async.ndjson", "path": "ingest-async",
+        "stage": ["baseline:2:5", "burst:5:2", "recovery:2:5"]}
+    }
+  ]
+}

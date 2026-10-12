@@ -80,35 +80,45 @@ class PostgresObserver:
                     "-c lock_timeout=1000", "PGCONNECT_TIMEOUT": str(max(1, math.ceil(timeout)))}
         self.timeout = timeout
 
-    async def __call__(self, *, storage: bool = False) -> dict[str, Any]:
+    async def query(self, sql: str) -> dict[str, Any]:
+        """Execute trusted collector SQL with the same read-only/time-bound contract."""
         process = None
         try:
             process = await asyncio.create_subprocess_exec(
-                *self.command, "-X", "-w", "-qAt", "-v", "ON_ERROR_STOP=1", "-c", observation_sql(storage=storage),
+                *self.command, "-X", "-w", "-qAt", "-v", "ON_ERROR_STOP=1", "-c", sql,
                 env=self.env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
             stdout, _stderr = await asyncio.wait_for(process.communicate(), self.timeout)
             if process.returncode:
                 return {"status": "error", "error_type": "PsqlFailure", "exit_code": process.returncode}
             metrics = json.loads(stdout)
-            if not isinstance(metrics, dict) or not isinstance(metrics.get("database"), dict):
+            if not isinstance(metrics, dict):
                 raise ValueError("invalid database metrics")
-            if storage and len(metrics.get("storage") or []) >= 1001:
-                return {"status": "error", "error_type": "StorageCatalogTruncated", "metrics": metrics}
-            return {"status": "ok", "captured_at": datetime.now(timezone.utc).isoformat(), "metrics": metrics,
-                    "scope": "current_database_and_public_river_active_jobs",
-                    "limitations": ["case_queue_and_non_river_queues_not_collected",
-                                    "queue_prefix_cap_1001_per_state",
-                                    "oldest_due_is_scheduled_age_not_enqueue_or_running_age",
-                                    "activity_visibility_depends_on_database_role",
-                                    "raw_counters_require_stats_reset_aware_deltas",
-                                    "query_plans_require_validation_on_target_database"]}
+            return {"status": "ok", "metrics": metrics}
         except (OSError, ValueError, asyncio.TimeoutError, TimeoutError) as exc:
             return {"status": "error", "error_type": type(exc).__name__}
         finally:
             if process is not None and process.returncode is None:
                 process.kill()
                 await process.communicate()
+
+    async def __call__(self, *, storage: bool = False) -> dict[str, Any]:
+        result = await self.query(observation_sql(storage=storage))
+        if result["status"] != "ok":
+            return result
+        metrics = result["metrics"]
+        if not isinstance(metrics.get("database"), dict):
+            return {"status": "error", "error_type": "ValueError"}
+        if storage and len(metrics.get("storage") or []) >= 1001:
+            return {"status": "error", "error_type": "StorageCatalogTruncated", "metrics": metrics}
+        return {**result, "captured_at": datetime.now(timezone.utc).isoformat(),
+                "scope": "current_database_and_public_river_active_jobs",
+                "limitations": ["case_queue_and_non_river_queues_not_collected",
+                                "queue_prefix_cap_1001_per_state",
+                                "oldest_due_is_scheduled_age_not_enqueue_or_running_age",
+                                "activity_visibility_depends_on_database_role",
+                                "raw_counters_require_stats_reset_aware_deltas",
+                                "query_plans_require_validation_on_target_database"]}
 
 
 COUNTERS = ("xact_commit", "xact_rollback", "blks_read", "blks_hit", "tup_returned",

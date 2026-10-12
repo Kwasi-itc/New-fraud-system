@@ -2,7 +2,7 @@
 
 This plan defines how to measure the fraud system across APIs, networks, PostgreSQL, queues, workers, and hardware. The intended result is a defensible capacity statement: which workloads the system can sustain, on which resources, while meeting latency, correctness, and recovery requirements.
 
-Status: implementation started. The campaign definitions and run durations below remain proposed work. The foundation described next is implemented and locally tested; no destructive database benchmark, remote infrastructure change, or fault injection has been performed.
+Status: partially implemented, with local automated tests and disposable live pilots. The larger campaign definitions and run durations below remain proposed work. A scoped worker outage has been exercised in an isolated fixture; production capacity and hardware qualification have not been performed. See [VALIDATION.md](VALIDATION.md) for recorded evidence.
 
 ## Implementation progress
 
@@ -11,21 +11,29 @@ for prepared transaction inputs and existing test tenants. It supports ordered
 steady/burst/recovery stages on the ingestion-to-async-decision path, bounded
 in-flight work, explicit generator drops, scheduled-arrival completion deadlines,
 partial reports, response identity reconciliation and optional existing telemetry.
-Focused fake-client tests cover its behavior. Live queue stability/recovery gates,
-all-queue coverage, fault controls and hardware qualification remain unimplemented;
-this is an experiment runner, not completion of the campaign below.
+An optional named River queue collector now checks the database identity and queue
+registrations, emits explicit per-queue/state counts with cap indicators, and gates
+recovery on declared backlog/age limits sustained over a sampled healthy window.
+Missing telemetry, excessive gaps and later unhealthy readings cannot pass.
+Focused tests and disposable PostgreSQL/application pilots cover this behavior.
+Versioned discovery campaigns now run ingestion, sync and async experiments with
+input fingerprints, declared shared connection budgets, reports and an optional
+scoped worker outage with a restoration watchdog. Live SQL compatibility and a
+small fixture query plan were checked. Representative query cost, observer overhead,
+all-queue coverage and hardware qualification remain unverified; this does not
+complete the full campaign below.
 
 The first implementation increment adds verified decision response/async completion handling, failure-aware acceptance, bounded pipeline execution, consumer supervision, retry accounting, atomic progress/failure reports, observer environment capture, and optional host/service metric sampling. A standalone read-only observation command permits testing collection without resetting a database. Usage and metric limitations are documented in [Database scale suite](../production_replay/DATABASE_SCALE_SUITE.md).
 
 | Work package | Current state | Remaining work |
 |---|---|---|
-| I01 Configuration and inventory | Local observer environment, source revision/dirty-state and harness hashes captured; new options validated. | Full versioned campaign schema, deployed configuration, remote/container identity, and verified path/queue registry. |
-| I02 Harness correctness | Completion evidence, deferred policy/deadlines, failure gates, cancellation, partial reports and a disk-backed evaluation identity ledger with duplicate-input/response-ID detection implemented. | Seed identity coverage, exact scenario identity coverage, independent durable-effect reconciliation, stronger disposable-target verification, setup/seeding deadlines and automatic service restoration. |
-| I03 Load scheduling | Existing bounded concurrency pipeline retained; separate queue campaign adds fixed-arrival stages, scheduled-arrival timing, explicit generator drops and input-cohort reporting. | Automated rate search, repeated qualification, mixed-path workloads and live pilot validation. |
-| I04 Telemetry | Local CPU/memory/disk/network counters, service runtime/pool snapshots and optional read-only PostgreSQL/public River collection implemented; incomplete requested collection fails acceptance. Database collector tested with fake subprocesses only. | Live SQL/query-plan validation, case_queue/non-River adapters, remote exporters, reset-aware rates, full-run server histograms, tracing and observer-overhead qualification. |
-| I05 Fault controls | Planned. | Scoped controls, persistent restoration journal and watchdog. |
-| I06 Reconciliation and report | Schema-versioned partial/final reports and response-identity reconciliation gates implemented. | Independent durable-effect reconciliation, campaign qualification gates, correlated visual reports and hardware sizing outputs. |
-| I07 Campaign cases | Plan and focused foundation tests present. | Versioned executable experiment definitions and real disposable-service pilots. |
+| I01 Configuration and inventory | Versioned discovery configuration, source hashes, observer environment and declared shared connection budget implemented. | Effective deployment inventory, immutable service image evidence and complete path/queue registry. |
+| I02 Harness correctness | Completion/deadline gates, cancellation, partial reports, disk reserve checks, disk-backed identity ledger and cross-run input preflight/fingerprints implemented. | Seed and exact scenario identity coverage, general durable-effect reconciliation, setup/seeding deadlines. |
+| I03 Load scheduling | Fixed-arrival stages for ingestion, sync and async paths, generator drops and cohort reporting; small live pilots passed. | Automated rate search, repeated qualification and concurrent mixed-path workloads. |
+| I04 Telemetry | Host/service/PostgreSQL snapshots, named River counts, sampled recovery and reset-aware CPU/commit summaries implemented; live SQL fixture and actual River collection passed. | Representative plans/overhead, non-River adapters, remote exporters, server histograms and tracing. |
+| I05 Fault controls | Disposable Docker worker outage with identity/label checks, restoration journal and independent watchdog; live normal restoration and controller hard-kill pilots passed. | Network/dependency/database faults and broader orchestration controls. |
+| I06 Reconciliation and report | HTML cohort reports, response identity reconciliation, live selected-queue recovery and isolated fixture durable counts implemented. | General identity-level durable reconciliation, wider qualification gates and hardware sizing outputs. |
+| I07 Campaign cases | Versioned discovery example plus actual ingestion/sync/async and worker-outage smoke pilots passed using one shared disposable PostgreSQL database. | Remaining C/Q/N/D/P cases, representative workloads, long runs and production qualification. |
 
 This progress table is the implementation record. Later sections describe the intended completed framework, not a claim that every capability already exists. Local tests and an observer-only pilot do not establish deployed performance or full business-outcome correctness.
 
