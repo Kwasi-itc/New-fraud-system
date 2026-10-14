@@ -84,7 +84,8 @@ Add Marble-style per-rule evaluation evidence to the new decision-engine service
 - The legacy Marble API stores and exposes per-rule evaluation data.
 - The main design decision is whether the new API should expose raw evaluation trees, merged definition/evaluation trees, or both.
 - Implemented approach: persist a merged evaluation snapshot on each rule execution so decision reads do not need to reconstruct evidence from current rule definitions.
-- Payload-size control: store and return evaluation snapshots only for `hit` rule executions. `no_hit` and `snoozed` executions remain summary-only.
+- Updated October 14, 2026: store and return evaluation snapshots for both `hit` and `no_hit` executions. Snoozed executions remain summary-only. Existing non-hit executions are not backfilled. The decision detail UI displays false comparison evidence and zero score contribution for non-hits. The existing JSONB column and API contract are reused.
+- Non-hit coverage includes concurrent evaluation, all-no-hit and mixed outcomes, short-circuit evidence, JSON/API serialization, and a disposable PostgreSQL integration test for persistence, rollback, and tenant isolation. Production storage/latency sizing and browser interaction verification remain separate rollout checks.
 - Verification run:
   - `go test ./internal/service ./internal/runtime/ast_eval ./internal/httpapi/handlers ./internal/store/postgres`
   - `cmd /c npm.cmd exec tsc --noEmit`

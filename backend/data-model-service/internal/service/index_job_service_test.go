@@ -65,6 +65,15 @@ type stubIndexJobRepository struct {
 	retried []uuid.UUID
 }
 
+func (s *stubIndexJobRepository) GetByDedupeKey(_ context.Context, key string) (*datamodel.IndexJob, error) {
+	for _, job := range s.jobs {
+		if job.DedupeKey == key {
+			return &job, s.err
+		}
+	}
+	return nil, s.err
+}
+
 func (s *stubIndexJobRepository) Create(_ context.Context, job datamodel.IndexJob) error {
 	s.created = append(s.created, job)
 	s.jobs = append(s.jobs, job)

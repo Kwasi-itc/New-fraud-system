@@ -59,9 +59,7 @@ func evaluateRules(
 			}
 
 			result.Matched = matched
-			if matched {
-				result.Evaluation = evaluation
-			}
+			result.Evaluation = evaluation
 			results[i] = result
 			return nil
 		})

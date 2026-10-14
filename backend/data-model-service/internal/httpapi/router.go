@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/display"
 	"log/slog"
 	"time"
 
@@ -214,6 +215,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/pivots", dataModelHandler.ListPivots)
 	v1.POST("/tenants/:tenantId/pivots", dataModelHandler.CreatePivot)
 	v1.GET("/tables/:tableId/options", dataModelHandler.GetOptions)
+	displayHandler := handlers.DisplayHandler{Store: display.Store{DB: db, Transactions: transactionManager, SetCaption: tableService.UpdateDisplayCaption}}
+	v1.GET("/tables/:tableId/display-settings", displayHandler.Get)
+	v1.PUT("/tables/:tableId/display-settings", displayHandler.Save)
+	v1.POST("/tenants/:tenantId/record-displays", displayHandler.Read)
 	v1.PUT("/tables/:tableId/options", dataModelHandler.UpsertOptions)
 	v1.GET("/tables/:tableId/navigation-options", dataModelHandler.ListNavigationOptions)
 	v1.POST("/tables/:tableId/navigation-options", dataModelHandler.CreateNavigationOption)

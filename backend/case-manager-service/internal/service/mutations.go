@@ -30,7 +30,7 @@ func (s CaseService) CreateCase(ctx context.Context, in CreateCaseInput, actorID
 		return casepkg.Case{}, err
 	}
 	actorID = access.Actor(ctx)
-	return transact(ctx, s, func(tx CaseService) (casepkg.Case, error) { return tx.createCase(ctx, in, actorID) })
+	return transact(ctx, s, func(tx CaseService) (casepkg.Case, error) { return tx.createCaseWithReceipt(ctx, in, actorID) })
 }
 
 func (s CaseService) UpdateCase(ctx context.Context, in UpdateCaseInput, actorID *string) (casepkg.Case, error) {

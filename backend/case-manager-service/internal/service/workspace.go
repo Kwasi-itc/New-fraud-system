@@ -119,7 +119,16 @@ func (s CaseService) WorkspaceOverview(ctx context.Context, tenant, id uuid.UUID
 			return item, err
 		}
 		item.Contributors, err = tx.contributors.List(ctx, tenant, id)
-		return item, err
+		if err != nil {
+			return item, err
+		}
+		if item.AssignedTo != nil && *item.AssignedTo != "" {
+			names, _ := tx.contributors.ResolveNames(ctx, tenant, []string{*item.AssignedTo})
+			if n, ok := names[*item.AssignedTo]; ok && n != "" {
+				item.AssignedToName = &n
+			}
+		}
+		return item, nil
 	})
 }
 func (s CaseService) WorkspaceLinks(ctx context.Context, tenant, id uuid.UUID, kind string, before *casepkg.Cursor, limit int) (casepkg.LinkPage, error) {

@@ -463,11 +463,25 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 	}
 	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{UserVerifier: verifier, AuthMode: "token", AuthToken: "service-token", ServiceTenantIDs: []uuid.UUID{tenant}})
 	casePath := "/v1/tenants/" + tenant.String() + "/cases/" + c.ID.String()
+	selectionPath := "/v1/tenants/" + tenant.String() + "/decision-case-memberships"
+	selectionBody := `{"decision_ids":["` + decision.String() + `"]}`
+	creationPath := "/v1/tenants/" + tenant.String() + "/cases"
+	creationBody, err := json.Marshal(map[string]any{"name": "Selected via HTTP", "inbox_id": inbox.ID, "type": "decision", "decision_ids": []uuid.UUID{seedDecision(t, db, tenant), seedDecision(t, db, tenant)}, "operation_id": uuid.New()})
+	if err != nil {
+		t.Fatal(err)
+	}
 	inboxPath := "/internal/v1/tenants/" + tenant.String() + "/inboxes/" + inbox.ID.String()
 	for _, tt := range []struct {
 		method, path, token, body string
 		want                      int
 	}{
+		{"POST", selectionPath, sign("analyst-1", tenant), selectionBody, 200},
+		{"POST", selectionPath, sign("analyst-1", tenant), `{"decision_ids":[]}`, 400},
+		{"POST", selectionPath, sign("analyst-1", tenant), `{"decision_ids":["invalid"]}`, 400},
+		{"POST", selectionPath, sign("analyst-1", uuid.New()), selectionBody, 403},
+		{"POST", selectionPath, "service-token", selectionBody, 401},
+		{"POST", creationPath, sign("analyst-1", tenant), string(creationBody), 201},
+		{"POST", creationPath, sign("analyst-1", tenant), string(creationBody), 201},
 		{"GET", casePath, sign("analyst-1", tenant), "", 200},
 		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String() + "&include_snoozed=true", sign("analyst-1", tenant), "", 200},
 		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String(), sign("analyst-1", uuid.New()), "", 403},

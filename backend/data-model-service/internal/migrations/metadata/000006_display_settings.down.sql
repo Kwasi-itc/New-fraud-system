@@ -1,0 +1,12 @@
+DROP TRIGGER clean_link_display ON core.model_links;
+DROP FUNCTION core.clean_link_display_v1();
+DROP TRIGGER clean_field_display ON core.model_fields;
+DROP FUNCTION core.clean_field_display_v1();
+DROP TRIGGER touch_display_caption ON core.model_tables;
+DROP FUNCTION core.touch_display_caption_v1();
+DROP TRIGGER touch_display_options ON core.table_options;
+DROP FUNCTION core.touch_display_options_v1();
+DROP TRIGGER validate_display_options ON core.table_options;
+DROP FUNCTION core.validate_display_options_v1();
+ALTER TABLE core.model_tables DROP COLUMN display_version;
+ALTER TABLE core.table_options DROP COLUMN field_display;

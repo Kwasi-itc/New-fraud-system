@@ -71,6 +71,7 @@ func (h CaseHandler) Create(c *gin.Context) {
 		return
 	}
 	var body struct {
+		OperationID *uuid.UUID   `json:"operation_id"`
 		InboxID     uuid.UUID    `json:"inbox_id"`
 		Name        string       `json:"name"`
 		AssigneeID  *string      `json:"assignee_id"`
@@ -82,7 +83,7 @@ func (h CaseHandler) Create(c *gin.Context) {
 		return
 	}
 	item, err := h.service.CreateCase(c.Request.Context(), service.CreateCaseInput{
-		TenantID: tid, InboxID: body.InboxID, Name: body.Name, AssigneeID: body.AssigneeID, Type: body.Type, DecisionIDs: body.DecisionIDs,
+		TenantID: tid, InboxID: body.InboxID, Name: body.Name, AssigneeID: body.AssigneeID, Type: body.Type, DecisionIDs: body.DecisionIDs, OperationID: body.OperationID,
 	}, actorID(c))
 	if err != nil {
 		presentError(c, err)

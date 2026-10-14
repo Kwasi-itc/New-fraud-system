@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +18,19 @@ type IndexJobRepository struct {
 
 func NewIndexJobRepository(db executor) IndexJobRepository {
 	return IndexJobRepository{db: db}
+}
+
+func (r IndexJobRepository) GetByDedupeKey(ctx context.Context, key string) (*datamodel.IndexJob, error) {
+	job, err := scanIndexJob(r.db.QueryRow(ctx, `SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
+ requested_by_operation, error_message, attempt_count, requested_at, started_at, completed_at, scheduled_at, dedupe_key
+ FROM core.index_jobs WHERE dedupe_key=$1 AND dedupe_key<>''`, key))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &job, nil
 }
 
 func (r IndexJobRepository) Create(ctx context.Context, job datamodel.IndexJob) error {

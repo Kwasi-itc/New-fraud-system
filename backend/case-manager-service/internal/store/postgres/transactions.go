@@ -19,13 +19,14 @@ func NewUnitOfWork(db *pgxpool.Pool) UnitOfWork { return UnitOfWork{db: db} }
 
 func NewRepositories(db queryable) ports.Repositories {
 	return ports.Repositories{
-		Explorer:  ExplorationRepository{db: db},
-		Analytics: AnalyticsRepository{db: db},
-		Reports:   ReportRepository{db: db},
-		Uploads:   UploadRepository{db: db},
-		Workspace: WorkspaceRepository{db: db},
-		Intake:    IntakeRepository{db: db},
-		Inboxes:   NewInboxRepository(db), Cases: NewCaseRepository(db),
+		Selections: DecisionSelectionRepository{db: db},
+		Explorer:   ExplorationRepository{db: db},
+		Analytics:  AnalyticsRepository{db: db},
+		Reports:    ReportRepository{db: db},
+		Uploads:    UploadRepository{db: db},
+		Workspace:  WorkspaceRepository{db: db},
+		Intake:     IntakeRepository{db: db},
+		Inboxes:    NewInboxRepository(db), Cases: NewCaseRepository(db),
 		Decisions: NewDecisionLinkRepository(db), Screenings: NewScreeningLinkRepository(db),
 		Tags: NewTagRepository(db), Events: NewEventRepository(db), Files: NewFileRepository(db),
 		Memberships: MembershipRepository{db: db}, Contributors: ContributorRepository{db: db}, References: ReferenceRepository{db: db},

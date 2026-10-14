@@ -28,18 +28,15 @@ func ensureManagedIndexJobTx(
 	}
 
 	dedupeKey := datamodel.BuildIndexJobDedupeKey(tenantID, table.ID, jobType, columns)
-	existingJobs, err := store.IndexJobs().ListByTenant(ctx, tenantID)
+	existing, err := store.IndexJobs().GetByDedupeKey(ctx, dedupeKey)
 	if err != nil {
 		return datamodel.IndexJob{}, false, err
 	}
 
-	for _, existing := range existingJobs {
-		if existing.DedupeKey != dedupeKey {
-			continue
-		}
+	if existing != nil {
 		switch existing.Status {
 		case datamodel.IndexJobStatusPending, datamodel.IndexJobStatusRunning, datamodel.IndexJobStatusApplied:
-			return existing, false, nil
+			return *existing, false, nil
 		case datamodel.IndexJobStatusFailed:
 			if err := store.IndexJobs().Retry(ctx, existing.ID, now); err != nil {
 				return datamodel.IndexJob{}, false, err
@@ -50,7 +47,7 @@ func ensureManagedIndexJobTx(
 			existing.Status = datamodel.IndexJobStatusPending
 			existing.ScheduledAt = &now
 			existing.ErrorMessage = nil
-			return existing, true, nil
+			return *existing, true, nil
 		}
 	}
 

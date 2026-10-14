@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronUp, Copy } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { DecisionCaseLink } from "@/components/cases/decision-case-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { summarizeRuleFormula } from "@/lib/rule-builder";
 import { cn } from "@/lib/utils";
@@ -207,8 +208,7 @@ function formatRuleSummaryForDisplay(summary: string) {
     .replace(/\s+or\s+/g, "\nOR\n");
 }
 
-export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+export function DecisionDetailPage({ decisionId, tenantId, session }: { decisionId: string; tenantId: string; session: string }) {
   const searchParams = useSearchParams();
   const [detailOpen, setDetailOpen] = useState(true);
   const [responseOpen, setResponseOpen] = useState(true);
@@ -406,7 +406,6 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                     ["Scenario", scenario?.name ?? decision.scenario_id],
                     ["Version", iterationVersion ? `V${iterationVersion}` : decision.scenario_iteration_id],
                     ["Object Type", decision.object_type],
-                    ["Case", "-"],
                   ].map(([label, value]) => (
                     <div key={label} className="contents">
                       <div className="text-[14px] font-semibold text-slate-950">{label}</div>
@@ -420,6 +419,10 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                       </div>
                     </div>
                   ))}
+                  <div className="text-[14px] font-semibold text-slate-950">Case</div>
+                  <div className="text-[14px] text-slate-800">
+                    <DecisionCaseLink tenant={tenantId} session={session} decisionId={decision.id} />
+                  </div>
                 </div>
               ) : null}
             </CardContent>
@@ -520,6 +523,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                     </div>
                   ) : (
                     ruleExecutions.map((item) => {
+                      const scoreContribution = item.outcome === "hit" ? item.score_modifier : 0;
                       const isOpen = openRuleIds[item.id] ?? false;
                       const ruleDefinition = rulesById.get(item.rule_id);
                       const ruleSummary = ruleDefinition
@@ -553,9 +557,9 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="rounded-full border border-[#b7d1f3] bg-[#edf5ff] px-3 py-1 text-[13px] font-medium text-[#2d63b8]">
-                                {item.score_modifier >= 0
-                                  ? `+${item.score_modifier}`
-                                  : item.score_modifier}
+                                {scoreContribution >= 0
+                                  ? `+${scoreContribution}`
+                                  : scoreContribution}
                               </span>
                               <span
                                 className={cn(
@@ -588,9 +592,9 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                       Score contribution
                                     </div>
                                     <div className="mt-1">
-                                      {item.score_modifier >= 0
-                                        ? `+${item.score_modifier}`
-                                        : item.score_modifier}
+                                      {scoreContribution >= 0
+                                        ? `+${scoreContribution}`
+                                        : scoreContribution}
                                     </div>
                                   </div>
                                 </div>
@@ -672,7 +676,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: string }) {
                                   </div>
                                 ) : item.outcome.toLowerCase() === "no_hit" ? (
                                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
-                                    No evaluation snapshot is stored for non-hit rule executions.
+                                    No evaluation snapshot is available for this rule execution. Older non-hit executions were stored without evidence.
                                   </div>
                                 ) : item.outcome.toLowerCase() === "snoozed" ? (
                                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -338,8 +339,18 @@ func executionIntegrationDatabaseURL(t *testing.T) string {
 			t.Errorf("drop disposable test database: %v", err)
 		}
 	})
-	config.ConnConfig.Database = name
-	return config.ConnConfig.ConnString()
+	// ConnString returns the original input, even after ConnConfig.Database changes.
+	// Rewrite the actual DSN so destructive setup only reaches the new database.
+	parsedURL, err := neturl.Parse(url)
+	if err == nil && (parsedURL.Scheme == "postgres" || parsedURL.Scheme == "postgresql") {
+		parsedURL.Path = "/" + name
+		parsedURL.RawPath = ""
+		query := parsedURL.Query()
+		query.Del("dbname")
+		parsedURL.RawQuery = query.Encode()
+		return parsedURL.String()
+	}
+	return url + " dbname='" + name + "'"
 }
 
 func executionIntegrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {

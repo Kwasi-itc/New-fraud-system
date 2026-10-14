@@ -36,6 +36,93 @@ tags:
   - name: reconcile
     description: Administrative reconciliation between metadata and physical tenant schemas.
 paths:
+  /v1/tables/{tableId}/display-settings:
+    parameters:
+      - in: path
+        name: tableId
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      tags: [data-model]
+      summary: Read table display settings and eligible fields and links
+      description: Requires current tenant platform read access. Includes a version for optimistic concurrency.
+      responses:
+        '200':
+          description: Display settings, fields and eligible one-hop relationships
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DisplaySettings'}
+        '403': {description: Tenant or platform permission denied}
+    put:
+      tags: [data-model]
+      summary: Atomically save record caption and displayed columns
+      description: Requires current tenant platform_admin permission. Captions must be active string fields; selected columns belong to this table. A linked caption requires a declared same-tenant unique-parent link. Invalid settings, audit or index-queue failures roll back the entire save.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DisplaySettingsInput'}
+      responses:
+        '200':
+          description: Saved settings and new version
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DisplaySettings'}
+        '400': {description: Invalid settings}
+        '403': {description: Tenant or platform administrator permission denied}
+        '409': {description: Settings or schema changed; reload before saving}
+        '503': {description: Save unavailable; reload saved settings before retrying an uncertain response}
+  /v1/tenants/{tenantId}/record-displays:
+    post:
+      tags: [data-model]
+      summary: Batch-read current record captions and configured column values
+      description: Requires current tenant platform read access. Reads only configured fields for at most 100 source records, using declared one-hop links. Values reflect current ingestion data, not historical decision snapshots. Missing records return found=false and their object ID as caption. No cross-tenant resolution or arbitrary joins.
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [objects]
+              properties:
+                objects:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [object_type, object_id]
+                    properties:
+                      object_type: {type: string, maxLength: 63}
+                      object_id: {type: string, maxLength: 1024}
+      responses:
+        '200':
+          description: Columns keyed by object type and records in request order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  columns: {type: object, additionalProperties: {type: array, items: {type: object}}}
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        object_type: {type: string}
+                        object_id: {type: string}
+                        caption: {type: string}
+                        found: {type: boolean}
+                        values: {type: object, additionalProperties: true}
+        '400': {description: Invalid or oversized request}
+        '403': {description: Tenant or platform permission denied}
+        '409': {description: Source schema changed; reload and retry}
+        '503': {description: Display data temporarily unavailable}
   /healthz:
     get:
       tags: [health]
@@ -1176,6 +1263,38 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    DisplaySettingsInput:
+      type: object
+      required: [version, caption_field, displayed_fields, field_order, field_display]
+      properties:
+        version: {type: integer, format: int64}
+        caption_field: {type: string}
+        displayed_fields:
+          type: array
+          maxItems: 12
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        field_order:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        field_display:
+          type: object
+          description: Field UUID to optional label and declared link UUID.
+          additionalProperties:
+            type: object
+            properties:
+              label: {type: string, maxLength: 100}
+              link_id: {type: string, format: uuid}
+    DisplaySettings:
+      allOf:
+        - {$ref: '#/components/schemas/DisplaySettingsInput'}
+        - type: object
+          properties:
+            table_id: {type: string, format: uuid}
+            name: {type: string}
+            fields: {type: array, items: {type: object}}
+            links: {type: array, items: {type: object}}
     StatusResponse:
       type: object
       description: Simple health status envelope.

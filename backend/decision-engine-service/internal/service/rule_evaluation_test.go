@@ -72,8 +72,8 @@ func TestEvaluateRulesPreservesOrderAndSnoozes(t *testing.T) {
 	if results[2].Rule.ID != "rule-3" || results[2].Matched || results[2].Snoozed {
 		t.Fatalf("unexpected result[2] = %#v", results[2])
 	}
-	if results[2].Evaluation != nil {
-		t.Fatalf("result[2].Evaluation = %#v, want nil for no-hit rule", results[2].Evaluation)
+	if results[2].Evaluation == nil || results[2].Evaluation.ReturnValue != false {
+		t.Fatalf("result[2].Evaluation = %#v, want evidence with false result", results[2].Evaluation)
 	}
 }
 
@@ -110,6 +110,79 @@ func TestShouldSuppressRuleCancellation(t *testing.T) {
 			t.Fatalf("shouldSuppressRuleCancellation() = true, want false")
 		}
 	})
+}
+
+func TestNoHitExecutionPreservesShortCircuitEvidence(t *testing.T) {
+	t.Parallel()
+	rules := []scenario.Rule{{
+		ID: "no-hit", Name: "short circuit", ScoreModifier: 50,
+		Formula: []byte(`{"function":"and","children":[{"function":"gt","children":[{"constant":200},{"constant":300}]},{"function":"unknown_function"}]}`),
+	}}
+	results, err := evaluateRules(context.Background(), rules, asteval.Runtime{}, nil, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := results[0]
+	execution := newRuleExecution(time.Now(), "decision-1", result.Rule, result.Matched, result.Evaluation)
+	if execution.Outcome != "no_hit" || execution.Evaluation == nil {
+		t.Fatalf("expected no-hit execution with evidence, got %#v", execution)
+	}
+	evidence := execution.Evaluation
+	if evidence.ReturnValue != false || len(evidence.Children) != 2 {
+		t.Fatalf("unexpected evidence: %#v", evidence)
+	}
+	if evidence.Children[0].ReturnValue != false || !evidence.Children[1].Skipped {
+		t.Fatalf("expected false comparison followed by skipped condition: %#v", evidence.Children)
+	}
+}
+
+func TestEvaluateScenarioRetainsNoHitEvidenceAndScore(t *testing.T) {
+	t.Parallel()
+	for _, mixed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mixed=%t", mixed), func(t *testing.T) {
+			rules := []scenario.Rule{{ID: "no-hit", Name: "no hit", ScoreModifier: 100, Formula: []byte(`{"constant":false}`)}}
+			wantScore := 0
+			if mixed {
+				rules = append(rules, scenario.Rule{ID: "hit", Name: "hit", ScoreModifier: 10, Formula: []byte(`{"constant":true}`)})
+				wantScore = 10
+			}
+			result, err := evaluateScenarioByIteration(
+				context.Background(),
+				ruleTestIDGen{value: uuid.MustParse("11111111-1111-1111-1111-111111111111")},
+				ruleTestClock{now: time.Now()}, "tenant-1", "scenario-1", "iter-1",
+				DecisionEvaluationRequest{ObjectID: "txn-1", ObjectType: "transactions", Fields: map[string]any{"object_id": "txn-1"}},
+				scenarioIterationRepoStub{iteration: scenario.Iteration{
+					ID: "iter-1", ScenarioID: "scenario-1", TenantID: "tenant-1",
+					TriggerFormula: []byte(`{"constant":true}`), ScoreReviewThreshold: intPtrTest(50),
+				}},
+				ruleRepoStub{rules: rules},
+				dataModelReaderStub{model: ports.TenantModel{
+					RevisionID: "rev-1", RecordLookupField: "object_id",
+					Tables: map[string]ports.TenantModelTable{"transactions": {
+						Name: "transactions", Fields: map[string]ports.TenantModelField{
+							"object_id": {Name: "object_id", Type: "string"},
+						},
+					}},
+				}},
+				stubTenantDataReader{}, stubDecisionRepo{}, nil, nil, nil, nil,
+				asteval.AggregatePushdownModeEnabled, nil, 2,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Decision == nil || result.Decision.Score != wantScore || result.Decision.Outcome != "approve" {
+				t.Fatalf("unexpected decision: %#v", result.Decision)
+			}
+			if len(result.RuleExecutions) != len(rules) {
+				t.Fatalf("got %d executions, want %d", len(result.RuleExecutions), len(rules))
+			}
+			for i, execution := range result.RuleExecutions {
+				if execution.Evaluation == nil || execution.Evaluation.ReturnValue != (i == 1) {
+					t.Fatalf("unexpected execution evidence: %#v", execution)
+				}
+			}
+		})
+	}
 }
 
 func TestEvaluateScenarioByIterationSupportsAdvancedAggregationRules(t *testing.T) {

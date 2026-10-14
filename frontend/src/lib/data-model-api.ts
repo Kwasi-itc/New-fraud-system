@@ -339,6 +339,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const dataModelApi = {
+  getDisplaySettings: (tableId: string) => apiFetch<DisplaySettings>(`/v1/tables/${tableId}/display-settings`),
+  saveDisplaySettings: (tableId: string, settings: DisplaySettings) => apiFetch<DisplaySettings>(`/v1/tables/${tableId}/display-settings`, { method: "PUT", body: JSON.stringify({ version: settings.version, caption_field: settings.caption_field, displayed_fields: settings.displayed_fields, field_order: settings.field_order, field_display: settings.field_display }) }),
+  readRecordDisplays: (tenantId: string, objects: Array<{ object_type: string; object_id: string }>) => apiFetch<RecordDisplays>(`/v1/tenants/${tenantId}/record-displays`, { method: "POST", body: JSON.stringify({ objects }) }),
   getTenant: async (tenantId: string) =>
     apiFetch<{ tenant: Tenant }>(`/v1/tenants/${tenantId}`),
   getAssembledDataModel: async (tenantId: string) =>
@@ -420,4 +423,16 @@ export const dataModelApi = {
     ),
   listIndexJobs: async (tenantId: string) =>
     apiFetch<{ index_jobs: IndexJob[] }>(`/v1/tenants/${tenantId}/index-jobs`),
+};
+
+export type DisplaySettings = {
+  table_id: string; name: string; version: number; caption_field: string;
+  displayed_fields: string[]; field_order: string[];
+  field_display: Record<string, { label?: string; link_id?: string }>;
+  fields: Array<{ id: string; name: string; data_type: string; enum_labels: Record<string, string> }>;
+  links: Array<{ id: string; field_id: string; name: string; target_table: string; target_field: string; caption_field: string }>;
+};
+export type RecordDisplays = {
+  columns: Record<string, Array<{ id: string; label: string; data_type: string }>>;
+  records: Array<{ object_type: string; object_id: string; caption: string; found: boolean; values: Record<string, unknown> }>;
 };

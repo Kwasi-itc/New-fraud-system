@@ -19,6 +19,7 @@ type Clock interface {
 
 // Repositories is one consistent repository scope: either a pool or one transaction.
 type Repositories struct {
+	Selections   DecisionSelectionRepository
 	Explorer     ExplorationRepository
 	Analytics    AnalyticsRepository
 	Reports      ReportRepository
@@ -35,6 +36,10 @@ type Repositories struct {
 	Memberships  MembershipRepository
 	Contributors ContributorRepository
 	References   ReferenceRepository
+}
+
+type DecisionSelectionRepository interface {
+	Lookup(context.Context, uuid.UUID, []uuid.UUID, string, bool) ([]casepkg.DecisionSelection, error)
 }
 
 // ExplorationRepository reads model metadata and tenant records without mutating
@@ -148,6 +153,7 @@ type MembershipRepository interface {
 type ContributorRepository interface {
 	Add(ctx context.Context, tenantID, caseID uuid.UUID, userID string, at time.Time) error
 	List(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.Contributor, error)
+	ResolveNames(ctx context.Context, tenantID uuid.UUID, userIDs []string) (map[string]string, error)
 }
 
 // ReferenceRepository is a read-only contract over service-owned shared schemas.

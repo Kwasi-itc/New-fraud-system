@@ -75,6 +75,7 @@ type TenantSchemaMigrationRepository interface {
 }
 
 type IndexJobRepository interface {
+	GetByDedupeKey(ctx context.Context, key string) (*datamodel.IndexJob, error)
 	Create(ctx context.Context, job datamodel.IndexJob) error
 	GetByID(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error)
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.IndexJob, error)

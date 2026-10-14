@@ -213,7 +213,7 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			if !ok {
 				return datamodel.Table{}, fmt.Errorf("caption field %s not found on table %s", captionField, table.Name)
 			}
-			if field.DataType != datamodel.DataTypeString {
+			if field.Archived || field.DataType != datamodel.DataTypeString {
 				return datamodel.Table{}, fmt.Errorf("caption field must be a string field")
 			}
 		}

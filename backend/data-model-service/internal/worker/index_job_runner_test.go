@@ -52,6 +52,10 @@ type stubWorkerIndexJobRepository struct {
 	rescheduledIDs []uuid.UUID
 }
 
+func (s *stubWorkerIndexJobRepository) GetByDedupeKey(context.Context, string) (*datamodel.IndexJob, error) {
+	return nil, nil
+}
+
 func (s *stubWorkerIndexJobRepository) Create(context.Context, datamodel.IndexJob) error { return nil }
 func (s *stubWorkerIndexJobRepository) GetByID(context.Context, uuid.UUID) (datamodel.IndexJob, error) {
 	return datamodel.IndexJob{}, nil

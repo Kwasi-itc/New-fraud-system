@@ -31,8 +31,6 @@ func newRuleExecution(
 	outcome := "no_hit"
 	if matched {
 		outcome = "hit"
-	} else {
-		evaluation = nil
 	}
 	return decision.RuleExecution{
 		ID:            "",

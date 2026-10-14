@@ -101,7 +101,10 @@ func (r ContributorRepository) Add(ctx context.Context, tenantID, caseID uuid.UU
 	return err
 }
 func (r ContributorRepository) List(ctx context.Context, tenantID, caseID uuid.UUID) ([]casepkg.Contributor, error) {
-	rows, err := r.db.Query(ctx, `SELECT user_id,created_at FROM case_manager.case_contributors WHERE tenant_id=$1 AND case_id=$2 ORDER BY created_at,user_id`, tenantID, caseID)
+	rows, err := r.db.Query(ctx, `SELECT c.user_id,COALESCE(u.display_name,''),c.created_at
+	FROM case_manager.case_contributors c
+	LEFT JOIN identity.users u ON u.id::text=c.user_id
+	WHERE c.tenant_id=$1 AND c.case_id=$2 ORDER BY c.created_at,c.user_id`, tenantID, caseID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +112,29 @@ func (r ContributorRepository) List(ctx context.Context, tenantID, caseID uuid.U
 	out := []casepkg.Contributor{}
 	for rows.Next() {
 		var c casepkg.Contributor
-		if err := rows.Scan(&c.UserID, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.UserID, &c.Name, &c.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r ContributorRepository) ResolveNames(ctx context.Context, tenantID uuid.UUID, userIDs []string) (map[string]string, error) {
+	out := make(map[string]string, len(userIDs))
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.db.Query(ctx, `SELECT u.id::text,COALESCE(u.display_name,'') FROM identity.users u WHERE u.id::text = ANY($1)`, userIDs)
+	if err != nil {
+		return out, nil // Graceful fallback if identity schema isn't present in isolated test setups
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uid, name string
+		if err := rows.Scan(&uid, &name); err == nil && name != "" {
+			out[uid] = name
+		}
 	}
 	return out, rows.Err()
 }

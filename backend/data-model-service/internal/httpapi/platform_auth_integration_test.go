@@ -125,6 +125,11 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	list := "/v1/tenants/" + tenant.String() + "/tables"
 	request("GET", list, "", "", 401)
 	request("GET", list, "", raw, 200)
+	request("GET", "/v1/tables/"+table.String()+"/display-settings", "", raw, 200)
+	request("GET", "/v1/tables/"+foreign.String()+"/display-settings", "", raw, 403)
+	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 403)
+	request("POST", "/v1/tenants/"+other.String()+"/record-displays", `{"objects":[{"object_type":"objects","object_id":"1"}]}`, raw, 403)
+	request("POST", "/v1/tenants/"+tenant.String()+"/record-displays", `{"objects":[]}`, raw, 400)
 	request("PATCH", "/v1/tables/"+table.String(), `{"alias":"denied"}`, raw, 403) // DB role overrides token role claim.
 	request("GET", "/v1/tenants/"+other.String()+"/tables", "", raw, 403)
 	request("GET", "/v1/tables/"+foreign.String()+"/fields", "", raw, 403)
@@ -136,6 +141,8 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	exec("UPDATE identity.memberships SET roles=ARRAY['tenant_admin','case_manager_admin'] WHERE user_id=$1", user)
 	request("GET", list, "", raw, 403)
 	exec("UPDATE identity.memberships SET roles=ARRAY['platform_admin'] WHERE user_id=$1", user)
+	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 200)
+	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 409)
 	request("PATCH", "/v1/tables/"+table.String(), `{"alias":"allowed"}`, raw, 200)
 	request("PATCH", "/v1/tables/"+foreign.String(), `{"alias":"denied"}`, raw, 403)
 	request("POST", "/v1/tenants/"+tenant.String()+"/links", `{"name":"foreign_field","parent_table_id":"`+table.String()+`","child_table_id":"`+table.String()+`","parent_field_id":"`+foreignField.String()+`","child_field_id":"`+field.String()+`"}`, raw, 400)

@@ -1,6 +1,7 @@
 // Browser contract fixture, not an alternative authentication implementation.
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { handleDisplay, resetDisplay } from "./display-fixture.mjs";
 const tenant = "11111111-1111-4111-8111-111111111111";
 const inbox = "22222222-2222-4222-8222-222222222222";
 const id = "33333333-3333-4333-8333-333333333333";
@@ -10,6 +11,7 @@ let screeningLinks = [];
 const transferTarget = "77777777-7777-4777-8777-777777777777";
 let transfersEnabled = false, decisionTransferred = false, transferFailAck = false;
 let decisionUnlinked = false, decisionAttachDenied = false, decisionCreateLostAck = false;
+let selectionReceipts = new Map(), selectedDecisions = new Set();
 let item, events;
 let reviews = new Map(), reviewReceipts = new Map(), reviewLostAck = false, reviewDenied = false;
 let uploads, files, tags, operations, reports;
@@ -27,6 +29,9 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const send = (status, data) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
   if (url.pathname === "/health") return send(200, {});
+  if (url.pathname === "/reset") resetDisplay();
+  if (await handleDisplay(req, url, send)) return;
+  if (url.pathname === "/reset") { selectionReceipts = new Map(); selectedDecisions = new Set(); }
   if (url.pathname === "/reset") { workflowRules = new Map(); workflowLostAck = false; workflowDenied = false; }
   if (url.pathname === "/fixture/workflow-lost-ack") { workflowLostAck = true; return send(204); }
   if (url.pathname === "/fixture/workflow-denied") { workflowDenied = true; return send(204); }
@@ -168,6 +173,17 @@ createServer(async (req, res) => {
     const chunks = []; for await (const chunk of req) chunks.push(chunk); upload.bytes = Buffer.concat(chunks); return send(204);
   }
   let body = ""; for await (const chunk of req) body += chunk; const data = body ? JSON.parse(body) : {};
+  if (path === "decision-case-memberships") return send(200, { decisions: data.decision_ids.map(decision_id => decision_id === decision || selectedDecisions.has(decision_id) ? { decision_id, state: "linked", case_id: id, case_name: item.name, case_status: item.status } : decision_id.startsWith("eeeeeeee") ? { decision_id, state: "unavailable" } : { decision_id, state: "unlinked" }) });
+  if (path === "cases" && req.method === "POST" && data.operation_id) {
+    if (decisionAttachDenied) return send(403, { error: "Inbox access was revoked." });
+    const signature = JSON.stringify(data), previous = selectionReceipts.get(data.operation_id);
+    if (previous) return previous === signature ? send(201, { case: item }) : send(409, { error: "Operation conflicts." });
+    if (!data.name?.trim() || data.inbox_id !== inbox || !data.decision_ids?.length || data.decision_ids.length > 100) return send(400, { error: "Invalid creation." });
+    if (data.decision_ids.some(value => value === decision || selectedDecisions.has(value))) return send(409, { error: "Decision already belongs to a case." });
+    selectionReceipts.set(data.operation_id, signature); data.decision_ids.forEach(value => selectedDecisions.add(value)); item.name = data.name; record("case_created", data.name);
+    if (decisionCreateLostAck) { decisionCreateLostAck = false; return send(503, { error: "Creation response unavailable." }); }
+    return send(201, { case: item });
+  }
   if (path === `cases/${id}/explore`) {
     if (explorerDenied) return send(403, { error: "Investigation access was revoked." });
     if (data.decision_id !== decision) return send(404, { error: "Decision is not linked" });

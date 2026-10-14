@@ -244,6 +244,10 @@ type stubIndexJobRepository struct {
 	created []datamodel.IndexJob
 }
 
+func (s *stubIndexJobRepository) GetByDedupeKey(context.Context, string) (*datamodel.IndexJob, error) {
+	return nil, nil
+}
+
 func (s *stubIndexJobRepository) Create(_ context.Context, job datamodel.IndexJob) error {
 	s.created = append(s.created, job)
 	return nil

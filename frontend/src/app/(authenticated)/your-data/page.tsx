@@ -1,5 +1,7 @@
 "use client";
 
+import { DisplaySettingsButton } from "@/components/data-model/display-settings";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -2177,6 +2179,7 @@ export default function YourDataPage() {
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                          <DisplaySettingsButton tableId={table.id} tenant={tenantId} name={table.name} />
                           <div className="relative">
                             <button
                               type="button"

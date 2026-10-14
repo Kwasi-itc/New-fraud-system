@@ -3,6 +3,9 @@ package httpapi
 // Explicit allowlist: global tenant administration and reconcile remain service-only.
 // New routes deny human access until their policy is deliberately added.
 var platformRoutePolicies = map[string]routePolicy{
+	"GET /v1/tables/:tableId/display-settings":          {param: "tableId", write: false},
+	"PUT /v1/tables/:tableId/display-settings":          {param: "tableId", write: true},
+	"POST /v1/tenants/:tenantId/record-displays":        {param: "tenantId", write: false},
 	"GET /v1/tenants/:tenantId":                         {param: "tenantId", write: false},
 	"GET /v1/tenants/:tenantId/data-model":              {param: "tenantId", write: false},
 	"GET /v1/tenants/:tenantId/data-model/export":       {param: "tenantId", write: false},

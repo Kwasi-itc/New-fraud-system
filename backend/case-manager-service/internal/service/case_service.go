@@ -17,6 +17,7 @@ import (
 )
 
 type CaseService struct {
+	selections   ports.DecisionSelectionRepository
 	explorer     ports.ExplorationRepository
 	analytics    ports.AnalyticsRepository
 	reports      ports.ReportRepository
@@ -53,6 +54,7 @@ func NewCaseService(
 }
 
 func (s CaseService) withRepositories(r ports.Repositories) CaseService {
+	s.selections = r.Selections
 	s.explorer = r.Explorer
 	s.analytics = r.Analytics
 	s.reports = r.Reports
@@ -227,6 +229,7 @@ func (s CaseService) updateInbox(ctx context.Context, in UpdateInboxInput) (case
 }
 
 type CreateCaseInput struct {
+	OperationID *uuid.UUID
 	TenantID    uuid.UUID
 	InboxID     uuid.UUID
 	Name        string
@@ -236,6 +239,9 @@ type CreateCaseInput struct {
 }
 
 func (s CaseService) createCase(ctx context.Context, in CreateCaseInput, actorID *string) (casepkg.Case, error) {
+	if len(in.DecisionIDs) > 100 {
+		return casepkg.Case{}, casepkg.Invalid("at most 100 decisions may be added at creation")
+	}
 	if err := requireIDs(in.TenantID, in.InboxID); err != nil {
 		return casepkg.Case{}, err
 	}

@@ -1,13 +1,20 @@
 export type CaseStatus = "pending" | "investigating" | "closed";
+export type DecisionCaseMembership = {
+  decision_id: string;
+  state: "unlinked" | "linked" | "unavailable";
+  case_id?: string;
+  case_name?: string;
+  case_status?: string;
+};
 export type CaseOutcome = "unset" | "false_positive" | "valuable_alert" | "confirmed_risk";
 export type Tag = { id: string; name: string; color: string; deleted_at?: string };
 export type Inbox = { id: string; name: string; status: string; escalation_inbox_id?: string; auto_assign_enabled: boolean; sla_days?: number };
 export type InboxUser = { user_id: string; auto_assign_enabled: boolean; capacity: number };
 export type CaseRecord = {
   id: string; tenant_id: string; inbox_id: string; name: string; status: CaseStatus; outcome: CaseOutcome;
-  type: "decision" | "continuous_screening"; assigned_to?: string; snoozed_until?: string;
+  type: "decision" | "continuous_screening"; assigned_to?: string; assigned_to_name?: string; snoozed_until?: string;
   sla_due_at?: string; boost_reason?: string; review_level?: string; created_at: string; updated_at: string;
-  tags?: Tag[]; contributors?: { user_id: string; created_at: string }[];
+  tags?: Tag[]; contributors?: { user_id: string; name?: string; created_at: string }[];
 };
 export type CaseEvent = { id: string; event_type: string; user_id?: string; additional_note: string; new_value: string; previous_value: string; created_at: string };
 export type DecisionLink = { id: string; decision_id: string; object_id: string; object_type: string; pivot_value?: string; created_at: string };

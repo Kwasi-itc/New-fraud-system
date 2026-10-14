@@ -541,6 +541,84 @@ func TestDecisionHandlerGetDecisionIncludesRuleEvaluationEvidence(t *testing.T) 
 	}
 }
 
+func TestDecisionHandlerGetDecisionIncludesNoHitEvaluationEvidence(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &decisionHandlerRepoStub{
+		itemByID: decision.Decision{
+			ID:                  "dec-1",
+			TenantID:            "tenant-1",
+			ScenarioID:          "scenario-1",
+			ScenarioIterationID: "iter-1",
+			ObjectID:            "obj-1",
+			ObjectType:          "transactions",
+			Outcome:             decision.OutcomeApprove,
+			Score:               0,
+			Triggered:           true,
+			CreatedAt:           time.Date(2026, 7, 28, 10, 0, 0, 0, time.UTC),
+		},
+	}
+	ruleExecRepo := decisionHandlerRuleExecutionRepoStub{
+		items: []decision.RuleExecution{{
+			ID:            "rule-exec-1",
+			DecisionID:    "dec-1",
+			RuleID:        "rule-1",
+			RuleName:      "amount threshold",
+			Outcome:       "no_hit",
+			ScoreModifier: 25,
+			Evaluation: &domainast.EvaluationNode{
+				Function:    "gt",
+				ReturnValue: false,
+				Children: []domainast.EvaluationNode{
+					{Function: "Payload", ReturnValue: 200.0},
+					{Function: "constant", Constant: 300.0, ReturnValue: 300.0},
+				},
+			},
+			CreatedAt: time.Date(2026, 7, 28, 10, 0, 1, 0, time.UTC),
+		}},
+	}
+
+	handler := newDecisionHandlerWithRuleRepoForTests(repo, ruleExecRepo)
+	router := gin.New()
+	router.GET("/v1/tenants/:tenantId/decisions/:decisionId", handler.GetDecision)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/tenants/tenant-1/decisions/dec-1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var payload struct {
+		RuleExecutions []struct {
+			Evaluation struct {
+				Function    string `json:"function"`
+				ReturnValue any    `json:"return_value"`
+				Children    []struct {
+					ReturnValue any `json:"return_value"`
+				} `json:"children"`
+			} `json:"evaluation"`
+		} `json:"rule_executions"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(payload.RuleExecutions) != 1 {
+		t.Fatalf("len(rule_executions) = %d, want 1", len(payload.RuleExecutions))
+	}
+	evaluation := payload.RuleExecutions[0].Evaluation
+	if evaluation.Function != "gt" {
+		t.Fatalf("evaluation.function = %q, want gt", evaluation.Function)
+	}
+	if evaluation.ReturnValue != false {
+		t.Fatalf("evaluation.return_value = %#v, want false", evaluation.ReturnValue)
+	}
+	if len(evaluation.Children) != 2 {
+		t.Fatalf("len(evaluation.children) = %d, want 2", len(evaluation.Children))
+	}
+}
+
 func TestDecisionHandlerCountDecisionsReturnsCountOnly(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

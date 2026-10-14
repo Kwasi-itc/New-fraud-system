@@ -2,6 +2,14 @@
 
 This document explains live evaluation, decision creation, decision reads, and ingestion-triggered evaluation.
 
+## Rule evaluation evidence
+
+New decisions retain evaluation snapshots for both `hit` and `no_hit` rule executions in `core.rule_executions.evaluation`. Decision detail responses expose the snapshot through the existing `evaluation` field. Only hits contribute their configured score modifier to the decision score. Short-circuited conditions remain marked `skipped`; snoozed rules are not evaluated and have no snapshot.
+
+Older non-hit executions remain readable without evidence; they are not backfilled using current data. A failed scenario trigger still produces no decision. Evaluation errors retain the existing failure behavior. Decision lists remain summary-only. No additional migration is required beyond the existing rule evidence migration (000016).
+
+Retaining non-hit snapshots increases database storage, write volume, and detail response sizes, especially for decisions with many rules. Evidence is not silently truncated. Production sizing and database latency must be measured against representative workloads before making capacity claims.
+
 ## Endpoint Group
 
 - `POST /v1/tenants/:tenantId/scenarios/:scenarioId/evaluate`

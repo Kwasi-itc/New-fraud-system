@@ -1,5 +1,49 @@
 # Investigator workspace (Phase 3)
 
+## Detection selection and manual case creation — 2026-10-13
+
+The Detection page resolves session identity on the server and prefers the configured
+`NEXT_PUBLIC_DATA_MODEL_TENANT_ID` workspace (falling back to the session tenant when
+unset). This selects the requested tenant, not authorization: the unchanged user
+credential must grant access to that tenant. Its live
+decision table supports page-local row selection and a header checkbox for eligible
+rows. Page, filter, tenant or session changes clear the selection. A native modal
+dialog collects a case name and an accessible active inbox, previews selected
+decisions and permits removing them. Native dialog behavior supplies focus trapping
+and Escape dismissal before submission. Creation navigates to the resulting case.
+
+`POST /v1/tenants/:tenantId/decision-case-memberships` accepts
+`{"decision_ids":["UUID", "UUID"]}` (1–100 distinct nonzero UUIDs). It requires a
+human case principal and returns `{"decisions":[...]}`. Each entry contains
+`decision_id` and `state`: `unlinked`, `linked`, or `unavailable`. Only accessible
+linked cases include `case_id`, `case_name`, and `case_status`. Missing, foreign and
+inaccessible linked decisions all use `unavailable`, without private case details.
+This is an advisory UI snapshot; creation always validates membership again.
+One bounded SQL statement reads owner decisions and case-owned membership using
+existing indexes. It does not fetch case histories or call once per decision.
+
+`POST /v1/tenants/:tenantId/cases` retains its existing payload and additionally
+accepts optional `operation_id`. Creation accepts at most 100 decision IDs. The
+new modal always supplies an operation UUID. A normalized request (sorted decision
+IDs, trimmed name and defaulted type) and verified actor bind a receipt in the
+existing `case_manager.intake_receipts` table under `case.manual-create`. Case,
+decision links, contributors, history, outbox and receipt commit atomically. An
+identical replay returns `201` with the current authorized case, even after closure;
+changed actor/payload conflicts. Current identity and case/inbox authorization are
+rechecked on replay. Existing callers without an operation ID retain their behavior.
+
+The browser uses the existing same-origin human-session proxy. During an uncertain
+response it retains the exact request and disables editing/dismissal; Retry creation
+resolves the original receipt. A definite client rejection permits corrections.
+Known linked decisions (including closed membership) are unselectable. A concurrent
+attachment elsewhere returns conflict and leaves no partial new case. Creation
+remains subject to existing active inbox, assignment and capacity rules.
+
+No new migration is required beyond the existing intake and primary-membership
+migrations. Deploy the accepting Case Manager API before the new frontend. This
+increment does not add bulk attachment to an existing case or transfer ownership.
+Verification and rollout status are recorded in the implementation plan.
+
 Local runtime update, 2026-10-09: Case Manager and the frontend were rebuilt and
 restarted with the workflow-authoring rollout. The connection explorer and
 associated-decision code are included in those local builds. Service readiness

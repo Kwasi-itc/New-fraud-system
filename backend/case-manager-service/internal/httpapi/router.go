@@ -80,6 +80,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.GET("/tenants/:tenantId/case-queue", caseHandler.Queue)
 	v1.GET("/tenants/:tenantId/case-analytics", caseHandler.Analytics)
 	v1.GET("/tenants/:tenantId/case-session", caseHandler.Session)
+	v1.POST("/tenants/:tenantId/decision-case-memberships", caseHandler.DecisionSelections)
 	v1.POST("/tenants/:tenantId/case-bulk", caseHandler.Bulk)
 	v1.GET("/tenants/:tenantId/cases/:caseId/evidence-access/:kind/:resourceId", caseHandler.EvidenceAccess)
 	v1.GET("/tenants/:tenantId/cases/:caseId/overview", caseHandler.Overview)

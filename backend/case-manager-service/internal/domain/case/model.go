@@ -52,11 +52,12 @@ type Case struct {
 	TenantID     uuid.UUID       `json:"tenant_id"`
 	InboxID      uuid.UUID       `json:"inbox_id"`
 	Name         string          `json:"name"`
-	Status       Status          `json:"status"`
-	Outcome      Outcome         `json:"outcome"`
-	Type         Type            `json:"type"`
-	AssignedTo   *string         `json:"assigned_to,omitempty"`
-	SnoozedUntil *time.Time      `json:"snoozed_until,omitempty"`
+	Status         Status          `json:"status"`
+	Outcome        Outcome         `json:"outcome"`
+	Type           Type            `json:"type"`
+	AssignedTo     *string         `json:"assigned_to,omitempty"`
+	AssignedToName *string         `json:"assigned_to_name,omitempty"`
+	SnoozedUntil   *time.Time      `json:"snoozed_until,omitempty"`
 	BoostReason  *string         `json:"boost_reason,omitempty"`
 	ReviewLevel  *string         `json:"review_level,omitempty"`
 	CreatedAt    time.Time       `json:"created_at"`
@@ -151,6 +152,7 @@ type InboxUser struct {
 
 type Contributor struct {
 	UserID    string    `json:"user_id"`
+	Name      string    `json:"name,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
