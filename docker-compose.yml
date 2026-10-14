@@ -60,6 +60,7 @@ services:
         required: false
     environment:
       PORT: "8087"
+      AUTH_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     volumes:
       - ./.local/auth-provider/platform-private.pem:/run/secrets/platform-private.pem:ro
@@ -282,7 +283,7 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
       AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg,count_distinct
       LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
       LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
       LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
@@ -441,7 +442,7 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
       AGGREGATE_PUSHDOWN_MODE: enabled
-      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg,count_distinct
       LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
       LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
       LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}

@@ -20,6 +20,7 @@ import (
 
 type Server struct {
 	Store                   Store
+	DefaultTenantID         uuid.UUID
 	Provider                *oidcprovider.Provider
 	ProxyToken              string
 	Key                     *rsa.PrivateKey
@@ -156,7 +157,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		}
 		raw, err = s.Invitations.Accept(r.Context(), l.InvitationDigest, id)
 	} else {
-		raw, err = s.Store.CreateSession(r.Context(), id.Issuer, id.Subject)
+		raw, err = s.Store.CreateSessionForTenant(r.Context(), id.Issuer, id.Subject, s.DefaultTenantID)
 	}
 	if err != nil {
 		s.fail(w, err)

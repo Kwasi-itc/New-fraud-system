@@ -1,5 +1,91 @@
 # Case management implementation plan
 
+## Detection selection and case creation — 2026-10-13
+
+Authorized scope: select decisions on the Detection table and create one case in
+an accessible active inbox using a modal. Existing-case bulk attachment is excluded.
+
+- [x] Add a bounded, human-authorized batch membership read (maximum 100 IDs),
+  returning case details only for accessible inboxes and a generic unavailable
+  result for inaccessible/missing decisions. Reuse indexed owner references.
+- [x] Bound manual creation to 100 decision IDs and add optional actor-bound
+  operation receipts to the existing atomic creation command. Replays reauthorize
+  current case access; changed payloads conflict. Preserve existing callers.
+- [x] Resolve Detection session on the server and use the configured workspace tenant; add page-local
+  row/header selection, truthful case cells, and an accessible create-case modal.
+  Clear selection on page/filter/session changes; preserve identical retry payload
+  after uncertain responses. Use the existing same-origin case proxy.
+- [x] Verify backend atomicity, replay/concurrency, tenant/inbox denial and bounded
+  query behavior; verify browser selection, modal, errors, retry and navigation.
+- [x] Record actual checks and limitations here and in the investigator contract.
+
+Status: implemented and verified locally. The [contract](backend/case-manager-service/INVESTIGATOR_CONTRACT.md)
+documents payloads, authorization, receipts and rollout. Source changes include
+the server-authenticated Detection page/client workspace, selectable table,
+accessible modal, one batch membership query, and optional manual-create receipts.
+Cancel preserves the table selection and returns keyboard focus to its trigger.
+
+Tenant configuration correction: Detection and the default Cases route now prefer
+`NEXT_PUBLIC_DATA_MODEL_TENANT_ID`, matching Data Model and Detection detail pages.
+If unset, these server pages fall back to the session tenant. Explicit case-link
+tenant parameters remain supported. The local root `.env` was corrected to the
+requested `73900736-1141-4883-8fa9-58f4ef324ee5` tenant. Public configuration is baked
+into the frontend build, so a frontend rebuild is required. This does not change
+the authenticated tenant or grant access: a session for another tenant still receives
+an authorization failure. Auth now supports `AUTH_DEFAULT_TENANT_ID` for ordinary
+logins, wired in Compose to the same workspace setting. It checks current active
+membership before creating a session and does not rewrite old sessions. Rebuilding
+Auth and signing out/in are required to use the configured tenant. The target
+account's three admin roles in tenant `739...` were confirmed by a read-only query.
+Auth verification: `go test ./...` passed with database tests skipped; `go vet ./...`
+passed. `TestConfiguredLoginTenant` and `TestPlatformSessionsAndPermissions` passed
+against an isolated PostgreSQL 18 instance (10.008s), covering selected tenant,
+missing/inactive membership, suspended tenant, failed-login rollback, current case
+authorization and preservation of existing sessions. No live browser login has
+been verified after this Auth change; rebuilding Auth and a new sign-in are pending.
+Correction verification: production build with the requested tenant and scoped
+ESLint passed. All three `configured-tenant.spec.ts` browser checks passed against
+that build: configured Detection requests with foreign-session denial, configured
+Cases default with explicit-link preservation, and My Account case navigation.
+These use the controlled service fixture, not a real login to the target tenant.
+
+Verification on 2026-10-13:
+
+- Case Manager `go test ./...` passed with PostgreSQL tests skipped before the
+  dedicated test cluster was available. `go vet ./...` passed.
+- Isolated PostgreSQL 18: all **15 focused tests** passed (213.238s), including
+  existing membership/transfer/lifecycle regressions, signed HTTP requests,
+  concurrent same-operation creation, conflicting payload/actor, unauthorized
+  replay, tenant/private-case denial, bounds, receipt rollback and no partial case
+  after conflicting attachment. The command used
+  `go test ./internal/store/postgres -run 'TestDecisionSelections|TestManualCreateReceipt|TestPostgresHTTPIdentityBoundary|TestDecisionMembership|TestDecisionTransfer|TestPostgresLifecycle' -count=1 -timeout=15m -v`.
+- The actual membership SQL was captured and explained against 50,000 decision
+  links. Batches of 1/25/100 each issued one membership statement. The 100-row plan
+  used `decisions_pkey`, `case_decisions_primary_unique` and
+  `inbox_users_access_idx`; sampled execution was 8.995 ms. This is local query-plan
+  evidence, not a production throughput or multi-inbox workload certification.
+- Frontend production build/TypeScript passed on the final revision; focused
+  ESLint had no errors and two existing unused-component warnings in the relocated
+  Detection workspace. Fixture syntax and whitespace checks passed.
+- **32 browser tests passed** through the real Next proxy (new selection tests
+  plus existing workspace regressions). After final lazy-inbox-loading and
+  cancel/focus refinements, the four selection tests passed again against the
+  rebuilt frontend. They cover selection, linked/private rows, removal, focus,
+  scope reset, multi-decision payload, navigation, revoked access and identical
+  lost-response retry with one history event. The modal screenshot was inspected.
+
+Limitations and failed checks: the full PostgreSQL test run hit its
+default 10-minute timeout during an existing fixture's migration setup; it is not
+reported as passing. The focused run above completed with a longer allowance.
+The first browser attempt could not find its expected bundled browser; subsequent
+runs used installed Chrome. An exact-label dropdown test locator was corrected to
+the accessible combobox role. Windows sandbox restrictions prevented database
+startup/shutdown and browser-server cleanup; those operations were completed
+outside the sandbox. Browser owner/auth responses remain controlled fixtures,
+separate from real PostgreSQL/HTTP authorization tests. The isolated cluster was
+stopped after verification. No application data or deployment was changed. Deploy
+the accepting Case Manager API before the frontend; no new migration is required.
+
 2026-10-09 workflow authoring increment: the scenario Workflow page now saves
 complete case rules atomically, selects real inboxes/tags, checks current platform
 and inbox permissions, and supports explicit enable/disable. Stable retry IDs,

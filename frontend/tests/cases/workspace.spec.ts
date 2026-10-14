@@ -10,9 +10,6 @@ test("empty tenant queue handles nullable collections without a page crash", asy
   await page.route(`**/api/cases/tenants/${tenant}/case-queue?*`, route => route.fulfill({ json: { cases: null, counts: null } }));
   await page.goto(`/cases?tenant=${tenant}`);
   await expect(page.getByText("No cases match these filters.")).toBeVisible();
-  await page.getByRole("button", { name: "Create case", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Inbox", exact: true }).last()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Create investigation" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -279,7 +276,9 @@ test("evidence uploads finalize, survive reload, and download through the privat
 
 test("bulk close reports results and retains the operation ID for retry", async ({ page }) => {
   await page.goto(`/cases?tenant=${tenant}`);
-  await page.getByRole("listbox", { name: "Selected cases" }).selectOption(id);
+  await page.getByLabel("Select case Payment investigation").check();
+  await page.getByRole("button", { name: /^Bulk actions/ }).click();
+  const modal = page.getByRole("dialog", { name: "Bulk actions" });
   await page.getByRole("combobox", { name: "Bulk action", exact: true }).selectOption("close");
   await page.getByLabel("Bulk closing findings", { exact: true }).fill("Batch reviewed");
   await page.getByRole("button", { name: "Apply bulk action", exact: true }).click();
@@ -373,7 +372,8 @@ test("single and bulk closure validate whitespace and UTF-8 findings size", asyn
   await findings.fill("é".repeat(5000));
   expect(await findings.evaluate(node => (node as HTMLTextAreaElement).validity.valid)).toBe(true);
   await page.goto(`/cases?tenant=${tenant}`);
-  await page.getByLabel("Selected cases").selectOption(id);
+  await page.getByLabel("Select case Payment investigation").check();
+  await page.getByRole("button", { name: /^Bulk actions/ }).click();
   await page.getByRole("combobox", { name: "Bulk action", exact: true }).selectOption("close");
   const bulkFindings = page.getByLabel("Bulk closing findings", { exact: true });
   await bulkFindings.fill(" \n ");

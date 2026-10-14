@@ -12,6 +12,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,6 +23,10 @@ func main() {
 	}
 }
 func run() error {
+	defaultTenant, err := parseDefaultTenant(os.Getenv("AUTH_DEFAULT_TENANT_ID"))
+	if err != nil {
+		return err
+	}
 	if os.Getenv("DATABASE_URL") == "" {
 		return errors.New("DATABASE_URL is required")
 	}
@@ -53,6 +58,7 @@ func run() error {
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	app := platform.Server{Store: platform.Store{DB: db}, Provider: provider, ProxyToken: os.Getenv("AUTH_PROXY_TOKEN"), Key: key, KeyID: os.Getenv("PLATFORM_JWT_KEY_ID"), Issuer: os.Getenv("PLATFORM_JWT_ISSUER"), Audience: os.Getenv("PLATFORM_JWT_AUDIENCE"), Logger: logger}
+	app.DefaultTenantID = defaultTenant
 	if os.Getenv("AUTH_INVITATIONS_ENABLED") == "true" {
 		invitations, e := platform.NewInvitations(app.Store, provider.Issuer(), os.Getenv("AUTH_APP_ORIGIN"), os.Getenv("AUTH_INVITATION_KEY"))
 		if e != nil {
@@ -83,4 +89,15 @@ func run() error {
 	closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return server.Shutdown(closeCtx)
+}
+
+func parseDefaultTenant(value string) (uuid.UUID, error) {
+	if value == "" {
+		return uuid.Nil, nil
+	}
+	tenant, err := uuid.Parse(value)
+	if err != nil || tenant == uuid.Nil {
+		return uuid.Nil, errors.New("AUTH_DEFAULT_TENANT_ID must be a nonzero tenant UUID")
+	}
+	return tenant, nil
 }

@@ -201,6 +201,13 @@ func (s Store) Resolve(ctx context.Context, raw string) (Session, error) {
 	return v, err
 }
 func (s Store) CreateSession(ctx context.Context, issuer, subject string) (string, error) {
+	return s.CreateSessionForTenant(ctx, issuer, subject, uuid.Nil)
+}
+
+// CreateSessionForTenant selects a configured login tenant without granting access.
+// A nonzero tenant requires an active membership; it never falls back to another tenant.
+// Existing sessions and invitation-selected tenants are unaffected.
+func (s Store) CreateSessionForTenant(ctx context.Context, issuer, subject string, requestedTenant uuid.UUID) (string, error) {
 	raw := secret()
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
@@ -215,8 +222,12 @@ func (s Store) CreateSession(ctx context.Context, issuer, subject string) (strin
 	if err != nil {
 		return "", err
 	}
-	// First active tenant is deterministic. Tenant switching is a separate explicit operation.
-	err = tx.QueryRow(ctx, `SELECT m.tenant_id FROM identity.memberships m JOIN core.tenants t ON t.id=m.tenant_id WHERE m.user_id=$1 AND m.active AND t.status='active' ORDER BY m.tenant_id LIMIT 1 FOR SHARE OF m`, user).Scan(&tenant)
+	if requestedTenant == uuid.Nil {
+		// Preserve legacy selection only when no login tenant is configured.
+		err = tx.QueryRow(ctx, `SELECT m.tenant_id FROM identity.memberships m JOIN core.tenants t ON t.id=m.tenant_id WHERE m.user_id=$1 AND m.active AND t.status='active' ORDER BY m.tenant_id LIMIT 1 FOR SHARE OF m`, user).Scan(&tenant)
+	} else {
+		err = tx.QueryRow(ctx, `SELECT m.tenant_id FROM identity.memberships m JOIN core.tenants t ON t.id=m.tenant_id WHERE m.user_id=$1 AND m.tenant_id=$2 AND m.active AND t.status='active' FOR SHARE OF m`, user, requestedTenant).Scan(&tenant)
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrDenied
 	}

@@ -116,9 +116,16 @@ the broader [TODO](IMPLEMENTATION_TODO.md) remains the release tracker.
   Absolute expiry is eight hours; idle expiry is thirty minutes, extended at
   most once per five minutes. Local Chrome permits secure cookies on localhost;
   remote deployments require HTTPS. There is no provider refresh-token storage.
-* A session is bound to one tenant. This increment selects the first active
-  membership ordered by tenant UUID. **Tenant choice/switching is not implemented**;
-  do not provision multi-tenant operators expecting a selector yet.
+* A session is bound to one tenant. `AUTH_DEFAULT_TENANT_ID`, when set to a nonzero
+  UUID, selects that tenant for ordinary logins and requires an active membership
+  and active tenant. Missing access denies login; there is no fallback to another
+  membership. Invalid configuration prevents startup. When unset, login preserves
+  the legacy first-active-membership selection ordered by tenant UUID. Compose
+  sets this value from `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` so frontend and ordinary
+  login use the same configured workspace. This does not grant roles or modify
+  existing sessions: rebuild/recreate Auth, then sign out and back in. Invitation
+  acceptance still selects the invitation's tenant. Interactive tenant switching
+  is not implemented.
 * Next resolves the opaque session through a private authenticated auth endpoint.
   Auth issues an RS256 credential valid for at most sixty seconds, audience
   `case-manager`, issuer `urn:fraud:identity`, with platform `sub`, `tenant_id`,
