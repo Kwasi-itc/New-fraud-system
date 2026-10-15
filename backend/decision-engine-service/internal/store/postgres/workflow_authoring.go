@@ -25,6 +25,74 @@ func authorizeWorkflow(ctx context.Context, q queryable, t string, a workflow.Au
 	}
 	return nil
 }
+
+// Delete retains rule/action identities referenced by queued and past executions.
+// The original updated_at is retained on the tombstone for idempotent retries.
+func (r WorkflowAuthoringRepository) Delete(ctx context.Context, t, sc string, a workflow.AuthoringActor, id string, expected time.Time) error {
+	tx, err := r.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(context.Background())
+	if err = authorizeWorkflow(ctx, tx, t, a, true); err != nil {
+		return err
+	}
+	var scenario string
+	if err = tx.QueryRow(ctx, `SELECT id FROM core.scenarios WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, t, sc).Scan(&scenario); err != nil {
+		return err
+	}
+	var v workflow.StructuredRule
+	var deleted *time.Time
+	err = tx.QueryRow(ctx, `SELECT id,tenant_id,scenario_id,name,priority,fallthrough,created_at,updated_at,deleted_at FROM core.workflow_rules WHERE tenant_id=$1 AND scenario_id=$2 AND id=$3 FOR UPDATE`, t, sc, id).Scan(&v.Rule.ID, &v.Rule.TenantID, &v.Rule.ScenarioID, &v.Rule.Name, &v.Rule.Priority, &v.Rule.Fallthrough, &v.Rule.CreatedAt, &v.Rule.UpdatedAt, &deleted)
+	if err != nil {
+		return err
+	}
+	v.Conditions, err = NewWorkflowConditionRepository(tx).ListByRule(ctx, t, id)
+	if err != nil {
+		return err
+	}
+	v.Actions, err = NewWorkflowActionRepository(tx).ListByRule(ctx, t, id)
+	if err != nil {
+		return err
+	}
+	old, ok := decodeCaseRule(v)
+	if !ok {
+		return workflow.ErrAuthoringConflict
+	}
+	if old.ActionType != workflow.ActionTypeDoNothing {
+		if err = workflowInbox(ctx, tx, t, old.InboxID, a, true, false); err != nil {
+			return err
+		}
+	}
+	if !expected.Equal(v.Rule.UpdatedAt) {
+		return workflow.ErrAuthoringConflict
+	}
+	if deleted != nil {
+		return tx.Commit(ctx)
+	}
+	var legacy bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM core.workflows WHERE tenant_id=$1 AND scenario_id=$2 AND active)`, t, sc).Scan(&legacy); err != nil {
+		return err
+	}
+	if legacy {
+		return workflow.ErrAuthoringConflict
+	}
+	now := time.Now().UTC()
+	if _, err = tx.Exec(ctx, `UPDATE core.workflow_rules SET deleted_at=$4 WHERE tenant_id=$1 AND scenario_id=$2 AND id=$3`, t, sc, id, now); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE core.workflow_conditions SET function='never',updated_at=$3 WHERE tenant_id=$1 AND rule_id=$2`, t, id, now); err != nil {
+		return err
+	}
+	snapshot, err := json.Marshal(map[string]any{"operation": "delete", "rule": old})
+	if err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO core.workflow_authoring_events(id,tenant_id,scenario_id,rule_id,actor_id,snapshot,created_at) VALUES($1,$2,$3,$4,$5,$6,$7)`, uuid.NewString(), t, sc, id, a.UserID, snapshot, now); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
 func workflowInbox(ctx context.Context, q queryable, t, inbox string, a workflow.AuthoringActor, lock, requireActive bool) error {
 	suffix := ""
 	if lock {
@@ -53,24 +121,42 @@ func decodeCaseRule(v workflow.StructuredRule) (workflow.CaseRule, bool) {
 	}
 	c, a := v.Conditions[0], v.Actions[0]
 	var cfg struct {
-		Version int      `json:"authoring_version"`
-		Inbox   string   `json:"inbox_id"`
-		Name    string   `json:"name"`
-		Tags    []string `json:"tag_ids"`
+		Version   int      `json:"authoring_version"`
+		Inbox     string   `json:"inbox_id"`
+		Name      string   `json:"name"`
+		TitleMode string   `json:"title_mode"`
+		Tags      []string `json:"tag_ids"`
 	}
-	if json.Unmarshal(a.ActionConfig, &cfg) != nil || cfg.Version != 1 || (c.Function != workflow.ConditionNever && c.Function != workflow.ConditionOutcomeIn) {
+	if json.Unmarshal(a.ActionConfig, &cfg) != nil || (cfg.Version != 1 && cfg.Version != 2) {
 		return out, false
 	}
-	if json.Unmarshal(c.Params, &out.Outcomes) != nil {
-		return out, false
+	if cfg.Version == 1 {
+		if c.Function != workflow.ConditionNever && c.Function != workflow.ConditionOutcomeIn {
+			return out, false
+		}
+		if json.Unmarshal(c.Params, &out.Outcomes) != nil {
+			return out, false
+		}
+	} else {
+		out.Outcomes = []string{}
+		if c.Function != workflow.ConditionNever && c.Function != workflow.ConditionTreeMatch {
+			return out, false
+		}
+		if json.Unmarshal(c.Params, &out.Condition) != nil || out.Condition == nil {
+			return out, false
+		}
 	}
 	out.ID = v.Rule.ID
 	out.Name = v.Rule.Name
-	out.Enabled = c.Function == workflow.ConditionOutcomeIn
+	out.Enabled = c.Function != workflow.ConditionNever
 	out.ActionType = a.ActionType
 	out.InboxID = cfg.Inbox
 	out.Title = cfg.Name
+	out.TitleMode = cfg.TitleMode
 	out.TagIDs = cfg.Tags
+	if out.TagIDs == nil {
+		out.TagIDs = []string{}
+	}
 	out.UpdatedAt = &v.Rule.UpdatedAt
 	return out, out.Validate() == nil
 }
@@ -89,7 +175,7 @@ func (r WorkflowAuthoringRepository) List(ctx context.Context, t, sc string, a w
 	// Fetch all authorized inbox IDs once, rather than an authorization query per rule.
 	inboxIDs := []string{}
 	for _, v := range values {
-		if item, ok := decodeCaseRule(v); ok {
+		if item, ok := decodeCaseRule(v); ok && item.ActionType != workflow.ActionTypeDoNothing {
 			inboxIDs = append(inboxIDs, item.InboxID)
 		}
 	}
@@ -115,7 +201,7 @@ func (r WorkflowAuthoringRepository) List(ctx context.Context, t, sc string, a w
 			out.OtherRules++
 			continue
 		}
-		if visible[item.InboxID] {
+		if item.ActionType == workflow.ActionTypeDoNothing || visible[item.InboxID] {
 			out.Rules = append(out.Rules, item)
 		}
 	}
@@ -123,6 +209,15 @@ func (r WorkflowAuthoringRepository) List(ctx context.Context, t, sc string, a w
 }
 func (r WorkflowAuthoringRepository) Save(ctx context.Context, t, sc string, a workflow.AuthoringActor, in workflow.CaseRule) (workflow.CaseRule, error) {
 	empty := workflow.CaseRule{}
+	if err := in.Validate(); err != nil {
+		return empty, err
+	}
+	if in.Condition != nil {
+		in.Outcomes = []string{}
+	}
+	if in.TagIDs == nil {
+		in.TagIDs = []string{}
+	}
 	tx, err := r.DB.Begin(ctx)
 	if err != nil {
 		return empty, err
@@ -136,8 +231,10 @@ func (r WorkflowAuthoringRepository) Save(ctx context.Context, t, sc string, a w
 	if err = tx.QueryRow(ctx, `SELECT id FROM core.scenarios WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, t, sc).Scan(&scenario); err != nil {
 		return empty, err
 	}
-	if err = workflowInbox(ctx, tx, t, in.InboxID, a, true, in.Enabled); err != nil {
-		return empty, err
+	if in.ActionType != workflow.ActionTypeDoNothing {
+		if err = workflowInbox(ctx, tx, t, in.InboxID, a, true, in.Enabled); err != nil {
+			return empty, err
+		}
 	}
 	var tags int
 	if err = tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT id FROM case_manager.tags WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND (NOT $3 OR deleted_at IS NULL) ORDER BY id FOR SHARE) t`, t, in.TagIDs, in.Enabled).Scan(&tags); err != nil {
@@ -170,13 +267,24 @@ func (r WorkflowAuthoringRepository) Save(ctx context.Context, t, sc string, a w
 	if current == nil && (in.UpdatedAt != nil || len(values) >= 500) {
 		return empty, workflow.ErrAuthoringConflict
 	}
+	if current == nil {
+		var exists bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM core.workflow_rules WHERE id=$1)`, in.ID).Scan(&exists); err != nil {
+			return empty, err
+		}
+		if exists {
+			return empty, workflow.ErrAuthoringConflict
+		}
+	}
 	if current != nil {
 		old, ok := decodeCaseRule(*current)
 		if !ok {
 			return empty, workflow.ErrAuthoringConflict
 		}
-		if err = workflowInbox(ctx, tx, t, old.InboxID, a, true, false); err != nil {
-			return empty, err
+		if old.ActionType != workflow.ActionTypeDoNothing {
+			if err = workflowInbox(ctx, tx, t, old.InboxID, a, true, false); err != nil {
+				return empty, err
+			}
 		}
 		oldVersion := old.UpdatedAt
 		old.UpdatedAt = nil
@@ -195,10 +303,18 @@ func (r WorkflowAuthoringRepository) Save(ctx context.Context, t, sc string, a w
 		now = current.Rule.UpdatedAt.Add(time.Microsecond)
 	}
 	params, _ := json.Marshal(in.Outcomes)
-	cfg, _ := json.Marshal(map[string]any{"authoring_version": 1, "inbox_id": in.InboxID, "name": in.Title, "tag_ids": in.TagIDs})
+	version := 1
+	if in.Condition != nil {
+		version = 2
+		params, _ = json.Marshal(in.Condition)
+	}
+	cfg, _ := json.Marshal(map[string]any{"authoring_version": version, "inbox_id": in.InboxID, "name": in.Title, "title_mode": in.TitleMode, "tag_ids": in.TagIDs})
 	function := workflow.ConditionNever
 	if in.Enabled {
 		function = workflow.ConditionOutcomeIn
+		if in.Condition != nil {
+			function = workflow.ConditionTreeMatch
+		}
 	}
 	if current == nil {
 		rule := workflow.Rule{ID: in.ID, TenantID: t, ScenarioID: sc, Name: in.Name, Priority: priority, CreatedAt: now, UpdatedAt: now}

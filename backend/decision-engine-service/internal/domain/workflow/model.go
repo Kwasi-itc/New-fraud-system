@@ -10,6 +10,7 @@ import (
 type ActionType string
 
 const (
+	ActionTypeDoNothing           ActionType = "do_nothing"
 	ActionTypeCreateCase          ActionType = "create_case"
 	ActionTypeAddToCase           ActionType = "add_to_case"
 	ActionTypeAddToCaseIfPossible ActionType = "add_to_case_if_possible"
@@ -29,6 +30,7 @@ type ConditionType string
 
 const (
 	ConditionAlways           ConditionType = "always"
+	ConditionTreeMatch        ConditionType = "condition_tree"
 	ConditionNever            ConditionType = "never"
 	ConditionOutcomeIn        ConditionType = "outcome_in"
 	ConditionRuleHit          ConditionType = "rule_hit"
@@ -127,7 +129,7 @@ func (c Condition) Validate() error {
 		return fmt.Errorf("rule_id is required")
 	}
 	switch c.Function {
-	case ConditionAlways, ConditionNever, ConditionOutcomeIn, ConditionRuleHit, ConditionPayloadEvaluates:
+	case ConditionAlways, ConditionNever, ConditionOutcomeIn, ConditionRuleHit, ConditionPayloadEvaluates, ConditionTreeMatch:
 	default:
 		return fmt.Errorf("invalid condition function %q", c.Function)
 	}
@@ -152,7 +154,7 @@ func (a Action) Validate() error {
 		return fmt.Errorf("rule_id is required")
 	}
 	switch a.ActionType {
-	case ActionTypeCreateCase, ActionTypeAddToCase, ActionTypeAddToCaseIfPossible, ActionTypeAddTag, ActionTypeEmitEvent:
+	case ActionTypeCreateCase, ActionTypeAddToCase, ActionTypeAddToCaseIfPossible, ActionTypeAddTag, ActionTypeEmitEvent, ActionTypeDoNothing:
 	default:
 		return fmt.Errorf("invalid action_type %q", a.ActionType)
 	}

@@ -17,6 +17,7 @@ let reviews = new Map(), reviewReceipts = new Map(), reviewLostAck = false, revi
 let uploads, files, tags, operations, reports;
 let revokedSessions = new Set();
 let invitations = [];
+let workflowDeleted = new Map();
 let workflowRules = new Map(), workflowLostAck = false, workflowDenied = false;
 let explorerAttached = false, explorerLostAck = false, explorerDenied = false;
 const discoveredDecision = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -32,7 +33,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/reset") resetDisplay();
   if (await handleDisplay(req, url, send)) return;
   if (url.pathname === "/reset") { selectionReceipts = new Map(); selectedDecisions = new Set(); }
-  if (url.pathname === "/reset") { workflowRules = new Map(); workflowLostAck = false; workflowDenied = false; }
+  if (url.pathname === "/reset") { workflowRules = new Map(); workflowDeleted = new Map(); workflowLostAck = false; workflowDenied = false; }
   if (url.pathname === "/fixture/workflow-lost-ack") { workflowLostAck = true; return send(204); }
   if (url.pathname === "/fixture/workflow-denied") { workflowDenied = true; return send(204); }
   if (url.pathname.startsWith("/internal/workflow-authoring/")) {
@@ -42,7 +43,16 @@ createServer(async (req, res) => {
     if (req.method === "GET") return send(200, { scenario_name: "Payment checks", rules: [...workflowRules.values()], other_rules: 0, legacy_workflows: false });
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
-    if (body.inbox_id !== inbox || body.action_type !== "create_case" || !body.outcomes.includes("review")) return send(400, { error: "Incorrect workflow contract" });
+    if ((body.action_type !== "do_nothing" && body.inbox_id !== inbox) || !["create_case", "add_to_case_if_possible", "do_nothing"].includes(body.action_type) || (!body.condition && (!Array.isArray(body.outcomes) || body.outcomes.length === 0 || body.outcomes.some(outcome => !["approve", "review", "block_and_review", "decline"].includes(outcome))))) return send(400, { error: "Incorrect workflow contract" });
+    if (req.method === "DELETE") {
+      const saved = workflowRules.get(body.id) ?? workflowDeleted.get(body.id);
+      if (!saved) return send(404, { error: "Rule not found" });
+      if (saved.updated_at !== body.updated_at) return send(409, { error: "Workflow changed; refresh before deleting." });
+      workflowDeleted.set(body.id, saved); workflowRules.delete(body.id);
+      if (workflowLostAck) { workflowLostAck = false; return send(503, { error: "Response lost" }); }
+      return send(200, { deleted: body.id });
+    }
+    if (workflowDeleted.has(body.id)) return send(409, { error: "Rule was deleted" });
     const old = workflowRules.get(body.id);
     if (old && old.updated_at !== body.updated_at) return send(409, { error: "Workflow changed; refresh before saving." });
     const saved = { ...body, updated_at: new Date().toISOString() }; workflowRules.set(body.id, saved);

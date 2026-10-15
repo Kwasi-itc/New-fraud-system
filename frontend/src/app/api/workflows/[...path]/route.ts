@@ -40,8 +40,9 @@ async function proxy(request: Request, context: Context) {
     });
     if (response.status >= 300 && response.status < 400) return failure(502, "Unexpected service redirect.");
     const data = await response.json();
-    return Response.json(response.ok && request.method === "GET" ? { ...data, tenant_id: session.tenant_id, can_edit: canEdit } : data, { status: response.status, headers: privateHeaders });
+    return Response.json(response.ok && request.method === "GET" ? { ...data, tenant_id: session.tenant_id, user_id: session.user_id, can_edit: canEdit } : data, { status: response.status, headers: privateHeaders });
   } catch { return failure(503, "Workflow service is unavailable. Refresh before retrying."); }
 }
 export const GET = proxy;
 export const PUT = proxy;
+export const DELETE = proxy;

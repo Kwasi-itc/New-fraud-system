@@ -729,3 +729,65 @@ How it should be used:
 
 - inspect which workflow action fired
 - see whether dispatch completed or failed
+
+### Browser condition editor
+
+The authenticated workflow authoring endpoint accepts either the existing
+`outcomes` array or a `condition` tree (with empty `outcomes`). Existing rules
+remain readable and editable. Trees are saved as `condition_tree` conditions
+with action configuration `authoring_version: 2`; disabled rules retain their
+tree in a `never` condition. No database migration is required.
+
+Tree kinds are `all` (AND), `any` (OR), `always`, `never`, `outcome_in`, and
+`payload`. Groups contain `children`; outcome leaves contain `outcomes`.
+Validation limits a tree to 64 nodes and four levels and rejects empty groups.
+Payload leaves contain an exact top-level `field`, an `operator`, and a scalar
+JSON `value`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`,
+`contains`, `exists`, and `not_exists`. Existence operators omit `value`.
+Comparisons preserve JSON types; numeric comparisons do not coerce text.
+A missing field fails every comparison, including `neq`; use `not_exists`
+to match missing fields. A present null field satisfies `exists`. These
+conditions inspect the evaluated object's fields without database lookups.
+
+The `do_nothing` action has no inbox, title, or tags. A matching rule with this
+action stops subsequent rules without creating an execution or dispatching a
+request. Disabled and nonmatching rules allow subsequent rules to run. Case
+actions retain inbox authorization, tag validation, atomic auditing, optimistic
+versions, and retry behavior. Changing an existing case rule to `do_nothing`
+still requires access to its previous destination.
+
+Deploy the decision API and evaluation workers with condition-tree support
+before exposing the updated frontend; older evaluators cannot process the new
+condition kind. Related-record payload lookups are not part of this editor contract.
+
+### Drafts, deletion, and case titles
+
+The editor supports multiple unfinished rules. **Save draft** stores those edits
+in browser local storage, scoped to the authenticated user, tenant, and scenario.
+It does not activate rules or synchronize drafts across devices. **Save** on a
+rule writes that rule to the service and removes its browser draft. New rules
+append to the live order when saved. Cancel, Delete on an unsaved rule, and
+Discard drafts remove browser drafts without changing saved workflow rules.
+Drafts retain their original optimistic versions so older drafts cannot overwrite
+concurrent changes or resurrect deleted rules.
+
+`DELETE /internal/workflow-authoring/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId`
+requires the rule ID and saved `updated_at` version in its JSON body. It checks
+the current authenticated identity and destination inbox access, marks the rule
+deleted, disables its conditions, and records an audit event in one transaction.
+Repeated deletion with the same version is idempotent. Rule/action records and
+execution snapshots remain available for history and queued dispatch; active
+reads exclude deleted rules. Migration 000021 must precede the updated API and
+workers. Its rollback refuses to remove tombstones, which would reactivate rules.
+The migration bounds lock acquisition to five seconds and execution to 30 seconds.
+
+Case title templates are explicitly enabled with `title_mode: "template"`.
+Existing rules without that mode keep literal titles. Supported placeholders are
+`%object_id%`, `%object_type%`, `%decision_id%`, `%scenario_id%`, `%outcome%`, and
+`%score%`; `%%` inserts a percent sign. Unknown/unclosed placeholders are rejected.
+Templates use decision metadata only, with no SQL queries or arbitrary expressions.
+The decision engine expands titles before storing execution snapshots, so retries
+do not change titles. Expanded titles exceeding 200 UTF-8 bytes are shortened with
+an ellipsis. The case service still receives a literal `name` under its existing
+contract. Reused cases keep their existing names; the configured title applies
+only when a case is created. The UI preview uses labeled example values.

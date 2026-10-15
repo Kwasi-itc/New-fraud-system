@@ -30,7 +30,7 @@ func (r WorkflowRuleRepository) Create(ctx context.Context, item workflow.Rule) 
 func (r WorkflowRuleRepository) GetByID(ctx context.Context, tenantID, scenarioID, ruleID string) (workflow.Rule, error) {
 	const stmt = `
 		select id, tenant_id, scenario_id, name, priority, fallthrough, created_at, updated_at
-		from core.workflow_rules where tenant_id = $1 and scenario_id = $2 and id = $3
+		from core.workflow_rules where tenant_id = $1 and scenario_id = $2 and id = $3 and deleted_at IS NULL
 	`
 	var out workflow.Rule
 	err := r.q.QueryRow(ctx, stmt, tenantID, scenarioID, ruleID).
@@ -42,7 +42,7 @@ func (r WorkflowRuleRepository) ListByScenario(ctx context.Context, tenantID, sc
 	rows, err := r.q.Query(ctx, `
 		select id, tenant_id, scenario_id, name, priority, fallthrough, created_at, updated_at
 		from core.workflow_rules
-		where tenant_id = $1 and scenario_id = $2
+		where tenant_id = $1 and scenario_id = $2 and deleted_at IS NULL
 		order by priority asc, created_at asc
 	`, tenantID, scenarioID)
 	if err != nil {
@@ -65,7 +65,7 @@ func (r WorkflowRuleRepository) Update(ctx context.Context, item workflow.Rule) 
 	const stmt = `
 		update core.workflow_rules
 		set name = $1, fallthrough = $2, updated_at = $3
-		where tenant_id = $4 and scenario_id = $5 and id = $6
+		where tenant_id = $4 and scenario_id = $5 and id = $6 and deleted_at IS NULL
 		returning id, tenant_id, scenario_id, name, priority, fallthrough, created_at, updated_at
 	`
 	var out workflow.Rule
@@ -79,7 +79,7 @@ func (r WorkflowRuleRepository) Reorder(ctx context.Context, tenantID, scenarioI
 		tag, err := r.q.Exec(ctx, `
 			update core.workflow_rules
 			set priority = $1, updated_at = $2
-			where tenant_id = $3 and scenario_id = $4 and id = $5
+			where tenant_id = $3 and scenario_id = $4 and id = $5 and deleted_at IS NULL
 		`, index, updatedAt, tenantID, scenarioID, ruleID)
 		if err != nil {
 			return err
@@ -92,6 +92,6 @@ func (r WorkflowRuleRepository) Reorder(ctx context.Context, tenantID, scenarioI
 }
 
 func (r WorkflowRuleRepository) Delete(ctx context.Context, tenantID, scenarioID, ruleID string) error {
-	_, err := r.q.Exec(ctx, `delete from core.workflow_rules where tenant_id = $1 and scenario_id = $2 and id = $3`, tenantID, scenarioID, ruleID)
+	_, err := r.q.Exec(ctx, `update core.workflow_rules set deleted_at=now() where tenant_id = $1 and scenario_id = $2 and id = $3 and deleted_at IS NULL`, tenantID, scenarioID, ruleID)
 	return err
 }

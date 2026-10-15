@@ -2188,6 +2188,10 @@ func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decis
 		if !workflowMatchesOutcome(def, item.Outcome) {
 			continue
 		}
+		config, err := workflowActionConfig(def.ActionType, def.ActionConfig, item)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, workflow.Execution{
 			ID:           s.idGen.New().String(),
 			TenantID:     item.TenantID,
@@ -2196,7 +2200,7 @@ func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decis
 			ScenarioID:   item.ScenarioID,
 			ActionType:   def.ActionType,
 			Status:       workflow.ExecutionStatusPendingDispatch,
-			ActionConfig: def.ActionConfig,
+			ActionConfig: config,
 			CreatedAt:    now,
 		})
 	}
@@ -2222,6 +2226,14 @@ RuleLoop:
 			}
 		}
 		for _, action := range actions {
+			// A matching no-op consumes this branch without dispatching an action.
+			if action.ActionType == workflow.ActionTypeDoNothing {
+				continue
+			}
+			config, err := workflowActionConfig(action.ActionType, action.ActionConfig, item)
+			if err != nil {
+				return nil, err
+			}
 			out = append(out, workflow.Execution{
 				ID:               s.idGen.New().String(),
 				TenantID:         item.TenantID,
@@ -2231,7 +2243,7 @@ RuleLoop:
 				ScenarioID:       item.ScenarioID,
 				ActionType:       action.ActionType,
 				Status:           workflow.ExecutionStatusPendingDispatch,
-				ActionConfig:     action.ActionConfig,
+				ActionConfig:     config,
 				CreatedAt:        now,
 			})
 		}
@@ -2253,6 +2265,15 @@ func workflowMatchesOutcome(def workflow.Definition, outcome decision.Outcome) b
 
 func evaluateWorkflowCondition(ctx context.Context, cond workflow.Condition, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime) (bool, error) {
 	switch cond.Function {
+	case workflow.ConditionTreeMatch:
+		var tree workflow.ConditionTree
+		if err := json.Unmarshal(cond.Params, &tree); err != nil {
+			return false, err
+		}
+		if err := tree.Validate(); err != nil {
+			return false, err
+		}
+		return tree.Matches(string(item.Outcome), runtime.Fields), nil
 	case workflow.ConditionAlways:
 		return true, nil
 	case workflow.ConditionNever:

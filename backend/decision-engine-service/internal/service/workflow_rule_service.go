@@ -353,6 +353,12 @@ func (s WorkflowRuleService) validateCondition(ctx context.Context, tenantID, sc
 		return err
 	}
 	switch item.Function {
+	case workflow.ConditionTreeMatch:
+		var tree workflow.ConditionTree
+		if err := json.Unmarshal(item.Params, &tree); err != nil {
+			return err
+		}
+		return tree.Validate()
 	case workflow.ConditionAlways, workflow.ConditionNever:
 		if len(item.Params) > 0 && string(item.Params) != "null" {
 			return fmt.Errorf("condition %s does not take params", item.Function)

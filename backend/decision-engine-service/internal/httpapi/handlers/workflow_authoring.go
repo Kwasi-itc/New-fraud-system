@@ -57,11 +57,20 @@ func (h WorkflowAuthoringHandler) Handle(c *gin.Context) {
 			c.JSON(400, gin.H{"error": "Rule ID mismatch."})
 			return
 		}
-		if err = in.Validate(); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
-			return
+		if c.Request.Method == "DELETE" {
+			if v, e := uuid.Parse(in.ID); e != nil || v == uuid.Nil || in.UpdatedAt == nil {
+				c.JSON(400, gin.H{"error": "Rule ID and saved version are required."})
+				return
+			}
+			err = h.Service.Delete(ctx, t, sc, a, in.ID, *in.UpdatedAt)
+			result = gin.H{"deleted": in.ID}
+		} else {
+			if err = in.Validate(); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			result, err = h.Service.Save(ctx, t, sc, a, in)
 		}
-		result, err = h.Service.Save(ctx, t, sc, a, in)
 	}
 	if err != nil {
 		status := 500

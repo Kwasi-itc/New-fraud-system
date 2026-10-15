@@ -3,12 +3,23 @@ package service
 import (
 	"context"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
+	"time"
 )
 
 type WorkflowAuthoringStore interface {
 	List(context.Context, string, string, workflow.AuthoringActor) (workflow.AuthoringPage, error)
 	Save(context.Context, string, string, workflow.AuthoringActor, workflow.CaseRule) (workflow.CaseRule, error)
+	Delete(context.Context, string, string, workflow.AuthoringActor, string, time.Time) error
 }
+
+func (s WorkflowAuthoringService) Delete(ctx context.Context, t, sc string, a workflow.AuthoringActor, id string, expected time.Time) error {
+	err := s.Store.Delete(ctx, t, sc, a, id, expected)
+	if err == nil && s.Cache != nil {
+		s.Cache.InvalidateWorkflowRules(ctx, t, sc)
+	}
+	return err
+}
+
 type WorkflowAuthoringService struct {
 	Store WorkflowAuthoringStore
 	Cache DecisionMetadataCacheInvalidator

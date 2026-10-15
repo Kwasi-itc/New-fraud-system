@@ -13,6 +13,13 @@ func IsCaseAction(kind ActionType) bool {
 }
 
 func ValidateActionConfig(kind ActionType, raw json.RawMessage) error {
+	if kind == ActionTypeDoNothing {
+		var cfg map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &cfg); err != nil || cfg == nil {
+			return fmt.Errorf("do_nothing requires an action configuration object")
+		}
+		return nil
+	}
 	if !IsCaseAction(kind) && kind != ActionTypeAddTag && kind != ActionTypeEmitEvent {
 		return fmt.Errorf("unsupported action_type %q", kind)
 	}

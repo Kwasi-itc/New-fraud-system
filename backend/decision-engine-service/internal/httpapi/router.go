@@ -248,6 +248,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		group := router.Group("/internal/workflow-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.WorkflowAuthoringToken}))
 		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
 		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
+		group.DELETE("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
 	}
 	snoozeHandler := handlers.NewSnoozeHandler(snoozeService)
 	outboxHandler := handlers.NewOutboxHandler(outboxService)
