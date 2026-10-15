@@ -318,7 +318,7 @@ func parseIncludeTotalCount(c *gin.Context) bool {
 }
 
 func decisionListFilterFromQuery(c *gin.Context) service.DecisionListFilter {
-	return service.DecisionListFilter{
+	filter := service.DecisionListFilter{
 		DecisionID:     c.Query("decision_id"),
 		ScenarioID:     c.Query("scenario_id"),
 		ObjectIDPrefix: c.Query("object_id_prefix"),
@@ -327,6 +327,19 @@ func decisionListFilterFromQuery(c *gin.Context) service.DecisionListFilter {
 		Outcome:        normalizeDecisionOutcomeFilter(c.Query("outcome")),
 		Search:         strings.TrimSpace(c.Query("search")),
 	}
+
+	if rawMin := strings.TrimSpace(c.Query("min_score")); rawMin != "" {
+		if val, err := strconv.Atoi(rawMin); err == nil {
+			filter.MinScore = &val
+		}
+	}
+	if rawMax := strings.TrimSpace(c.Query("max_score")); rawMax != "" {
+		if val, err := strconv.Atoi(rawMax); err == nil {
+			filter.MaxScore = &val
+		}
+	}
+
+	return filter
 }
 
 func parseDecisionCursor(c *gin.Context) (*ports.DecisionListCursor, bool, bool) {

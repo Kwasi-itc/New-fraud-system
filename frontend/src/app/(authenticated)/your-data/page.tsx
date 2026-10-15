@@ -473,6 +473,7 @@ export default function YourDataPage() {
     useState<(typeof semanticTypes)[number]>("entity");
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldName, setFieldName] = useState("");
+  const [fieldAlias, setFieldAlias] = useState("");
   const [fieldDescription, setFieldDescription] = useState("");
   const [fieldIsRequired, setFieldIsRequired] = useState(false);
   const [fieldType, setFieldType] =
@@ -914,6 +915,7 @@ export default function YourDataPage() {
 
   function resetCreateFieldForm() {
     setFieldName("");
+    setFieldAlias("");
     setFieldDescription("");
     setFieldIsRequired(false);
     setFieldType("string");
@@ -934,6 +936,7 @@ export default function YourDataPage() {
     setFieldTable(table);
     setEditingField(field);
     setFieldName(field.name);
+    setFieldAlias(field.alias || "");
     setFieldDescription(field.description || "");
     setFieldIsRequired(!field.nullable);
     setFieldType(
@@ -1341,6 +1344,7 @@ export default function YourDataPage() {
         tableId: fieldTable.id,
         payload: {
           name: fieldName.trim(),
+          alias: fieldAlias.trim() || undefined,
           description: fieldDescription.trim() || undefined,
           data_type: fieldType,
           nullable: !fieldIsRequired,
@@ -1395,6 +1399,7 @@ export default function YourDataPage() {
       await updateFieldMutation.mutateAsync({
         fieldId: editingField.id,
         payload: {
+          alias: fieldAlias.trim(),
           description: fieldDescription.trim() || undefined,
           nullable: !fieldIsRequired,
           is_enum: fieldIsEnum,
@@ -2304,7 +2309,14 @@ export default function YourDataPage() {
                                         index % 2 === 1 && "bg-slate-50/60"
                                       )}
                                     >
-                                      <td className="px-4 py-3">{field.name}</td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-medium text-slate-900">{field.alias || field.name}</span>
+                                          {field.alias ? (
+                                            <span className="font-mono text-xs text-slate-400">{field.name}</span>
+                                          ) : null}
+                                        </div>
+                                      </td>
                                       <td className="px-4 py-3">{formatFieldType(field.data_type)}</td>
                                       <td className="px-4 py-3">
                                         {field.nullable ? "Optional" : "Required"}
@@ -2648,6 +2660,19 @@ export default function YourDataPage() {
                     onChange={(event) => setFieldName(event.target.value)}
                     placeholder="Field name"
                     autoFocus
+                    className="h-11 rounded-md border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[15px] font-medium text-slate-900" htmlFor="field-alias">
+                    Alias (Display name)
+                  </label>
+                  <Input
+                    id="field-alias"
+                    value={fieldAlias}
+                    onChange={(event) => setFieldAlias(event.target.value)}
+                    placeholder="Display alias (e.g. Amount Paid)"
                     className="h-11 rounded-md border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
                   />
                 </div>
@@ -3214,6 +3239,20 @@ export default function YourDataPage() {
                     value={fieldName}
                     disabled
                     className="h-11 rounded-md border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[15px] font-medium text-slate-900" htmlFor="edit-field-alias">
+                    Alias (Display name)
+                  </label>
+                  <Input
+                    id="edit-field-alias"
+                    value={fieldAlias}
+                    onChange={(event) => setFieldAlias(event.target.value)}
+                    placeholder="Display alias (e.g. Amount Paid)"
+                    autoFocus
+                    className="h-11 rounded-md border-slate-200 focus:border-[#2563eb] focus:ring-[3px] focus:ring-blue-100"
                   />
                 </div>
 

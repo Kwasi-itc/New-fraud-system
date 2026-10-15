@@ -28,6 +28,9 @@ pii-hmac.key
 .local/auth-provider/
 .local/stress-python-deps/
 backend/stress-tests/database-scale-runs/
+.local/decision-commit-preview/
+backend/stress-tests/fraud_data/
+backend/stress-tests/internal-sync-replay-runs/
 
 # IDE and OS noise
 .DS_Store

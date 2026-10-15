@@ -39,6 +39,7 @@ import type {
   ScreeningLink,
   QueuePage,
 } from "@/lib/case-manager-api";
+import { useRecordDisplays } from "@/components/detection/decision-display";
 import {
   CaseNav,
   ClosingFindings,
@@ -117,15 +118,15 @@ export function CaseDetail({
 
   const cursor = item
     ? btoa(
-        JSON.stringify({
-          id: item.id,
-          at: item.created_at,
-          boosted: !!item.boost_reason,
-        })
-      )
-        .replaceAll("+", "-")
-        .replaceAll("/", "_")
-        .replace(/=+$/, "")
+      JSON.stringify({
+        id: item.id,
+        at: item.created_at,
+        boosted: !!item.boost_reason,
+      })
+    )
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replace(/=+$/, "")
     : "";
 
   const next = useCaseQuery<QueuePage>(
@@ -370,7 +371,7 @@ export function CaseDetail({
                       disabled={write.isPending}
                       className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                       aria-label={`Remove tag ${tag.name}${tag.deleted_at ? " (archived)" : ""}`}
-                      onClick={() => void submit(`/tags/${tag.id}`, {}, "DELETE").catch(() => {})}
+                      onClick={() => void submit(`/tags/${tag.id}`, {}, "DELETE").catch(() => { })}
                     >
                       <TagIcon className="size-3 text-slate-400" />
                       <span>
@@ -541,7 +542,7 @@ export function CaseDetail({
                     disabled={write.isPending}
                     onClick={() =>
                       void submit("/assign", { assignee_id: identity.data?.subject }).catch(
-                        () => {}
+                        () => { }
                       )
                     }
                     className="text-sm"
@@ -552,7 +553,7 @@ export function CaseDetail({
                     size="sm"
                     variant="outline"
                     disabled={write.isPending || !item.assigned_to}
-                    onClick={() => void submit("/unassign").catch(() => {})}
+                    onClick={() => void submit("/unassign").catch(() => { })}
                     className="text-sm"
                   >
                     Unassign
@@ -616,7 +617,7 @@ export function CaseDetail({
                     variant="outline"
                     size="sm"
                     disabled={write.isPending}
-                    onClick={() => void submit("/unsnooze").catch(() => {})}
+                    onClick={() => void submit("/unsnooze").catch(() => { })}
                     className="w-full text-sm"
                   >
                     Unsnooze
@@ -628,7 +629,7 @@ export function CaseDetail({
                 <div className="flex flex-wrap gap-2">
                   <Button
                     disabled={write.isPending}
-                    onClick={() => void submit("", { status: "investigating" }, "PATCH").catch(() => {})}
+                    onClick={() => void submit("", { status: "investigating" }, "PATCH").catch(() => { })}
                     className="text-sm"
                   >
                     Reopen investigation
@@ -637,7 +638,7 @@ export function CaseDetail({
                     <Button
                       variant="outline"
                       disabled={write.isPending}
-                      onClick={() => void submit("/unassign").catch(() => {})}
+                      onClick={() => void submit("/unassign").catch(() => { })}
                       className="text-sm"
                     >
                       Unassign
@@ -808,6 +809,9 @@ function CaseDecisionsPanel({
   id: string;
 }) {
   const decisions = useCaseLinks<DecisionLink>(tenant, session, id, "decisions");
+  const items = decisions.data?.pages.flatMap((page) => page.items) ?? [];
+  const objects = items.map((link) => ({ object_type: link.object_type, object_id: link.object_id }));
+  const displays = useRecordDisplays(tenant, session, objects);
 
   return (
     <Panel title="Linked decisions">
@@ -817,9 +821,9 @@ function CaseDecisionsPanel({
         <p className="text-sm text-slate-500 italic">No linked decisions.</p>
       )}
       {!decisions.error &&
-        decisions.data?.pages
-          .flatMap((page) => page.items)
-          .map((link) => (
+        items.map((link) => {
+          const rec = displays.record(link);
+          return (
             <article
               className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/30 p-4"
               key={link.id}
@@ -855,7 +859,8 @@ function CaseDecisionsPanel({
                       link.object_type
                     )}&objectId=${encodeURIComponent(link.object_id)}`}
                   >
-                    <span className="capitalize">{link.object_type}</span>: <span className="font-mono">{link.object_id}</span>
+                    <span className="capitalize">{link.object_type}</span>:{" "}
+                    <span className="font-semibold text-slate-900">{rec?.caption || link.object_id}</span>
                     <ExternalLink className="size-3 text-slate-400" />
                   </Link>
                 </div>
@@ -887,7 +892,8 @@ function CaseDecisionsPanel({
                 </div>
               </div>
             </article>
-          ))}
+          );
+        })}
       {decisions.hasNextPage && (
         <Button
           variant="outline"

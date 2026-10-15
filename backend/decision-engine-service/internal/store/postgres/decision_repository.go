@@ -290,6 +290,16 @@ func buildDecisionFilterWhereClause(filter ports.DecisionListFilter, nextArg int
 		args = append(args, filter.Outcome)
 		nextArg++
 	}
+	if filter.MinScore != nil {
+		clauses = append(clauses, fmt.Sprintf("d.score >= $%d", nextArg))
+		args = append(args, *filter.MinScore)
+		nextArg++
+	}
+	if filter.MaxScore != nil {
+		clauses = append(clauses, fmt.Sprintf("d.score <= $%d", nextArg))
+		args = append(args, *filter.MaxScore)
+		nextArg++
+	}
 	if filter.Search != "" {
 		joinSQL = "left join core.scenarios s on s.tenant_id = d.tenant_id and s.id = d.scenario_id"
 		clauses = append(

@@ -1,0 +1,2 @@
+ALTER TABLE core.model_fields
+  ADD COLUMN IF NOT EXISTS alias TEXT NOT NULL DEFAULT '';

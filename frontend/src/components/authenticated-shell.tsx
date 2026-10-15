@@ -249,7 +249,7 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
           </div>
         </aside>
 
-        <main className="flex-1 bg-white/90 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.05)] backdrop-blur lg:p-6">
+        <main className="flex-1 min-w-0 bg-white/90 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.05)] backdrop-blur lg:p-6">
           {children}
         </main>
       </div>

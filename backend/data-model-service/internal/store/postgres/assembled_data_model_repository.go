@@ -87,6 +87,7 @@ func (r DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tena
 				ID:          field.ID,
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    field.DataType,
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,

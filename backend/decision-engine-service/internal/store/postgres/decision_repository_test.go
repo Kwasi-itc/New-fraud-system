@@ -71,3 +71,27 @@ func TestBuildDecisionFilterWhereClauseKeepsScenarioJoinConditionalForSearch(t *
 		t.Fatalf("args = %#v, want fuzzy search arg", args)
 	}
 }
+
+func TestBuildDecisionFilterWhereClauseSupportsScoreFilters(t *testing.T) {
+	t.Parallel()
+
+	minScore := 75
+	maxScore := 100
+	joinSQL, whereSQL, args := buildDecisionFilterWhereClause(ports.DecisionListFilter{
+		MinScore: &minScore,
+		MaxScore: &maxScore,
+	}, 2)
+
+	if joinSQL != "" {
+		t.Fatalf("joinSQL = %q, want empty", joinSQL)
+	}
+	if !strings.Contains(whereSQL, "d.score >= $2") {
+		t.Fatalf("whereSQL = %q, want min score predicate", whereSQL)
+	}
+	if !strings.Contains(whereSQL, "d.score <= $3") {
+		t.Fatalf("whereSQL = %q, want max score predicate", whereSQL)
+	}
+	if len(args) != 2 || args[0] != 75 || args[1] != 100 {
+		t.Fatalf("args = %#v, want score filter args", args)
+	}
+}

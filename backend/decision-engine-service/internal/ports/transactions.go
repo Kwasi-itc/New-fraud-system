@@ -128,6 +128,8 @@ type DecisionListFilter struct {
 	ObjectID       string
 	Outcome        string
 	Search         string
+	MinScore       *int
+	MaxScore       *int
 }
 
 type DecisionListCursor struct {

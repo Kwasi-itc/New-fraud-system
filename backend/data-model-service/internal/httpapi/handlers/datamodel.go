@@ -226,6 +226,7 @@ func (h DataModelHandler) CreateField(c *gin.Context) {
 		TableID:     tableID,
 		Name:        request.Name,
 		Description: request.Description,
+		Alias:       request.Alias,
 		DataType:    dataType,
 		Nullable:    request.Nullable,
 		IsEnum:      request.IsEnum,
@@ -264,6 +265,7 @@ func (h DataModelHandler) UpdateField(c *gin.Context) {
 	field, err := h.fieldService.Update(c.Request.Context(), service.UpdateFieldInput{
 		FieldID:     fieldID,
 		Description: request.Description,
+		Alias:       request.Alias,
 		Nullable:    request.Nullable,
 		IsEnum:      request.IsEnum,
 		IsUnique:    request.IsUnique,
@@ -637,6 +639,7 @@ func adaptPortableDocument(document service.PortableDataModelDocument) dto.Porta
 			fields[j] = dto.PortableFieldDocument{
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    field.DataType,
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,

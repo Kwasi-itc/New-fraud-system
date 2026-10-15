@@ -13,6 +13,8 @@ import { CaseNav, Panel, Problem, readable } from "./shared";
 import { Evidence } from "./evidence";
 import { CopyButton, StatusPill } from "./structured-data-viewer";
 
+import { useRecordDisplays, displayValue } from "@/components/detection/decision-display";
+
 export function CaseObject({
   tenant,
   session,
@@ -38,6 +40,10 @@ export function CaseObject({
     `related_to=${caseId}&include_snoozed=true`,
     detail.isSuccess
   );
+
+  const objectRefs = [{ object_type: objectType, object_id: objectId }];
+  const displays = useRecordDisplays(tenant, session, objectRefs, objectType);
+  const currentRecord = displays.record({ object_type: objectType, object_id: objectId });
 
   if (detail.error)
     return <Problem error={detail.error} retry={() => void detail.refetch()} />;
@@ -73,7 +79,9 @@ export function CaseObject({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              Object Investigation
+              {currentRecord?.caption && currentRecord.caption !== objectId
+                ? currentRecord.caption
+                : "Object Investigation"}
             </h1>
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-sm">
               <span className="rounded-md bg-blue-50 px-2.5 py-0.5 font-bold text-blue-700 uppercase tracking-wider text-xs border border-blue-200">
@@ -83,9 +91,31 @@ export function CaseObject({
                 {objectId}
               </span>
               <CopyButton text={objectId} />
+              {currentRecord?.found === false && (
+                <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                  Record unavailable in source table
+                </span>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Resolved Display Attributes */}
+        {displays.columns.length > 0 && currentRecord?.values && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2.5">
+            {displays.columns.map((col) => (
+              <div
+                key={col.id}
+                className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs flex items-center gap-1.5"
+              >
+                <span className="text-slate-500 font-medium">{col.label}:</span>
+                <span className="text-slate-900 font-semibold">
+                  {displayValue(currentRecord.values[col.id])}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Decision Evidence */}

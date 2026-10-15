@@ -20,13 +20,14 @@ func NewFieldRepository(db executor) FieldRepository {
 func (r FieldRepository) Create(ctx context.Context, field datamodel.Field) error {
 	query := `
 		INSERT INTO core.model_fields
-			(id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at)
+			(id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at, alias)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 	_, err := r.db.Exec(ctx, query,
 		field.ID, field.TenantID, field.TableID, field.Name, field.Description, field.DataType,
 		field.Nullable, field.IsEnum, field.IsUnique, field.Archived, field.CreatedAt, field.UpdatedAt,
+		field.Alias,
 	)
 	if err != nil {
 		return fmt.Errorf("insert field: %w", err)
@@ -36,7 +37,7 @@ func (r FieldRepository) Create(ctx context.Context, field datamodel.Field) erro
 
 func (r FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.Field, error) {
 	query := `
-		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at
+		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at, alias
 		FROM core.model_fields
 		WHERE id = $1
 	`
@@ -44,6 +45,7 @@ func (r FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.F
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&field.ID, &field.TenantID, &field.TableID, &field.Name, &field.Description, &field.DataType,
 		&field.Nullable, &field.IsEnum, &field.IsUnique, &field.Archived, &field.CreatedAt, &field.UpdatedAt,
+		&field.Alias,
 	)
 	if err != nil {
 		return datamodel.Field{}, fmt.Errorf("get field by id: %w", err)
@@ -53,7 +55,7 @@ func (r FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.F
 
 func (r FieldRepository) ListByTable(ctx context.Context, tableID uuid.UUID) ([]datamodel.Field, error) {
 	query := `
-		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at
+		SELECT id, tenant_id, table_id, name, description, data_type, nullable, is_enum, is_unique, archived, created_at, updated_at, alias
 		FROM core.model_fields
 		WHERE table_id = $1
 		ORDER BY created_at ASC
@@ -70,6 +72,7 @@ func (r FieldRepository) ListByTable(ctx context.Context, tableID uuid.UUID) ([]
 		if err := rows.Scan(
 			&field.ID, &field.TenantID, &field.TableID, &field.Name, &field.Description, &field.DataType,
 			&field.Nullable, &field.IsEnum, &field.IsUnique, &field.Archived, &field.CreatedAt, &field.UpdatedAt,
+			&field.Alias,
 		); err != nil {
 			return nil, fmt.Errorf("scan field: %w", err)
 		}
@@ -92,10 +95,10 @@ func (r FieldRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r FieldRepository) Update(ctx context.Context, field datamodel.Field) error {
 	query := `
 		UPDATE core.model_fields
-		SET description = $2, nullable = $3, is_enum = $4, is_unique = $5, archived = $6, updated_at = $7
+		SET description = $2, nullable = $3, is_enum = $4, is_unique = $5, archived = $6, updated_at = $7, alias = $8
 		WHERE id = $1
 	`
-	_, err := r.db.Exec(ctx, query, field.ID, field.Description, field.Nullable, field.IsEnum, field.IsUnique, field.Archived, field.UpdatedAt)
+	_, err := r.db.Exec(ctx, query, field.ID, field.Description, field.Nullable, field.IsEnum, field.IsUnique, field.Archived, field.UpdatedAt, field.Alias)
 	if err != nil {
 		return fmt.Errorf("update field: %w", err)
 	}

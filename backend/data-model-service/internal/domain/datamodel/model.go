@@ -77,6 +77,7 @@ type Field struct {
 	TableID     uuid.UUID
 	Name        string
 	Description string
+	Alias       string
 	DataType    DataType
 	Nullable    bool
 	IsEnum      bool
@@ -165,6 +166,7 @@ type AssembledField struct {
 	ID          uuid.UUID
 	Name        string
 	Description string
+	Alias       string
 	DataType    DataType
 	Nullable    bool
 	IsEnum      bool

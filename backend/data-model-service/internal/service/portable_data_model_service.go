@@ -46,6 +46,7 @@ type PortableTable struct {
 type PortableField struct {
 	Name        string
 	Description string
+	Alias       string
 	DataType    string
 	Nullable    bool
 	IsEnum      bool
@@ -161,6 +162,7 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 			fields = append(fields, PortableField{
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    string(field.DataType),
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,
@@ -301,6 +303,7 @@ func (s PortableDataModelService) Import(ctx context.Context, tenantID uuid.UUID
 				TableID:     createdTable.ID,
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    dataType,
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -28,6 +29,7 @@ type CreateFieldInput struct {
 	TableID     uuid.UUID
 	Name        string
 	Description string
+	Alias       string
 	DataType    datamodel.DataType
 	Nullable    bool
 	IsEnum      bool
@@ -44,6 +46,7 @@ type CreateFieldEnumValueSeed struct {
 type UpdateFieldInput struct {
 	FieldID     uuid.UUID
 	Description *string
+	Alias       *string
 	Nullable    *bool
 	IsEnum      *bool
 	IsUnique    *bool
@@ -105,6 +108,7 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 		TableID:     input.TableID,
 		Name:        datamodel.NormalizeName(input.Name),
 		Description: input.Description,
+		Alias:       strings.TrimSpace(input.Alias),
 		DataType:    input.DataType,
 		Nullable:    input.Nullable,
 		IsEnum:      input.IsEnum,
@@ -205,6 +209,9 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 	previousUnique := field.IsUnique
 	if input.Description != nil {
 		field.Description = *input.Description
+	}
+	if input.Alias != nil {
+		field.Alias = strings.TrimSpace(*input.Alias)
 	}
 	if input.Nullable != nil {
 		field.Nullable = *input.Nullable

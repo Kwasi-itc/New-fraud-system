@@ -52,6 +52,7 @@ func AdaptTable(table datamodel.Table) TableResponse {
 type CreateFieldRequest struct {
 	Name        string                        `json:"name" binding:"required"`
 	Description string                        `json:"description"`
+	Alias       string                        `json:"alias"`
 	DataType    string                        `json:"data_type" binding:"required"`
 	Nullable    bool                          `json:"nullable"`
 	IsEnum      bool                          `json:"is_enum"`
@@ -61,6 +62,7 @@ type CreateFieldRequest struct {
 
 type UpdateFieldRequest struct {
 	Description *string `json:"description"`
+	Alias       *string `json:"alias"`
 	Nullable    *bool   `json:"nullable"`
 	IsEnum      *bool   `json:"is_enum"`
 	IsUnique    *bool   `json:"is_unique"`
@@ -70,6 +72,7 @@ type FieldResponse struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Alias       string    `json:"alias"`
 	DataType    string    `json:"data_type"`
 	Nullable    bool      `json:"nullable"`
 	IsEnum      bool      `json:"is_enum"`
@@ -106,6 +109,7 @@ func AdaptField(field datamodel.Field) FieldResponse {
 		ID:          field.ID,
 		Name:        field.Name,
 		Description: field.Description,
+		Alias:       field.Alias,
 		DataType:    string(field.DataType),
 		Nullable:    field.Nullable,
 		IsEnum:      field.IsEnum,
@@ -335,6 +339,7 @@ type PortableTableDocument struct {
 type PortableFieldDocument struct {
 	Name        string                        `json:"name"`
 	Description string                        `json:"description"`
+	Alias       string                        `json:"alias,omitempty"`
 	DataType    string                        `json:"data_type"`
 	Nullable    bool                          `json:"nullable"`
 	IsEnum      bool                          `json:"is_enum"`
@@ -394,6 +399,7 @@ type AssembledFieldResponse struct {
 	ID          uuid.UUID                `json:"id"`
 	Name        string                   `json:"name"`
 	Description string                   `json:"description"`
+	Alias       string                   `json:"alias"`
 	DataType    string                   `json:"data_type"`
 	Nullable    bool                     `json:"nullable"`
 	IsEnum      bool                     `json:"is_enum"`
@@ -463,6 +469,7 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 				ID:          field.ID,
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    string(field.DataType),
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,

@@ -278,3 +278,129 @@ func TestDisplayRecordsRelationshipsLifecycleAndPlans(t *testing.T) {
 		t.Fatal("deleted caption not cleared", err)
 	}
 }
+
+func TestDisplayColumnsMultiFieldCrossTableAndFallbacks(t *testing.T) {
+	store, s, _ := displayFixture(t)
+	ctx := context.Background()
+
+	var amountField, stateField Field
+	for _, f := range s.Fields {
+		if f.Name == "amount" {
+			amountField = f
+		}
+		if f.Name == "state" {
+			stateField = f
+		}
+	}
+	if len(s.Links) == 0 {
+		t.Fatal("expected at least one link")
+	}
+	link := s.Links[0]
+	var targetFullName Field
+	for _, tf := range link.TargetFields {
+		if tf.Name == "full_name" {
+			targetFullName = tf
+			break
+		}
+	}
+	if targetFullName.Name == "" {
+		t.Fatal("expected full_name target field on link")
+	}
+
+	amountID := amountField.ID
+	stateID := stateField.ID
+	targetID := targetFullName.ID
+	linkID := link.ID
+
+	// 1. Validation tests
+	badTypeReq := SaveRequest{
+		Version: &s.Version,
+		DisplayColumns: []DisplayColumn{
+			{ID: "c1", Type: "unknown", Label: "Invalid"},
+		},
+	}
+	if _, err := store.Save(ctx, s.TableID, badTypeReq); err == nil {
+		t.Fatal("accepted unknown column type")
+	}
+
+	badLinkID := uuid.New()
+	badLinkReq := SaveRequest{
+		Version: &s.Version,
+		DisplayColumns: []DisplayColumn{
+			{ID: "c1", Type: "relation", Label: "Customer", LinkID: &badLinkID, TargetFieldID: &targetID},
+		},
+	}
+	if _, err := store.Save(ctx, s.TableID, badLinkReq); err == nil {
+		t.Fatal("accepted invalid link id")
+	}
+
+	badTargetID := uuid.New()
+	badTargetReq := SaveRequest{
+		Version: &s.Version,
+		DisplayColumns: []DisplayColumn{
+			{ID: "c1", Type: "relation", Label: "Customer", LinkID: &linkID, TargetFieldID: &badTargetID},
+		},
+	}
+	if _, err := store.Save(ctx, s.TableID, badTargetReq); err == nil {
+		t.Fatal("accepted invalid target field id")
+	}
+
+	// 2. Valid save with direct and cross-table relation fields
+	validReq := SaveRequest{
+		Version: &s.Version,
+		Caption: "reference",
+		DisplayColumns: []DisplayColumn{
+			{ID: "col_amount", Type: "direct", Label: "Amount Paid", FieldID: &amountID},
+			{ID: "col_state", Type: "direct", Label: "Status", FieldID: &stateID},
+			{ID: "col_customer_name", Type: "relation", Label: "Customer Name", LinkID: &linkID, TargetFieldID: &targetID},
+		},
+	}
+
+	saved, err := store.Save(ctx, s.TableID, validReq)
+	if err != nil {
+		t.Fatal("failed to save valid display columns", err)
+	}
+	if len(saved.DisplayColumns) != 3 {
+		t.Fatalf("expected 3 display columns saved, got %d", len(saved.DisplayColumns))
+	}
+
+	// 3. Read records and verify resolution
+	objects := []Object{
+		{Type: "payments", ID: "p1"},
+		{Type: "payments", ID: "p2"},
+	}
+	batch, err := store.Read(ctx, s.TenantID, objects)
+	if err != nil {
+		t.Fatal("read failed", err)
+	}
+
+	cols := batch.Columns["payments"]
+	if len(cols) != 3 {
+		t.Fatalf("expected 3 columns for payments, got %d", len(cols))
+	}
+	if cols[0].Label != "Amount Paid" || cols[1].Label != "Status" || cols[2].Label != "Customer Name" {
+		t.Fatalf("unexpected column labels: %+v", cols)
+	}
+
+	// p1 has customer 'c1' ("Ada Customer"), amount 12.5, state 'ok' ("Approved")
+	p1 := batch.Records[0]
+	if p1.Caption != "PAY-001" {
+		t.Fatalf("expected p1 caption PAY-001, got %s", p1.Caption)
+	}
+	if fmt.Sprint(p1.Values["col_amount"]) != "12.5" {
+		t.Fatalf("expected col_amount 12.5, got %v", p1.Values["col_amount"])
+	}
+	if p1.Values["col_state"] != "Approved" {
+		t.Fatalf("expected col_state 'Approved', got %v", p1.Values["col_state"])
+	}
+	if p1.Values["col_customer_name"] != "Ada Customer" {
+		t.Fatalf("expected col_customer_name 'Ada Customer', got %v", p1.Values["col_customer_name"])
+	}
+
+	// p2 has customer 'missing', amount 0, state 'unknown'
+	// Customer name should gracefully fall back to the child foreign key value "missing"
+	p2 := batch.Records[1]
+	if p2.Values["col_customer_name"] != "missing" {
+		t.Fatalf("expected missing customer fallback to 'missing', got %v", p2.Values["col_customer_name"])
+	}
+}

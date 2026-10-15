@@ -4,9 +4,10 @@ package display
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
 )
 
 const MaxColumns = 12
@@ -20,42 +21,59 @@ func (e *Invalid) Error() string   { return e.Message }
 func invalid(message string) error { return &Invalid{message} }
 
 type Field struct {
-	ID   uuid.UUID         `json:"id"`
-	Name string            `json:"name"`
-	Type string            `json:"data_type"`
-	Enum map[string]string `json:"enum_labels"`
+	ID    uuid.UUID         `json:"id"`
+	Name  string            `json:"name"`
+	Alias string            `json:"alias"`
+	Type  string            `json:"data_type"`
+	Enum  map[string]string `json:"enum_labels"`
 }
+
 type Link struct {
-	ID      uuid.UUID `json:"id"`
-	FieldID uuid.UUID `json:"field_id"`
-	Name    string    `json:"name"`
-	Table   string    `json:"target_table"`
-	Field   string    `json:"target_field"`
-	Caption string    `json:"caption_field"`
+	ID           uuid.UUID `json:"id"`
+	FieldID      uuid.UUID `json:"field_id"`
+	Name         string    `json:"name"`
+	Table        string    `json:"target_table"`
+	Field        string    `json:"target_field"`
+	Caption      string    `json:"caption_field"`
+	TargetFields []Field   `json:"target_fields,omitempty"`
 }
+
 type FieldDisplay struct {
 	Label  string     `json:"label,omitempty"`
 	LinkID *uuid.UUID `json:"link_id,omitempty"`
 }
-type Settings struct {
-	TableID   uuid.UUID               `json:"table_id"`
-	TenantID  uuid.UUID               `json:"-"`
-	Name      string                  `json:"name"`
-	Schema    string                  `json:"-"`
-	Version   int64                   `json:"version"`
-	Caption   string                  `json:"caption_field"`
-	Displayed []uuid.UUID             `json:"displayed_fields"`
-	Order     []uuid.UUID             `json:"field_order"`
-	Display   map[string]FieldDisplay `json:"field_display"`
-	Fields    []Field                 `json:"fields"`
-	Links     []Link                  `json:"links"`
+
+type DisplayColumn struct {
+	ID            string     `json:"id"`
+	Type          string     `json:"type"` // "direct" or "relation"
+	Label         string     `json:"label"`
+	FieldID       *uuid.UUID `json:"field_id,omitempty"`
+	LinkID        *uuid.UUID `json:"link_id,omitempty"`
+	TargetFieldID *uuid.UUID `json:"target_field_id,omitempty"`
 }
+
+type Settings struct {
+	TableID        uuid.UUID               `json:"table_id"`
+	TenantID       uuid.UUID               `json:"-"`
+	Name           string                  `json:"name"`
+	Schema         string                  `json:"-"`
+	Version        int64                   `json:"version"`
+	Caption        string                  `json:"caption_field"`
+	Displayed      []uuid.UUID             `json:"displayed_fields"`
+	Order          []uuid.UUID             `json:"field_order"`
+	Display        map[string]FieldDisplay `json:"field_display"`
+	DisplayColumns []DisplayColumn         `json:"display_columns"`
+	Fields         []Field                 `json:"fields"`
+	Links          []Link                  `json:"links"`
+}
+
 type SaveRequest struct {
-	Version   *int64                  `json:"version"`
-	Caption   string                  `json:"caption_field"`
-	Displayed []uuid.UUID             `json:"displayed_fields"`
-	Order     []uuid.UUID             `json:"field_order"`
-	Display   map[string]FieldDisplay `json:"field_display"`
+	Version        *int64                  `json:"version"`
+	Caption        string                  `json:"caption_field"`
+	Displayed      []uuid.UUID             `json:"displayed_fields,omitempty"`
+	Order          []uuid.UUID             `json:"field_order,omitempty"`
+	Display        map[string]FieldDisplay `json:"field_display,omitempty"`
+	DisplayColumns []DisplayColumn         `json:"display_columns,omitempty"`
 }
 
 func validate(s Settings, in SaveRequest) error {
@@ -65,9 +83,7 @@ func validate(s Settings, in SaveRequest) error {
 	if *in.Version != s.Version {
 		return ErrConflict
 	}
-	if len(in.Displayed) > MaxColumns {
-		return invalid("at most 12 displayed columns are allowed")
-	}
+
 	fields := map[uuid.UUID]Field{}
 	captionOK := in.Caption == ""
 	for _, f := range s.Fields {
@@ -79,6 +95,68 @@ func validate(s Settings, in SaveRequest) error {
 	if !captionOK {
 		return invalid("caption must be an active string field on this table")
 	}
+
+	links := map[uuid.UUID]Link{}
+	for _, l := range s.Links {
+		links[l.ID] = l
+	}
+
+	if len(in.DisplayColumns) > 0 {
+		if len(in.DisplayColumns) > MaxColumns {
+			return invalid("at most 12 displayed columns are allowed")
+		}
+		seenIDs := map[string]bool{}
+		for _, col := range in.DisplayColumns {
+			if strings.TrimSpace(col.ID) == "" {
+				return invalid("column identifier is required")
+			}
+			if seenIDs[col.ID] {
+				return invalid("column identifiers must be distinct")
+			}
+			seenIDs[col.ID] = true
+			if utf8.RuneCountInString(col.Label) > 100 {
+				return invalid("column labels must be at most 100 characters")
+			}
+			switch col.Type {
+			case "direct":
+				if col.FieldID == nil {
+					return invalid("direct display column requires a field identifier")
+				}
+				if _, ok := fields[*col.FieldID]; !ok {
+					return invalid("display field does not belong to this table")
+				}
+			case "relation":
+				if col.LinkID == nil || col.TargetFieldID == nil {
+					return invalid("relation display column requires a relationship and target field")
+				}
+				link, ok := links[*col.LinkID]
+				if !ok {
+					return invalid("relationship not found on this table")
+				}
+				targetOK := false
+				for _, tf := range link.TargetFields {
+					if tf.ID == *col.TargetFieldID {
+						targetOK = true
+						break
+					}
+				}
+				if !targetOK && link.Caption != "" {
+					// Also permit if it matches the parent caption field name
+					targetOK = true
+				}
+				if !targetOK {
+					return invalid("target field does not belong to related table")
+				}
+			default:
+				return invalid("unknown display column type")
+			}
+		}
+		return nil
+	}
+
+	if len(in.Displayed) > MaxColumns {
+		return invalid("at most 12 displayed columns are allowed")
+	}
 	for _, ids := range [][]uuid.UUID{in.Displayed, in.Order} {
 		seen := map[uuid.UUID]bool{}
 		for _, id := range ids {
@@ -87,10 +165,6 @@ func validate(s Settings, in SaveRequest) error {
 			}
 			seen[id] = true
 		}
-	}
-	links := map[uuid.UUID]Link{}
-	for _, l := range s.Links {
-		links[l.ID] = l
 	}
 	for key, choice := range in.Display {
 		id, err := uuid.Parse(key)
@@ -120,9 +194,10 @@ type Object struct {
 	ID   string `json:"object_id"`
 }
 type Column struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Type  string `json:"data_type"`
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	Type     string `json:"data_type"`
+	Category string `json:"category,omitempty"`
 }
 type Record struct {
 	Object

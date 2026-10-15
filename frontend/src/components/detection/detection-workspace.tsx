@@ -4,7 +4,7 @@ import { useDecisionDisplay, displayValue } from "@/components/detection/decisio
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, createContext, useContext, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Suspense, createContext, useContext, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,6 +24,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Sliders,
   SquarePen,
 } from "lucide-react";
 
@@ -762,6 +763,14 @@ function AnalyticsView() {
   );
 }
 
+function formatFieldLabel(name: string, alias?: string): string {
+  if (alias && alias.trim()) return alias.trim();
+  return name
+    .replace(/^col_/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function LiveDecisionsView({
   tenantId,
   scenarios,
@@ -773,8 +782,39 @@ function LiveDecisionsView({
 }) {
   const queryClient = useQueryClient();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [newFilterOpen, setNewFilterOpen] = useState(false);
+  const [columnPickerOpen, setColumnPickerOpen] = useState(false);
   const [activeFilterMenu, setActiveFilterMenu] = useState<string | null>(null);
+  const [filterSearchQuery, setFilterSearchQuery] = useState("");
+  const [columnSearchQuery, setColumnSearchQuery] = useState("");
+
+  const filtersContainerRef = useRef<HTMLDivElement>(null);
+  const columnPickerContainerRef = useRef<HTMLDivElement>(null);
+  const activeFilterContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node;
+      if (filtersOpen && filtersContainerRef.current && !filtersContainerRef.current.contains(target)) {
+        setFiltersOpen(false);
+        setFilterSearchQuery("");
+      }
+      if (columnPickerOpen && columnPickerContainerRef.current && !columnPickerContainerRef.current.contains(target)) {
+        setColumnPickerOpen(false);
+        setColumnSearchQuery("");
+      }
+      if (activeFilterMenu && activeFilterContainerRef.current && !activeFilterContainerRef.current.contains(target)) {
+        setActiveFilterMenu(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [filtersOpen, columnPickerOpen, activeFilterMenu]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [pageOffset, setPageOffset] = useState(0);
@@ -785,14 +825,40 @@ function LiveDecisionsView({
         ? [{ type: "Outcome", value: formatDecisionOutcome(initialOutcome) }]
         : []
   );
-  const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome"];
-  const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
   const selectedScenarioFilter = selectedFilters.find((item) => item.type === "Scenario")?.value;
   const selectedObjectTypeFilter = selectedFilters.find(
     (item) => item.type === "Trigger object"
   )?.value;
   const selectedObjectIDFilter = selectedFilters.find((item) => item.type === "Object ID")?.value;
   const selectedOutcomeFilter = selectedFilters.find((item) => item.type === "Outcome")?.value;
+  const selectedScoreMinFilter = selectedFilters.find((item) => item.type === "Score (min)")?.value;
+  const selectedScoreMaxFilter = selectedFilters.find((item) => item.type === "Score (max)")?.value;
+
+  const assembledModelQuery = useAssembledDataModelQuery(tenantId);
+  const allModelTables = useMemo(() => {
+    const tables = assembledModelQuery.data?.data_model?.tables;
+    if (!tables) return [];
+    return Object.values(tables)
+      .filter((t) => !t.archived)
+      .map((t) => t.name)
+      .sort();
+  }, [assembledModelQuery.data?.data_model?.tables]);
+
+  // Dynamically resolve default trigger table from tenant scenarios or data model (no hardcoded table names)
+  const defaultModelTable = useMemo(() => {
+    if (selectedScenarioFilter) {
+      const matched = scenarios.find((s) => s.name === selectedScenarioFilter);
+      if (matched?.trigger && allModelTables.includes(matched.trigger)) {
+        return matched.trigger;
+      }
+    }
+    const scenarioWithTrigger = scenarios.find((s) => s.trigger && allModelTables.includes(s.trigger));
+    if (scenarioWithTrigger?.trigger) {
+      return scenarioWithTrigger.trigger;
+    }
+    return allModelTables[0] || "";
+  }, [allModelTables, scenarios, selectedScenarioFilter]);
+
   const scenarioNameById = useMemo(
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario.name])),
     [scenarios]
@@ -818,6 +884,8 @@ function LiveDecisionsView({
         ? outcomeFilterToApiValue(selectedOutcomeFilter)
         : undefined,
       search: debouncedSearchTerm || undefined,
+      min_score: selectedScoreMinFilter && !isNaN(Number(selectedScoreMinFilter)) ? Number(selectedScoreMinFilter) : undefined,
+      max_score: selectedScoreMaxFilter && !isNaN(Number(selectedScoreMaxFilter)) ? Number(selectedScoreMaxFilter) : undefined,
     }),
     [
       debouncedSearchTerm,
@@ -826,6 +894,8 @@ function LiveDecisionsView({
       selectedObjectTypeFilter,
       selectedOutcomeFilter,
       selectedScenarioFilter,
+      selectedScoreMinFilter,
+      selectedScoreMaxFilter,
     ]
   );
   const decisionsQueryKey = useMemo(
@@ -840,6 +910,8 @@ function LiveDecisionsView({
       decisionListFilters.object_id ?? "",
       decisionListFilters.outcome ?? "",
       decisionListFilters.search ?? "",
+      decisionListFilters.min_score ?? "",
+      decisionListFilters.max_score ?? "",
     ],
     [pageOffset, pageSize, tenantId, decisionListFilters]
   );
@@ -864,6 +936,8 @@ function LiveDecisionsView({
       decisionListFilters.object_id ?? "",
       decisionListFilters.outcome ?? "",
       decisionListFilters.search ?? "",
+      decisionListFilters.min_score ?? "",
+      decisionListFilters.max_score ?? "",
     ],
     queryFn: () => decisionEngineApi.countDecisions(tenantId, decisionListFilters),
     enabled: Boolean(tenantId),
@@ -896,7 +970,102 @@ function LiveDecisionsView({
   );
   const decisions = decisionsQuery.data?.decisions ?? [];
   const { session } = useContext(DetectionIdentity);
-  const display = useDecisionDisplay(tenantId, session, decisions, selectedObjectTypeFilter);
+
+  // Available trigger object tables in the loaded decisions and data model
+  const availableTables = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of decisions) {
+      if (d.object_type) set.add(d.object_type);
+    }
+    for (const t of allModelTables) {
+      set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [decisions, allModelTables]);
+
+  const decisionsFirstObjectType = useMemo(() => {
+    return decisions.find((d) => Boolean(d.object_type))?.object_type;
+  }, [decisions]);
+
+  const effectiveDisplayTable =
+    selectedObjectTypeFilter || decisionsFirstObjectType || defaultModelTable;
+
+  const tableDef = useMemo(() => {
+    if (!effectiveDisplayTable) return undefined;
+    const tables = assembledModelQuery.data?.data_model?.tables;
+    return (
+      tables?.[effectiveDisplayTable] ??
+      Object.values(tables ?? {}).find((t) => t.name === effectiveDisplayTable)
+    );
+  }, [assembledModelQuery.data?.data_model?.tables, effectiveDisplayTable]);
+
+  const captionHeaderLabel = useMemo(() => {
+    if (!effectiveDisplayTable) return "Record ID";
+    if (!tableDef || !tableDef.caption_field) {
+      return "Record ID";
+    }
+    const fields = tableDef.fields ?? {};
+    const fieldDef =
+      fields[tableDef.caption_field] ??
+      Object.values(fields).find(
+        (f) => f.name === tableDef.caption_field || f.id === tableDef.caption_field
+      );
+    if (!fieldDef) {
+      return tableDef.caption_field;
+    }
+    return fieldDef.alias && fieldDef.alias !== fieldDef.name
+      ? `${fieldDef.alias} (${fieldDef.name})`
+      : fieldDef.name;
+  }, [tableDef, effectiveDisplayTable]);
+
+  // Optional live fetching of record display values
+  const [fetchRecordFields, setFetchRecordFields] = useState<boolean>(false);
+  const display = useDecisionDisplay(tenantId, session, decisions, effectiveDisplayTable, fetchRecordFields);
+
+  // Column visibility selection (per table)
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<Record<string, string[]>>({});
+
+  const availableColumns = useMemo(() => {
+    if (!effectiveDisplayTable) return [];
+    return display.allColumns[effectiveDisplayTable] ?? display.columns ?? [];
+  }, [display.allColumns, display.columns, effectiveDisplayTable]);
+
+  const getFilterTypeLabel = useCallback((filterType: string) => filterType, []);
+  const getFilterValueLabel = useCallback((_filterType: string, rawValue: string) => rawValue || "Any", []);
+
+  const hiddenForActiveTable = useMemo(() => {
+    return hiddenColumnIds[effectiveDisplayTable] ?? [];
+  }, [hiddenColumnIds, effectiveDisplayTable]);
+
+  const visibleColumns = useMemo(() => {
+    if (!fetchRecordFields) return [];
+    return availableColumns.filter((col) => !hiddenForActiveTable.includes(col.id));
+  }, [fetchRecordFields, availableColumns, hiddenForActiveTable]);
+
+  const outcomeFilterItems = ["Approve", "Block and Review", "Decline", "Review"];
+  const filterItems = ["Scenario", "Trigger object", "Object ID", "Outcome", "Score (min)", "Score (max)"];
+
+  const toggleColumnVisibility = (columnId: string) => {
+    setHiddenColumnIds((prev) => {
+      const current = prev[effectiveDisplayTable] ?? [];
+      const updated = current.includes(columnId)
+        ? current.filter((id) => id !== columnId)
+        : [...current, columnId];
+      return { ...prev, [effectiveDisplayTable]: updated };
+    });
+  };
+
+  const showAllColumns = () => {
+    setHiddenColumnIds((prev) => ({ ...prev, [effectiveDisplayTable]: [] }));
+  };
+
+  const hideAllColumns = () => {
+    setHiddenColumnIds((prev) => ({
+      ...prev,
+      [effectiveDisplayTable]: availableColumns.map((c) => c.id),
+    }));
+  };
+
   const selection = useDecisionSelection(tenantId, session, decisions, JSON.stringify(decisionsQueryKey), decisionsQuery.isFetching);
   const [creating, setCreating] = useState<{ scope: string; decisions: Decision[] } | null>(null);
   const selectionScope = JSON.stringify([tenantId, session, decisionsQueryKey]);
@@ -969,240 +1138,559 @@ function LiveDecisionsView({
     );
   }
 
-  if (scenarios.length === 0) {
-    return (
-      <Card className="rounded-xl border border-slate-200 shadow-none">
-        <CardContent className="p-6 text-sm text-slate-600">
-          No decisions created yet because there are no scenarios configured.
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-full max-w-md gap-1.5">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
-                <Input
-                  value={searchTerm}
-                  onChange={(event) => {
-                    setPageOffset(0);
-                    setSearchTerm(event.target.value);
-                  }}
-                  placeholder="Search by decision, object, or scenario"
-                  className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none focus:border-slate-300"
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-[13px] text-slate-600">
-              <span>Rows per page</span>
-              <select
-                value={pageSize}
+      <div className="space-y-4 min-w-0 max-w-full">
+        {/* Top Control Toolbar */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left: Search input & Filters toggle */}
+          <div className="flex flex-1 items-center gap-2 max-w-xl">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={searchTerm}
                 onChange={(event) => {
                   setPageOffset(0);
-                  setPageSize(Number(event.target.value));
+                  setSearchTerm(event.target.value);
                 }}
-                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 shadow-none outline-none focus:border-slate-300"
+                placeholder="Search by decision, object, or scenario..."
+                className="h-10 rounded-xl border-slate-200 bg-white pl-10 text-[13.5px] shadow-none focus:border-slate-300"
+              />
+            </div>
+
+            <div ref={filtersContainerRef} className="relative">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  setFiltersOpen((current) => !current);
+                  setActiveFilterMenu(null);
+                  setColumnPickerOpen(false);
+                  setFilterSearchQuery("");
+                }}
+                className={cn(
+                  "h-10 rounded-xl border-slate-200 bg-white px-3.5 text-[13.5px] shadow-none gap-2 text-slate-700 hover:bg-slate-50",
+                  filtersOpen && "border-slate-300 bg-slate-50",
+                  selectedFilters.length > 0 && "text-[#1f4f96] border-blue-200 bg-blue-50/50"
+                )}
               >
-                {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <Filter className="size-4 text-slate-500" />
+                <span>Filters</span>
+                {selectedFilters.length > 0 && (
+                  <span className="flex size-5 items-center justify-center rounded-full bg-[#1f4f96] text-[11px] font-semibold text-white">
+                    {selectedFilters.length}
+                  </span>
+                )}
+              </Button>
+
+              {filtersOpen && (
+                <div className="absolute left-0 top-12 z-30 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_18px_30px_rgba(15,23,42,0.12)]">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                    <span className="text-xs font-semibold text-slate-900">Add filter</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiltersOpen(false);
+                        setFilterSearchQuery("");
+                      }}
+                      className="text-xs text-slate-400 hover:text-slate-700 font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="relative mb-2">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      autoFocus
+                      placeholder="Search filters or fields..."
+                      value={filterSearchQuery}
+                      onChange={(e) => setFilterSearchQuery(e.target.value)}
+                      className="h-8 pl-8 pr-7 text-xs rounded-lg border-slate-200 shadow-none focus:border-blue-400"
+                    />
+                    {filterSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setFilterSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto space-y-1 pr-0.5">
+                    {(() => {
+                      const q = filterSearchQuery.trim().toLowerCase();
+                      const availableFilters = filterItems
+                        .filter((item) => !selectedFilters.some((s) => s.type === item))
+                        .filter((item) => !q || item.toLowerCase().includes(q));
+
+                      if (availableFilters.length === 0) {
+                        return (
+                          <p className="px-2 py-4 text-xs text-slate-400 text-center">
+                            {filterSearchQuery
+                              ? `No filters match "${filterSearchQuery}".`
+                              : "All filters active."}
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-0.5">
+                          {availableFilters.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                const val =
+                                  item === "Outcome"
+                                    ? "Approve"
+                                    : item === "Scenario"
+                                      ? scenarioFilterOptions[0] ?? ""
+                                      : item === "Trigger object"
+                                        ? availableTables[0] ?? ""
+                                        : item === "Score (min)"
+                                          ? "70"
+                                          : item === "Score (max)"
+                                            ? "100"
+                                            : "";
+                                upsertFilter(item, val);
+                                setFiltersOpen(false);
+                                setFilterSearchQuery("");
+                                setActiveFilterMenu(item);
+                              }}
+                              className="flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-800 hover:bg-slate-100/70 transition-colors"
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="mt-2 border-t border-slate-100 pt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFiltersOpen(false);
+                        setFilterSearchQuery("");
+                      }}
+                      className="h-7 text-xs text-slate-600"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="relative flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setFiltersOpen((current) => !current);
-                setActiveFilterMenu(null);
-              }}
-              className="h-10 rounded-xl border-slate-200 bg-white px-4 text-[14px] shadow-none"
-            >
-              <Filter className="size-4" />
-              Filters
-            </Button>
-            <Button
-              disabled={!selection.selected.length || decisionsQuery.isFetching}
-              onClick={() => setCreating({ scope: selectionScope, decisions: selection.selected })}
-              className="h-10 rounded-xl bg-[#1f4f96] px-4 text-[14px] text-white shadow-none transition-colors hover:bg-[#163f79] active:bg-[#123364] focus-visible:ring-2 focus-visible:ring-[#1f4f96] focus-visible:ring-offset-2"
-            >
-              <Plus className="size-4" />
-              Add to Case{selection.selected.length ? ` (${selection.selected.length})` : ""}
-            </Button>
-            {!!selection.selected.length && <Button variant="ghost" onClick={selection.clear}>Clear selection</Button>}
-            {filtersOpen ? (
-              <div className="absolute right-[152px] top-12 z-10 w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
-                {filterItems.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      upsertFilter(
-                        item,
-                        item === "Outcome"
-                          ? "Approve"
-                          : item === "Scenario"
-                            ? scenarioFilterOptions[0] ?? ""
-                            : ""
-                      );
-                      setFiltersOpen(false);
-                    }}
-                    className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
-                  >
-                    {item}
-                  </button>
-                ))}
+          {/* Right: Actions & View controls */}
+          <div className="flex flex-wrap items-center gap-2">
+            {selection.selected.length > 0 && (
+              <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-1.5">
+                <span className="text-xs font-semibold text-[#1f4f96]">
+                  {selection.selected.length} selected
+                </span>
+                <Button
+                  size="sm"
+                  disabled={decisionsQuery.isFetching}
+                  onClick={() => setCreating({ scope: selectionScope, decisions: selection.selected })}
+                  className="h-7 rounded-lg bg-[#1f4f96] px-3 text-xs font-medium text-white shadow-none transition-colors hover:bg-[#163f79]"
+                >
+                  <Plus className="size-3.5 mr-1" />
+                  Add to Case
+                </Button>
+                <button
+                  type="button"
+                  onClick={selection.clear}
+                  className="text-xs text-slate-500 hover:text-slate-800 transition-colors ml-1 underline"
+                >
+                  Clear
+                </button>
               </div>
-            ) : null}
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFetchRecordFields((prev) => !prev)}
+              className={cn(
+                "h-10 rounded-xl px-3.5 text-[13.5px] shadow-none border-slate-200 transition-colors gap-2",
+                fetchRecordFields
+                  ? "bg-blue-50 text-[#1f4f96] border-blue-300 font-medium"
+                  : "bg-white text-slate-700 hover:bg-slate-50"
+              )}
+            >
+              <span
+                className={cn(
+                  "size-2 rounded-full",
+                  fetchRecordFields ? "bg-blue-600 animate-pulse" : "bg-slate-300"
+                )}
+              />
+              <span>{fetchRecordFields ? "Live fields: ON" : "Fetch record fields"}</span>
+            </Button>
+
+            <div ref={columnPickerContainerRef} className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setColumnPickerOpen((prev) => !prev);
+                  setFiltersOpen(false);
+                  setActiveFilterMenu(null);
+                  setColumnSearchQuery("");
+                }}
+                className={cn(
+                  "h-10 rounded-xl border-slate-200 bg-white px-3.5 text-[13.5px] shadow-none text-slate-700 hover:bg-slate-50 gap-2",
+                  columnPickerOpen && "border-slate-300 bg-slate-50"
+                )}
+              >
+                <Sliders className="size-4 text-slate-500" />
+                <span>Columns</span>
+                {availableColumns.length > 0 && (
+                  <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+                    {visibleColumns.length}/{availableColumns.length}
+                  </span>
+                )}
+              </Button>
+
+              {columnPickerOpen && (
+                <div className="absolute right-0 top-12 z-30 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_18px_30px_rgba(15,23,42,0.12)]">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                    <span className="text-xs font-semibold text-slate-900">
+                      {effectiveDisplayTable ? `${effectiveDisplayTable.replace(/_/g, " ")} fields` : "Columns"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setColumnPickerOpen(false);
+                        setColumnSearchQuery("");
+                      }}
+                      className="text-xs text-slate-400 hover:text-slate-700 font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="relative mb-2">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      autoFocus
+                      placeholder="Search columns..."
+                      value={columnSearchQuery}
+                      onChange={(e) => setColumnSearchQuery(e.target.value)}
+                      className="h-8 pl-8 pr-7 text-xs rounded-lg border-slate-200 shadow-none focus:border-blue-400"
+                    />
+                    {columnSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setColumnSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pb-1.5 mb-1 px-0.5 text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={showAllColumns}
+                        className="text-[#1f4f96] hover:underline font-medium"
+                      >
+                        Select all
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={hideAllColumns}
+                        className="text-slate-500 hover:underline"
+                      >
+                        Deselect all
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-slate-400">
+                      {visibleColumns.length}/{availableColumns.length}
+                    </span>
+                  </div>
+
+                  {!fetchRecordFields && (
+                    <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/60 rounded-lg p-2 mb-2">
+                      Click <strong>&ldquo;Fetch record fields&rdquo;</strong> to load live record values into these columns.
+                    </div>
+                  )}
+
+                  {availableColumns.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-3 text-center">
+                      No display columns configured for {effectiveDisplayTable || "this table"}.
+                    </p>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                      {availableColumns
+                        .filter((col) => {
+                          const cq = columnSearchQuery.trim().toLowerCase();
+                          return (
+                            !cq ||
+                            (col.label && col.label.toLowerCase().includes(cq)) ||
+                            col.id.toLowerCase().includes(cq)
+                          );
+                        })
+                        .map((col) => {
+                          const isChecked = !hiddenForActiveTable.includes(col.id);
+                          return (
+                            <label
+                              key={col.id}
+                              className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-slate-800 hover:bg-slate-50 cursor-pointer select-none"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleColumnVisibility(col.id)}
+                                className="size-4 accent-[#1f4f96] rounded"
+                              />
+                              <span className="truncate font-medium">{col.label}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  )}
+
+                  <div className="mt-2 border-t border-slate-100 pt-2 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">
+                      {visibleColumns.length} visible
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setColumnPickerOpen(false);
+                          setColumnSearchQuery("");
+                        }}
+                        className="h-7 text-xs text-slate-600"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setColumnPickerOpen(false);
+                          setColumnSearchQuery("");
+                        }}
+                        className="h-7 text-xs bg-[#1f4f96] text-white hover:bg-[#163f79]"
+                      >
+                        Done
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {selectedFilters.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-3">
-            {selectedFilters.map((filter) => (
-              <div key={filter.type} className="relative">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveFilterMenu((current) =>
-                      current === filter.type ? null : filter.type
-                    )
-                  }
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-[#1f4f96]"
-                >
-                  <span className="font-medium">{filter.type}</span>
-                  <span className="text-slate-500">{filter.value || "Any"}</span>
-                  <span className="text-slate-500">×</span>
-                </button>
+        {/* Active Filters row */}
+        {selectedFilters.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {selectedFilters.map((filter) => {
+              const typeLabel = getFilterTypeLabel(filter.type);
+              const valueLabel = getFilterValueLabel(filter.type, filter.value);
 
-                {activeFilterMenu === filter.type ? (
-                  <div className="absolute left-0 top-12 z-10 w-[280px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
-                    {filter.type === "Outcome" ? (
-                      <div className="space-y-2 p-2">
-                        {outcomeFilterItems.map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            onClick={() => upsertFilter(filter.type, item)}
-                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
-                          >
-                            <span
-                              className={cn(
-                                "rounded-full px-3 py-1.5",
-                                item === "Approve"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : item === "Block and Review"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : item === "Decline"
-                                      ? "bg-rose-100 text-rose-700"
-                                      : "bg-amber-100 text-amber-700"
-                              )}
+              return (
+                <div
+                  key={filter.type}
+                  className="relative"
+                  ref={activeFilterMenu === filter.type ? activeFilterContainerRef : undefined}
+                >
+                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-800 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiltersOpen(false);
+                        setColumnPickerOpen(false);
+                        setActiveFilterMenu((current) =>
+                          current === filter.type ? null : filter.type
+                        );
+                      }}
+                      className="flex items-center gap-1.5 font-medium hover:text-[#1f4f96]"
+                    >
+                      <span className="text-slate-500 font-normal">{typeLabel}:</span>
+                      <span className="font-semibold text-slate-800 truncate max-w-[160px]">{valueLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeFilter(filter.type)}
+                      className="ml-2 text-slate-400 hover:text-slate-700 font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {activeFilterMenu === filter.type && (
+                    <div className="absolute left-0 top-10 z-30 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.12)]">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-1 px-1">
+                        <span className="text-xs font-semibold text-slate-800">{typeLabel}</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveFilterMenu(null)}
+                          className="text-xs text-slate-400 hover:text-slate-700 px-1 py-0.5 rounded"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {filter.type === "Outcome" ? (
+                        <div className="space-y-1 p-1">
+                          {outcomeFilterItems.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                upsertFilter(filter.type, item);
+                                setActiveFilterMenu(null);
+                              }}
+                              className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs text-slate-900 hover:bg-slate-50"
                             >
-                              {item}
-                            </span>
-                            {filter.value === item ? <span className="text-[#1f4f96]">✓</span> : null}
-                          </button>
-                        ))}
-                      </div>
-                    ) : filter.type === "Scenario" ? (
-                      <div className="space-y-1 p-2">
-                        {scenarioFilterOptions.map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            onClick={() => upsertFilter(filter.type, item)}
-                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
-                          >
-                            <span>{item}</span>
-                            {filter.value === item ? <span className="text-[#1f4f96]">✓</span> : null}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 p-2">
-                        <Input
-                          aria-label={`${filter.type} filter value`}
-                          value={filter.value}
-                          onChange={(event) => upsertFilter(filter.type, event.target.value)}
-                          className="h-10 rounded-lg border-slate-200 text-[14px] shadow-none"
-                        />
-                      </div>
-                    )}
-                    <div className="mt-2 border-t border-slate-100 pt-2">
+                              <span
+                                className={cn(
+                                  "rounded-full px-2.5 py-1 text-xs font-medium",
+                                  item === "Approve"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : item === "Block and Review"
+                                      ? "bg-orange-100 text-orange-700"
+                                      : item === "Decline"
+                                        ? "bg-rose-100 text-rose-700"
+                                        : "bg-amber-100 text-amber-700"
+                                )}
+                              >
+                                {item}
+                              </span>
+                              {filter.value === item && <span className="text-[#1f4f96] font-bold">✓</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ) : filter.type === "Scenario" ? (
+                        <div className="max-h-60 overflow-y-auto space-y-1 p-1">
+                          {scenarioFilterOptions.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                upsertFilter(filter.type, item);
+                                setActiveFilterMenu(null);
+                              }}
+                              className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs text-slate-900 hover:bg-slate-50"
+                            >
+                              <span className="truncate">{item}</span>
+                              {filter.value === item && <span className="text-[#1f4f96] font-bold">✓</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ) : filter.type === "Trigger object" ? (
+                        <div className="space-y-1 p-1">
+                          {availableTables.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                upsertFilter(filter.type, item);
+                                setActiveFilterMenu(null);
+                              }}
+                              className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs text-slate-900 hover:bg-slate-50"
+                            >
+                              <span>{item}</span>
+                              {filter.value === item && <span className="text-[#1f4f96] font-bold">✓</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ) : filter.type.startsWith("Score") ? (
+                        <div className="p-2 space-y-2">
+                          <label className="text-xs font-semibold text-slate-700">
+                            {filter.type} threshold:
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            placeholder="e.g. 80"
+                            value={filter.value}
+                            onChange={(event) => upsertFilter(filter.type, event.target.value)}
+                            className="h-9 rounded-lg border-slate-200 text-xs shadow-none"
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-2 space-y-2">
+                          <label className="text-xs font-semibold text-slate-700">
+                            {filter.type} value:
+                          </label>
+                          <Input
+                            aria-label={`${filter.type} filter value`}
+                            value={filter.value}
+                            onChange={(event) => upsertFilter(filter.type, event.target.value)}
+                            className="h-9 rounded-lg border-slate-200 text-xs shadow-none"
+                          />
+                        </div>
+                      )}
+
+                    <div className="mt-2 border-t border-slate-100 pt-2 flex items-center justify-between px-1">
                       <button
                         type="button"
                         onClick={() => removeFilter(filter.type)}
-                        className="w-full rounded-lg px-3 py-2 text-left text-[14px] text-rose-700 hover:bg-rose-50"
+                        className="text-xs text-rose-600 hover:text-rose-800 font-medium px-1 py-0.5 rounded hover:bg-rose-50"
                       >
-                        Remove filter
+                        Remove
                       </button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveFilterMenu(null)}
+                          className="h-7 text-xs px-2.5 rounded-lg border-slate-200 hover:bg-slate-50"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setActiveFilterMenu(null)}
+                          className="h-7 text-xs px-2.5 rounded-lg bg-[#1f4f96] text-white hover:bg-[#1a427f]"
+                        >
+                          Apply
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
-            ))}
-            <Button
-              variant="outline"
-              onClick={() => setNewFilterOpen((current) => !current)}
-              className="h-10 rounded-xl border-slate-200 bg-white px-4 text-[14px] shadow-none"
-            >
-              <Plus className="size-4" />
-              New Filter
-            </Button>
+            );
+          })}
+
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => {
                 setPageOffset(0);
                 setSelectedFilters([]);
                 setActiveFilterMenu(null);
-                setNewFilterOpen(false);
               }}
-              className="h-10 rounded-xl px-4 text-[14px]"
+              className="h-8 rounded-lg px-2.5 text-xs text-slate-500 hover:text-slate-800"
             >
-              Clear filters
+              Clear all
             </Button>
-            {newFilterOpen ? (
-              <div className="relative">
-                <div className="absolute left-0 top-2 z-10 w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
-                  {availableFilterItems().map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => {
-                        upsertFilter(
-                          item,
-                          item === "Outcome"
-                            ? "Approve"
-                            : item === "Scenario"
-                              ? scenarioFilterOptions[0] ?? ""
-                              : ""
-                        );
-                        setNewFilterOpen(false);
-                      }}
-                      className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[14px] text-slate-950 hover:bg-slate-50"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
-        ) : null}
+        )}
 
         {creating?.scope === selectionScope && <CreateDecisionCaseModal tenant={tenantId} session={session} decisions={creating.decisions} scenarioNames={scenarioNameById} onClose={created => { setCreating(null); if (created) selection.clear(); }} />}
         {selection.identity.isError && <p role="alert" className="text-sm text-amber-800">Case actions are unavailable for this session. <button className="underline" onClick={() => void selection.identity.refetch()}>Retry case access</button></p>}
         {display.query.isError && <p role="alert" className="text-sm text-amber-800">Source display values are unavailable. <button className="underline" onClick={() => void display.query.refetch()}>Retry display values</button></p>}
-        {decisions.length > 0 && <p className="text-xs text-slate-500">Source columns show current record values, not decision-time snapshots.{!selectedObjectTypeFilter && " Filter by Trigger object to show its configured columns."}</p>}
         {selection.memberships.isError && <p role="alert" className="text-sm text-red-700">Could not check case membership. <button className="underline" onClick={() => void selection.memberships.refetch()}>Retry case lookup</button></p>}
         {isInitialDecisionLoad ? (
           <Card className="rounded-xl border border-slate-200 shadow-none">
@@ -1221,12 +1709,27 @@ function LiveDecisionsView({
           </Card>
         ) : decisions.length === 0 ? (
           <Card className="rounded-xl border border-slate-200 shadow-none">
-            <CardContent className="p-6 text-sm text-slate-600">
-              No decisions matched the current search and filters.
+            <CardContent className="flex flex-col items-center justify-center gap-2 p-8 text-center text-sm text-slate-600">
+              <p>No decisions matched the current search and filters.</p>
+              {(selectedFilters.length > 0 || searchTerm) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedFilters([]);
+                    setSearchTerm("");
+                    setPageOffset(0);
+                  }}
+                  className="mt-2 text-xs text-[#1f4f96] border-blue-200 hover:bg-blue-50"
+                >
+                  Clear all filters and search
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
-          <Card className="relative overflow-hidden rounded-xl border border-slate-200 shadow-none">
+          <Card className="relative overflow-hidden rounded-xl border border-slate-200 shadow-none w-full min-w-0 max-w-full">
             {isDecisionListRefreshing ? (
               <>
                 <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[2px]" />
@@ -1238,43 +1741,45 @@ function LiveDecisionsView({
                 </div>
               </>
             ) : null}
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-hidden w-full min-w-0 max-w-full">
               <div
                 className={cn(
-                  "overflow-x-auto transition-opacity",
+                  "overflow-x-auto w-full max-w-full transition-opacity",
                   isDecisionListRefreshing && "pointer-events-none select-none opacity-25"
                 )}
               >
-                <table className="min-w-full text-left">
+                <table className="w-full text-left border-collapse" style={{ minWidth: "max-content" }}>
                   <thead>
                     <tr className="border-b border-slate-200 bg-white text-[13px] font-semibold text-slate-950">
-                      <th className="px-4 py-3"><SelectPageCheckbox checked={selection.eligible.length > 0 && selection.selectedIDs.length === selection.eligible.length} mixed={selection.selectedIDs.length > 0 && selection.selectedIDs.length < selection.eligible.length} disabled={!selection.eligible.length || decisionsQuery.isFetching} onChange={selection.all} /></th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Scenario</th>
-                      <th className="px-4 py-3">Live version</th>
-                      <th className="px-4 py-3">Trigger object</th>
-                      <th className="px-4 py-3">
-                        {selectedObjectTypeFilter
-                          ? `${selectedObjectTypeFilter.replace(/_/g, " ")}`
-                          : "Record ID"}
+                      <th className="px-4 py-3 whitespace-nowrap"><SelectPageCheckbox checked={selection.eligible.length > 0 && selection.selectedIDs.length === selection.eligible.length} mixed={selection.selectedIDs.length > 0 && selection.selectedIDs.length < selection.eligible.length} disabled={!selection.eligible.length || decisionsQuery.isFetching} onChange={selection.all} /></th>
+                      <th className="px-4 py-3 whitespace-nowrap">Date</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Scenario</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Live version</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Trigger object</th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        {captionHeaderLabel}
                       </th>
-                      {display.columns.map(column => <th key={column.id} className="whitespace-nowrap px-4 py-3">{column.label}</th>)}
-                      <th className="px-4 py-3">Case</th>
-                      <th className="px-4 py-3">Score</th>
-                      <th className="px-4 py-3">Outcome</th>
+                      {visibleColumns.map((column) => (
+                        <th key={column.id} className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 min-w-[130px]">
+                          {column.label}
+                        </th>
+                      ))}
+                      <th className="px-4 py-3 whitespace-nowrap">Case</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Score</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Outcome</th>
                     </tr>
                   </thead>
                   <tbody>
                     {decisions.map((item) => (
                       <tr
                         key={item.id}
-                        className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0"
+                        className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0 hover:bg-slate-50/50"
                       >
-                        <td className="px-4 py-3"><input type="checkbox" className="size-4 accent-blue-700" aria-label={`Select decision ${item.id}`} checked={selection.selectedIDs.includes(item.id)} disabled={!selection.eligible.includes(item.id) || decisionsQuery.isFetching} onChange={() => selection.toggle(item.id)} /></td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 whitespace-nowrap"><input type="checkbox" className="size-4 accent-blue-700" aria-label={`Select decision ${item.id}`} checked={selection.selectedIDs.includes(item.id)} disabled={!selection.eligible.includes(item.id) || decisionsQuery.isFetching} onChange={() => selection.toggle(item.id)} /></td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                           {formatDecisionDate(item.created_at)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <Link
                             href={`/detection/decisions/${item.id}?fromTab=Decisions`}
                             className="font-medium text-slate-950 transition hover:text-[#2d63b8]"
@@ -1282,17 +1787,26 @@ function LiveDecisionsView({
                             {scenarioNameById.get(item.scenario_id) ?? item.scenario_id}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                           {liveVersionByScenarioId.get(item.scenario_id) ?? "-"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <TablePill>{item.object_type}</TablePill>
                         </td>
-                        <td className="max-w-xs px-4 py-3" title={item.object_id}>{display.record(item)?.caption || item.object_id}{display.record(item)?.found === false && <span className="block text-xs text-slate-500">Record unavailable</span>}</td>
-                        {display.columns.map(column => <td key={column.id} className="max-w-xs break-words px-4 py-3">{displayValue(display.record(item)?.values[column.id])}</td>)}
-                        <td className="px-4 py-3 text-sm">{selection.cell(item.id)}</td>
-                        <td className="px-4 py-3">{item.score}</td>
-                        <td className="px-4 py-3">
+                        <td className="max-w-xs truncate px-4 py-3 whitespace-nowrap" title={item.object_id}>
+                          {fetchRecordFields ? (display.record(item)?.caption || item.object_id) : item.object_id}
+                          {fetchRecordFields && display.record(item)?.found === false && (
+                            <span className="block text-xs text-slate-400">Unavailable</span>
+                          )}
+                        </td>
+                        {visibleColumns.map((column) => (
+                          <td key={column.id} className="whitespace-nowrap px-4 py-3 text-slate-700 min-w-[130px]">
+                            {fetchRecordFields ? displayValue(display.record(item)?.values[column.id]) : "—"}
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">{selection.cell(item.id)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{item.score}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <span
                             className={cn(
                               "inline-flex rounded-full px-3 py-1.5 text-[13px] font-medium",
@@ -1309,22 +1823,42 @@ function LiveDecisionsView({
               </div>
               {pagination ? (
                 <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-2">
-                    Showing {pageRangeLabel}
-                    {totalRecords != null
-                      ? ` of ${totalRecords}`
-                      : decisionsCountQuery.isFetching
-                        ? " of ..."
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div>
+                      Showing {pageRangeLabel}
+                      {totalRecords != null
+                        ? ` of ${totalRecords}`
+                        : decisionsCountQuery.isFetching
+                          ? " of ..."
+                          : ""}
+                      {debouncedSearchTerm || selectedFilters.length > 0
+                        ? " matching current filters"
                         : ""}
-                    {debouncedSearchTerm || selectedFilters.length > 0
-                      ? " matching current filters"
-                      : ""}
-                    {isDecisionCountRefreshing ? (
-                      <span className="inline-flex items-center gap-1 text-slate-500">
-                        <Loader2 className="size-3 animate-spin" />
-                        Updating total...
-                      </span>
-                    ) : null}
+                      {isDecisionCountRefreshing ? (
+                        <span className="inline-flex items-center gap-1 text-slate-500 ml-2">
+                          <Loader2 className="size-3 animate-spin" />
+                          Updating total...
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-slate-300 hidden md:inline">|</span>
+                    <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                      <span>Rows per page:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(event) => {
+                          setPageOffset(0);
+                          setPageSize(Number(event.target.value));
+                        }}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 shadow-none outline-none focus:border-slate-300 cursor-pointer"
+                      >
+                        {DECISIONS_PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
@@ -2226,7 +2760,7 @@ function DetectionPageContent() {
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0 max-w-full">
         <PageHeader
           activeTab={activeTab}
           onTabChange={handleTabChange}

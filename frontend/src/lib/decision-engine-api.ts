@@ -191,6 +191,8 @@ export type ListDecisionsRequest = {
   object_id?: string;
   outcome?: string;
   search?: string;
+  min_score?: number;
+  max_score?: number;
   limit?: number;
   offset?: number;
   cursor?: string;
@@ -658,6 +660,12 @@ function appendDecisionListFilterParams(
   }
   if (filters?.search) {
     params.set("search", filters.search);
+  }
+  if (filters?.min_score != null) {
+    params.set("min_score", String(filters.min_score));
+  }
+  if (filters?.max_score != null) {
+    params.set("max_score", String(filters.max_score));
   }
 }
 
