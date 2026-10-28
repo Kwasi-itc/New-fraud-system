@@ -1,0 +1,242 @@
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:26:56 connection.go:189 closing connection:close tcp 172.21.0.3:53032->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:26:56 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:26:56 connection.go:189 closing connection:close tcp 172.21.0.3:53064->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:26:56 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.83s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.15s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.16s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.16s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.16s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:26:58 connection.go:189 closing connection:close tcp 172.21.0.3:53238->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:26:58 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:26:58 connection.go:189 closing connection:close tcp 172.21.0.3:53260->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:26:58 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.77s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.07s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.17s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.15s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.14s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.16s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.14s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:26:59 connection.go:189 closing connection:close tcp 172.21.0.3:36364->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:26:59 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:00 connection.go:189 closing connection:close tcp 172.21.0.3:36398->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:00 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.62s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.09s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.12s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:01 connection.go:189 closing connection:close tcp 172.21.0.3:36590->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:01 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:01 connection.go:189 closing connection:close tcp 172.21.0.3:36620->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:01 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.48s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.09s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.07s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.11s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:03 connection.go:189 closing connection:close tcp 172.21.0.3:36810->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:03 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:03 connection.go:189 closing connection:close tcp 172.21.0.3:36834->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:03 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.57s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.13s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.12s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:05 connection.go:189 closing connection:close tcp 172.21.0.3:37048->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:05 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:05 connection.go:189 closing connection:close tcp 172.21.0.3:37076->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:05 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (2.12s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.17s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.15s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.18s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.11s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:06 connection.go:189 closing connection:close tcp 172.21.0.3:37284->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:06 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:07 connection.go:189 closing connection:close tcp 172.21.0.3:37314->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:07 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.65s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.15s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.13s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.12s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:08 connection.go:189 closing connection:close tcp 172.21.0.3:37514->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:08 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:08 connection.go:189 closing connection:close tcp 172.21.0.3:37546->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:08 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.65s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.13s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.13s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:10 connection.go:189 closing connection:close tcp 172.21.0.3:37432->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:10 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:10 connection.go:189 closing connection:close tcp 172.21.0.3:37472->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:10 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.61s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.09s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.14s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.17s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.12s)
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 16:27:11 connection.go:189 closing connection:close tcp 172.21.0.3:37656->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:11 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 16:27:11 connection.go:189 closing connection:close tcp 172.21.0.3:37682->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 16:27:11 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.53s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.14s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.06s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.12s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.11s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	17.854s

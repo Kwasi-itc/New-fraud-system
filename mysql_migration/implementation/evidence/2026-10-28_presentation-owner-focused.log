@@ -1,0 +1,72 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/28 09:02:18 connection.go:189 closing connection:close tcp 172.21.0.3:36812->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:18 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_alter
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_ack
+[mysql] 2026/10/28 09:02:21 connection.go:189 closing connection:close tcp 172.21.0.3:37242->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:21 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_commit
+[mysql] 2026/10/28 09:02:22 connection.go:189 closing connection:close tcp 172.21.0.3:38894->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:22 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_extra_field
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_mapping
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_inactive
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit
+[mysql] 2026/10/28 09:02:27 connection.go:189 closing connection:close tcp 172.21.0.3:39556->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:27 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_lost_commit
+[mysql] 2026/10/28 09:02:28 connection.go:189 closing connection:close tcp 172.21.0.3:39688->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:28 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_missing_queue
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_restricted
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_lost_commit
+[mysql] 2026/10/28 09:02:31 connection.go:189 closing connection:close tcp 172.21.0.3:39904->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 09:02:31 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_closed_gate
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_semantic_change
+--- PASS: TestPhysicalCreationAllocated (19.51s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (0.66s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (0.37s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_before (0.47s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_after (0.50s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_owner_rollback (0.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_active_installer (0.61s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_alter (0.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_ack (0.64s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_commit (0.96s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch (0.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_extra_field (0.64s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_mapping (0.67s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_commit (0.60s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure (0.59s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure (0.61s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_drift (0.57s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_inactive (0.58s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit (0.60s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_commit (0.50s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_lost_commit (0.56s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_missing_queue (0.51s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_restricted (0.64s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_commit (0.37s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_concurrent (0.39s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_lost_commit (0.38s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_revision_failure (0.39s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_closed_gate (0.68s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_semantic_change (0.35s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	20.549s

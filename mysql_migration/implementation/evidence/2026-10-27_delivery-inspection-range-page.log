@@ -1,0 +1,12 @@
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:189: -> Limit: 128 row(s)  (cost=1449 rows=128)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-27 09:50:35.113984') and (data_model_index_deliveries.tenant_id = '\??\?k\?Aw?\?Z7\?_D\?') and (data_model_index_deliveries.id < '}??k?\?Eă\??6\?9\?'))  (cost=1449 rows=499)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0xeaa918e96bd141779bdf5a37f25f44c8 AND created_at = '2026-10-27 09:50:35.113984' AND 0x7db9fb6bfedb45c483ea8e36f53901f1 < id)  (cost=1449 rows=499)
+        
+    delivery_inspection_test.go:189: -> Limit: 128 row(s)  (cost=0.863 rows=3)
+            -> Filter: ((data_model_index_deliveries.tenant_id = '\??\?k\?Aw?\?Z7\?_D\?') and (data_model_index_deliveries.created_at < TIMESTAMP'2026-10-27 09:50:35.113984'))  (cost=0.863 rows=3)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0xeaa918e96bd141779bdf5a37f25f44c8 AND '2026-10-27 09:50:35.113984' < created_at)  (cost=0.863 rows=3)
+        
+--- PASS: TestDeliveryInspection (3.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	4.030s

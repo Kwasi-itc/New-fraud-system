@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 )
 
 type TableRepository interface {
@@ -64,6 +65,18 @@ type DataModelReadRepository interface {
 	GetAssembledDataModel(ctx context.Context, tenantID uuid.UUID) (datamodel.AssembledDataModel, error)
 }
 
+// DataModelSnapshot binds the revision inputs and model to one consistent read.
+// This does not establish physical DDL readiness or replace request authorization.
+type DataModelSnapshot struct {
+	Tenant     tenant.Tenant
+	Model      datamodel.AssembledDataModel
+	Migrations []datamodel.TenantSchemaMigration
+}
+
+type DataModelSnapshotRepository interface {
+	GetDataModelSnapshot(context.Context, uuid.UUID) (DataModelSnapshot, error)
+}
+
 type SchemaChangeRepository interface {
 	Create(ctx context.Context, change datamodel.SchemaChange) error
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.SchemaChange, error)
@@ -75,6 +88,9 @@ type TenantSchemaMigrationRepository interface {
 }
 
 type IndexJobRepository interface {
+	// GetByDedupeKeyForUpdate locks an existing job until the owning transaction ends.
+	// Call only on a transaction-scoped repository; missing keys remain unlocked.
+	GetByDedupeKeyForUpdate(ctx context.Context, key string) (*datamodel.IndexJob, error)
 	GetByDedupeKey(ctx context.Context, key string) (*datamodel.IndexJob, error)
 	Create(ctx context.Context, job datamodel.IndexJob) error
 	GetByID(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error)

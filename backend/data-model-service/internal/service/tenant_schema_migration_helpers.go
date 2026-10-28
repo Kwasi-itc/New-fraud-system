@@ -18,16 +18,19 @@ func recordTenantSchemaMigration(
 	tenantID uuid.UUID,
 	version string,
 	appliedAt time.Time,
-) {
-	if repository == nil {
-		return
+) error {
+	if repository == nil || idGenerator == nil {
+		return fmt.Errorf("tenant schema migration repository and ID generator required")
 	}
-	_ = repository.Create(ctx, datamodel.TenantSchemaMigration{
+	if err := repository.Create(ctx, datamodel.TenantSchemaMigration{
 		ID:        idGenerator.New(),
 		TenantID:  tenantID,
 		Version:   version,
 		AppliedAt: appliedAt,
-	})
+	}); err != nil {
+		return fmt.Errorf("record tenant schema migration: %w", err)
+	}
+	return nil
 }
 
 func schemaMigrationVersion(operation, resourceType string) string {

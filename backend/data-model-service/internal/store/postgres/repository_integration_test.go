@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -399,6 +401,10 @@ func TestPostgresRepositoriesRoundTripAndAssembledRead(t *testing.T) {
 func repositoryIntegrationDatabaseURL(t *testing.T) string {
 	t.Helper()
 	if url := os.Getenv("DATA_MODEL_TEST_DATABASE_URL"); url != "" {
+		parsed, err := neturl.Parse(url)
+		if err != nil || (parsed.Hostname() != "localhost" && parsed.Hostname() != "127.0.0.1") || !strings.HasPrefix(parsed.Path, "/data_model_tx_test_") {
+			t.Fatal("requires local data_model_tx_test_* disposable database")
+		}
 		return url
 	}
 	t.Skip("set DATA_MODEL_TEST_DATABASE_URL to run PostgreSQL integration tests")

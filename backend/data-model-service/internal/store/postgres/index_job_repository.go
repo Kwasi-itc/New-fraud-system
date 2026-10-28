@@ -21,9 +21,20 @@ func NewIndexJobRepository(db executor) IndexJobRepository {
 }
 
 func (r IndexJobRepository) GetByDedupeKey(ctx context.Context, key string) (*datamodel.IndexJob, error) {
+	return r.getByDedupeKey(ctx, key, false)
+}
+func (r IndexJobRepository) GetByDedupeKeyForUpdate(ctx context.Context, key string) (*datamodel.IndexJob, error) {
+	return r.getByDedupeKey(ctx, key, true)
+}
+func (r IndexJobRepository) getByDedupeKey(ctx context.Context, key string, lock bool) (*datamodel.IndexJob, error) {
+	suffix := ""
+	if lock {
+		suffix = " FOR UPDATE"
+	}
+
 	job, err := scanIndexJob(r.db.QueryRow(ctx, `SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
  requested_by_operation, error_message, attempt_count, requested_at, started_at, completed_at, scheduled_at, dedupe_key
- FROM core.index_jobs WHERE dedupe_key=$1 AND dedupe_key<>''`, key))
+ FROM core.index_jobs WHERE dedupe_key=$1 AND dedupe_key<>''`+suffix, key))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

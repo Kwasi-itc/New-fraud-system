@@ -1,0 +1,6 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_restricted
+--- PASS: TestPhysicalCreationAllocated (5.21s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_restricted (0.65s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.274s

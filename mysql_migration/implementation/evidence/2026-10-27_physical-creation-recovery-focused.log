@@ -1,0 +1,100 @@
+=== RUN   TestPhysicalCreationPlan
+=== RUN   TestPhysicalCreationPlan/missing_identity
+=== RUN   TestPhysicalCreationPlan/version
+=== RUN   TestPhysicalCreationPlan/tenant
+=== RUN   TestPhysicalCreationPlan/table
+=== RUN   TestPhysicalCreationPlan/column
+=== RUN   TestPhysicalCreationPlan/definer
+=== RUN   TestPhysicalCreationPlan/sql
+=== RUN   TestPhysicalCreationPlan/kind
+=== RUN   TestPhysicalCreationPlan/name
+=== RUN   TestPhysicalCreationPlan/id
+=== RUN   TestPhysicalCreationPlan/before
+=== RUN   TestPhysicalCreationPlan/missing_trigger
+=== RUN   TestPhysicalCreationPlan/reordered
+=== RUN   TestPhysicalCreationPlan/precondition
+=== RUN   TestPhysicalCreationPlan/definition
+--- PASS: TestPhysicalCreationPlan (0.03s)
+    --- PASS: TestPhysicalCreationPlan/missing_identity (0.00s)
+    --- PASS: TestPhysicalCreationPlan/version (0.00s)
+    --- PASS: TestPhysicalCreationPlan/tenant (0.00s)
+    --- PASS: TestPhysicalCreationPlan/table (0.00s)
+    --- PASS: TestPhysicalCreationPlan/column (0.00s)
+    --- PASS: TestPhysicalCreationPlan/definer (0.00s)
+    --- PASS: TestPhysicalCreationPlan/sql (0.00s)
+    --- PASS: TestPhysicalCreationPlan/kind (0.00s)
+    --- PASS: TestPhysicalCreationPlan/name (0.00s)
+    --- PASS: TestPhysicalCreationPlan/id (0.00s)
+    --- PASS: TestPhysicalCreationPlan/before (0.00s)
+    --- PASS: TestPhysicalCreationPlan/missing_trigger (0.00s)
+    --- PASS: TestPhysicalCreationPlan/reordered (0.00s)
+    --- PASS: TestPhysicalCreationPlan/precondition (0.00s)
+    --- PASS: TestPhysicalCreationPlan/definition (0.00s)
+=== RUN   TestPhysicalCreationBoundary
+=== RUN   TestPhysicalCreationBoundary/nullable_object
+=== RUN   TestPhysicalCreationBoundary/nonunique_object
+=== RUN   TestPhysicalCreationBoundary/object_type
+=== RUN   TestPhysicalCreationBoundary/object_enum
+=== RUN   TestPhysicalCreationBoundary/object_name
+=== RUN   TestPhysicalCreationBoundary/nullable_updated
+=== RUN   TestPhysicalCreationBoundary/unique_updated
+=== RUN   TestPhysicalCreationBoundary/updated_type
+=== RUN   TestPhysicalCreationBoundary/updated_enum
+=== RUN   TestPhysicalCreationBoundary/updated_name
+=== RUN   TestPhysicalCreationBoundary/archived
+=== RUN   TestPhysicalCreationBoundary/extra
+=== RUN   TestPhysicalCreationBoundary/foreign
+=== RUN   TestPhysicalCreationBoundary/same_id
+=== RUN   TestPhysicalCreationBoundary/root
+--- PASS: TestPhysicalCreationBoundary (0.01s)
+    --- PASS: TestPhysicalCreationBoundary/nullable_object (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/nonunique_object (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_type (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_enum (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_name (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/nullable_updated (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/unique_updated (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_type (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_enum (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_name (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/archived (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/extra (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/foreign (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/same_id (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/root (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	1.074s
+=== RUN   TestPhysicalCreationRecovery
+=== RUN   TestPhysicalCreationRecovery/fresh
+=== RUN   TestPhysicalCreationRecovery/dirty_insert_before
+=== RUN   TestPhysicalCreationRecovery/dirty_insert_after
+=== RUN   TestPhysicalCreationRecovery/dirty_update_before
+=== RUN   TestPhysicalCreationRecovery/dirty_update_after
+=== RUN   TestPhysicalCreationRecovery/unrecorded_trigger
+=== RUN   TestPhysicalCreationRecovery/earlier_table_drift
+=== RUN   TestPhysicalCreationRecovery/earlier_trigger_drift
+=== RUN   TestPhysicalCreationRecovery/extra_trigger
+=== RUN   TestPhysicalCreationRecovery/lost_insert_ack
+[mysql] 2026/10/27 16:30:57 connection.go:189 closing connection:close tcp 172.21.0.3:48842->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 16:30:57 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationRecovery/lost_update_ack
+[mysql] 2026/10/27 16:30:57 connection.go:189 closing connection:close tcp 172.21.0.3:48896->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 16:30:57 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationRecovery/applied_trigger_drift
+=== RUN   TestPhysicalCreationRecovery/wrong_tenant
+--- PASS: TestPhysicalCreationRecovery (2.87s)
+    --- PASS: TestPhysicalCreationRecovery/fresh (0.20s)
+    --- PASS: TestPhysicalCreationRecovery/dirty_insert_before (0.18s)
+    --- PASS: TestPhysicalCreationRecovery/dirty_insert_after (0.20s)
+    --- PASS: TestPhysicalCreationRecovery/dirty_update_before (0.17s)
+    --- PASS: TestPhysicalCreationRecovery/dirty_update_after (0.15s)
+    --- PASS: TestPhysicalCreationRecovery/unrecorded_trigger (0.10s)
+    --- PASS: TestPhysicalCreationRecovery/earlier_table_drift (0.11s)
+    --- PASS: TestPhysicalCreationRecovery/earlier_trigger_drift (0.11s)
+    --- PASS: TestPhysicalCreationRecovery/extra_trigger (0.11s)
+    --- PASS: TestPhysicalCreationRecovery/lost_insert_ack (0.22s)
+    --- PASS: TestPhysicalCreationRecovery/lost_update_ack (0.25s)
+    --- PASS: TestPhysicalCreationRecovery/applied_trigger_drift (0.23s)
+    --- PASS: TestPhysicalCreationRecovery/wrong_tenant (0.19s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	3.902s

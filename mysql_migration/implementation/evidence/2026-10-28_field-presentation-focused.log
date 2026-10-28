@@ -1,0 +1,16 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_lost_commit
+[mysql] 2026/10/28 10:15:48 connection.go:189 closing connection:close tcp 172.21.0.3:43014->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 10:15:48 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_closed_gate
+--- PASS: TestPhysicalCreationAllocated (5.28s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_commit (0.39s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_concurrent (0.43s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_lost_commit (0.40s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_revision_failure (0.34s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_closed_gate (0.35s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.315s

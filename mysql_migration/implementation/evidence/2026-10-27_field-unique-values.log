@@ -1,0 +1,14 @@
+=== RUN   TestNativeFieldUniqueLifecycle
+=== RUN   TestNativeFieldUniqueLifecycle/bool
+=== RUN   TestNativeFieldUniqueLifecycle/int
+=== RUN   TestNativeFieldUniqueLifecycle/float
+=== RUN   TestNativeFieldUniqueLifecycle/timestamp
+=== RUN   TestNativeFieldUniqueLifecycle/ip_address
+--- PASS: TestNativeFieldUniqueLifecycle (0.73s)
+    --- PASS: TestNativeFieldUniqueLifecycle/bool (0.04s)
+    --- PASS: TestNativeFieldUniqueLifecycle/int (0.03s)
+    --- PASS: TestNativeFieldUniqueLifecycle/float (0.03s)
+    --- PASS: TestNativeFieldUniqueLifecycle/timestamp (0.04s)
+    --- PASS: TestNativeFieldUniqueLifecycle/ip_address (0.04s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.766s

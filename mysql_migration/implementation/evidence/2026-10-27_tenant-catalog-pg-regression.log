@@ -1,0 +1,454 @@
+=== RUN   TestAuditHelpersFailClosed
+--- PASS: TestAuditHelpersFailClosed (0.00s)
+=== RUN   TestAllServiceAuditFailuresRollback
+=== RUN   TestAllServiceAuditFailuresRollback/tenant_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/tenant_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/tenant_provision/history
+=== RUN   TestAllServiceAuditFailuresRollback/tenant_provision/revision
+=== RUN   TestAllServiceAuditFailuresRollback/table_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/table_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/table_update_and_queue/history
+=== RUN   TestAllServiceAuditFailuresRollback/table_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/table_delete/revision
+=== RUN   TestAllServiceAuditFailuresRollback/field_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/field_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/inline_enum_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/inline_enum_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/field_update/history
+=== RUN   TestAllServiceAuditFailuresRollback/field_update/revision
+=== RUN   TestAllServiceAuditFailuresRollback/field_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/field_delete/revision
+=== RUN   TestAllServiceAuditFailuresRollback/enum_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/enum_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/enum_update/history
+=== RUN   TestAllServiceAuditFailuresRollback/enum_update/revision
+=== RUN   TestAllServiceAuditFailuresRollback/enum_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/enum_delete/revision
+=== RUN   TestAllServiceAuditFailuresRollback/link_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/link_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/link_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/link_delete/revision
+=== RUN   TestAllServiceAuditFailuresRollback/pivot_create/history
+=== RUN   TestAllServiceAuditFailuresRollback/pivot_create/revision
+=== RUN   TestAllServiceAuditFailuresRollback/pivot_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/pivot_delete/revision
+=== RUN   TestAllServiceAuditFailuresRollback/options_upsert/history
+=== RUN   TestAllServiceAuditFailuresRollback/options_upsert/revision
+=== RUN   TestAllServiceAuditFailuresRollback/navigation_create_and_queue/history
+=== RUN   TestAllServiceAuditFailuresRollback/navigation_delete/history
+=== RUN   TestAllServiceAuditFailuresRollback/index_create/history
+--- PASS: TestAllServiceAuditFailuresRollback (1.55s)
+    --- PASS: TestAllServiceAuditFailuresRollback/tenant_create/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/tenant_create/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/tenant_provision/history (0.04s)
+    --- PASS: TestAllServiceAuditFailuresRollback/tenant_provision/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/table_create/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/table_create/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/table_update_and_queue/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/table_delete/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/table_delete/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_create/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_create/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/inline_enum_create/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/inline_enum_create/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_update/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_update/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_delete/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/field_delete/revision (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_create/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_create/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_update/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_update/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_delete/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/enum_delete/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/link_create/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/link_create/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/link_delete/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/link_delete/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/pivot_create/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/pivot_create/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/pivot_delete/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/pivot_delete/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/options_upsert/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/options_upsert/revision (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/navigation_create_and_queue/history (0.03s)
+    --- PASS: TestAllServiceAuditFailuresRollback/navigation_delete/history (0.02s)
+    --- PASS: TestAllServiceAuditFailuresRollback/index_create/history (0.02s)
+=== RUN   TestSnapshotDataModelReadService
+--- PASS: TestSnapshotDataModelReadService (0.00s)
+=== RUN   TestBuildRevisionIDStableForEquivalentMigrationSets
+=== PAUSE TestBuildRevisionIDStableForEquivalentMigrationSets
+=== RUN   TestBuildRevisionIDChangesWhenPublishedStateChanges
+=== PAUSE TestBuildRevisionIDChangesWhenPublishedStateChanges
+=== RUN   TestIndexJobServiceCreateEnqueuesAndLogs
+=== PAUSE TestIndexJobServiceCreateEnqueuesAndLogs
+=== RUN   TestIndexJobServiceRetryResetsFailedJob
+=== PAUSE TestIndexJobServiceRetryResetsFailedJob
+=== RUN   TestIndexJobServiceStopsOnHistoryFailure
+--- PASS: TestIndexJobServiceStopsOnHistoryFailure (0.00s)
+=== RUN   TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL
+--- PASS: TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL (0.34s)
+=== RUN   TestIntegrationEnumValuesPersistAndAppearInAssembledModel
+--- PASS: TestIntegrationEnumValuesPersistAndAppearInAssembledModel (0.27s)
+=== RUN   TestIntegrationCreateFieldWithInlineEnumValuesPersistsEverything
+--- PASS: TestIntegrationCreateFieldWithInlineEnumValuesPersistsEverything (0.27s)
+=== RUN   TestIntegrationUpdateTableCaptionFieldCreatesSearchIndexJob
+--- PASS: TestIntegrationUpdateTableCaptionFieldCreatesSearchIndexJob (0.27s)
+=== RUN   TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure
+--- PASS: TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure (0.30s)
+=== RUN   TestIntegrationDeleteDryRunsReportInternalConflicts
+--- PASS: TestIntegrationDeleteDryRunsReportInternalConflicts (0.32s)
+=== RUN   TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL
+--- PASS: TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL (0.33s)
+=== RUN   TestIntegrationCreateTableRollsBackWhenTenantSchemaMissing
+--- PASS: TestIntegrationCreateTableRollsBackWhenTenantSchemaMissing (0.24s)
+=== RUN   TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing
+--- PASS: TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing (0.23s)
+=== RUN   TestPivotServiceDeleteDryRunDoesNotDelete
+=== PAUSE TestPivotServiceDeleteDryRunDoesNotDelete
+=== RUN   TestPivotServiceDeleteDeletesAndLogs
+=== PAUSE TestPivotServiceDeleteDeletesAndLogs
+=== RUN   TestPublicationNavigationRequest
+=== RUN   TestPublicationNavigationRequest/reject_missing_endpoints
+=== RUN   TestPublicationNavigationRequest/reject_wrong_scope
+=== RUN   TestPublicationNavigationRequest/preserve_endpoint_roles
+=== RUN   TestPublicationNavigationRequest/self_table_is_supported
+--- PASS: TestPublicationNavigationRequest (0.00s)
+    --- PASS: TestPublicationNavigationRequest/reject_missing_endpoints (0.00s)
+    --- PASS: TestPublicationNavigationRequest/reject_wrong_scope (0.00s)
+    --- PASS: TestPublicationNavigationRequest/preserve_endpoint_roles (0.00s)
+    --- PASS: TestPublicationNavigationRequest/self_table_is_supported (0.00s)
+=== RUN   TestPublicationRequestGolden
+--- PASS: TestPublicationRequestGolden (0.00s)
+=== RUN   TestPublicationRequestEveryInputField
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceTableID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TargetTableID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/FilterFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/OrderingFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Description
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/SemanticType
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ParentTable
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ParentField
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ChildTable
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ChildField
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/BaseTableID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/PathLinkIDs
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/IndexType
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/Columns
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/RequestedByOperation
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/ScheduledAt
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/Description
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/SemanticType
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/CaptionField
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Description
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/DataType
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Nullable
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/IsEnum
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/IsUnique
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/EnumValues
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Description
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Nullable
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/IsEnum
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/IsUnique
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Value
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Label
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/SortOrder
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/EnumValueID
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Value
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Label
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/SortOrder
+--- PASS: TestPublicationRequestEveryInputField (0.02s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TargetTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/FilterFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/OrderingFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/SemanticType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ParentTable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ParentField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ChildTable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ChildField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/BaseTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/PathLinkIDs (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/IndexType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/Columns (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/RequestedByOperation (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/ScheduledAt (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/SemanticType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/CaptionField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/DataType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Nullable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/IsEnum (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/IsUnique (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/EnumValues (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Nullable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/IsEnum (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/IsUnique (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Value (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Label (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/SortOrder (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/EnumValueID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Value (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Label (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/SortOrder (0.00s)
+=== RUN   TestPublicationRequestCreationWire
+=== RUN   TestPublicationRequestCreationWire/table.create
+=== RUN   TestPublicationRequestCreationWire/link.create
+=== RUN   TestPublicationRequestCreationWire/pivot.create
+=== RUN   TestPublicationRequestCreationWire/index_job.create
+--- PASS: TestPublicationRequestCreationWire (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/table.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/link.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/pivot.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/index_job.create (0.00s)
+=== RUN   TestPublicationRequestCreationOrderingAndTime
+--- PASS: TestPublicationRequestCreationOrderingAndTime (0.00s)
+=== RUN   TestPublicationRequestScopeAndEnums
+--- PASS: TestPublicationRequestScopeAndEnums (0.00s)
+=== RUN   TestPublicationRequestRejectsInvalidInputs
+--- PASS: TestPublicationRequestRejectsInvalidInputs (0.00s)
+=== RUN   TestTableServiceUpdateRejectsMissingCaptionField
+=== PAUSE TestTableServiceUpdateRejectsMissingCaptionField
+=== RUN   TestTableServiceUpdateRejectsNonStringCaptionField
+=== PAUSE TestTableServiceUpdateRejectsNonStringCaptionField
+=== RUN   TestNavigationOptionServiceCreateRejectsUnbackedNavigation
+=== PAUSE TestNavigationOptionServiceCreateRejectsUnbackedNavigation
+=== RUN   TestTableServiceUpdateCaptionFieldCreatesSearchIndexJob
+=== PAUSE TestTableServiceUpdateCaptionFieldCreatesSearchIndexJob
+=== RUN   TestTableServiceUpdateCaptionFieldDedupesAppliedSearchIndexJob
+=== PAUSE TestTableServiceUpdateCaptionFieldDedupesAppliedSearchIndexJob
+=== RUN   TestNavigationOptionServiceCreateEnqueuesNavigationIndexJob
+=== PAUSE TestNavigationOptionServiceCreateEnqueuesNavigationIndexJob
+=== RUN   TestTenantCatalogueRouting
+--- PASS: TestTenantCatalogueRouting (0.00s)
+=== CONT  TestBuildRevisionIDStableForEquivalentMigrationSets
+=== CONT  TestNavigationOptionServiceCreateEnqueuesNavigationIndexJob
+=== CONT  TestPivotServiceDeleteDeletesAndLogs
+=== CONT  TestIndexJobServiceRetryResetsFailedJob
+=== CONT  TestNavigationOptionServiceCreateRejectsUnbackedNavigation
+=== CONT  TestTableServiceUpdateRejectsNonStringCaptionField
+--- PASS: TestBuildRevisionIDStableForEquivalentMigrationSets (0.00s)
+--- PASS: TestNavigationOptionServiceCreateRejectsUnbackedNavigation (0.00s)
+=== CONT  TestPivotServiceDeleteDryRunDoesNotDelete
+--- PASS: TestIndexJobServiceRetryResetsFailedJob (0.00s)
+=== CONT  TestTableServiceUpdateRejectsMissingCaptionField
+=== CONT  TestIndexJobServiceCreateEnqueuesAndLogs
+=== CONT  TestBuildRevisionIDChangesWhenPublishedStateChanges
+=== CONT  TestTableServiceUpdateCaptionFieldCreatesSearchIndexJob
+=== CONT  TestTableServiceUpdateCaptionFieldDedupesAppliedSearchIndexJob
+--- PASS: TestTableServiceUpdateRejectsNonStringCaptionField (0.00s)
+--- PASS: TestPivotServiceDeleteDeletesAndLogs (0.00s)
+--- PASS: TestPivotServiceDeleteDryRunDoesNotDelete (0.00s)
+--- PASS: TestNavigationOptionServiceCreateEnqueuesNavigationIndexJob (0.00s)
+--- PASS: TestTableServiceUpdateRejectsMissingCaptionField (0.00s)
+--- PASS: TestBuildRevisionIDChangesWhenPublishedStateChanges (0.00s)
+--- PASS: TestTableServiceUpdateCaptionFieldCreatesSearchIndexJob (0.00s)
+--- PASS: TestIndexJobServiceCreateEnqueuesAndLogs (0.00s)
+--- PASS: TestTableServiceUpdateCaptionFieldDedupesAppliedSearchIndexJob (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	5.200s
+=== RUN   TestServiceAuthFailsClosed
+=== RUN   TestServiceAuthFailsClosed/missing_mode
+=== RUN   TestServiceAuthFailsClosed/unknown_mode
+=== RUN   TestServiceAuthFailsClosed/empty_configured_token
+=== RUN   TestServiceAuthFailsClosed/whitespace_configured_token
+=== RUN   TestServiceAuthFailsClosed/missing_credential
+=== RUN   TestServiceAuthFailsClosed/wrong_credential
+=== RUN   TestServiceAuthFailsClosed/wrong_scheme
+=== RUN   TestServiceAuthFailsClosed/extra_suffix
+=== RUN   TestServiceAuthFailsClosed/valid_credential
+=== RUN   TestServiceAuthFailsClosed/explicit_development_opt_out
+--- PASS: TestServiceAuthFailsClosed (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/missing_mode (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/unknown_mode (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/empty_configured_token (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/whitespace_configured_token (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/missing_credential (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/wrong_credential (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/wrong_scheme (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/extra_suffix (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/valid_credential (0.00s)
+    --- PASS: TestServiceAuthFailsClosed/explicit_development_opt_out (0.00s)
+=== RUN   TestAuthMiddlewareDisabledAllowsRequest
+=== PAUSE TestAuthMiddlewareDisabledAllowsRequest
+=== RUN   TestAuthMiddlewareTokenRejectsMissingBearerToken
+=== PAUSE TestAuthMiddlewareTokenRejectsMissingBearerToken
+=== RUN   TestAuthMiddlewareTokenAllowsValidBearerToken
+=== PAUSE TestAuthMiddlewareTokenAllowsValidBearerToken
+=== RUN   TestDocsRoutesServeOpenAPISpecAndDocsPages
+=== PAUSE TestDocsRoutesServeOpenAPISpecAndDocsPages
+=== RUN   TestRequestContextMiddlewareSetsRequestIDHeader
+=== PAUSE TestRequestContextMiddlewareSetsRequestIDHeader
+=== RUN   TestRequestContextMiddlewarePreservesIncomingRequestID
+=== PAUSE TestRequestContextMiddlewarePreservesIncomingRequestID
+=== RUN   TestCORSMiddlewareAllowsConfiguredOrigin
+=== PAUSE TestCORSMiddlewareAllowsConfiguredOrigin
+=== RUN   TestCORSMiddlewareHandlesPreflight
+=== PAUSE TestCORSMiddlewareHandlesPreflight
+=== RUN   TestCORSMiddlewareRejectsUnknownPreflightOrigin
+=== PAUSE TestCORSMiddlewareRejectsUnknownPreflightOrigin
+=== RUN   TestPlatformDataModelAuthorization
+2026/10/27 14:26:28 INFO http request request_id=1101e9d0-6f3d-4556-87a5-13c99aec8a01 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=401 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=052a5dba-80d8-4b3a-812c-dffc4c13ec02 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=200 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=1dfb9605-c813-4298-a4a4-e2d2a3c91904 method=GET path=/v1/tables/:tableId/display-settings raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89/display-settings status=200 latency_ms=7 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=b37feb17-99be-4681-a678-95e5883a867c method=GET path=/v1/tables/:tableId/display-settings raw_path=/v1/tables/2f5683e2-1117-4e14-be14-f64c570d6c66/display-settings status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=459cb0b1-7cea-4954-aaae-62296eb39a40 method=PUT path=/v1/tables/:tableId/display-settings raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89/display-settings status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=19683faf-4b4e-4058-a4bc-8044504c016d method=POST path=/v1/tenants/:tenantId/record-displays raw_path=/v1/tenants/dbb6c30d-2124-4ac7-86b2-983903dfd6b1/record-displays status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=be5901e3-fbe1-43a6-ac73-38d5b80d8785 method=POST path=/v1/tenants/:tenantId/record-displays raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/record-displays status=400 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=4538b50d-bbe7-4968-bec2-b80c10e2d184 method=PATCH path=/v1/tables/:tableId raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89 status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=0e4ed36e-b2be-4171-8485-26b1ec16a6f5 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/dbb6c30d-2124-4ac7-86b2-983903dfd6b1/tables status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=6c6848f2-f205-4ddd-95c9-1f240df05ea4 method=GET path=/v1/tables/:tableId/fields raw_path=/v1/tables/2f5683e2-1117-4e14-be14-f64c570d6c66/fields status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=d80af903-2871-412a-a955-b9824be5892b method=GET path=/v1/fields/:fieldId/enum-values raw_path=/v1/fields/e22c3c26-abae-4f1e-878e-67d140a6bfe7/enum-values status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=658137c5-c28d-431f-ba93-813b3781beb8 method=GET path=/v1/tenants raw_path=/v1/tenants status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=4c821ddb-0db1-4416-b8c6-c11c0f9aafe0 method=GET path=/v1/admin/reconcile raw_path=/v1/admin/reconcile status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=cdb95150-7da9-489a-9024-19c9b55d1e58 method=POST path=/v1/tenants/:tenantId/provision raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/provision status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=dc75be71-b04e-4bda-886c-c55994cd7caa method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=200 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=a4be3d21-bc4b-456b-b1ef-2f46acfcb97b method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=7203ab23-55d4-4b58-836c-e5951d0c8c85 method=PUT path=/v1/tables/:tableId/display-settings raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89/display-settings status=200 latency_ms=18 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=135cf3a2-5ac4-43c8-ac87-6ae4c35a2417 method=PUT path=/v1/tables/:tableId/display-settings raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89/display-settings status=409 latency_ms=5 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=730fe6ec-f45c-40f5-9ba6-a81415fa1afd method=PATCH path=/v1/tables/:tableId raw_path=/v1/tables/8fbcd607-5dac-4183-af06-ce6131200d89 status=200 latency_ms=6 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=0a44a706-2441-4e5a-bc04-d6d7063041f9 method=PATCH path=/v1/tables/:tableId raw_path=/v1/tables/2f5683e2-1117-4e14-be14-f64c570d6c66 status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=58ac14e5-2dac-4f7c-b9ad-87d4266f761e method=POST path=/v1/tenants/:tenantId/links raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/links status=400 latency_ms=3 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=e1bd1103-d53f-486d-95bc-5146be4bda92 method=POST path=/v1/tenants/:tenantId/pivots raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/pivots status=400 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=1b3a98b6-bc23-46d6-ac39-29ac80ca738a method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=90c2707d-c148-4630-9d21-31ce9acbadb7 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=403 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=508fd4b9-d1b2-4aa2-b571-fb42844cc69d method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=403 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=252ce69e-bcc8-4b1b-94ee-f5a719fbb673 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=403 latency_ms=3 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=65686f7f-6466-4e1a-b59b-d432330f6296 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/03baf2f7-91fc-45b0-a3a1-4e28f7dc7033/tables status=503 latency_ms=12 client_ip=192.0.2.1
+--- PASS: TestPlatformDataModelAuthorization (0.67s)
+=== RUN   TestPlatformRoutePoliciesCoverRegisteredRoutes
+--- PASS: TestPlatformRoutePoliciesCoverRegisteredRoutes (0.00s)
+=== RUN   TestRouterIntegrationMainV1Flow
+2026/10/27 14:26:28 INFO http request request_id=0f497da4-e823-4d45-bdf5-4dfdcfbe868e method=POST path=/v1/tenants raw_path=/v1/tenants status=201 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=875a6786-5cc9-4dc9-99e9-34e96a06aa53 method=GET path=/v1/tenants raw_path=/v1/tenants status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=ba8e2d38-afbc-43b2-aba5-d7cd0f24dec5 method=GET path=/v1/tenants/:tenantId raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090 status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=c0a21b8b-5053-4e11-88a4-fd6312d8c0e9 method=POST path=/v1/tenants/:tenantId/provision raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/provision status=200 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=3b324f31-8197-4e55-a8fc-8e640d6233f9 method=POST path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/tables status=201 latency_ms=13 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=1c88c0be-fa63-4372-b187-dd92188e8362 method=POST path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/tables status=201 latency_ms=8 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=0dc895d2-69eb-4921-86f6-b55cc7a5f417 method=GET path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/tables status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=46709163-81a9-4816-b142-2614f3668e3b method=POST path=/v1/tables/:tableId/fields raw_path=/v1/tables/657cac1e-e09a-442e-9f62-e2ebf7ad1289/fields status=201 latency_ms=5 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=e923dcdf-c8b9-48b9-998e-b038793882e2 method=GET path=/v1/tables/:tableId/fields raw_path=/v1/tables/657cac1e-e09a-442e-9f62-e2ebf7ad1289/fields status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=6ac4e009-2391-49c0-b86c-d7d18a5a6763 method=GET path=/v1/tenants/:tenantId/data-model raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/data-model status=200 latency_ms=10 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=b7ec7a76-2f4c-4b6b-b24c-1a810c767cff method=POST path=/v1/tenants/:tenantId/links raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/links status=201 latency_ms=6 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=46890d98-d637-48ef-b966-c431032c13b5 method=GET path=/v1/tenants/:tenantId/links raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/links status=200 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=e47f448a-ca4b-41c3-82e7-739ab9c3a92f method=POST path=/v1/tenants/:tenantId/pivots raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/pivots status=201 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=8433168f-f5df-4301-8af7-41910ba054fe method=GET path=/v1/tenants/:tenantId/pivots raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/pivots status=200 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=fe58a8ca-e778-4e92-b6d7-f5686b28ae1f method=PUT path=/v1/tables/:tableId/options raw_path=/v1/tables/657cac1e-e09a-442e-9f62-e2ebf7ad1289/options status=200 latency_ms=6 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=82728eb1-63ac-41e8-ac12-652251bac7da method=GET path=/v1/tables/:tableId/options raw_path=/v1/tables/657cac1e-e09a-442e-9f62-e2ebf7ad1289/options status=200 latency_ms=2 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=9e6fe8b3-ba5b-42b4-9276-a0bb5ed4b126 method=GET path=/v1/tenants/:tenantId/data-model raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/data-model status=200 latency_ms=6 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=bf5871e4-5588-430e-b750-a2dc4d801601 method=GET path=/v1/tenants/:tenantId/schema-change-log raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/schema-change-log status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=bc866019-4158-4509-968a-5db9e3b92b93 method=GET path=/v1/tenants/:tenantId/schema-migrations raw_path=/v1/tenants/97d24719-2b8b-4436-ab0d-0c88c818f090/schema-migrations status=200 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=b2c95805-7ad7-45ca-9834-a404a7de6944 method=GET path=/v1/admin/reconcile raw_path=/v1/admin/reconcile status=200 latency_ms=12 client_ip=192.0.2.1
+--- PASS: TestRouterIntegrationMainV1Flow (0.28s)
+=== RUN   TestRouterIntegrationPortableDataModelExportImportRoundTrip
+2026/10/27 14:26:28 INFO http request request_id=21b2e2d0-a408-432c-b7f2-6d01cb3a362f method=POST path=/v1/tenants raw_path=/v1/tenants status=201 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=1147b1dd-041f-47e2-a927-22499213e773 method=POST path=/v1/tenants/:tenantId/provision raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/provision status=200 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=c29004f8-0312-4019-a5e7-7f0135f7e42a method=POST path=/v1/tenants raw_path=/v1/tenants status=201 latency_ms=2 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=37b49280-0eec-4b86-a35c-a3708ebc5988 method=POST path=/v1/tenants/:tenantId/provision raw_path=/v1/tenants/1371c8e8-7b69-4418-9355-049cc1382f0a/provision status=200 latency_ms=3 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=af92e070-ec13-457e-9e22-16408c0686c8 method=POST path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/tables status=201 latency_ms=13 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=cd68acec-36a5-4291-9444-6cb8794eab48 method=POST path=/v1/tenants/:tenantId/tables raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/tables status=201 latency_ms=8 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=48cefc94-db0d-4312-9030-d5daa8ebffcf method=GET path=/v1/tables/:tableId/fields raw_path=/v1/tables/0941e1c1-0416-4afa-9284-36b0e480b423/fields status=200 latency_ms=1 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=af22c1e2-2b0b-4d4d-b9d0-d0f4a9a3e0c5 method=GET path=/v1/tables/:tableId/fields raw_path=/v1/tables/41d4d598-44e5-4777-8db8-d4fc5371ab88/fields status=200 latency_ms=0 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=6b855132-6c19-4d87-8f83-7b7de34001a4 method=POST path=/v1/tables/:tableId/fields raw_path=/v1/tables/41d4d598-44e5-4777-8db8-d4fc5371ab88/fields status=201 latency_ms=4 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=5a646214-74c0-47be-bf82-1d0d1c21a81d method=POST path=/v1/tables/:tableId/fields raw_path=/v1/tables/41d4d598-44e5-4777-8db8-d4fc5371ab88/fields status=201 latency_ms=8 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=30ec299f-25f0-4fda-84a3-a2093969dbfc method=POST path=/v1/tenants/:tenantId/links raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/links status=201 latency_ms=5 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=cbf59c3b-b78e-449b-b819-812c560b95a3 method=POST path=/v1/tenants/:tenantId/pivots raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/pivots status=201 latency_ms=5 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=7c75ada2-f351-42f4-a7e8-d07af442bf7f method=PUT path=/v1/tables/:tableId/options raw_path=/v1/tables/41d4d598-44e5-4777-8db8-d4fc5371ab88/options status=200 latency_ms=6 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=3d1a7a0b-b032-44fc-8092-030e7fa8862b method=POST path=/v1/tables/:tableId/navigation-options raw_path=/v1/tables/0941e1c1-0416-4afa-9284-36b0e480b423/navigation-options status=201 latency_ms=15 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=ce5f52f7-2ea7-4ec2-b3bc-74936f71f311 method=GET path=/v1/tenants/:tenantId/data-model/export raw_path=/v1/tenants/a1f95c41-6c03-43a7-a531-58305be3dc9b/data-model/export status=200 latency_ms=9 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=8f50f68c-7cfa-4b1a-b08d-0a26b23e7c0b method=POST path=/v1/tenants/:tenantId/data-model/import raw_path=/v1/tenants/1371c8e8-7b69-4418-9355-049cc1382f0a/data-model/import status=200 latency_ms=49 client_ip=192.0.2.1
+2026/10/27 14:26:28 INFO http request request_id=f8ac59ce-39fd-422d-b2c9-51f55300fac1 method=GET path=/v1/tenants/:tenantId/data-model/export raw_path=/v1/tenants/1371c8e8-7b69-4418-9355-049cc1382f0a/data-model/export status=200 latency_ms=5 client_ip=192.0.2.1
+--- PASS: TestRouterIntegrationPortableDataModelExportImportRoundTrip (0.33s)
+=== CONT  TestAuthMiddlewareTokenAllowsValidBearerToken
+=== CONT  TestRequestContextMiddlewareSetsRequestIDHeader
+=== CONT  TestCORSMiddlewareHandlesPreflight
+--- PASS: TestAuthMiddlewareTokenAllowsValidBearerToken (0.00s)
+=== CONT  TestCORSMiddlewareRejectsUnknownPreflightOrigin
+--- PASS: TestRequestContextMiddlewareSetsRequestIDHeader (0.00s)
+=== CONT  TestRequestContextMiddlewarePreservesIncomingRequestID
+=== CONT  TestDocsRoutesServeOpenAPISpecAndDocsPages
+=== CONT  TestAuthMiddlewareTokenRejectsMissingBearerToken
+=== CONT  TestAuthMiddlewareDisabledAllowsRequest
+=== CONT  TestCORSMiddlewareAllowsConfiguredOrigin
+--- PASS: TestCORSMiddlewareHandlesPreflight (0.00s)
+--- PASS: TestCORSMiddlewareRejectsUnknownPreflightOrigin (0.00s)
+--- PASS: TestAuthMiddlewareDisabledAllowsRequest (0.00s)
+--- PASS: TestCORSMiddlewareAllowsConfiguredOrigin (0.00s)
+--- PASS: TestRequestContextMiddlewarePreservesIncomingRequestID (0.00s)
+--- PASS: TestAuthMiddlewareTokenRejectsMissingBearerToken (0.00s)
+--- PASS: TestDocsRoutesServeOpenAPISpecAndDocsPages (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi	2.363s
+=== RUN   TestAdaptAssembledDataModelPublishesIngestionContract
+=== PAUSE TestAdaptAssembledDataModelPublishesIngestionContract
+=== CONT  TestAdaptAssembledDataModelPublishesIngestionContract
+--- PASS: TestAdaptAssembledDataModelPublishesIngestionContract (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi/dto	1.038s
+=== RUN   TestDataModelHandlerCreateFieldRejectsUnsupportedDataType
+=== PAUSE TestDataModelHandlerCreateFieldRejectsUnsupportedDataType
+=== RUN   TestCreateFieldRequestBindsInlineEnumValues
+=== PAUSE TestCreateFieldRequestBindsInlineEnumValues
+=== RUN   TestConditionalModelRepresentation
+--- PASS: TestConditionalModelRepresentation (0.00s)
+=== RUN   TestConditionalModelEncodingFailure
+--- PASS: TestConditionalModelEncodingFailure (0.00s)
+=== RUN   TestTenantHandlerCreateReturnsCreatedTenant
+=== PAUSE TestTenantHandlerCreateReturnsCreatedTenant
+=== RUN   TestTenantHandlerCreateRejectsInvalidBody
+=== PAUSE TestTenantHandlerCreateRejectsInvalidBody
+=== RUN   TestTenantHandlerProvisionRejectsInvalidUUID
+=== PAUSE TestTenantHandlerProvisionRejectsInvalidUUID
+=== CONT  TestCreateFieldRequestBindsInlineEnumValues
+=== CONT  TestTenantHandlerCreateRejectsInvalidBody
+=== CONT  TestTenantHandlerProvisionRejectsInvalidUUID
+=== CONT  TestTenantHandlerCreateReturnsCreatedTenant
+=== CONT  TestDataModelHandlerCreateFieldRejectsUnsupportedDataType
+--- PASS: TestCreateFieldRequestBindsInlineEnumValues (0.00s)
+--- PASS: TestTenantHandlerProvisionRejectsInvalidUUID (0.00s)
+--- PASS: TestTenantHandlerCreateRejectsInvalidBody (0.00s)
+--- PASS: TestDataModelHandlerCreateFieldRejectsUnsupportedDataType (0.00s)
+--- PASS: TestTenantHandlerCreateReturnsCreatedTenant (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/httpapi/handlers	1.085s

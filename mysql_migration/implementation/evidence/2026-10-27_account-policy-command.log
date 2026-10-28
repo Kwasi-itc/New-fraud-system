@@ -1,0 +1,24 @@
+=== RUN   TestVerifyReviewedAccountsMySQL
+--- PASS: TestVerifyReviewedAccountsMySQL (3.89s)
+=== RUN   TestAccountPoliciesDocument
+=== RUN   TestAccountPoliciesDocument/duplicate_privilege
+=== RUN   TestAccountPoliciesDocument/trailing
+=== RUN   TestAccountPoliciesDocument/oversize
+=== RUN   TestAccountPoliciesDocument/deep
+=== RUN   TestAccountPoliciesDocument/null
+=== RUN   TestAccountPoliciesDocument/wrong_database
+=== RUN   TestAccountPoliciesDocument/unknown
+=== RUN   TestAccountPoliciesDocument/duplicate
+--- PASS: TestAccountPoliciesDocument (0.01s)
+    --- PASS: TestAccountPoliciesDocument/duplicate_privilege (0.00s)
+    --- PASS: TestAccountPoliciesDocument/trailing (0.00s)
+    --- PASS: TestAccountPoliciesDocument/oversize (0.00s)
+    --- PASS: TestAccountPoliciesDocument/deep (0.00s)
+    --- PASS: TestAccountPoliciesDocument/null (0.00s)
+    --- PASS: TestAccountPoliciesDocument/wrong_database (0.00s)
+    --- PASS: TestAccountPoliciesDocument/unknown (0.00s)
+    --- PASS: TestAccountPoliciesDocument/duplicate (0.00s)
+=== RUN   TestValidatePlanWithoutDatabase
+--- PASS: TestValidatePlanWithoutDatabase (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/migrate-mysql	4.945s

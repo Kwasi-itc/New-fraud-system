@@ -1,0 +1,22 @@
+=== RUN   TestMigrationRunner
+=== RUN   TestMigrationRunner/fresh_upgrade_replay
+=== RUN   TestMigrationRunner/checksum_change
+=== RUN   TestMigrationRunner/preexisting_object
+=== RUN   TestMigrationRunner/applied_drift
+=== RUN   TestMigrationRunner/dirty_absent
+=== RUN   TestMigrationRunner/dirty_applied
+=== RUN   TestMigrationRunner/dirty_conflict
+=== RUN   TestMigrationRunner/short_plan
+=== RUN   TestMigrationRunner/cancelled
+--- PASS: TestMigrationRunner (4.35s)
+    --- PASS: TestMigrationRunner/fresh_upgrade_replay (0.58s)
+    --- PASS: TestMigrationRunner/checksum_change (0.50s)
+    --- PASS: TestMigrationRunner/preexisting_object (0.48s)
+    --- PASS: TestMigrationRunner/applied_drift (0.48s)
+    --- PASS: TestMigrationRunner/dirty_absent (0.45s)
+    --- PASS: TestMigrationRunner/dirty_applied (0.47s)
+    --- PASS: TestMigrationRunner/dirty_conflict (0.49s)
+    --- PASS: TestMigrationRunner/short_plan (0.44s)
+    --- PASS: TestMigrationRunner/cancelled (0.46s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	5.380s

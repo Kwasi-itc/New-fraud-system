@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
@@ -47,12 +48,11 @@ func TestReconcileTenantFlagsMissingPhysicalSchema(t *testing.T) {
 		},
 		fields:            stubFieldRepository{},
 		navigationOptions: stubNavigationOptionRepository{},
-		indexJobs:         &stubIndexJobRepository{},
-		schemaChanges:     stubSchemaChangeRepository{},
-		schemaManager:     stubSchemaManager{},
-		idGenerator:       stubIDGenerator{value: uuid.New()},
-		clock:             stubClock{},
-		introspect:        stubIntrospector{schemaExists: false},
+
+		schemaManager: stubSchemaManager{},
+		idGenerator:   stubIDGenerator{value: uuid.New()},
+		clock:         stubClock{},
+		introspect:    stubIntrospector{schemaExists: false},
 	}
 
 	report, err := service.reconcileTenant(context.Background(), record)
@@ -100,12 +100,11 @@ func TestReconcileTenantSchedulesRepairJobsForMissingManagedIndexes(t *testing.T
 				OrderingFieldName: "updated_at",
 			}},
 		},
-		indexJobs:     indexJobs,
-		schemaChanges: stubSchemaChangeRepository{},
+
 		schemaManager: stubSchemaManager{managedIndexExists: false},
 		idGenerator:   stubIDGenerator{value: uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")},
 		clock:         fixedTestClock{now: time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)},
-		enqueuer:      enqueuer,
+		transactions:  stubRepairTransactions{store: stubRepairStore{jobs: indexJobs, queue: enqueuer}},
 		introspect: stubIntrospector{
 			schemaExists: true,
 			tables:       []string{"cases"},
@@ -338,3 +337,27 @@ func (c fixedTestClock) Now() time.Time { return c.now }
 
 var _ = storepostgres.NewTenantRepository
 var _ riverjobs.IndexJobEnqueuer = (*stubReconcileIndexJobEnqueuer)(nil)
+
+func (s *stubIndexJobRepository) GetByDedupeKeyForUpdate(ctx context.Context, key string) (*datamodel.IndexJob, error) {
+	return s.GetByDedupeKey(ctx, key)
+}
+
+type stubRepairStore struct {
+	ports.MutationStore
+	jobs  ports.IndexJobRepository
+	queue *stubReconcileIndexJobEnqueuer
+}
+
+func (s stubRepairStore) IndexJobs() ports.IndexJobRepository { return s.jobs }
+func (s stubRepairStore) SchemaChanges() ports.SchemaChangeRepository {
+	return stubSchemaChangeRepository{}
+}
+func (s stubRepairStore) EnqueueIndexJob(ctx context.Context, id uuid.UUID, at *time.Time) error {
+	return s.queue.Enqueue(ctx, id, at)
+}
+
+type stubRepairTransactions struct{ store ports.MutationStore }
+
+func (m stubRepairTransactions) Run(ctx context.Context, fn func(ports.MutationStore) error) error {
+	return fn(m.store)
+}

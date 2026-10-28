@@ -8,12 +8,12 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - dm_pg_data:/var/lib/postgresql/data
+      - data_model_pg_data:/var/lib/postgresql/data
 
   data-model-service:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: data-model-service/Dockerfile
     environment:
       DATABASE_URL: postgres://datamodel:datamodel@postgres:5432/datamodel?sslmode=disable
       PORT: 8080
@@ -27,4 +27,4 @@ services:
       - "8088:8080"
 
 volumes:
-  dm_pg_data:
+  data_model_pg_data:

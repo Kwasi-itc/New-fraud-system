@@ -1,0 +1,4 @@
+=== RUN   TestPreparedFieldCreationRequestHash
+--- PASS: TestPreparedFieldCreationRequestHash (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.027s

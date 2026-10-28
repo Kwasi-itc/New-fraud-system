@@ -1,0 +1,6 @@
+=== RUN   TestTenantCatalogueRouting
+--- PASS: TestTenantCatalogueRouting (0.00s)
+=== RUN   TestTenantRegistrationScopeAllocation
+--- PASS: TestTenantRegistrationScopeAllocation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.033s

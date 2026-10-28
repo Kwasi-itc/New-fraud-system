@@ -1,0 +1,46 @@
+# Standalone disposable test stack. No application network, ports or volumes.
+services:
+  certs:
+    image: golang:1.25.8
+    working_dir: /work
+    volumes:
+      - .:/work:ro
+      - test-certs:/certs
+    command: ["go", "run", "./internal/testcerts/main.go", "/certs"]
+  mysql:
+    image: mysql:8.4.8
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: migration_test
+      MYSQL_USER: migration_test
+      MYSQL_PASSWORD: isolated-test-only
+    tmpfs:
+      - /var/lib/mysql
+    volumes:
+      - test-certs:/certs:ro
+    command: ["--ssl-ca=/certs/ca.pem", "--ssl-cert=/certs/server.pem", "--ssl-key=/certs/server-key.pem"]
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  test:
+    image: golang:1.25.8
+    working_dir: /work
+    volumes:
+      - .:/work
+      - test-certs:/certs:ro
+    environment:
+      MYSQLSTORE_TEST_ADDRESS: mysql:3306
+      MYSQLSTORE_TEST_PASSWORD: isolated-test-only
+      MYSQLSTORE_REQUIRE_INTEGRATION: "1"
+      MYSQLSTORE_TEST_CA: /certs/ca.pem
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["sh", "-ec", "go mod download && go vet ./... && go test -mod=readonly -race -count=1 -timeout=90s -v ./..."]
+volumes:
+  test-certs:

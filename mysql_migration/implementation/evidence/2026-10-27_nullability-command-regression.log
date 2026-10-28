@@ -1,0 +1,264 @@
+=== RUN   TestRecoveryCommandMySQL
+--- PASS: TestRecoveryCommandMySQL (1.64s)
+=== RUN   TestRecoveryCommandValidation
+--- PASS: TestRecoveryCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/reconcile-physical-mysql	2.691s
+=== RUN   TestRedriveCommandMySQL
+--- PASS: TestRedriveCommandMySQL (1.59s)
+=== RUN   TestRedriveCommandValidation
+--- PASS: TestRedriveCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/redrive-delivery-mysql	2.655s
+=== RUN   TestInspectionCommandMySQL
+--- PASS: TestInspectionCommandMySQL (1.55s)
+=== RUN   TestInspectionCommandValidation
+--- PASS: TestInspectionCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/inspect-deliveries-mysql	2.612s
+=== RUN   TestVerifyReviewedAccountsMySQL
+--- PASS: TestVerifyReviewedAccountsMySQL (5.99s)
+=== RUN   TestAccountPoliciesDocument
+=== RUN   TestAccountPoliciesDocument/unknown
+=== RUN   TestAccountPoliciesDocument/duplicate
+=== RUN   TestAccountPoliciesDocument/duplicate_privilege
+=== RUN   TestAccountPoliciesDocument/trailing
+=== RUN   TestAccountPoliciesDocument/oversize
+=== RUN   TestAccountPoliciesDocument/deep
+=== RUN   TestAccountPoliciesDocument/null
+=== RUN   TestAccountPoliciesDocument/wrong_database
+--- PASS: TestAccountPoliciesDocument (0.02s)
+    --- PASS: TestAccountPoliciesDocument/unknown (0.00s)
+    --- PASS: TestAccountPoliciesDocument/duplicate (0.00s)
+    --- PASS: TestAccountPoliciesDocument/duplicate_privilege (0.00s)
+    --- PASS: TestAccountPoliciesDocument/trailing (0.00s)
+    --- PASS: TestAccountPoliciesDocument/oversize (0.00s)
+    --- PASS: TestAccountPoliciesDocument/deep (0.00s)
+    --- PASS: TestAccountPoliciesDocument/null (0.00s)
+    --- PASS: TestAccountPoliciesDocument/wrong_database (0.00s)
+=== RUN   TestValidatePlanWithoutDatabase
+--- PASS: TestValidatePlanWithoutDatabase (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/migrate-mysql	7.065s
+=== RUN   TestFrozenReferenceArtifact
+--- PASS: TestFrozenReferenceArtifact (0.10s)
+=== RUN   TestReferenceCommandBoundary
+--- PASS: TestReferenceCommandBoundary (0.02s)
+=== RUN   TestReferenceArtifactRoundTrip
+--- PASS: TestReferenceArtifactRoundTrip (3.93s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/build-mysql-reference	5.110s
+=== RUN   TestBuildIngestion
+--- PASS: TestBuildIngestion (0.00s)
+=== RUN   TestBuildIngestionRejectsInconsistentOwnership
+--- PASS: TestBuildIngestionRejectsInconsistentOwnership (0.00s)
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/table
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/field
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/type
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/value
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/label
+--- PASS: TestBuildIngestionRejectsLossyUTF8Encoding (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/table (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/field (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/type (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/value (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/label (0.00s)
+=== RUN   TestPrepareIngestionVersionLifecycle
+--- PASS: TestPrepareIngestionVersionLifecycle (0.00s)
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/table
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/version
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/json
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing
+--- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator (0.01s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/table (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/version (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/json (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8 (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing (0.00s)
+=== RUN   TestIngestionPayloadSemanticComparison
+=== RUN   TestIngestionPayloadSemanticComparison/object_order
+=== RUN   TestIngestionPayloadSemanticComparison/escape
+=== RUN   TestIngestionPayloadSemanticComparison/array_order
+=== RUN   TestIngestionPayloadSemanticComparison/null_array
+=== RUN   TestIngestionPayloadSemanticComparison/null_object
+=== RUN   TestIngestionPayloadSemanticComparison/missing
+=== RUN   TestIngestionPayloadSemanticComparison/extra
+=== RUN   TestIngestionPayloadSemanticComparison/numeric_string
+=== RUN   TestIngestionPayloadSemanticComparison/large_number
+--- PASS: TestIngestionPayloadSemanticComparison (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/object_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/escape (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/array_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_array (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_object (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/missing (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/extra (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/numeric_string (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/large_number (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/contract	1.058s
+=== RUN   TestIndexJobOutcomeValidation
+=== RUN   TestIndexJobOutcomeValidation/success_with_error
+=== RUN   TestIndexJobOutcomeValidation/zero_job
+=== RUN   TestIndexJobOutcomeValidation/zero_tenant
+=== RUN   TestIndexJobOutcomeValidation/not_running
+=== RUN   TestIndexJobOutcomeValidation/history_identity
+=== RUN   TestIndexJobOutcomeValidation/wrong_resource
+=== RUN   TestIndexJobOutcomeValidation/success_with_retry
+=== RUN   TestIndexJobOutcomeValidation/zero_attempt
+=== RUN   TestIndexJobOutcomeValidation/wrong_tenant
+=== RUN   TestIndexJobOutcomeValidation/wrong_job
+=== RUN   TestIndexJobOutcomeValidation/zero_timestamp
+=== RUN   TestIndexJobOutcomeValidation/invalid_json
+=== RUN   TestIndexJobOutcomeValidation/invalid_status
+=== RUN   TestIndexJobOutcomeValidation/wrong_operation
+--- PASS: TestIndexJobOutcomeValidation (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/success_with_error (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/not_running (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/history_identity (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_resource (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/success_with_retry (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_attempt (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_timestamp (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_json (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_status (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_operation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports	1.042s
+=== RUN   TestDeliveryMaintenance
+=== RUN   TestDeliveryMaintenance/locked_pages_advance_independent_cursors_across_paced_cycles
+=== RUN   TestDeliveryMaintenance/exhausted_stream_waits_until_next_cycle_while_other_advances
+=== RUN   TestDeliveryMaintenance/partial_failure_is_fatal_and_retains_evidence
+=== RUN   TestDeliveryMaintenance/timeout_cannot_be_swallowed_and_callback_is_joined
+=== RUN   TestDeliveryMaintenance/cancellation_during_wait_makes_no_extra_call
+=== RUN   TestDeliveryMaintenance/invalid_configuration_and_cancelled_start
+--- PASS: TestDeliveryMaintenance (0.01s)
+    --- PASS: TestDeliveryMaintenance/locked_pages_advance_independent_cursors_across_paced_cycles (0.00s)
+    --- PASS: TestDeliveryMaintenance/exhausted_stream_waits_until_next_cycle_while_other_advances (0.00s)
+    --- PASS: TestDeliveryMaintenance/partial_failure_is_fatal_and_retains_evidence (0.00s)
+    --- PASS: TestDeliveryMaintenance/timeout_cannot_be_swallowed_and_callback_is_joined (0.00s)
+    --- PASS: TestDeliveryMaintenance/cancellation_during_wait_makes_no_extra_call (0.00s)
+    --- PASS: TestDeliveryMaintenance/invalid_configuration_and_cancelled_start (0.00s)
+=== RUN   TestDeliveryPoller
+=== RUN   TestDeliveryPoller/fatal_claim_cancels_and_joins_sibling_execution
+=== RUN   TestDeliveryPoller/fixed_concurrency_no_prefetch_and_joined_shutdown
+=== RUN   TestDeliveryPoller/empty_queue_waits_and_shutdown_interrupts_wait
+=== RUN   TestDeliveryPoller/execution_failure_reported_before_next_claim
+=== RUN   TestDeliveryPoller/report_failure_retains_both_errors
+=== RUN   TestDeliveryPoller/claim_timeout_cannot_launch_work
+=== RUN   TestDeliveryPoller/invalid_task_and_configuration
+--- PASS: TestDeliveryPoller (0.01s)
+    --- PASS: TestDeliveryPoller/fatal_claim_cancels_and_joins_sibling_execution (0.00s)
+    --- PASS: TestDeliveryPoller/fixed_concurrency_no_prefetch_and_joined_shutdown (0.00s)
+    --- PASS: TestDeliveryPoller/empty_queue_waits_and_shutdown_interrupts_wait (0.00s)
+    --- PASS: TestDeliveryPoller/execution_failure_reported_before_next_claim (0.00s)
+    --- PASS: TestDeliveryPoller/report_failure_retains_both_errors (0.00s)
+    --- PASS: TestDeliveryPoller/claim_timeout_cannot_launch_work (0.00s)
+    --- PASS: TestDeliveryPoller/invalid_task_and_configuration (0.00s)
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled
+--- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled (0.00s)
+=== RUN   TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== PAUSE TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== RUN   TestRunnerRunJobReschedulesBeforeFinalFailure
+=== PAUSE TestRunnerRunJobReschedulesBeforeFinalFailure
+=== RUN   TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== PAUSE TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== RUN   TestRunnerRunJobReturnsStartError
+=== PAUSE TestRunnerRunJobReturnsStartError
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/applied
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/retry
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup
+--- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/applied (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/retry (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup (0.00s)
+=== RUN   TestRunnerTransportOutcome
+=== RUN   TestRunnerTransportOutcome/applied
+=== RUN   TestRunnerTransportOutcome/retry
+=== RUN   TestRunnerTransportOutcome/exhausted
+=== RUN   TestRunnerTransportOutcome/validation
+--- PASS: TestRunnerTransportOutcome (0.00s)
+    --- PASS: TestRunnerTransportOutcome/applied (0.00s)
+    --- PASS: TestRunnerTransportOutcome/retry (0.00s)
+    --- PASS: TestRunnerTransportOutcome/exhausted (0.00s)
+    --- PASS: TestRunnerTransportOutcome/validation (0.00s)
+=== RUN   TestRunnerRequiresIndexPostcondition
+=== RUN   TestRunnerRequiresIndexPostcondition/created
+=== RUN   TestRunnerRequiresIndexPostcondition/still_missing
+=== RUN   TestRunnerRequiresIndexPostcondition/changed_identity
+=== RUN   TestRunnerRequiresIndexPostcondition/empty_identity
+=== RUN   TestRunnerRequiresIndexPostcondition/inspection_error
+=== RUN   TestRunnerRequiresIndexPostcondition/exhausted
+=== RUN   TestRunnerRequiresIndexPostcondition/outcome_error
+=== RUN   TestRunnerRequiresIndexPostcondition/existing_empty_identity
+--- PASS: TestRunnerRequiresIndexPostcondition (0.01s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/created (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/still_missing (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/changed_identity (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/empty_identity (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/inspection_error (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/exhausted (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/outcome_error (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/existing_empty_identity (0.00s)
+=== RUN   TestLeaseSupervisor
+=== RUN   TestLeaseSupervisor/initial_renewal_timeout_prevents_execution
+=== RUN   TestLeaseSupervisor/successful_work_cannot_hide_simultaneous_lease_loss
+=== RUN   TestLeaseSupervisor/panic_joins_heartbeat_and_propagates
+=== RUN   TestLeaseSupervisor/verify_before_work_and_retain_execution_error
+=== RUN   TestLeaseSupervisor/renew_while_working_and_stop_on_completion
+=== RUN   TestLeaseSupervisor/lost_lease_cancels_work_and_waits_for_exit
+=== RUN   TestLeaseSupervisor/heartbeat_timeout_fails_closed
+=== RUN   TestLeaseSupervisor/work_timeout_cannot_return_success
+=== RUN   TestLeaseSupervisor/shutdown_joins_active_heartbeat
+=== RUN   TestLeaseSupervisor/completion_cancels_inflight_heartbeat_normally
+=== RUN   TestLeaseSupervisor/already_cancelled_does_not_touch_storage
+=== RUN   TestLeaseSupervisor/invalid_configuration
+--- PASS: TestLeaseSupervisor (0.01s)
+    --- PASS: TestLeaseSupervisor/initial_renewal_timeout_prevents_execution (0.00s)
+    --- PASS: TestLeaseSupervisor/successful_work_cannot_hide_simultaneous_lease_loss (0.00s)
+    --- PASS: TestLeaseSupervisor/panic_joins_heartbeat_and_propagates (0.00s)
+    --- PASS: TestLeaseSupervisor/verify_before_work_and_retain_execution_error (0.00s)
+    --- PASS: TestLeaseSupervisor/renew_while_working_and_stop_on_completion (0.00s)
+    --- PASS: TestLeaseSupervisor/lost_lease_cancels_work_and_waits_for_exit (0.00s)
+    --- PASS: TestLeaseSupervisor/heartbeat_timeout_fails_closed (0.00s)
+    --- PASS: TestLeaseSupervisor/work_timeout_cannot_return_success (0.00s)
+    --- PASS: TestLeaseSupervisor/shutdown_joins_active_heartbeat (0.00s)
+    --- PASS: TestLeaseSupervisor/completion_cancels_inflight_heartbeat_normally (0.00s)
+    --- PASS: TestLeaseSupervisor/already_cancelled_does_not_touch_storage (0.00s)
+    --- PASS: TestLeaseSupervisor/invalid_configuration (0.00s)
+=== CONT  TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== CONT  TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+--- PASS: TestRunnerRunJobMarksFailedAfterMaxAttempts (0.00s)
+=== CONT  TestRunnerRunJobReschedulesBeforeFinalFailure
+=== CONT  TestRunnerRunJobReturnsStartError
+--- PASS: TestRunnerRunJobReturnsStartError (0.00s)
+--- PASS: TestRunnerRunJobReschedulesBeforeFinalFailure (0.00s)
+--- PASS: TestRunnerRunJobMarksAppliedAndLogsSchemaChange (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker	1.097s

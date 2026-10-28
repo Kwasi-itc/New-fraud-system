@@ -1,0 +1,24 @@
+=== RUN   TestPhysicalRegistryAndIntents
+=== RUN   TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds
+=== RUN   TestPhysicalRegistryAndIntents/tenant_and_parent_isolation
+=== RUN   TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request
+=== RUN   TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables
+=== RUN   TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay
+=== RUN   TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together
+=== RUN   TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch
+[mysql] 2026/10/26 13:01:02 connection.go:189 closing connection:close tcp 172.21.0.3:54954->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 13:01:02 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back
+=== RUN   TestPhysicalRegistryAndIntents/keyset_pending_pages
+--- PASS: TestPhysicalRegistryAndIntents (0.89s)
+    --- PASS: TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables (0.18s)
+    --- PASS: TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back (0.01s)
+    --- PASS: TestPhysicalRegistryAndIntents/keyset_pending_pages (0.03s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.923s

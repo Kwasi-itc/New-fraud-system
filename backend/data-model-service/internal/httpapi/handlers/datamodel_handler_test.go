@@ -14,7 +14,6 @@ import (
 
 func TestDataModelHandlerCreateFieldRejectsUnsupportedDataType(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewDataModelHandler(
 		service.DataModelReadService{},
@@ -47,7 +46,6 @@ func TestDataModelHandlerCreateFieldRejectsUnsupportedDataType(t *testing.T) {
 
 func TestCreateFieldRequestBindsInlineEnumValues(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)

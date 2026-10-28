@@ -1,0 +1,8 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_presentation_result_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_concurrent
+--- PASS: TestPhysicalCreationAllocated (6.42s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_presentation_result_concurrent (0.57s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_concurrent (0.57s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	7.471s

@@ -1,0 +1,27 @@
+Usage of reconcile-physical-mysql:
+  -address string
+    	MySQL host:port
+  -after string
+    	exclusive operation UUID cursor for this state (default "00000000-0000-0000-0000-000000000000")
+  -ca string
+    	optional PEM CA file; defaults to system trust
+  -database string
+    	shared logical application database
+  -isolated-fixture
+    	plaintext only for the isolated mysql:3306 fixture
+  -limit int
+    	maximum attempts, 1..1000 (default 100)
+  -operation-timeout duration
+    	per-operation deadline (default 1m0s)
+  -password-env string
+    	environment variable containing password (default "DATA_MODEL_MYSQL_RECOVERY_PASSWORD")
+  -server-name string
+    	TLS server name; defaults to address hostname
+  -state string
+    	explicit prepared, applying, verifying or blocked state
+  -tenant string
+    	explicit authorized tenant UUID
+  -timeout duration
+    	overall deadline (default 10m0s)
+  -user string
+    	restricted physical recovery account

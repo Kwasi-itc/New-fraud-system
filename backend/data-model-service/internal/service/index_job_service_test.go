@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -150,10 +151,9 @@ func TestIndexJobServiceCreateEnqueuesAndLogs(t *testing.T) {
 		}},
 		repo,
 		changeRepo,
-		stubTransactionManager{store: stubMutationStore{indexJobs: repo, schemaChanges: changeRepo}},
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{}, enqueue: enqueuer.Enqueue, indexJobs: repo, schemaChanges: changeRepo}},
 		&stubSequenceIDGenerator{values: []uuid.UUID{jobID, changeID}},
 		stubClock{now: now},
-		enqueuer,
 	)
 
 	job, err := service.Create(context.Background(), CreateIndexJobInput{
@@ -202,10 +202,9 @@ func TestIndexJobServiceRetryResetsFailedJob(t *testing.T) {
 		stubFieldRepository{},
 		repo,
 		&stubSchemaChangeRepository{},
-		stubTransactionManager{store: stubMutationStore{indexJobs: repo}},
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{}, enqueue: enqueuer.Enqueue, indexJobs: repo}},
 		stubIDGenerator{value: uuid.New()},
 		stubClock{now: now},
-		enqueuer,
 	)
 
 	job, err := service.Retry(context.Background(), jobID)
@@ -245,3 +244,37 @@ func stringPtr(value string) *string {
 }
 
 var _ riverjobs.IndexJobEnqueuer = (*stubIndexJobEnqueuer)(nil)
+
+// A history write is part of the operation, not best-effort telemetry.
+type failingIndexHistory struct {
+	stubSchemaChangeRepository
+	err error
+}
+
+func (r failingIndexHistory) Create(context.Context, datamodel.SchemaChange) error { return r.err }
+
+func TestIndexJobServiceStopsOnHistoryFailure(t *testing.T) {
+	tenantID, tableID := uuid.New(), uuid.New()
+	failure := errors.New("history unavailable")
+	history := &failingIndexHistory{err: failure}
+	jobs := &stubIndexJobRepository{}
+	queue := &stubIndexJobEnqueuer{}
+	svc := NewIndexJobService(
+		stubTenantRepository{record: tenant.Tenant{ID: tenantID, Status: tenant.StatusActive}},
+		stubTableRepository{table: datamodel.Table{ID: tableID, TenantID: tenantID, Name: "records"}},
+		stubFieldRepository{fields: []datamodel.Field{{Name: "object_id"}}}, jobs, history,
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{}, indexJobs: jobs, schemaChanges: history, enqueue: queue.Enqueue}},
+		&stubSequenceIDGenerator{values: []uuid.UUID{uuid.New(), uuid.New()}}, stubClock{now: time.Now().UTC()},
+	)
+	_, err := svc.Create(context.Background(), CreateIndexJobInput{TenantID: tenantID, TableID: tableID, IndexType: datamodel.IndexJobTypeSearch, Columns: []string{"object_id"}})
+	if !errors.Is(err, failure) {
+		t.Fatalf("history error lost: %v", err)
+	}
+	if len(queue.jobIDs) != 0 {
+		t.Fatal("enqueued after failed history write")
+	}
+}
+
+func (s *stubIndexJobRepository) GetByDedupeKeyForUpdate(ctx context.Context, key string) (*datamodel.IndexJob, error) {
+	return s.GetByDedupeKey(ctx, key)
+}

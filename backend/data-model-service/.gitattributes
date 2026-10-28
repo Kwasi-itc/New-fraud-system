@@ -1,0 +1,3 @@
+# Embedded migration SQL is checksum-bound; keep its bytes stable across hosts.
+internal/store/mysql/metadata/sql/*.sql text eol=lf
+internal/store/mysql/exactkeys/sql/*.sql text eol=lf

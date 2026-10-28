@@ -1,0 +1,10 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/27 18:34:10 connection.go:189 closing connection:close tcp 172.21.0.3:54956->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 18:34:10 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalCreationAllocated (6.78s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (0.55s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (0.56s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	7.839s

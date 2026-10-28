@@ -1,0 +1,138 @@
+=== RUN   TestAssembledRepository
+=== RUN   TestAssembledRepository/all_relations_and_empty_shapes
+=== RUN   TestAssembledRepository/scope_and_invalid_construction
+=== RUN   TestAssembledRepository/aggregate_row_and_text_boundaries
+=== RUN   TestAssembledRepository/archived_metadata_retained
+=== RUN   TestAssembledRepository/concurrent_writer_never_tears_snapshot
+=== RUN   TestAssembledRepository/constant_query_count_with_many_tables
+=== RUN   TestAssembledRepository/published_snapshot_owner_and_revision_consistency
+=== RUN   TestAssembledRepository/corrupt_order_returns_no_model
+--- PASS: TestAssembledRepository (2.81s)
+    --- PASS: TestAssembledRepository/all_relations_and_empty_shapes (0.01s)
+    --- PASS: TestAssembledRepository/scope_and_invalid_construction (0.01s)
+    --- PASS: TestAssembledRepository/aggregate_row_and_text_boundaries (0.04s)
+    --- PASS: TestAssembledRepository/archived_metadata_retained (0.02s)
+    --- PASS: TestAssembledRepository/concurrent_writer_never_tears_snapshot (0.84s)
+    --- PASS: TestAssembledRepository/constant_query_count_with_many_tables (0.32s)
+    --- PASS: TestAssembledRepository/published_snapshot_owner_and_revision_consistency (1.02s)
+    --- PASS: TestAssembledRepository/corrupt_order_returns_no_model (0.01s)
+=== RUN   TestEventRepositories
+=== RUN   TestEventRepositories/round_trip_json_and_immutable_events
+=== RUN   TestEventRepositories/keyset_pages_handle_equal_timestamps
+=== RUN   TestEventRepositories/tenant_and_cursor_scope
+=== RUN   TestEventRepositories/limits_and_invalid_json
+=== RUN   TestEventRepositories/event_byte_boundaries
+=== RUN   TestEventRepositories/audit_failure_rolls_back_owner_and_revision
+=== RUN   TestEventRepositories/revision_failure_rolls_back_owner_and_audit
+--- PASS: TestEventRepositories (0.58s)
+    --- PASS: TestEventRepositories/round_trip_json_and_immutable_events (0.02s)
+    --- PASS: TestEventRepositories/keyset_pages_handle_equal_timestamps (0.02s)
+    --- PASS: TestEventRepositories/tenant_and_cursor_scope (0.01s)
+    --- PASS: TestEventRepositories/limits_and_invalid_json (0.01s)
+    --- PASS: TestEventRepositories/event_byte_boundaries (0.01s)
+    --- PASS: TestEventRepositories/audit_failure_rolls_back_owner_and_revision (0.01s)
+    --- PASS: TestEventRepositories/revision_failure_rolls_back_owner_and_audit (0.01s)
+=== RUN   TestJobRepository
+=== RUN   TestJobRepository/round_trip_and_state_transitions
+=== RUN   TestJobRepository/scope_and_missing_rows
+=== RUN   TestJobRepository/exact_keys_empty_and_rollback
+=== RUN   TestJobRepository/bounds_order_corrupt_json_and_exhaustion
+=== RUN   TestJobRepository/concurrent_duplicate_creation
+=== RUN   TestJobRepository/exact_row_lock_and_cancelled_wait
+=== RUN   TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot
+=== RUN   TestJobRepository/byte_boundaries_and_audit_rollback
+--- PASS: TestJobRepository (1.08s)
+    --- PASS: TestJobRepository/round_trip_and_state_transitions (0.03s)
+    --- PASS: TestJobRepository/scope_and_missing_rows (0.02s)
+    --- PASS: TestJobRepository/exact_keys_empty_and_rollback (0.04s)
+    --- PASS: TestJobRepository/bounds_order_corrupt_json_and_exhaustion (0.03s)
+    --- PASS: TestJobRepository/concurrent_duplicate_creation (0.01s)
+    --- PASS: TestJobRepository/exact_row_lock_and_cancelled_wait (0.17s)
+    --- PASS: TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot (0.03s)
+    --- PASS: TestJobRepository/byte_boundaries_and_audit_rollback (0.05s)
+=== RUN   TestJobLookupDigestCollision
+--- PASS: TestJobLookupDigestCollision (0.52s)
+=== RUN   TestOptionsRepository
+=== RUN   TestOptionsRepository/round_trip_replace_identity_json_and_version
+=== RUN   TestOptionsRepository/tenant_parent_active_and_distinct_validation
+=== RUN   TestOptionsRepository/rollback_covers_children_and_version
+=== RUN   TestOptionsRepository/limits_gaps_and_overflow
+=== RUN   TestOptionsRepository/large_order_uses_bounded_batches
+=== RUN   TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists
+--- PASS: TestOptionsRepository (1.29s)
+    --- PASS: TestOptionsRepository/round_trip_replace_identity_json_and_version (0.07s)
+    --- PASS: TestOptionsRepository/tenant_parent_active_and_distinct_validation (0.03s)
+    --- PASS: TestOptionsRepository/rollback_covers_children_and_version (0.02s)
+    --- PASS: TestOptionsRepository/limits_gaps_and_overflow (0.02s)
+    --- PASS: TestOptionsRepository/large_order_uses_bounded_batches (0.44s)
+    --- PASS: TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists (0.03s)
+=== RUN   TestMetadataRepositories
+=== RUN   TestMetadataRepositories/pivot_ordered_paths_batching_and_limits
+=== RUN   TestMetadataRepositories/pivot_scope_and_invalid_shapes
+=== RUN   TestMetadataRepositories/pivot_child_failure_rolls_back_owner
+=== RUN   TestMetadataRepositories/pivot_corrupt_path_is_rejected
+=== RUN   TestMetadataRepositories/relationship_round_trip_order_and_deletion
+=== RUN   TestMetadataRepositories/relationship_tenant_and_endpoint_isolation
+=== RUN   TestMetadataRepositories/relationship_limits_and_invalid_endpoints
+=== RUN   TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier
+=== RUN   TestMetadataRepositories/concurrent_link_duplicate
+=== RUN   TestMetadataRepositories/round_trip_and_supported_mutations
+=== RUN   TestMetadataRepositories/tenant_and_parent_isolation
+=== RUN   TestMetadataRepositories/ordered_lists_include_archived
+=== RUN   TestMetadataRepositories/delete_and_missing_mutations
+=== RUN   TestMetadataRepositories/transaction_rollback_and_exact_conflicts
+=== RUN   TestMetadataRepositories/bounded_reads_and_writes
+=== RUN   TestMetadataRepositories/record_locks_and_independent_tenant
+=== RUN   TestMetadataRepositories/invalid_configuration_and_read_only
+--- PASS: TestMetadataRepositories (1.11s)
+    --- PASS: TestMetadataRepositories/pivot_ordered_paths_batching_and_limits (0.18s)
+    --- PASS: TestMetadataRepositories/pivot_scope_and_invalid_shapes (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_child_failure_rolls_back_owner (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_corrupt_path_is_rejected (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_round_trip_order_and_deletion (0.03s)
+    --- PASS: TestMetadataRepositories/relationship_tenant_and_endpoint_isolation (0.03s)
+    --- PASS: TestMetadataRepositories/relationship_limits_and_invalid_endpoints (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier (0.01s)
+    --- PASS: TestMetadataRepositories/concurrent_link_duplicate (0.01s)
+    --- PASS: TestMetadataRepositories/round_trip_and_supported_mutations (0.04s)
+    --- PASS: TestMetadataRepositories/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/ordered_lists_include_archived (0.01s)
+    --- PASS: TestMetadataRepositories/delete_and_missing_mutations (0.01s)
+    --- PASS: TestMetadataRepositories/transaction_rollback_and_exact_conflicts (0.01s)
+    --- PASS: TestMetadataRepositories/bounded_reads_and_writes (0.01s)
+    --- PASS: TestMetadataRepositories/record_locks_and_independent_tenant (0.16s)
+    --- PASS: TestMetadataRepositories/invalid_configuration_and_read_only (0.01s)
+=== RUN   TestMetadataSchemaAndAdapters
+=== RUN   TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements
+=== RUN   TestMetadataSchemaAndAdapters/exact_metadata_uniqueness
+=== RUN   TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard
+=== RUN   TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships
+=== RUN   TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots
+=== RUN   TestMetadataSchemaAndAdapters/publication_on_full_metadata
+=== RUN   TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe
+--- PASS: TestMetadataSchemaAndAdapters (0.88s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements (0.18s)
+    --- PASS: TestMetadataSchemaAndAdapters/exact_metadata_uniqueness (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard (0.03s)
+    --- PASS: TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/publication_on_full_metadata (0.04s)
+    --- PASS: TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe (0.02s)
+=== RUN   TestTenantRepositories
+=== RUN   TestTenantRepositories/nullable_keys_and_round_trip
+=== RUN   TestTenantRepositories/tenant_scope_and_status
+=== RUN   TestTenantRepositories/catalogue_keyset_and_scope_separation
+=== RUN   TestTenantRepositories/exact_global_uniqueness
+=== RUN   TestTenantRepositories/registration_and_audit_rollback
+=== RUN   TestTenantRepositories/bounds_and_invalid_catalogue_configuration
+=== RUN   TestTenantRepositories/concurrent_external_key_duplicate
+--- PASS: TestTenantRepositories (0.69s)
+    --- PASS: TestTenantRepositories/nullable_keys_and_round_trip (0.03s)
+    --- PASS: TestTenantRepositories/tenant_scope_and_status (0.02s)
+    --- PASS: TestTenantRepositories/catalogue_keyset_and_scope_separation (0.01s)
+    --- PASS: TestTenantRepositories/exact_global_uniqueness (0.02s)
+    --- PASS: TestTenantRepositories/registration_and_audit_rollback (0.02s)
+    --- PASS: TestTenantRepositories/bounds_and_invalid_catalogue_configuration (0.01s)
+    --- PASS: TestTenantRepositories/concurrent_external_key_duplicate (0.01s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	10.000s

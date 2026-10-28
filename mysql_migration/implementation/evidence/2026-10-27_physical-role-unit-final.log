@@ -1,0 +1,4 @@
+=== RUN   TestPhysicalAccountSeparation
+--- PASS: TestPhysicalAccountSeparation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	1.027s

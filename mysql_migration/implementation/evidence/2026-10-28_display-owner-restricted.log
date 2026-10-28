@@ -1,0 +1,60 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/28 08:40:55 connection.go:189 closing connection:close tcp 172.21.0.3:46724->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:40:55 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_alter
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_ack
+[mysql] 2026/10/28 08:40:59 connection.go:189 closing connection:close tcp 172.21.0.3:47172->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:40:59 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_commit
+[mysql] 2026/10/28 08:41:00 connection.go:189 closing connection:close tcp 172.21.0.3:47262->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:41:00 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_extra_field
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_mapping
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_inactive
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit
+[mysql] 2026/10/28 08:41:06 connection.go:189 closing connection:close tcp 172.21.0.3:43972->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:41:06 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_lost_commit
+[mysql] 2026/10/28 08:41:07 connection.go:189 closing connection:close tcp 172.21.0.3:44064->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:41:07 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_missing_queue
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_restricted
+    physical_creation_publication_test.go:488: Error 1142 (42000): SELECT with locking clause command denied to user 'display_06ee52ec8b0e436e875d6b00'@'172.21.0.3' for table 'data_model_index_delivery_reservations'
+--- FAIL: TestPhysicalCreationAllocated (17.01s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (0.63s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (0.35s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_before (0.48s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_after (0.68s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_owner_rollback (0.61s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_active_installer (0.59s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_alter (0.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_ack (0.63s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_commit (0.64s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch (0.61s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_extra_field (0.66s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_mapping (0.82s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_commit (0.69s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure (0.63s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure (0.84s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_drift (0.66s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_inactive (0.58s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit (0.66s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_commit (0.49s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_lost_commit (0.50s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_missing_queue (0.39s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_display_restricted (0.44s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	17.042s
+FAIL

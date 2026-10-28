@@ -3,19 +3,23 @@ package service
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
 
@@ -44,7 +48,7 @@ func TestIntegrationCoreLifecyclePersistsMetadataAndTenantDDL(t *testing.T) {
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(40)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)}
@@ -262,7 +266,7 @@ func TestIntegrationEnumValuesPersistAndAppearInAssembledModel(t *testing.T) {
 	readRepo := storepostgres.NewDataModelReadRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(20)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 11, 0, 0, 0, time.UTC)}
@@ -363,7 +367,7 @@ func TestIntegrationCreateFieldWithInlineEnumValuesPersistsEverything(t *testing
 	readRepo := storepostgres.NewDataModelReadRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)}
@@ -446,14 +450,15 @@ func TestIntegrationUpdateTableCaptionFieldCreatesSearchIndexJob(t *testing.T) {
 	indexJobRepo := storepostgres.NewIndexJobRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 7, 20, 9, 0, 0, 0, time.UTC)}
 	enqueuer := &stubIndexJobEnqueuer{}
+	txManager = txManager.WithIndexJobEnqueuer(enqueuer)
 
 	tenantService := NewTenantService(tenantRepo, schemaChanges, schemaManager, txManager, idGen, clock)
-	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock).WithIndexJobEnqueuer(enqueuer)
+	tableService := NewTableService(tenantRepo, tableRepo, fieldRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 	fieldService := NewFieldService(tenantRepo, tableRepo, fieldRepo, fieldEnumValueRepo, linkRepo, pivotRepo, schemaChanges, schemaManager, txManager, idGen, clock)
 
 	record, err := tenantService.Create(ctx, tenant.CreateInput{Name: "Caption Index Tenant"})
@@ -553,7 +558,7 @@ func TestIntegrationFieldUniqueUpdateRollsBackMetadataOnIndexFailure(t *testing.
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := sequenceIDGenerator{values: integrationUUIDSequence(20)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 12, 15, 0, 0, 0, time.UTC)}
@@ -643,7 +648,7 @@ func TestIntegrationDeleteDryRunsReportInternalConflicts(t *testing.T) {
 	pivotRepo := storepostgres.NewPivotRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(50)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)}
@@ -775,7 +780,7 @@ func TestIntegrationDeleteOperationsRemoveMetadataAndTenantDDL(t *testing.T) {
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	tenantSchemaMigrations := storepostgres.NewTenantSchemaMigrationRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(60)}
 	clock := fixedIntegrationClock{now: time.Date(2026, 5, 13, 14, 0, 0, 0, time.UTC)}
@@ -934,7 +939,7 @@ func TestIntegrationCreateTableRollsBackWhenTenantSchemaMissing(t *testing.T) {
 	pivotRepo := storepostgres.NewPivotRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	now := time.Date(2026, 5, 13, 16, 0, 0, 0, time.UTC)
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(20)}
@@ -994,7 +999,7 @@ func TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing(t *testing.T) {
 	pivotRepo := storepostgres.NewPivotRepository(pool)
 	schemaChanges := storepostgres.NewSchemaChangeRepository(pool)
 	schemaManager := tenantdbpostgres.NewSchemaManager(pool)
-	txManager := storepostgres.NewTransactionManager(pool)
+	txManager := integrationTransactionManager(t, pool)
 
 	now := time.Date(2026, 5, 13, 17, 0, 0, 0, time.UTC)
 	idGen := &sequenceIDGenerator{values: integrationUUIDSequence(30)}
@@ -1064,6 +1069,10 @@ func TestIntegrationCreateFieldRollsBackWhenPhysicalTableMissing(t *testing.T) {
 func integrationDatabaseURL(t *testing.T) string {
 	t.Helper()
 	if url := os.Getenv("DATA_MODEL_TEST_DATABASE_URL"); url != "" {
+		parsed, err := neturl.Parse(url)
+		if err != nil || (parsed.Hostname() != "localhost" && parsed.Hostname() != "127.0.0.1") || !strings.HasPrefix(parsed.Path, "/data_model_tx_test_") {
+			t.Fatal("requires local data_model_tx_test_* disposable database")
+		}
 		return url
 	}
 	t.Skip("set DATA_MODEL_TEST_DATABASE_URL to run PostgreSQL integration tests")
@@ -1366,4 +1375,13 @@ type fixedIntegrationClock struct {
 
 func (c fixedIntegrationClock) Now() time.Time {
 	return c.now
+}
+
+func integrationTransactionManager(t *testing.T, pool *pgxpool.Pool) storepostgres.TransactionManager {
+	t.Helper()
+	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return storepostgres.NewTransactionManager(pool).WithIndexJobEnqueuer(riverjobs.NewRiverIndexJobEnqueuer(client, 3, riverjobs.IndexJobQueueName))
 }

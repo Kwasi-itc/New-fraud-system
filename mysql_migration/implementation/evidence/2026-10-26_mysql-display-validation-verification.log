@@ -1,0 +1,14 @@
+=== RUN   TestValidateStrict
+=== RUN   TestValidateStrict/clone_normalize_and_repeat_direct_columns
+=== RUN   TestValidateStrict/reject_ambiguous_column_shape
+=== RUN   TestValidateStrict/reject_invalid_text
+=== RUN   TestValidateStrict/require_exact_target_and_active_caption
+=== RUN   TestValidateStrict/required_version_and_conflict
+--- PASS: TestValidateStrict (0.00s)
+    --- PASS: TestValidateStrict/clone_normalize_and_repeat_direct_columns (0.00s)
+    --- PASS: TestValidateStrict/reject_ambiguous_column_shape (0.00s)
+    --- PASS: TestValidateStrict/reject_invalid_text (0.00s)
+    --- PASS: TestValidateStrict/require_exact_target_and_active_caption (0.00s)
+    --- PASS: TestValidateStrict/required_version_and_conflict (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/display	1.027s

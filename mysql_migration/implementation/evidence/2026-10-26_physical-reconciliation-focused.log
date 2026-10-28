@@ -1,0 +1,61 @@
+testing: warning: no tests to run
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/reconcile-physical-mysql	1.029s [no tests to run]
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 17:07:50 connection.go:189 closing connection:close tcp 172.21.0.3:41364->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 17:07:50 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 17:07:50 connection.go:189 closing connection:close tcp 172.21.0.3:41408->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 17:07:50 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (1.70s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.15s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.14s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.14s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.08s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.13s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.10s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.11s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.12s)
+=== RUN   TestPhysicalReconciliationPages
+--- PASS: TestPhysicalReconciliationPages (0.69s)
+=== RUN   TestPhysicalRegistryAndIntents
+=== RUN   TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds
+=== RUN   TestPhysicalRegistryAndIntents/tenant_and_parent_isolation
+=== RUN   TestPhysicalRegistryAndIntents/descriptive_names_preserve_identity_across_renames
+=== RUN   TestPhysicalRegistryAndIntents/mapping_batches_rollback_and_corrupt_component_rejection
+=== RUN   TestPhysicalRegistryAndIntents/bounded_labels_unicode_fallback_and_database_guard
+=== RUN   TestPhysicalRegistryAndIntents/stale_version_and_retired_table_are_rejected
+=== RUN   TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request
+=== RUN   TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables
+=== RUN   TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay
+=== RUN   TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together
+=== RUN   TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch
+[mysql] 2026/10/26 17:07:53 connection.go:189 closing connection:close tcp 172.21.0.3:41520->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 17:07:53 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back
+=== RUN   TestPhysicalRegistryAndIntents/keyset_pending_pages
+--- PASS: TestPhysicalRegistryAndIntents (2.57s)
+    --- PASS: TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/descriptive_names_preserve_identity_across_renames (0.05s)
+    --- PASS: TestPhysicalRegistryAndIntents/mapping_batches_rollback_and_corrupt_component_rejection (1.66s)
+    --- PASS: TestPhysicalRegistryAndIntents/bounded_labels_unicode_fallback_and_database_guard (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/stale_version_and_retired_table_are_rejected (0.01s)
+    --- PASS: TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables (0.18s)
+    --- PASS: TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back (0.01s)
+    --- PASS: TestPhysicalRegistryAndIntents/keyset_pending_pages (0.03s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	5.995s

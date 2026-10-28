@@ -1,0 +1,308 @@
+=== RUN   TestAssembledRepository
+=== RUN   TestAssembledRepository/all_relations_and_empty_shapes
+=== RUN   TestAssembledRepository/scope_and_invalid_construction
+=== RUN   TestAssembledRepository/aggregate_row_and_text_boundaries
+=== RUN   TestAssembledRepository/archived_metadata_retained
+=== RUN   TestAssembledRepository/concurrent_writer_never_tears_snapshot
+=== RUN   TestAssembledRepository/constant_query_count_with_many_tables
+=== RUN   TestAssembledRepository/published_snapshot_owner_and_revision_consistency
+=== RUN   TestAssembledRepository/corrupt_order_returns_no_model
+--- PASS: TestAssembledRepository (2.34s)
+    --- PASS: TestAssembledRepository/all_relations_and_empty_shapes (0.01s)
+    --- PASS: TestAssembledRepository/scope_and_invalid_construction (0.01s)
+    --- PASS: TestAssembledRepository/aggregate_row_and_text_boundaries (0.03s)
+    --- PASS: TestAssembledRepository/archived_metadata_retained (0.02s)
+    --- PASS: TestAssembledRepository/concurrent_writer_never_tears_snapshot (0.66s)
+    --- PASS: TestAssembledRepository/constant_query_count_with_many_tables (0.29s)
+    --- PASS: TestAssembledRepository/published_snapshot_owner_and_revision_consistency (0.71s)
+    --- PASS: TestAssembledRepository/corrupt_order_returns_no_model (0.01s)
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/enqueue
+[mysql] 2026/10/26 14:03:23 connection.go:189 closing connection:close tcp 172.21.0.3:56146->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:23 packets.go:58 unexpected EOF
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/claim
+[mysql] 2026/10/26 14:03:23 connection.go:189 closing connection:close tcp 172.21.0.3:56152->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:23 packets.go:58 unexpected EOF
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/finish
+[mysql] 2026/10/26 14:03:23 connection.go:189 closing connection:close tcp 172.21.0.3:56154->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:23 packets.go:58 unexpected EOF
+--- PASS: TestIndexDeliveryLostCommitAcknowledgement (0.64s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/enqueue (0.02s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/claim (0.03s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/finish (0.03s)
+=== RUN   TestLeasedIndexExecution
+=== RUN   TestLeasedIndexExecution/applied
+=== RUN   TestLeasedIndexExecution/pending
+=== RUN   TestLeasedIndexExecution/failed
+=== RUN   TestLeasedIndexExecution/audit_failure
+=== RUN   TestLeasedIndexExecution/expired
+=== RUN   TestLeasedIndexExecution/stale_attempt
+=== RUN   TestLeasedIndexExecution/terminal_redelivery
+--- PASS: TestLeasedIndexExecution (0.98s)
+    --- PASS: TestLeasedIndexExecution/applied (0.04s)
+    --- PASS: TestLeasedIndexExecution/pending (0.04s)
+    --- PASS: TestLeasedIndexExecution/failed (0.04s)
+    --- PASS: TestLeasedIndexExecution/audit_failure (0.03s)
+    --- PASS: TestLeasedIndexExecution/expired (0.02s)
+    --- PASS: TestLeasedIndexExecution/stale_attempt (0.03s)
+    --- PASS: TestLeasedIndexExecution/terminal_redelivery (0.03s)
+=== RUN   TestMySQLDeliveryMaintenance
+=== RUN   TestMySQLDeliveryMaintenance/expired_commit_acknowledgement_lost
+[mysql] 2026/10/26 14:03:25 connection.go:189 closing connection:close tcp 172.21.0.3:56198->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:25 packets.go:58 unexpected EOF
+=== RUN   TestMySQLDeliveryMaintenance/retention_commit_acknowledgement_lost
+[mysql] 2026/10/26 14:03:25 connection.go:189 closing connection:close tcp 172.21.0.3:56210->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:25 packets.go:58 unexpected EOF
+--- PASS: TestMySQLDeliveryMaintenance (0.77s)
+    --- PASS: TestMySQLDeliveryMaintenance/expired_commit_acknowledgement_lost (0.02s)
+    --- PASS: TestMySQLDeliveryMaintenance/retention_commit_acknowledgement_lost (0.02s)
+=== RUN   TestMySQLDeliveryPolling
+--- PASS: TestMySQLDeliveryPolling (2.77s)
+=== RUN   TestIndexDeliveryStore
+=== RUN   TestIndexDeliveryStore/enqueue_atomic_schedule_and_cross_queue_dedupe
+=== RUN   TestIndexDeliveryStore/concurrent_enqueue_and_claim
+=== RUN   TestIndexDeliveryStore/finish_fences_tenant_token_attempt_and_rolls_back_effects
+=== RUN   TestIndexDeliveryStore/expiry_during_effects_rolls_back_all_writes
+=== RUN   TestIndexDeliveryStore/reaper_fences_old_token_and_discards_at_limit
+=== RUN   TestIndexDeliveryStore/retry_cancel_and_retention
+=== RUN   TestIndexDeliveryStore/locked_prefix_does_not_starve_claim_or_maintenance
+=== RUN   TestIndexDeliveryStore/retry_exhaustion_and_cancel_failure_are_atomic
+=== RUN   TestIndexDeliveryStore/invalid_inputs_and_read_only_enqueue
+--- PASS: TestIndexDeliveryStore (0.85s)
+    --- PASS: TestIndexDeliveryStore/enqueue_atomic_schedule_and_cross_queue_dedupe (0.03s)
+    --- PASS: TestIndexDeliveryStore/concurrent_enqueue_and_claim (0.01s)
+    --- PASS: TestIndexDeliveryStore/finish_fences_tenant_token_attempt_and_rolls_back_effects (0.04s)
+    --- PASS: TestIndexDeliveryStore/expiry_during_effects_rolls_back_all_writes (0.02s)
+    --- PASS: TestIndexDeliveryStore/reaper_fences_old_token_and_discards_at_limit (0.04s)
+    --- PASS: TestIndexDeliveryStore/retry_cancel_and_retention (0.05s)
+    --- PASS: TestIndexDeliveryStore/locked_prefix_does_not_starve_claim_or_maintenance (0.04s)
+    --- PASS: TestIndexDeliveryStore/retry_exhaustion_and_cancel_failure_are_atomic (0.03s)
+    --- PASS: TestIndexDeliveryStore/invalid_inputs_and_read_only_enqueue (0.00s)
+=== RUN   TestMySQLDisplayStore
+=== RUN   TestMySQLDisplayStore/atomic_save_read_and_dependencies
+=== RUN   TestMySQLDisplayStore/reject_wrong_target_despite_parent_caption
+=== RUN   TestMySQLDisplayStore/validate_legacy_json_even_with_columns
+=== RUN   TestMySQLDisplayStore/owner_failure_rolls_back_everything
+=== RUN   TestMySQLDisplayStore/concurrent_optimistic_write_one_winner
+=== RUN   TestMySQLDisplayStore/tenant_bounds_and_missing_effects
+=== RUN   TestMySQLDisplayStore/parent_caption_invalidates_child_version
+=== RUN   TestMySQLDisplayStore/lost_commit_acknowledgement_returns_no_success
+[mysql] 2026/10/26 14:03:29 connection.go:189 closing connection:close tcp 172.21.0.3:59602->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:29 packets.go:58 unexpected EOF
+=== RUN   TestMySQLDisplayStore/bounded_batched_reads_no_per_link_field_loading
+=== RUN   TestMySQLDisplayStore/clearing_parent_caption_removes_legacy_link_only
+=== RUN   TestMySQLDisplayStore/audit_insert_failure_rolls_back_owner_effects
+=== RUN   TestMySQLDisplayStore/cleanup_rejects_unfinished_owner_mutation
+=== RUN   TestMySQLDisplayStore/cleanup_owner_failure_rolls_back_all_tables
+=== RUN   TestMySQLDisplayStore/cleanup_lock_cancels_competing_save_without_leaks
+=== RUN   TestMySQLDisplayStore/dependent_version_exhaustion_rolls_back_parent
+=== RUN   TestMySQLDisplayStore/archive_target_removes_relation_preserves_direct
+=== RUN   TestMySQLDisplayStore/delete_link_removes_legacy_link_and_reverse_dependencies
+=== RUN   TestMySQLDisplayStore/archive_direct_caption_cleans_order_and_version
+--- PASS: TestMySQLDisplayStore (1.90s)
+    --- PASS: TestMySQLDisplayStore/atomic_save_read_and_dependencies (0.06s)
+    --- PASS: TestMySQLDisplayStore/reject_wrong_target_despite_parent_caption (0.02s)
+    --- PASS: TestMySQLDisplayStore/validate_legacy_json_even_with_columns (0.05s)
+    --- PASS: TestMySQLDisplayStore/owner_failure_rolls_back_everything (0.05s)
+    --- PASS: TestMySQLDisplayStore/concurrent_optimistic_write_one_winner (0.05s)
+    --- PASS: TestMySQLDisplayStore/tenant_bounds_and_missing_effects (0.01s)
+    --- PASS: TestMySQLDisplayStore/parent_caption_invalidates_child_version (0.05s)
+    --- PASS: TestMySQLDisplayStore/lost_commit_acknowledgement_returns_no_success (0.07s)
+    --- PASS: TestMySQLDisplayStore/bounded_batched_reads_no_per_link_field_loading (0.26s)
+    --- PASS: TestMySQLDisplayStore/clearing_parent_caption_removes_legacy_link_only (0.14s)
+    --- PASS: TestMySQLDisplayStore/audit_insert_failure_rolls_back_owner_effects (0.06s)
+    --- PASS: TestMySQLDisplayStore/cleanup_rejects_unfinished_owner_mutation (0.05s)
+    --- PASS: TestMySQLDisplayStore/cleanup_owner_failure_rolls_back_all_tables (0.05s)
+    --- PASS: TestMySQLDisplayStore/cleanup_lock_cancels_competing_save_without_leaks (0.16s)
+    --- PASS: TestMySQLDisplayStore/dependent_version_exhaustion_rolls_back_parent (0.04s)
+    --- PASS: TestMySQLDisplayStore/archive_target_removes_relation_preserves_direct (0.04s)
+    --- PASS: TestMySQLDisplayStore/delete_link_removes_legacy_link_and_reverse_dependencies (0.03s)
+    --- PASS: TestMySQLDisplayStore/archive_direct_caption_cleans_order_and_version (0.04s)
+=== RUN   TestEventRepositories
+=== RUN   TestEventRepositories/round_trip_json_and_immutable_events
+=== RUN   TestEventRepositories/keyset_pages_handle_equal_timestamps
+=== RUN   TestEventRepositories/tenant_and_cursor_scope
+=== RUN   TestEventRepositories/limits_and_invalid_json
+=== RUN   TestEventRepositories/event_byte_boundaries
+=== RUN   TestEventRepositories/audit_failure_rolls_back_owner_and_revision
+=== RUN   TestEventRepositories/revision_failure_rolls_back_owner_and_audit
+--- PASS: TestEventRepositories (0.79s)
+    --- PASS: TestEventRepositories/round_trip_json_and_immutable_events (0.02s)
+    --- PASS: TestEventRepositories/keyset_pages_handle_equal_timestamps (0.02s)
+    --- PASS: TestEventRepositories/tenant_and_cursor_scope (0.01s)
+    --- PASS: TestEventRepositories/limits_and_invalid_json (0.01s)
+    --- PASS: TestEventRepositories/event_byte_boundaries (0.01s)
+    --- PASS: TestEventRepositories/audit_failure_rolls_back_owner_and_revision (0.02s)
+    --- PASS: TestEventRepositories/revision_failure_rolls_back_owner_and_audit (0.01s)
+=== RUN   TestJobRepository
+=== RUN   TestJobRepository/round_trip_and_state_transitions
+=== RUN   TestJobRepository/scope_and_missing_rows
+=== RUN   TestJobRepository/exact_keys_empty_and_rollback
+=== RUN   TestJobRepository/bounds_order_corrupt_json_and_exhaustion
+=== RUN   TestJobRepository/concurrent_duplicate_creation
+=== RUN   TestJobRepository/exact_row_lock_and_cancelled_wait
+=== RUN   TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot
+=== RUN   TestJobRepository/byte_boundaries_and_audit_rollback
+--- PASS: TestJobRepository (1.04s)
+    --- PASS: TestJobRepository/round_trip_and_state_transitions (0.03s)
+    --- PASS: TestJobRepository/scope_and_missing_rows (0.01s)
+    --- PASS: TestJobRepository/exact_keys_empty_and_rollback (0.03s)
+    --- PASS: TestJobRepository/bounds_order_corrupt_json_and_exhaustion (0.02s)
+    --- PASS: TestJobRepository/concurrent_duplicate_creation (0.01s)
+    --- PASS: TestJobRepository/exact_row_lock_and_cancelled_wait (0.16s)
+    --- PASS: TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot (0.02s)
+    --- PASS: TestJobRepository/byte_boundaries_and_audit_rollback (0.02s)
+=== RUN   TestJobLookupDigestCollision
+--- PASS: TestJobLookupDigestCollision (0.72s)
+=== RUN   TestMigrationLostDDLAcknowledgement
+[mysql] 2026/10/26 14:03:34 connection.go:189 closing connection:close tcp 172.21.0.3:59722->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:34 packets.go:58 unexpected EOF
+--- PASS: TestMigrationLostDDLAcknowledgement (0.83s)
+=== RUN   TestMigrationRunner
+=== RUN   TestMigrationRunner/fresh_upgrade_replay
+=== RUN   TestMigrationRunner/checksum_change
+=== RUN   TestMigrationRunner/preexisting_object
+=== RUN   TestMigrationRunner/applied_drift
+=== RUN   TestMigrationRunner/dirty_absent
+=== RUN   TestMigrationRunner/dirty_applied
+=== RUN   TestMigrationRunner/dirty_conflict
+=== RUN   TestMigrationRunner/short_plan
+=== RUN   TestMigrationRunner/cancelled
+=== RUN   TestMigrationRunner/competing_installer
+=== RUN   TestMigrationRunner/ledger_drift
+--- PASS: TestMigrationRunner (6.43s)
+    --- PASS: TestMigrationRunner/fresh_upgrade_replay (0.77s)
+    --- PASS: TestMigrationRunner/checksum_change (0.80s)
+    --- PASS: TestMigrationRunner/preexisting_object (0.50s)
+    --- PASS: TestMigrationRunner/applied_drift (0.59s)
+    --- PASS: TestMigrationRunner/dirty_absent (0.52s)
+    --- PASS: TestMigrationRunner/dirty_applied (0.54s)
+    --- PASS: TestMigrationRunner/dirty_conflict (0.51s)
+    --- PASS: TestMigrationRunner/short_plan (0.63s)
+    --- PASS: TestMigrationRunner/cancelled (0.49s)
+    --- PASS: TestMigrationRunner/competing_installer (0.53s)
+    --- PASS: TestMigrationRunner/ledger_drift (0.54s)
+=== RUN   TestMigrationExecutableDefinitions
+=== RUN   TestMigrationExecutableDefinitions/VIEW
+=== RUN   TestMigrationExecutableDefinitions/PROCEDURE
+=== RUN   TestMigrationExecutableDefinitions/FUNCTION
+=== RUN   TestMigrationExecutableDefinitions/TRIGGER
+--- PASS: TestMigrationExecutableDefinitions (2.08s)
+    --- PASS: TestMigrationExecutableDefinitions/VIEW (0.52s)
+    --- PASS: TestMigrationExecutableDefinitions/PROCEDURE (0.56s)
+    --- PASS: TestMigrationExecutableDefinitions/FUNCTION (0.49s)
+    --- PASS: TestMigrationExecutableDefinitions/TRIGGER (0.51s)
+=== RUN   TestOptionsRepository
+=== RUN   TestOptionsRepository/round_trip_replace_identity_json_and_version
+=== RUN   TestOptionsRepository/tenant_parent_active_and_distinct_validation
+=== RUN   TestOptionsRepository/rollback_covers_children_and_version
+=== RUN   TestOptionsRepository/limits_gaps_and_overflow
+=== RUN   TestOptionsRepository/large_order_uses_bounded_batches
+=== RUN   TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists
+--- PASS: TestOptionsRepository (1.04s)
+    --- PASS: TestOptionsRepository/round_trip_replace_identity_json_and_version (0.04s)
+    --- PASS: TestOptionsRepository/tenant_parent_active_and_distinct_validation (0.02s)
+    --- PASS: TestOptionsRepository/rollback_covers_children_and_version (0.02s)
+    --- PASS: TestOptionsRepository/limits_gaps_and_overflow (0.02s)
+    --- PASS: TestOptionsRepository/large_order_uses_bounded_batches (0.38s)
+    --- PASS: TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists (0.03s)
+=== RUN   TestPhysicalRegistryAndIntents
+=== RUN   TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds
+=== RUN   TestPhysicalRegistryAndIntents/tenant_and_parent_isolation
+=== RUN   TestPhysicalRegistryAndIntents/descriptive_names_preserve_identity_across_renames
+=== RUN   TestPhysicalRegistryAndIntents/mapping_batches_rollback_and_corrupt_component_rejection
+=== RUN   TestPhysicalRegistryAndIntents/bounded_labels_unicode_fallback_and_database_guard
+=== RUN   TestPhysicalRegistryAndIntents/stale_version_and_retired_table_are_rejected
+=== RUN   TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request
+=== RUN   TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables
+=== RUN   TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay
+=== RUN   TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together
+=== RUN   TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch
+[mysql] 2026/10/26 14:03:46 connection.go:189 closing connection:close tcp 172.21.0.3:47572->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 14:03:46 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back
+=== RUN   TestPhysicalRegistryAndIntents/keyset_pending_pages
+--- PASS: TestPhysicalRegistryAndIntents (3.34s)
+    --- PASS: TestPhysicalRegistryAndIntents/stable_generated_mappings_all_field_types_and_bounds (0.04s)
+    --- PASS: TestPhysicalRegistryAndIntents/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/descriptive_names_preserve_identity_across_renames (0.07s)
+    --- PASS: TestPhysicalRegistryAndIntents/mapping_batches_rollback_and_corrupt_component_rejection (2.16s)
+    --- PASS: TestPhysicalRegistryAndIntents/bounded_labels_unicode_fallback_and_database_guard (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/stale_version_and_retired_table_are_rejected (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/prepare_replay_and_immutable_request (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/writer_barrier_waits_and_does_not_serialize_other_tables (0.19s)
+    --- PASS: TestPhysicalRegistryAndIntents/competing_operations_and_same_operation_replay (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/intent_and_barrier_rollback_together (0.03s)
+    --- PASS: TestPhysicalRegistryAndIntents/lost_commit_acknowledgement_replays_without_second_epoch (0.02s)
+    --- PASS: TestPhysicalRegistryAndIntents/normalized_plan_limit_rolls_back (0.01s)
+    --- PASS: TestPhysicalRegistryAndIntents/keyset_pending_pages (0.04s)
+=== RUN   TestMetadataRepositories
+=== RUN   TestMetadataRepositories/pivot_ordered_paths_batching_and_limits
+=== RUN   TestMetadataRepositories/pivot_scope_and_invalid_shapes
+=== RUN   TestMetadataRepositories/pivot_child_failure_rolls_back_owner
+=== RUN   TestMetadataRepositories/pivot_corrupt_path_is_rejected
+=== RUN   TestMetadataRepositories/relationship_round_trip_order_and_deletion
+=== RUN   TestMetadataRepositories/relationship_tenant_and_endpoint_isolation
+=== RUN   TestMetadataRepositories/relationship_limits_and_invalid_endpoints
+=== RUN   TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier
+=== RUN   TestMetadataRepositories/concurrent_link_duplicate
+=== RUN   TestMetadataRepositories/round_trip_and_supported_mutations
+=== RUN   TestMetadataRepositories/tenant_and_parent_isolation
+=== RUN   TestMetadataRepositories/ordered_lists_include_archived
+=== RUN   TestMetadataRepositories/delete_and_missing_mutations
+=== RUN   TestMetadataRepositories/transaction_rollback_and_exact_conflicts
+=== RUN   TestMetadataRepositories/bounded_reads_and_writes
+=== RUN   TestMetadataRepositories/record_locks_and_independent_tenant
+=== RUN   TestMetadataRepositories/invalid_configuration_and_read_only
+--- PASS: TestMetadataRepositories (1.07s)
+    --- PASS: TestMetadataRepositories/pivot_ordered_paths_batching_and_limits (0.13s)
+    --- PASS: TestMetadataRepositories/pivot_scope_and_invalid_shapes (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_child_failure_rolls_back_owner (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_corrupt_path_is_rejected (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_round_trip_order_and_deletion (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_tenant_and_endpoint_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_limits_and_invalid_endpoints (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier (0.01s)
+    --- PASS: TestMetadataRepositories/concurrent_link_duplicate (0.01s)
+    --- PASS: TestMetadataRepositories/round_trip_and_supported_mutations (0.04s)
+    --- PASS: TestMetadataRepositories/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/ordered_lists_include_archived (0.01s)
+    --- PASS: TestMetadataRepositories/delete_and_missing_mutations (0.01s)
+    --- PASS: TestMetadataRepositories/transaction_rollback_and_exact_conflicts (0.01s)
+    --- PASS: TestMetadataRepositories/bounded_reads_and_writes (0.01s)
+    --- PASS: TestMetadataRepositories/record_locks_and_independent_tenant (0.16s)
+    --- PASS: TestMetadataRepositories/invalid_configuration_and_read_only (0.01s)
+=== RUN   TestMetadataSchemaAndAdapters
+=== RUN   TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements
+=== RUN   TestMetadataSchemaAndAdapters/exact_metadata_uniqueness
+=== RUN   TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard
+=== RUN   TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships
+=== RUN   TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots
+=== RUN   TestMetadataSchemaAndAdapters/publication_on_full_metadata
+=== RUN   TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe
+--- PASS: TestMetadataSchemaAndAdapters (0.81s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements (0.13s)
+    --- PASS: TestMetadataSchemaAndAdapters/exact_metadata_uniqueness (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships (0.01s)
+    --- PASS: TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/publication_on_full_metadata (0.03s)
+    --- PASS: TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe (0.02s)
+=== RUN   TestTenantRepositories
+=== RUN   TestTenantRepositories/nullable_keys_and_round_trip
+=== RUN   TestTenantRepositories/tenant_scope_and_status
+=== RUN   TestTenantRepositories/catalogue_keyset_and_scope_separation
+=== RUN   TestTenantRepositories/exact_global_uniqueness
+=== RUN   TestTenantRepositories/registration_and_audit_rollback
+=== RUN   TestTenantRepositories/bounds_and_invalid_catalogue_configuration
+=== RUN   TestTenantRepositories/concurrent_external_key_duplicate
+--- PASS: TestTenantRepositories (0.68s)
+    --- PASS: TestTenantRepositories/nullable_keys_and_round_trip (0.02s)
+    --- PASS: TestTenantRepositories/tenant_scope_and_status (0.01s)
+    --- PASS: TestTenantRepositories/catalogue_keyset_and_scope_separation (0.01s)
+    --- PASS: TestTenantRepositories/exact_global_uniqueness (0.01s)
+    --- PASS: TestTenantRepositories/registration_and_audit_rollback (0.01s)
+    --- PASS: TestTenantRepositories/bounds_and_invalid_catalogue_configuration (0.01s)
+    --- PASS: TestTenantRepositories/concurrent_external_key_duplicate (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	30.126s

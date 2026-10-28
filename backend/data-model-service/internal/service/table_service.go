@@ -9,7 +9,6 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type TableService struct {
@@ -23,7 +22,6 @@ type TableService struct {
 	txManager        ports.TransactionManager
 	idGenerator      ports.IDGenerator
 	clock            ports.Clock
-	indexJobEnqueuer riverjobs.IndexJobEnqueuer
 }
 
 type CreateTableInput struct {
@@ -66,14 +64,6 @@ func NewTableService(
 		idGenerator:      idGenerator,
 		clock:            clock,
 	}
-}
-
-func (s TableService) WithIndexJobEnqueuer(enqueuer riverjobs.IndexJobEnqueuer) TableService {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
-	}
-	s.indexJobEnqueuer = enqueuer
-	return s
 }
 
 func (s TableService) Get(ctx context.Context, tableID uuid.UUID) (datamodel.Table, error) {
@@ -156,7 +146,7 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 		if err := store.SchemaManager().CreateUniqueIndex(ctx, tenantRecord, table, []string{"object_id"}); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			table.TenantID,
 			"create_table",
@@ -173,8 +163,12 @@ func (s TableService) Create(ctx context.Context, input CreateTableInput) (datam
 					"updated_at",
 				},
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, table.TenantID, schemaMigrationVersion("create_table", "table"), now)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, table.TenantID, schemaMigrationVersion("create_table", "table"), now); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Table{}, err
@@ -235,7 +229,6 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			indexJob, requested, err := ensureManagedIndexJobTx(
 				ctx,
 				store,
-				s.indexJobEnqueuer,
 				s.idGenerator,
 				table.TenantID,
 				table,
@@ -252,7 +245,7 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 				details["search_index_requested"] = true
 			}
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			table.TenantID,
 			"update_table",
@@ -260,7 +253,9 @@ func (s TableService) Update(ctx context.Context, input UpdateTableInput) (datam
 			table.ID,
 			table.UpdatedAt,
 			details,
-		))
+		); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Table{}, err
@@ -315,7 +310,7 @@ func (s TableService) Delete(ctx context.Context, tableID uuid.UUID, dryRun bool
 		if err := store.Tables().Delete(ctx, tableID); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			table.TenantID,
 			"delete_table",
@@ -325,8 +320,12 @@ func (s TableService) Delete(ctx context.Context, tableID uuid.UUID, dryRun bool
 			map[string]any{
 				"name": table.Name,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, table.TenantID, schemaMigrationVersion("delete_table", "table"), s.clock.Now())
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, table.TenantID, schemaMigrationVersion("delete_table", "table"), s.clock.Now()); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return report, err

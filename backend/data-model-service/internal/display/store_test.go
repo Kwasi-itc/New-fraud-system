@@ -86,8 +86,12 @@ func displayFixture(t *testing.T) (Store, Settings, uuid.UUID) {
 	exec(`INSERT INTO core.model_links(id,tenant_id,name,parent_table_id,parent_field_id,child_table_id,child_field_id,created_at) VALUES($1,$2,'customer',$3,$4,$5,$6,now())`, link, tenant, parent, parentID, table, ids["customer_id"])
 	exec(`INSERT INTO core.field_enum_values(id,tenant_id,field_id,value,label,sort_order,created_at,updated_at) VALUES($1,$2,$3,'ok','Approved',0,now(),now())`, uuid.New(), tenant, ids["state"])
 	store := Store{DB: db, Transactions: postgres.NewTransactionManager(db), SetCaption: func(ctx context.Context, ms ports.MutationStore, id uuid.UUID, caption string) error {
-		_, err := ms.RawTx().Exec(ctx, `UPDATE core.model_tables SET caption_field=$2 WHERE id=$1`, id, caption)
-		return err
+		table, err := ms.Tables().GetByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		table.CaptionField = caption
+		return ms.Tables().Update(ctx, table)
 	}}
 	settings, err := store.Get(ctx, table)
 	if err != nil {

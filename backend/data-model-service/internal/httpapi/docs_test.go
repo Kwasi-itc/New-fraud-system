@@ -11,7 +11,6 @@ import (
 
 func TestDocsRoutesServeOpenAPISpecAndDocsPages(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
 	registerDocsRoutes(router)

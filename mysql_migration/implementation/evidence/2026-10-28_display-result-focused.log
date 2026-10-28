@@ -1,0 +1,20 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_replay
+    physical_creation_publication_test.go:504: saved result {a206aafa-8fe0-401b-a6d4-7416232219fa 67ce11e7-d76f-4c2b-9856-a9d813565a9d records  2 object_id [3bf6a360-ca3e-44d6-bd5b-14cb6224272d] [3bf6a360-ca3e-44d6-bd5b-14cb6224272d] map[] [] [{3bf6a360-ca3e-44d6-bd5b-14cb6224272d object_id  string map[]} {fcec02f7-b4a0-478b-8f5d-775aa1904058 updated_at  timestamp map[]}] []} <nil>
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_concurrent
+    physical_creation_publication_test.go:504: saved result {4054bd2f-0dc7-4ddd-8dd5-88b577222cab ed4c32d0-3a41-4977-a061-09eb519a9b6a records  2 object_id [9d3d1a67-2402-41be-ab52-3b28820ea126] [9d3d1a67-2402-41be-ab52-3b28820ea126] map[] [] [{9d3d1a67-2402-41be-ab52-3b28820ea126 object_id  string map[]} {80d9d602-7380-4079-a024-e406c5506746 updated_at  timestamp map[]}] []} <nil>
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_lost_commit
+[mysql] 2026/10/28 11:34:02 connection.go:189 closing connection:close tcp 172.21.0.3:52556->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 11:34:02 packets.go:58 unexpected EOF
+    physical_creation_publication_test.go:504: saved result {ad9e29a0-c8a4-4716-8622-5575c663a271 ed864c68-5dc5-4157-8f41-84aec519774b records  2 object_id [3f646dd1-cbc3-4891-9f96-b9ec8836efbd] [3f646dd1-cbc3-4891-9f96-b9ec8836efbd] map[] [] [{3f646dd1-cbc3-4891-9f96-b9ec8836efbd object_id  string map[]} {e5e4328f-97f5-4838-9505-f934b0e5d630 updated_at  timestamp map[]}] []} <nil>
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_legacy
+--- FAIL: TestPhysicalCreationAllocated (6.78s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_display_result_replay (0.61s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_display_result_concurrent (0.60s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_rollback (0.48s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_display_result_lost_commit (0.47s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_legacy (0.48s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.825s
+FAIL

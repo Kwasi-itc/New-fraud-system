@@ -1,0 +1,10 @@
+=== RUN   TestTypedPhysicalOperations
+=== RUN   TestTypedPhysicalOperations/nullable_types_and_indexes
+=== RUN   TestTypedPhysicalOperations/not_null_empty_table
+=== RUN   TestTypedPhysicalOperations/not_null_populated_table
+--- PASS: TestTypedPhysicalOperations (1.24s)
+    --- PASS: TestTypedPhysicalOperations/nullable_types_and_indexes (0.37s)
+    --- PASS: TestTypedPhysicalOperations/not_null_empty_table (0.18s)
+    --- PASS: TestTypedPhysicalOperations/not_null_populated_table (0.21s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	2.270s

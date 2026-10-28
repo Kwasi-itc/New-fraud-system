@@ -1,0 +1,34 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/27 21:20:56 connection.go:189 closing connection:close tcp 172.21.0.3:59932->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:20:56 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_alter
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_ack
+[mysql] 2026/10/27 21:21:04 connection.go:189 closing connection:close tcp 172.21.0.3:60272->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:21:04 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_commit
+[mysql] 2026/10/27 21:21:05 connection.go:189 closing connection:close tcp 172.21.0.3:47170->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:21:05 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_extra_field
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_mapping
+--- PASS: TestPhysicalCreationAllocated (23.95s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (1.55s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (0.80s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_before (0.94s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_after (1.18s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_owner_rollback (1.34s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_active_installer (1.66s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_alter (1.78s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_ack (1.41s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_commit (1.37s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch (1.30s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_extra_field (1.26s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_mapping (1.26s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	25.014s

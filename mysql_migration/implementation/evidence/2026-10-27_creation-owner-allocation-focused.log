@@ -1,0 +1,8 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+    physical_creation_publication_test.go:465: original result physical model is not published or has an active schema barrier
+--- FAIL: TestPhysicalCreationAllocated (4.70s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated (0.43s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	4.738s
+FAIL

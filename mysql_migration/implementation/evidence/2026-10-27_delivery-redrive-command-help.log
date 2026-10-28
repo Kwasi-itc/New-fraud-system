@@ -1,0 +1,37 @@
+Usage of redrive-delivery-mysql:
+  -actor string
+    	operator identity attested by this privileged caller
+  -address string
+    	MySQL host:port
+  -apply
+    	apply audited redrive; inspect first with inspect-deliveries-mysql
+  -ca string
+    	optional PEM CA file; defaults to system trust
+  -database string
+    	shared logical application database
+  -isolated-fixture
+    	plaintext only for explicitly enabled mysql:3306 disposable fixture
+  -job string
+    	pending job UUID
+  -max-attempts int
+    	explicit NEW delivery attempt budget; domain attempts are preserved
+  -password-env string
+    	password environment variable (default "DATA_MODEL_MYSQL_REDRIVE_PASSWORD")
+  -queue string
+    	source queue; cross-queue redrive is forbidden
+  -reason string
+    	required recovery reason, at most 2048 bytes
+  -request string
+    	stable request UUID; reuse all inputs after uncertain commit
+  -scheduled-at string
+    	explicit RFC3339 availability time, microsecond precision
+  -server-name string
+    	TLS server name; defaults to address hostname
+  -source string
+    	discarded delivery UUID
+  -tenant string
+    	explicit authorized tenant UUID
+  -timeout duration
+    	overall deadline (default 30s)
+  -user string
+    	authorized operator account

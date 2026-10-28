@@ -31,7 +31,7 @@ func (s TableService) UpdateDisplayCaption(ctx context.Context, store ports.Muta
 		return err
 	}
 	if caption != "" {
-		_, _, err = ensureManagedIndexJobTx(ctx, store, s.indexJobEnqueuer, s.idGenerator, table.TenantID, table, datamodel.IndexJobTypeSearch, []string{caption}, "update_table_caption_field", table.UpdatedAt)
+		_, _, err = ensureManagedIndexJobTx(ctx, store, s.idGenerator, table.TenantID, table, datamodel.IndexJobTypeSearch, []string{caption}, "update_table_caption_field", table.UpdatedAt)
 	}
 	return err
 }

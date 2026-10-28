@@ -1,0 +1,8 @@
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:171: -> Limit: 128 row(s)  (cost=36.4 rows=128)
+            -> Filter: ((data_model_index_deliveries.tenant_id = '?>??LDϘ??R\?Nn') and ((data_model_index_deliveries.created_at < TIMESTAMP'2026-10-27 09:47:43.263817') or ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-27 09:47:43.263817') and (data_model_index_deliveries.id < '?vؙQ?@x?\?\?\??&-'))))  (cost=36.4 rows=357)
+                -> Covering index lookup on data_model_index_deliveries using data_model_delivery_tenant (tenant_id='?>??LDϘ??R\?Nn')  (cost=36.4 rows=1003)
+        
+--- PASS: TestDeliveryInspection (3.16s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	4.198s

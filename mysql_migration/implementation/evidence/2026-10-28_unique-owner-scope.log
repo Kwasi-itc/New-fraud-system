@@ -1,0 +1,38 @@
+=== RUN   TestFieldUniqueOwnerScope
+=== RUN   TestFieldUniqueOwnerScope/inactive_tenant
+=== RUN   TestFieldUniqueOwnerScope/foreign_table
+=== RUN   TestFieldUniqueOwnerScope/archived_table
+=== RUN   TestFieldUniqueOwnerScope/foreign_field_tenant
+=== RUN   TestFieldUniqueOwnerScope/foreign_field_table
+=== RUN   TestFieldUniqueOwnerScope/archived_field
+=== RUN   TestFieldUniqueOwnerScope/missing_field
+=== RUN   TestFieldUniqueOwnerScope/reserved_field
+=== RUN   TestFieldUniqueOwnerScope/enum_field
+=== RUN   TestFieldUniqueOwnerScope/disable_unique
+=== RUN   TestFieldUniqueOwnerScope/enum_input
+=== RUN   TestFieldUniqueOwnerScope/missing_unique
+=== RUN   TestFieldUniqueOwnerScope/nullable_input
+=== RUN   TestFieldUniqueOwnerScope/text
+=== RUN   TestFieldUniqueOwnerScope/bool
+=== RUN   TestFieldUniqueOwnerScope/timestamp
+=== RUN   TestFieldUniqueOwnerScope/ip
+--- PASS: TestFieldUniqueOwnerScope (0.01s)
+    --- PASS: TestFieldUniqueOwnerScope/inactive_tenant (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/foreign_table (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/archived_table (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/foreign_field_tenant (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/foreign_field_table (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/archived_field (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/missing_field (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/reserved_field (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/enum_field (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/disable_unique (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/enum_input (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/missing_unique (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/nullable_input (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/text (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/bool (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/timestamp (0.00s)
+    --- PASS: TestFieldUniqueOwnerScope/ip (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.040s

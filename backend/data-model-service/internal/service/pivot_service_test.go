@@ -65,7 +65,7 @@ func TestPivotServiceDeleteDryRunDoesNotDelete(t *testing.T) {
 		nil,
 		pivotRepo,
 		changeRepo,
-		stubTransactionManager{store: stubMutationStore{pivots: pivotRepo, schemaChanges: changeRepo}},
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{}, pivots: pivotRepo, schemaChanges: changeRepo}},
 		stubIDGenerator{value: uuid.New()},
 		stubClock{now: time.Now().UTC()},
 	)
@@ -98,7 +98,7 @@ func TestPivotServiceDeleteDeletesAndLogs(t *testing.T) {
 		nil,
 		pivotRepo,
 		changeRepo,
-		stubTransactionManager{store: stubMutationStore{pivots: pivotRepo, schemaChanges: changeRepo}},
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{}, pivots: pivotRepo, schemaChanges: changeRepo}},
 		stubIDGenerator{value: uuid.New()},
 		stubClock{now: now},
 	)

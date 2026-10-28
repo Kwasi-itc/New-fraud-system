@@ -1,0 +1,56 @@
+=== RUN   TestPhysicalCreationPublication
+=== RUN   TestPhysicalCreationPublication/publish_replay
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_0bf0fbffb77843148d663817'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/owner_rollback
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_e5132e4aae914e3295c1cad9'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/metadata_mismatch
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_35785d42eca542ca83e093d4'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/extra_field
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_0932df68e6c047899aba24d0'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/missing_mapping
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_daba3db33e2d4ed382167386'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/authorization
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_ce1eeaed3c25435f8b4237bc'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/trigger_drift
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_eb52d13c95f246ffb2a558e2'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/resolver_drift
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_25cd04f33815422c963d761d'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/shared_grant
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_28073c13979744b6a121e082'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/record_grant
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_b6d49262f6cc4c8390b4a97c'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/writer_grant
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_528eeb7c61784cc696c820cd'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/installer_active
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_104dbc57b7c64f2b868bc033'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/installer_capability
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_fac242f1bb1a477086dcd6e6'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/installer_session
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_9aa3d3231486459991e51241'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/missing_reference_privilege
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_6f293fe61fb04358bc5990e7'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/missing_definer_privilege
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_bbe2152de54e4a6a80236378'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+=== RUN   TestPhysicalCreationPublication/missing_trigger_privilege
+    physical_creation_publication_test.go:280: restricted creation Error 1142 (42000): REFERENCES command denied to user 'ci_24e4206f7a264e698b52ad79'@'172.21.0.3' for table 'data_model_metadata_test_1b1660c5a40a4df3ad5ff20f5eb5f535.data_m'
+--- FAIL: TestPhysicalCreationPublication (4.11s)
+    --- FAIL: TestPhysicalCreationPublication/publish_replay (0.10s)
+    --- FAIL: TestPhysicalCreationPublication/owner_rollback (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/metadata_mismatch (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/extra_field (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/missing_mapping (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/authorization (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/trigger_drift (0.10s)
+    --- FAIL: TestPhysicalCreationPublication/resolver_drift (0.15s)
+    --- FAIL: TestPhysicalCreationPublication/shared_grant (0.11s)
+    --- FAIL: TestPhysicalCreationPublication/record_grant (0.10s)
+    --- FAIL: TestPhysicalCreationPublication/writer_grant (0.09s)
+    --- FAIL: TestPhysicalCreationPublication/installer_active (0.10s)
+    --- FAIL: TestPhysicalCreationPublication/installer_capability (0.12s)
+    --- FAIL: TestPhysicalCreationPublication/installer_session (0.11s)
+    --- FAIL: TestPhysicalCreationPublication/missing_reference_privilege (0.11s)
+    --- FAIL: TestPhysicalCreationPublication/missing_definer_privilege (0.10s)
+    --- FAIL: TestPhysicalCreationPublication/missing_trigger_privilege (0.10s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	4.139s
+FAIL

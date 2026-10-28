@@ -1,0 +1,17 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_commit
+    physical_creation_publication_test.go:501: positive connection timeouts and lifetimes are required
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_rollback
+    physical_creation_publication_test.go:501: positive connection timeouts and lifetimes are required
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_drift
+    physical_creation_publication_test.go:501: positive connection timeouts and lifetimes are required
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_lost_commit
+    physical_creation_publication_test.go:501: positive connection timeouts and lifetimes are required
+--- FAIL: TestPhysicalCreationAllocated (6.92s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_nullability_commit (0.81s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_nullability_rollback (0.65s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_nullability_drift (0.71s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_nullability_lost_commit (0.64s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.955s
+FAIL

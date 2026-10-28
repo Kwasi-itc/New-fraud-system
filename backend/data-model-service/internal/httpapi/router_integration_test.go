@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -32,7 +34,10 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 
 	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
 
-	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	router, err := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	createTenantRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants", map[string]any{
 		"name":         "Router Tenant",
@@ -362,7 +367,10 @@ func TestRouterIntegrationPortableDataModelExportImportRoundTrip(t *testing.T) {
 
 	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
 
-	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	router, err := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	sourceTenantID := createAndProvisionRouterTenant(t, router, "Source Tenant")
 	targetTenantID := createAndProvisionRouterTenant(t, router, "Target Tenant")
@@ -656,6 +664,10 @@ func mustUnmarshal(t *testing.T, body []byte, target any) {
 func routerIntegrationDatabaseURL(t *testing.T) string {
 	t.Helper()
 	if url := os.Getenv("DATA_MODEL_TEST_DATABASE_URL"); url != "" {
+		parsed, err := neturl.Parse(url)
+		if err != nil || (parsed.Hostname() != "localhost" && parsed.Hostname() != "127.0.0.1") || !strings.HasPrefix(parsed.Path, "/data_model_tx_test_") {
+			t.Fatal("requires local data_model_tx_test_* disposable database")
+		}
 		return url
 	}
 	t.Skip("set DATA_MODEL_TEST_DATABASE_URL to run PostgreSQL integration tests")

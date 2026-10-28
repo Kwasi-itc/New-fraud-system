@@ -1,0 +1,55 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/27 21:37:18 connection.go:189 closing connection:close tcp 172.21.0.3:53552->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:37:18 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_alter
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_ack
+[mysql] 2026/10/27 21:37:22 connection.go:189 closing connection:close tcp 172.21.0.3:53984->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:37:22 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_commit
+[mysql] 2026/10/27 21:37:23 connection.go:189 closing connection:close tcp 172.21.0.3:54054->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:37:23 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_extra_field
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_mapping
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_commit
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_drift
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_inactive
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit
+[mysql] 2026/10/27 21:37:30 connection.go:189 closing connection:close tcp 172.21.0.3:56178->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:37:30 packets.go:58 unexpected EOF
+    physical_creation_publication_test.go:471: Error 1146 (42S02): Table 'data_model_metadata_test_f9f58287b059437cb50df04a9efc0f8a.data_model_schema_changes' doesn't exist
+--- FAIL: TestPhysicalCreationAllocated (18.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (0.85s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (0.47s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_before (0.55s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_after (0.69s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_owner_rollback (0.82s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_active_installer (1.01s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_alter (0.74s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_ack (0.81s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_commit (0.81s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_metadata_mismatch (0.84s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_extra_field (0.90s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_mapping (0.76s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_commit (0.70s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_audit_failure (0.68s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_revision_failure (0.72s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_drift (0.72s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_inactive (0.69s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated_native_field_lost_commit (0.72s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	18.657s
+FAIL

@@ -9,7 +9,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type NavigationOptionService struct {
@@ -22,7 +21,6 @@ type NavigationOptionService struct {
 	txManager            ports.TransactionManager
 	idGenerator          ports.IDGenerator
 	clock                ports.Clock
-	indexJobEnqueuer     riverjobs.IndexJobEnqueuer
 }
 
 type CreateNavigationOptionInput struct {
@@ -56,14 +54,6 @@ func NewNavigationOptionService(
 		idGenerator:          idGenerator,
 		clock:                clock,
 	}
-}
-
-func (s NavigationOptionService) WithIndexJobEnqueuer(enqueuer riverjobs.IndexJobEnqueuer) NavigationOptionService {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
-	}
-	s.indexJobEnqueuer = enqueuer
-	return s
 }
 
 func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigationOptionInput) (datamodel.NavigationOption, error) {
@@ -165,7 +155,6 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		indexJob, _, err := ensureManagedIndexJobTx(
 			ctx,
 			store,
-			s.indexJobEnqueuer,
 			s.idGenerator,
 			input.TenantID,
 			targetTable,
@@ -177,7 +166,7 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		if err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			input.TenantID,
 			"create_navigation_option",
@@ -192,7 +181,9 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 				"ordering_field_id": orderingField.ID,
 				"index_job_id":      indexJob.ID,
 			},
-		))
+		); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.NavigationOption{}, err
@@ -214,7 +205,7 @@ func (s NavigationOptionService) Delete(ctx context.Context, id uuid.UUID) error
 		if err := store.NavigationOptions().Delete(ctx, id); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			option.TenantID,
 			"delete_navigation_option",
@@ -222,7 +213,9 @@ func (s NavigationOptionService) Delete(ctx context.Context, id uuid.UUID) error
 			id,
 			s.clock.Now(),
 			map[string]any{},
-		))
+		); err != nil {
+			return err
+		}
 		return nil
 	})
 }

@@ -1,0 +1,28 @@
+=== RUN   TestFieldNullabilityOwnerScope
+=== RUN   TestFieldNullabilityOwnerScope/inactive_tenant
+=== RUN   TestFieldNullabilityOwnerScope/foreign_table
+=== RUN   TestFieldNullabilityOwnerScope/archived_table
+=== RUN   TestFieldNullabilityOwnerScope/foreign_field_tenant
+=== RUN   TestFieldNullabilityOwnerScope/foreign_field_table
+=== RUN   TestFieldNullabilityOwnerScope/archived_field
+=== RUN   TestFieldNullabilityOwnerScope/missing_field
+=== RUN   TestFieldNullabilityOwnerScope/reserved_field
+=== RUN   TestFieldNullabilityOwnerScope/enum_field
+=== RUN   TestFieldNullabilityOwnerScope/unique_input
+=== RUN   TestFieldNullabilityOwnerScope/enum_input
+=== RUN   TestFieldNullabilityOwnerScope/missing_nullable
+--- PASS: TestFieldNullabilityOwnerScope (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/inactive_tenant (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/foreign_table (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/archived_table (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/foreign_field_tenant (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/foreign_field_table (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/archived_field (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/missing_field (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/reserved_field (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/enum_field (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/unique_input (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/enum_input (0.00s)
+    --- PASS: TestFieldNullabilityOwnerScope/missing_nullable (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.027s

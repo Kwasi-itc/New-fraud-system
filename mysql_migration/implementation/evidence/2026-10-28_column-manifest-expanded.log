@@ -1,0 +1,87 @@
+=== RUN   TestMetadataColumnManifest
+--- PASS: TestMetadataColumnManifest (0.16s)
+=== RUN   TestMetadataIndexByteBudgets
+    column_manifest_test.go:257: 88 indexes / 205 components; maximum conservative key bytes=221, secondary key plus primary bytes=237 (excludes record/page overhead)
+--- PASS: TestMetadataIndexByteBudgets (1.20s)
+=== RUN   TestMetadataColumnManifestInstalled
+--- PASS: TestMetadataColumnManifestInstalled (0.56s)
+=== RUN   TestMetadataRepositories
+=== RUN   TestMetadataRepositories/pivot_ordered_paths_batching_and_limits
+=== RUN   TestMetadataRepositories/pivot_scope_and_invalid_shapes
+=== RUN   TestMetadataRepositories/pivot_child_failure_rolls_back_owner
+=== RUN   TestMetadataRepositories/pivot_corrupt_path_is_rejected
+=== RUN   TestMetadataRepositories/relationship_round_trip_order_and_deletion
+=== RUN   TestMetadataRepositories/relationship_tenant_and_endpoint_isolation
+=== RUN   TestMetadataRepositories/relationship_limits_and_invalid_endpoints
+=== RUN   TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier
+=== RUN   TestMetadataRepositories/concurrent_link_duplicate
+=== RUN   TestMetadataRepositories/round_trip_and_supported_mutations
+=== RUN   TestMetadataRepositories/tenant_and_parent_isolation
+=== RUN   TestMetadataRepositories/ordered_lists_include_archived
+=== RUN   TestMetadataRepositories/delete_and_missing_mutations
+=== RUN   TestMetadataRepositories/transaction_rollback_and_exact_conflicts
+=== RUN   TestMetadataRepositories/bounded_reads_and_writes
+=== RUN   TestMetadataRepositories/record_locks_and_independent_tenant
+=== RUN   TestMetadataRepositories/invalid_configuration_and_read_only
+--- PASS: TestMetadataRepositories (1.12s)
+    --- PASS: TestMetadataRepositories/pivot_ordered_paths_batching_and_limits (0.17s)
+    --- PASS: TestMetadataRepositories/pivot_scope_and_invalid_shapes (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_child_failure_rolls_back_owner (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_corrupt_path_is_rejected (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_round_trip_order_and_deletion (0.03s)
+    --- PASS: TestMetadataRepositories/relationship_tenant_and_endpoint_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_limits_and_invalid_endpoints (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier (0.01s)
+    --- PASS: TestMetadataRepositories/concurrent_link_duplicate (0.01s)
+    --- PASS: TestMetadataRepositories/round_trip_and_supported_mutations (0.04s)
+    --- PASS: TestMetadataRepositories/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/ordered_lists_include_archived (0.01s)
+    --- PASS: TestMetadataRepositories/delete_and_missing_mutations (0.01s)
+    --- PASS: TestMetadataRepositories/transaction_rollback_and_exact_conflicts (0.01s)
+    --- PASS: TestMetadataRepositories/bounded_reads_and_writes (0.01s)
+    --- PASS: TestMetadataRepositories/record_locks_and_independent_tenant (0.16s)
+    --- PASS: TestMetadataRepositories/invalid_configuration_and_read_only (0.01s)
+=== RUN   TestMetadataSchemaAndAdapters
+=== RUN   TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements
+=== RUN   TestMetadataSchemaAndAdapters/exact_metadata_uniqueness
+=== RUN   TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard
+=== RUN   TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships
+=== RUN   TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots
+=== RUN   TestMetadataSchemaAndAdapters/publication_on_full_metadata
+=== RUN   TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe
+--- PASS: TestMetadataSchemaAndAdapters (0.86s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements (0.12s)
+    --- PASS: TestMetadataSchemaAndAdapters/exact_metadata_uniqueness (0.01s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships (0.01s)
+    --- PASS: TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots (0.01s)
+    --- PASS: TestMetadataSchemaAndAdapters/publication_on_full_metadata (0.03s)
+    --- PASS: TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe (0.02s)
+=== RUN   TestMetadataTransactionManager
+=== RUN   TestMetadataTransactionManager/commit
+=== RUN   TestMetadataTransactionManager/owner_error
+=== RUN   TestMetadataTransactionManager/missing_queue
+=== RUN   TestMetadataTransactionManager/physical_rejected
+=== RUN   TestMetadataTransactionManager/cancel
+=== RUN   TestMetadataTransactionManager/panic
+=== RUN   TestMetadataTransactionManager/foreign_tenant
+=== RUN   TestMetadataTransactionManager/lost_commit
+[mysql] 2026/10/28 10:43:00 connection.go:189 closing connection:close tcp 172.21.0.3:41344->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 10:43:00 packets.go:58 unexpected EOF
+=== RUN   TestMetadataTransactionManager/authorization_denied_before_callback
+=== RUN   TestMetadataTransactionManager/publication_commit
+=== RUN   TestMetadataTransactionManager/publication_rollback
+--- PASS: TestMetadataTransactionManager (0.69s)
+    --- PASS: TestMetadataTransactionManager/commit (0.02s)
+    --- PASS: TestMetadataTransactionManager/owner_error (0.01s)
+    --- PASS: TestMetadataTransactionManager/missing_queue (0.01s)
+    --- PASS: TestMetadataTransactionManager/physical_rejected (0.01s)
+    --- PASS: TestMetadataTransactionManager/cancel (0.01s)
+    --- PASS: TestMetadataTransactionManager/panic (0.01s)
+    --- PASS: TestMetadataTransactionManager/foreign_tenant (0.00s)
+    --- PASS: TestMetadataTransactionManager/lost_commit (0.02s)
+    --- PASS: TestMetadataTransactionManager/authorization_denied_before_callback (0.00s)
+    --- PASS: TestMetadataTransactionManager/publication_commit (0.02s)
+    --- PASS: TestMetadataTransactionManager/publication_rollback (0.02s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	5.639s

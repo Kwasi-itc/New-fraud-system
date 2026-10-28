@@ -1,0 +1,3 @@
+plan.json -text
+provenance.json -text
+*.sql -text

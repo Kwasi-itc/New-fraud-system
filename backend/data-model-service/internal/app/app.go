@@ -47,7 +47,11 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if verifier != nil {
 		routerConfig.UserVerifier = verifier
 	}
-	router := httpapi.NewRouter(logger, db, routerConfig)
+	router, err := httpapi.NewRouter(logger, db, routerConfig)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("configure index job producer: %w", err)
+	}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,

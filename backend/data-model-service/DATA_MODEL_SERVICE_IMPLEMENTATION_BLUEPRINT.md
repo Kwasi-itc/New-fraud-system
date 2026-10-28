@@ -1124,7 +1124,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - dm_pg_data:/var/lib/postgresql/data
+      - data_model_pg_data:/var/lib/postgresql/data
 
   data-model-service:
     build:
@@ -1141,7 +1141,7 @@ services:
       - "8088:8080"
 
 volumes:
-  dm_pg_data:
+  data_model_pg_data:
 ```
 
 ## `.env.example`

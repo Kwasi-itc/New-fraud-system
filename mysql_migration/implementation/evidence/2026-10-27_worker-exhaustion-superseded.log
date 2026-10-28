@@ -1,0 +1,30 @@
+=== RUN   TestLeasedIndexExecution
+=== RUN   TestLeasedIndexExecution/applied
+=== RUN   TestLeasedIndexExecution/applied_last_attempt
+=== RUN   TestLeasedIndexExecution/pending
+=== RUN   TestLeasedIndexExecution/failed
+=== RUN   TestLeasedIndexExecution/audit_failure
+=== RUN   TestLeasedIndexExecution/expired
+=== RUN   TestLeasedIndexExecution/stale_attempt
+=== RUN   TestLeasedIndexExecution/terminal_redelivery
+=== RUN   TestLeasedIndexExecution/exhausted
+=== RUN   TestLeasedIndexExecution/exhausted_audit_failure
+=== RUN   TestLeasedIndexExecution/exhausted_limit
+=== RUN   TestLeasedIndexExecution/exhausted_commit
+[mysql] 2026/10/27 09:21:26 connection.go:189 closing connection:close tcp 172.21.0.3:59942->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 09:21:26 packets.go:58 unexpected EOF
+--- PASS: TestLeasedIndexExecution (1.18s)
+    --- PASS: TestLeasedIndexExecution/applied (0.04s)
+    --- PASS: TestLeasedIndexExecution/applied_last_attempt (0.04s)
+    --- PASS: TestLeasedIndexExecution/pending (0.03s)
+    --- PASS: TestLeasedIndexExecution/failed (0.03s)
+    --- PASS: TestLeasedIndexExecution/audit_failure (0.03s)
+    --- PASS: TestLeasedIndexExecution/expired (0.01s)
+    --- PASS: TestLeasedIndexExecution/stale_attempt (0.03s)
+    --- PASS: TestLeasedIndexExecution/terminal_redelivery (0.02s)
+    --- PASS: TestLeasedIndexExecution/exhausted (0.04s)
+    --- PASS: TestLeasedIndexExecution/exhausted_audit_failure (0.03s)
+    --- PASS: TestLeasedIndexExecution/exhausted_limit (0.03s)
+    --- PASS: TestLeasedIndexExecution/exhausted_commit (0.04s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	2.217s

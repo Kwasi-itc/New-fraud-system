@@ -1,0 +1,142 @@
+=== RUN   TestPublicationNavigationRequest
+=== RUN   TestPublicationNavigationRequest/reject_missing_endpoints
+=== RUN   TestPublicationNavigationRequest/reject_wrong_scope
+=== RUN   TestPublicationNavigationRequest/preserve_endpoint_roles
+=== RUN   TestPublicationNavigationRequest/self_table_is_supported
+--- PASS: TestPublicationNavigationRequest (0.00s)
+    --- PASS: TestPublicationNavigationRequest/reject_missing_endpoints (0.00s)
+    --- PASS: TestPublicationNavigationRequest/reject_wrong_scope (0.00s)
+    --- PASS: TestPublicationNavigationRequest/preserve_endpoint_roles (0.00s)
+    --- PASS: TestPublicationNavigationRequest/self_table_is_supported (0.00s)
+=== RUN   TestPublicationRequestGolden
+--- PASS: TestPublicationRequestGolden (0.00s)
+=== RUN   TestPublicationRequestEveryInputField
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceTableID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TargetTableID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/FilterFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateNavigationOptionInput/OrderingFieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Description
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/CreateTableInput/SemanticType
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ParentTable
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ParentField
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ChildTable
+=== RUN   TestPublicationRequestEveryInputField/CreateLinkInput/ChildField
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/BaseTableID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/CreatePivotInput/PathLinkIDs
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/TenantID
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/IndexType
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/Columns
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/RequestedByOperation
+=== RUN   TestPublicationRequestEveryInputField/CreateIndexJobInput/ScheduledAt
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/Description
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/SemanticType
+=== RUN   TestPublicationRequestEveryInputField/UpdateTableInput/CaptionField
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/TableID
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Name
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Description
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/DataType
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/Nullable
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/IsEnum
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/IsUnique
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldInput/EnumValues
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Description
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Alias
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/Nullable
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/IsEnum
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldInput/IsUnique
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/FieldID
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Value
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Label
+=== RUN   TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/SortOrder
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/EnumValueID
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Value
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Label
+=== RUN   TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/SortOrder
+--- PASS: TestPublicationRequestEveryInputField (0.02s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/SourceFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/TargetTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/FilterFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateNavigationOptionInput/OrderingFieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateTableInput/SemanticType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ParentTable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ParentField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ChildTable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateLinkInput/ChildField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/BaseTableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreatePivotInput/PathLinkIDs (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/TenantID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/IndexType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/Columns (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/RequestedByOperation (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateIndexJobInput/ScheduledAt (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/SemanticType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateTableInput/CaptionField (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/TableID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Name (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/DataType (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/Nullable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/IsEnum (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/IsUnique (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldInput/EnumValues (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Description (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Alias (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/Nullable (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/IsEnum (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldInput/IsUnique (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/FieldID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Value (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/Label (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/CreateFieldEnumValueInput/SortOrder (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/EnumValueID (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Value (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/Label (0.00s)
+    --- PASS: TestPublicationRequestEveryInputField/UpdateFieldEnumValueInput/SortOrder (0.00s)
+=== RUN   TestPublicationRequestCreationWire
+=== RUN   TestPublicationRequestCreationWire/table.create
+=== RUN   TestPublicationRequestCreationWire/link.create
+=== RUN   TestPublicationRequestCreationWire/pivot.create
+=== RUN   TestPublicationRequestCreationWire/index_job.create
+--- PASS: TestPublicationRequestCreationWire (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/table.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/link.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/pivot.create (0.00s)
+    --- PASS: TestPublicationRequestCreationWire/index_job.create (0.00s)
+=== RUN   TestPublicationRequestCreationOrderingAndTime
+--- PASS: TestPublicationRequestCreationOrderingAndTime (0.00s)
+=== RUN   TestPublicationRequestScopeAndEnums
+--- PASS: TestPublicationRequestScopeAndEnums (0.00s)
+=== RUN   TestPublicationRequestRejectsInvalidInputs
+--- PASS: TestPublicationRequestRejectsInvalidInputs (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.058s

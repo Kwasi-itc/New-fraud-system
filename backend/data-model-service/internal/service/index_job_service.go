@@ -11,7 +11,6 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 type IndexJobService struct {
@@ -23,7 +22,6 @@ type IndexJobService struct {
 	txManager        ports.TransactionManager
 	idGenerator      ports.IDGenerator
 	clock            ports.Clock
-	enqueuer         riverjobs.IndexJobEnqueuer
 }
 
 type CreateIndexJobInput struct {
@@ -44,11 +42,8 @@ func NewIndexJobService(
 	txManager ports.TransactionManager,
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
-	enqueuer riverjobs.IndexJobEnqueuer,
+
 ) IndexJobService {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
-	}
 	return IndexJobService{
 		tenantRepository: tenantRepository,
 		tableRepository:  tableRepository,
@@ -58,7 +53,6 @@ func NewIndexJobService(
 		txManager:        txManager,
 		idGenerator:      idGenerator,
 		clock:            clock,
-		enqueuer:         enqueuer,
 	}
 }
 
@@ -121,7 +115,7 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 		if err := store.IndexJobs().Create(ctx, job); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			job.TenantID,
 			"request_index_job",
@@ -135,8 +129,10 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 				"columns":                job.Columns,
 				"requested_by_operation": job.RequestedByOperation,
 			},
-		))
-		if err := s.enqueuer.EnqueueTx(ctx, store.RawTx(), job.ID, job.ScheduledAt); err != nil {
+		); err != nil {
+			return err
+		}
+		if err := store.EnqueueIndexJob(ctx, job.ID, job.ScheduledAt); err != nil {
 			return err
 		}
 		return nil
@@ -168,7 +164,7 @@ func (s IndexJobService) Retry(ctx context.Context, id uuid.UUID) (datamodel.Ind
 		if err := store.IndexJobs().Retry(ctx, id, scheduledAt); err != nil {
 			return err
 		}
-		if err := s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, &scheduledAt); err != nil {
+		if err := store.EnqueueIndexJob(ctx, id, &scheduledAt); err != nil {
 			return err
 		}
 		return nil

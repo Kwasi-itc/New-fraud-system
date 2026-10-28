@@ -12,17 +12,17 @@ import (
 )
 
 type FieldService struct {
-	tenantRepository ports.TenantRepository
-	tableRepository  ports.TableRepository
-	fieldRepository  ports.FieldRepository
+	tenantRepository         ports.TenantRepository
+	tableRepository          ports.TableRepository
+	fieldRepository          ports.FieldRepository
 	fieldEnumValueRepository ports.FieldEnumValueRepository
-	linkRepository   ports.LinkRepository
-	pivotRepository  ports.PivotRepository
-	schemaChanges    ports.SchemaChangeRepository
-	schemaManager    ports.SchemaManager
-	txManager        ports.TransactionManager
-	idGenerator      ports.IDGenerator
-	clock            ports.Clock
+	linkRepository           ports.LinkRepository
+	pivotRepository          ports.PivotRepository
+	schemaChanges            ports.SchemaChangeRepository
+	schemaManager            ports.SchemaManager
+	txManager                ports.TransactionManager
+	idGenerator              ports.IDGenerator
+	clock                    ports.Clock
 }
 
 type CreateFieldInput struct {
@@ -66,17 +66,17 @@ func NewFieldService(
 	clock ports.Clock,
 ) FieldService {
 	return FieldService{
-		tenantRepository: tenantRepository,
-		tableRepository:  tableRepository,
-		fieldRepository:  fieldRepository,
+		tenantRepository:         tenantRepository,
+		tableRepository:          tableRepository,
+		fieldRepository:          fieldRepository,
 		fieldEnumValueRepository: fieldEnumValueRepository,
-		linkRepository:   linkRepository,
-		pivotRepository:  pivotRepository,
-		schemaChanges:    schemaChanges,
-		schemaManager:    schemaManager,
-		txManager:        txManager,
-		idGenerator:      idGenerator,
-		clock:            clock,
+		linkRepository:           linkRepository,
+		pivotRepository:          pivotRepository,
+		schemaChanges:            schemaChanges,
+		schemaManager:            schemaManager,
+		txManager:                txManager,
+		idGenerator:              idGenerator,
+		clock:                    clock,
 	}
 }
 
@@ -145,7 +145,7 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 			if err := store.FieldEnumValues().Create(ctx, value); err != nil {
 				return err
 			}
-			_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+			if err := recordSchemaChange(ctx, store.SchemaChanges(),
 				s.idGenerator.New(),
 				field.TenantID,
 				"create_field_enum_value",
@@ -158,10 +158,14 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 					"label":      value.Label,
 					"sort_order": value.SortOrder,
 				},
-			))
-			recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field_enum_value", "field_enum_value"), now)
+			); err != nil {
+				return err
+			}
+			if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field_enum_value", "field_enum_value"), now); err != nil {
+				return err
+			}
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"create_field",
@@ -177,8 +181,12 @@ func (s FieldService) Create(ctx context.Context, input CreateFieldInput) (datam
 				"is_unique":   field.IsUnique,
 				"description": field.Description,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field", "field"), now)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field", "field"), now); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Field{}, err
@@ -248,7 +256,7 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 				return err
 			}
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"update_field",
@@ -263,8 +271,12 @@ func (s FieldService) Update(ctx context.Context, input UpdateFieldInput) (datam
 				"is_unique":   field.IsUnique,
 				"description": field.Description,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field", "field"), field.UpdatedAt)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field", "field"), field.UpdatedAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Field{}, err
@@ -333,7 +345,7 @@ func (s FieldService) Delete(ctx context.Context, fieldID uuid.UUID, dryRun bool
 		if err := store.Fields().Delete(ctx, fieldID); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"delete_field",
@@ -345,8 +357,12 @@ func (s FieldService) Delete(ctx context.Context, fieldID uuid.UUID, dryRun bool
 				"name":      field.Name,
 				"data_type": field.DataType,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("delete_field", "field"), s.clock.Now())
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("delete_field", "field"), s.clock.Now()); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return report, err

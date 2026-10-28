@@ -1,0 +1,38 @@
+=== RUN   TestRedriveCommandMySQL
+    integration_test.go:146: Error 1142 (42000): SELECT with locking clause command denied to user 'redrive_a0f03120f286491e924f2163'@'172.21.0.3' for table 'data_model_index_jobs'
+--- FAIL: TestRedriveCommandMySQL (0.83s)
+=== RUN   TestRedriveCommandValidation
+--- PASS: TestRedriveCommandValidation (0.01s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/redrive-delivery-mysql	0.879s
+=== RUN   TestDeliveryRedriveValidation
+--- PASS: TestDeliveryRedriveValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	1.043s
+=== RUN   TestDeliveryRedrive
+=== RUN   TestDeliveryRedrive/atomic_audit_schedule_attempts_replay_and_cleanup
+=== RUN   TestDeliveryRedrive/concurrent_same_request
+=== RUN   TestDeliveryRedrive/uncertain_commit_replay
+[mysql] 2026/10/27 10:13:20 connection.go:189 closing connection:close tcp 172.21.0.3:48312->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 10:13:20 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRedrive/reject_domain_running
+=== RUN   TestDeliveryRedrive/reject_domain_failed
+=== RUN   TestDeliveryRedrive/reject_domain_applied
+=== RUN   TestDeliveryRedrive/reject_domain_cancelled
+=== RUN   TestDeliveryRedrive/foreign_tenant_and_source
+=== RUN   TestDeliveryRedrive/reservation_on_another_queue
+=== RUN   TestDeliveryRedrive/audit_failure_rolls_back_enqueue
+--- PASS: TestDeliveryRedrive (0.80s)
+    --- PASS: TestDeliveryRedrive/atomic_audit_schedule_attempts_replay_and_cleanup (0.04s)
+    --- PASS: TestDeliveryRedrive/concurrent_same_request (0.05s)
+    --- PASS: TestDeliveryRedrive/uncertain_commit_replay (0.03s)
+    --- PASS: TestDeliveryRedrive/reject_domain_running (0.02s)
+    --- PASS: TestDeliveryRedrive/reject_domain_failed (0.02s)
+    --- PASS: TestDeliveryRedrive/reject_domain_applied (0.03s)
+    --- PASS: TestDeliveryRedrive/reject_domain_cancelled (0.02s)
+    --- PASS: TestDeliveryRedrive/foreign_tenant_and_source (0.03s)
+    --- PASS: TestDeliveryRedrive/reservation_on_another_queue (0.02s)
+    --- PASS: TestDeliveryRedrive/audit_failure_rolls_back_enqueue (0.04s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.838s
+FAIL

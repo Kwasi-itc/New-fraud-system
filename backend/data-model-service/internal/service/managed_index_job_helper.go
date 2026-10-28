@@ -8,13 +8,12 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/riverjobs"
 )
 
 func ensureManagedIndexJobTx(
 	ctx context.Context,
 	store ports.MutationStore,
-	enqueuer riverjobs.IndexJobEnqueuer,
+
 	idGenerator ports.IDGenerator,
 	tenantID uuid.UUID,
 	table datamodel.Table,
@@ -23,9 +22,6 @@ func ensureManagedIndexJobTx(
 	requestedByOperation string,
 	now time.Time,
 ) (datamodel.IndexJob, bool, error) {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopIndexJobEnqueuer{}
-	}
 
 	dedupeKey := datamodel.BuildIndexJobDedupeKey(tenantID, table.ID, jobType, columns)
 	existing, err := store.IndexJobs().GetByDedupeKey(ctx, dedupeKey)
@@ -41,7 +37,7 @@ func ensureManagedIndexJobTx(
 			if err := store.IndexJobs().Retry(ctx, existing.ID, now); err != nil {
 				return datamodel.IndexJob{}, false, err
 			}
-			if err := enqueuer.EnqueueTx(ctx, store.RawTx(), existing.ID, &now); err != nil {
+			if err := store.EnqueueIndexJob(ctx, existing.ID, &now); err != nil {
 				return datamodel.IndexJob{}, false, err
 			}
 			existing.Status = datamodel.IndexJobStatusPending
@@ -67,7 +63,7 @@ func ensureManagedIndexJobTx(
 	if err := store.IndexJobs().Create(ctx, job); err != nil {
 		return datamodel.IndexJob{}, false, err
 	}
-	if err := enqueuer.EnqueueTx(ctx, store.RawTx(), job.ID, job.ScheduledAt); err != nil {
+	if err := store.EnqueueIndexJob(ctx, job.ID, job.ScheduledAt); err != nil {
 		return datamodel.IndexJob{}, false, err
 	}
 	return job, true, nil

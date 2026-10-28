@@ -1,0 +1,36 @@
+# Isolated data-model regression and transaction characterization. No application volumes or published ports.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: migration_test
+      POSTGRES_PASSWORD: isolated-test-only
+      POSTGRES_DB: data_model_tx_test_baseline
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U migration_test -d data_model_tx_test_baseline"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  test:
+    image: golang:1.25.8
+    network_mode: service:postgres
+    working_dir: /backend/data-model-service
+    volumes:
+      - ..:/backend
+    environment:
+      DATA_MODEL_TX_TEST_DATABASE_URL: postgres://migration_test:isolated-test-only@localhost:5432/data_model_tx_test_baseline?sslmode=disable
+      DATA_MODEL_REQUIRE_TX_TEST: "1"
+      DATA_MODEL_TEST_DATABASE_URL: postgres://migration_test:isolated-test-only@localhost:5432/data_model_tx_test_baseline?sslmode=disable
+      AUTH_PREFLIGHT_TEST_DATABASE_URL: postgres://migration_test:isolated-test-only@localhost:5432/data_model_tx_test_baseline?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - >-
+        go mod download &&
+        go vet ./... &&
+        go test -mod=readonly -race -p 1 -count=1 -timeout=180s -v ./...

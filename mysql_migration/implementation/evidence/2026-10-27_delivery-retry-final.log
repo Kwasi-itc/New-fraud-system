@@ -1,0 +1,30 @@
+=== RUN   TestDeliveryRetryErrorHistory
+=== RUN   TestDeliveryRetryErrorHistory/translated_attempts
+=== RUN   TestDeliveryRetryErrorHistory/long_backoff
+=== RUN   TestDeliveryRetryErrorHistory/retry_after_rescue
+=== RUN   TestDeliveryRetryErrorHistory/rescue_unknown
+=== RUN   TestDeliveryRetryErrorHistory/rescue_exhausted
+=== RUN   TestDeliveryRetryErrorHistory/rescue_lost_commit
+[mysql] 2026/10/27 15:57:32 connection.go:189 closing connection:close tcp 172.21.0.3:54108->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 15:57:32 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRetryErrorHistory/owner_rollback
+=== RUN   TestDeliveryRetryErrorHistory/unknown_history
+=== RUN   TestDeliveryRetryErrorHistory/exhausted
+=== RUN   TestDeliveryRetryErrorHistory/lost_commit
+[mysql] 2026/10/27 15:57:32 connection.go:189 closing connection:close tcp 172.21.0.3:54124->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 15:57:32 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRetryErrorHistory/success
+--- PASS: TestDeliveryRetryErrorHistory (1.01s)
+    --- PASS: TestDeliveryRetryErrorHistory/translated_attempts (0.03s)
+    --- PASS: TestDeliveryRetryErrorHistory/long_backoff (0.03s)
+    --- PASS: TestDeliveryRetryErrorHistory/retry_after_rescue (0.05s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_unknown (0.02s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_exhausted (0.02s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_lost_commit (0.04s)
+    --- PASS: TestDeliveryRetryErrorHistory/owner_rollback (0.02s)
+    --- PASS: TestDeliveryRetryErrorHistory/unknown_history (0.01s)
+    --- PASS: TestDeliveryRetryErrorHistory/exhausted (0.04s)
+    --- PASS: TestDeliveryRetryErrorHistory/lost_commit (0.03s)
+    --- PASS: TestDeliveryRetryErrorHistory/success (0.02s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	2.049s

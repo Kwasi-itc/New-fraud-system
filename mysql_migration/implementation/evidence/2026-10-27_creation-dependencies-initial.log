@@ -1,0 +1,69 @@
+=== RUN   TestExplicitAccountPolicy
+--- PASS: TestExplicitAccountPolicy (0.00s)
+=== RUN   TestColumnPolicyBounds
+--- PASS: TestColumnPolicyBounds (0.40s)
+=== RUN   TestColumnAccountPolicy
+=== RUN   TestColumnAccountPolicy/routine
+=== RUN   TestColumnAccountPolicy/wildcard
+=== RUN   TestColumnAccountPolicy/overlap
+=== RUN   TestColumnAccountPolicy/delete
+=== RUN   TestColumnAccountPolicy/empty
+=== RUN   TestColumnAccountPolicy/duplicate
+=== RUN   TestColumnAccountPolicy/injection
+--- PASS: TestColumnAccountPolicy (0.00s)
+    --- PASS: TestColumnAccountPolicy/routine (0.00s)
+    --- PASS: TestColumnAccountPolicy/wildcard (0.00s)
+    --- PASS: TestColumnAccountPolicy/overlap (0.00s)
+    --- PASS: TestColumnAccountPolicy/delete (0.00s)
+    --- PASS: TestColumnAccountPolicy/empty (0.00s)
+    --- PASS: TestColumnAccountPolicy/duplicate (0.00s)
+    --- PASS: TestColumnAccountPolicy/injection (0.00s)
+=== RUN   TestExactKeyReadinessBinding
+=== RUN   TestExactKeyReadinessBinding/nil_pool
+=== RUN   TestExactKeyReadinessBinding/partial
+=== RUN   TestExactKeyReadinessBinding/extra
+=== RUN   TestExactKeyReadinessBinding/sql
+=== RUN   TestExactKeyReadinessBinding/id
+=== RUN   TestExactKeyReadinessBinding/order
+=== RUN   TestExactKeyReadinessBinding/definer
+=== RUN   TestExactKeyReadinessBinding/upgrade
+--- PASS: TestExactKeyReadinessBinding (0.30s)
+    --- PASS: TestExactKeyReadinessBinding/nil_pool (0.06s)
+    --- PASS: TestExactKeyReadinessBinding/partial (0.01s)
+    --- PASS: TestExactKeyReadinessBinding/extra (0.00s)
+    --- PASS: TestExactKeyReadinessBinding/sql (0.01s)
+    --- PASS: TestExactKeyReadinessBinding/id (0.01s)
+    --- PASS: TestExactKeyReadinessBinding/order (0.01s)
+    --- PASS: TestExactKeyReadinessBinding/definer (0.01s)
+    --- PASS: TestExactKeyReadinessBinding/upgrade (0.03s)
+=== RUN   TestManifestInputs
+--- PASS: TestManifestInputs (0.02s)
+=== RUN   TestCompleteInstallationLineage
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/wrong_database
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/same_definer
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/dirty
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/checksum
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/missing_history
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/dictionary_shape
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/extra_trigger
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/digest
+=== NAME  TestCompleteInstallationLineage/exact_key_dependencies
+    manifest_test.go:200: verify applied step data_model_v001_0003: migration object definition differs from reviewed plan
+=== NAME  TestCompleteInstallationLineage
+    manifest_test.go:202: verify applied step data_model_v001_0003: migration object definition differs from reviewed plan
+--- FAIL: TestCompleteInstallationLineage (3.95s)
+    --- FAIL: TestCompleteInstallationLineage/exact_key_dependencies (1.29s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/wrong_database (0.00s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/same_definer (0.00s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/dirty (0.02s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/checksum (0.01s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/missing_history (0.01s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/dictionary_shape (0.04s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/extra_trigger (0.17s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/digest (0.02s)
+=== RUN   TestUpgradePreservesInstalledHistory
+--- PASS: TestUpgradePreservesInstalledHistory (0.00s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation	4.707s
+FAIL

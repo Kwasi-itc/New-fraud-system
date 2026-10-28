@@ -1,0 +1,28 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/27 21:13:09 connection.go:189 closing connection:close tcp 172.21.0.3:45964->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:13:09 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_missing_alter
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_ack
+[mysql] 2026/10/27 21:13:18 connection.go:189 closing connection:close tcp 172.21.0.3:42138->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:13:18 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_lost_commit
+[mysql] 2026/10/27 21:13:21 connection.go:189 closing connection:close tcp 172.21.0.3:42194->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 21:13:21 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalCreationAllocated (30.19s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated (2.79s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (1.02s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_before (1.37s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_guard_after (1.61s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_owner_rollback (1.69s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_active_installer (1.74s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_missing_alter (1.81s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_ack (1.63s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_lost_commit (2.06s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	31.263s

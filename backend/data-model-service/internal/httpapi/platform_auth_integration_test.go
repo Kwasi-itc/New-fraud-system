@@ -110,7 +110,10 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := NewRouter(slog.Default(), db, RouterConfig{AuthMode: "token", AuthToken: "private-machine-token", UserVerifier: verifier})
+	router, err := NewRouter(slog.Default(), db, RouterConfig{AuthMode: "token", AuthToken: "private-machine-token", UserVerifier: verifier})
+	if err != nil {
+		t.Fatal(err)
+	}
 	request := func(method, path, body, credential string, want int) {
 		t.Helper()
 		req := httptest.NewRequest(method, path, strings.NewReader(body))
@@ -196,7 +199,10 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 }
 
 func TestPlatformRoutePoliciesCoverRegisteredRoutes(t *testing.T) {
-	router := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: "token", AuthToken: "test"})
+	router, err := NewRouter(slog.Default(), &pgxpool.Pool{}, RouterConfig{AuthMode: "token", AuthToken: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	serviceOnly := map[string]bool{"GET /v1/tenants": true, "POST /v1/tenants": true, "POST /v1/tenants/:tenantId/provision": true, "GET /v1/admin/reconcile": true}
 	for _, route := range router.Routes() {
 		key := route.Method + " " + route.Path

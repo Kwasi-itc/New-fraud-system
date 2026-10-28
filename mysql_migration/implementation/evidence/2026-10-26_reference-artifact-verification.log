@@ -1,0 +1,6 @@
+=== RUN   TestReferenceCommandBoundary
+--- PASS: TestReferenceCommandBoundary (0.02s)
+=== RUN   TestReferenceArtifactRoundTrip
+--- PASS: TestReferenceArtifactRoundTrip (2.24s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/build-mysql-reference	3.283s

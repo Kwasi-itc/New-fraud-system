@@ -1,0 +1,4 @@
+=== RUN   TestTableCreationRequestHash
+--- PASS: TestTableCreationRequestHash (0.01s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.049s

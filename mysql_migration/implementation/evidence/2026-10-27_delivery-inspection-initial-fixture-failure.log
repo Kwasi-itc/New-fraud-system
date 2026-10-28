@@ -1,0 +1,6 @@
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:79: Error 1644 (45000): immutable metadata identity or event
+--- FAIL: TestDeliveryInspection (3.68s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	3.713s
+FAIL

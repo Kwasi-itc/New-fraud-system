@@ -1,0 +1,12 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+    physical_creation_publication_test.go:468: restricted guarded ALTER Error 1227 (42000): Access denied; you need (at least one of) the TRIGGER privilege(s) for this operation
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/10/27 18:58:22 connection.go:189 closing connection:close tcp 172.21.0.3:35838->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 18:58:22 packets.go:58 unexpected EOF
+--- FAIL: TestPhysicalCreationAllocated (13.66s)
+    --- FAIL: TestPhysicalCreationAllocated/service_allocated (1.62s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_lost_commit (1.29s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	13.699s
+FAIL

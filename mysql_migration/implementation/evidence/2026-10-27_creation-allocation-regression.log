@@ -1,0 +1,48 @@
+=== RUN   TestCreationOwnerAllocation
+=== RUN   TestCreationOwnerAllocation/concurrent
+=== RUN   TestCreationOwnerAllocation/lost_commit
+[mysql] 2026/10/27 18:22:46 connection.go:189 closing connection:close tcp 172.21.0.3:57592->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 18:22:46 packets.go:58 unexpected EOF
+=== RUN   TestCreationOwnerAllocation/owner_rollback
+=== RUN   TestCreationOwnerAllocation/denied
+=== RUN   TestCreationOwnerAllocation/local_denied
+=== RUN   TestCreationOwnerAllocation/changed_request
+--- PASS: TestCreationOwnerAllocation (4.50s)
+    --- PASS: TestCreationOwnerAllocation/concurrent (0.04s)
+    --- PASS: TestCreationOwnerAllocation/lost_commit (0.04s)
+    --- PASS: TestCreationOwnerAllocation/owner_rollback (0.01s)
+    --- PASS: TestCreationOwnerAllocation/denied (0.00s)
+    --- PASS: TestCreationOwnerAllocation/local_denied (0.00s)
+    --- PASS: TestCreationOwnerAllocation/changed_request (0.03s)
+=== RUN   TestCreationPreparationTransaction
+=== RUN   TestCreationPreparationTransaction/commit_replay
+=== RUN   TestCreationPreparationTransaction/owner_rollback
+=== RUN   TestCreationPreparationTransaction/invalid_intent
+=== RUN   TestCreationPreparationTransaction/foreign_scope
+=== RUN   TestCreationPreparationTransaction/finished_transaction
+--- PASS: TestCreationPreparationTransaction (0.75s)
+    --- PASS: TestCreationPreparationTransaction/commit_replay (0.03s)
+    --- PASS: TestCreationPreparationTransaction/owner_rollback (0.02s)
+    --- PASS: TestCreationPreparationTransaction/invalid_intent (0.02s)
+    --- PASS: TestCreationPreparationTransaction/foreign_scope (0.02s)
+    --- PASS: TestCreationPreparationTransaction/finished_transaction (0.02s)
+=== RUN   TestCreationReceipts
+=== RUN   TestCreationReceipts/reserve_replay_preserves_allocation
+=== RUN   TestCreationReceipts/owner_rollback
+=== RUN   TestCreationReceipts/actor
+=== RUN   TestCreationReceipts/hash
+=== RUN   TestCreationReceipts/table_collision
+=== RUN   TestCreationReceipts/foreign_tenant
+=== RUN   TestCreationReceipts/immutable_retained_evidence
+=== RUN   TestCreationReceipts/complete_upgraded_dependency_lineage
+--- PASS: TestCreationReceipts (4.47s)
+    --- PASS: TestCreationReceipts/reserve_replay_preserves_allocation (0.01s)
+    --- PASS: TestCreationReceipts/owner_rollback (0.01s)
+    --- PASS: TestCreationReceipts/actor (0.00s)
+    --- PASS: TestCreationReceipts/hash (0.00s)
+    --- PASS: TestCreationReceipts/table_collision (0.00s)
+    --- PASS: TestCreationReceipts/foreign_tenant (0.00s)
+    --- PASS: TestCreationReceipts/immutable_retained_evidence (0.00s)
+    --- PASS: TestCreationReceipts/complete_upgraded_dependency_lineage (0.34s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	10.764s

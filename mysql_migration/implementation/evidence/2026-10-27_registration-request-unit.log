@@ -1,0 +1,14 @@
+=== RUN   TestRegistrationRequestGolden
+--- PASS: TestRegistrationRequestGolden (0.00s)
+=== RUN   TestRegistrationRequestEveryField
+=== RUN   TestRegistrationRequestEveryField/Name
+=== RUN   TestRegistrationRequestEveryField/ExternalKey
+--- PASS: TestRegistrationRequestEveryField (0.00s)
+    --- PASS: TestRegistrationRequestEveryField/Name (0.00s)
+    --- PASS: TestRegistrationRequestEveryField/ExternalKey (0.00s)
+=== RUN   TestRegistrationRequestOriginalInputDistinctions
+--- PASS: TestRegistrationRequestOriginalInputDistinctions (0.00s)
+=== RUN   TestRegistrationRequestRejectsInvalidIdentityAndEncoding
+--- PASS: TestRegistrationRequestRejectsInvalidIdentityAndEncoding (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.034s

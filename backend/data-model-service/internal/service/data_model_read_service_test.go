@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -8,7 +10,52 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 )
+
+type modelSnapshotStub struct {
+	value ports.DataModelSnapshot
+	err   error
+}
+
+func (s modelSnapshotStub) GetDataModelSnapshot(context.Context, uuid.UUID) (ports.DataModelSnapshot, error) {
+	return s.value, s.err
+}
+
+func TestSnapshotDataModelReadService(t *testing.T) {
+	id := uuid.New()
+	value := ports.DataModelSnapshot{Tenant: tenant.Tenant{ID: id, Status: tenant.StatusActive}, Model: datamodel.AssembledDataModel{Tables: map[string]datamodel.AssembledTable{"records": {ID: uuid.New(), Name: "records"}}, Pivots: []datamodel.AssembledPivot{}}, Migrations: []datamodel.TenantSchemaMigration{{ID: uuid.New(), TenantID: id, Version: "first", AppliedAt: time.Now().UTC()}}}
+	owner, err := NewSnapshotDataModelReadService(modelSnapshotStub{value: value})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := owner.Get(context.Background(), id)
+	if err != nil || got.RevisionID != buildRevisionID(value.Tenant, value.Migrations) || got.Model.Tables["records"].ID != value.Model.Tables["records"].ID {
+		t.Fatalf("owner %+v %v", got, err)
+	}
+	if _, err := NewSnapshotDataModelReadService(nil); err == nil {
+		t.Fatal("nil snapshot accepted")
+	}
+	injected := errors.New("snapshot commit failure")
+	owner, err = NewSnapshotDataModelReadService(modelSnapshotStub{value: value, err: injected})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := owner.Get(context.Background(), id); !errors.Is(err, injected) || got.RevisionID != "" || got.Model.Tables != nil {
+		t.Fatalf("partial result %+v %v", got, err)
+	}
+	owner, err = NewSnapshotDataModelReadService(modelSnapshotStub{value: value})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := owner.Get(context.Background(), uuid.New()); err == nil || got.Model.Tables != nil {
+		t.Fatal("foreign tenant accepted")
+	}
+	value.Migrations[0].TenantID = uuid.New()
+	if got, err := owner.Get(context.Background(), id); err == nil || got.Model.Tables != nil {
+		t.Fatal("foreign revision accepted")
+	}
+}
 
 func TestBuildRevisionIDStableForEquivalentMigrationSets(t *testing.T) {
 	t.Parallel()

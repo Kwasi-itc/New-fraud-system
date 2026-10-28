@@ -1,0 +1,38 @@
+# System inventory
+
+This inventory describes the current working tree. [File coverage](13_file_coverage_manifest.md) records 1,668 text files, their hashes and discovery results. [Evidence catalog](11_source_evidence_catalog.md) provides individual locations. Generated reports, installed dependencies, private local environment files and live databases are not implementation evidence.
+
+## Components and access paths
+
+| Component | PostgreSQL relationship | Access layer and responsibility | Findings |
+|---|---|---|---|
+| `backend/data-model-service` | Direct | Go/pgx repositories; runtime tenant schema manager; `internal/display/store.go` and `internal/access/platform.go` also access SQL outside repository directories. Owns tenant/model metadata, published ingestion contracts, display configuration, schema/index jobs. API, worker, migrate and reconcile commands. | PG-01–07, PG-10, PG-17, PG-20–28, PG-35 |
+| `backend/ingestion-service` | Direct and indirect | Go/pgx mutation store writes tenant tables plus `core_ingestion`; SQL reader consumes data-model views, optional HTTP reader consumes data-model API. Separate configurable read/worker pools. Upload/deferred workers use River. | PG-01–04, PG-08–10, PG-20–28, PG-32, PG-34 |
+| `backend/decision-engine-service` | Direct and indirect | Go/pgx repositories in `core`; AST runtime accesses tenant data through configurable SQL/ingestion HTTP adapter. Persists decisions, rules, workflows, screening/scoring dispatches, authoring audit, projections and investigation reviews. API and River workers. | PG-01–04, PG-08, PG-10, PG-12, PG-15, PG-17–28, PG-32, PG-34–35 |
+| `backend/screening-service` | Direct and indirect | Go/pgx `screening` storage; external HTTP candidate/matching provider; continuous, dataset, manual and scenario jobs; same-database execution projection and durable case delivery. | PG-01–04, PG-08, PG-10, PG-12–16, PG-18, PG-20–28, PG-33, PG-35 |
+| `backend/case-manager-service` | Direct | Go/pgx case owner repositories; reads decision/screening/model/identity owners in shared DB; transactions, intake, assignment, reports, analytics, explorer, evidence; River maintenance and separate outbound delivery. | PG-01–04, PG-08, PG-10–12, PG-14, PG-17–28, PG-33–35 |
+| `backend/auth-service` | Direct and indirect | Go/pgx `internal/platform` stores application identity and sessions. OIDC provider integration is HTTP; optional Keycloak uses PostgreSQL independently. Embedded SQL upgrades, admin and preflight commands. | PG-01–04, PG-08, PG-11–12, PG-14, PG-17, PG-20–29, PG-35 |
+| `backend/investigator` | Direct shared library | `identity.go` invokes authorization contract; `review.go` coordinates owner review, case evidence, audit and outbox in one pgx transaction. JWT parsing itself is not database-specific. | PG-01, PG-11–12, PG-17–18, PG-28 |
+| `frontend` | Indirect | Next.js UI/API proxies call backend HTTP services. No PostgreSQL/MySQL driver in inspected package manifest/lockfile. Case evidence/review, screening history and reports depend on backend contracts and authorization. Browser fixture SQL and service setup must be reviewed separately from UI runtime. | PG-31, PG-33; API parity tests |
+| Matching/name recognition/scoring/blob integrations | Indirect, provider internals unknown | HTTP clients, including screening provider, decision dispatch and name-recognition clients. Provider database/index implementation is not in this repository; do not infer PostgreSQL trigram/full-text search. | PG-13, PG-15; external contract testing |
+| GeoIP MMDB | No PostgreSQL access | Local binary GeoIP lookup configured in decision service. Binary contents are outside SQL audit. | No DB migration; regression check |
+| In-process caches | Indirect | Decision evaluation/model caches and ingestion contract caches, keyed/versioned from persisted metadata. No evidence of a separate Redis deployment in root Compose. | PG-06, PG-32, PG-34 |
+| `docker/`, root Compose | Direct operational | PostgreSQL 16, migration jobs, API/worker URLs, healthcheck, persistent volume; optional Keycloak role/schema. | PG-02–04, PG-29–30 |
+| Service-local Compose | Direct, legacy architecture drift | Data-model and ingestion files define standalone `datamodel` / `ingestion` databases. They do not establish current shared deployment architecture. | PG-02, PG-32; R-08 |
+| `backend/tools/db_consolidation` | Direct operational | PostgreSQL dump/restore, schema and database discovery, optional forced legacy DB deletion. Not a MySQL conversion tool. | PG-27, PG-30 |
+| `backend/integration-tests`, `backend/ui_test` | Mainly indirect | Python HTTP integration/UI harnesses. Requirements use HTTP/testing libraries; SQL-heavy Go integration fixtures are separate. | PG-31 |
+| `backend/stress-tests` | Direct and indirect | HTTP workload generators plus optional psycopg fixture insertion, psql observations, queue recovery, PostgreSQL catalog and EXPLAIN collectors. Recorded run output is historical evidence only. | PG-01, PG-23, PG-27, PG-30–31 |
+| `backend/scripts`, Makefiles, Dockerfiles | Operational/indirect | Build/run/test/migrate commands, smoke/setup HTTP clients and replay orchestration. Executables embed PostgreSQL adapters; Dockerfile itself is not necessarily SQL-specific. | PG-02, PG-04, PG-30–31 |
+| Existing Markdown plans and `postgres_mysql-migration` | Historical | Prior architecture and reverted MySQL feasibility work; useful context, not active code or this audit's runtime evidence. | Cross-check against source |
+
+## Deployment and migration baseline
+
+[Root Compose](../docker-compose.yml#L36) defines one application database, `fraud`, on `postgres:16`. All six application services use it. `core` is shared by data-model and decision-engine owners; a namespace is not an ownership boundary. The optional local Keycloak profile also uses `fraud`, with its own schema and role. Root migration dependencies run data-model first, ingestion next, decision next, screening next, then cases; auth depends on data-model. APIs wait for migration completion. Screening worker is profile-controlled, while screening case-delivery is a separate default worker. A configured URL or profile is not proof a process is running.
+
+[Database-scale override](../docker-compose.database-scale.yml#L1) overrides most service URLs with one supplied URL, but does not include auth-service/auth-migrate/Keycloak. This requires deployment review before any shared-database scale test or future cutover. Do not assume that override redirects identity automatically.
+
+Five application services use golang-migrate; auth executes embedded schema versions 1–3 through `Store.Migrate`. River migrations also run in service commands; case uses `case_queue`, other inspected clients default to the common namespace. Mixed River dependency versions are recorded in go.mod: 0.31.0 for data-model/ingestion/decision and 0.26.0 for screening/cases. Their shared schema compatibility needs testing, not inference.
+
+## What is not present or not established
+
+No SQLAlchemy/ORM model layer was found in application manifests or source. Go domain structs and repository interfaces do not make raw SQL portable: pgx transaction types cross several ports/service boundaries. No application MySQL adapter was found. No checked-in CI workflow, Kubernetes manifest or Terraform provisioning was found in the enumerated source; external deployment automation remains unknown. No application GIN/GiST/BRIN, PostgreSQL full-text/trigram extension or RLS policy was established by the searches. Test queue fixtures define an enum/identity column; do not confuse these with application migration definitions or River's dependency-owned schema.

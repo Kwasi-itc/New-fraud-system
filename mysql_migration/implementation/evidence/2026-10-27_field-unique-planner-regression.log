@@ -1,0 +1,14 @@
+=== RUN   TestTypedPhysicalPlanning
+--- PASS: TestTypedPhysicalPlanning (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	1.031s
+=== RUN   TestTypedPhysicalOperations
+=== RUN   TestTypedPhysicalOperations/nullable_types_and_indexes
+=== RUN   TestTypedPhysicalOperations/not_null_empty_table
+=== RUN   TestTypedPhysicalOperations/not_null_populated_table
+--- PASS: TestTypedPhysicalOperations (1.53s)
+    --- PASS: TestTypedPhysicalOperations/nullable_types_and_indexes (0.54s)
+    --- PASS: TestTypedPhysicalOperations/not_null_empty_table (0.23s)
+    --- PASS: TestTypedPhysicalOperations/not_null_populated_table (0.26s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	2.559s

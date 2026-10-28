@@ -1,0 +1,15 @@
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:171: -> Limit: 128 row(s)  (cost=96.2 rows=128)
+            -> Sort: data_model_index_deliveries.created_at DESC, data_model_index_deliveries.id DESC, limit input to 128 row(s) per chunk  (cost=96.2 rows=1004)
+                -> Filter: ((data_model_index_deliveries.tenant_id = '?4?>)?H-?y\??=xY&') and ((data_model_index_deliveries.created_at < TIMESTAMP'2026-10-27 09:46:00.567144') or ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-27 09:46:00.567144') and (data_model_index_deliveries.id < '??\?\?֤MF?Sșw\?U	'))))  (cost=96.2 rows=1004)
+                    -> Table scan on data_model_index_deliveries  (cost=96.2 rows=1004)
+        
+    delivery_inspection_test.go:173: tenant keyset index not used -> Limit: 128 row(s)  (cost=96.2 rows=128)
+            -> Sort: data_model_index_deliveries.created_at DESC, data_model_index_deliveries.id DESC, limit input to 128 row(s) per chunk  (cost=96.2 rows=1004)
+                -> Filter: ((data_model_index_deliveries.tenant_id = '?4?>)?H-?y\??=xY&') and ((data_model_index_deliveries.created_at < TIMESTAMP'2026-10-27 09:46:00.567144') or ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-27 09:46:00.567144') and (data_model_index_deliveries.id < '??\?\?֤MF?Sșw\?U	'))))  (cost=96.2 rows=1004)
+                    -> Table scan on data_model_index_deliveries  (cost=96.2 rows=1004)
+        
+--- FAIL: TestDeliveryInspection (3.88s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	3.913s
+FAIL

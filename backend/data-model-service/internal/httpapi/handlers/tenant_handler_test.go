@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/jackc/pgx/v5"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
@@ -95,6 +95,19 @@ func (stubSchemaManager) GetManagedIndexState(context.Context, tenant.Tenant, da
 
 type stubChangeRepository struct{}
 
+type stubSchemaMigrationRepository struct {
+	changes []datamodel.TenantSchemaMigration
+}
+
+func (s *stubSchemaMigrationRepository) Create(_ context.Context, change datamodel.TenantSchemaMigration) error {
+	s.changes = append(s.changes, change)
+	return nil
+}
+
+func (s *stubSchemaMigrationRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.TenantSchemaMigration, error) {
+	return s.changes, nil
+}
+
 func (stubChangeRepository) Create(context.Context, datamodel.SchemaChange) error { return nil }
 func (stubChangeRepository) ListByTenant(context.Context, uuid.UUID) ([]datamodel.SchemaChange, error) {
 	return nil, nil
@@ -127,7 +140,6 @@ type stubMutationStore struct {
 	navigationOptions      ports.NavigationOptionRepository
 	indexJobs              ports.IndexJobRepository
 	schemaManager          ports.SchemaManager
-	rawTx                  pgx.Tx
 }
 
 func (s stubMutationStore) Tenants() ports.TenantRepository                 { return s.tenants }
@@ -146,23 +158,26 @@ func (s stubMutationStore) TenantSchemaMigrations() ports.TenantSchemaMigrationR
 }
 func (s stubMutationStore) IndexJobs() ports.IndexJobRepository { return s.indexJobs }
 func (s stubMutationStore) SchemaManager() ports.SchemaManager  { return s.schemaManager }
-func (s stubMutationStore) RawTx() pgx.Tx                       { return s.rawTx }
+func (s stubMutationStore) EnqueueIndexJob(context.Context, uuid.UUID, *time.Time) error {
+	return ports.ErrJobQueueUnavailable
+}
 
 func TestTenantHandlerCreateReturnsCreatedTenant(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	tenantID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	now := time.Date(2026, 5, 12, 13, 0, 0, 0, time.UTC)
 	repo := &stubTenantRepository{}
+	revisions := &stubSchemaMigrationRepository{}
 	service := service.NewTenantService(
 		repo,
 		stubChangeRepository{},
 		stubSchemaManager{},
 		stubTransactionManager{store: stubMutationStore{
-			tenants:       repo,
-			schemaChanges: stubChangeRepository{},
-			schemaManager: stubSchemaManager{},
+			tenantSchemaMigrations: revisions,
+			tenants:                repo,
+			schemaChanges:          stubChangeRepository{},
+			schemaManager:          stubSchemaManager{},
 		}},
 		fixedIDGenerator{value: tenantID},
 		fixedClock{now: now},
@@ -181,6 +196,9 @@ func TestTenantHandlerCreateReturnsCreatedTenant(t *testing.T) {
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(revisions.changes) != 1 || revisions.changes[0].TenantID != tenantID {
+		t.Fatalf("expected tenant creation revision, got %#v", revisions.changes)
 	}
 
 	var payload struct {
@@ -214,7 +232,6 @@ func TestTenantHandlerCreateReturnsCreatedTenant(t *testing.T) {
 
 func TestTenantHandlerCreateRejectsInvalidBody(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewTenantHandler(service.TenantService{})
 	router := gin.New()
@@ -233,7 +250,6 @@ func TestTenantHandlerCreateRejectsInvalidBody(t *testing.T) {
 
 func TestTenantHandlerProvisionRejectsInvalidUUID(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewTenantHandler(service.TenantService{})
 	router := gin.New()

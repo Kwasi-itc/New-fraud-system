@@ -1,0 +1,16 @@
+=== RUN   TestSaveRequestHash
+=== RUN   TestSaveRequestHash/empty_columns
+=== RUN   TestSaveRequestHash/caption
+=== RUN   TestSaveRequestHash/version
+=== RUN   TestSaveRequestHash/empty_order
+=== RUN   TestSaveRequestHash/empty_displayed
+=== RUN   TestSaveRequestHash/empty_display
+--- PASS: TestSaveRequestHash (0.00s)
+    --- PASS: TestSaveRequestHash/empty_columns (0.00s)
+    --- PASS: TestSaveRequestHash/caption (0.00s)
+    --- PASS: TestSaveRequestHash/version (0.00s)
+    --- PASS: TestSaveRequestHash/empty_order (0.00s)
+    --- PASS: TestSaveRequestHash/empty_displayed (0.00s)
+    --- PASS: TestSaveRequestHash/empty_display (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/display	1.040s

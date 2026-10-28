@@ -116,7 +116,7 @@ func (s OptionsService) Upsert(ctx context.Context, input datamodel.TableOptions
 		if err := store.TableOptions().Upsert(ctx, input); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			input.TenantID,
 			"upsert_table_options",
@@ -127,8 +127,12 @@ func (s OptionsService) Upsert(ctx context.Context, input datamodel.TableOptions
 				"displayed_fields": input.DisplayedFields,
 				"field_order":      input.FieldOrder,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, input.TenantID, schemaMigrationVersion("upsert_table_options", "table_options"), input.UpdatedAt)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, input.TenantID, schemaMigrationVersion("upsert_table_options", "table_options"), input.UpdatedAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.TableOptions{}, err

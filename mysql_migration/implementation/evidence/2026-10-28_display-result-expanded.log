@@ -1,0 +1,28 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_owner_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_owner_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_owner_lost_commit
+[mysql] 2026/10/28 11:52:23 connection.go:189 closing connection:close tcp 172.21.0.3:48852->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 11:52:23 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_owner_restricted
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_owner_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_replay
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_lost_commit
+[mysql] 2026/10/28 11:52:27 connection.go:189 closing connection:close tcp 172.21.0.3:56456->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 11:52:27 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_display_result_legacy
+--- PASS: TestPhysicalCreationAllocated (11.77s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_owner_commit (0.64s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_owner_concurrent (0.74s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_owner_lost_commit (0.60s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_owner_restricted (0.72s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_owner_revision_failure (0.47s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_replay (0.65s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_concurrent (0.79s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_rollback (0.65s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_lost_commit (0.73s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_display_result_legacy (0.64s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	12.813s

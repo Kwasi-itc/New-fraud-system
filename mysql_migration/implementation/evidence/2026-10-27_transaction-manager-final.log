@@ -1,0 +1,28 @@
+=== RUN   TestMetadataTransactionManager
+=== RUN   TestMetadataTransactionManager/commit
+=== RUN   TestMetadataTransactionManager/owner_error
+=== RUN   TestMetadataTransactionManager/missing_queue
+=== RUN   TestMetadataTransactionManager/physical_rejected
+=== RUN   TestMetadataTransactionManager/cancel
+=== RUN   TestMetadataTransactionManager/panic
+=== RUN   TestMetadataTransactionManager/foreign_tenant
+=== RUN   TestMetadataTransactionManager/lost_commit
+[mysql] 2026/10/27 14:12:45 connection.go:189 closing connection:close tcp 172.21.0.3:40428->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 14:12:45 packets.go:58 unexpected EOF
+=== RUN   TestMetadataTransactionManager/authorization_denied_before_callback
+=== RUN   TestMetadataTransactionManager/publication_commit
+=== RUN   TestMetadataTransactionManager/publication_rollback
+--- PASS: TestMetadataTransactionManager (0.81s)
+    --- PASS: TestMetadataTransactionManager/commit (0.02s)
+    --- PASS: TestMetadataTransactionManager/owner_error (0.02s)
+    --- PASS: TestMetadataTransactionManager/missing_queue (0.01s)
+    --- PASS: TestMetadataTransactionManager/physical_rejected (0.02s)
+    --- PASS: TestMetadataTransactionManager/cancel (0.02s)
+    --- PASS: TestMetadataTransactionManager/panic (0.02s)
+    --- PASS: TestMetadataTransactionManager/foreign_tenant (0.01s)
+    --- PASS: TestMetadataTransactionManager/lost_commit (0.02s)
+    --- PASS: TestMetadataTransactionManager/authorization_denied_before_callback (0.00s)
+    --- PASS: TestMetadataTransactionManager/publication_commit (0.03s)
+    --- PASS: TestMetadataTransactionManager/publication_rollback (0.02s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.850s

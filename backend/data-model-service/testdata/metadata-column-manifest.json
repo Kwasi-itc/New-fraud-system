@@ -1,0 +1,1592 @@
+{
+    "format":  "data-model-schema-mapping/v1",
+    "status":  "needs_review",
+    "scope":  "All source metadata columns through 000008; v001 structural definitions plus v002/v003/v004 upgrade source bindings. Dynamic tenant records and production data acceptance are separate gates.",
+    "files":  [
+                  {"path": "internal/store/mysql/installation/owner_result_upgrade.go", "sha256_lf": "26ed111837a0ed7074833461d883b278ab4e1062afd0d1c3f71a75facef5a85f"},
+                  {
+                      "path":  "internal/migrations/metadata/000001_init.down.sql",
+                      "sha256_lf":  "37cf0647470d7a1f6e00f3d56ec3b309f3a713d2c6a8dbf557efaa1ab8fec23b"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000001_init.up.sql",
+                      "sha256_lf":  "d39ed191456fd77a3f98741d7ce280ad5df44d665d4d85cd8797deebe9a9dbc5"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000002_field_enum_values.down.sql",
+                      "sha256_lf":  "d31b092f85b82c764d92625345eff8f261814fbc92ae40f890068533dff21316"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                      "sha256_lf":  "2586acba91a87bb33bde2b4ea1bed69058bcfc0ee2e2b2fb76e19adc9164fa96"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000003_index_jobs_hardening.down.sql",
+                      "sha256_lf":  "9d62bce6b4b5f587586016d2073fe0bd370fecd4e7fcc579b7fdfe8990198872"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                      "sha256_lf":  "bac6539f0b81dfa259b52f965abfaf8d2ab9818f80fa3a543497e50b556e200a"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000004_navigation_options.down.sql",
+                      "sha256_lf":  "9f0754f0be3528991fe2dbb1f67e0f43656f584016b19e3148f9da09824823fa"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                      "sha256_lf":  "ae87b6906cf02be34455ddcda5d4918ad742541e0682328ef94515727c8a0edc"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000005_ingestion_contracts.down.sql",
+                      "sha256_lf":  "8d8ef97856a5e157873642c3d6e4d0fabf2e2ac86d9a67e1af0d4b593a413ca9"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                      "sha256_lf":  "1c0bffdf29a1835a5c9c005135da92cc4524e38013cf2e27fd6084f856a8dfd9"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000006_display_settings.down.sql",
+                      "sha256_lf":  "ff60d1f11466496a711e7a03817d1560b4db4abcbe9e96780646224f2e3c63d9"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                      "sha256_lf":  "01385cb82708162f8b5403c60c451929b45d9deca4fdf4e1eb33b6327b2b7f32"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000007_display_columns.down.sql",
+                      "sha256_lf":  "2a40f83cc3bbe1d1aee8f7a7347501fdf9ba72a2c1d18615cc32e0e853ef23b4"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000007_display_columns.up.sql",
+                      "sha256_lf":  "d40ec922b3795eee02adb425b80a60f08ff8b07126c504d4c2700de56866d2c2"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000008_field_alias.down.sql",
+                      "sha256_lf":  "a6c058aeeaea635e65ed255a6ce45751bd658e3c98616d75e76dd1174e0b28f6"
+                  },
+                  {
+                      "path":  "internal/migrations/metadata/000008_field_alias.up.sql",
+                      "sha256_lf":  "f9ee9b5095a099c6395bc1ecd664425c2a77b2632cc47367294a4c15433c7be7"
+                  },
+                  {
+                      "path":  "internal/store/mysql/exactkeys/schema.go",
+                      "sha256_lf":  "5fb1575565958fbea96dac9c7056037899427e18ad5766abfe83af130b9added"
+                  },
+                  {
+                      "path":  "internal/store/mysql/exactkeys/sql/001_buckets.sql",
+                      "sha256_lf":  "d8227a752f74a1f7d467a8a7b6ff015dbfbbfc66ec05c9c9b3cb6b52ec06c33f"
+                  },
+                  {
+                      "path":  "internal/store/mysql/exactkeys/sql/002_keys.sql",
+                      "sha256_lf":  "22e706123fbdeaa00e55ead8fe68a1380abc271be5463ff69f9acfdac5e6566f"
+                  },
+                  {
+                      "path":  "internal/store/mysql/exactkeys/sql/003_digest.sql",
+                      "sha256_lf":  "ee9c727ddd67ed898f8a17ebf2fe6f58e6ff3e6723541c9076931c835850fc06"
+                  },
+                  {
+                      "path":  "internal/store/mysql/exactkeys/sql/004_resolve.sql",
+                      "sha256_lf":  "e5582a8e0f5ba536940ed5933bed7f257e79be189a918664359c23c30b784953"
+                  },
+                  {
+                      "path":  "internal/store/mysql/installation/creation_receipt_upgrade.go",
+                      "sha256_lf":  "ae8fc1a12a76d37231b87571f8d685f8cff832e02d9b7fe9e0114264020e9ac6"
+                  },
+                  {
+                      "path":  "internal/store/mysql/installation/delivery_retry_upgrade.go",
+                      "sha256_lf":  "8ee5d6bc478941a75fc8c3e44a6e4d2d2d75640aab20ee4b473fb825099f40fc"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/schema.go",
+                      "sha256_lf":  "2dd2d357c3e4788ad619b92860c9df032aa5b4a3011408f1770a1a90ea5100c9"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                      "sha256_lf":  "a5af896f8f22ac23d62e28871197672ce3cb69c0366b690faa83596ea3cb7e5a"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                      "sha256_lf":  "939abe1a3df9b62bd21483dfefc1ef6281644487e7aece440de9baa5c037915d"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                      "sha256_lf":  "a47bb277d6f7c6e0053b85f525cda7548d677bbaeae05c117bc7635e2e45e6c4"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                      "sha256_lf":  "0cddc4b163f43649b4bb713607620b41653f84ed0d4848256584f6db73b3bb97"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/005_links.sql",
+                      "sha256_lf":  "9b2118325bd19d30749443d93920e4f4f4eab30b5ddcb93a533855140ec7f06f"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                      "sha256_lf":  "e56076cbc194412a60596752e4550d2859551fecf66a2451985f3434e524fa48"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/007_pivot_paths.sql",
+                      "sha256_lf":  "fac1af090c1e1e4f31040436e2189ba9af4215d83b0177569875ba40c3e324bb"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/008_options.sql",
+                      "sha256_lf":  "66d0e386add4b79083173014a8a0d56b57c8a9acb1fc4616c02d3711df71e011"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/009_displayed_fields.sql",
+                      "sha256_lf":  "ff37b12ad953fbe82393efe8f86f5fa8e47441b24fa3049a0538e3bb23f74fbb"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/010_field_order.sql",
+                      "sha256_lf":  "8238292a3a5b85aea2726e603ffad6fd96c36796e9eac6e35cc5ed61ac00e0fd"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                      "sha256_lf":  "38fb342d55c8f283cae8ad9e8f00273d499fc10b45d95efcb8f603873b3d8ee6"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                      "sha256_lf":  "cdd9836ed2ef6df2391d0813e1163ff3006a33251bf57646813c72f28298c786"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/013_history.sql",
+                      "sha256_lf":  "ec9b2446136183ed0d44a22988f14e217be58a060973eb0459fab0b94ddf6d0a"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/014_revisions.sql",
+                      "sha256_lf":  "8185198cd6f133f1aa4db9aec7016183332216c5076216fb749ab21a6523700b"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                      "sha256_lf":  "4d5cf60999da9ffaebf54fd4e3588836d9ad65d625f6b99371edb807e0bf3403"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/016_operations.sql",
+                      "sha256_lf":  "ec48735edbcf5cf22a6d80f452f8bc8453990183553b19a67f103a62f128c8ec"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/017_deliveries.sql",
+                      "sha256_lf":  "73e84272967657d1e5c55284d9c491c5d2fabf5238ff05e267cd0295825c2833"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/018_delivery_reservations.sql",
+                      "sha256_lf":  "4a55e0c46a26ad518cc947b35ac7d7351b6438b419d3ac05678b465e12c2f494"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/019_display_field_refs.sql",
+                      "sha256_lf":  "93e6926ac6bec7d6818df0a2b271957a7ad3f1d5744afd80d86ff85bc0fb5d2f"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/020_display_link_refs.sql",
+                      "sha256_lf":  "122f90830807c4df194c3bf123746aba6859a17539c104df6b9f4f108b67cd28"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/021_display_table_refs.sql",
+                      "sha256_lf":  "227c93029074f5ab903aa9d3021274d0a53fa29c656d2f7b16416ace6a2baeb6"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/022_physical_tables.sql",
+                      "sha256_lf":  "d049ee9959c4afbce8fa9773973efc33a3e2fd43cc78c6471599fb0e0527913d"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/023_physical_fields.sql",
+                      "sha256_lf":  "14a1ca85fb0fd8a2f46debbca9072c642d3528093eea653e7082dc9b338a5166"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/024_ddl_intents.sql",
+                      "sha256_lf":  "b0f3e07b6888f3c637a40647069dc4c56fd4b5b7c551660a3c72ebf4e2da5481"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/025_physical_active_intent.sql",
+                      "sha256_lf":  "6ea1b1eaacc5413a0a0d0b4af4e081b1c0f4ffe75fe50fa55e9d8befef85d7f4"
+                  },
+                  {
+                      "path":  "internal/store/mysql/metadata/sql/026_schema_change_steps.sql",
+                      "sha256_lf":  "f02cd699600d9419a2b679560eaa4a60860e9b5e78d452fadd3666801af92dca"
+                  }
+              ],
+    "columns":  [
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "external_key",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT UNIQUE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "external_key",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "schema_name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL UNIQUE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "schema_name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "status",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "status",
+                        "target_type":  "VARCHAR(20)",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenants",
+                        "source_column":  "updated_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenants",
+                        "target_column":  "updated_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/001_tenants.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "description",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "description",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "alias",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "alias",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "semantic_type",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "semantic_type",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "caption_field",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "caption_field",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "archived",
+                        "source_type":  "BOOLEAN",
+                        "source_definition":  "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "archived",
+                        "target_type":  "BOOLEAN",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "updated_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "updated_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "description",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "description",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "data_type",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "data_type",
+                        "target_type":  "VARCHAR(20)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "nullable",
+                        "source_type":  "BOOLEAN",
+                        "source_definition":  "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "nullable",
+                        "target_type":  "BOOLEAN",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "is_enum",
+                        "source_type":  "BOOLEAN",
+                        "source_definition":  "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "is_enum",
+                        "target_type":  "BOOLEAN",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "is_unique",
+                        "source_type":  "BOOLEAN",
+                        "source_definition":  "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "is_unique",
+                        "target_type":  "BOOLEAN",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "archived",
+                        "source_type":  "BOOLEAN",
+                        "source_definition":  "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "archived",
+                        "target_type":  "BOOLEAN",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "updated_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "updated_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "parent_table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "parent_table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "parent_field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "parent_field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "child_table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "child_table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "child_field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "child_field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_links",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_links",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/005_links.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivots",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivots",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "base_table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivots",
+                        "target_column":  "base_table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivots",
+                        "target_column":  "field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "path_link_ids",
+                        "source_type":  "UUID[]",
+                        "source_definition":  "UUID[] NOT NULL DEFAULT \u0027{}\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivot_path_links",
+                        "target_column":  "link_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/007_pivot_paths.sql",
+                        "rule":  "ordered_rows"
+                    },
+                    {
+                        "source_table":  "core.model_pivots",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_pivots",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/006_pivots.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "displayed_fields",
+                        "source_type":  "UUID[]",
+                        "source_definition":  "UUID[] NOT NULL DEFAULT \u0027{}\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_displayed_fields",
+                        "target_column":  "field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/009_displayed_fields.sql",
+                        "rule":  "ordered_rows"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "field_order",
+                        "source_type":  "UUID[]",
+                        "source_definition":  "UUID[] NOT NULL DEFAULT \u0027{}\u0027",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_field_order",
+                        "target_column":  "field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/010_field_order.sql",
+                        "rule":  "ordered_rows"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "updated_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "updated_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "operation",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "operation",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "resource_type",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "resource_type",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "resource_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "resource_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "status",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "status",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "details",
+                        "source_type":  "JSONB",
+                        "source_definition":  "JSONB NOT NULL DEFAULT \u0027{}\u0027::jsonb",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "details",
+                        "target_type":  "JSON",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.schema_change_log",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_schema_change_log",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/013_history.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenant_schema_migrations",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenant_schema_migrations",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/014_revisions.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenant_schema_migrations",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenant_schema_migrations",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/014_revisions.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenant_schema_migrations",
+                        "source_column":  "version",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenant_schema_migrations",
+                        "target_column":  "version",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/014_revisions.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.tenant_schema_migrations",
+                        "source_column":  "applied_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_tenant_schema_migrations",
+                        "target_column":  "applied_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/014_revisions.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "table_name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "table_name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "index_type",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "index_type",
+                        "target_type":  "VARCHAR(20)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "columns",
+                        "source_type":  "TEXT[]",
+                        "source_definition":  "TEXT[] NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "columns_json",
+                        "target_type":  "JSON",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "ordered_json"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "status",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "status",
+                        "target_type":  "VARCHAR(20)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "requested_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "requested_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "completed_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NULL",
+                        "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "completed_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "value",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "value",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "label",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "label",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "sort_order",
+                        "source_type":  "INTEGER",
+                        "source_definition":  "INTEGER NOT NULL DEFAULT 0",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "sort_order",
+                        "target_type":  "INT",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.field_enum_values",
+                        "source_column":  "updated_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                        "target_table":  "data_model_field_enum_values",
+                        "target_column":  "updated_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/004_enums.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "requested_by_operation",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "requested_by_operation",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "error_message",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NULL",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "error_message",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "attempt_count",
+                        "source_type":  "INTEGER",
+                        "source_definition":  "INTEGER NOT NULL DEFAULT 0",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "attempt_count",
+                        "target_type":  "INT",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "started_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NULL",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "started_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "scheduled_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NULL",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "scheduled_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.index_jobs",
+                        "source_column":  "dedupe_key",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                        "target_table":  "data_model_index_jobs",
+                        "target_column":  "dedupe_key",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/012_jobs.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "source_table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "source_table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "source_field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "source_field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "target_table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "target_table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "filter_field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "filter_field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "ordering_field_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.model_fields(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "ordering_field_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.navigation_options",
+                        "source_column":  "created_at",
+                        "source_type":  "TIMESTAMPTZ",
+                        "source_definition":  "TIMESTAMPTZ NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                        "target_table":  "data_model_navigation_options",
+                        "target_column":  "created_at",
+                        "target_type":  "DATETIME(6)",
+                        "target_file":  "internal/store/mysql/metadata/sql/011_navigation.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.ingestion_contracts",
+                        "source_column":  "table_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID PRIMARY KEY REFERENCES core.model_tables(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                        "target_table":  "data_model_ingestion_contracts",
+                        "target_column":  "table_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.ingestion_contracts",
+                        "source_column":  "tenant_id",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL REFERENCES core.tenants(id) ON DELETE CASCADE",
+                        "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                        "target_table":  "data_model_ingestion_contracts",
+                        "target_column":  "tenant_id",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.ingestion_contracts",
+                        "source_column":  "table_name",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                        "target_table":  "data_model_ingestion_contracts",
+                        "target_column":  "table_name",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.ingestion_contracts",
+                        "source_column":  "version",
+                        "source_type":  "UUID",
+                        "source_definition":  "UUID NOT NULL DEFAULT gen_random_uuid()",
+                        "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                        "target_table":  "data_model_ingestion_contracts",
+                        "target_column":  "version",
+                        "target_type":  "BINARY(16)",
+                        "target_file":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                        "rule":  "owner_publication_version"
+                    },
+                    {
+                        "source_table":  "core.ingestion_contracts",
+                        "source_column":  "payload",
+                        "source_type":  "JSONB",
+                        "source_definition":  "JSONB NOT NULL",
+                        "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                        "target_table":  "data_model_ingestion_contracts",
+                        "target_column":  "payload",
+                        "target_type":  "JSON",
+                        "target_file":  "internal/store/mysql/metadata/sql/015_contracts.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "field_display",
+                        "source_type":  "JSONB",
+                        "source_definition":  "JSONB NOT NULL DEFAULT \u0027{}\u0027::jsonb",
+                        "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "field_display",
+                        "target_type":  "JSON",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_tables",
+                        "source_column":  "display_version",
+                        "source_type":  "BIGINT",
+                        "source_definition":  "BIGINT NOT NULL DEFAULT 0",
+                        "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                        "target_table":  "data_model_tables",
+                        "target_column":  "display_version",
+                        "target_type":  "BIGINT",
+                        "target_file":  "internal/store/mysql/metadata/sql/002_tables.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.table_options",
+                        "source_column":  "display_columns",
+                        "source_type":  "JSONB",
+                        "source_definition":  "JSONB NOT NULL DEFAULT \u0027[]\u0027::jsonb",
+                        "source_file":  "internal/migrations/metadata/000007_display_columns.up.sql",
+                        "target_table":  "data_model_table_options",
+                        "target_column":  "display_columns",
+                        "target_type":  "JSON",
+                        "target_file":  "internal/store/mysql/metadata/sql/008_options.sql",
+                        "rule":  "scalar"
+                    },
+                    {
+                        "source_table":  "core.model_fields",
+                        "source_column":  "alias",
+                        "source_type":  "TEXT",
+                        "source_definition":  "TEXT NOT NULL DEFAULT \u0027\u0027",
+                        "source_file":  "internal/migrations/metadata/000008_field_alias.up.sql",
+                        "target_table":  "data_model_fields",
+                        "target_column":  "alias",
+                        "target_type":  "LONGTEXT",
+                        "target_file":  "internal/store/mysql/metadata/sql/003_fields.sql",
+                        "rule":  "scalar"
+                    }
+                ],
+    "source_objects":  [
+                           {
+                               "source_file":  "internal/migrations/metadata/000001_init.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "model_links_tenant_child_name_idx",
+                               "target":  "internal/store/mysql/metadata/sql/005_links.sql#name_key_id",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000002_field_enum_values.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "field_enum_values_field_sort_idx",
+                               "target":  "internal/store/mysql/metadata/sql/004_enums.sql#data_model_enum_created",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "index_jobs_status_schedule_requested_idx",
+                               "target":  "internal/store/mysql/metadata/sql/012_jobs.sql#data_model_jobs_schedule",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "index_jobs_tenant_requested_idx",
+                               "target":  "internal/store/mysql/metadata/sql/012_jobs.sql#data_model_jobs_tenant",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000003_index_jobs_hardening.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "index_jobs_dedupe_key_idx",
+                               "target":  "internal/store/mysql/metadata/sql/012_jobs.sql#dedupe_key_id",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000004_navigation_options.up.sql",
+                               "kind":  "INDEX",
+                               "name":  "navigation_options_tenant_idx",
+                               "target":  "internal/store/mysql/metadata/sql/011_navigation.sql#data_model_navigation_source",
+                               "status":  "staged_structural"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.publish_ingestion_contract",
+                               "target":  "internal/store/mysql/publication_operation.go#MutateAndPublishOperationTx",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.refresh_ingestion_contract",
+                               "target":  "internal/store/mysql/publication_operation.go#MutateAndPublishOperationTx",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "publish_table_contract",
+                               "target":  "internal/store/mysql/publication_operation.go#MutateAndPublishOperationTx",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "publish_field_contract",
+                               "target":  "internal/store/mysql/publication_operation.go#MutateAndPublishOperationTx",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000005_ingestion_contracts.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "publish_enum_contract",
+                               "target":  "internal/store/mysql/publication_operation.go#MutateAndPublishOperationTx",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.validate_display_options_v",
+                               "target":  "internal/display/strict_validation.go#ValidateStrict",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "validate_display_options",
+                               "target":  "internal/display/strict_validation.go#ValidateStrict",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.touch_display_options_v",
+                               "target":  "internal/store/mysql/display_publication.go#SavePublished",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "touch_display_options",
+                               "target":  "internal/store/mysql/display_publication.go#SavePublished",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.touch_display_caption_v",
+                               "target":  "internal/store/mysql/display_publication.go#SavePublished",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "touch_display_caption",
+                               "target":  "internal/store/mysql/display_publication.go#SavePublished",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.clean_field_display_v",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "clean_field_display",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.clean_link_display_v",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000006_display_settings.up.sql",
+                               "kind":  "TRIGGER",
+                               "name":  "clean_link_display",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000007_display_columns.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.validate_display_options_v",
+                               "target":  "internal/display/strict_validation.go#ValidateStrict",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000007_display_columns.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.clean_field_display_v",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           },
+                           {
+                               "source_file":  "internal/migrations/metadata/000007_display_columns.up.sql",
+                               "kind":  "FUNCTION",
+                               "name":  "core.clean_link_display_v",
+                               "target":  "internal/store/mysql/display_cleanup.go#RemoveReferences",
+                               "status":  "staged_owner_integration_incomplete"
+                           }
+                       ]
+}

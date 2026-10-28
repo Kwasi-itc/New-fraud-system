@@ -1,0 +1,18 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_lost_commit
+[mysql] 2026/10/28 11:12:11 connection.go:189 closing connection:close tcp 172.21.0.3:57060->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 11:12:11 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_duplicates
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_repair_commit
+--- PASS: TestPhysicalCreationAllocated (10.67s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_commit (1.00s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_rollback (1.03s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_drift (1.16s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_lost_commit (1.35s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_duplicates (1.10s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_repair_commit (1.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	11.712s

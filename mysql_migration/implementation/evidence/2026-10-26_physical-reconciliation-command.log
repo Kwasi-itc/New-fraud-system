@@ -1,0 +1,6 @@
+=== RUN   TestRecoveryCommandMySQL
+--- PASS: TestRecoveryCommandMySQL (3.70s)
+=== RUN   TestRecoveryCommandValidation
+--- PASS: TestRecoveryCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/reconcile-physical-mysql	4.757s

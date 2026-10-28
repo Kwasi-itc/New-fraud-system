@@ -12,8 +12,8 @@ import (
 
 type stubNavigationOptionRepository struct {
 	created []datamodel.NavigationOption
-	option   datamodel.NavigationOption
-	err      error
+	option  datamodel.NavigationOption
+	err     error
 }
 
 func (s *stubNavigationOptionRepository) Create(_ context.Context, option datamodel.NavigationOption) error {
@@ -134,7 +134,7 @@ func TestNavigationOptionServiceCreateRejectsUnbackedNavigation(t *testing.T) {
 		&stubPivotRepository{},
 		navigationRepo,
 		changeRepo,
-		stubTransactionManager{store: stubMutationStore{
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{},
 			navigationOptions: navigationRepo,
 			indexJobs:         indexRepo,
 			schemaChanges:     changeRepo,
@@ -190,7 +190,7 @@ func (s tableRepositoryByID) ListByTenant(context.Context, uuid.UUID) ([]datamod
 	return nil, nil
 }
 func (s tableRepositoryByID) Update(context.Context, datamodel.Table) error { return nil }
-func (s tableRepositoryByID) Delete(context.Context, uuid.UUID) error        { return nil }
+func (s tableRepositoryByID) Delete(context.Context, uuid.UUID) error       { return nil }
 
 type fieldRepositoryByTableAndID struct {
 	byID    map[uuid.UUID]datamodel.Field
@@ -204,5 +204,5 @@ func (s fieldRepositoryByTableAndID) GetByID(_ context.Context, id uuid.UUID) (d
 func (s fieldRepositoryByTableAndID) ListByTable(_ context.Context, tableID uuid.UUID) ([]datamodel.Field, error) {
 	return s.byTable[tableID], nil
 }
-func (s fieldRepositoryByTableAndID) Delete(context.Context, uuid.UUID) error      { return nil }
+func (s fieldRepositoryByTableAndID) Delete(context.Context, uuid.UUID) error       { return nil }
 func (s fieldRepositoryByTableAndID) Update(context.Context, datamodel.Field) error { return nil }

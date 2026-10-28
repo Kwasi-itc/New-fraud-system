@@ -1,0 +1,70 @@
+=== RUN   TestPhysicalCreationPublication
+=== RUN   TestPhysicalCreationPublication/lost_insert_ack
+[mysql] 2026/10/27 17:52:00 connection.go:189 closing connection:close tcp 172.21.0.3:38684->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 17:52:00 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/lost_update_ack
+[mysql] 2026/10/27 17:52:00 connection.go:189 closing connection:close tcp 172.21.0.3:38740->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 17:52:00 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/service_commit
+=== RUN   TestPhysicalCreationPublication/service_drift
+=== RUN   TestPhysicalCreationPublication/service_inactive
+=== RUN   TestPhysicalCreationPublication/service_audit_failure
+=== RUN   TestPhysicalCreationPublication/service_revision_failure
+=== RUN   TestPhysicalCreationPublication/publish_replay
+=== RUN   TestPhysicalCreationPublication/lost_commit
+[mysql] 2026/10/27 17:52:05 connection.go:189 closing connection:close tcp 172.21.0.3:39042->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 17:52:05 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/owner_rollback
+=== RUN   TestPhysicalCreationPublication/metadata_mismatch
+=== RUN   TestPhysicalCreationPublication/extra_field
+=== RUN   TestPhysicalCreationPublication/missing_mapping
+=== RUN   TestPhysicalCreationPublication/authorization
+=== RUN   TestPhysicalCreationPublication/trigger_drift
+=== RUN   TestPhysicalCreationPublication/extra_trigger
+=== RUN   TestPhysicalCreationPublication/dirty_journal
+=== RUN   TestPhysicalCreationPublication/resolver_drift
+=== RUN   TestPhysicalCreationPublication/shared_grant
+=== RUN   TestPhysicalCreationPublication/record_grant
+=== RUN   TestPhysicalCreationPublication/record_unlocked
+=== RUN   TestPhysicalCreationPublication/writer_grant
+=== RUN   TestPhysicalCreationPublication/private_consumer
+=== RUN   TestPhysicalCreationPublication/installer_active
+=== RUN   TestPhysicalCreationPublication/installer_capability
+=== RUN   TestPhysicalCreationPublication/installer_session
+=== RUN   TestPhysicalCreationPublication/installer_extra_privilege
+=== RUN   TestPhysicalCreationPublication/missing_reference_privilege
+=== RUN   TestPhysicalCreationPublication/missing_definer_privilege
+=== RUN   TestPhysicalCreationPublication/missing_trigger_privilege
+--- PASS: TestPhysicalCreationPublication (17.22s)
+    --- PASS: TestPhysicalCreationPublication/lost_insert_ack (0.49s)
+    --- PASS: TestPhysicalCreationPublication/lost_update_ack (0.96s)
+    --- PASS: TestPhysicalCreationPublication/service_commit (0.86s)
+    --- PASS: TestPhysicalCreationPublication/service_drift (0.47s)
+    --- PASS: TestPhysicalCreationPublication/service_inactive (0.54s)
+    --- PASS: TestPhysicalCreationPublication/service_audit_failure (0.46s)
+    --- PASS: TestPhysicalCreationPublication/service_revision_failure (0.47s)
+    --- PASS: TestPhysicalCreationPublication/publish_replay (0.49s)
+    --- PASS: TestPhysicalCreationPublication/lost_commit (0.53s)
+    --- PASS: TestPhysicalCreationPublication/owner_rollback (0.55s)
+    --- PASS: TestPhysicalCreationPublication/metadata_mismatch (0.49s)
+    --- PASS: TestPhysicalCreationPublication/extra_field (0.43s)
+    --- PASS: TestPhysicalCreationPublication/missing_mapping (0.48s)
+    --- PASS: TestPhysicalCreationPublication/authorization (0.28s)
+    --- PASS: TestPhysicalCreationPublication/trigger_drift (0.30s)
+    --- PASS: TestPhysicalCreationPublication/extra_trigger (0.27s)
+    --- PASS: TestPhysicalCreationPublication/dirty_journal (0.25s)
+    --- PASS: TestPhysicalCreationPublication/resolver_drift (0.28s)
+    --- PASS: TestPhysicalCreationPublication/shared_grant (0.39s)
+    --- PASS: TestPhysicalCreationPublication/record_grant (0.36s)
+    --- PASS: TestPhysicalCreationPublication/record_unlocked (0.36s)
+    --- PASS: TestPhysicalCreationPublication/writer_grant (0.42s)
+    --- PASS: TestPhysicalCreationPublication/private_consumer (0.28s)
+    --- PASS: TestPhysicalCreationPublication/installer_active (0.57s)
+    --- PASS: TestPhysicalCreationPublication/installer_capability (0.61s)
+    --- PASS: TestPhysicalCreationPublication/installer_session (0.61s)
+    --- PASS: TestPhysicalCreationPublication/installer_extra_privilege (0.35s)
+    --- PASS: TestPhysicalCreationPublication/missing_reference_privilege (0.43s)
+    --- PASS: TestPhysicalCreationPublication/missing_definer_privilege (0.57s)
+    --- PASS: TestPhysicalCreationPublication/missing_trigger_privilege (0.48s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	18.274s

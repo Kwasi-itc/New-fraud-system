@@ -105,7 +105,7 @@ func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamod
 		if err := store.Links().Create(ctx, link); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			link.TenantID,
 			"create_link",
@@ -119,8 +119,12 @@ func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamod
 				"child_table_id":  link.ChildTable,
 				"child_field_id":  link.ChildField,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, link.TenantID, schemaMigrationVersion("create_link", "link"), link.CreatedAt)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, link.TenantID, schemaMigrationVersion("create_link", "link"), link.CreatedAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Link{}, err
@@ -158,7 +162,7 @@ func (s LinkService) Delete(ctx context.Context, linkID uuid.UUID, dryRun bool) 
 		if err := store.Links().Delete(ctx, linkID); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			link.TenantID,
 			"delete_link",
@@ -172,8 +176,12 @@ func (s LinkService) Delete(ctx context.Context, linkID uuid.UUID, dryRun bool) 
 				"child_table_id":  link.ChildTable,
 				"child_field_id":  link.ChildField,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, link.TenantID, schemaMigrationVersion("delete_link", "link"), s.clock.Now())
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, link.TenantID, schemaMigrationVersion("delete_link", "link"), s.clock.Now()); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return report, err

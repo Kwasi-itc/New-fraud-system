@@ -1,0 +1,34 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_result_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_result_lost_commit
+[mysql] 2026/10/28 12:50:17 connection.go:189 closing connection:close tcp 172.21.0.3:40112->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 12:50:17 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_result_receipt_limit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_field_result_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_result_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_result_lost_commit
+[mysql] 2026/10/28 12:50:21 connection.go:189 closing connection:close tcp 172.21.0.3:40542->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 12:50:21 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_result_receipt_limit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_result_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_result_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_result_lost_commit
+[mysql] 2026/10/28 12:50:26 connection.go:189 closing connection:close tcp 172.21.0.3:50760->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 12:50:26 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_result_receipt_limit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_unique_result_drift
+--- PASS: TestPhysicalCreationAllocated (17.63s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_result_commit (0.93s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_result_lost_commit (0.82s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_result_receipt_limit (0.99s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_field_result_drift (0.71s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_result_commit (1.00s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_result_lost_commit (1.01s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_result_receipt_limit (1.12s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_result_drift (0.89s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_result_commit (1.44s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_result_lost_commit (1.44s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_result_receipt_limit (1.26s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_unique_result_drift (0.86s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	18.676s

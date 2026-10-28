@@ -1,0 +1,55 @@
+testing: warning: no tests to run
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation	1.044s [no tests to run]
+=== RUN   TestPhysicalCreationPublication
+=== RUN   TestPhysicalCreationPublication/publish_replay
+=== RUN   TestPhysicalCreationPublication/lost_commit
+[mysql] 2026/10/27 17:31:53 connection.go:189 closing connection:close tcp 172.21.0.3:37390->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 17:31:53 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/owner_rollback
+=== RUN   TestPhysicalCreationPublication/metadata_mismatch
+=== RUN   TestPhysicalCreationPublication/extra_field
+=== RUN   TestPhysicalCreationPublication/missing_mapping
+=== RUN   TestPhysicalCreationPublication/authorization
+=== RUN   TestPhysicalCreationPublication/trigger_drift
+=== RUN   TestPhysicalCreationPublication/extra_trigger
+=== RUN   TestPhysicalCreationPublication/dirty_journal
+=== RUN   TestPhysicalCreationPublication/resolver_drift
+=== RUN   TestPhysicalCreationPublication/shared_grant
+=== RUN   TestPhysicalCreationPublication/record_grant
+=== RUN   TestPhysicalCreationPublication/record_unlocked
+=== RUN   TestPhysicalCreationPublication/writer_grant
+=== RUN   TestPhysicalCreationPublication/private_consumer
+=== RUN   TestPhysicalCreationPublication/installer_active
+=== RUN   TestPhysicalCreationPublication/installer_capability
+=== RUN   TestPhysicalCreationPublication/installer_session
+=== RUN   TestPhysicalCreationPublication/installer_extra_privilege
+=== RUN   TestPhysicalCreationPublication/missing_reference_privilege
+=== RUN   TestPhysicalCreationPublication/missing_definer_privilege
+=== RUN   TestPhysicalCreationPublication/missing_trigger_privilege
+--- PASS: TestPhysicalCreationPublication (12.02s)
+    --- PASS: TestPhysicalCreationPublication/publish_replay (0.51s)
+    --- PASS: TestPhysicalCreationPublication/lost_commit (0.42s)
+    --- PASS: TestPhysicalCreationPublication/owner_rollback (0.35s)
+    --- PASS: TestPhysicalCreationPublication/metadata_mismatch (0.37s)
+    --- PASS: TestPhysicalCreationPublication/extra_field (0.39s)
+    --- PASS: TestPhysicalCreationPublication/missing_mapping (0.44s)
+    --- PASS: TestPhysicalCreationPublication/authorization (0.24s)
+    --- PASS: TestPhysicalCreationPublication/trigger_drift (0.32s)
+    --- PASS: TestPhysicalCreationPublication/extra_trigger (0.29s)
+    --- PASS: TestPhysicalCreationPublication/dirty_journal (0.27s)
+    --- PASS: TestPhysicalCreationPublication/resolver_drift (0.33s)
+    --- PASS: TestPhysicalCreationPublication/shared_grant (0.35s)
+    --- PASS: TestPhysicalCreationPublication/record_grant (0.32s)
+    --- PASS: TestPhysicalCreationPublication/record_unlocked (0.33s)
+    --- PASS: TestPhysicalCreationPublication/writer_grant (0.33s)
+    --- PASS: TestPhysicalCreationPublication/private_consumer (0.26s)
+    --- PASS: TestPhysicalCreationPublication/installer_active (0.44s)
+    --- PASS: TestPhysicalCreationPublication/installer_capability (0.41s)
+    --- PASS: TestPhysicalCreationPublication/installer_session (0.46s)
+    --- PASS: TestPhysicalCreationPublication/installer_extra_privilege (0.32s)
+    --- PASS: TestPhysicalCreationPublication/missing_reference_privilege (0.74s)
+    --- PASS: TestPhysicalCreationPublication/missing_definer_privilege (0.63s)
+    --- PASS: TestPhysicalCreationPublication/missing_trigger_privilege (0.37s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	13.069s

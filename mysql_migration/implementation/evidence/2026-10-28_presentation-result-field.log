@@ -1,0 +1,22 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_concurrent
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_lost_commit
+[mysql] 2026/10/28 12:25:47 connection.go:189 closing connection:close tcp 172.21.0.3:40826->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 12:25:47 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_revision_failure
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_closed_gate
+=== RUN   TestPhysicalCreationAllocated/service_allocated_field_presentation_result_restricted
+--- PASS: TestPhysicalCreationAllocated (8.18s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_commit (0.53s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_concurrent (0.59s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_lost_commit (0.51s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_revision_failure (0.44s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_closed_gate (0.44s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_field_presentation_result_restricted (0.63s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	9.239s
+=== RUN   TestMetadataResultWireContract
+--- PASS: TestMetadataResultWireContract (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	1.037s

@@ -1,0 +1,10 @@
+{
+  "server_version": "8.4.8",
+  "database": "fraud",
+  "definer": {
+    "User": "data_model_guard",
+    "Host": "localhost"
+  },
+  "plan_sha256": "11f3f29acd53d315b673431b22504890e73d50545dc39e1d68ce1de51f44453e",
+  "review_status": "needs_review"
+}

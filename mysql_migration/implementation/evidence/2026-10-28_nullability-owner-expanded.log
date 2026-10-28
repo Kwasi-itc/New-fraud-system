@@ -1,0 +1,18 @@
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_commit
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_drift
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_lost_commit
+[mysql] 2026/10/28 10:59:57 connection.go:189 closing connection:close tcp 172.21.0.3:33936->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 10:59:57 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_populated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_nullability_relax_commit
+--- PASS: TestPhysicalCreationAllocated (9.26s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_commit (0.87s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_rollback (0.84s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_drift (0.72s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_lost_commit (1.07s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_populated (0.86s)
+    --- PASS: TestPhysicalCreationAllocated/service_allocated_native_nullability_relax_commit (1.14s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	10.293s

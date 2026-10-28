@@ -19,10 +19,10 @@ type FieldEnumValueService struct {
 }
 
 type CreateFieldEnumValueInput struct {
-	FieldID    uuid.UUID
-	Value      string
-	Label      string
-	SortOrder  int
+	FieldID   uuid.UUID
+	Value     string
+	Label     string
+	SortOrder int
 }
 
 type UpdateFieldEnumValueInput struct {
@@ -85,7 +85,7 @@ func (s FieldEnumValueService) Create(ctx context.Context, input CreateFieldEnum
 		if err := store.FieldEnumValues().Create(ctx, value); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"create_field_enum_value",
@@ -98,8 +98,12 @@ func (s FieldEnumValueService) Create(ctx context.Context, input CreateFieldEnum
 				"label":      value.Label,
 				"sort_order": value.SortOrder,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field_enum_value", "field_enum_value"), now)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("create_field_enum_value", "field_enum_value"), now); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.FieldEnumValue{}, err
@@ -134,7 +138,7 @@ func (s FieldEnumValueService) Update(ctx context.Context, input UpdateFieldEnum
 		if err := store.FieldEnumValues().Update(ctx, value); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"update_field_enum_value",
@@ -147,8 +151,12 @@ func (s FieldEnumValueService) Update(ctx context.Context, input UpdateFieldEnum
 				"label":      value.Label,
 				"sort_order": value.SortOrder,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field_enum_value", "field_enum_value"), value.UpdatedAt)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("update_field_enum_value", "field_enum_value"), value.UpdatedAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.FieldEnumValue{}, err
@@ -170,7 +178,7 @@ func (s FieldEnumValueService) Delete(ctx context.Context, enumValueID uuid.UUID
 		if err := store.FieldEnumValues().Delete(ctx, enumValueID); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			field.TenantID,
 			"delete_field_enum_value",
@@ -183,8 +191,12 @@ func (s FieldEnumValueService) Delete(ctx context.Context, enumValueID uuid.UUID
 				"label":      value.Label,
 				"sort_order": value.SortOrder,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("delete_field_enum_value", "field_enum_value"), now)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, field.TenantID, schemaMigrationVersion("delete_field_enum_value", "field_enum_value"), now); err != nil {
+			return err
+		}
 		return nil
 	})
 }

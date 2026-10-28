@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"sort"
 
 	"github.com/google/uuid"
@@ -14,9 +15,10 @@ import (
 )
 
 type DataModelReadService struct {
-	repository       ports.DataModelReadRepository
-	tenantRepository ports.TenantRepository
-	migrationRepo    ports.TenantSchemaMigrationRepository
+	snapshotRepository ports.DataModelSnapshotRepository
+	repository         ports.DataModelReadRepository
+	tenantRepository   ports.TenantRepository
+	migrationRepo      ports.TenantSchemaMigrationRepository
 }
 
 type PublishedAssembledDataModel struct {
@@ -38,6 +40,21 @@ func NewDataModelReadService(
 }
 
 func (s DataModelReadService) Get(ctx context.Context, tenantID uuid.UUID) (PublishedAssembledDataModel, error) {
+	if s.snapshotRepository != nil {
+		snapshot, err := s.snapshotRepository.GetDataModelSnapshot(ctx, tenantID)
+		if err != nil {
+			return PublishedAssembledDataModel{}, err
+		}
+		if snapshot.Tenant.ID != tenantID || tenantID == uuid.Nil {
+			return PublishedAssembledDataModel{}, errors.New("model snapshot tenant mismatch")
+		}
+		for _, migration := range snapshot.Migrations {
+			if migration.TenantID != tenantID {
+				return PublishedAssembledDataModel{}, errors.New("model revision tenant mismatch")
+			}
+		}
+		return PublishedAssembledDataModel{RevisionID: buildRevisionID(snapshot.Tenant, snapshot.Migrations), Tenant: snapshot.Tenant, Model: snapshot.Model}, nil
+	}
 	record, err := s.tenantRepository.GetByID(ctx, tenantID)
 	if err != nil {
 		return PublishedAssembledDataModel{}, err
@@ -58,6 +75,15 @@ func (s DataModelReadService) Get(ctx context.Context, tenantID uuid.UUID) (Publ
 		Tenant:     record,
 		Model:      model,
 	}, nil
+}
+
+// NewSnapshotDataModelReadService keeps the model and its public revision token
+// in one repository snapshot. Runtime wiring must explicitly select this path.
+func NewSnapshotDataModelReadService(repository ports.DataModelSnapshotRepository) (DataModelReadService, error) {
+	if repository == nil {
+		return DataModelReadService{}, errors.New("model snapshot repository required")
+	}
+	return DataModelReadService{snapshotRepository: repository}, nil
 }
 
 func buildRevisionID(record tenant.Tenant, migrations []datamodel.TenantSchemaMigration) string {

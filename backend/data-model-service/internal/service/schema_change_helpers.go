@@ -1,15 +1,20 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 )
 
-func newSchemaChange(
+func recordSchemaChange(
+	ctx context.Context,
+	repository ports.SchemaChangeRepository,
 	id uuid.UUID,
 	tenantID uuid.UUID,
 	operation string,
@@ -17,12 +22,15 @@ func newSchemaChange(
 	resourceID uuid.UUID,
 	createdAt time.Time,
 	details map[string]any,
-) datamodel.SchemaChange {
+) error {
+	if repository == nil {
+		return fmt.Errorf("schema-change repository required")
+	}
 	payload, err := json.Marshal(details)
 	if err != nil {
-		payload = []byte(`{}`)
+		return fmt.Errorf("encode schema change: %w", err)
 	}
-	return datamodel.SchemaChange{
+	if err := repository.Create(ctx, datamodel.SchemaChange{
 		ID:           id,
 		TenantID:     tenantID,
 		Operation:    operation,
@@ -31,5 +39,8 @@ func newSchemaChange(
 		Status:       "applied",
 		Details:      payload,
 		CreatedAt:    createdAt,
+	}); err != nil {
+		return fmt.Errorf("record schema change: %w", err)
 	}
+	return nil
 }

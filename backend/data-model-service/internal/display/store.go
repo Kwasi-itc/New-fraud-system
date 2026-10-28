@@ -18,8 +18,10 @@ import (
 
 type Store struct {
 	DB           *pgxpool.Pool
-	Transactions ports.TransactionManager
-	SetCaption   func(context.Context, ports.MutationStore, uuid.UUID, string) error
+	Transactions interface {
+		RunWithTx(context.Context, func(ports.MutationStore, pgx.Tx) error) error
+	}
+	SetCaption func(context.Context, ports.MutationStore, uuid.UUID, string) error
 }
 
 type queryer interface {
@@ -169,8 +171,7 @@ func (s Store) Get(ctx context.Context, tableID uuid.UUID) (Settings, error) {
 
 func (s Store) Save(ctx context.Context, tableID uuid.UUID, in SaveRequest) (Settings, error) {
 	var result Settings
-	err := s.Transactions.Run(ctx, func(ms ports.MutationStore) error {
-		tx := ms.RawTx()
+	err := s.Transactions.RunWithTx(ctx, func(ms ports.MutationStore, tx pgx.Tx) error {
 		var locked uuid.UUID
 		if err := tx.QueryRow(ctx, `SELECT id FROM core.model_tables WHERE id=$1 FOR UPDATE`, tableID).Scan(&locked); err != nil {
 			return err

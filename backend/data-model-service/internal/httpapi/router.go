@@ -40,7 +40,7 @@ type RouterConfig struct {
 	IndexJobQueueName      string
 }
 
-func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
+func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) (*gin.Engine, error) {
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
@@ -63,10 +63,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeRepository := storepostgres.NewSchemaChangeRepository(db)
 	tenantSchemaMigrationRepository := storepostgres.NewTenantSchemaMigrationRepository(db)
 	indexJobRepository := storepostgres.NewIndexJobRepository(db)
-	riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{})
+	if err != nil {
+		return nil, err
+	}
 	indexJobEnqueuer := riverjobs.NewRiverIndexJobEnqueuer(riverClient, cfg.IndexWorkerMaxAttempts, cfg.IndexJobQueueName)
 	schemaManager := tenantdbpostgres.NewSchemaManager(db)
-	transactionManager := storepostgres.NewTransactionManager(db)
+	transactionManager := storepostgres.NewTransactionManager(db).WithIndexJobEnqueuer(indexJobEnqueuer)
 	tenantService := service.NewTenantService(
 		tenantRepository,
 		schemaChangeRepository,
@@ -87,7 +90,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	).WithIndexJobEnqueuer(indexJobEnqueuer)
+	)
 	fieldService := service.NewFieldService(
 		tenantRepository,
 		tableRepository,
@@ -148,7 +151,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-	).WithIndexJobEnqueuer(indexJobEnqueuer)
+	)
 	readService := service.NewDataModelReadService(
 		readRepository,
 		tenantRepository,
@@ -172,7 +175,6 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		transactionManager,
 		uuidGenerator{},
 		systemClock{},
-		indexJobEnqueuer,
 	)
 	dataModelHandler := handlers.NewDataModelHandler(
 		readService,
@@ -188,7 +190,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	schemaChangeHandler := handlers.NewSchemaChangeHandler(service.NewSchemaChangeService(schemaChangeRepository))
 	tenantSchemaMigrationHandler := handlers.NewTenantSchemaMigrationHandler(service.NewTenantSchemaMigrationService(tenantSchemaMigrationRepository))
 	indexJobHandler := handlers.NewIndexJobHandler(indexJobService)
-	reconcileHandler := handlers.NewReconcileHandler(reconcile.NewService(db, indexJobEnqueuer))
+	reconcileService, err := reconcile.NewService(db, indexJobEnqueuer)
+	if err != nil {
+		return nil, err
+	}
+	reconcileHandler := handlers.NewReconcileHandler(reconcileService)
 
 	v1 := router.Group("/v1")
 	v1.Use(authMiddleware(AuthConfig{
@@ -239,5 +245,5 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.DELETE("/navigation-options/:navigationOptionId", dataModelHandler.DeleteNavigationOption)
 	v1.GET("/admin/reconcile", reconcileHandler.Run)
 
-	return router
+	return router, nil
 }

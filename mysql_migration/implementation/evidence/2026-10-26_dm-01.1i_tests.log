@@ -1,0 +1,362 @@
+=== RUN   TestBuildIngestion
+--- PASS: TestBuildIngestion (0.00s)
+=== RUN   TestBuildIngestionRejectsInconsistentOwnership
+--- PASS: TestBuildIngestionRejectsInconsistentOwnership (0.00s)
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/table
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/field
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/type
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/value
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/label
+--- PASS: TestBuildIngestionRejectsLossyUTF8Encoding (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/table (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/field (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/type (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/value (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/label (0.00s)
+=== RUN   TestPrepareIngestionVersionLifecycle
+--- PASS: TestPrepareIngestionVersionLifecycle (0.00s)
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/table
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/version
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/json
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing
+--- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator (0.01s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/table (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/version (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/json (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8 (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing (0.00s)
+=== RUN   TestIngestionPayloadSemanticComparison
+=== RUN   TestIngestionPayloadSemanticComparison/object_order
+=== RUN   TestIngestionPayloadSemanticComparison/escape
+=== RUN   TestIngestionPayloadSemanticComparison/array_order
+=== RUN   TestIngestionPayloadSemanticComparison/null_array
+=== RUN   TestIngestionPayloadSemanticComparison/null_object
+=== RUN   TestIngestionPayloadSemanticComparison/missing
+=== RUN   TestIngestionPayloadSemanticComparison/extra
+=== RUN   TestIngestionPayloadSemanticComparison/numeric_string
+=== RUN   TestIngestionPayloadSemanticComparison/large_number
+--- PASS: TestIngestionPayloadSemanticComparison (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/object_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/escape (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/array_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_array (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_object (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/missing (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/extra (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/numeric_string (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/large_number (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/contract	1.058s
+=== RUN   TestIndexJobOutcomeValidation
+=== RUN   TestIndexJobOutcomeValidation/wrong_operation
+=== RUN   TestIndexJobOutcomeValidation/zero_job
+=== RUN   TestIndexJobOutcomeValidation/zero_tenant
+=== RUN   TestIndexJobOutcomeValidation/not_running
+=== RUN   TestIndexJobOutcomeValidation/history_identity
+=== RUN   TestIndexJobOutcomeValidation/wrong_job
+=== RUN   TestIndexJobOutcomeValidation/wrong_resource
+=== RUN   TestIndexJobOutcomeValidation/invalid_json
+=== RUN   TestIndexJobOutcomeValidation/success_with_error
+=== RUN   TestIndexJobOutcomeValidation/zero_attempt
+=== RUN   TestIndexJobOutcomeValidation/wrong_tenant
+=== RUN   TestIndexJobOutcomeValidation/zero_timestamp
+=== RUN   TestIndexJobOutcomeValidation/invalid_status
+--- PASS: TestIndexJobOutcomeValidation (0.01s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_operation (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/not_running (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/history_identity (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_resource (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_json (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/success_with_error (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_attempt (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_timestamp (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_status (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports	1.048s
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled
+--- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled (0.00s)
+=== RUN   TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== PAUSE TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== RUN   TestRunnerRunJobReschedulesBeforeFinalFailure
+=== PAUSE TestRunnerRunJobReschedulesBeforeFinalFailure
+=== RUN   TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== PAUSE TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== RUN   TestRunnerRunJobReturnsStartError
+=== PAUSE TestRunnerRunJobReturnsStartError
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/applied
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/retry
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup
+--- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/applied (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/retry (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup (0.00s)
+=== CONT  TestRunnerRunJobReschedulesBeforeFinalFailure
+=== CONT  TestRunnerRunJobMarksFailedAfterMaxAttempts
+--- PASS: TestRunnerRunJobReschedulesBeforeFinalFailure (0.00s)
+=== CONT  TestRunnerRunJobReturnsStartError
+--- PASS: TestRunnerRunJobReturnsStartError (0.00s)
+=== CONT  TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+--- PASS: TestRunnerRunJobMarksFailedAfterMaxAttempts (0.00s)
+--- PASS: TestRunnerRunJobMarksAppliedAndLogsSchemaChange (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker	1.045s
+=== RUN   TestPublicationByteLimitConfiguration
+--- PASS: TestPublicationByteLimitConfiguration (0.00s)
+=== RUN   TestPublicationConditionValidation
+--- PASS: TestPublicationConditionValidation (0.00s)
+=== RUN   TestMySQLPublication
+=== RUN   TestMySQLPublication/worker_execution
+=== RUN   TestMySQLPublication/worker_execution/applied_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/pending_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/failed_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/stale_wrong_tenant_and_concurrent_completion
+=== RUN   TestMySQLPublication/worker_execution/concurrent_claims_and_cancellation
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/claim
+[mysql] 2026/10/26 10:04:28 connection.go:189 closing connection:close tcp 172.21.0.3:48150->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 10:04:28 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/outcome
+[mysql] 2026/10/26 10:04:28 connection.go:189 closing connection:close tcp 172.21.0.3:48164->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 10:04:28 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/worker_execution/runner_uses_mysql_outcomes_and_terminal_redelivery
+=== RUN   TestMySQLPublication/worker_execution/invalid_payload_precision_and_limits
+=== RUN   TestMySQLPublication/byte_limits
+=== RUN   TestMySQLPublication/byte_limits/table_bytes_not_characters
+=== RUN   TestMySQLPublication/byte_limits/table_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/field_row
+=== RUN   TestMySQLPublication/byte_limits/fields_cumulative
+=== RUN   TestMySQLPublication/byte_limits/fields_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/enum_row
+=== RUN   TestMySQLPublication/byte_limits/enums_cumulative
+=== RUN   TestMySQLPublication/byte_limits/enums_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/encoded_expansion_rolls_back_every_write
+=== RUN   TestMySQLPublication/byte_limits/stored_json_boundary_and_recovery
+=== RUN   TestMySQLPublication/operation_recovery
+=== RUN   TestMySQLPublication/operation_recovery/version_conditions_and_replay
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_exact_version_has_one_winner
+=== RUN   TestMySQLPublication/operation_recovery/replay_original_result_conflict_and_tenant
+=== RUN   TestMySQLPublication/operation_recovery/rollback_and_receipt_failure
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_duplicate_operation
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_enum_edits
+=== RUN   TestMySQLPublication/operation_recovery/lost_commit_acknowledgement
+[mysql] 2026/10/26 10:04:29 connection.go:189 closing connection:close tcp 172.21.0.3:48226->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 10:04:29 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/publish_and_retain_token
+=== RUN   TestMySQLPublication/rollback_and_wrong_tenant
+=== RUN   TestMySQLPublication/snapshot_limit_rolls_back
+=== RUN   TestMySQLPublication/concurrent_edits_and_independent_tables
+=== RUN   TestMySQLPublication/publication_write_failure_rolls_back_metadata
+=== RUN   TestMySQLPublication/lock_wait_cancellation_and_recovery
+=== RUN   TestMySQLPublication/enum_limit_and_tenant_fk
+--- PASS: TestMySQLPublication (1.09s)
+    --- PASS: TestMySQLPublication/worker_execution (0.25s)
+        --- PASS: TestMySQLPublication/worker_execution/applied_atomic_history (0.04s)
+        --- PASS: TestMySQLPublication/worker_execution/pending_atomic_history (0.03s)
+        --- PASS: TestMySQLPublication/worker_execution/failed_atomic_history (0.03s)
+        --- PASS: TestMySQLPublication/worker_execution/stale_wrong_tenant_and_concurrent_completion (0.04s)
+        --- PASS: TestMySQLPublication/worker_execution/concurrent_claims_and_cancellation (0.02s)
+        --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements (0.05s)
+            --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/claim (0.03s)
+            --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/outcome (0.02s)
+        --- PASS: TestMySQLPublication/worker_execution/runner_uses_mysql_outcomes_and_terminal_redelivery (0.02s)
+        --- PASS: TestMySQLPublication/worker_execution/invalid_payload_precision_and_limits (0.01s)
+    --- PASS: TestMySQLPublication/byte_limits (0.17s)
+        --- PASS: TestMySQLPublication/byte_limits/table_bytes_not_characters (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/table_exact_boundary (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/field_row (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/fields_cumulative (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/fields_exact_boundary (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/enum_row (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/enums_cumulative (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/enums_exact_boundary (0.01s)
+        --- PASS: TestMySQLPublication/byte_limits/encoded_expansion_rolls_back_every_write (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/stored_json_boundary_and_recovery (0.07s)
+    --- PASS: TestMySQLPublication/operation_recovery (0.25s)
+        --- PASS: TestMySQLPublication/operation_recovery/version_conditions_and_replay (0.06s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_exact_version_has_one_winner (0.03s)
+        --- PASS: TestMySQLPublication/operation_recovery/replay_original_result_conflict_and_tenant (0.05s)
+        --- PASS: TestMySQLPublication/operation_recovery/rollback_and_receipt_failure (0.03s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_duplicate_operation (0.01s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_enum_edits (0.04s)
+        --- PASS: TestMySQLPublication/operation_recovery/lost_commit_acknowledgement (0.03s)
+    --- PASS: TestMySQLPublication/publish_and_retain_token (0.02s)
+    --- PASS: TestMySQLPublication/rollback_and_wrong_tenant (0.02s)
+    --- PASS: TestMySQLPublication/snapshot_limit_rolls_back (0.01s)
+    --- PASS: TestMySQLPublication/concurrent_edits_and_independent_tables (0.04s)
+    --- PASS: TestMySQLPublication/publication_write_failure_rolls_back_metadata (0.03s)
+    --- PASS: TestMySQLPublication/lock_wait_cancellation_and_recovery (0.21s)
+    --- PASS: TestMySQLPublication/enum_limit_and_tenant_fk (0.01s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	2.125s
+=== RUN   TestExactKeyDefinitionsRejectIdentifiers
+--- PASS: TestExactKeyDefinitionsRejectIdentifiers (0.00s)
+=== RUN   TestExactKeys
+=== RUN   TestExactKeys/full_bytes_and_scopes
+=== RUN   TestExactKeys/update_and_forged_key
+=== RUN   TestExactKeys/rollback_and_failed_owner_insert
+=== RUN   TestExactKeys/concurrent_duplicate
+=== RUN   TestExactKeys/independent_scopes
+=== RUN   TestExactKeys/runtime_cannot_bypass
+=== RUN   TestExactKeys/older_repeatable_read_snapshot
+=== RUN   TestExactKeys/disabled_unique_checks
+=== RUN   TestExactKeys/disabled_foreign_key_checks
+--- PASS: TestExactKeys (0.32s)
+    --- PASS: TestExactKeys/full_bytes_and_scopes (0.09s)
+    --- PASS: TestExactKeys/update_and_forged_key (0.02s)
+    --- PASS: TestExactKeys/rollback_and_failed_owner_insert (0.01s)
+    --- PASS: TestExactKeys/concurrent_duplicate (0.01s)
+    --- PASS: TestExactKeys/independent_scopes (0.01s)
+    --- PASS: TestExactKeys/runtime_cannot_bypass (0.01s)
+    --- PASS: TestExactKeys/older_repeatable_read_snapshot (0.01s)
+    --- PASS: TestExactKeys/disabled_unique_checks (0.00s)
+    --- PASS: TestExactKeys/disabled_foreign_key_checks (0.00s)
+=== RUN   TestExactKeysForcedDigestCollision
+--- PASS: TestExactKeysForcedDigestCollision (0.15s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/exactkeys	1.507s
+=== RUN   TestEventRepositories
+=== RUN   TestEventRepositories/round_trip_json_and_immutable_events
+=== RUN   TestEventRepositories/keyset_pages_handle_equal_timestamps
+=== RUN   TestEventRepositories/tenant_and_cursor_scope
+=== RUN   TestEventRepositories/limits_and_invalid_json
+=== RUN   TestEventRepositories/event_byte_boundaries
+=== RUN   TestEventRepositories/audit_failure_rolls_back_owner_and_revision
+=== RUN   TestEventRepositories/revision_failure_rolls_back_owner_and_audit
+--- PASS: TestEventRepositories (0.59s)
+    --- PASS: TestEventRepositories/round_trip_json_and_immutable_events (0.02s)
+    --- PASS: TestEventRepositories/keyset_pages_handle_equal_timestamps (0.02s)
+    --- PASS: TestEventRepositories/tenant_and_cursor_scope (0.01s)
+    --- PASS: TestEventRepositories/limits_and_invalid_json (0.01s)
+    --- PASS: TestEventRepositories/event_byte_boundaries (0.01s)
+    --- PASS: TestEventRepositories/audit_failure_rolls_back_owner_and_revision (0.01s)
+    --- PASS: TestEventRepositories/revision_failure_rolls_back_owner_and_audit (0.01s)
+=== RUN   TestJobRepository
+=== RUN   TestJobRepository/round_trip_and_state_transitions
+=== RUN   TestJobRepository/scope_and_missing_rows
+=== RUN   TestJobRepository/exact_keys_empty_and_rollback
+=== RUN   TestJobRepository/bounds_order_corrupt_json_and_exhaustion
+=== RUN   TestJobRepository/concurrent_duplicate_creation
+=== RUN   TestJobRepository/exact_row_lock_and_cancelled_wait
+=== RUN   TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot
+=== RUN   TestJobRepository/byte_boundaries_and_audit_rollback
+--- PASS: TestJobRepository (0.92s)
+    --- PASS: TestJobRepository/round_trip_and_state_transitions (0.06s)
+    --- PASS: TestJobRepository/scope_and_missing_rows (0.02s)
+    --- PASS: TestJobRepository/exact_keys_empty_and_rollback (0.05s)
+    --- PASS: TestJobRepository/bounds_order_corrupt_json_and_exhaustion (0.03s)
+    --- PASS: TestJobRepository/concurrent_duplicate_creation (0.01s)
+    --- PASS: TestJobRepository/exact_row_lock_and_cancelled_wait (0.16s)
+    --- PASS: TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot (0.01s)
+    --- PASS: TestJobRepository/byte_boundaries_and_audit_rollback (0.01s)
+=== RUN   TestJobLookupDigestCollision
+--- PASS: TestJobLookupDigestCollision (0.49s)
+=== RUN   TestOptionsRepository
+=== RUN   TestOptionsRepository/round_trip_replace_identity_json_and_version
+=== RUN   TestOptionsRepository/tenant_parent_active_and_distinct_validation
+=== RUN   TestOptionsRepository/rollback_covers_children_and_version
+=== RUN   TestOptionsRepository/limits_gaps_and_overflow
+=== RUN   TestOptionsRepository/large_order_uses_bounded_batches
+=== RUN   TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists
+--- PASS: TestOptionsRepository (1.39s)
+    --- PASS: TestOptionsRepository/round_trip_replace_identity_json_and_version (0.05s)
+    --- PASS: TestOptionsRepository/tenant_parent_active_and_distinct_validation (0.03s)
+    --- PASS: TestOptionsRepository/rollback_covers_children_and_version (0.02s)
+    --- PASS: TestOptionsRepository/limits_gaps_and_overflow (0.02s)
+    --- PASS: TestOptionsRepository/large_order_uses_bounded_batches (0.78s)
+    --- PASS: TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists (0.03s)
+=== RUN   TestMetadataRepositories
+=== RUN   TestMetadataRepositories/pivot_ordered_paths_batching_and_limits
+=== RUN   TestMetadataRepositories/pivot_scope_and_invalid_shapes
+=== RUN   TestMetadataRepositories/pivot_child_failure_rolls_back_owner
+=== RUN   TestMetadataRepositories/pivot_corrupt_path_is_rejected
+=== RUN   TestMetadataRepositories/relationship_round_trip_order_and_deletion
+=== RUN   TestMetadataRepositories/relationship_tenant_and_endpoint_isolation
+=== RUN   TestMetadataRepositories/relationship_limits_and_invalid_endpoints
+=== RUN   TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier
+=== RUN   TestMetadataRepositories/concurrent_link_duplicate
+=== RUN   TestMetadataRepositories/round_trip_and_supported_mutations
+=== RUN   TestMetadataRepositories/tenant_and_parent_isolation
+=== RUN   TestMetadataRepositories/ordered_lists_include_archived
+=== RUN   TestMetadataRepositories/delete_and_missing_mutations
+=== RUN   TestMetadataRepositories/transaction_rollback_and_exact_conflicts
+=== RUN   TestMetadataRepositories/bounded_reads_and_writes
+=== RUN   TestMetadataRepositories/record_locks_and_independent_tenant
+=== RUN   TestMetadataRepositories/invalid_configuration_and_read_only
+--- PASS: TestMetadataRepositories (0.94s)
+    --- PASS: TestMetadataRepositories/pivot_ordered_paths_batching_and_limits (0.13s)
+    --- PASS: TestMetadataRepositories/pivot_scope_and_invalid_shapes (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_child_failure_rolls_back_owner (0.01s)
+    --- PASS: TestMetadataRepositories/pivot_corrupt_path_is_rejected (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_round_trip_order_and_deletion (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_tenant_and_endpoint_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/relationship_limits_and_invalid_endpoints (0.01s)
+    --- PASS: TestMetadataRepositories/relationship_rollback_and_pivot_delete_barrier (0.01s)
+    --- PASS: TestMetadataRepositories/concurrent_link_duplicate (0.01s)
+    --- PASS: TestMetadataRepositories/round_trip_and_supported_mutations (0.04s)
+    --- PASS: TestMetadataRepositories/tenant_and_parent_isolation (0.02s)
+    --- PASS: TestMetadataRepositories/ordered_lists_include_archived (0.01s)
+    --- PASS: TestMetadataRepositories/delete_and_missing_mutations (0.01s)
+    --- PASS: TestMetadataRepositories/transaction_rollback_and_exact_conflicts (0.01s)
+    --- PASS: TestMetadataRepositories/bounded_reads_and_writes (0.01s)
+    --- PASS: TestMetadataRepositories/record_locks_and_independent_tenant (0.16s)
+    --- PASS: TestMetadataRepositories/invalid_configuration_and_read_only (0.01s)
+=== RUN   TestMetadataSchemaAndAdapters
+=== RUN   TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements
+=== RUN   TestMetadataSchemaAndAdapters/exact_metadata_uniqueness
+=== RUN   TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard
+=== RUN   TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships
+=== RUN   TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots
+=== RUN   TestMetadataSchemaAndAdapters/publication_on_full_metadata
+=== RUN   TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe
+--- PASS: TestMetadataSchemaAndAdapters (0.82s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_columns_and_ordered_replacements (0.17s)
+    --- PASS: TestMetadataSchemaAndAdapters/exact_metadata_uniqueness (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/source_domains_and_nullable_integrity_guard (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/tenant_and_table_consistent_relationships (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/ordered_children_and_nullable_pivots (0.02s)
+    --- PASS: TestMetadataSchemaAndAdapters/publication_on_full_metadata (0.04s)
+    --- PASS: TestMetadataSchemaAndAdapters/worker_on_full_metadata_and_conditional_dedupe (0.03s)
+=== RUN   TestTenantRepositories
+=== RUN   TestTenantRepositories/nullable_keys_and_round_trip
+=== RUN   TestTenantRepositories/tenant_scope_and_status
+=== RUN   TestTenantRepositories/catalogue_keyset_and_scope_separation
+=== RUN   TestTenantRepositories/exact_global_uniqueness
+=== RUN   TestTenantRepositories/registration_and_audit_rollback
+=== RUN   TestTenantRepositories/bounds_and_invalid_catalogue_configuration
+=== RUN   TestTenantRepositories/concurrent_external_key_duplicate
+--- PASS: TestTenantRepositories (0.50s)
+    --- PASS: TestTenantRepositories/nullable_keys_and_round_trip (0.02s)
+    --- PASS: TestTenantRepositories/tenant_scope_and_status (0.01s)
+    --- PASS: TestTenantRepositories/catalogue_keyset_and_scope_separation (0.01s)
+    --- PASS: TestTenantRepositories/exact_global_uniqueness (0.01s)
+    --- PASS: TestTenantRepositories/registration_and_audit_rollback (0.02s)
+    --- PASS: TestTenantRepositories/bounds_and_invalid_catalogue_configuration (0.01s)
+    --- PASS: TestTenantRepositories/concurrent_external_key_duplicate (0.01s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.690s

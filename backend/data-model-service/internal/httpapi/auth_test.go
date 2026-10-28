@@ -10,7 +10,6 @@ import (
 
 func TestAuthMiddlewareDisabledAllowsRequest(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
 	router.Use(authMiddleware(AuthConfig{Mode: "disabled"}))
@@ -29,7 +28,6 @@ func TestAuthMiddlewareDisabledAllowsRequest(t *testing.T) {
 
 func TestAuthMiddlewareTokenRejectsMissingBearerToken(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
 	router.Use(authMiddleware(AuthConfig{Mode: "token", Token: "secret"}))
@@ -48,7 +46,6 @@ func TestAuthMiddlewareTokenRejectsMissingBearerToken(t *testing.T) {
 
 func TestAuthMiddlewareTokenAllowsValidBearerToken(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
 	router.Use(authMiddleware(AuthConfig{Mode: "token", Token: "secret"}))

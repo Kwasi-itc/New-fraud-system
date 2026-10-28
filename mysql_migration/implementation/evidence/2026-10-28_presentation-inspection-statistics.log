@@ -1,0 +1,33 @@
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=101 rows=50.1)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-28 09:28:17.707146') and (data_model_index_deliveries.tenant_id = '??0???H͘??n\'?A?') and (data_model_index_deliveries.id < '|k?}?)J??\?t\?Y??'))  (cost=101 rows=50.1)
+                -> Index range scan on data_model_index_deliveries using PRIMARY over (id < 0x7c6b887d9a294a159580f074f659939f) (reverse)  (cost=101 rows=501)
+        
+    delivery_inspection_test.go:197: covering keyset range not used -> Limit: 128 row(s)  (cost=101 rows=50.1)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-28 09:28:17.707146') and (data_model_index_deliveries.tenant_id = '??0???H͘??n\'?A?') and (data_model_index_deliveries.id < '|k?}?)J??\?t\?Y??'))  (cost=101 rows=50.1)
+                -> Index range scan on data_model_index_deliveries using PRIMARY over (id < 0x7c6b887d9a294a159580f074f659939f) (reverse)  (cost=101 rows=501)
+        
+--- FAIL: TestDeliveryInspection (4.77s)
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=101 rows=50.1)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-28 09:28:22.473581') and (data_model_index_deliveries.tenant_id = '?\?Q??Kv?\?_\\?x?') and (data_model_index_deliveries.id < '}\??\??E\Z? \?^x6'))  (cost=101 rows=50.1)
+                -> Index range scan on data_model_index_deliveries using PRIMARY over (id < 0x7ddcc0edc00e451aaa2017f45e783614) (reverse)  (cost=101 rows=501)
+        
+    delivery_inspection_test.go:197: covering keyset range not used -> Limit: 128 row(s)  (cost=101 rows=50.1)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-28 09:28:22.473581') and (data_model_index_deliveries.tenant_id = '?\?Q??Kv?\?_\\?x?') and (data_model_index_deliveries.id < '}\??\??E\Z? \?^x6'))  (cost=101 rows=50.1)
+                -> Index range scan on data_model_index_deliveries using PRIMARY over (id < 0x7ddcc0edc00e451aaa2017f45e783614) (reverse)  (cost=101 rows=501)
+        
+--- FAIL: TestDeliveryInspection (4.49s)
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=101 rows=128)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-10-28 09:28:26.817742') and (data_model_index_deliveries.tenant_id = '\?	??D?B=s%??') and (data_model_index_deliveries.id < 'v&\?+l\?E??\'\?u?\?]'))  (cost=101 rows=499)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0xd802099d8a7f4403a9423d731925abb7 AND created_at = '2026-10-28 09:28:26.817742' AND 0x7626d12b6ce745f8b727c20875fbe55d < id)  (cost=101 rows=499)
+        
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=0.863 rows=3)
+            -> Filter: ((data_model_index_deliveries.tenant_id = '\?	??D?B=s%??') and (data_model_index_deliveries.created_at < TIMESTAMP'2026-10-28 09:28:26.817742'))  (cost=0.863 rows=3)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0xd802099d8a7f4403a9423d731925abb7 AND '2026-10-28 09:28:26.817742' < created_at)  (cost=0.863 rows=3)
+        
+--- PASS: TestDeliveryInspection (4.40s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	13.698s
+FAIL

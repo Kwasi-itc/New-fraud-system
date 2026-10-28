@@ -1,0 +1,36 @@
+=== RUN   TestDisplayPublication
+=== RUN   TestDisplayPublication/replay
+=== RUN   TestDisplayPublication/concurrent
+=== RUN   TestDisplayPublication/owner_rollback
+=== RUN   TestDisplayPublication/receipt_rollback
+=== RUN   TestDisplayPublication/closed_gate
+=== RUN   TestDisplayPublication/semantic_change
+=== RUN   TestDisplayPublication/lost_commit
+[mysql] 2026/10/28 08:34:40 connection.go:189 closing connection:close tcp 172.21.0.3:38736->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:34:40 packets.go:58 unexpected EOF
+=== RUN   TestDisplayPublication/service_commit
+=== RUN   TestDisplayPublication/service_concurrent
+=== RUN   TestDisplayPublication/service_missing_queue
+=== RUN   TestDisplayPublication/service_revision_failure
+=== RUN   TestDisplayPublication/service_local_denial
+=== RUN   TestDisplayPublication/service_lost_commit
+[mysql] 2026/10/28 08:34:41 connection.go:189 closing connection:close tcp 172.21.0.3:38778->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 08:34:41 packets.go:58 unexpected EOF
+=== RUN   TestDisplayPublication/service_closed_gate
+--- PASS: TestDisplayPublication (2.24s)
+    --- PASS: TestDisplayPublication/replay (0.19s)
+    --- PASS: TestDisplayPublication/concurrent (0.17s)
+    --- PASS: TestDisplayPublication/owner_rollback (0.08s)
+    --- PASS: TestDisplayPublication/receipt_rollback (0.08s)
+    --- PASS: TestDisplayPublication/closed_gate (0.04s)
+    --- PASS: TestDisplayPublication/semantic_change (0.07s)
+    --- PASS: TestDisplayPublication/lost_commit (0.13s)
+    --- PASS: TestDisplayPublication/service_commit (0.18s)
+    --- PASS: TestDisplayPublication/service_concurrent (0.20s)
+    --- PASS: TestDisplayPublication/service_missing_queue (0.07s)
+    --- PASS: TestDisplayPublication/service_revision_failure (0.07s)
+    --- PASS: TestDisplayPublication/service_local_denial (0.06s)
+    --- PASS: TestDisplayPublication/service_lost_commit (0.20s)
+    --- PASS: TestDisplayPublication/service_closed_gate (0.04s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	3.329s

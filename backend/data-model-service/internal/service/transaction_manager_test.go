@@ -3,7 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/google/uuid"
+	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 )
@@ -29,7 +30,7 @@ type stubMutationStore struct {
 	tenantSchemaMigrations ports.TenantSchemaMigrationRepository
 	indexJobs              ports.IndexJobRepository
 	schemaManager          ports.SchemaManager
-	rawTx                  pgx.Tx
+	enqueue                func(context.Context, uuid.UUID, *time.Time) error
 }
 
 func (s stubMutationStore) Tenants() ports.TenantRepository { return s.tenants }
@@ -50,4 +51,9 @@ func (s stubMutationStore) TenantSchemaMigrations() ports.TenantSchemaMigrationR
 }
 func (s stubMutationStore) IndexJobs() ports.IndexJobRepository { return s.indexJobs }
 func (s stubMutationStore) SchemaManager() ports.SchemaManager  { return s.schemaManager }
-func (s stubMutationStore) RawTx() pgx.Tx                       { return s.rawTx }
+func (s stubMutationStore) EnqueueIndexJob(ctx context.Context, id uuid.UUID, at *time.Time) error {
+	if s.enqueue == nil {
+		return ports.ErrJobQueueUnavailable
+	}
+	return s.enqueue(ctx, id, at)
+}

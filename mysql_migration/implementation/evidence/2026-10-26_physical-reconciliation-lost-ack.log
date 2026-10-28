@@ -1,0 +1,26 @@
+=== RUN   TestPhysicalExecutionRecovery
+=== RUN   TestPhysicalExecutionRecovery/fresh_and_replay
+=== RUN   TestPhysicalExecutionRecovery/dirty_before
+=== RUN   TestPhysicalExecutionRecovery/dirty_after
+=== RUN   TestPhysicalExecutionRecovery/unrecorded_object
+=== RUN   TestPhysicalExecutionRecovery/applied_drift
+=== RUN   TestPhysicalExecutionRecovery/competing_executor
+=== RUN   TestPhysicalExecutionRecovery/wrong_tenant
+=== RUN   TestPhysicalExecutionRecovery/lost_create_ack
+[mysql] 2026/10/26 22:56:47 connection.go:189 closing connection:close tcp 172.21.0.3:57004->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 22:56:47 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalExecutionRecovery/lost_alter_ack
+[mysql] 2026/10/26 22:56:47 connection.go:189 closing connection:close tcp 172.21.0.3:57046->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/26 22:56:47 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalExecutionRecovery (5.67s)
+    --- PASS: TestPhysicalExecutionRecovery/fresh_and_replay (0.46s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_before (0.51s)
+    --- PASS: TestPhysicalExecutionRecovery/dirty_after (0.39s)
+    --- PASS: TestPhysicalExecutionRecovery/unrecorded_object (0.27s)
+    --- PASS: TestPhysicalExecutionRecovery/applied_drift (0.49s)
+    --- PASS: TestPhysicalExecutionRecovery/competing_executor (0.36s)
+    --- PASS: TestPhysicalExecutionRecovery/wrong_tenant (0.28s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_create_ack (0.36s)
+    --- PASS: TestPhysicalExecutionRecovery/lost_alter_ack (0.31s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	6.726s

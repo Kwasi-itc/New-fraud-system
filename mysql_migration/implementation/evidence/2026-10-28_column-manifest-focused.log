@@ -1,0 +1,6 @@
+=== RUN   TestMetadataColumnManifest
+--- PASS: TestMetadataColumnManifest (0.20s)
+=== RUN   TestMetadataColumnManifestInstalled
+--- PASS: TestMetadataColumnManifestInstalled (0.67s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.911s

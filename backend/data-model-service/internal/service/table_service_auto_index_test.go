@@ -32,14 +32,15 @@ func TestTableServiceUpdateCaptionFieldCreatesSearchIndexJob(t *testing.T) {
 		&stubPivotRepository{},
 		changeRepo,
 		nil,
-		stubTransactionManager{store: stubMutationStore{
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{},
+			enqueue:       enqueuer.Enqueue,
 			tables:        stubTableRepository{table: datamodel.Table{ID: tableID, TenantID: tenantID, Name: "transactions"}},
 			indexJobs:     indexJobs,
 			schemaChanges: changeRepo,
 		}},
 		&stubSequenceIDGenerator{values: []uuid.UUID{jobID, changeID}},
 		stubClock{now: now},
-	).WithIndexJobEnqueuer(enqueuer)
+	)
 
 	captionField := "display_name"
 	table, err := service.Update(context.Background(), UpdateTableInput{
@@ -98,14 +99,15 @@ func TestTableServiceUpdateCaptionFieldDedupesAppliedSearchIndexJob(t *testing.T
 		&stubPivotRepository{},
 		changeRepo,
 		nil,
-		stubTransactionManager{store: stubMutationStore{
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{},
+			enqueue:       enqueuer.Enqueue,
 			tables:        stubTableRepository{table: datamodel.Table{ID: tableID, TenantID: tenantID, Name: "transactions"}},
 			indexJobs:     indexJobs,
 			schemaChanges: changeRepo,
 		}},
 		stubIDGenerator{value: uuid.New()},
 		stubClock{now: now},
-	).WithIndexJobEnqueuer(enqueuer)
+	)
 
 	captionField := "display_name"
 	if _, err := service.Update(context.Background(), UpdateTableInput{TableID: tableID, CaptionField: &captionField}); err != nil {
@@ -173,14 +175,15 @@ func TestNavigationOptionServiceCreateEnqueuesNavigationIndexJob(t *testing.T) {
 		&stubPivotRepository{},
 		navigationRepo,
 		changeRepo,
-		stubTransactionManager{store: stubMutationStore{
+		stubTransactionManager{store: stubMutationStore{tenantSchemaMigrations: &stubSchemaMigrationRepository{},
+			enqueue:           enqueuer.Enqueue,
 			navigationOptions: navigationRepo,
 			indexJobs:         indexRepo,
 			schemaChanges:     changeRepo,
 		}},
 		&stubSequenceIDGenerator{values: []uuid.UUID{optionID, indexJobID, changeID}},
 		stubClock{now: now},
-	).WithIndexJobEnqueuer(enqueuer)
+	)
 
 	_, err := service.Create(context.Background(), CreateNavigationOptionInput{
 		TenantID:        tenantID,

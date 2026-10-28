@@ -3,185 +3,137 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/google/uuid"
 )
 
-type Clock interface {
-	Now() time.Time
-}
+type Clock interface{ Now() time.Time }
+
+var ErrManagedIndexUnverified = errors.New("managed index inspection did not confirm the expected index")
 
 type Runner struct {
 	logger        *slog.Logger
 	tenants       ports.TenantRepository
 	tables        ports.TableRepository
-	indexJobs     ports.IndexJobRepository
-	schemaChanges ports.SchemaChangeRepository
+	execution     ports.IndexJobExecutionStore
 	schemaManager ports.SchemaManager
 	idGenerator   ports.IDGenerator
 	clock         Clock
 	maxAttempts   int
 }
 
-func NewRunner(
-	logger *slog.Logger,
-	tenants ports.TenantRepository,
-	tables ports.TableRepository,
-	indexJobs ports.IndexJobRepository,
-	schemaChanges ports.SchemaChangeRepository,
-	schemaManager ports.SchemaManager,
-	idGenerator ports.IDGenerator,
-	clock Clock,
-	maxAttempts int,
-) Runner {
-	return Runner{
-		logger:        logger,
-		tenants:       tenants,
-		tables:        tables,
-		indexJobs:     indexJobs,
-		schemaChanges: schemaChanges,
-		schemaManager: schemaManager,
-		idGenerator:   idGenerator,
-		clock:         clock,
-		maxAttempts:   maxAttempts,
-	}
+func NewRunner(logger *slog.Logger, tenants ports.TenantRepository, tables ports.TableRepository, execution ports.IndexJobExecutionStore, schemaManager ports.SchemaManager, idGenerator ports.IDGenerator, clock Clock, maxAttempts int) Runner {
+	return Runner{logger, tenants, tables, execution, schemaManager, idGenerator, clock, maxAttempts}
 }
 
 func (r Runner) RunJob(ctx context.Context, id uuid.UUID) error {
-	job, err := r.indexJobs.StartAttempt(ctx, id, r.clock.Now())
+	if r.logger == nil || r.tenants == nil || r.tables == nil || r.execution == nil || r.schemaManager == nil || r.idGenerator == nil || r.clock == nil || r.maxAttempts < 1 {
+		return errors.New("index worker dependencies and positive attempt limit required")
+	}
+	job, err := r.execution.StartAttempt(ctx, id, r.timestamp())
 	if err != nil {
 		return err
 	}
-	_, err = r.executeJob(ctx, job)
-	return err
-}
-
-func (r Runner) executeJob(ctx context.Context, job datamodel.IndexJob) (bool, error) {
-	if job.TableID == nil {
-		r.failJob(ctx, job, "index job missing table_id")
-		return true, nil
+	if job.ID != id || job.TenantID == uuid.Nil {
+		return errors.New("index worker claim identity mismatch")
 	}
-
+	switch job.Status {
+	case datamodel.IndexJobStatusApplied, datamodel.IndexJobStatusFailed, datamodel.IndexJobStatusCancelled:
+		return nil // Redelivery of an already durable terminal outcome.
+	case datamodel.IndexJobStatusRunning:
+	default:
+		return errors.New("index worker did not receive a running attempt")
+	}
+	if job.AttemptCount < 1 {
+		return errors.New("invalid claimed index job attempt")
+	}
+	if job.TableID == nil {
+		return r.finish(ctx, job, datamodel.IndexJobStatusFailed, "index job missing table_id", "", false)
+	}
 	tenantRecord, err := r.tenants.GetByID(ctx, job.TenantID)
 	if err != nil {
-		r.failJob(ctx, job, err.Error())
-		return true, nil
+		return r.retryOrFail(ctx, job, err)
 	}
 	table, err := r.tables.GetByID(ctx, *job.TableID)
 	if err != nil {
-		r.failJob(ctx, job, err.Error())
-		return true, nil
+		return r.retryOrFail(ctx, job, err)
 	}
-
+	if tenantRecord.ID != job.TenantID || table.TenantID != job.TenantID || table.ID != *job.TableID || table.Name != job.TableName {
+		return r.finish(ctx, job, datamodel.IndexJobStatusFailed, "index job tenant/table identity mismatch", "", false)
+	}
 	state, err := r.schemaManager.GetManagedIndexState(ctx, tenantRecord, table, job)
 	if err != nil {
-		r.failJob(ctx, job, err.Error())
-		return true, nil
+		return r.retryOrFail(ctx, job, err)
 	}
-	if state.Exists {
-		return r.markApplied(ctx, job, table, state.Name)
+	if state.Name == "" {
+		return r.retryOrFail(ctx, job, ErrManagedIndexUnverified)
 	}
-
-	if err := r.schemaManager.CreateManagedIndex(ctx, tenantRecord, table, job); err != nil {
-		r.retryOrFail(ctx, job, err.Error())
-		r.logger.Error("index job failed", "job_id", job.ID, "error", err)
-		return true, err
-	}
-
-	return r.markApplied(ctx, job, table, state.Name)
-}
-
-func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table datamodel.Table, indexName string) (bool, error) {
-	completedAt := r.clock.Now()
-	if err := r.indexJobs.MarkApplied(ctx, job.ID, completedAt); err != nil {
-		return true, err
-	}
-	r.recordSchemaChange(ctx, job, completedAt, "apply_index_job", "applied", map[string]any{
-		"table_id":               uuidString(job.TableID),
-		"table_name":             table.Name,
-		"index_name":             indexName,
-		"index_type":             job.IndexType,
-		"columns":                job.Columns,
-		"requested_by_operation": job.RequestedByOperation,
-		"attempt_count":          job.AttemptCount,
-	})
-	r.logger.Info("index job applied",
-		"job_id", job.ID,
-		"tenant_id", job.TenantID,
-		"table_name", job.TableName,
-		"index_type", job.IndexType,
-		"columns", job.Columns,
-	)
-	return true, nil
-}
-
-func (r Runner) retryOrFail(ctx context.Context, job datamodel.IndexJob, message string) {
-	if job.AttemptCount < r.maxAttempts {
-		if err := r.indexJobs.MarkPendingRetry(ctx, job.ID, message); err == nil {
-			r.recordSchemaChange(ctx, job, r.clock.Now(), "reschedule_index_job", "pending", map[string]any{
-				"table_id":               uuidString(job.TableID),
-				"table_name":             job.TableName,
-				"index_type":             job.IndexType,
-				"columns":                job.Columns,
-				"requested_by_operation": job.RequestedByOperation,
-				"attempt_count":          job.AttemptCount,
-				"error_message":          message,
-			})
-			return
+	if !state.Exists {
+		if job.AttemptCount > r.maxAttempts {
+			return r.finish(ctx, job, datamodel.IndexJobStatusFailed, "attempt limit exceeded", "", false)
+		}
+		if err := r.schemaManager.CreateManagedIndex(ctx, tenantRecord, table, job); err != nil {
+			return r.retryOrFail(ctx, job, err)
+		}
+		// Successful DDL execution is not a verified postcondition. An adapter
+		// may return after an idempotent no-op or before readiness is established.
+		// Persist no applied outcome unless inspection confirms the same identity.
+		expectedName := state.Name
+		state, err = r.schemaManager.GetManagedIndexState(ctx, tenantRecord, table, job)
+		if err != nil {
+			return r.retryOrFail(ctx, job, err)
+		}
+		if !state.Exists || state.Name != expectedName {
+			return r.retryOrFail(ctx, job, ErrManagedIndexUnverified)
 		}
 	}
-	r.failJob(ctx, job, message)
+	if err := r.finish(ctx, job, datamodel.IndexJobStatusApplied, "", state.Name, false); err != nil {
+		return err
+	}
+	r.logger.Info("index job applied", "job_id", job.ID, "tenant_id", job.TenantID, "table_name", job.TableName)
+	return nil
 }
 
-func (r Runner) failJob(ctx context.Context, job datamodel.IndexJob, message string) {
-	completedAt := r.clock.Now()
-	_ = r.indexJobs.MarkFailed(ctx, job.ID, message, completedAt)
-	r.recordSchemaChange(ctx, job, completedAt, "fail_index_job", "failed", map[string]any{
-		"table_id":               uuidString(job.TableID),
-		"table_name":             job.TableName,
-		"index_type":             job.IndexType,
-		"columns":                job.Columns,
-		"requested_by_operation": job.RequestedByOperation,
-		"attempt_count":          job.AttemptCount,
-		"error_message":          message,
+func (r Runner) retryOrFail(ctx context.Context, job datamodel.IndexJob, cause error) error {
+	status := datamodel.IndexJobStatusPending
+	if job.AttemptCount >= r.maxAttempts {
+		status = datamodel.IndexJobStatusFailed
+	}
+	// Preserve both execution failure and any failure to save its outcome.
+	return errors.Join(cause, r.finish(ctx, job, status, cause.Error(), "", true))
+}
+
+func (r Runner) finish(ctx context.Context, job datamodel.IndexJob, status datamodel.IndexJobStatus, message, indexName string, retryDelivery bool) error {
+	operation := "apply_index_job"
+	if status == datamodel.IndexJobStatusPending {
+		operation = "reschedule_index_job"
+	}
+	if status == datamodel.IndexJobStatusFailed {
+		operation = "fail_index_job"
+	}
+	payload, err := json.Marshal(map[string]any{
+		"table_id": uuidString(job.TableID), "table_name": job.TableName,
+		"index_name": indexName, "index_type": job.IndexType, "columns": job.Columns,
+		"requested_by_operation": job.RequestedByOperation, "attempt_count": job.AttemptCount,
+		"error_message": message,
 	})
-}
-
-func (r Runner) recordSchemaChange(
-	ctx context.Context,
-	job datamodel.IndexJob,
-	createdAt time.Time,
-	operation string,
-	status string,
-	details map[string]any,
-) {
-	if r.schemaChanges == nil || r.idGenerator == nil {
-		return
-	}
-
-	payload, err := json.Marshal(details)
 	if err != nil {
-		payload = []byte(`{}`)
+		return err
 	}
-
-	if err := r.schemaChanges.Create(ctx, datamodel.SchemaChange{
-		ID:           r.idGenerator.New(),
-		TenantID:     job.TenantID,
-		Operation:    operation,
-		ResourceType: "index_job",
-		ResourceID:   job.ID,
-		Status:       status,
-		Details:      payload,
-		CreatedAt:    createdAt,
-	}); err != nil {
-		r.logger.Error("failed to record index job schema change", "job_id", job.ID, "operation", operation, "error", err)
-	}
+	return r.execution.CompleteAttempt(ctx, ports.IndexJobOutcome{Job: job, ErrorMessage: message, RetryDelivery: retryDelivery, Change: datamodel.SchemaChange{
+		ID: r.idGenerator.New(), TenantID: job.TenantID, Operation: operation, ResourceType: "index_job",
+		ResourceID: job.ID, Status: string(status), Details: payload, CreatedAt: r.timestamp(),
+	}})
 }
+
+// Worker lifecycle timestamps have microsecond precision on both engines.
+// This explicit boundary avoids relying on driver/database coercion.
+func (r Runner) timestamp() time.Time { return r.clock.Now().UTC().Round(time.Microsecond) }
 
 func uuidString(value *uuid.UUID) string {
 	if value == nil {

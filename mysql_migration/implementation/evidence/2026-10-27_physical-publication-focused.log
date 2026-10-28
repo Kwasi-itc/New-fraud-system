@@ -1,0 +1,28 @@
+=== RUN   TestPhysicalPublication
+=== RUN   TestPhysicalPublication/publish_replay_and_new_barrier
+=== RUN   TestPhysicalPublication/owner_rollback
+=== RUN   TestPhysicalPublication/receipt_rollback
+=== RUN   TestPhysicalPublication/gate_rollback
+=== RUN   TestPhysicalPublication/authorization
+=== RUN   TestPhysicalPublication/identity_conflict
+=== RUN   TestPhysicalPublication/unverified
+=== RUN   TestPhysicalPublication/schema_drift
+=== RUN   TestPhysicalPublication/grant_drift
+=== RUN   TestPhysicalPublication/orphan_receipt
+=== RUN   TestPhysicalPublication/lost_commit
+[mysql] 2026/10/27 10:50:34 connection.go:189 closing connection:close tcp 172.21.0.3:48642->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/27 10:50:34 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalPublication (1.90s)
+    --- PASS: TestPhysicalPublication/publish_replay_and_new_barrier (0.15s)
+    --- PASS: TestPhysicalPublication/owner_rollback (0.11s)
+    --- PASS: TestPhysicalPublication/receipt_rollback (0.14s)
+    --- PASS: TestPhysicalPublication/gate_rollback (0.13s)
+    --- PASS: TestPhysicalPublication/authorization (0.08s)
+    --- PASS: TestPhysicalPublication/identity_conflict (0.10s)
+    --- PASS: TestPhysicalPublication/unverified (0.12s)
+    --- PASS: TestPhysicalPublication/schema_drift (0.10s)
+    --- PASS: TestPhysicalPublication/grant_drift (0.09s)
+    --- PASS: TestPhysicalPublication/orphan_receipt (0.11s)
+    --- PASS: TestPhysicalPublication/lost_commit (0.11s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	2.937s

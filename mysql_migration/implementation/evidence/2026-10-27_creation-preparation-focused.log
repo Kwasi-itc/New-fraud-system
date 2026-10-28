@@ -1,0 +1,14 @@
+=== RUN   TestCreationPreparationTransaction
+=== RUN   TestCreationPreparationTransaction/commit_replay
+=== RUN   TestCreationPreparationTransaction/owner_rollback
+=== RUN   TestCreationPreparationTransaction/invalid_intent
+=== RUN   TestCreationPreparationTransaction/foreign_scope
+=== RUN   TestCreationPreparationTransaction/finished_transaction
+--- PASS: TestCreationPreparationTransaction (0.89s)
+    --- PASS: TestCreationPreparationTransaction/commit_replay (0.07s)
+    --- PASS: TestCreationPreparationTransaction/owner_rollback (0.03s)
+    --- PASS: TestCreationPreparationTransaction/invalid_intent (0.02s)
+    --- PASS: TestCreationPreparationTransaction/foreign_scope (0.02s)
+    --- PASS: TestCreationPreparationTransaction/finished_transaction (0.03s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	1.932s

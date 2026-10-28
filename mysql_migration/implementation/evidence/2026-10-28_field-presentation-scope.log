@@ -1,0 +1,18 @@
+=== RUN   TestFieldPresentationOwnerScope
+=== RUN   TestFieldPresentationOwnerScope/inactive_tenant
+=== RUN   TestFieldPresentationOwnerScope/foreign_table
+=== RUN   TestFieldPresentationOwnerScope/archived_table
+=== RUN   TestFieldPresentationOwnerScope/foreign_field_tenant
+=== RUN   TestFieldPresentationOwnerScope/foreign_field_table
+=== RUN   TestFieldPresentationOwnerScope/archived_field
+=== RUN   TestFieldPresentationOwnerScope/missing_field
+--- PASS: TestFieldPresentationOwnerScope (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/inactive_tenant (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/foreign_table (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/archived_table (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/foreign_field_tenant (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/foreign_field_table (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/archived_field (0.00s)
+    --- PASS: TestFieldPresentationOwnerScope/missing_field (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service	1.028s

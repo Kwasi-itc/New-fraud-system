@@ -121,7 +121,7 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 		if err := store.Pivots().Create(ctx, pivot); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			pivot.TenantID,
 			"create_pivot",
@@ -133,8 +133,12 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 				"field_id":      pivot.FieldID,
 				"path_link_ids": pivot.PathLinkIDs,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, pivot.TenantID, schemaMigrationVersion("create_pivot", "pivot"), pivot.CreatedAt)
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, pivot.TenantID, schemaMigrationVersion("create_pivot", "pivot"), pivot.CreatedAt); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return datamodel.Pivot{}, err
@@ -159,7 +163,7 @@ func (s PivotService) Delete(ctx context.Context, pivotID uuid.UUID, dryRun bool
 		if err := store.Pivots().Delete(ctx, pivotID); err != nil {
 			return err
 		}
-		_ = store.SchemaChanges().Create(ctx, newSchemaChange(
+		if err := recordSchemaChange(ctx, store.SchemaChanges(),
 			s.idGenerator.New(),
 			pivot.TenantID,
 			"delete_pivot",
@@ -171,8 +175,12 @@ func (s PivotService) Delete(ctx context.Context, pivotID uuid.UUID, dryRun bool
 				"field_id":      pivot.FieldID,
 				"path_link_ids": pivot.PathLinkIDs,
 			},
-		))
-		recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, pivot.TenantID, schemaMigrationVersion("delete_pivot", "pivot"), s.clock.Now())
+		); err != nil {
+			return err
+		}
+		if err := recordTenantSchemaMigration(ctx, store.TenantSchemaMigrations(), s.idGenerator, pivot.TenantID, schemaMigrationVersion("delete_pivot", "pivot"), s.clock.Now()); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return report, err

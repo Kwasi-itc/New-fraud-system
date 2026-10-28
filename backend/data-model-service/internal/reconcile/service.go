@@ -29,18 +29,15 @@ var implicitPhysicalColumns = map[string]struct{}{
 }
 
 type Service struct {
-	db                *pgxpool.Pool
 	tenants           ports.TenantRepository
 	tables            ports.TableRepository
 	fields            ports.FieldRepository
 	navigationOptions ports.NavigationOptionRepository
-	indexJobs         ports.IndexJobRepository
-	schemaChanges     ports.SchemaChangeRepository
 	schemaManager     ports.SchemaManager
 	idGenerator       ports.IDGenerator
 	clock             ports.Clock
 	introspect        Introspector
-	enqueuer          riverjobs.IndexJobEnqueuer
+	transactions      ports.TransactionManager
 }
 
 type Introspector interface {
@@ -84,25 +81,28 @@ type ManagedIndexGap struct {
 	Columns   []string `json:"columns"`
 }
 
-func NewService(db *pgxpool.Pool, enqueuer riverjobs.IndexJobEnqueuer) Service {
+func NewService(db *pgxpool.Pool, enqueuer riverjobs.IndexJobEnqueuer) (Service, error) {
+	if db == nil {
+		return Service{}, fmt.Errorf("database is required for reconciliation")
+	}
 	if enqueuer == nil {
-		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		if err != nil {
+			return Service{}, fmt.Errorf("configure repair queue: %w", err)
+		}
 		enqueuer = riverjobs.NewRiverIndexJobEnqueuer(riverClient, 10, riverjobs.IndexJobQueueName)
 	}
 	return Service{
-		db:                db,
 		tenants:           storepostgres.NewTenantRepository(db),
 		tables:            storepostgres.NewTableRepository(db),
 		fields:            storepostgres.NewFieldRepository(db),
 		navigationOptions: storepostgres.NewNavigationOptionRepository(db),
-		indexJobs:         storepostgres.NewIndexJobRepository(db),
-		schemaChanges:     storepostgres.NewSchemaChangeRepository(db),
 		schemaManager:     tenantdbpostgres.NewSchemaManager(db),
 		idGenerator:       reconcileUUIDGenerator{},
 		clock:             reconcileSystemClock{},
 		introspect:        NewPostgresIntrospector(db),
-		enqueuer:          enqueuer,
-	}
+		transactions:      storepostgres.NewTransactionManager(db).WithIndexJobEnqueuer(enqueuer),
+	}, nil
 }
 
 func (s Service) Run(ctx context.Context) (Report, error) {
@@ -137,10 +137,6 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 	navigationOptions, err := s.navigationOptions.ListByTenant(ctx, record.ID)
 	if err != nil {
 		return TenantReport{}, fmt.Errorf("list tenant navigation options: %w", err)
-	}
-	indexJobs, err := s.indexJobs.ListByTenant(ctx, record.ID)
-	if err != nil {
-		return TenantReport{}, fmt.Errorf("list tenant index jobs: %w", err)
 	}
 	expectedManagedIndexes := expectedManagedIndexesByTable(tables, navigationOptions)
 
@@ -196,7 +192,7 @@ func (s Service) reconcileTenant(ctx context.Context, record tenant.Tenant) (Ten
 			return TenantReport{}, err
 		}
 		if tableReport.PhysicalExists && len(tableReport.MissingManagedIndexes) > 0 {
-			repairJobIDs, err := s.scheduleRepairJobs(ctx, record, table, tableReport.MissingManagedIndexes, indexJobs)
+			repairJobIDs, err := s.scheduleRepairJobs(ctx, record, table, tableReport.MissingManagedIndexes)
 			if err != nil {
 				return TenantReport{}, err
 			}
@@ -302,73 +298,65 @@ func (s Service) reconcileTable(
 	}, nil
 }
 
-func (s Service) scheduleRepairJobs(
-	ctx context.Context,
-	record tenant.Tenant,
-	table datamodel.Table,
-	gaps []ManagedIndexGap,
-	indexJobs []datamodel.IndexJob,
-) ([]uuid.UUID, error) {
+// Each gap is an independent, short transaction. Inspection/DDL stays outside.
+func (s Service) scheduleRepairJobs(ctx context.Context, record tenant.Tenant, table datamodel.Table, gaps []ManagedIndexGap) ([]uuid.UUID, error) {
+	if len(gaps) > 0 && s.transactions == nil {
+		return nil, fmt.Errorf("repair transaction manager is required")
+	}
 	scheduled := make([]uuid.UUID, 0, len(gaps))
-	now := s.clock.Now()
 	for _, gap := range gaps {
-		dedupeKey := datamodel.BuildIndexJobDedupeKey(record.ID, table.ID, datamodel.IndexJobTypeRepair, gap.Columns)
-		existingIndex := slices.IndexFunc(indexJobs, func(job datamodel.IndexJob) bool {
-			return job.DedupeKey == dedupeKey
+		var scheduledID uuid.UUID
+		err := s.transactions.Run(ctx, func(store ports.MutationStore) error {
+			now := s.clock.Now()
+			key := datamodel.BuildIndexJobDedupeKey(record.ID, table.ID, datamodel.IndexJobTypeRepair, gap.Columns)
+			existing, err := store.IndexJobs().GetByDedupeKeyForUpdate(ctx, key)
+			if err != nil {
+				return fmt.Errorf("lock repair job: %w", err)
+			}
+			if existing != nil {
+				if existing.Status == datamodel.IndexJobStatusPending || existing.Status == datamodel.IndexJobStatusRunning {
+					return nil
+				}
+				scheduledID = existing.ID
+				if err := store.IndexJobs().Retry(ctx, existing.ID, now); err != nil {
+					return fmt.Errorf("requeue repair job: %w", err)
+				}
+			} else {
+				scheduledID = s.idGenerator.New()
+				job := datamodel.IndexJob{ID: scheduledID, TenantID: record.ID, TableID: &table.ID, TableName: table.Name, IndexType: datamodel.IndexJobTypeRepair, Columns: gap.Columns, Status: datamodel.IndexJobStatusPending, RequestedByOperation: "reconcile_repair", RequestedAt: now, ScheduledAt: &now, DedupeKey: key}
+				// Concurrent creation is resolved by the existing exact unique key. A
+				// losing transaction fails explicitly; a later reconciliation reads it.
+				if err := store.IndexJobs().Create(ctx, job); err != nil {
+					return fmt.Errorf("create repair job: %w", err)
+				}
+			}
+			if err := s.recordSchemaChange(ctx, store.SchemaChanges(), record.ID, scheduledID, now, table, gap.Columns); err != nil {
+				return err
+			}
+			if err := store.EnqueueIndexJob(ctx, scheduledID, &now); err != nil {
+				return fmt.Errorf("enqueue repair job: %w", err)
+			}
+			return nil
 		})
-		if existingIndex >= 0 {
-			existing := indexJobs[existingIndex]
-			if existing.Status == datamodel.IndexJobStatusPending || existing.Status == datamodel.IndexJobStatusRunning {
-				continue
-			}
-			if err := s.indexJobs.Retry(ctx, existing.ID, now); err != nil {
-				return nil, fmt.Errorf("requeue repair job: %w", err)
-			}
-			if err := s.enqueuer.Enqueue(ctx, existing.ID, &now); err != nil {
-				return nil, fmt.Errorf("enqueue repair job retry: %w", err)
-			}
-			scheduled = append(scheduled, existing.ID)
-			indexJobs[existingIndex].Status = datamodel.IndexJobStatusPending
-			indexJobs[existingIndex].ScheduledAt = &now
-			s.recordSchemaChange(ctx, record.ID, existing.ID, now, table, gap.Columns)
-			continue
+		if err != nil {
+			return nil, err
 		}
-
-		jobID := s.idGenerator.New()
-		job := datamodel.IndexJob{
-			ID:                   jobID,
-			TenantID:             record.ID,
-			TableID:              &table.ID,
-			TableName:            table.Name,
-			IndexType:            datamodel.IndexJobTypeRepair,
-			Columns:              gap.Columns,
-			Status:               datamodel.IndexJobStatusPending,
-			RequestedByOperation: "reconcile_repair",
-			RequestedAt:          now,
-			ScheduledAt:          &now,
-			DedupeKey:            dedupeKey,
+		if scheduledID != uuid.Nil {
+			scheduled = append(scheduled, scheduledID)
 		}
-		if err := s.indexJobs.Create(ctx, job); err != nil {
-			return nil, fmt.Errorf("create repair job: %w", err)
-		}
-		if err := s.enqueuer.Enqueue(ctx, jobID, job.ScheduledAt); err != nil {
-			return nil, fmt.Errorf("enqueue repair job: %w", err)
-		}
-		scheduled = append(scheduled, jobID)
-		indexJobs = append(indexJobs, job)
-		s.recordSchemaChange(ctx, record.ID, jobID, now, table, gap.Columns)
 	}
 	return scheduled, nil
 }
 
 func (s Service) recordSchemaChange(
 	ctx context.Context,
+	history ports.SchemaChangeRepository,
 	tenantID uuid.UUID,
 	jobID uuid.UUID,
 	createdAt time.Time,
 	table datamodel.Table,
 	columns []string,
-) {
+) error {
 	payload, err := json.Marshal(map[string]any{
 		"table_id":     table.ID,
 		"table_name":   table.Name,
@@ -378,9 +366,9 @@ func (s Service) recordSchemaChange(
 		"scheduled_by": "reconcile",
 	})
 	if err != nil {
-		payload = []byte(`{}`)
+		return fmt.Errorf("encode repair history: %w", err)
 	}
-	_ = s.schemaChanges.Create(ctx, datamodel.SchemaChange{
+	return history.Create(ctx, datamodel.SchemaChange{
 		ID:           s.idGenerator.New(),
 		TenantID:     tenantID,
 		Operation:    "request_index_job",

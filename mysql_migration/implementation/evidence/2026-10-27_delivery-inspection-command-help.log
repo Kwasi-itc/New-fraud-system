@@ -1,0 +1,27 @@
+Usage of inspect-deliveries-mysql:
+  -address string
+    	MySQL host:port
+  -before-created-at string
+    	exclusive cursor time in RFC3339 with microsecond precision
+  -before-id string
+    	exclusive page cursor UUID; requires before-created-at
+  -ca string
+    	optional PEM CA file; defaults to system trust
+  -database string
+    	shared logical application database
+  -delivery string
+    	optional delivery UUID for one detail record
+  -isolated-fixture
+    	plaintext only for explicitly enabled mysql:3306 disposable fixture
+  -limit int
+    	page size 1..1000, across all tenant queues (default 100)
+  -password-env string
+    	password environment variable (default "DATA_MODEL_MYSQL_INSPECTION_PASSWORD")
+  -server-name string
+    	TLS server name; defaults to address hostname
+  -tenant string
+    	explicit authorized tenant UUID
+  -timeout duration
+    	overall inspection deadline (default 30s)
+  -user string
+    	authorized read-only inspection account
