@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -51,7 +52,7 @@ func (systemClock) Now() time.Time {
 	return time.Now().UTC()
 }
 
-func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
+func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg RouterConfig) (*gin.Engine, error) {
 	router := gin.New()
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(requestContextMiddleware(logger))
@@ -79,15 +80,17 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	var txManager ports.TransactionManager
 	var uploadLogRepository ports.UploadLogRepository
 	var deferredIngestRepository ports.DeferredIngestRepository
-	var uploadLogEnqueuer riverjobs.UploadLogEnqueuer = riverjobs.NoopUploadLogEnqueuer{}
-	var deferredIngestEnqueuer riverjobs.DeferredIngestEnqueuer = riverjobs.NoopDeferredIngestEnqueuer{}
 	if db != nil {
-		txManager = storepostgres.NewTransactionManager(db)
 		uploadLogRepository = storepostgres.NewUploadLogRepository(db)
 		deferredIngestRepository = storepostgres.NewDeferredIngestRepository(db)
-		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
-		uploadLogEnqueuer = riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName)
-		deferredIngestEnqueuer = riverjobs.NewRiverDeferredIngestEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.DeferredIngestQueueName)
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{Schema: riverjobs.Schema})
+		if err != nil {
+			return nil, fmt.Errorf("initialize ingestion queue producer: %w", err)
+		}
+		txManager = storepostgres.NewTransactionManager(db).WithEnqueuers(
+			riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName),
+			riverjobs.NewRiverDeferredIngestEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.DeferredIngestQueueName),
+		)
 	}
 	var readDataReader ports.TenantDataReader
 	if readDB != nil {
@@ -109,7 +112,6 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		uuidGenerator{},
 		systemClock{},
 		max(1, cfg.WorkerMaxAttempts),
-		deferredIngestEnqueuer,
 	)
 	deferredIngestHandler := handlers.NewDeferredIngestHandler(deferredIngestService)
 	ingestHandler := handlers.NewIngestHandler(ingestService, handlers.IngestHandlerConfig{
@@ -127,7 +129,6 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		uuidGenerator{},
 		systemClock{},
 		max(1, cfg.WorkerMaxAttempts),
-		uploadLogEnqueuer,
 	)
 	uploadLogHandler := handlers.NewUploadLogHandler(uploadLogService, handlers.UploadLogHandlerConfig{
 		WritePathLimiter: writePathLimiter,
@@ -158,7 +159,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	v1.GET("/upload-logs/:uploadLogId", uploadLogHandler.Get)
 	v1.GET("/deferred-ingests/:deferredIngestId", deferredIngestHandler.Get)
 
-	return router
+	return router, nil
 }
 
 func max(a, b int) int {

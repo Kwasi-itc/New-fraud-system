@@ -33,6 +33,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	queueCtx, queueCancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
+	err = storepostgres.ValidateQueueReadiness(queueCtx, db, false)
+	queueCancel()
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ingestion queue not ready: %w", err)
+	}
 	if cfg.DataModelReadMode == "sql" {
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
 		err := storepostgres.NewIngestionContractStore(db).Validate(ctx)
@@ -54,7 +61,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	router := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
+	router, err := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
 		AuthMode:                       cfg.ServiceAuthMode,
 		AuthToken:                      cfg.ServiceAuthToken,
 		AllowedOrigins:                 cfg.AllowedOrigins,
@@ -78,6 +85,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 			UpstreamTimeoutRatePct: cfg.UpstreamTimeoutRateThresholdPct,
 		},
 	})
+	if err != nil {
+		if readDB != db {
+			readDB.Close()
+		}
+		db.Close()
+		return nil, err
+	}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,

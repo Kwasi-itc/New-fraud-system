@@ -1,12 +1,10 @@
-package worker
+package workers
 
 import (
 	"errors"
 	"math"
 	"math/rand/v2"
 	"time"
-
-	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 )
 
 // RiverDeliveryRetryPolicy preserves the pinned River v0.31.0 error-count
@@ -34,5 +32,3 @@ func riverDeliveryRetryDelay(priorErrors int, random float64) (time.Duration, er
 	}
 	return time.Duration(micros) * time.Microsecond, nil
 }
-
-var _ ports.DeliveryRetryPolicy = RiverDeliveryRetryPolicy{}

@@ -44,6 +44,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	queueCtx, queueCancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
+	err = storepostgres.ValidateQueueReadiness(queueCtx, db, true)
+	queueCancel()
+	if err != nil {
+		logger.Error("ingestion worker queue is not ready", "error", err)
+		os.Exit(1)
+	}
 	if cfg.DataModelReadMode == "sql" {
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
 		err := storepostgres.NewIngestionContractStore(db).Validate(ctx)
@@ -56,6 +63,15 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	producer, err := river.NewClient(riverpgxv5.New(db), &river.Config{Schema: riverjobs.Schema})
+	if err != nil {
+		logger.Error("failed to initialize ingestion queue producer", "error", err)
+		os.Exit(1)
+	}
+	txManager := storepostgres.NewTransactionManager(db).WithEnqueuers(
+		riverjobs.NewRiverUploadLogEnqueuer(producer, cfg.WorkerMaxAttempts, cfg.UploadLogQueueName),
+		riverjobs.NewRiverDeferredIngestEnqueuer(producer, cfg.WorkerMaxAttempts, cfg.DeferredIngestQueueName),
+	)
 
 	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
 	if cfg.DataModelReadMode == "sql" {
@@ -63,7 +79,7 @@ func main() {
 	}
 	ingestService := service.NewIngestService(
 		dataModelReader,
-		storepostgres.NewTransactionManager(db),
+		txManager,
 		nil,
 		uuidGenerator{},
 		systemClock{},
@@ -71,20 +87,18 @@ func main() {
 	uploadLogService := service.NewUploadLogService(
 		storepostgres.NewUploadLogRepository(db),
 		ingestService,
-		storepostgres.NewTransactionManager(db),
+		txManager,
 		uuidGenerator{},
 		systemClock{},
 		cfg.WorkerMaxAttempts,
-		riverjobs.NoopUploadLogEnqueuer{},
 	)
 	deferredIngestService := service.NewDeferredIngestService(
 		storepostgres.NewDeferredIngestRepository(db),
 		ingestService,
-		storepostgres.NewTransactionManager(db),
+		txManager,
 		uuidGenerator{},
 		systemClock{},
 		cfg.WorkerMaxAttempts,
-		riverjobs.NoopDeferredIngestEnqueuer{},
 	)
 
 	workers := river.NewWorkers()
@@ -94,6 +108,7 @@ func main() {
 	river.AddWorker(workers, &deferredIngestWorker)
 
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+		Schema:  riverjobs.Schema,
 		Workers: workers,
 		Queues: map[string]river.QueueConfig{
 			cfg.UploadLogQueueName: {

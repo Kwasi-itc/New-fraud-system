@@ -25,6 +25,7 @@ type TransactionManager struct {
 	maxRows, maxBytes int
 	authorize         MutationAuthorizer
 	queue             *IndexDeliveryStore
+	metrics           *mysqlstore.TransactionMetrics
 }
 
 func NewTransactionManager(db *sql.DB, database string, tenant uuid.UUID, maxRows, maxBytes int, authorize MutationAuthorizer, queue *IndexDeliveryStore) (*TransactionManager, error) {
@@ -50,7 +51,19 @@ func newTransactionConfiguration(db *sql.DB, database string, maxRows, maxBytes 
 	if queue != nil && (queue.db != db || queue.schema != schema) {
 		return nil, errors.New("delivery store must use the same pool and database")
 	}
-	return &TransactionManager{db, database, uuid.Nil, maxRows, maxBytes, authorize, queue}, nil
+	return &TransactionManager{db: db, database: database, maxRows: maxRows, maxBytes: maxBytes, authorize: authorize, queue: queue}, nil
+}
+
+// WithMetrics returns a configured copy. The caller may share one aggregate
+// collector across authorized tenant-scoped managers; no tenant label, request
+// data or SQL is retained. It does not change the configured runtime backend.
+func (m *TransactionManager) WithMetrics(metrics *mysqlstore.TransactionMetrics) (*TransactionManager, error) {
+	if m == nil || m.db == nil || metrics == nil {
+		return nil, errors.New("configured transaction manager and metrics required")
+	}
+	copy := *m
+	copy.metrics = metrics
+	return &copy, nil
 }
 
 func (m *TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore) error) error {
@@ -68,7 +81,11 @@ func (m *TransactionManager) RunWithTx(ctx context.Context, fn func(ports.Mutati
 	if m == nil || m.db == nil || m.tenant == uuid.Nil || m.authorize == nil || fn == nil {
 		return errors.New("initialized transaction manager and callback required")
 	}
-	return mysqlstore.Mutation(ctx, m.db, func(tx *sql.Tx) error {
+	run := mysqlstore.Mutation
+	if m.metrics != nil {
+		run = m.metrics.Mutation
+	}
+	return run(ctx, m.db, func(tx *sql.Tx) error {
 		if err := m.authorize(ctx, tx, m.tenant); err != nil {
 			return err
 		}

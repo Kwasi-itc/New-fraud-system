@@ -57,6 +57,7 @@ func publicationDB(t *testing.T) *sql.DB {
 
 func TestMySQLPublication(t *testing.T) {
 	db := publicationDB(t)
+	t.Run("metadata_transaction_metrics", func(t *testing.T) { testMetadataTransactionMetrics(t, db) })
 	t.Run("worker_execution", func(t *testing.T) { testIndexJobExecution(t, db) })
 	t.Run("byte_limits", func(t *testing.T) { testPublicationByteLimits(t, db) })
 	t.Run("operation_recovery", func(t *testing.T) { testPublicationOperations(t, db) })

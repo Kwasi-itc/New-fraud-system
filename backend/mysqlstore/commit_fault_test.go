@@ -92,7 +92,8 @@ func TestMySQLLostCommitAcknowledgement(t *testing.T) {
 	defer faultDB.Close()
 	operation := UUID{15: 42}
 	calls := 0
-	err = Mutation(ctx, faultDB, func(tx *sql.Tx) error {
+	metrics := &TransactionMetrics{}
+	err = metrics.Mutation(ctx, faultDB, func(tx *sql.Tx) error {
 		calls++
 		_, err := tx.ExecContext(ctx, "INSERT INTO "+name+" VALUES(?,?)", operation, 123)
 		return err
@@ -100,6 +101,9 @@ func TestMySQLLostCommitAcknowledgement(t *testing.T) {
 	var commit *CommitError
 	if !errors.As(err, &commit) || !observed.Load() || calls != 1 || Classify(err) != Other {
 		t.Fatalf("outcome not preserved: err=%v observed=%v calls=%d", err, observed.Load(), calls)
+	}
+	if snapshot := metrics.Snapshot(); snapshot.Uncertain != 1 || snapshot.Completed != 0 || snapshot.Active != 0 {
+		t.Fatalf("ambiguous commit miscounted: %+v", snapshot)
 	}
 	// Reconcile on a separate healthy connection by stable operation identity.
 	var result int

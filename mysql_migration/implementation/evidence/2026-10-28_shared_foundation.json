@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-28",
+  "scope": "DB-01 shared foundation; partial Q-01, SC-01 and V-01 implementation, not runtime activation",
+  "user_excluded": ["Aurora testing"],
+  "implemented": [
+    "Strict Boolean, signed Int32, finite Float64 and UTF-8 Text codecs with nullable variants and stale destination clearing",
+    "Explicit replica/pool connection-budget validation with headroom, overflow and unbounded-setting rejection",
+    "Local pool and transaction observations; separate uncertain commit/rollback counters without automatic retries",
+    "Shared owner-ledger migration executor extracted from data-model with exact definition/checksum verification and dirty-step recovery",
+    "Dependency-ordered bootstrap with same-database graph validation and dedicated deployment lock",
+    "Shared lease supervision, bounded no-prefetch delivery polling and River v0.31.0 transport retry policy adopted by data-model wrappers",
+    "Fifteen-kind legacy identity, default queue, timeout and uniqueness catalog; strict identity decoder and source-contract drift checks"
+  ],
+  "compatibility": {
+    "data_model_ledger_definition_and_lock_name": "preserved",
+    "data_model_frozen_installation_sql_and_artifacts": "not regenerated or changed",
+    "data_model_step_serialization_and_checksums": "preserved",
+    "existing_staged_changes": "preserved: 59 files, 20063 insertions and 88 deletions",
+    "runtime_engine": "unchanged PostgreSQL/River"
+  },
+  "verification": [
+    {
+      "environment": "Go 1.25.0 cached container",
+      "checks": "Shared go vet and unit/race tests",
+      "result": "passed; real-engine cases skipped in this initial run"
+    },
+    {
+      "environment": "Go 1.25.0 cached container; no integration target",
+      "checks": "Data-model go vet for internal/worker and recursive internal/store/mysql; go test -mod=readonly -race -count=1 -timeout=180s for internal/worker, internal/contract and recursive internal/store/mysql",
+      "result": "passed; real data-model MySQL integration cases explicitly skipped, not acceptance evidence"
+    },
+    {
+      "environment": "Isolated tmpfs MySQL 9.7.1, Go 1.25.0, integration required, no published ports",
+      "checks": "go vet ./...; go test -mod=readonly -race -count=1 -timeout=180s -skip '^TestMySQLTransactions$' ./...",
+      "result": "passed; exploratory coverage, not pinned MySQL 8.4.8 acceptance",
+      "explicit_exclusion": "Existing TestMySQLTransactions asserts version 8.4",
+      "included": [
+        "New scalar/text NULL and value round trips; invalid input and database constraints",
+        "Existing lost COMMIT and ROLLBACK acknowledgement faults plus uncertain metric assertions",
+        "Existing session/pool/cancellation, integrity and DDL-lock/metadata inspection regressions",
+        "Owner-ledger separation, dirty-step recovery, checksum/shape drift and missing lineage",
+        "Bootstrap ordering, prerequisite failure and concurrent installer exclusion",
+        "Worker lifecycle, retry, legacy payload and owner-source inventory checks"
+      ]
+    },
+    {
+      "environment": "Host cached Go 1.25.0",
+      "checks": "go test -race -count=1 ./workers after final source-inventory test change",
+      "result": "passed"
+    },
+    {
+      "checks": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "failures_found_and_fixed": [
+    "Overly broad migration-ledger suffix rejection incorrectly blocked a legitimate data-model table; validation now protects the exact owner ledger",
+    "Bootstrap lock name was 65 bytes; shortened within the existing DDL lock contract"
+  ],
+  "environment_limitations": [
+    "Pinned MySQL 8.4.8 and Go 1.25.8 pulls failed in the local Docker credential helper",
+    "Host download of the pinned MySQL Go driver failed DNS; dependency downloads worked in the cached Go container",
+    "No pinned 8.4.8 acceptance, representative deployment load or Aurora/failover result is claimed"
+  ],
+  "remaining_implementation": [
+    "Ingestion transaction port still exposes pgx.Tx; historical DB-01.1h.1 completion claim corrected",
+    "Other owner ports, scalar/error mappings and runtime observability adoption",
+    "Other owners' durable MySQL queue schemas, claims/effects, retention, cancellation and operator recovery",
+    "Complete schedule/watermark/missed-occurrence semantics and versioned job-state/error-history migration",
+    "Other owners' fixed routines, grants, compatibility inspectors and migration plans",
+    "Auth-owned MySQL authorization compatibility dependencies and cross-owner adoption",
+    "Production nil/no-op required-enqueue paths and all-kind atomic effect/rollback verification"
+  ],
+  "cleanup": "Only disposable shared-foundation test containers, network and generated certificate volume removed; application containers/data untouched",
+  "remote_access_or_database_changes": "No EC2, production or application database accessed; no runtime grants/cutover changed",
+  "git_commit_or_push": "none",
+  "execution_log_note": "The existing 16_execution_log.md contains invalid UTF-8 bytes; it was preserved unchanged rather than re-encoded. This structured evidence record documents the work."
+}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	driver "github.com/go-sql-driver/mysql"
@@ -101,46 +102,70 @@ type History struct {
 }
 
 type Runner struct {
-	db   *sql.DB
-	plan Plan
+	db           *sql.DB
+	plan         Plan
+	owner        string
+	ledger       string
+	ledgerCreate string
 }
 
-func New(db *sql.DB, plan Plan) (*Runner, error) {
+// New binds a reviewed owner plan to its independently tracked ledger. Owner is
+// a fixed deployment identity, never a caller/tenant-provided table prefix.
+func New(db *sql.DB, owner string, plan Plan) (*Runner, error) {
 	if db == nil {
 		return nil, errors.New("migration database required")
+	}
+	ledger := owner + "_schema_migrations"
+	if _, err := mysqlstore.Identifier(ledger); err != nil || len(owner) == 0 {
+		return nil, errors.New("bounded owner migration namespace required")
 	}
 	if err := plan.Validate(); err != nil {
 		return nil, err
 	}
+	for _, step := range plan.Steps {
+		if step.Name == ledger {
+			return nil, errors.New("migration plan cannot mutate its own ledger")
+		}
+	}
 	plan.Steps = append([]Step(nil), plan.Steps...)
-	return &Runner{db, plan}, nil
+	// Preserve data-model's shipped definition and step checksums byte-for-byte.
+	definition := strings.ReplaceAll(ledgerCreate, "data_model_schema_migrations", ledger)
+	definition = strings.ReplaceAll(definition, "data_model_migration_state", owner+"_migration_state")
+	return &Runner{db: db, plan: plan, owner: owner, ledger: ledger, ledgerCreate: definition}, nil
 }
 
 func (r *Runner) locked(ctx context.Context, fn func(*sql.Conn, string) error) error {
 	schema, _ := mysqlstore.Identifier(r.plan.Database)
 	hash := sha256.Sum256([]byte(r.plan.Database))
-	return mysqlstore.WithDDLLock(ctx, r.db, fmt.Sprintf("data_model_migrate_%x", hash[:22]), func(conn *sql.Conn) error {
+	// Hash both identities to keep the named lock within MySQL's 64-byte limit.
+	// Retain the old data-model lock name for already-shipped installers.
+	lock := fmt.Sprintf("data_model_migrate_%x", hash[:22])
+	if r.owner != "data_model" {
+		hash = sha256.Sum256([]byte(r.plan.Database + ":" + r.owner))
+		lock = fmt.Sprintf("owner_migrate_%x", hash[:24])
+	}
+	return mysqlstore.WithDDLLock(ctx, r.db, lock, func(conn *sql.Conn) error {
 		// All DDL, probes and autocommit journal writes use this same session.
 		return fn(conn, schema)
 	})
 }
 
 func (r *Runner) bootstrap(ctx context.Context, conn *sql.Conn, schema string) error {
-	actual, err := Definition(ctx, conn, r.plan.Database, "TABLE", "data_model_schema_migrations")
+	actual, err := Definition(ctx, conn, r.plan.Database, "TABLE", r.ledger)
 	if err != nil {
 		return err
 	}
 	if actual == "" {
-		statement := "CREATE TABLE " + schema + "." + ledgerCreate[len("CREATE TABLE "):]
+		statement := "CREATE TABLE " + schema + "." + r.ledgerCreate[len("CREATE TABLE "):]
 		if _, err := conn.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("create migration ledger (outcome requires inspection): %w", err)
 		}
-		actual, err = Definition(ctx, conn, r.plan.Database, "TABLE", "data_model_schema_migrations")
+		actual, err = Definition(ctx, conn, r.plan.Database, "TABLE", r.ledger)
 		if err != nil {
 			return err
 		}
 	}
-	want, _ := json.Marshal(map[string]string{"Table": "data_model_schema_migrations", "Create Table": ledgerCreate})
+	want, _ := json.Marshal(map[string]string{"Table": r.ledger, "Create Table": r.ledgerCreate})
 	if actual != string(want) {
 		return fmt.Errorf("migration ledger: %w", ErrDrift)
 	}
@@ -148,7 +173,7 @@ func (r *Runner) bootstrap(ctx context.Context, conn *sql.Conn, schema string) e
 }
 
 func (r *Runner) history(ctx context.Context, conn *sql.Conn, schema string) ([]History, error) {
-	rows, err := conn.QueryContext(ctx, "SELECT step_no,step_id,checksum,state FROM "+schema+".data_model_schema_migrations ORDER BY step_no LIMIT ?", len(r.plan.Steps)+1)
+	rows, err := conn.QueryContext(ctx, "SELECT step_no,step_id,checksum,state FROM "+schema+".`"+r.ledger+"` ORDER BY step_no LIMIT ?", len(r.plan.Steps)+1)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +202,7 @@ func (r *Runner) history(ctx context.Context, conn *sql.Conn, schema string) ([]
 func (r *Runner) Status(ctx context.Context) ([]History, error) {
 	var result []History
 	err := r.locked(ctx, func(conn *sql.Conn, schema string) error {
-		definition, err := Definition(ctx, conn, r.plan.Database, "TABLE", "data_model_schema_migrations")
+		definition, err := Definition(ctx, conn, r.plan.Database, "TABLE", r.ledger)
 		if err != nil || definition == "" {
 			return err
 		}
@@ -236,7 +261,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 			}
 			sum := checksum(r.plan.Database, s)
 			if !dirty {
-				if _, err := conn.ExecContext(ctx, "INSERT INTO "+schema+".data_model_schema_migrations(step_no,step_id,checksum,state,started_at) VALUES (?,?,?,'dirty',UTC_TIMESTAMP(6))", i+1, s.ID, sum[:]); err != nil {
+				if _, err := conn.ExecContext(ctx, "INSERT INTO "+schema+".`"+r.ledger+"`(step_no,step_id,checksum,state,started_at) VALUES (?,?,?,'dirty',UTC_TIMESTAMP(6))", i+1, s.ID, sum[:]); err != nil {
 					return fmt.Errorf("record intent %s (outcome uncertain): %w", s.ID, err)
 				}
 			}
@@ -252,7 +277,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 			if actual != s.After {
 				return fmt.Errorf("verify step %s: %w", s.ID, ErrDrift)
 			}
-			result, err := conn.ExecContext(ctx, "UPDATE "+schema+".data_model_schema_migrations SET state='applied',applied_at=UTC_TIMESTAMP(6) WHERE step_no=? AND checksum=? AND state='dirty'", i+1, sum[:])
+			result, err := conn.ExecContext(ctx, "UPDATE "+schema+".`"+r.ledger+"` SET state='applied',applied_at=UTC_TIMESTAMP(6) WHERE step_no=? AND checksum=? AND state='dirty'", i+1, sum[:])
 			if err != nil {
 				return fmt.Errorf("record applied %s (outcome uncertain): %w", s.ID, err)
 			}

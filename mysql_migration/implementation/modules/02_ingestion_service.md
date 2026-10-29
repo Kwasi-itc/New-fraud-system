@@ -29,10 +29,11 @@ Every accepted input has a reconciled durable outcome. No audit/outbox without i
 
 Implement and validate in disposable environments. All shared consumers must be compatible before live activation; an individual module passing its suite does not authorize a partial cross-engine production cutover. Preserve old adapters/compatible API artifacts through rehearsal as needed, with a single chosen runtime authority. The [roadmap](../10_implementation_roadmap.md) owns task dependencies and [cutover plan](../11_data_transfer_and_cutover.md) owns data rollback. Module schema rollback cannot undo externally delivered effects.
 
-## Verified preparation (2026-10-22)
+## Verified preparation (source and real-test recheck 2026-10-29)
 
 - [x] **IN-01.2a - COMPLETED:** Replace ingestion RawTx with typed transactional enqueue methods; keep pgx and River inside PostgreSQL adapters.
-- [x] **IN-01.2b - COMPLETED:** Verify upload/deferred row and job commit/rollback together, cancellation cleanup, scheduled times and missing-producer rollback against disposable PostgreSQL.
-- [x] **IN-01.2c - COMPLETED:** Remove no-op queue success, require transaction managers on creation, and return retryable processing failures to River after persisting retry state.
+- [x] **IN-01.2b - COMPLETED:** Verify upload/deferred row and job commit/rollback together, tenant binding, callback/cancellation/panic cleanup, scheduled times and missing-schema/producer rollback against disposable PostgreSQL.
+- [x] **IN-01.2c - COMPLETED:** Remove no-op queue success and require transaction managers on creation. Domain retries atomically update owner state and enqueue a version-1 per-attempt delivery; a running/retained prior delivery cannot silently absorb the new retry. Repeated insertion for the same attempt remains deduplicated; legacy v0 payloads remain accepted.
+- [x] **IN-01.2d - COMPLETED:** API/worker startup and API readiness validate explicit public River schema lineage, required objects and role access. Queue-client construction errors propagate; missing database is not ready. Restricted-role, unknown-version and removed-table tests fail closed without installing anything.
 
-The parent IN-01.2 remains open: MySQL keyed writes, target queue and errors are not implemented. The new tests verify enqueue persistence and service retry signals, not a running worker's scheduling/rescue lifecycle. Full evidence and reproduction: [execution log](../16_execution_log.md).
+The parent IN-01.2 remains open: MySQL keyed writes, target queue and errors are not implemented. These tests verify atomic enqueue/retry identity and readiness, not a full running worker's scheduling/rescue lifecycle, stale-effect fencing or exactly-once external effects. Migration metadata down preserves shared River objects; coordinated queue rollback is a separate operation, not a repair command. Full scope and reproduction: [dated evidence](../evidence/2026-10-29_dependency_free_shared_work.json).

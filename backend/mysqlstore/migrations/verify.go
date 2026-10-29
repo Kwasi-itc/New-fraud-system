@@ -32,14 +32,14 @@ func (r *Runner) VerifyOnConn(ctx context.Context, conn *sql.Conn, inspect func(
 		return errors.New("pinned verification connection required")
 	}
 	schema, _ := mysqlstore.Identifier(r.plan.Database)
-	actual, err := Definition(ctx, conn, r.plan.Database, "TABLE", "data_model_schema_migrations")
+	actual, err := Definition(ctx, conn, r.plan.Database, "TABLE", r.ledger)
 	if err != nil {
 		return err
 	}
 	if actual == "" {
 		return ErrLineage
 	}
-	want, _ := json.Marshal(map[string]string{"Table": "data_model_schema_migrations", "Create Table": ledgerCreate})
+	want, _ := json.Marshal(map[string]string{"Table": r.ledger, "Create Table": r.ledgerCreate})
 	if actual != string(want) {
 		return ErrDrift
 	}

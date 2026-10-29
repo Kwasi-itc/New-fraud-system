@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 )
 
 type UploadLogService struct {
@@ -22,7 +22,6 @@ type UploadLogService struct {
 	idGenerator   ports.IDGenerator
 	clock         ports.Clock
 	maxAttempts   int
-	enqueuer      riverjobs.UploadLogEnqueuer
 }
 
 func NewUploadLogService(
@@ -32,13 +31,9 @@ func NewUploadLogService(
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
 	maxAttempts int,
-	enqueuer riverjobs.UploadLogEnqueuer,
 ) UploadLogService {
 	if maxAttempts <= 0 {
 		maxAttempts = 3
-	}
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopUploadLogEnqueuer{}
 	}
 	return UploadLogService{
 		uploadLogs:    uploadLogs,
@@ -47,11 +42,13 @@ func NewUploadLogService(
 		idGenerator:   idGenerator,
 		clock:         clock,
 		maxAttempts:   maxAttempts,
-		enqueuer:      enqueuer,
 	}
 }
 
 func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, objectType string, mode ingestion.Mode, filename, contentType string, payload []byte) (ingestion.UploadLog, error) {
+	if s.txManager == nil {
+		return ingestion.UploadLog{}, errors.New("upload creation requires transactional persistence and scheduling")
+	}
 	now := s.clock.Now()
 	log := ingestion.UploadLog{
 		ID:          s.idGenerator.New().String(),
@@ -68,20 +65,11 @@ func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, object
 	if err != nil {
 		return ingestion.UploadLog{}, err
 	}
-	if s.txManager == nil {
-		if err := s.uploadLogs.Create(ctx, log); err != nil {
-			return ingestion.UploadLog{}, err
-		}
-		if err := s.enqueuer.Enqueue(ctx, logID, nil); err != nil {
-			return ingestion.UploadLog{}, err
-		}
-		return log, nil
-	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.UploadLogs().Create(ctx, log); err != nil {
 			return err
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), logID, nil)
+		return store.EnqueueUploadLog(ctx, logID, nil)
 	}); err != nil {
 		return ingestion.UploadLog{}, err
 	}
@@ -145,16 +133,13 @@ func (s UploadLogService) handleRetryableFailure(ctx context.Context, log *inges
 			return err
 		}
 		if s.txManager == nil {
-			if err := s.uploadLogs.Update(ctx, *log); err != nil {
-				return err
-			}
-			return s.enqueuer.Enqueue(ctx, id, nil)
+			return errors.New("upload retry requires transactional persistence and scheduling")
 		}
 		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
 			if err := store.UploadLogs().Update(ctx, *log); err != nil {
 				return err
 			}
-			return s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, nil)
+			return store.RetryUploadLog(ctx, id, nil)
 		})
 	}
 	log.Status = ingestion.UploadLogStatusFailed

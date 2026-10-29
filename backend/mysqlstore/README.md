@@ -1,14 +1,15 @@
 # MySQL repository foundation
 
-Initial DB-01 implementation, not a service migration. No existing service imports
-this module yet. The application still uses PostgreSQL.
+DB-01 implementation, not a runtime cutover. Data-model's staged MySQL adapters
+import this module. The configured application still uses PostgreSQL/River.
 
 This module provides typed connection configuration, bounded pools, verified TLS
 by default, UTC/strict session settings, READ COMMITTED mutation transactions,
 read-only REPEATABLE READ snapshots, error categories, a binary UUID codec and
 UTC DATETIME(6) binding/scanning that rejects implicit precision loss.
-It does not implement authorization, schema migrations, retry loops, job delivery
-or domain repositories.
+It does not implement authorization or other owners' domain repositories. The
+`migrations` and `workers` packages supply shared installation/execution mechanics;
+they do not enable a service or replace its domain transitions automatically.
 
 Repositories must parameterize values and resolve authorized physical metadata
 before quoting identifiers. Transaction callbacks must not execute DDL, change
@@ -106,8 +107,10 @@ MySQL's [INET6_ATON](https://dev.mysql.com/doc/refman/8.4/en/miscellaneous-funct
 supports address bytes but rejects trailing masks, so it alone cannot retain a
 prefix. Full PostgreSQL differential, query and API-format parity remains pending.
 
-Failover, broader scalar/domain codecs, service-port conversion, observability
-and representative load remain outstanding. A passed foundation suite is not
+Shared scalar/text codecs and optional local observations are implemented below;
+owner-specific mappings, remaining service-port conversion, deployment metric
+wiring and representative load acceptance remain outstanding. Aurora/failover
+testing is excluded from the current work. A passed foundation suite is not
 production readiness or proof of migration parity.
 
 Driver configuration follows the pinned
@@ -258,3 +261,105 @@ visibility, table options, grants and complete expected-schema comparisons remai
 pending. The fields follow MySQL's
 [referential constraint metadata](https://dev.mysql.com/doc/refman/8.4/en/information-schema-referential-constraints-table.html)
 and [check enforcement metadata](https://dev.mysql.com/doc/refman/8.4/en/information-schema-table-constraints-table.html).
+
+## Scalar codecs and observations
+
+`Bool`, `Int32`, `Float64` and `Text` preserve Boolean, signed 32-bit integer,
+finite DOUBLE and UTF-8 text domains, with `Null*` variants for SQL NULL. Invalid
+scans clear reused destinations; no invalid value becomes a successful no-match.
+Boolean owner columns still need enforced 0/1 constraints. Text preserves case,
+whitespace and Unicode representation, rejects NUL (as PostgreSQL text does),
+and does not implement owner length limits or exact-key collation by itself.
+JSON null remains distinct from SQL NULL through the existing JSON codecs.
+
+`ObservePool` reports local database/sql gauges and cumulative wait/connection
+closure counters without SQL, credentials or high-cardinality tenant labels.
+Compare snapshots of the same pool/process, not unrelated service replicas.
+`TransactionMetrics` optionally wraps Mutation/ReadSnapshot without changing
+their cleanup, panic or retry behavior. Elapsed time includes acquisition and
+cleanup; uncertain commit/rollback outcomes have a separate counter. Concurrent
+multi-counter snapshots are approximate; totals reconcile after quiescence.
+These helpers are not yet wired into every service's runtime metrics endpoint.
+
+`ValidateConnectionBudget` sums explicitly listed replicas times finite pool
+limits and reserves database headroom. It rejects missing/unbounded/duplicate
+entries, over-budget settings and overflow. The caller must inventory every
+API, read, worker, DDL/installer and monitoring pool. It cannot discover omitted
+processes, reserve server connections or establish a performance SLO.
+
+## Shared migration mechanics
+
+`migrations.New(db, owner, plan)` binds a trusted reviewed plan to the selected
+logical database and `<owner>_schema_migrations`. Its dedicated owner lock,
+dirty/applied journal and before/after definitions recover ambiguous DDL without
+blind replay. Status/Verify do not install absent schema. Fixed routines and
+triggers retain their full SHOW CREATE context; installers supply independently
+reviewed reference observations and owner-specific least-privilege verification.
+There is no force-clean/down repair or arbitrary production-schema adoption.
+
+`migrations.Bootstrap` validates a bounded dependency graph before writes, then
+serializes coordinators for that database while applying and verifying passes
+in dependency order. Dependencies are reverified before consumers. Split owner
+tables, cross-owner routines and grants into explicit passes as needed. Passes
+must share the logical database and supply both Apply and Verify. A dedicated
+deployment lock uses one pool connection; callbacks need additional capacity.
+Independent installers must obey the same deployment coordination protocol.
+This is deployment infrastructure, not permission to run migrations at API boot.
+
+Data-model's compatibility wrapper adopts this runner while preserving its
+existing lock name, ledger definition, serialized steps and checksums. Existing
+installation SQL/artifacts were not regenerated. Other owners still need their
+own installation/upgrade plans, grants and compatibility acceptance tests.
+
+## Shared worker mechanics
+
+`workers.LeaseSupervisor`, `DeliveryPoller` and `RiverDeliveryRetryPolicy` are
+the implementations previously private to data-model, now reused through its
+stable owner wrapper. They own heartbeat/timeout supervision, fixed concurrency,
+joined shutdown and transport error-count backoff, not business mutation or
+acknowledgement. Durable claims, fence validation and local effects remain in
+the owner store's transaction. Cancellation is not a physical DDL fence.
+
+The executable fifteen-kind legacy catalog and strict identity decoder document
+existing payloads and detect source-contract drift. The decoder accepts only
+version-zero legacy identities; it does not infer tenants, error history,
+schedules, operation receipts or migration eligibility. Jobs with only resource
+IDs require an authoritative owner tenant lookup. Global case jobs are explicitly
+global, never assigned a fake tenant. A catalog entry does not enable a handler.
+Other owners' durable MySQL transports, all-kind fencing/effects, scheduled
+occurrences, cancellation, operator recovery and runtime wiring remain open.
+
+### Dependency-free worker preparation
+
+`MaintenanceScheduler[Cursor]` is the data-model scheduler extracted without
+changing its independent expiry/retention cursors. It bounds pages per cycle,
+advances through locked prefixes and stops on partial/ambiguous errors.
+Data-model adopts it through its existing owner API. `FairClaimer` rotates queue
+priority without claim-ahead buffering or skipping failed/ambiguous claims.
+`WithPollJitter` configures an immutable poller copy with explicit bounded jitter;
+zero retains existing polling timing. No deployment concurrency is selected here.
+
+`DeliveryMetrics` optionally instruments poll/heartbeat/supervised execution
+without callbacks or retries. Its counters describe **host runs**, not durable
+job completion/discard state; heartbeat shutdown cancellations are separate from
+failures. The owner still persists its authoritative outcomes. Data-model's
+staged metadata transaction manager also supports an immutable `WithMetrics`
+configuration without weakening its in-transaction authorization.
+
+Shared lifecycle/error-history policies are used by data-model finish/cancel/
+rescue paths. They retain completed/cancelled work for 24 hours and discarded
+work for seven days, and never infer error history from claim attempts.
+
+`PlanOccurrences` performs bounded UTC-microsecond interval arithmetic with
+explicit catch-up/coalesce/skip-late policy and a stable scheduled instant.
+It is not a durable scheduler: an owner must lock its schedule and atomically
+persist the unique occurrence, job and watermark. RunOnStart, singleton ownership
+and each owner's chosen missed-run policy are not enabled by this helper.
+
+`DecodeIdentity` additionally understands ingestion's explicit v1 retry payload;
+the strict legacy decoder remains v0-only. `CheckLegacyExport` validates identity,
+authoritative scope binding, supported timestamps/state and independently known
+error history for all fifteen kinds. It rejects running work that needs drain
+and returns copies of source buffers. It does not insert jobs, infer tenants,
+translate domain states, synthesize receipts or certify external effects. Those
+steps depend on each owner's approved target schema and recovery contract.

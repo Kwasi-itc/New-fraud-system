@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-29",
+  "branch": "my_sql-migration",
+  "scope": "Dependency-free shared foundation and portable ingestion preparation; no live engine cutover",
+  "approach": [
+    "Read existing MySQL implementation and planning before changes; reuse mysqlstore, pinned River dependencies and owner coding practices.",
+    "Keep shared mechanics separate from owner SQL, authorization and business transitions.",
+    "Preserve existing unrelated staged performance-harness and optional-outbox changes."
+  ],
+  "implemented": [
+    "Shared typed scalar/text codecs, explicit pool-budget validation, optional pool/transaction observations and reusable owner-ledger/bootstrap mechanics from the preceding foundation pass remain in place.",
+    "Extracted bounded data-model maintenance host into generic workers.MaintenanceScheduler with independent cursors and explicit partial/uncertain failure reporting.",
+    "Added bounded fair queue probing, immutable optional poll jitter and atomic host metrics; these do not activate handlers or choose deployment concurrency.",
+    "Added shared error-history, completion/retry/exhaustion/cancellation/retention policies; data-model MySQL delivery store adopts them without changing tenant/lease fences or atomic owner effects.",
+    "Added bounded UTC-microsecond interval occurrence planning for explicit catch-up/coalesce/skip-late policies. Durable schedule rows, unique occurrence insertion and watermark transactions remain owner work.",
+    "Added strict fifteen-kind legacy export validation and explicit ingestion-v1 identity decoding; no inferred tenants, fabricated error histories or running-work replay. This is not a target importer.",
+    "Data-model metadata transaction manager supports optional shared observations without moving authorization outside its transaction.",
+    "Ingestion domain ports/services no longer expose pgx transactions or depend on River. Typed transaction-bound enqueue/retry methods replace RawTx; AST boundary tests guard imports.",
+    "Removed ingestion success-through-noop producers and non-atomic creation fallbacks. Client construction errors propagate; actual API/worker producers are wired to the owner transaction.",
+    "Ingestion retries use version-1 per-domain-attempt delivery identity, preserving River required uniqueness states while preventing a retained/running earlier attempt from swallowing retries. Legacy v0 remains accepted.",
+    "Ingestion API/worker startup and API readiness verify pinned public River lineage, objects, columns, index and required role access; connectivity alone is insufficient. Validation never installs or repairs schema.",
+    "Data-model, ingestion and decision metadata-down commands preserve shared River objects; River-down calls reject before connecting.",
+    "Added isolated PostgreSQL ingestion fixture and per-test generated disposable databases; fixed test-only concurrent Gin global-mode writes discovered by the race detector.",
+    "Updated shared and ingestion checklists to distinguish implemented helpers/adoption from remaining owner contracts and full-system acceptance."
+  ],
+  "verification": [
+    {
+      "suite": "Ingestion full vet and race suite",
+      "command": "go vet ./... && go test -mod=readonly -race -count=1 -timeout=180s ./...",
+      "environment": "Private PostgreSQL 16 Docker project shared-port-test; INGESTION_REQUIRE_INTEGRATION=1; fresh generated ingestion_test_* databases; cached Go 1.25.0 override",
+      "result": "passed",
+      "real_database_coverage": [
+        "Owner rows and actual River jobs commit together, including two-tenant resource binding",
+        "Callback failure, cancellation and panic roll back both writes",
+        "Scheduled instant and scheduled job state preserved",
+        "Missing River table and required producer fail without persisting owner rows",
+        "Running prior delivery does not absorb retry; repeated same-attempt insertion deduplicates",
+        "Absent schema, removed table and unknown migration version fail readiness without repairs",
+        "API minimum-grant role passes; worker requirements and revoked INSERT fail independently"
+      ],
+      "limitations": "Separate pre-existing CONTRACT_TEST_DATABASE_URL suite was not configured. This is not a full running-worker rescue/external-effect test."
+    },
+    {
+      "suite": "Focused data-model real MySQL integration regression",
+      "command": "go vet ./cmd/migrate ./internal/worker ./internal/store/mysql/...; go test -mod=readonly -race -count=1 -timeout=180s ./cmd/migrate ./internal/worker; go test -mod=readonly -race -count=1 -timeout=240s -run 'Test(MySQLPublication|MetadataTransactionBoundaries|IndexDelivery.*|Delivery.*|MySQLDelivery.*|LeasedIndexExecution)$' ./internal/store/mysql ./internal/store/mysql/metadata",
+      "environment": "Private disposable shared-worker-mysql-test fixture; required MySQL test variables enabled; exploratory MySQL 9.7.1 and Go 1.25.0",
+      "result": "passed",
+      "coverage": "Publication transaction metrics/authorization rollback; actual owner delivery claim, retry/error history, cancellation, maintenance, polling, inspection/redrive, lease fencing and execution tests selected by the expression."
+    },
+    {
+      "suite": "Data-model full compile/vet/race regression without configured integration fixture",
+      "command": "unset DATA_MODEL_MYSQL_TEST_ADDRESS DATA_MODEL_MYSQL_TEST_ROOT_PASSWORD DATA_MODEL_REQUIRE_MYSQL_TEST; go vet ./...; go test -mod=readonly -race -count=1 -timeout=180s ./...",
+      "result": "passed",
+      "limitations": "Real-engine tests skip in this command; their focused execution is reported separately, not silently counted as full database coverage."
+    },
+    {
+      "suite": "Shared foundation vet/race and host-policy regression",
+      "command": "cd /backend/mysqlstore; go vet ./...; go test -mod=readonly -race -count=1 -timeout=120s ./...; host rerun: GOCACHE=/tmp/fraud-foundation-go-cache GOTOOLCHAIN=go1.25.0 go test -race -count=1 ./workers",
+      "result": "passed",
+      "limitations": "This final root suite had no MYSQLSTORE_TEST_ADDRESS, so root real-engine tests skip. Earlier exploratory real-engine foundation testing and exact exclusions are recorded in 2026-10-28_shared_foundation.json."
+    },
+    {
+      "suite": "Decision migration ownership guard",
+      "command": "go vet ./cmd/migrate; go test -race -count=1 ./cmd/migrate",
+      "result": "passed",
+      "limitations": "Tests reject queue down before connecting; no destructive down migration was executed and no full decision deployment was performed."
+    },
+    {
+      "suite": "Worktree hygiene",
+      "command": "git diff --check; git diff --cached --shortstat",
+      "result": "passed; pre-existing index still reports 59 files, 20063 insertions and 88 deletions"
+    }
+  ],
+  "corrected_verification_failures": [
+    "A first broad data-model non-integration command unset address/password but inadvertently retained DATA_MODEL_REQUIRE_MYSQL_TEST=1. Fixture guards correctly failed. The corrected command explicitly unset all three variables and passed; real focused integration tests had already passed with required variables enabled.",
+    "Race detector found existing per-test Gin.SetMode writes; package TestMain now initializes this global once without disabling parallel test execution.",
+    "Pinned River forbids excluding running from required unique states. The implementation instead uses an explicit per-attempt payload identity and preserves its supported uniqueness contract."
+  ],
+  "remaining": [
+    "Pinned MySQL 8.4.8 / Go 1.25.8 rerun: Docker credential helper prevented pulling those images. Exploratory 9.7.1 evidence is not target-version acceptance.",
+    "Other owners' target installation manifests/routines/grants and authorization contracts; MySQL ingestion/decision/screening/case adapters and durable effects.",
+    "Durable persisted schedules and all-kind state mapping/import receipts/external delivery reconciliation; planners and export validation alone do not implement these.",
+    "All-owner migration ordering, least-privilege compatibility, stale-worker effects and end-to-end crash/recovery/load acceptance.",
+    "Deployment-wide runtime metric wiring, approved replica/connection inventory and representative performance/query-plan evidence. No performance optimization is claimed.",
+    "Aurora testing is explicitly excluded by the user."
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_access": false,
+    "runtime_engine_changed": false,
+    "production_migrations_applied": false,
+    "images_rebuilt_or_deployed": false,
+    "commit_or_push": false,
+    "cleanup": "Removed only shared-port-test and shared-worker-mysql-test disposable databases/containers/private networks and their two temporary image overrides; application resources untouched.",
+    "existing_invalid_utf8_execution_log": "Preserved without re-encoding; this JSON is the additional execution record."
+  }
+}

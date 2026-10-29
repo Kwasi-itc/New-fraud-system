@@ -1,9 +1,11 @@
-package worker
+package workers
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"sync"
 	"time"
 )
@@ -21,13 +23,43 @@ type DeliveryPoller struct {
 	pollInterval time.Duration
 	claimTimeout time.Duration
 	supervisor   *LeaseSupervisor
+	pollJitter   time.Duration
+	metrics      *DeliveryMetrics
 }
 
 func NewDeliveryPoller(concurrency int, pollInterval, claimTimeout time.Duration, supervisor *LeaseSupervisor) (*DeliveryPoller, error) {
 	if concurrency < 1 || concurrency > 1024 || pollInterval <= 0 || claimTimeout <= 0 || supervisor == nil || supervisor.interval <= 0 {
 		return nil, errors.New("bounded concurrency, positive polling/claim durations and configured supervisor required")
 	}
-	return &DeliveryPoller{concurrency, pollInterval, claimTimeout, supervisor}, nil
+	return &DeliveryPoller{concurrency: concurrency, pollInterval: pollInterval, claimTimeout: claimTimeout, supervisor: supervisor}, nil
+}
+
+// WithPollJitter returns an immutable configured copy. Jitter is explicit (zero
+// retains the existing exact interval), bounded to half the interval and cannot
+// overflow or produce a zero/negative delay. Configure before starting Run.
+func (p *DeliveryPoller) WithPollJitter(jitter time.Duration) (*DeliveryPoller, error) {
+	if p == nil || p.pollInterval <= 0 || p.supervisor == nil || jitter < 0 || jitter > p.pollInterval/2 || p.pollInterval > time.Duration(math.MaxInt64)-jitter {
+		return nil, errors.New("configured poller and bounded nonnegative poll jitter required")
+	}
+	copy := *p
+	copy.pollJitter = jitter
+	return &copy, nil
+}
+
+func (p *DeliveryPoller) nextDelay() time.Duration {
+	if p.pollJitter == 0 {
+		return p.pollInterval
+	}
+	return p.pollInterval - p.pollJitter + time.Duration(rand.Int64N(2*int64(p.pollJitter)+1))
+}
+
+func (p *DeliveryPoller) WithMetrics(metrics *DeliveryMetrics) (*DeliveryPoller, error) {
+	if p == nil || p.supervisor == nil || p.pollInterval <= 0 || metrics == nil {
+		return nil, errors.New("configured poller and delivery metrics required")
+	}
+	copy := *p
+	copy.metrics = metrics
+	return &copy, nil
 }
 
 // Run uses fixed worker slots, with no claim-ahead buffer. Claim returns nil when
@@ -67,11 +99,23 @@ func (p *DeliveryPoller) Run(ctx context.Context, claim func(context.Context) (*
 func (p *DeliveryPoller) poll(ctx context.Context, claim func(context.Context) (*DeliveryTask, error), report func(context.Context, error) error) error {
 	for ctx.Err() == nil {
 		call, cancel := context.WithTimeout(ctx, p.claimTimeout)
+		started := time.Now()
+		if p.metrics != nil {
+			p.metrics.claims.Add(1)
+		}
 		task, err := claim(call)
 		if err == nil {
 			err = call.Err()
 		}
 		cancel()
+		if p.metrics != nil {
+			p.metrics.claimMicros.Add(time.Since(started).Microseconds())
+			if err != nil {
+				p.metrics.claimFailures.Add(1)
+			} else if task == nil {
+				p.metrics.empty.Add(1)
+			}
+		}
 		if err != nil {
 			return fmt.Errorf("claim delivery: %w", err)
 		}
@@ -82,7 +126,11 @@ func (p *DeliveryPoller) poll(ctx context.Context, claim func(context.Context) (
 			if task.Execute == nil || task.Heartbeat == nil {
 				return errors.New("claimed delivery is missing execution or heartbeat")
 			}
-			err = p.supervisor.Run(ctx, task.Heartbeat, task.Execute)
+			if p.metrics == nil {
+				err = p.supervisor.Run(ctx, task.Heartbeat, task.Execute)
+			} else {
+				err = p.metrics.run(ctx, p.supervisor, task)
+			}
 			if err == nil {
 				continue
 			}
@@ -93,7 +141,7 @@ func (p *DeliveryPoller) poll(ctx context.Context, claim func(context.Context) (
 				return errors.Join(err, fmt.Errorf("report delivery failure: %w", reportErr))
 			}
 		}
-		timer := time.NewTimer(p.pollInterval)
+		timer := time.NewTimer(p.nextDelay())
 		select {
 		case <-ctx.Done():
 			timer.Stop()

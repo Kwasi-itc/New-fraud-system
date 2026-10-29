@@ -63,9 +63,7 @@ func main() {
 		if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {
 			log.Fatalf("migrate down: %v", err)
 		}
-		if err := runRiverMigrations(context.Background(), cfg.DatabaseURL, rivermigrate.DirectionDown, nil); err != nil {
-			log.Fatalf("river migrate down: %v", err)
-		}
+		log.Print("service metadata rollback complete; shared River schema preserved (coordinated queue rollback is a separate operation)")
 	default:
 		log.Fatalf("unsupported migrate command %q", os.Args[1])
 	}
@@ -74,13 +72,16 @@ func main() {
 }
 
 func runRiverMigrations(ctx context.Context, databaseURL string, direction rivermigrate.Direction, opts *rivermigrate.MigrateOpts) error {
+	if direction != rivermigrate.DirectionUp {
+		return fmt.Errorf("shared River rollback requires a separately reviewed coordinated operation")
+	}
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		return fmt.Errorf("open river migration database: %w", err)
 	}
 	defer pool.Close()
 
-	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), &rivermigrate.Config{Schema: "public"})
 	if err != nil {
 		return fmt.Errorf("create river migrator: %w", err)
 	}

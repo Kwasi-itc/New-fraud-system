@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
@@ -20,7 +19,6 @@ import (
 
 func TestIngestHandlerRejectsNonObjectPayload(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewIngestHandler(service.NewIngestService(
 		stubDataModelReader{},
@@ -49,7 +47,6 @@ func TestIngestHandlerRejectsNonObjectPayload(t *testing.T) {
 
 func TestAggregateHandlerRejectsWhenConcurrencyLimitReached(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewIngestHandler(service.NewIngestService(
 		stubDataModelReader{},
@@ -84,7 +81,6 @@ func TestAggregateHandlerRejectsWhenConcurrencyLimitReached(t *testing.T) {
 
 func TestIngestHandlerRejectsWhenWriteConcurrencyLimitReached(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	writeLimiter := make(chan struct{}, 1)
 	handler := NewIngestHandler(service.NewIngestService(
@@ -119,7 +115,6 @@ func TestIngestHandlerRejectsWhenWriteConcurrencyLimitReached(t *testing.T) {
 
 func TestIngestHandlerDefersWhenWriteConcurrencyLimitReachedAndAsyncFallbackEnabled(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	writeLimiter := make(chan struct{}, 1)
 	handler := NewIngestHandler(service.NewIngestService(
@@ -144,7 +139,6 @@ func TestIngestHandlerDefersWhenWriteConcurrencyLimitReachedAndAsyncFallbackEnab
 			stubIDGenerator{},
 			stubClock{},
 			3,
-			stubDeferredIngestEnqueuer{},
 		),
 	})
 	writeLimiter <- struct{}{}
@@ -177,7 +171,6 @@ func TestIngestHandlerDefersWhenWriteConcurrencyLimitReachedAndAsyncFallbackEnab
 
 func TestListRecordsUsesDefaultReadLimit(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	reader := &capturingTenantReader{}
 	handler := NewIngestHandler(service.NewIngestService(
@@ -209,7 +202,6 @@ func TestListRecordsUsesDefaultReadLimit(t *testing.T) {
 
 func TestQueryRecordsUsesDefaultReadLimit(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	reader := &capturingTenantReader{}
 	handler := NewIngestHandler(service.NewIngestService(
@@ -285,12 +277,26 @@ func (stubMutationStore) UploadLogs() ports.UploadLogRepository     { return stu
 func (stubMutationStore) DeferredIngests() ports.DeferredIngestRepository {
 	return stubDeferredIngestRepo{}
 }
-func (stubMutationStore) TenantWriter() ports.TenantDataWriter { return stubTenantWriter{} }
-func (stubMutationStore) TenantReader() ports.TenantDataReader { return stubTenantReader{} }
-func (stubMutationStore) RawTx() pgx.Tx                        { return nil }
+func (stubMutationStore) TenantWriter() ports.TenantDataWriter                          { return stubTenantWriter{} }
+func (stubMutationStore) TenantReader() ports.TenantDataReader                          { return stubTenantReader{} }
+func (stubMutationStore) EnqueueUploadLog(context.Context, uuid.UUID, *time.Time) error { return nil }
+func (stubMutationStore) EnqueueDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
 
 type capturingMutationStore struct {
 	reader ports.TenantDataReader
+}
+
+func (stubMutationStore) RetryUploadLog(context.Context, uuid.UUID, *time.Time) error { return nil }
+func (stubMutationStore) RetryDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+func (capturingMutationStore) RetryUploadLog(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+func (capturingMutationStore) RetryDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
 }
 
 func (capturingMutationStore) RecordIngestion(context.Context, ingestion.IngestionAudit, ingestion.OutboxEvent) error {
@@ -308,7 +314,12 @@ func (capturingMutationStore) TenantWriter() ports.TenantDataWriter { return stu
 func (s capturingMutationStore) TenantReader() ports.TenantDataReader {
 	return s.reader
 }
-func (capturingMutationStore) RawTx() pgx.Tx { return nil }
+func (capturingMutationStore) EnqueueUploadLog(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+func (capturingMutationStore) EnqueueDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
 
 type stubAuditRepo struct{}
 
@@ -351,13 +362,6 @@ func (stubDeferredIngestRepo) StartAttempt(context.Context, uuid.UUID, time.Time
 }
 func (stubDeferredIngestRepo) MetricsSnapshot(context.Context, time.Time) (ingestion.DeferredIngestMetrics, error) {
 	return ingestion.DeferredIngestMetrics{}, nil
-}
-
-type stubDeferredIngestEnqueuer struct{}
-
-func (stubDeferredIngestEnqueuer) Enqueue(context.Context, uuid.UUID, *time.Time) error { return nil }
-func (stubDeferredIngestEnqueuer) EnqueueTx(context.Context, pgx.Tx, uuid.UUID, *time.Time) error {
-	return nil
 }
 
 type stubTenantWriter struct{}

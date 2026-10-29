@@ -10,6 +10,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	"github.com/google/uuid"
 )
 
@@ -57,6 +58,13 @@ func TestMetadataTransactionBoundaries(t *testing.T) {
 	if err := m.Run(context.Background(), nil); err == nil {
 		t.Fatal("nil callback accepted")
 	}
+	if _, err := m.WithMetrics(nil); err == nil {
+		t.Fatal("nil metrics accepted")
+	}
+	observed, err := m.WithMetrics(&mysqlstore.TransactionMetrics{})
+	if err != nil || observed.metrics == nil || m.metrics != nil {
+		t.Fatal("metrics configuration mutated the original manager")
+	}
 	s := metadataMutationStore{}
 	if err := s.EnqueueIndexJob(context.Background(), uuid.New(), nil); !errors.Is(err, ports.ErrJobQueueUnavailable) {
 		t.Fatal(err)
@@ -74,5 +82,61 @@ func TestMetadataTransactionBoundaries(t *testing.T) {
 	}
 	if state, err := physical.GetManagedIndexState(ctx, record, table, job); !errors.Is(err, ErrPhysicalProtocolRequired) || state.Exists || state.Name != "" {
 		t.Fatalf("false readiness: %+v %v", state, err)
+	}
+}
+
+func testMetadataTransactionMetrics(t *testing.T, db *sql.DB) {
+	ctx := context.Background()
+	tenantID := uuid.New()
+	metrics := &mysqlstore.TransactionMetrics{}
+	authorize := func(_ context.Context, _ *sql.Tx, id uuid.UUID) error {
+		if id != tenantID {
+			return errors.New("wrong tenant")
+		}
+		return nil
+	}
+	m, err := NewTransactionManager(db, "data_model_publication_test", tenantID, 100, 1<<20, authorize, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err = m.WithMetrics(metrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, rolledBack := uuid.New(), uuid.New()
+	insert := func(tx *sql.Tx, tableID uuid.UUID) error {
+		_, err := tx.ExecContext(ctx, "INSERT INTO data_model_tables(id,tenant_id,name) VALUES (?,?,?)", mysqlstore.UUID(tableID), mysqlstore.UUID(tenantID), "metrics_fixture")
+		return err
+	}
+	if err := m.RunWithTx(ctx, func(_ ports.MutationStore, tx *sql.Tx) error { return insert(tx, id) }); err != nil {
+		t.Fatal(err)
+	}
+	failure := errors.New("owner callback failed")
+	if err := m.RunWithTx(ctx, func(_ ports.MutationStore, tx *sql.Tx) error {
+		if err := insert(tx, rolledBack); err != nil {
+			return err
+		}
+		return failure
+	}); !errors.Is(err, failure) {
+		t.Fatal(err)
+	}
+	denied, err := NewTransactionManager(db, "data_model_publication_test", uuid.New(), 100, 1<<20, authorize, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	denied, err = denied.WithMetrics(metrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := denied.Run(ctx, func(ports.MutationStore) error { t.Error("authorization was bypassed"); return nil }); err == nil {
+		t.Fatal("denied mutation succeeded")
+	}
+	var count int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM data_model_tables WHERE tenant_id=? AND id IN (?,?)", mysqlstore.UUID(tenantID), mysqlstore.UUID(id), mysqlstore.UUID(rolledBack)).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("metrics changed commit outcomes: %d %v", count, err)
+	}
+	s := metrics.Snapshot()
+	if s.Started != 3 || s.Completed != 1 || s.Failed != 2 || s.Uncertain != 0 || s.Active != 0 {
+		t.Fatalf("metrics: %+v", s)
 	}
 }

@@ -29,9 +29,10 @@ services:
       retries: 60
   test:
     image: golang:1.25.8
-    working_dir: /work
+    working_dir: /backend/mysqlstore
     volumes:
-      - .:/work
+      # Contract tests compare the inventory with sibling owners' source types.
+      - ..:/backend
       - test-certs:/certs:ro
     environment:
       MYSQLSTORE_TEST_ADDRESS: mysql:3306
