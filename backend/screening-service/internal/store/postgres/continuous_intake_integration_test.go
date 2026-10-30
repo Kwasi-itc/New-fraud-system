@@ -32,8 +32,8 @@ func (p intakeProvider) Search(ctx context.Context, r screening.SearchRequest) (
 
 type intakeReader struct{}
 
-func (intakeReader) GetRecord(context.Context, string, string, string) (ports.TenantRecord, error) {
-	return ports.TenantRecord{Fields: map[string]any{"name": "Customer"}}, nil
+func (intakeReader) GetRecord(_ context.Context, _ string, objectType, objectID string) (ports.TenantRecord, error) {
+	return ports.TenantRecord{ObjectID: objectID, ObjectType: objectType, Fields: map[string]any{"name": "Customer"}}, nil
 }
 
 type intakeEnqueuer struct {
@@ -49,7 +49,7 @@ func (e intakeEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenant, id str
 	return err
 }
 func intakeService(db *pgxpool.Pool, e riverjobs.ScreeningEnqueuer) service.ScreeningService {
-	return service.NewScreeningService(store.NewTransactionManager(db), deliveryTestIDs{}, deliveryTestClock{}, store.NewScreeningRepository(db), store.NewScreeningMatchRepository(db), store.NewScreeningCommentRepository(db), store.NewScreeningWhitelistRepository(db), store.NewScreeningFileRepository(db), store.NewContinuousConfigRepository(db), store.NewMonitoredObjectRepository(db), store.NewDatasetUpdateJobRepository(db), nil, nil, nil, nil, nil, e, nil, nil)
+	return service.NewScreeningService(store.NewTransactionManager(db), deliveryTestIDs{}, deliveryTestClock{}, store.NewScreeningRepository(db), store.NewScreeningMatchRepository(db), store.NewScreeningCommentRepository(db), store.NewScreeningWhitelistRepository(db), store.NewScreeningFileRepository(db), store.NewContinuousConfigRepository(db), store.NewMonitoredObjectRepository(db), store.NewDatasetUpdateJobRepository(db), nil, nil, nil, nil, nil, e, nil, e)
 }
 func seedMonitored(t *testing.T, db *pgxpool.Pool, tenant, inbox string) (string, string) {
 	t.Helper()

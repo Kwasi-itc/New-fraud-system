@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/screeningcapabilities"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
@@ -22,7 +24,13 @@ import (
 )
 
 type RouterConfig struct {
+	NameRecognitionURL                  string
+	NameRecognitionToken                string
+	ScreeningServiceURL                 string
+	ScreeningIntakeToken                string
+	ScreeningCallbackToken              string
 	WorkflowAuthoringToken              string
+	ScreeningAuthoringToken             string
 	InvestigatorVerifier                *identity.Verifier
 	AuthMode                            string
 	AuthToken                           string
@@ -187,6 +195,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
 	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
+	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(cfg.GeoIPLookup)
 	testRunService.SetGeoIPLookup(cfg.GeoIPLookup)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
@@ -251,6 +260,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		group.DELETE("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
 	}
 	snoozeHandler := handlers.NewSnoozeHandler(snoozeService)
+	if db != nil && len(cfg.ScreeningAuthoringToken) >= 32 {
+		author := handlers.ScreeningAuthoringHandler{Service: service.ScreeningAuthoringService{NameRecognitionSupported: decisionService.NameRecognizer != nil, Capabilities: screeningcapabilities.Reader(cfg.ScreeningServiceURL, cfg.ScreeningIntakeToken, cfg.HTTPClientTimeout), Store: storepostgres.ScreeningAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
+		group := router.Group("/internal/screening-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.ScreeningAuthoringToken}))
+		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
+		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/configs/:configId", author.Handle)
+		read := handlers.ScreeningReadHandler{Store: storepostgres.ScreeningReadRepository{DB: db}}
+		group.GET("/tenants/:tenantId/decisions/:decisionId/screenings", read.List)
+	}
 	outboxHandler := handlers.NewOutboxHandler(outboxService)
 	executionHandler := handlers.NewExecutionHandler(executionService)
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
@@ -261,6 +278,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 
 	v1 := router.Group("/v1")
 	v1.Use(workflowConfigurationBoundary(cfg.WorkflowAuthoringToken))
+	v1.Use(screeningConfigurationBoundary(cfg.ScreeningAuthoringToken))
+	v1.Use(screeningExecutionBoundary(cfg.ScreeningAuthoringToken))
 	v1.Use(authMiddleware(AuthConfig{
 		Mode:  cfg.AuthMode,
 		Token: cfg.AuthToken,
@@ -390,10 +409,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/ingestion-events/record-ingested", decisionHandler.HandleRecordIngested)
 
 	internal := router.Group("/internal")
-	internal.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
-	}))
+	internal.Use(screeningServiceBoundary(cfg.ScreeningCallbackToken, cfg.AuthToken, cfg.ScreeningAuthoringToken, cfg.ScreeningIntakeToken))
 	internal.POST("/screening-status-updates", internalScreeningHandler.UpdateStatus)
 
 	return router

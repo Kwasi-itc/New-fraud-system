@@ -251,3 +251,69 @@ Screening status now reconciles through an atomic source queue and decision-owne
 ## Screening evidence configuration
 
 An empty blob-service URL now fails upload/download requests explicitly. It does not provide a local storage fallback or create file metadata for an upload with no destination. Configure a working blob integration before using screening-owned files. Source byte finalization, authenticated case download and the durable case evidence callback remain tracked in R09 of the Case Management implementation plan; native case-manager uploads are separate and unchanged.
+
+## Private legacy owner API
+
+All routes in the legacy `/v1` owner group require `X-Screening-Operator-Token`
+matching `SCREENING_OPERATOR_TOKEN`, in addition to configured service bearer
+authentication. This includes configuration, datasets, files, review, whitelist,
+raw source reads, retry and service-info. Unset configuration denies these routes
+even with disabled legacy auth. Keep the operator secret distinct from the general
+service token and out of browser/provider/worker configuration.
+
+`/v1/manual-screenings` and `/v1/investigator/...` are registered independently
+and retain their identity/resource checks. Internal decision intake and status
+callbacks retain their existing service contracts; this change does not certify
+their deployment isolation. Existing operator scripts must supply the private header.
+The case-evidence server already supplies it after checking case access.
+
+## Enabling search in the root Docker Compose deployment
+
+Pushing application code does not configure a matching provider. The search UI
+disables submission when the API reports `configured: false`. Provider environment
+variables must reach **both** `screening-service` and `screening-worker`; the root
+Compose file forwards the same provider variables to both services. A service-local
+`.env` on the host is not automatically copied into the container.
+
+For the direct adapter, set `OPENSANCTIONS_API_HOST` to your approved OpenSanctions
+matching endpoint, `OPENSANCTIONS_AUTH_METHOD` to the endpoint's authentication
+mode, and `OPENSANCTIONS_API_KEY` through deployment secrets as required. The client
+supports `saas`/`query` (API key query parameter), `bearer`, `basic`, and `none`.
+Use `none` only for an endpoint intentionally configured without authentication.
+Optional `OPENSANCTIONS_SCOPE` and `OPENSANCTIONS_ALGORITHM` default to `default`
+and `logic-v1`. Never commit credentials or paste them into support messages.
+
+`SCREENING_PROVIDER_URL` is for a compatible generic `/search` adapter; it is not
+a substitute for `OPENSANCTIONS_API_HOST`. Generic adapters do not support the
+additional identity fields or dataset selection in the manual search contract.
+
+After setting the root Compose environment (and existing authentication/database
+prerequisites), recreate both services from the repository root:
+
+```sh
+docker compose --profile screening-worker up -d --build screening-service screening-worker
+docker compose --profile screening-worker ps screening-service screening-worker
+```
+
+The worker profile is required for asynchronous searches to finish. Refresh the
+search page after recreation. Direct configuration should report the direct adapter
+and enable its supported controls. Configuration is not a health probe: verify a
+synthetic identity through submission, terminal status and persisted results using
+an approved provider/environment. Do not dump `docker compose config` or container
+environment values into logs or tickets because they can contain secrets.
+
+## Dedicated screening service authentication
+
+Decision intake uses `SCREENING_INTAKE_TOKEN`; source-status callbacks use
+`SCREENING_CALLBACK_TOKEN`. Configure matching values on the receiving API and
+sending worker/API. Each must be at least32 non-padding characters and distinct
+from each other, general service and screening operator/authoring credentials.
+No legacy disabled-auth or general-token fallback applies. Missing receiver
+configuration returns503; wrong bearer returns401. Configured senders refuse
+missing/short credentials before sending. Empty values leave the corresponding
+integration unavailable; they do not silently authorize work.
+
+Repository compose wiring is supplied for both service APIs and workers, never
+the frontend. Deploy sender/receiver configuration together; queued failures
+require the existing owner-specific recovery process after configuration repair.
+This change does not deploy or rotate secrets, nor certify production ingress.

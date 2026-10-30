@@ -1,0 +1,32 @@
+{
+  "Summary": {
+    "Discovered": 9,
+    "Executed": 9,
+    "Passed": 9,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "Tests": [
+    "TestFullSharedContractTransitions",
+    "TestFullSharedAuthorizedReadLifetime",
+    "TestFullSharedContractReader",
+    "TestFullSharedInstallation",
+    "TestFullSharedReadPlans",
+    "TestFullSharedRestrictedOwners",
+    "TestFullSharedEffectGrantRollback",
+    "TestFullSharedCurrentAndTimeWindowSemantics",
+    "TestFullSharedDeferredMetrics"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=300s",
+    "./internal/store/mysql",
+    "-run",
+    "^TestFullShared"
+  ]
+}

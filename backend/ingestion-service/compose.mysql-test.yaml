@@ -1,0 +1,26 @@
+# Disposable ingestion MySQL component tests. No application ports or volumes.
+services:
+  mysql:
+    image: mysql:8.4.8
+    environment:
+      MYSQL_ROOT_PASSWORD: isolated-test-root-only
+      MYSQL_ROOT_HOST: "%"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  test:
+    image: golang:1.25.8
+    working_dir: /backend/ingestion-service
+    volumes:
+      - ..:/backend
+    environment:
+      INGESTION_MYSQL_TEST_ADDRESS: mysql:3306
+      INGESTION_REQUIRE_MYSQL_TEST: "1"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["sh", "-ec", "go mod download && go vet ./... && go test -mod=readonly -race -count=1 -timeout=180s -v ./internal/domain/ingestion ./internal/store/mysql/..."]

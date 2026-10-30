@@ -1,0 +1,285 @@
+docker :  Container ingestion-mysql-test-mysql-1 Running 
+At line:2 char:1
++ docker compose -p ingestion-mysql-test -f backend/ingestion-service/c ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( Container inge...ysql-1 Running :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ Container ingestion-mysql-test-mysql-1 Waiting 
+ Container ingestion-mysql-test-mysql-1 Healthy 
+ Container ingestion-mysql-test-test-run-e1bd9e0635bb Creating 
+ Container ingestion-mysql-test-test-run-e1bd9e0635bb Created 
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/jackc/pgx/v5 v5.8.0
+go: downloading github.com/riverqueue/river v0.31.0
+go: downloading github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
+go: downloading github.com/gin-gonic/gin v1.10.1
+go: downloading github.com/golang-migrate/migrate/v4 v4.18.3
+go: downloading github.com/lib/pq v1.10.9
+go: downloading github.com/go-sql-driver/mysql v1.9.3
+go: downloading filippo.io/edwards25519 v1.1.0
+go: downloading github.com/riverqueue/river/riverdriver v0.31.0
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading golang.org/x/net v0.38.0
+go: downloading github.com/gin-contrib/sse v0.1.0
+go: downloading github.com/go-playground/validator/v10 v10.20.0
+go: downloading github.com/pelletier/go-toml/v2 v2.2.2
+go: downloading github.com/ugorji/go/codec v1.2.12
+go: downloading google.golang.org/protobuf v1.34.2
+go: downloading gopkg.in/yaml.v3 v3.0.1
+go: downloading github.com/riverqueue/river/rivershared v0.31.0
+go: downloading github.com/riverqueue/river/rivertype v0.31.0
+go: downloading golang.org/x/sys v0.32.0
+go: downloading github.com/tidwall/gjson v1.18.0
+go: downloading github.com/tidwall/sjson v1.2.5
+go: downloading github.com/jackc/pgpassfile v1.0.0
+go: downloading golang.org/x/text v0.34.0
+go: downloading go.uber.org/atomic v1.7.0
+go: downloading github.com/hashicorp/go-multierror v1.1.1
+go: downloading github.com/jackc/puddle/v2 v2.2.2
+go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+go: downloading github.com/gabriel-vasile/mimetype v1.4.3
+go: downloading github.com/go-playground/universal-translator v0.18.1
+go: downloading golang.org/x/sync v0.19.0
+go: downloading github.com/leodido/go-urn v1.4.0
+go: downloading golang.org/x/crypto v0.37.0
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading go.uber.org/goleak v1.3.0
+go: downloading github.com/go-playground/locales v0.14.1
+go: downloading github.com/tidwall/match v1.2.0
+go: downloading github.com/tidwall/pretty v1.2.1
+go: downloading github.com/hashicorp/errwrap v1.1.0
+go: downloading github.com/davecgh/go-spew v1.1.1
+go: downloading github.com/pmezard/go-difflib v1.0.0
+=== RUN   TestValidateAggregateQueryRejectsDeepFilter
+=== PAUSE TestValidateAggregateQueryRejectsDeepFilter
+=== RUN   TestValidateAggregateQueryRejectsLargeInList
+=== PAUSE TestValidateAggregateQueryRejectsLargeInList
+=== RUN   TestValidateAggregateQueryAllowsOrGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsOrGroupOperator
+=== RUN   TestValidateAggregateQueryAllowsNotGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsNotGroupOperator
+=== RUN   TestValidateAggregateQueryRejectsInvalidNotArity
+=== PAUSE TestValidateAggregateQueryRejectsInvalidNotArity
+=== RUN   TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== PAUSE TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== RUN   TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== PAUSE TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== RUN   TestCanonicalReceiptCommandGolden
+--- PASS: TestCanonicalReceiptCommandGolden (0.00s)
+=== RUN   TestCanonicalReceiptCommandIdentity
+=== RUN   TestCanonicalReceiptCommandIdentity/tenant
+=== RUN   TestCanonicalReceiptCommandIdentity/table
+=== RUN   TestCanonicalReceiptCommandIdentity/mode
+=== RUN   TestCanonicalReceiptCommandIdentity/kind
+=== RUN   TestCanonicalReceiptCommandIdentity/value
+=== RUN   TestCanonicalReceiptCommandIdentity/null
+=== RUN   TestCanonicalReceiptCommandIdentity/unicode
+=== RUN   TestCanonicalReceiptCommandIdentity/numeric
+--- PASS: TestCanonicalReceiptCommandIdentity (0.01s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/value (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/null (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/unicode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/numeric (0.00s)
+=== RUN   TestCanonicalReceiptCommandRejection
+=== RUN   TestCanonicalReceiptCommandRejection/tenant
+=== RUN   TestCanonicalReceiptCommandRejection/table
+=== RUN   TestCanonicalReceiptCommandRejection/mode
+=== RUN   TestCanonicalReceiptCommandRejection/kind
+=== RUN   TestCanonicalReceiptCommandRejection/empty
+=== RUN   TestCanonicalReceiptCommandRejection/nil_record
+=== RUN   TestCanonicalReceiptCommandRejection/single_many
+=== RUN   TestCanonicalReceiptCommandRejection/batch_many
+=== RUN   TestCanonicalReceiptCommandRejection/bytes
+--- PASS: TestCanonicalReceiptCommandRejection (0.01s)
+    --- PASS: TestCanonicalReceiptCommandRejection/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/empty (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/nil_record (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/single_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/batch_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/bytes (0.00s)
+=== RUN   TestValidateRecordCreateRequiresNonNullableFields
+=== PAUSE TestValidateRecordCreateRequiresNonNullableFields
+=== RUN   TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== PAUSE TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== RUN   TestValidateRecordRejectsUnknownAndManagedFields
+=== PAUSE TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsDeepFilter
+=== CONT  TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateRecordCreateRequiresNonNullableFields
+--- PASS: TestValidateAggregateQueryRejectsDeepFilter (0.00s)
+=== CONT  TestValidateAggregateQueryRejectsLargeInList
+--- PASS: TestValidateRecordRejectsUnknownAndManagedFields (0.00s)
+--- PASS: TestValidateRecordCreateRequiresNonNullableFields (0.00s)
+=== CONT  TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== CONT  TestValidateAggregateQueryRejectsInvalidNotArity
+=== CONT  TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== CONT  TestValidateAggregateQueryAllowsNotGroupOperator
+=== CONT  TestValidateAggregateQueryAllowsOrGroupOperator
+=== CONT  TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+--- PASS: TestValidateAggregateQueryRejectsLargeInList (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsStartsWithPredicateOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsInvalidNotArity (0.00s)
+--- PASS: TestValidateRecordPatchAllowsOmittedNonNullableFields (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsNotGroupOperator (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsOrGroupOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion	1.127s
+=== RUN   TestEffectsReceiptAtomicity
+=== RUN   TestEffectsReceiptAtomicity/replay
+=== RUN   TestEffectsReceiptAtomicity/outbox_failure
+=== RUN   TestEffectsReceiptAtomicity/receipt_failure
+=== RUN   TestEffectsReceiptAtomicity/owner_failure
+=== RUN   TestEffectsReceiptAtomicity/restricted
+=== RUN   TestEffectsReceiptAtomicity/grant_denial
+=== RUN   TestEffectsReceiptAtomicity/cancel_after_effects
+=== RUN   TestEffectsReceiptAtomicity/batch
+--- PASS: TestEffectsReceiptAtomicity (4.04s)
+    --- PASS: TestEffectsReceiptAtomicity/replay (1.15s)
+    --- PASS: TestEffectsReceiptAtomicity/outbox_failure (0.34s)
+    --- PASS: TestEffectsReceiptAtomicity/receipt_failure (0.39s)
+    --- PASS: TestEffectsReceiptAtomicity/owner_failure (0.42s)
+    --- PASS: TestEffectsReceiptAtomicity/restricted (0.45s)
+    --- PASS: TestEffectsReceiptAtomicity/grant_denial (0.30s)
+    --- PASS: TestEffectsReceiptAtomicity/cancel_after_effects (0.32s)
+    --- PASS: TestEffectsReceiptAtomicity/batch (0.66s)
+=== RUN   TestEffectsValidationBeforeWrites
+=== RUN   TestEffectsValidationBeforeWrites/tenant
+=== RUN   TestEffectsValidationBeforeWrites/event_tenant
+=== RUN   TestEffectsValidationBeforeWrites/table_name
+=== RUN   TestEffectsValidationBeforeWrites/pair_key
+=== RUN   TestEffectsValidationBeforeWrites/pair_time
+=== RUN   TestEffectsValidationBeforeWrites/invalid_json
+=== RUN   TestEffectsValidationBeforeWrites/utf8
+=== RUN   TestEffectsValidationBeforeWrites/precision
+=== RUN   TestEffectsValidationBeforeWrites/row_bytes
+--- PASS: TestEffectsValidationBeforeWrites (0.27s)
+    --- PASS: TestEffectsValidationBeforeWrites/tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/event_tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/table_name (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_key (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_time (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/invalid_json (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/utf8 (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/precision (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/row_bytes (0.00s)
+=== RUN   TestEffectsBulkWrites
+=== RUN   TestEffectsBulkWrites/500_records
+=== RUN   TestEffectsBulkWrites/late_validation
+=== RUN   TestEffectsBulkWrites/late_duplicate
+=== RUN   TestEffectsBulkWrites/byte_limit
+--- PASS: TestEffectsBulkWrites (1.68s)
+    --- PASS: TestEffectsBulkWrites/500_records (0.62s)
+    --- PASS: TestEffectsBulkWrites/late_validation (0.26s)
+    --- PASS: TestEffectsBulkWrites/late_duplicate (0.65s)
+    --- PASS: TestEffectsBulkWrites/byte_limit (0.15s)
+=== RUN   TestLookupGuards
+=== RUN   TestLookupGuards/missing_key_serialized
+=== RUN   TestLookupGuards/opposite_batch_orders
+=== RUN   TestLookupGuards/collision_only_serializes
+=== RUN   TestLookupGuards/invalid_keys_and_scope
+--- PASS: TestLookupGuards (0.80s)
+    --- PASS: TestLookupGuards/missing_key_serialized (0.24s)
+    --- PASS: TestLookupGuards/opposite_batch_orders (0.06s)
+    --- PASS: TestLookupGuards/collision_only_serializes (0.01s)
+    --- PASS: TestLookupGuards/invalid_keys_and_scope (0.07s)
+=== RUN   TestRestrictedWriteCoordination
+--- PASS: TestRestrictedWriteCoordination (0.70s)
+=== RUN   TestCanonicalReceiptReplay
+--- PASS: TestCanonicalReceiptReplay (0.18s)
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/29 08:56:47 connection.go:189 closing connection:close tcp 172.21.0.4:54918->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 08:56:47 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.34s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.14s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.24s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.11s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.12s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (1.57s)
+    --- PASS: TestReceiptExecution/replay (0.21s)
+    --- PASS: TestReceiptExecution/concurrent (0.24s)
+    --- PASS: TestReceiptExecution/rollback (0.17s)
+    --- PASS: TestReceiptExecution/result_limit (0.17s)
+    --- PASS: TestReceiptExecution/key_collision (0.30s)
+    --- PASS: TestReceiptExecution/cancel (0.33s)
+    --- PASS: TestReceiptExecution/restricted (0.15s)
+=== RUN   TestKeyedRecordOwnerAtomicity
+=== RUN   TestKeyedRecordOwnerAtomicity/replay
+=== RUN   TestKeyedRecordOwnerAtomicity/batch
+=== RUN   TestKeyedRecordOwnerAtomicity/outbox_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/receipt_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/late_unique
+=== RUN   TestKeyedRecordOwnerAtomicity/validation
+=== RUN   TestKeyedRecordOwnerAtomicity/audit_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/revoked
+=== RUN   TestKeyedRecordOwnerAtomicity/frozen_input
+=== RUN   TestKeyedRecordOwnerAtomicity/concurrent
+--- PASS: TestKeyedRecordOwnerAtomicity (5.34s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/replay (0.73s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/batch (0.64s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/outbox_failure (0.49s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/receipt_failure (0.50s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/late_unique (0.49s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/validation (0.46s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/audit_failure (0.45s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/revoked (0.45s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/frozen_input (0.47s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/concurrent (0.66s)
+=== RUN   TestKeyedRecordOwnerScopeAndDuplicateValidation
+--- PASS: TestKeyedRecordOwnerScopeAndDuplicateValidation (0.44s)
+=== RUN   TestKeyedRecordOwnerLostCommit
+[mysql] 2026/10/29 08:56:55 connection.go:189 closing connection:close tcp 172.21.0.4:59036->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 08:56:55 packets.go:58 unexpected EOF
+--- PASS: TestKeyedRecordOwnerLostCommit (0.48s)
+=== RUN   TestKeyedRecordOwnerRestrictedGrants
+--- PASS: TestKeyedRecordOwnerRestrictedGrants (0.96s)
+=== RUN   TestPhysicalRecordWriter
+--- PASS: TestPhysicalRecordWriter (1.15s)
+=== RUN   TestPhysicalWriterRestrictedLookup
+--- PASS: TestPhysicalWriterRestrictedLookup (0.59s)
+=== RUN   TestWriteBarrierSnapshot
+=== RUN   TestWriteBarrierSnapshot/ready
+=== RUN   TestWriteBarrierSnapshot/stale
+=== RUN   TestWriteBarrierSnapshot/tenant
+=== RUN   TestWriteBarrierSnapshot/closed
+=== RUN   TestWriteBarrierSnapshot/archived
+=== RUN   TestWriteBarrierSnapshot/retired
+=== RUN   TestWriteBarrierSnapshot/active_operation
+=== RUN   TestWriteBarrierSnapshot/missing_mapping
+=== RUN   TestWriteBarrierSnapshot/bad_name
+=== RUN   TestWriteBarrierSnapshot/field_limit
+--- PASS: TestWriteBarrierSnapshot (2.89s)
+    --- PASS: TestWriteBarrierSnapshot/ready (0.44s)
+    --- PASS: TestWriteBarrierSnapshot/stale (0.24s)
+    --- PASS: TestWriteBarrierSnapshot/tenant (0.25s)
+    --- PASS: TestWriteBarrierSnapshot/closed (0.26s)
+    --- PASS: TestWriteBarrierSnapshot/archived (0.26s)
+    --- PASS: TestWriteBarrierSnapshot/retired (0.26s)
+    --- PASS: TestWriteBarrierSnapshot/active_operation (0.32s)
+    --- PASS: TestWriteBarrierSnapshot/missing_mapping (0.24s)
+    --- PASS: TestWriteBarrierSnapshot/bad_name (0.32s)
+    --- PASS: TestWriteBarrierSnapshot/field_limit (0.30s)
+=== RUN   TestWriteBarrierBlocksDDLPreparation
+--- PASS: TestWriteBarrierBlocksDDLPreparation (0.51s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	23.388s

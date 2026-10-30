@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -33,6 +34,8 @@ type Config struct {
 	MaxOpen, MaxIdle                          int
 	ConnectTimeout, ReadTimeout, WriteTimeout time.Duration
 	ConnMaxLifetime, ConnMaxIdleTime          time.Duration
+	// Optional explicit server lock wait bound, applied to every pooled connection.
+	LockWaitTimeout time.Duration
 }
 
 func (c Config) connector() (*mysql.Config, error) {
@@ -53,6 +56,9 @@ func (c Config) connector() (*mysql.Config, error) {
 	}
 	if c.TLS != nil && c.TLS.InsecureSkipVerify {
 		return nil, errors.New("TLS verification cannot be disabled")
+	}
+	if c.LockWaitTimeout < 0 || c.LockWaitTimeout > 30*time.Second || c.LockWaitTimeout%time.Second != 0 {
+		return nil, errors.New("lock wait timeout must be whole seconds in 0..30")
 	}
 	cfg := mysql.NewConfig()
 	cfg.Net, cfg.Addr, cfg.DBName = "tcp", c.Address, c.Database
@@ -77,6 +83,11 @@ func (c Config) connector() (*mysql.Config, error) {
 		"time_zone":             "'+00:00'",
 		"transaction_isolation": "'READ-COMMITTED'",
 		"sql_mode":              "'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY'",
+	}
+	if c.LockWaitTimeout > 0 {
+		seconds := strconv.FormatInt(int64(c.LockWaitTimeout/time.Second), 10)
+		cfg.Params["innodb_lock_wait_timeout"] = seconds
+		cfg.Params["lock_wait_timeout"] = seconds
 	}
 	return cfg, nil
 }

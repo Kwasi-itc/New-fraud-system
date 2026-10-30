@@ -13,6 +13,7 @@ import (
 )
 
 var ErrScreeningBusy = errors.New("screening is being processed by another attempt")
+var ErrExclusionConflict = errors.New("exclusion state changed")
 
 type IDGenerator interface {
 	New() uuid.UUID
@@ -27,6 +28,7 @@ type TransactionManager interface {
 }
 
 type MutationStore interface {
+	ObjectExclusions() ObjectExclusionRepository
 	CaseEvents() CaseEventRepository
 	Screenings() ScreeningRepository
 	ScreeningMatches() ScreeningMatchRepository
@@ -39,7 +41,14 @@ type MutationStore interface {
 	RawTx() pgx.Tx
 }
 
+type ObjectExclusionRepository interface {
+	Active(context.Context, screening.ExclusionScope, []string) (map[string]string, error)
+	Set(context.Context, screening.ExclusionChange) error
+	RecordApplications(context.Context, string, string, map[string]string) error
+}
+
 type ScreeningRepository interface {
+	ListManualHistory(context.Context, string, string, screening.ManualHistoryFilter) ([]screening.ManualHistoryItem, error)
 	ListRecoverable(context.Context, time.Time, int) ([]screening.Screening, error)
 	Lock(context.Context, string, string) (screening.Screening, error)
 	Claim(context.Context, string, string, string, time.Time) (bool, error)

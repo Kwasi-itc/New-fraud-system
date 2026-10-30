@@ -1,0 +1,135 @@
+=== RUN   TestRecordAverageCompilation
+--- PASS: TestRecordAverageCompilation (0.61s)
+=== RUN   TestRecordAverageIntegerDecimal
+    record_average_test.go:26: fixture div_precision_increment=4
+--- PASS: TestRecordAverageIntegerDecimal (0.62s)
+=== RUN   TestRecordAverageFloatAndEmpty
+--- PASS: TestRecordAverageFloatAndEmpty (0.71s)
+=== RUN   TestRecordAveragePrecisionAndSafety
+--- PASS: TestRecordAveragePrecisionAndSafety (0.62s)
+=== RUN   TestRecordAverageExecutionFailures
+--- PASS: TestRecordAverageExecutionFailures (0.55s)
+=== RUN   TestRecordBoundsConfiguration
+--- PASS: TestRecordBoundsConfiguration (0.00s)
+=== RUN   TestRecordBoundsDecode
+--- PASS: TestRecordBoundsDecode (0.00s)
+=== RUN   TestRecordBoundsSQLTransferGuard
+--- PASS: TestRecordBoundsSQLTransferGuard (0.59s)
+=== RUN   TestRecordBoundsPageCollection
+=== RUN   TestRecordBoundsPageCollection/exact
+=== RUN   TestRecordBoundsPageCollection/page_over
+=== RUN   TestRecordBoundsPageCollection/row_over
+=== RUN   TestRecordBoundsPageCollection/row_count
+--- PASS: TestRecordBoundsPageCollection (0.83s)
+    --- PASS: TestRecordBoundsPageCollection/exact (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/page_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_count (0.01s)
+=== RUN   TestRecordBoundsRestrictedAndCancellation
+--- PASS: TestRecordBoundsRestrictedAndCancellation (0.80s)
+=== RUN   TestRecordCountMappedTypes
+--- PASS: TestRecordCountMappedTypes (0.62s)
+=== RUN   TestRecordCountFilteredEmptyAndNull
+--- PASS: TestRecordCountFilteredEmptyAndNull (0.58s)
+=== RUN   TestRecordCountCompilationAndBounds
+--- PASS: TestRecordCountCompilationAndBounds (0.60s)
+=== RUN   TestRecordCountDecoding
+--- PASS: TestRecordCountDecoding (0.00s)
+=== RUN   TestRecordCountErrorsAreNotZeroSuccess
+--- PASS: TestRecordCountErrorsAreNotZeroSuccess (0.58s)
+=== RUN   TestRecordDecodeScalars
+--- PASS: TestRecordDecodeScalars (0.00s)
+=== RUN   TestRecordDecodeStringsAndNulls
+--- PASS: TestRecordDecodeStringsAndNulls (0.00s)
+=== RUN   TestRecordDecodeTimestamp
+--- PASS: TestRecordDecodeTimestamp (0.00s)
+=== RUN   TestRecordDecodeIP
+--- PASS: TestRecordDecodeIP (0.00s)
+=== RUN   TestRecordDecodeDatabaseRoundTrips
+--- PASS: TestRecordDecodeDatabaseRoundTrips (0.52s)
+=== RUN   TestRecordDistinctCompilation
+--- PASS: TestRecordDistinctCompilation (0.61s)
+=== RUN   TestRecordDistinctNumericEquality
+--- PASS: TestRecordDistinctNumericEquality (0.77s)
+=== RUN   TestRecordDistinctBooleanTimeAndNull
+--- PASS: TestRecordDistinctBooleanTimeAndNull (0.57s)
+=== RUN   TestRecordDistinctFilteredCountAndDecoder
+--- PASS: TestRecordDistinctFilteredCountAndDecoder (0.55s)
+=== RUN   TestRecordDistinctExecutionFailures
+--- PASS: TestRecordDistinctExecutionFailures (0.57s)
+=== RUN   TestRecordMinCompilation
+--- PASS: TestRecordMinCompilation (0.56s)
+=== RUN   TestRecordMinTypedBoundaries
+--- PASS: TestRecordMinTypedBoundaries (0.55s)
+=== RUN   TestRecordMinNullsAndFilters
+--- PASS: TestRecordMinNullsAndFilters (0.57s)
+=== RUN   TestRecordMinDecoding
+--- PASS: TestRecordMinDecoding (0.00s)
+=== RUN   TestRecordMinExecutionFailures
+--- PASS: TestRecordMinExecutionFailures (0.57s)
+=== RUN   TestRecordMaxCompilation
+--- PASS: TestRecordMaxCompilation (0.62s)
+=== RUN   TestRecordMaxTypedBoundaries
+--- PASS: TestRecordMaxTypedBoundaries (0.70s)
+=== RUN   TestRecordMaxNullsAndFilters
+--- PASS: TestRecordMaxNullsAndFilters (0.62s)
+=== RUN   TestRecordMaxDecoding
+--- PASS: TestRecordMaxDecoding (0.00s)
+=== RUN   TestRecordMaxExecutionFailures
+--- PASS: TestRecordMaxExecutionFailures (0.59s)
+=== RUN   TestRecordFilterTruthTables
+--- PASS: TestRecordFilterTruthTables (0.63s)
+=== RUN   TestRecordFilterEmptySemantics
+--- PASS: TestRecordFilterEmptySemantics (0.56s)
+=== RUN   TestRecordFilterParameterOrderAndCopies
+--- PASS: TestRecordFilterParameterOrderAndCopies (0.58s)
+=== RUN   TestRecordFilterTraversalBounds
+--- PASS: TestRecordFilterTraversalBounds (0.59s)
+=== RUN   TestRecordFilterFailureIsAtomic
+--- PASS: TestRecordFilterFailureIsAtomic (0.54s)
+=== RUN   TestRecordProjectionRequestValidation
+--- PASS: TestRecordProjectionRequestValidation (0.00s)
+=== RUN   TestRecordProjectionMappingFailures
+=== RUN   TestRecordProjectionMappingFailures/tenant
+=== RUN   TestRecordProjectionMappingFailures/version
+=== RUN   TestRecordProjectionMappingFailures/closed
+=== RUN   TestRecordProjectionMappingFailures/archived_field
+=== RUN   TestRecordProjectionMappingFailures/wrong_type
+=== RUN   TestRecordProjectionMappingFailures/missing_component
+--- PASS: TestRecordProjectionMappingFailures (3.12s)
+    --- PASS: TestRecordProjectionMappingFailures/tenant (0.64s)
+    --- PASS: TestRecordProjectionMappingFailures/version (0.49s)
+    --- PASS: TestRecordProjectionMappingFailures/closed (0.49s)
+    --- PASS: TestRecordProjectionMappingFailures/archived_field (0.49s)
+    --- PASS: TestRecordProjectionMappingFailures/wrong_type (0.50s)
+    --- PASS: TestRecordProjectionMappingFailures/missing_component (0.50s)
+=== RUN   TestRecordProjectionRoundTripAndCopies
+--- PASS: TestRecordProjectionRoundTripAndCopies (0.51s)
+=== RUN   TestRecordProjectionBarrierLifetime
+--- PASS: TestRecordProjectionBarrierLifetime (0.63s)
+=== RUN   TestRecordProjectionLogicalNamesNeverBecomeSQL
+--- PASS: TestRecordProjectionLogicalNamesNeverBecomeSQL (0.50s)
+=== RUN   TestRecordQueryLimitConfiguration
+--- PASS: TestRecordQueryLimitConfiguration (0.01s)
+=== RUN   TestRecordQueryValueAccounting
+--- PASS: TestRecordQueryValueAccounting (0.00s)
+=== RUN   TestRecordQueryCompositionBudget
+--- PASS: TestRecordQueryCompositionBudget (0.96s)
+=== RUN   TestRecordQuerySelection
+--- PASS: TestRecordQuerySelection (0.67s)
+=== RUN   TestRecordQueryRejectsBeforeExecution
+--- PASS: TestRecordQueryRejectsBeforeExecution (1.11s)
+=== RUN   TestRecordSumCompilation
+--- PASS: TestRecordSumCompilation (0.54s)
+=== RUN   TestRecordSumIntegerPrecision
+--- PASS: TestRecordSumIntegerPrecision (0.58s)
+=== RUN   TestRecordSumFloatAndEmptyInputs
+--- PASS: TestRecordSumFloatAndEmptyInputs (0.56s)
+=== RUN   TestRecordSumDecoderBounds
+--- PASS: TestRecordSumDecoderBounds (0.00s)
+=== RUN   TestRecordSumFailuresAndOverflow
+    record_sum_test.go:174: stored min=1.7976931348623157e+308 max=1.7976931348623157e+308
+    record_sum_test.go:175: overflow fixture: nonnull=4 total=4 rawSum=0 type=float64
+--- PASS: TestRecordSumFailuresAndOverflow (0.55s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	29.807s

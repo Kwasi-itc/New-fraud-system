@@ -1,0 +1,70 @@
+=== RUN   TestRunnerMetricsConcurrentSnapshots
+--- PASS: TestRunnerMetricsConcurrentSnapshots (0.03s)
+=== RUN   TestDurationHistogramBoundaries
+--- PASS: TestDurationHistogramBoundaries (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work	1.078s
+=== RUN   TestWorkTelemetryCompletionAndPool
+--- PASS: TestWorkTelemetryCompletionAndPool (0.93s)
+=== RUN   TestWorkTelemetryRetriesAndExhaustion
+--- PASS: TestWorkTelemetryRetriesAndExhaustion (1.91s)
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/expired
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/claim_failure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/retry_failure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/reap_failure
+--- PASS: TestWorkTelemetryExpiredAndClaimFailure (2.86s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/expired (0.75s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/claim_failure (0.63s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/retry_failure (0.78s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/reap_failure (0.70s)
+=== RUN   TestWorkTelemetryHeartbeatFence
+--- PASS: TestWorkTelemetryHeartbeatFence (2.86s)
+=== RUN   TestWorkTelemetryQueueWaitUsesDatabaseTime
+--- PASS: TestWorkTelemetryQueueWaitUsesDatabaseTime (0.49s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	10.094s
+=== RUN   TestIngestionWorkAttemptTimestamps
+=== RUN   TestIngestionWorkAttemptTimestamps/upload_log_execute
+=== RUN   TestIngestionWorkAttemptTimestamps/deferred_ingest_execute
+--- PASS: TestIngestionWorkAttemptTimestamps (1.34s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/upload_log_execute (0.73s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/deferred_ingest_execute (0.60s)
+=== RUN   TestIngestionWorkRestrictedGrants
+--- PASS: TestIngestionWorkRestrictedGrants (0.63s)
+=== RUN   TestIngestionWorkLifecycle
+=== RUN   TestIngestionWorkLifecycle/deferred
+=== RUN   TestIngestionWorkLifecycle/upload
+=== RUN   TestIngestionWorkLifecycle/validation
+=== RUN   TestIngestionWorkLifecycle/malformed_csv
+=== RUN   TestIngestionWorkLifecycle/stale
+=== RUN   TestIngestionWorkLifecycle/completion_rollback
+=== RUN   TestIngestionWorkLifecycle/enqueue_rollback
+=== RUN   TestIngestionWorkLifecycle/identity
+=== RUN   TestIngestionWorkLifecycle/public_key
+=== RUN   TestIngestionWorkLifecycle/future
+--- PASS: TestIngestionWorkLifecycle (6.06s)
+    --- PASS: TestIngestionWorkLifecycle/deferred (0.52s)
+    --- PASS: TestIngestionWorkLifecycle/upload (0.60s)
+    --- PASS: TestIngestionWorkLifecycle/validation (0.74s)
+    --- PASS: TestIngestionWorkLifecycle/malformed_csv (0.48s)
+    --- PASS: TestIngestionWorkLifecycle/stale (0.60s)
+    --- PASS: TestIngestionWorkLifecycle/completion_rollback (0.79s)
+    --- PASS: TestIngestionWorkLifecycle/enqueue_rollback (0.44s)
+    --- PASS: TestIngestionWorkLifecycle/identity (0.53s)
+    --- PASS: TestIngestionWorkLifecycle/public_key (0.89s)
+    --- PASS: TestIngestionWorkLifecycle/future (0.48s)
+=== RUN   TestIngestionWorkRunnerAndConcurrentClaims
+--- PASS: TestIngestionWorkRunnerAndConcurrentClaims (0.92s)
+=== RUN   TestIngestionWorkScopeAndPrivateReceipts
+--- PASS: TestIngestionWorkScopeAndPrivateReceipts (0.52s)
+=== RUN   TestIngestionWorkRecovery
+=== RUN   TestIngestionWorkRecovery/retry
+=== RUN   TestIngestionWorkRecovery/expiry
+=== RUN   TestIngestionWorkRecovery/noop
+--- PASS: TestIngestionWorkRecovery (1.77s)
+    --- PASS: TestIngestionWorkRecovery/retry (0.67s)
+    --- PASS: TestIngestionWorkRecovery/expiry (0.54s)
+    --- PASS: TestIngestionWorkRecovery/noop (0.56s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	12.303s

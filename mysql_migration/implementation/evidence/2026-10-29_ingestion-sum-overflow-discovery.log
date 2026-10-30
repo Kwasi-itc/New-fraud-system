@@ -1,0 +1,14 @@
+=== RUN   TestRecordSumCompilation
+--- PASS: TestRecordSumCompilation (0.36s)
+=== RUN   TestRecordSumIntegerPrecision
+--- PASS: TestRecordSumIntegerPrecision (0.40s)
+=== RUN   TestRecordSumFloatAndEmptyInputs
+--- PASS: TestRecordSumFloatAndEmptyInputs (0.36s)
+=== RUN   TestRecordSumDecoderBounds
+--- PASS: TestRecordSumDecoderBounds (0.00s)
+=== RUN   TestRecordSumFailuresAndOverflow
+    record_sum_test.go:152: overflow became success 0 <nil>
+--- FAIL: TestRecordSumFailuresAndOverflow (0.31s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	1.482s
+FAIL

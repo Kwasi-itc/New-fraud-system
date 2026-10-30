@@ -17,7 +17,6 @@ import (
 
 func TestDeferredIngestHandlerReturnsExecution(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	handler := NewDeferredIngestHandler(service.NewDeferredIngestService(
 		stubDeferredIngestStatusRepo{},
@@ -26,7 +25,6 @@ func TestDeferredIngestHandlerReturnsExecution(t *testing.T) {
 		stubIDGenerator{},
 		stubClock{},
 		3,
-		nil,
 	))
 	router := gin.New()
 	router.GET("/v1/deferred-ingests/:deferredIngestId", handler.Get)

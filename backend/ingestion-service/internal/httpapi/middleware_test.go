@@ -12,7 +12,6 @@ import (
 
 func TestRequestContextMiddlewareSetsRequestLoggerAndRequestID(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))

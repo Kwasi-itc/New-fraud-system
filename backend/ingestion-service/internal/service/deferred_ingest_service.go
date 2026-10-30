@@ -10,7 +10,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 )
 
 type DeferredIngestService struct {
@@ -20,7 +19,6 @@ type DeferredIngestService struct {
 	idGenerator     ports.IDGenerator
 	clock           ports.Clock
 	maxAttempts     int
-	enqueuer        riverjobs.DeferredIngestEnqueuer
 }
 
 func NewDeferredIngestService(
@@ -30,13 +28,9 @@ func NewDeferredIngestService(
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
 	maxAttempts int,
-	enqueuer riverjobs.DeferredIngestEnqueuer,
 ) DeferredIngestService {
 	if maxAttempts <= 0 {
 		maxAttempts = 3
-	}
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopDeferredIngestEnqueuer{}
 	}
 	return DeferredIngestService{
 		deferredIngests: deferredIngests,
@@ -45,7 +39,6 @@ func NewDeferredIngestService(
 		idGenerator:     idGenerator,
 		clock:           clock,
 		maxAttempts:     maxAttempts,
-		enqueuer:        enqueuer,
 	}
 }
 
@@ -66,19 +59,13 @@ func (s DeferredIngestService) Create(ctx context.Context, tenantID uuid.UUID, o
 		return ingestion.DeferredIngest{}, err
 	}
 	if s.txManager == nil {
-		if err := s.deferredIngests.Create(ctx, execution); err != nil {
-			return ingestion.DeferredIngest{}, err
-		}
-		if err := s.enqueuer.Enqueue(ctx, executionID, nil); err != nil {
-			return ingestion.DeferredIngest{}, err
-		}
-		return execution, nil
+		return ingestion.DeferredIngest{}, fmt.Errorf("transaction manager unavailable")
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.DeferredIngests().Create(ctx, execution); err != nil {
 			return err
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), executionID, nil)
+		return store.EnqueueDeferredIngest(ctx, executionID, nil)
 	}); err != nil {
 		return ingestion.DeferredIngest{}, err
 	}
@@ -144,22 +131,10 @@ func (s DeferredIngestService) handleRetryableFailure(ctx context.Context, execu
 		execution.Status = ingestion.DeferredIngestStatusQueued
 		execution.StartedAt = nil
 		execution.CompletedAt = nil
-		id, err := uuid.Parse(execution.ID)
-		if err != nil {
+		if err := s.deferredIngests.Update(ctx, *execution); err != nil {
 			return err
 		}
-		if s.txManager == nil {
-			if err := s.deferredIngests.Update(ctx, *execution); err != nil {
-				return err
-			}
-			return s.enqueuer.Enqueue(ctx, id, nil)
-		}
-		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
-			if err := store.DeferredIngests().Update(ctx, *execution); err != nil {
-				return err
-			}
-			return s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, nil)
-		})
+		return fmt.Errorf("retryable DeferredIngest failure: %s", message)
 	}
 	execution.Status = ingestion.DeferredIngestStatusFailed
 	execution.CompletedAt = &now

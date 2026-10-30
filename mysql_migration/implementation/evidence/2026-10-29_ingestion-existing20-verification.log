@@ -1,0 +1,22 @@
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/export-mysql-fixture	1.115s
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation	1.083s
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts	1.148s
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture	1.098s
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/testfixtures	(cached)
+discovered=12 executed=12 passed=12 failed=0 skipped=0 output=/backend/ingestion-service/testdata/full-foundation-run4
+=== RUN   TestExactReadInvalidIdentity
+--- PASS: TestExactReadInvalidIdentity (0.01s)
+=== RUN   TestExactReadByteIdentity
+--- PASS: TestExactReadByteIdentity (0.89s)
+=== RUN   TestExactReadScopeAndVersion
+--- PASS: TestExactReadScopeAndVersion (0.44s)
+=== RUN   TestExactReadBounds
+--- PASS: TestExactReadBounds (0.55s)
+=== RUN   TestExactReadFailuresAreNotMissing
+--- PASS: TestExactReadFailuresAreNotMissing (0.46s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	3.433s
+=== RUN   TestPhysicalRecordWriter
+--- PASS: TestPhysicalRecordWriter (1.73s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.828s

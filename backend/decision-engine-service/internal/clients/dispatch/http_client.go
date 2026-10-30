@@ -16,6 +16,7 @@ import (
 )
 
 type HTTPClient struct {
+	screeningAuthToken string
 	caseAuthToken      string
 	client             *http.Client
 	authMode           string
@@ -24,6 +25,11 @@ type HTTPClient struct {
 	screeningURL       string
 	scoringURL         string
 	outboxPublisherURL string
+}
+
+func (c HTTPClient) WithScreeningAuthToken(token string) HTTPClient {
+	c.screeningAuthToken = token
+	return c
 }
 
 func (c HTTPClient) WithCaseAuthToken(token string) HTTPClient { c.caseAuthToken = token; return c }
@@ -72,10 +78,20 @@ func (c HTTPClient) DispatchWorkflowExecution(ctx context.Context, item workflow
 }
 
 func (c HTTPClient) SendScreeningExecution(ctx context.Context, item screening.Execution) error {
+	if len(strings.TrimSpace(c.screeningAuthToken)) < 32 || c.screeningAuthToken == c.authToken || c.screeningAuthToken == c.caseAuthToken {
+		return fmt.Errorf("screening integration credential is unavailable")
+	}
+	c.authMode = "token"
+	c.authToken = c.screeningAuthToken
 	if c.screeningURL == "" {
 		return fmt.Errorf("screening service URL is not configured")
 	}
-	return c.postRawJSON(ctx, c.screeningURL+"/internal/v1/tenants/"+item.TenantID+"/decision-screenings", item.RequestJSON)
+	if err := c.postRawJSON(ctx, c.screeningURL+"/internal/v1/tenants/"+item.TenantID+"/decision-screenings", item.RequestJSON); err != nil {
+		// River records returned errors. Do not persist internal endpoints,
+		// transport details, credentials or provider response bodies in job errors.
+		return fmt.Errorf("screening dispatch failed")
+	}
+	return nil
 }
 
 func (c HTTPClient) SendScoringRequest(ctx context.Context, item scoring.Request) error {

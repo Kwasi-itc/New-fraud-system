@@ -1,0 +1,1714 @@
+[
+  {
+    "Test": "TestProcessLostCommitAcknowledgement",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessEventContract",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 3,
+      "ExecutionReceipts": 0,
+      "Audits": 3,
+      "Outbox": 4,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessWriteBaseline",
+    "Counts": {
+      "Records": 3,
+      "PublicReceipts": 4,
+      "ExecutionReceipts": 2,
+      "Audits": 9,
+      "Outbox": 10,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessMeasuredWorkloads/worker_false",
+    "Counts": {
+      "Records": 66,
+      "PublicReceipts": 66,
+      "ExecutionReceipts": 0,
+      "Audits": 66,
+      "Outbox": 66,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessMeasuredWorkloads/worker_true",
+    "Counts": {
+      "Records": 98,
+      "PublicReceipts": 66,
+      "ExecutionReceipts": 32,
+      "Audits": 98,
+      "Outbox": 98,
+      "Resources": 32,
+      "Jobs": 32
+    },
+    "Outcomes": [
+      {
+        "ID": "047E7C86B1504942BB5269F6718FBAA8",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "0AE0BBF6BE074BC48D99C3A7394D7BC9",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "0D778EF90E274AE295C1B35EAF60166B",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "12B67AEF0B8D4A2F90D93314A156EF8F",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "1B06A738798343F08D94CB585C3B86A5",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "1B09DD86B6154658A767A5A416DED132",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "22DC392C227B45DCB07BE8C146536135",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "2C3247A338834F869636B78993E95CCE",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "2EAECA38BBB04E72A88F3EB09DC1DC48",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "37175E1777C744FF800C9C65C13D9036",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "3B4356A6983D4DC5871E179EAE09353B",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4233F0E39CAE454A8122E72099844275",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "44D4F54E414A443DB9D1F196687808E5",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4FF18919B06647A4AD07C387658ED7DB",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "883FC61FB72C47DD8C3004722185A13F",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "8EA1E8C11E12423D8A1BF07A889863B6",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "9C9CA883CBF546D9A669A46E7FA6B41E",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "A0A035BF6E9B457793D5D0AD3633FDDB",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "AC1DBF0BDB07402CB6BDC7886219AEEA",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "AFF6BAF0C4BD403D864A1BEE184C66D2",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "B568BFF964FD402CB81DCD93C8A1D75E",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "C2DE4298F1DC4DC684A5F2E3ED87876D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "C68FF99FBC4A464B95157DE28BD754A0",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "C924C3719DA04CBF80A62411DC06F890",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "CFABEE9B14ED49C39028B8BF673B2CFB",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "D3DBBBE2AE14477E90D7F0B8795B4F27",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "D3EC58BE69E449A6BADAF8C4C5587FD7",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "DF67A67B36BA49FF818E94AE5965E1C0",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "E7369AEF7D3A49D3B895793EEAE92063",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "EBB065A107F54E6887D508D5F8C830B3",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "EE6DCD664C3647FF967BBFB6EA5691ED",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "EF4461B0BB8D4B51B1012D07A8D30C68",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessWorkerInterruption/shutdown",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "A99BD26B0313430097A597C60615BE01",
+        "State": "completed",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessWorkerInterruption/kill",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "CB5C795B2E2E41BFAB245668C2A2B746",
+        "State": "completed",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessWorkerCommitLoss",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "A98A680C8337411B8A124EF5EB84B6DE",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessMalformedWork",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 0,
+      "Resources": 4,
+      "Jobs": 4
+    },
+    "Outcomes": [
+      {
+        "ID": "052C145DA3554C48B1C7C166EB8B6986",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "3E22A23903E0419389925AC86E3C28AD",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "A5DA29CE2AC14F6DA648057CBF55AE61",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "E5D82BFAC2734B83B70DAED6F6E4B7E6",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessRetryExhaustion",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "004959E64354486DB31157D50E4F1883",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessDependencyOutage",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 1,
+      "Audits": 2,
+      "Outbox": 2,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "5B3F55AD5D54469B9B9157C9D5011CF8",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessOperatorRecovery",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 2,
+      "Jobs": 3
+    },
+    "Outcomes": [
+      {
+        "ID": "9F54B5B6986B46309B74D10D431A36A8",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "A226F398E3B345B19B7D92FCB2022CDC",
+        "State": "cancelled",
+        "Attempts": 0,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessHandlerTimeout",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "3E9556FA065743CCA70ADC566846AB3B",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessReadContracts",
+    "Counts": {
+      "Records": 5,
+      "PublicReceipts": 10,
+      "ExecutionReceipts": 0,
+      "Audits": 10,
+      "Outbox": 10,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessReadRevocation",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessPublicationRace",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessConcurrentReadsAndWrites",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 13,
+      "ExecutionReceipts": 0,
+      "Audits": 13,
+      "Outbox": 13,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessRevocationDuringReplay",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessStartupChecks",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessAPIRuntimeGrants",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "E902A32546104925BF80D45A70DFD8F4",
+        "State": "available",
+        "Attempts": 0,
+        "Reservations": 1,
+        "Disposition": "explicitly_pending_fixture_boundary"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessUploadLifecycle",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 2,
+      "Outbox": 3,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "50B33D8A306049F28A55AD958299C1EB",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessDeferredLifecycle",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 2,
+      "ExecutionReceipts": 0,
+      "Audits": 2,
+      "Outbox": 2,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "E6D6DF7A95BB40C9B0FDD31FE24E7303",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessScheduledKinds",
+    "Counts": {
+      "Records": 3,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 2,
+      "Audits": 3,
+      "Outbox": 4,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "7C6C63656D1F43C680820149EC9FEDBF",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "EFFEDB4769A94BA8BE7E1D51F3F96FCA",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessCompetingWorkers",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "AE93545C06DA4F3CAC494A0E2D51016D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "E07B344E10FC41E2BF096826B25E1F2D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessScopedWorkerClaims",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "0AE714B43ECA42A0BDBE357C74B88D00",
+        "State": "running",
+        "Attempts": 1,
+        "Reservations": 1,
+        "Disposition": "explicitly_pending_fixture_boundary"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessFailedWorkDetails",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "C25138BFFBA34C1495C2979060164085",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "EA9A9D659C964ED79EBCDFBE12DFC4E0",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessIdenticalReceipts",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessConflictingReceipts",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessAlternateUniqueRace",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessEffectGrantRollback",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessCancellationBeforeCommit",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessOrderedPatches",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 2,
+      "ExecutionReceipts": 0,
+      "Audits": 6,
+      "Outbox": 6,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessLimitsAndAuthentication",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-1"
+  },
+  {
+    "Test": "TestProcessLostCommitAcknowledgement",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessEventContract",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 3,
+      "ExecutionReceipts": 0,
+      "Audits": 3,
+      "Outbox": 4,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessWriteBaseline",
+    "Counts": {
+      "Records": 3,
+      "PublicReceipts": 4,
+      "ExecutionReceipts": 2,
+      "Audits": 9,
+      "Outbox": 10,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessMeasuredWorkloads/worker_false",
+    "Counts": {
+      "Records": 66,
+      "PublicReceipts": 66,
+      "ExecutionReceipts": 0,
+      "Audits": 66,
+      "Outbox": 66,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessMeasuredWorkloads/worker_true",
+    "Counts": {
+      "Records": 98,
+      "PublicReceipts": 66,
+      "ExecutionReceipts": 32,
+      "Audits": 98,
+      "Outbox": 98,
+      "Resources": 32,
+      "Jobs": 32
+    },
+    "Outcomes": [
+      {
+        "ID": "0A68DDE03BA44D53B7378B572DFBCA2E",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "0B84A5677CBB4D8BBC3E6A950A12F5F2",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "0E2477934C064F3895DD1A52109A81CD",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "1449C93374254F9C9B26D87957B85819",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "18EEDF55F6724F6DB95E002EB121AE46",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "31C84081C24F48C0B40AA9F8E0CACD90",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "37639E4AB3FE464AAC31FBE770C32512",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4011029F198145D1ABFE3D9123CB8227",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "46103CA82A144185814A403654DFB982",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4A9C2177C70C4C3EBF8AD03EF4230F03",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4B5846E0F934449FB2F81A41CBEB2BCC",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "4E3C67D5F31A483FBCBF200287D997BF",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "516839BBD7CD41B6BAC5BA793122ECB0",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "522BDE74EC4F4290ACA0515357FD7576",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "5C401DAE12124C0D81957FBBFB61295D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "5FB0931D448E4E35BA286D231C7D8A5B",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "69E306AB722A4EB09171F1416D4A9A1D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "731746CD55DD49C3A21172DF81792811",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "73A7E377599A4ADC96862C3B915F8974",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "76B7A3E87A7C421D9401970F13C17B25",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "94322D21DC57418D89A5D3A5C290C28D",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "95100D31E7924ED1BE9AA1BABDC2D68F",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "9BA6DCB0F8454E17A721F791A07792DD",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "A045A090C3DA438FA1E56D1F5347CBC7",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "B79241711A0341E9B65D50F77597F4E5",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "BC52CB15FF8C4D8C9E77B720B0B6DEF7",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "BF0B1B28E99240DABC24221D3298CA3E",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "D0B7A12B046844E1964E1E57249760A0",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "D5EA985199054743A6B00F6B79EA3B49",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "D77B96F9BC7843C0BBB7AC98496F1D11",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "E799C930C4294FE4B5F6743EC6632FF3",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "FDFA4675B4D34F38AB37CF30CE4BFAE6",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessWorkerInterruption/shutdown",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "2CA7DCF49AD547B986D8FE458D8DA4DA",
+        "State": "completed",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessWorkerInterruption/kill",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "FF00A4C570264A1F9E03AC7AB38B5A22",
+        "State": "completed",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessWorkerCommitLoss",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "279A1F7151D14833A6D2FEA8F5B3FE5A",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessMalformedWork",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 0,
+      "Resources": 4,
+      "Jobs": 4
+    },
+    "Outcomes": [
+      {
+        "ID": "0526C5F6B7264D03AC0F4DE62C2329A6",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "613F275A773C4FCF9FB93536611F4083",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "CF3085D7E83445619BFB8C2E39DDC325",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "FB2E7890574440109527AE52EB686C31",
+        "State": "discarded",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessRetryExhaustion",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "876367E2BCFF4627BDD8F31DF2E5E398",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessDependencyOutage",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 1,
+      "Audits": 2,
+      "Outbox": 2,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "7135B7AB75C346498E0093432FFB5E12",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessOperatorRecovery",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 2,
+      "Jobs": 3
+    },
+    "Outcomes": [
+      {
+        "ID": "19B87ACD034743539E76DE5461FE506A",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "C1550AD6B48E41EC843B13AFC15DDDCF",
+        "State": "cancelled",
+        "Attempts": 0,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessHandlerTimeout",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "5A84CF2AAD06432D9729D8B6D6734F85",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessReadContracts",
+    "Counts": {
+      "Records": 5,
+      "PublicReceipts": 10,
+      "ExecutionReceipts": 0,
+      "Audits": 10,
+      "Outbox": 10,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessReadRevocation",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessPublicationRace",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessConcurrentReadsAndWrites",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 13,
+      "ExecutionReceipts": 0,
+      "Audits": 13,
+      "Outbox": 13,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessRevocationDuringReplay",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessStartupChecks",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessAPIRuntimeGrants",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "D3D73574A08C4216910B7B40323270E6",
+        "State": "available",
+        "Attempts": 0,
+        "Reservations": 1,
+        "Disposition": "explicitly_pending_fixture_boundary"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessUploadLifecycle",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 2,
+      "Outbox": 3,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "7DCB668107C7457CBAED6682BE440E7E",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessDeferredLifecycle",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 2,
+      "ExecutionReceipts": 0,
+      "Audits": 2,
+      "Outbox": 2,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "97DAC5EEF2BE4D5E8F6456685E669499",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessScheduledKinds",
+    "Counts": {
+      "Records": 3,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 2,
+      "Audits": 3,
+      "Outbox": 4,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "65CCBCB1992A4412A1C0BCCEE322ADA6",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "C97CAB7C04564505B41E1DA2FB6AE460",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessCompetingWorkers",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "4B92A2AE894143198F2584DAA960F9DA",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "CBFD2067ABFD47E29A3B71FBF50F7E85",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessScopedWorkerClaims",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "DD6D9AE4DA634AFCBDC6D6A4619352E3",
+        "State": "running",
+        "Attempts": 1,
+        "Reservations": 1,
+        "Disposition": "explicitly_pending_fixture_boundary"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessFailedWorkDetails",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 2,
+      "Jobs": 2
+    },
+    "Outcomes": [
+      {
+        "ID": "5073FE2C2C074B64A5C5C5E5B8FE97C9",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      },
+      {
+        "ID": "798CB9DC54514713A464B593AA1A735C",
+        "State": "discarded",
+        "Attempts": 2,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessIdenticalReceipts",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessConflictingReceipts",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessAlternateUniqueRace",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessEffectGrantRollback",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessCancellationBeforeCommit",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessOrderedPatches",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 2,
+      "ExecutionReceipts": 0,
+      "Audits": 6,
+      "Outbox": 6,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  },
+  {
+    "Test": "TestProcessLimitsAndAuthentication",
+    "Counts": {
+      "Records": 0,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 0,
+      "Audits": 0,
+      "Outbox": 0,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": [],
+    "run": "accepted-2"
+  }
+]

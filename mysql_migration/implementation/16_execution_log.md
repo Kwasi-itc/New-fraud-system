@@ -345,7 +345,7 @@ index-request concurrency paths were not redesigned. No MySQL repository,
 queue executor, DDL publication/recovery or production cutover was implemented.
 No schema/dependency changes were needed. PostgreSQL remains the runtime database.
 
-## 2026-10-22 � DB-01.1j: pinned MySQL DDL lock lifecycle
+## 2026-10-22 â€” DB-01.1j: pinned MySQL DDL lock lifecycle
 
 Implemented `WithDDLLock` in `backend/mysqlstore/ddl_lock.go` with behavioral tests
 in `ddl_lock_test.go`. P-01 requires lock ownership and DDL on the same physical
@@ -390,7 +390,7 @@ unimplemented. Lost release acknowledgements, real long-running DDL, server
 failure and split-brain fencing still need targeted validation. Legacy repair
 recovery DM-01.2f also remains pending. PostgreSQL remains the application runtime.
 
-## 2026-10-22 � DB-01.1g.2: lossless non-null INET storage codec
+## 2026-10-22 â€” DB-01.1g.2: lossless non-null INET storage codec
 
 PG-24 source evidence: `backend/data-model-service/internal/tenantdb/postgres/indexing.go:113-126`
 (`toPgType`) maps IP fields to PostgreSQL INET. Current ingestion validation at
@@ -427,7 +427,7 @@ query operators and data migration remain unimplemented. PostgreSQL remains the
 application runtime. Authoritative semantics and codec usage are linked in
 `backend/mysqlstore/README.md`.
 
-## 2026-10-22 � DB-01.1e.1: explicit unconfirmed rollback outcome
+## 2026-10-22 â€” DB-01.1e.1: explicit unconfirmed rollback outcome
 
 Inspection of `backend/mysqlstore/transaction.go` and `errors.go` found that an
 ordinary wrapped rollback error could be joined with a callback deadlock/timeout
@@ -461,7 +461,7 @@ reporting or server failover. Full domain retry/reconciliation policies and serv
 adoption remain pending. DB-01 and POC-01 remain IN_PROGRESS; PostgreSQL remains
 the application runtime and no application schema/configuration was changed.
 
-## 2026-10-22 � DB-01.1g.3: nullable INET tuple integrity
+## 2026-10-22 â€” DB-01.1g.3: nullable INET tuple integrity
 
 The existing ingestion `normalizeFieldValue` accepts NULL only for fields marked
 nullable (`backend/ingestion-service/internal/domain/ingestion/validation.go:229-235`).
@@ -493,7 +493,7 @@ not owner mappings. DB-01.1g, DB-01 and POC-01 remain IN_PROGRESS. Service schem
 and repository adoption, PostgreSQL query/format differential tests and migration
 of live data remain pending. PostgreSQL remains the application runtime.
 
-## 2026-10-23 � DB-01.1g.4: JSON and nullable JSON storage boundary
+## 2026-10-23 â€” DB-01.1g.4: JSON and nullable JSON storage boundary
 
 PG-20 covers JSONB persistence and query semantics. Concrete consumers include
 `backend/decision-engine-service/internal/domain/execution/model.go:36,52,54`
@@ -529,7 +529,7 @@ validation remain pending. This is not a byte-exact document archive or proof
 of full JSONB compatibility. The MySQL normalization reference and usage contract
 are linked in backend/mysqlstore/README.md. PostgreSQL remains the runtime database.
 
-## 2026-10-23 � DB-01.1a.1: explicit session integrity defaults
+## 2026-10-23 â€” DB-01.1a.1: explicit session integrity defaults
 
 Inspection of `backend/mysqlstore/db.go` showed UTC/strict/isolation settings were
 explicit but integrity and transaction completion settings inherited server
@@ -564,7 +564,7 @@ service adoption remain pending. DB-01 and POC-01 remain IN_PROGRESS; PostgreSQL
 remains the application runtime. The MySQL system-variable reference and scope
 limits are linked in backend/mysqlstore/README.md.
 
-## 2026-10-23 � DB-01.1j.1: blocked ALTER recovery verification
+## 2026-10-23 â€” DB-01.1j.1: blocked ALTER recovery verification
 
 Added `backend/mysqlstore/ddl_metadata_lock_test.go` to exercise the remaining
 P-01 prerequisite of real DDL metadata-lock contention. No runtime helper or
@@ -594,7 +594,7 @@ publication/reconciliation. No operation ledger or automatic retry was added.
 Production timeout selection and service adoption remain pending; PostgreSQL
 remains the application runtime.
 
-## 2026-10-23 � DB-01.1j.2: lost DDL success acknowledgement
+## 2026-10-23 â€” DB-01.1j.2: lost DDL success acknowledgement
 
 Added `backend/mysqlstore/ddl_ack_fault_test.go`, reusing the test-only protocol
 wrapper from commit_fault_test.go. It forwards a real ALTER TABLE ADD COLUMN,
@@ -623,7 +623,7 @@ shape inspection, process/server crashes, old-primary fencing, durable intent,
 publication barriers and service adoption remain pending. PostgreSQL remains
 the application runtime.
 
-## 2026-10-23 � DB-01.1j.3: reusable visible-column inspection
+## 2026-10-23 â€” DB-01.1j.3: reusable visible-column inspection
 
 P-01 step 3 requires physical shape evidence before metadata publication. Added
 `backend/mysqlstore/columns.go` with InspectVisibleColumns and ColumnDefinition.
@@ -654,7 +654,7 @@ rejection, operation ledgers and publication remain pending. Documentation links
 the official COLUMNS reference and explains these limits. DB-01 and POC-04 remain
 IN_PROGRESS; no service imports the helper and PostgreSQL remains the runtime.
 
-## 2026-10-23 � DB-01.1j.4: index-definition inspection
+## 2026-10-23 â€” DB-01.1j.4: index-definition inspection
 
 P-01 physical verification also requires indexes, not just column presence.
 Added `backend/mysqlstore/indexes.go` with InspectVisibleIndexParts and IndexPart.
@@ -685,7 +685,7 @@ constraints, table identity/options, grants, complete drift decisions, durable
 intent/publication and service adoption remain pending. DB-01/POC-04 remain
 IN_PROGRESS; PostgreSQL remains the application runtime.
 
-## 2026-10-23 � DB-01.1j.5: foreign-key and check inspection
+## 2026-10-23 â€” DB-01.1j.5: foreign-key and check inspection
 
 Added `backend/mysqlstore/constraints.go`: InspectVisibleForeignKeyParts reads
 ordered child/parent mappings, referenced schema/table/key position and update,
@@ -2168,3 +2168,961 @@ Compose resources were removed with volumes. Unrelated changes were preserved.
 
 2026-10-28 - Data-model implementation-plan audit (documentation only).
 Compared the checklist/coverage map with API routes, access/platform.go and repository/display/delivery/validation contracts. Added explicit owner-audit coverage for tenant registration/provisioning, options replacement, enum/pivot/navigation deletion and index-job retry/admin reconcile. Recorded HTTP request-key/result/error acceptance, auth-owned AU-01.2/3 dependency, physical readers/consumers, isolated API/frontend stack requirements and operational/data acceptance under existing task IDs. Corrected stale current coverage-map wording for registration allocation and supported physical execution/publication. Identified default Compose 120s test timeout versus recorded 170.218s metadata regression; no new test failure is claimed. No code/runtime/grants/database changes, test runs or completion checkbox changes. No new checklist IDs.
+
+2026-10-28 - Ordered-options owner publication under existing DM-01.3b/d/e.
+Implemented typed table_options.replace canonical input, concrete OptionsService.PublishReplacement, transaction-bound active tenant/table/field checks, existing options identity preservation and original TableOptions recovery through the v004 owner-result receipt. Ordered lists, display version, audit/revision and unchanged ingestion publication commit atomically. Added OptionsOwnerPolicy with narrow option/version grants and no display JSON, field enforcement, gate or retained-receipt mutation. Six full-lineage MySQL scenarios passed: commit, eight concurrent duplicates, revision rollback, closed gate, restricted grants and actual lost-COMMIT acknowledgement. Additional assertions cover invalid/foreign fields, changed command, missing legacy result, revoked replay, later edits/closed barrier and denied result INSERT rollback. Canonical request regression and result wire/scope tests passed. Module-wide vet and selected race regression passed without skips/failures; metadata 136.349s. Compose default now matches the selected regression packages with 240s timeout and full vet. Evidence: 2026-10-28_options-canonical.log, 2026-10-28_options-owner-focused.log, 2026-10-28_options-regression.log. API enrichment with separately fetched field details, request-key transport, lifecycle/deployment and runtime acceptance remain open. No new checklist IDs or completed parent boxes. PostgreSQL/River remain runtime; no application database or grants changed.
+Verification cleanup completed: stopped data-model-mysql-verifier and removed the data-model-mysql-test Compose fixture with --volumes. No tests or disposable containers remain running. Scoped tracked/untracked source whitespace checks passed.
+
+2026-10-28 - User-directed ingestion implementation-plan review.
+Read root AGENTS.md and compared IN-01 with ingest/upload/deferred services, PostgreSQL repositories, contract reader, API router, typed mutation ports, worker kinds and both source migration pairs. Added 02_ingestion_implementation_map.md and expanded the original IN-01.1/2/3/4 execution requirements without new checklist IDs. IN-01.1 is now IN_PROGRESS for source characterization only. Recorded normalized-single/raw-batch hash distinction, mode/object-type identity questions, validation-before-replay, discarded validation-audit errors, duplicate-batch rejection, and ingest-commit/worker-completion gaps (CSV has no receipt key). Corrected P-02 wording to preserve duplicate lookup-ID rejection, and clarified successful versus validation-failure audit boundaries. Added full owned-table/route/worker/read/consumer/schema-grant and acceptance coverage. Roadmap records the user's ingestion-planning focus while DM-01 remains incomplete and an integration dependency. Documentation only: no application code/database/grants changes or tests run, no completed boxes. Existing dirty data-model and unrelated changes preserved. Runtime remains PostgreSQL/River.
+
+2026-10-28 - IN-01.1 executable source characterization.
+Added migration_characterization_test.go with twelve PostgreSQL replay/audit/write scenarios and three real-data worker completion-gap scenarios. Verified normalized-single/raw-batch identity, mode/table omission from source hash, validation-before-replay, hash/kind conflicts, duplicate-batch validation, ignored failure-audit constraint errors, alternate-unique conflict and full batch rollback. Injected completion repository failure after real ingestion commit: CSV retries duplicate success audits/per-record and batch events; unkeyed deferred retries duplicate audit/events; keyed deferred retries reuse retained receipt. This is not a wire-level lost-COMMIT test and does not fix or approve source weaknesses for MySQL. Full ingestion go vet ./... and race go test ./... passed: 81 top-level tests, no skips/failures. Evidence: 2026-10-28_ingestion-characterization.log and 2026-10-28_ingestion-characterization-regression.log. Updated existing IN-01.1 status/evidence and compatibility decisions. Concurrency/cancellation/failure coverage and legacy/target/schema-consumer closure remain; no completion boxes or new IDs. Runtime unchanged; application data/grants untouched.
+Cleanup complete: ingestion-migration-verifier stopped; ingestion-migration-test Compose fixture removed with --volumes. No tests or disposable containers left running. Scoped whitespace checks passed; unrelated dirty work preserved.
+
+2026-10-28 - IN-01.1 source characterization completed.
+Added forced absent-receipt races (identical/different commands), cancellation after real data/audit/outbox writes, ten worker failure/terminal-redelivery cases and a five-table/53-column source inventory check. Combined new characterization is 29 scenarios plus inventory. Races produce one committed caller and one PostgreSQL 23505 loser with complete loser rollback; normal retries replay or conflict. Both worker types can rerun terminal successes in the source. Documented target fixes and conservative legacy-receipt attribution, failure-audit errors, stable asynchronous identity/fencing and separate attempt budgets. Repository consumer inventory includes ingestion adapters/migrations, stress replay/reconciliation/pilot and case shared-load fixture; external/live inventory remains B-01/DT-01. Full ingestion vet/race regression passed (85 top-level tests, no skips/failures); five additional repeated receipt-race runs passed. Evidence: 2026-10-28_ingestion-closure-focused.log, 2026-10-28_ingestion-closure-regression.log, 2026-10-28_ingestion-receipt-race-repeat.log. Checked original IN-01.1 for source characterization only; IN-01.2/3/4 remain unchecked. No MySQL runtime implementation/acceptance or production activation claimed. No application data/grants changed; unrelated dirty work preserved.
+Cleanup complete: stopped ingestion-migration-verifier and removed ingestion-migration-test fixture with --volumes. No tests or disposable containers remain running. Scoped whitespace checks passed.
+
+## 2026-10-28 - IN-01.2 staged MySQL receipt transactions
+
+Implemented tenant-bound receipt bucket serialization before owner effects,
+full-byte collision handling, bounded response projection, exact original response
+replay, mandatory current/local authorization and zero provisional results on
+rollback or uncertain commit. A real fault consumes server COMMIT OK before hiding
+it; authorized healthy replay recovers without repeating effects. Restricted
+fixture grants deny receipt UPDATE/DELETE, bucket DELETE and DDL. Schema remains
+staged: no deployment lineage, retention or production metadata linkage accepted.
+
+Initial fixture run failed on JSON_VALID over binary response storage and missing
+SELECT(key_digest) for restricted no-op UPDATE. Corrected storage to UTF-8 LONGTEXT
+with binary collation and added only that column SELECT. Retained initial failure
+in 2026-10-28_ingestion-mysql-receipts-initial-failure.log. Final module-wide vet,
+four MySQL top-level race tests (including seven execution and two invalid-response
+subcases), and all 85 existing PostgreSQL top-level tests passed without skips or
+failures. MySQL and PostgreSQL suites ran separately against disposable engines.
+Evidence: 2026-10-28_ingestion-mysql-receipts-regression.log and
+2026-10-28_ingestion-receipt-dependency-regression.log.
+
+Added shared mysqlstore dependency and widened only ingestion Docker build
+contexts to backend; server/worker/migrator image build passed, image manifest
+sha256:33539ac43b9cad5a8aa6d5eaeb6ff4e776e2de47b0e9cbe2829e2b95a197399a.
+Preserved Docker exclusions in Dockerfile.dockerignore for the widened context.
+Scoped tracked diff whitespace check passed. No additional checklist completion:
+IN-01.2 still requires canonical owner identity, physical keyed writes, atomic
+real audit/outbox, reviewed schema/grants, upload/deferred persistence and delivery.
+Runtime remains PostgreSQL/River. No application database or grants changed;
+unrelated workspace changes preserved.
+Both disposable runners stopped and both compose fixtures removed successfully,
+including their networks/volumes. No verification processes remain running.
+
+## 2026-10-28 - IN-01.2 versioned canonical ingestion command
+
+Implemented driver-free ingestion-request/v1 encoding and staged MySQL
+NewReceiptRequest construction. Identity binds tenant, stable table, create/patch,
+single/batch and ordered raw decoded records before mutable model validation.
+Pinned envelope/key order, SHA-256 identity, exact json.Number spelling, null/
+absence and batch order. Validates scope, 1-500 batch size, UTF-8, finite numbers,
+allowed JSON-decoded types, byte/node/depth budgets and rejects cyclic inputs.
+No domain model defaults or mutable publication versions enter the identity.
+Current authorization remains separately mandatory on every receipt replay.
+
+Module-wide go vet passed using Docker Go 1.25.8. Domain and MySQL race regression
+passed 18 top-level tests without skips/failures, including new golden/scope/
+rejection tests and real MySQL canonical replay/conflict coverage. Existing
+collision/concurrency/rollback/grant and lost-COMMIT tests passed in that run.
+Evidence: 2026-10-28_ingestion-mysql-command-regression.log. Previous PostgreSQL
+regression is not presented as rerun evidence for this change; runtime entry
+points are unchanged and the new helper is only selected by the staged adapter.
+
+Updated isolated compose test command and receipt contract. IN-01.2 remains
+unchecked: reviewed deployment schema/grants, authorized owner entry points,
+legacy attribution/translation, physical writes, atomic audit/outbox, worker
+persistence and delivery remain incomplete. No API/frontend MySQL acceptance or
+production switch claimed. No application database or grants changed.
+Verification runner stopped and disposable MySQL compose fixture removed,
+including test network/volumes. Scoped whitespace checks emitted no errors.
+
+## 2026-10-28 - IN-01.2 transaction-bound audit/outbox effects
+
+Implemented staged EffectStore and EffectSchema for ingestion-owned audit/outbox
+rows in the existing authorized transaction. Scope fixes tenant, stable table ID
+and logical object name; validates UUIDs, status/mode, JSON shape, UTF-8, byte
+bounds, UTC microsecond instants and successful audit/event identity association
+before paired writes. SQL values are parameterized; no nested pool acquisition.
+Bounded RecordBatch validates 1-500 pairs first and issues two multi-row INSERTs
+under a combined bound-value budget. Owner propagates SQL errors for full rollback.
+Separate failed-validation audit appends return errors, with no success event.
+
+Docker Go 1.25.8 module-wide vet and MySQL 8.4.8/domain race regression passed:
+21 top-level tests, no skips/failures. New coverage includes eight effect/receipt
+scenarios, nine pair-validation cases and four 500-row bulk scenarios. Verified
+replay, owner/receipt/outbox failure rollback, cancellation after writes, denied
+outbox INSERT, narrow INSERT-only grants, large integer/NUL/timezone round trips,
+late validation/duplicate errors and byte budgets. Existing actual lost server
+COMMIT OK fault now includes audit/outbox and recovers without duplicate rows.
+Single-connection execution verifies no nested connection acquisition.
+Evidence: 2026-10-28_ingestion-mysql-effects-verified.log.
+
+Source map corrected SHA-256 to SHA-1 after checking current hashRequest; the new
+versioned target helper uses SHA-256. Schema is staged, not a reviewed deployment
+migration: production cross-owner tenant/table lineage, receipt translation,
+retention and delivery lifecycle remain open. Physical record writes still use
+fixture effects. IN-01.2 remains unchecked pending full physical writer, owner,
+API/worker and delivery integration. No application database/grants changed;
+runtime remains PostgreSQL/River and unrelated workspace changes are preserved.
+Scoped whitespace checks passed. The verification runner stopped and disposable
+MySQL compose fixture/network/volumes were removed successfully.
+
+## 2026-10-28 - IN-01.2 publication and lookup write coordination
+
+Implemented LockWriteSnapshot: exact tenant/table FOR SHARE publication lock,
+expected-version/open/no-active-operation checks, archive rejection and bounded
+complete field component reads. Identifier checks bind generated names to stable
+UUIDs. The caller retains the transaction through physical/effect commit and must
+supply prior authorization; no gate publication or physical DDL is performed.
+
+Implemented persistent ingestion lookup guards with composite tenant/table FK to
+the physical registry. Validates 1-500 normalized keys, UTF-8, duplicate exact IDs
+and key/batch byte budgets before one ordered parameterized reservation INSERT.
+Hash collisions only serialize keys and never determine physical record identity.
+Consistent guard order preserves caller effect/result order and independent keys.
+
+Docker Go 1.25.8 module-wide vet and MySQL 8.4.8/domain race suite passed 25 top-level
+tests without skips/failures. New tests cover ten publication states/mapping cases,
+shared writers, DDL preparation wait, independent tables/keys, cancellation,
+opposite batch orders, forced digest collisions, tenant FK rejection and restricted
+SELECT/INSERT/column UPDATE grants. Registry mutations, guard DELETE and DDL are
+denied. Registry DDL is read from the actual data-model SQL files; referenced
+metadata and privileged gate opening remain fixture setup, not full installation
+or publication acceptance. Evidence: 2026-10-28_ingestion-write-coordination.log.
+
+Concrete remaining physical-writer dependency: existing record writer policies
+explicitly deny SELECT on the private exact-key dictionary and direct resolver
+execution. No approved indexed full-byte consumer lookup interface was found.
+Do not bypass this with broad dictionary grants or unbounded LONGTEXT scans. An
+owner-installed lookup projection/index or scoped read routine needs versioned
+lineage/grants and collision/tenant acceptance before ingestion physical writes.
+The data-model job repository has a nonunique lookup index pattern, but physical
+records do not yet expose that interface. This is documented as outstanding,
+not silently implemented by privileged fixture access.
+
+IN-01.2 remains unchecked. Physical writes/readback, full authorized owner
+composition, upload/deferred persistence, target queue integration, reviewed
+installation and legacy translation remain incomplete. No runtime switch or
+application database/grant change; unrelated workspace work preserved.
+Scoped whitespace checks passed. Verification runner stopped; disposable MySQL
+container, test network and volumes removed successfully.
+
+
+## 2026-10-29 - IN-01.2 atomic keyed record owner composition
+
+User requested continued implementation of IN-01.2. Preserved the existing dirty
+workspace, including the staged RecordWriter and data-model v005 lookup work.
+Added record_owner.go and record_owner_test.go in ingestion's MySQL adapter.
+KeyedRecordOwner composes canonical raw request identity, detached exact-number
+input, current pre-lock/transaction authorization, local model validation,
+publication/lookup locks, physical keyed writes, success audit/outbox and receipt.
+It returns no provisional response after any error and performs no automatic
+mutation retry. Batch validation preserves duplicate-key rejection and ordered
+results. Alternate unique errors never redirect writes. Validation failure audits
+run separately with reauthorization, row/batch bounds and propagated audit errors.
+
+Verification: Docker Go 1.25.8 module-wide go vet ./... plus MySQL 8.4.8/domain
+race regression passed; full retained output is
+[evidence](evidence/2026-10-29_ingestion-mysql-owner.log). New tests verify historical
+replay without mutable-model loading; ordered batches and batch events; late
+unique/outbox/receipt failures; validation and audit failures; revoked authority;
+caller-map mutation after canonicalization; eight concurrent duplicates; foreign
+tenant and duplicate batch rejection; actual lost server COMMIT acknowledgement
+followed by one retained physical/audit/outbox/receipt result; restricted-account
+writes and denied private dictionary reads, receipt deletion, audit update and
+DDL. Revoking outbox INSERT rolls back the prior physical update. Baseline staged
+writer/receipt/effect tests also passed before composition.
+
+The tests use actual data-model lookup SQL and registry DDL with privileged
+fixture metadata/triggers. Authorization and complete model loading are injected
+integration contracts, not deployed service adapters. No production installer,
+API/worker wiring, legacy receipt translation, upload/deferred repository or
+shared MySQL queue was added. Full record reads belong to IN-01.3. Existing runtime
+remains PostgreSQL/River. IN-01.2 remains unchecked; no new completion IDs or parent
+completion claims. Checklist and adapter README now distinguish this verified
+increment from those outstanding acceptance gates.
+
+Final evidence count: 31 top-level tests passed, zero failures and zero skips.
+The run-specific Compose test containers used --rm and each fixture database was
+removed by test cleanup. The pre-existing ingestion-mysql-test MySQL container
+and ingestion-mysql-verifier were already running before this work and were
+preserved; no Compose down was issued against another running verifier.
+
+
+### 2026-10-29 ? staged ingestion work owner and shared migration mechanics
+
+Added immutable upload/deferred persistence, shared MySQL queue claims/fencing,
+heartbeats/retries/expiry recovery and atomic completion with record/audit/outbox
+and receipt effects. Added shared-metadata/token owner binding, operator-authorized
+legacy receipt translation, source-bound ingestion installation lineage and
+column-restricted runtime grant manifest. No application runtime switch.
+
+Validation: ingestion `go vet ./...`; race-enabled MySQL owner, data-model client
+and ingestion domain suites passed; separate retry/expiry/no-op recovery tests
+passed. Data-model migration-plan package race tests passed after shared-runner
+extraction. Evidence: `evidence/2026-10-29_ingestion-work-owner.log` and
+`evidence/2026-10-29_ingestion-work-recovery.log`. Disposable MySQL 8.4 fixture,
+Go 1.25.8; no application database operations. Full shared-schema deployment,
+production transport adoption, operator redrive/retention, reviewed grants and
+legacy inventory reconciliation remain acceptance gates; IN-01.2 stays open.
+
+## 2026-10-29 - IN-01.2 physical writer and read-only exact lookup
+
+Implemented data-model staged append-only v005 lookup source, typed reference
+binding and separate locked definer policy. Fixed-domain record_object_id lookup
+uses tenant/table scope, existing digest index and complete raw-byte equality;
+no allocation or direct application dictionary SELECT/resolver grant. MySQL
+requires EXECUTE on the lookup itself for its locked definer as well as EXECUTE
+on the digest function and dictionary SELECT. Initial real-engine failure found
+this missing self-EXECUTE grant; corrected policy and fixture, preserving evidence
+in 2026-10-28_ingestion-record-writer-initial-failure.log.
+
+Implemented ingestion FindRecordKey and transaction-bound RecordWriter, preserving
+publication and sorted missing-key guards, six-type mapped writes, exact targeted
+lookup, supplied-field updates, unchanged-update success, alternate unique conflict
+rejection and verified trigger-derived key readback. Results are provisional until
+the owner transaction commits. No generic any-unique upsert or runtime activation.
+
+Real physical-row tests verify six-type paths, long/case/trailing/NUL object IDs,
+concurrent duplicate objects, late batch rollback and restricted routine access.
+Added complete physical row/audit/outbox/receipt transaction tests for normal replay,
+owner rollback, invalid receipt rollback and consumed-server-COMMIT-OK recovery.
+Forced dictionary digest collisions preserve distinct identities and reverse input
+order; foreign tenant lookup returns no key. Restricted writers cannot read the
+private dictionary or execute its resolver, and revoked lookup EXECUTE fails closed.
+
+Both ingestion and data-model module-wide vet passed. Current ingestion domain and
+recursive MySQL race suite passed 43 top-level tests without skips/failures, including
+additional owner, installation, legacy and work components present in the workspace.
+Focused data-model lookup-upgrade binding/race test passed. Its initial synthetic
+reference used noncanonical JSON; corrected through json.Marshal and preserved the
+failed log as 2026-10-29_record-lookup-upgrade-initial-failure.log.
+Final evidence: 2026-10-29_ingestion-physical-transaction.log and
+2026-10-29_record-lookup-upgrade.log.
+
+Reconciled with the current granular checklist instead of overwriting newer owner,
+worker, legacy, installation and tracker work. IN-01.2 remains incomplete: v005
+reference CLI/shared readiness adoption and full installation/grant acceptance,
+independent review, API/worker runtime adoption, queue operational acceptance and
+legacy inventory reconciliation remain open. No production/application grants or
+DB contents changed. PostgreSQL/River remain the runtime. Fixture metadata/record
+triggers and test policies are not full production deployment acceptance.
+Scoped whitespace checks passed. Runner stopped after confirming no active tests;
+disposable MySQL container, network and volumes removed successfully.
+
+
+### 2026-10-29 - granular ingestion schema/recovery/evidence work
+
+- IN-01.2.019 complete: documented installer/API/worker/reader/importer principal
+  separation and actual staged grants in modules/02_ingestion_schema_review.md.
+  Deployment account provisioning and full restricted-principal acceptance remain open.
+- IN-01.2.021 complete: 18 DDL steps times three durable states (54 cases) pass
+  with race detector: before DDL, after DDL before acknowledgement, and drift.
+  Existing lineage test also passes. Evidence: evidence/2026-10-29_ingestion-ddl-boundaries.log.
+  Uses isolated minimal metadata, not full DM-01 deployment or process-kill testing.
+- IN-01.2.065 complete: aggregate legacy evidence preflight conservatively bounds
+  exported metadata, strings, raw bytes, audits and container overhead before
+  canonicalization/provenance allocation. Typed limit errors; malformed/oversized
+  inputs rejected before semantic processing. Three top-level legacy tests pass,
+  including five new limit cases and existing single/batch translations; module
+  vet passes. Evidence: evidence/2026-10-29_ingestion-legacy-bounds.log.
+- IN-01.2.016 in progress: complete staged object/column/index/FK inventory and
+  source mapping expose unresolved receipt/source start timestamps, historical
+  nullable upload payloads, status/error mapping and outbox delivery ownership.
+  Manifest is not frozen and reference generation/review are not claimed complete.
+
+Runtime remains PostgreSQL/River. No production/application data or grants changed.
+
+
+### 2026-10-29 - timestamp schema gaps (IN-01.2.016a/b)
+
+Added receipt created_at to the unfrozen candidate schema. New writes use DB UTC;
+authorized legacy import validates and preserves source time with microsecond
+precision and timezone normalization. Missing/unrepresentable source timestamps
+fail; import time remains separate provenance. Replay does not change creation.
+
+Added queue started_at and its restricted worker UPDATE privilege. Claim sets it;
+heartbeat/retry preserve the last attempt internally and subsequent claim replaces
+it. Authorized WorkOwner.Get exposes null while available/queued, matching the
+source retry DTO, and returns the latest start for running/terminal work. No API
+runtime switch. Existing candidate definitions must be regenerated; this is not
+an upgrade migration for an already accepted deployment.
+
+Verification: module vet passed. Full MySQL race suite: 34 top-level passes,
+zero failures/skips, including 54 DDL recovery cases. After final queued-state
+projection correction, all six work-related top-level tests passed again with
+race detection. Evidence: evidence/2026-10-29_ingestion-timestamps.log and
+evidence/2026-10-29_ingestion-timestamp-status.log. Tests cover both work kinds,
+retry/heartbeat/reclaim, stale lease, completion, receipt replay, imported source
+time and malformed precision. Isolated MySQL fixture only.
+
+The two timestamp children are complete; IN-01.2.016 remains open for historical
+requested_at/payload import, public status/error mapping and outbox delivery-state
+contract. Schema review and deployment acceptance are not implied.
+
+
+### 2026-10-29 - bounded upload history (IN-01.2.035)
+
+Implemented WorkOwner.ListUploads with 1..100-item keyset pages, scoped cursors,
+creation-time/UUID ordering and one exact-ID status join. Reads neither upload
+payload, caller key nor result JSON; SQL bounds filename/content-type transfer.
+Both create/patch scope authorizers run before and inside the transaction. Missing
+job or malformed oversized metadata fails without partial results. Transport DTO
+mapping and independent read-only business permissions are not implemented here.
+
+A 2,000-record mixed-kind fixture verifies all 1,000 uploads appear once with
+stable tied-time ordering. Restricted column grants prove sensitive fields are
+not required; authorization revocation, foreign scopes, invalid bounds/cursors
+and missing jobs are covered. Three race-enabled top-level tests and module vet
+passed. The first unhinted EXPLAIN selected the kind-agnostic history index;
+the production query now explicitly uses upload_history to constrain scope/kind.
+Final plans use ref/range, no filesort and primary-key eq_ref job lookup. These
+are query-plan observations, not measured throughput/latency improvements.
+
+Added the index to the unfrozen candidate schema and updated its inventory.
+Installation lineage plus 54 recovery boundary cases pass (two top-level tests).
+Evidence: evidence/2026-10-29_ingestion-upload-list.log,
+evidence/2026-10-29_ingestion-upload-list-before-index-policy.log (retained failed
+plan check), evidence/2026-10-29_ingestion-upload-index-lineage.log.
+No application database changes or runtime activation. Historical completed-work
+import remains separate: nullable old payloads must not be re-enqueued through
+normal Create. IN-01.2.016 and the parent migration remain open.
+
+
+### 2026-10-29 - five reader subtasks (IN-01.3.001/004/005/006/007)
+
+Completed the source-linked consumer map and portable explicit-mode reader
+construction. Reused existing HTTP and SQL client behavior; new factory validates
+mode, required store/credentials/URL/timeout and bounded cache configuration.
+Configured HTTP serves explicit full-model calls only. Tests prove SQL errors,
+revoked authorization, closed-gate errors and malformed payloads do not fall back
+or serve cached data. Nil authoritative store now returns an error rather than panic.
+
+Preserved public revision format and supplied the separate physical publication
+UUID on cold/warm SQL models. Verified stable-table recreation cannot reuse old
+cache data, and concurrent tenant accesses revalidate each request. Added a
+five-minute absolute representation reuse age (lazy eviction; no stale serving)
+and reject nonpositive cache byte accounting. Existing LRU, encoded-byte caps,
+HTTP 32 MiB response bound, redirect/credential and no-store behavior are reused.
+
+Validation: module-wide go vet and race-enabled client/domain suites passed with
+no failures/skips; seven new top-level tests plus existing suites. Evidence:
+evidence/2026-10-29_ingestion-reader-batch.log. Consumer/limits/remaining-gate detail:
+modules/02_ingestion_reader_contract.md. These five client-layer tasks are ticked;
+IN-01.3 remains IN_PROGRESS. Concrete MySQL contract store, actual SQL readiness,
+query-execution publication barriers and production wiring remain unimplemented.
+Cache encoded bytes are not an RSS limit. Runtime remains PostgreSQL/River.
+
+
+### 2026-10-29 - five ingestion operation subtasks (IN-01.2.032/048/050/051/053)
+
+Completed four source-grounded definition tasks: unkeyed synchronous execution
+identity/unknown-commit policy, separate trusted operator capabilities, redrive
+attempt/receipt semantics, and retention dependencies that preserve replay safety.
+The new modules/02_ingestion_operation_contracts.md records implementation gates;
+these definitions do not implement synchronous adoption, redrive or retention.
+
+Implemented staged fenced cancellation with current owner and operator checks,
+job-first locking, reservation release, terminal outcome preservation and atomic
+immutable actor/action evidence. Same action ID replays its original outcome after
+reauthorization; conflicting identity fails without a generic unique-key upsert.
+A separate restricted principal has no payload/physical-record/receipt access or
+action UPDATE/DELETE. The appended installation step adds the action table without
+rewriting previous migration identities: current candidate is 19 steps/12 tables.
+
+Validation: go vet ./... and race-enabled cancellation suite passed (eight cases,
+six worker races, restricted grants and denied audit-write rollback). The reused
+COMMIT-response fault transport verified unknown-result handling and durable replay.
+Installation lineage and all 57 recovery/drift cases passed on isolated MySQL 8.4.8.
+Evidence: evidence/2026-10-29_ingestion-operator-cancel.log,
+evidence/2026-10-29_ingestion-operator-commit-loss.log,
+evidence/2026-10-29_ingestion-operator-lineage.log.
+
+Five subtasks ticked. Parent IN-01.2 stays open: independent schema/grant review,
+production policy/API/worker adoption, full queue acceptance and reconciled legacy
+inventory remain outstanding. Runtime stays PostgreSQL/River; no application DB
+migration or deployment was performed.
+
+
+### 2026-10-29 - five bounded queue inspection subtasks (IN-01.2.049a-e)
+
+Split IN-01.2.049 into five acceptance-bearing subtasks and completed the staged
+adapter: mandatory tenant-wide inspection policy and bounds; safe metadata
+projection; keyset pagination; restricted column grants; index and lineage checks.
+WorkInspector is independent of table-scoped submission/cancellation authorization.
+Each page uses a read-only transaction and a fresh exact tenant/queue/state policy
+check. Results exclude payloads, keys, tokens and free-text errors. Page size is
+1..100 plus a single lookahead; no joins, total-count query or per-job lookup.
+
+Retained the initially failing plan: MySQL chose ready and filesorted 800 matching
+rows on a 2,000-row mixed fixture. The query now requires operator_history;
+first/continuation EXPLAIN use ref/range and no filesort. This is plan evidence,
+not measured throughput. The new appended migration makes the candidate 20 steps
+and 12 application tables. Existing migration identities are unchanged.
+
+Validation: go vet ./... and five race-enabled MySQL tests passed, including
+revoked policy, foreign cursor/tenant, all five states, tied timestamps, eight
+concurrent readers, request cancellation, read-only policy enforcement, denied
+sensitive reads/mutations, and missing-index failure. Installation lineage and
+all 60 durable-state recovery/drift cases passed. Evidence:
+evidence/2026-10-29_ingestion-inspection.log,
+evidence/2026-10-29_ingestion-inspection-unhinted.log (expected initial failure),
+evidence/2026-10-29_ingestion-inspection-lineage.log.
+
+Ticked IN-01.2.049a-e and their staged-adapter parent IN-01.2.049. Production IAM,
+inspection endpoint/access-audit binding, independent deployment review, full
+queue acceptance and overall ingestion migration remain open. No application DB
+was changed; runtime remains PostgreSQL/River. Only isolated generated test
+schemas received the index and fixture data.
+
+
+### 2026-10-29 - five shared queue telemetry subtasks (IN-01.2.055a-e)
+
+Completed bounded concurrent snapshots, claim/heartbeat counters, retry/expiry
+outcomes, queue-wait/handler timing and pool-pressure snapshots. RunnerConfig.Metrics
+is optional and uses fixed counters/disjoint histogram buckets without identities,
+raw errors or dynamic labels. Queue.Telemetry reads memory only. No dependency,
+schema migration, extra SQL round trip or grant expansion was introduced.
+
+The existing primary-key lease readback now also computes ready-to-claim wait from
+database time, saturating extreme dates instead of overflowing Go duration. Timing
+samples are captured before the metrics mutex. Confirmed outcome counts require
+successful transaction acknowledgement; ambiguous outcomes may undercount and
+must be reconciled from durable state. Reaper counters are owner-wide across queues.
+Pool metrics cover the whole pool, not just this worker. Full semantics and limits
+are in modules/02_ingestion_operation_contracts.md.
+
+Validation: module go vet passed; race-enabled snapshot/histogram unit tests, five
+telemetry integration tests (including four fault/recovery subcases), and existing
+worker timestamp, restricted-grant, lifecycle, concurrent claim, private receipt
+and recovery suites passed. Failure injection covers claim, retry and reap rollback;
+stale heartbeat/retry fencing remains intact. Pool contention shows wait counts,
+wait duration and in-use connections. Completion retains exactly one private receipt,
+record, audit and outbox event with no public receipt. Evidence:
+evidence/2026-10-29_ingestion-telemetry.log and
+evidence/2026-10-29_ingestion-telemetry-final.log.
+
+Ticked five granular items and their staged telemetry parent IN-01.2.055. Production
+export/admin binding, dashboard/alert ownership, queue operational acceptance and
+instrumentation overhead measurement remain open. No performance improvement is
+claimed. Deferred backlog metrics remain IN-01.2.037. Runtime stays PostgreSQL/River;
+only disposable test databases were used, and no production worker was activated.
+
+
+### 2026-10-29 - five source query audit subtasks (IN-01.3.010a-e)
+
+Completed projection/type, predicate, logical-group, temporal/pagination and
+aggregate/error/control inventories. New modules/02_ingestion_query_semantics.md
+links actual reader, domain, service, handler and contract-store functions and
+records follow-on acceptance cases for the MySQL port. Five new characterization
+tests pin SQL shapes, parameter order, null/list/wildcard behavior, empty groups,
+aggregate expressions and validation differences without changing production logic.
+
+Material findings: SELECT * exposes physical fields; list/search have no tie-break
+or positive maximum limit; no temporal/as-of filtering exists. Record search is
+single-field equality; nested filters are aggregate-only. COUNT(field) excludes
+nulls; SUM is COALESCE-wrapped. starts_with does not escape SQL wildcards. Empty OR
+and NOT(empty group) emit no filter. Node validation repeatedly counts subtrees:
+a 22-node depth-3 tree is rejected with weighted count 63 while shape metrics report
+22. Shape traversal occurs before depth validation. Direct repository calls do not
+inherit HTTP shape budgets. These are compatibility/risk findings, not approved
+semantic changes. Typed MySQL decoding, builders and publication barriers remain open.
+
+Validation: module-wide go vet and runnable race-enabled domain, PostgreSQL reader,
+HTTP handler and service tests passed. Five new top-level characterization tests
+passed. PostgreSQL integration cases skipped because INGESTION_TEST_DATABASE_URL
+was not configured; no database codec/collation/precision parity is claimed. Saved
+output: evidence/2026-10-29_ingestion-source-read-contract.log. Capture tests stop
+before SQL execution; fake aggregate values are not independent SQL results.
+
+Ticked IN-01.3.010a-e and their audit parent IN-01.3.010. This batch changes only
+tests and planning documents. No dependencies, database changes, runtime switch,
+MySQL reader implementation or production business-rule changes were introduced.
+Runtime remains PostgreSQL/River and IN-01.3 remains incomplete.
+
+
+### 2026-10-29 - five typed decoder subtasks (IN-01.3.012a-e)
+
+Added DecodeRecordValue for the six supported logical types. Five granular tasks
+cover strict boolean/signed INT decoding, finite DOUBLE decoding, bounded UTF-8
+strings/nullability, UTC DATETIME(6), and consistent IP components with database
+round trips. Reused shared timestamp/inet validation; returned strings and prefixes
+do not retain mutable driver buffers. All errors return no value and do not echo
+retained contents. No dependency, SQL query path or schema migration was added.
+
+Module go vet and five race-enabled tests passed without skips. Isolated MySQL
+round trips use actual existing writer encodings and driver scans at integer,
+float and timestamp boundaries, Unicode/NUL strings, IP families and SQL NULL.
+Evidence: evidence/2026-10-29_ingestion-record-decoder.log. Contract and limits:
+modules/02_ingestion_record_decoder.md.
+
+Ticked IN-01.3.012a-e and their decoder parent at component scope. Projection/query
+integration, tenant/publication barriers, before-Scan and combined row budgets,
+reader grants and public serialization/parity remain open. The decoder returns
+typed IP prefixes and int64; it does not silently decide source HTTP compatibility.
+Runtime remains PostgreSQL/River. Only generated isolated test schemas were used.
+
+
+### 2026-10-29 - five mapped projection subtasks (IN-01.3.011a-e)
+
+Completed requested-field validation, publication mapping checks, physical-column
+compilation, complete typed projection decoding and isolated barrier/readback
+verification. NewRecordProjection reuses NewRecordWriter/LockWriteSnapshot's full
+mapping validation and conservative writable/open gate. It emits explicit mapped
+identifiers only, not logical aliases or SELECT *. Requested names are copied,
+IP components have fixed order, and errors yield no partial decoded record.
+
+Validation: module-wide go vet and five race-enabled MySQL tests passed, including
+six negative mapping subcases. Actual physical readback covers six logical types;
+caller name/model mutation does not change compiled decoding. SQL-looking logical
+names never appear in SQL. Concurrent publication close remains blocked while
+the acquiring transaction is held and succeeds after rollback. Evidence:
+evidence/2026-10-29_ingestion-record-projection.log. Details and integration limits:
+modules/02_ingestion_record_projection.md.
+
+Ticked five granular tasks and their projection-component parent IN-01.3.011.
+This does not complete IN-01.3.008 or authorize read execution: current owner
+policy, production read gate, bounded transfer/combined result budgets, filters,
+reader grants, public DTO compatibility and endpoints remain unfinished. No new
+dependency, application migration or runtime activation. PostgreSQL/River remains
+configured; only generated disposable MySQL fixtures were used.
+
+
+### 2026-10-29 - five result-bound components (IN-01.3.021a-e)
+
+Implemented explicit validated field/transfer/row/page/count budgets; server-side
+string-length/CASE guards; complete-row accounting before string decoding; bounded
+page collection with no partial success; and boundary/restricted-reader verification.
+RecordProjection.Bounded reuses existing mappings/typed decoding and emits detached
+parameter storage. A real oversized value returns length plus NULL, distinct from
+nullable SQL NULL. Result limits are conservative value/JSON budgets, not exact RSS
+caps or database execution-cost limits. Callers still need bounded LIMIT/predicates.
+
+Validation: go vet ./... and five race-enabled MySQL tests plus four boundary
+subcases passed without skips. Tests cover 4096-byte value suppression, exact field,
+row and page boundaries, extra-row rejection, length-marker errors, restricted
+column SELECT, denied unprojected access, canceled reads and failed-scan connection
+cleanup. Evidence: evidence/2026-10-29_ingestion-record-bounds.log. Contract:
+modules/02_ingestion_result_bounds.md.
+
+Ticked only IN-01.3.021a-e. Parent IN-01.3.021 remains IN_PROGRESS with explicit
+IN-01.3.021f for production record/aggregate/HTTP adoption and approved budgets.
+No application DB change, dependency or runtime activation; PostgreSQL/River stays
+configured. The optional staged component is verified in disposable fixtures, not
+claimed as a globally enforced production response-size policy.
+
+## 2026-10-29 - IN-01.3.013a-e staged exact record reads
+
+Implemented ReadExactRecord with tenant/table/publication-validated projection,
+full-byte object identity and scoped retained-key resolution in one SELECT with
+LIMIT 1. Existing SQL transfer guards and bounded collector enforce typed output
+without partial success. Missing rows return sql.ErrNoRows; canceled context,
+publication, decoding and database failures propagate. No writes or commits occur.
+
+Verified go vet ./..., five race-enabled exact-read tests and fifteen existing
+projection/decoder/bounds tests (plus ten subcases), all passing without skips in
+isolated MySQL fixtures. Final Unicode identity test uses a Go escape to avoid
+PowerShell encoding changes. A regression invocation initially failed at shell
+quoting before running tests; corrected invocation passed. Evidence:
+evidence/2026-10-29_ingestion-exact-read.log and
+ evidence/2026-10-29_ingestion-exact-read-regression.log.
+
+Ticked five items 013a-e; parent 013 remains IN_PROGRESS with explicit 013f for
+production authorization/transaction wiring, missing-record HTTP mapping, field
+shape, restricted runtime grants and concurrent ingestion acceptance. Contract:
+modules/02_ingestion_exact_read.md. Representative query-plan/scale measurements
+remain pending; no performance improvement claim. No dependency, application DB,
+or production runtime change. PostgreSQL/River remains configured.
+
+## 2026-10-29 - IN-01.3.015a-e staged scalar filter compilation
+
+Added mapped scalar SQL fragments for eq/neq/gt/gte/lt/lte over normalized int,
+float, Boolean and timestamp values, plus single-column is_null/is_not_null.
+Values are parameters; names resolve only through the transaction-local validated
+projection. Reused normalized scalar encoding, including explicit UTC conversion
+and microsecond precision rejection. NULL comparisons retain SQL UNKNOWN; explicit
+null tests ignore Value as in the PostgreSQL source. Strings/IP/list/group
+comparisons remain unsupported here and fail closed with no partial fragment.
+
+Five new race-enabled real MySQL tests passed, plus 20 existing record/exact-read
+regression tests and ten subcases; go vet ./... passed. Tests cover all six numeric,
+Boolean and timestamp truth tables, null exclusion, parameter ownership, wrong
+types, numeric bounds, time range/precision/timezones and injected identifier/op
+strings. Evidence: evidence/2026-10-29_ingestion-scalar-predicates.log and
+ evidence/2026-10-29_ingestion-scalar-regression.log. Contract:
+modules/02_ingestion_scalar_predicates.md.
+
+Ticked 015a-e only. Parent 015 stays IN_PROGRESS with 015f for reviewed raw-value
+normalization/API errors, live source parity and authorized runtime composition.
+These are staged components, not production filter support. Combined budgets,
+string/IP semantics, query plans and concurrent execution acceptance remain open.
+No dependency, application database, schema or runtime configuration changed;
+PostgreSQL/River remains active.
+
+## 2026-10-29 - IN-01.3.016a-e staged membership predicates
+
+Added mapped IN compilation for normalized integer, float, Boolean and timestamp
+lists. The compiler requires concrete []any with 1..100 items before iteration,
+uses validated physical columns and bound parameters, and preserves order,
+duplicates and NULL. Arguments are detached from callers. Invalid members return
+no SQL/arguments even when encountered at the end of a maximum-size list.
+
+Five new race-enabled isolated MySQL tests and five scalar regressions passed
+without skips; go vet ./... passed. Real queries verify typed matches, boundary
+list lengths, NULL/UNKNOWN/negation behavior, parameter ownership and malformed
+inputs. Reused the scalar fixture and factored its bounded query collection helper
+for both predicate types. Evidence: evidence/2026-10-29_ingestion-membership.log.
+Contract: modules/02_ingestion_membership.md.
+
+Ticked 016a-e only. Parent remains IN_PROGRESS with 016f for string/IP semantics,
+raw-input/error compatibility, live PostgreSQL parity and authorized production
+composition. Whole-query budgets, query plans and deployment acceptance remain
+open. No source/runtime behavior, dependencies, schema or application DB changed;
+PostgreSQL/River remains configured.
+
+## 2026-10-29 - IN-01.3.018a-e staged logical filter groups
+
+Added CompileFilter with preflight depth/width/arity checks and the source
+validator's effective weighted node budget, computed once per visited node.
+Compiles AND/OR/NOT over staged scalar/membership leaves with depth-first bound
+parameters, owned argument slices and no partial output on failure. Preserves
+empty/default group behavior, including unfiltered empty OR and NOT(empty).
+Predicate children are explicitly rejected as a staged compatibility difference.
+
+Five new race-enabled isolated MySQL tests plus ten scalar/membership regressions
+passed without skips; go vet ./... passed. Tests verify nested truth tables,
+NULL/NOT, empty groups, detached ordered parameters, exact limits, cyclic input,
+invalid arity/kinds/operators and leaf error propagation. Evidence:
+evidence/2026-10-29_ingestion-logical-filters.log. Contract:
+modules/02_ingestion_logical_filters.md.
+
+Ticked 018a-e only. Parent remains IN_PROGRESS with explicit 018f for compatibility
+review/live parity and authorized production execution. String semantics under
+017 were not guessed; whole-query/request budgets and source unbounded shape
+traversal remain open. No production logic, dependencies, schema or application DB
+changed; configured runtime stays PostgreSQL/River. No performance claim is made.
+
+## 2026-10-29 - IN-01.3.020a-e shared statement budgets
+
+Added explicit parameter-count, logical parameter-byte and SQL-text budgets with
+bounded value-shape accounting. Repeated keys count repeatedly; unknown Valuers,
+non-finite floats and invalid timestamps fail before execution. Added staged
+SelectRecords composition of guarded projection, nested mapped filter and bound
+LIMIT, using one combined budget and the existing bounded result collector.
+ReadExactRecord now checks the same budget before its record SELECT.
+
+Five new race-enabled tests plus ten exact-read/logical-filter regressions passed
+without skips; go vet ./... passed. Tests verify exact/over count/byte/text limits,
+parameter ordering/ownership, real limited/empty reads, result overflow, canceled
+queries and budget rejection before closed-transaction execution. Evidence:
+evidence/2026-10-29_ingestion-query-budgets.log. Contract:
+modules/02_ingestion_query_budgets.md.
+
+Ticked 020a-e only; parent remains IN_PROGRESS with 020f for future batch-key and
+aggregate queries, all production SQL/HTTP paths and reviewed policies. This does
+not implement stable pagination, request-body limits or universal runtime budget
+enforcement. Byte accounting excludes wire/driver/RSS overhead and SQL scan cost.
+No production configuration, dependency, schema or application data changed;
+PostgreSQL/River remains configured. No measured performance claim is made.
+
+## 2026-10-29 - IN-01.3.023a-e staged COUNT(field)
+
+Added CountRecords over validated single-column int/float/Boolean/timestamp/string
+mappings. COUNT(field) excludes NULL while counting zero/false; optional filters
+reuse the staged tree compiler and shared statement budgets. Empty input yields
+zero. No row LIMIT is added to alter counted input. Results require nonnegative
+signed int64; malformed, NULL, negative or overflowed driver values fail explicitly.
+
+Five new race-enabled tests and ten query-budget/logical-filter regressions passed
+without skips; go vet ./... passed. Isolated fixtures verify typed/non-null counts,
+all-null and empty inputs, nested filters, parameter/budget boundaries, decoder
+limits, cancellation and errors. Empty-table testing deletes only a generated
+fixture's records within a rolled-back transaction. Evidence:
+evidence/2026-10-29_ingestion-count.log. Contract: modules/02_ingestion_count.md.
+
+Ticked 023a-e only. Parent remains IN_PROGRESS with 023f for live source parity,
+IP COUNT disposition, restricted grants, authorized endpoint adoption and query
+plan/concurrency acceptance. Constant-size output is not a bound on database scan
+work; no performance claim. No production logic/configuration, dependency, schema
+or application data changed. Runtime remains PostgreSQL/River.
+
+## 2026-10-29 - IN-01.3.024a-e staged numeric SUM
+
+Added SumRecords over mapped int/float fields, shared filters and statement
+budgets. Integers decode directly to signed int64; float totals are finite and
+approximate. Same-statement COUNT distinguishes empty/all-null input for typed
+zero results. Float MAX(ABS(field)) and count enforce a documented conservative
+magnitude bound; extreme cancellation can be rejected and needs adoption review.
+
+Initial overflow test failed: four stored MaxFloat64 values produced SUM=0
+successfully. The first NULL hypothesis was disproved: raw SUM was zero with four
+non-null values and matching stored extremes; COUNT alone did not fix it. Final
+magnitude protection rejects that case, permits one maximum finite input and
+rejects unsafe cancelling inputs. No server settings were changed. Discovery log:
+evidence/2026-10-29_ingestion-sum-overflow-discovery.log. Final diagnostics/tests:
+evidence/2026-10-29_ingestion-sum.log. Contract: modules/02_ingestion_sum.md.
+
+Five new race-enabled tests and ten COUNT/budget regressions passed without skips;
+go vet ./... passed. Coverage includes exact integer totals beyond INT32 and 2^53
+(decoder), signed boundaries, fractional tolerance, empty/all-null input, overflow,
+cancellation and query-budget boundaries. Fixture writes/deletion are isolated
+and rolled back. Ticked 024a-e only; parent remains IN_PROGRESS with 024f for
+policy review/live parity and production adoption. No production logic/config,
+dependency, deployment schema or application data changed. PostgreSQL/River stays
+active; no performance improvement is claimed.
+
+## 2026-10-29 - Twenty aggregate subtasks: IN-01.3.025a-e through 028a-e
+
+Completed exactly 20 newly detailed implementation/verification subtasks: five
+AVG, five MIN, five MAX and five COUNT DISTINCT. Four parent tasks stay
+IN_PROGRESS, with separate f items for parity and production adoption. Shared
+compileAggregate enforces fixed operations, validated field mappings, supported
+types, filters and complete statement budgets; no raw caller expression is used.
+
+AVG retains bounded MySQL integer-average decimal text as RecordDecimal rather
+than converting through float64. Fixture div_precision_increment=4 yields 0.5000
+and 0.3333; public representation and PostgreSQL scale parity are not assumed.
+Float AVG reuses the conservative SUM accumulation guard, extracted unchanged
+into safeFloatAccumulation. Empty/all-null AVG returns nil; unsafe totals fail.
+MIN/MAX preserve int64, finite float64 and UTC microsecond timestamps, including
+empty results for required fields. COUNT DISTINCT supports numeric/Boolean/time
+full scalar equality, excludes NULL and uses strict nonnegative int64 decoding.
+Unreviewed string/IP semantics and Boolean extrema remain explicitly excluded.
+
+Verification: go vet ./... passed. Race-enabled TestRecord suite passed 55
+top-level tests and ten subcases, zero failed/skipped: 20 new aggregate tests plus
+35 existing record regressions. Evidence:
+evidence/2026-10-29_ingestion-aggregate-batch20.log. Contract and per-item evidence:
+modules/02_ingestion_aggregate_batch20.md. Tests cover decimal precision/ownership,
+float safety boundaries, exact extrema, timezone/microsecond preservation,
+duplicate/signed-zero/adjacent-double distinctness, empty/all-null inputs,
+filters, invalid mappings, query budgets and execution errors. Existing projection
+barrier/tenant mapping, SUM overflow, COUNT and result-bound tests also pass.
+
+Ticked only 025a-e, 026a-e, 027a-e and 028a-e. This does not establish full live
+PostgreSQL parity, runtime grants/authorization, concurrency acceptance or query
+plan readiness. No production configuration, dependency, deployment schema or
+application database changed. Fixture updates/deletion were isolated and rolled
+back. PostgreSQL/River remains active; unrelated workspace edits were retained.
+No commit/push, new framework, heavy workload or performance claim is included.
+
+
+## 2026-10-29 - Twenty existing ingestion tasks completed (no new leaf IDs)
+
+Completed IN-01.2.017/020/022/026/037/066/067,
+IN-01.3.002/003/008/009/014/029/031/032 and
+IN-01.4.001/002/004/005/006. The tracker now has 149 complete and 67 open
+leaves, still 216 total. IN-01.4 is IN_PROGRESS for fixture/tooling readiness;
+its API/transaction and worker operational acceptance groups remain open.
+
+Changes: an append-only data-model v006 contract-name lookup with its own locked
+read-only definer; a bounded MySQL contract reader and authenticated stable-ID
+resolver; a transaction-scoped read callback retaining publication validation;
+covered, capped deferred metrics with an appended ingestion v004 index; and
+trusted legacy dry-run/import commands with separate restricted grants, immutable
+input staging and commit-aware checkpoints. Existing PostgreSQL source fixtures
+were moved into reusable test helpers without changing their seeded values or
+source model. Production application/worker selection remains PostgreSQL/River.
+
+The isolated fixture installs 91 actual data-model and 21 ingestion migration
+steps, captures intermediate definitions, recreates its own generated database,
+and verifies both ledgers. It does not replace owner publication or deployment
+review. Dedicated runtime, worker, reader, inspection, legacy-preview and import
+principals exercise their scoped operations. Physical fixture-table setup and
+reconciliation are privileged test-only operations. The complete-schema tests
+verify restricted writes/replay, contract changes, publication lifetime, effect
+rollback, source record/CSV outcomes, exact deferred counts, legacy command
+restart/reconciliation and explicit bounded-import continuation reporting.
+
+Query-plan evidence exposed a full record scan caused by placing a
+NOT DETERMINISTIC lookup function inside an equality predicate. Resolving the
+immutable scoped key first and binding the unique key changes the 1,000-row
+fixture's EXPLAIN estimate from ALL/1,000 rows to const/1 row. A regression asserts
+the bound-key plan. This is optimizer-plan evidence, not a latency/throughput
+claim. Twenty-four retained plans cover metadata, exact record lookup, selection
+and all six aggregate operations. Unindexed filters and broad aggregate scans
+remain explicit limitations rather than being silently truncated or claimed
+optimized. Current-row and timestamp-window tests preserve the actual source:
+no implicit as-of predicate or unsupported GROUP BY/window feature was invented.
+
+Verification:
+
+- Final source-pinned race-enabled full-schema suite: 12 top-level tests and 11
+  subtests passed; zero failures or skips. Earlier full-schema repetitions also
+  passed. The final source fingerprint was collected before the final run and
+  rechecked afterward across 1,249 Go/SQL/module source files.
+- `go vet ./...` passed for ingestion; owner installation/export packages passed
+  their scoped vet and race tests. Operator/checkpoint, required-suite accounting
+  and portable fixture unit tests passed.
+- Five exact-read regressions and the physical writer regression passed after
+  the query/fixture refactor. Installation lineage and all 63 recovery boundary
+  subcases passed, including the new metrics-index before-DDL, after-DDL and drift
+  cases. Source-service tests compiled; live PostgreSQL/MySQL parity was not run.
+- Actual verifier versions: Go 1.25.8 linux/amd64 and isolated MySQL 8.4.8.
+  No production database, destructive application setup, heavy load campaign,
+  new dependency, application runtime switch, commit or push was performed.
+
+Evidence: [final results](evidence/2026-10-29_ingestion-existing20/final/summary.json),
+[raw Go events](evidence/2026-10-29_ingestion-existing20/final/raw.jsonl),
+[source fingerprints/commands](evidence/2026-10-29_ingestion-existing20/provenance.json),
+[36 reference artifacts](evidence/2026-10-29_ingestion-existing20/reference_manifest.json),
+[query plans](evidence/2026-10-29_ingestion-existing20/query_plans.json),
+[regression/recovery](evidence/2026-10-29_ingestion-existing20-final.log),
+[operator continuation](evidence/2026-10-29_ingestion-operator-pagination.log),
+[completed IDs/counts](evidence/2026-10-29_ingestion-existing20/completed_tasks.json).
+The [acceptance contract](modules/02_ingestion_reader_contract.md) records exact
+scope, commands, policy bounds and material limitations. Independent schema/grant
+review, real API/worker adoption, Q-01 operational acceptance, legacy inventory
+and real source/target reconciliation remain unchecked.
+
+
+### 2026-10-29 ? Ingestion resource-preserving redrive
+
+Completed existing IN-01.2.052 only. Added append-only current-job/lineage
+migrations, trusted operator redrive, narrow grants and current-attempt reads,
+worker handling and cancellation. The resource and receipt identity stay stable;
+completed/cancelled/invalid-input work cannot be redriven. No runtime cutover.
+
+Verification: 13 full shared-schema tests passed without failures/skips;
+race-enabled operator/queue regressions and 23-step/69-boundary installation
+recovery passed; dropped COMMIT acknowledgement reconciliation passed twice;
+scoped vet passed. The initial successor-resource draft was replaced because it
+did not preserve the recorded contract. The restricted-grant test exposed the
+locking-read privilege requirement; the accepted grant does not permit state
+updates. Rejected evidence is retained separately from accepted results.
+
+[Contract](modules/02_ingestion_operation_contracts.md#resource-preserving-redrive-implementation-in-012052),
+[accepted suite](evidence/2026-10-29_ingestion-redrive/accepted/summary.json),
+[source hashes/commands](evidence/2026-10-29_ingestion-redrive/provenance.json).
+Leaf totals: **150 complete / 66 open / 216 total**. This turn has completed
+**1 of the requested 20**, not twenty. Independent review, runtime adoption,
+operational gates and legacy reconciliation remain open; none were ticked based
+on component evidence.
+
+
+### 2026-10-30 - Ingestion isolated API/worker batch: 20 existing tasks
+
+Completed IN-01.2.023/.027/.028/.029/.030/.031/.033/.034/.036/.038/.039 and
+IN-01.4.003/.011/.012/.014/.015/.016/.017/.020/.021. Added explicit isolated
+MySQL write/work process composition, current-owner authorization, readiness,
+private synchronous receipts, typed HTTP errors, bounded detail projection and
+tenant/queue-scoped worker claims and rescue. Existing public handlers/DTOs are
+reused. Default application runtime remains PostgreSQL/River.
+
+Acceptance: 17 process tests, 13 full-schema tests, 26 handler/verifier tests and
+two shared queue tests passed with race detection; scoped vet passed. Actual
+API-driver COMMIT acknowledgement loss, cancellation, public/private receipt
+grant rollback, duplicate/conflicting requests, unique collisions, scheduled
+work and competing processes reconcile durable effects. No skips counted as
+success. Rejected initial test expectations and standalone-module dependency
+failure are retained and explained; no dependency was added.
+
+[Task mapping and limitations](modules/02_ingestion_process_batch20.md),
+[accepted process evidence](evidence/2026-10-30_ingestion-process20/accepted/summary.json),
+[source/binary provenance](evidence/2026-10-30_ingestion-process20/provenance.json).
+Leaf totals: **170 complete / 46 open / 216 total**. This batch completed exactly
+**20 of 20** requested tasks. Independent deployment review, production read/API
+adoption and cutover, broader queue operations and actual legacy reconciliation
+remain open. No production database or heavy benchmark workload was used.
+
+
+### 2026-10-30 - Ingestion reads and operations: 20 existing tasks
+
+Completed IN-01.2.040/.056, IN-01.3.013f/.017/.019/.022/.030 and
+IN-01.4.013/.019/.022/.023/.024/.025/.026/.027/.028/.030/.031/.032/.033.
+Wired authorized exact/list/search/aggregate reads into the isolated MySQL API,
+added bounded binary string predicates and stable sorting, audited actual event
+contracts, and exercised configured workers through recovery, cancellation,
+redrive, outages and ambiguous completion commits. Acceptance exposed and fixed
+post-lock replay authorization, retained malformed JSON handling, bounded server
+lock waits and atomic readiness publication. Verifier cancellation now terminates
+its Linux child process group.
+
+Two final process suites each passed 32/32 with race detection; full-schema 13,
+component 21, handler/runtime/verifier 28 and connector 1 tests passed. Scoped vet
+passed. No required test skipped; DTO package has no standalone tests. Retained
+source hashes match final tested sources. Rejected/superseded runs are excluded.
+Bounded 32-request comparisons include raw latency, account connections, lock
+samples and independent durable accounting; they establish no production capacity,
+SLO, causal bottleneck or optimization improvement.
+
+[Task mapping and limitations](modules/02_ingestion_operations_batch20.md),
+[verification](evidence/2026-10-30_ingestion-operations20/verification.json),
+[comparison/reconciliation](evidence/2026-10-30_ingestion-operations20/report.md),
+[provenance](evidence/2026-10-30_ingestion-operations20/provenance.json),
+[completed IDs](evidence/2026-10-30_ingestion-operations20/completed_tasks.json).
+
+Exactly **20 of 20** requested leaves completed: **190 complete / 26 open / 216**.
+The exact-read parent is complete but excluded from leaf totals. Independent
+schema/grants review, full remaining type/error parity, shared Q-01 gate, live
+legacy reconciliation and production cutover remain open. Default runtime stays
+PostgreSQL/River. No production database, heavy workload, dependency addition,
+commit or push was used.
+
+
+### 2026-10-30 - Live ingestion parity/adoption: 16 of 20 requested tasks
+
+Completed IN-01.3.015f/.016f/.018f/.020f/.021f/.023f/.024f/.025f/.026f/.027f/.028f
+and IN-01.4.007/.008/.009/.010/.018. No new leaves were created. Numeric parent
+completion is excluded from leaf counts. **206 complete / 10 blocked / 216 total**.
+The requested twenty-task batch remains incomplete by four tasks.
+
+Added live comparisons using actual PostgreSQL and MySQL readers/writers; full
+binary string/IP membership, scalar IP comparisons, IP COUNT/DISTINCT/MIN/MAX,
+bounded text MIN/MAX/DISTINCT and exact integer AVG compatible with source
+numeric division. Fixed mutable argument aliasing for binary IP arguments.
+Added one-document/depth-limited JSON preflight before handler traversal while
+preserving multipart CSV. Actual API tests exercise whole-statement parameter
+expansion, result limits, ordinary reads after rejection and foreign-tenant
+write/replay/read/aggregate/upload/deferred/operator denial.
+
+Verification: 77 parity/record tests (152 subtests), 9 process/query-plan tests,
+and 26 handler/runtime tests (16 subtests) passed, with no failed or skipped tests.
+The DTO package has no standalone test files. Scoped vet passed. Captured 45
+EXPLAIN plans on 1,000 rows and eight scoped fixture reconciliations. IP extrema
+scan/filesort; text aggregates scan. No optimization or production-capacity claim.
+PostgreSQL 16.15, MySQL 8.4.8, Go 1.25.8; restricted API credentials and complete
+91-step data-model/23-step ingestion fixture installations were reused.
+
+[Compatibility review and reproduction](modules/02_ingestion_reader_contract.md#live-parity-and-isolated-adoption-2026-10-30),
+[verification](evidence/2026-10-30_ingestion-read-parity/verification.json),
+[plans](evidence/2026-10-30_ingestion-read-parity/query_plans.json),
+[source/binary provenance](evidence/2026-10-30_ingestion-read-parity/provenance.json),
+[completed IDs and blockers](evidence/2026-10-30_ingestion-read-parity/completed_tasks.json).
+
+Missing independent schema/grants review, shared Q-01 acceptance, retained legacy
+source/pending-work evidence, approved exception/retention decisions and handover
+authority prevent closing the remaining tasks. Requested these inputs; no answer
+or approval was assumed. Fixture evidence does not replace them. PostgreSQL/River
+remains production runtime. No dependency, production cleanup, database split,
+commit, push or cutover occurred. Existing unrelated work was preserved.
+
+## 2026-10-30 — User-confirmed fresh deployment
+
+User confirmed "new system, no existing data." Closed seven existing ingestion
+leaves as NOT_APPLICABLE: IN-01.2.062/.063/.064/.068/.069/.070 and IN-01.4.029.
+These are scope closures, not successful migration runs. No source counts were
+fabricated and no application database was inspected, modified or cleared.
+Current totals: 206 complete, 7 not applicable, 3 open (216 leaves). Independent
+schema/grants review, retention tooling/policy and shared queue acceptance remain
+open. Parent deployment gates and PostgreSQL/River configuration are unchanged.
+See modules/02_ingestion_service.md#fresh-deployment-scope-2026-10-30.
+
+## 2026-10-30 — Remaining three ingestion gates: verification and review preparation
+
+Added queue suite selection and early full-schema importer prerequisite checking
+in the existing verifier. Accepted race runs: queue 25/25 and full-schema 13/13,
+zero failures/skips; six verifier tests and scoped vet passed. Retained rejected
+missing-importer run separately. Prepared fresh-install schema review record,
+15-kind source queue inventory/budget requirements and retention decision packet.
+Evidence: evidence/2026-10-30_ingestion-remaining3/verification.json.
+No independent approval or retention selection was inferred. Three tasks remain
+open; totals stay 206 complete, 7 not applicable, 3 open. No application runtime,
+production database, dependency, grant policy or deletion behavior changed.

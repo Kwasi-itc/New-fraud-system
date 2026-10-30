@@ -1,0 +1,36 @@
+=== RUN   TestMigrationReplayCharacterization
+=== RUN   TestMigrationReplayCharacterization/single_normalizes
+=== RUN   TestMigrationReplayCharacterization/batch_raw_hash
+=== RUN   TestMigrationReplayCharacterization/mode_not_bound
+=== RUN   TestMigrationReplayCharacterization/table_not_bound
+=== RUN   TestMigrationReplayCharacterization/validation_before_replay
+=== RUN   TestMigrationReplayCharacterization/response_kind
+=== RUN   TestMigrationReplayCharacterization/changed_hash
+=== RUN   TestMigrationReplayCharacterization/batch_duplicates
+=== RUN   TestMigrationReplayCharacterization/failure_audit_error
+=== RUN   TestMigrationReplayCharacterization/batch_failure_audit_error
+=== RUN   TestMigrationReplayCharacterization/alternate_unique_rollback
+=== RUN   TestMigrationReplayCharacterization/batch_sql_rollback
+--- PASS: TestMigrationReplayCharacterization (0.82s)
+    --- PASS: TestMigrationReplayCharacterization/single_normalizes (0.10s)
+    --- PASS: TestMigrationReplayCharacterization/batch_raw_hash (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/mode_not_bound (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/table_not_bound (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/validation_before_replay (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/response_kind (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/changed_hash (0.06s)
+    --- PASS: TestMigrationReplayCharacterization/batch_duplicates (0.06s)
+    --- PASS: TestMigrationReplayCharacterization/failure_audit_error (0.06s)
+    --- PASS: TestMigrationReplayCharacterization/batch_failure_audit_error (0.06s)
+    --- PASS: TestMigrationReplayCharacterization/alternate_unique_rollback (0.07s)
+    --- PASS: TestMigrationReplayCharacterization/batch_sql_rollback (0.06s)
+=== RUN   TestMigrationWorkerCompletionGap
+=== RUN   TestMigrationWorkerCompletionGap/upload
+=== RUN   TestMigrationWorkerCompletionGap/deferred_without_key
+=== RUN   TestMigrationWorkerCompletionGap/deferred_with_key
+--- PASS: TestMigrationWorkerCompletionGap (0.22s)
+    --- PASS: TestMigrationWorkerCompletionGap/upload (0.08s)
+    --- PASS: TestMigrationWorkerCompletionGap/deferred_without_key (0.07s)
+    --- PASS: TestMigrationWorkerCompletionGap/deferred_with_key (0.07s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service	2.071s

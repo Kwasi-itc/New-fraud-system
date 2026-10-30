@@ -9,11 +9,10 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 )
 
 type UploadLogHandler struct {
-	service      service.UploadLogService
+	service      UploadService
 	writeLimiter chan struct{}
 }
 
@@ -21,7 +20,7 @@ type UploadLogHandlerConfig struct {
 	WritePathLimiter chan struct{}
 }
 
-func NewUploadLogHandler(service service.UploadLogService, cfg UploadLogHandlerConfig) UploadLogHandler {
+func NewUploadLogHandler(service UploadService, cfg UploadLogHandlerConfig) UploadLogHandler {
 	return UploadLogHandler{service: service, writeLimiter: cfg.WritePathLimiter}
 }
 

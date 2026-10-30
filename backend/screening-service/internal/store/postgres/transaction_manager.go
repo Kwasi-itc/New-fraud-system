@@ -38,6 +38,10 @@ type mutationStore struct {
 	tx pgx.Tx
 }
 
+func (s mutationStore) ObjectExclusions() ports.ObjectExclusionRepository {
+	return ObjectExclusionRepository{q: s.tx}
+}
+
 // RepositoriesInTransaction composes the owner review with the authorized
 // shared-database case contract without nesting a transaction.
 func RepositoriesInTransaction(tx pgx.Tx) ports.MutationStore { return mutationStore{tx: tx} }

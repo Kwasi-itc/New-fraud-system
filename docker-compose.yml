@@ -8,6 +8,17 @@ x-backend-common: &backend-common
   SERVICE_ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
   ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
 
+# Keep provider configuration identical on the capability API and execution worker.
+# Root .env values are interpolation inputs, not automatically container variables.
+x-screening-provider: &screening-provider
+  SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
+  SCREENING_PROVIDER_URLS: ${SCREENING_PROVIDER_URLS:-}
+  OPENSANCTIONS_API_HOST: ${OPENSANCTIONS_API_HOST:-}
+  OPENSANCTIONS_AUTH_METHOD: ${OPENSANCTIONS_AUTH_METHOD:-}
+  OPENSANCTIONS_API_KEY: ${OPENSANCTIONS_API_KEY:-}
+  OPENSANCTIONS_SCOPE: ${OPENSANCTIONS_SCOPE:-default}
+  OPENSANCTIONS_ALGORITHM: ${OPENSANCTIONS_ALGORITHM:-logic-v1}
+
 x-depends-on-migrations: &depends-on-migrations
   auth-migrate:
     condition: service_completed_successfully
@@ -139,8 +150,8 @@ services:
 
   ingestion-migrate:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/migrate"]
     command: ["up"]
     environment:
@@ -230,8 +241,8 @@ services:
     env_file:
       - ./.local/auth-provider/data-model.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     environment:
       <<: *backend-common
       PORT: 8081
@@ -265,6 +276,8 @@ services:
       dockerfile: decision-engine-service/Dockerfile
     environment:
       <<: *backend-common
+      SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:-}
+      SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:-}
       USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
       USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
       USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
@@ -279,6 +292,7 @@ services:
       LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
       WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
       WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
+      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN:-}
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -308,7 +322,10 @@ services:
       context: ./backend
       dockerfile: screening-service/Dockerfile
     environment:
-      <<: *backend-common
+      <<: [*backend-common, *screening-provider]
+      SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:-}
+      SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:-}
+      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:-}
       USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
       USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
       USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
@@ -393,8 +410,8 @@ services:
     env_file:
       - ./.local/auth-provider/data-model.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
@@ -430,6 +447,8 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       <<: *backend-common
+      SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:-}
+      SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:-}
       DATABASE_MAX_CONNS: ${DECISION_WORKER_DATABASE_MAX_CONNS:-0}
       DATABASE_MIN_CONNS: ${DECISION_WORKER_DATABASE_MIN_CONNS:-0}
       LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
@@ -476,7 +495,9 @@ services:
       dockerfile: screening-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
-      <<: *backend-common
+      <<: [*backend-common, *screening-provider]
+      SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:-}
+      SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:-}
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       DECISION_ENGINE_URL: http://decision-engine-service:8082
@@ -532,7 +553,9 @@ services:
       SCREENING_SERVICE_URL: http://screening-service:8085
       DECISION_ENGINE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
       WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
+      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN:-}
       SCREENING_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:-}
       CASE_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-__Host-fraud_session}
       APP_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}

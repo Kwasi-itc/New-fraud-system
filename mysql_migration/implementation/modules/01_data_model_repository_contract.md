@@ -1,5 +1,29 @@
 # MySQL metadata repository contract
 
+## Authorized ordered-options publication (2026-10-28)
+
+`OptionsService.PublishReplacement` binds a typed `table_options.replace`
+canonical command to the trusted tenant/table/actor and exact ingestion version.
+It checks active tenant/table and requested fields inside the owner transaction,
+preserves an existing options identity, and commits ordered lists, display-version
+increment, audit/revision, publication and immutable original TableOptions result
+together. The result captures the legacy sorted field-order response while the
+table lock is held. The ingestion token remains unchanged. Current authorization
+is required on every replay; historical results do not reapply effects or open
+a newer closed physical barrier. Missing legacy results fail closed.
+
+The result kind is `datamodel.table_options/v1`, using the existing v004 immutable
+owner-result lineage without editing frozen installation artifacts. Display JSON
+and relation dependencies are preserved, not replaced by ordered-option writes.
+`OptionsOwnerPolicy` grants only the required option/version/evidence mutations.
+
+This is a staged owner capability. Existing HTTP options handlers still use the
+PostgreSQL path and enrich the response with separately fetched field details.
+Exact replay of that enriched API response, request-key transport, dependency
+lifecycle coverage, reviewed deployment grants and runtime acceptance remain
+requirements of DM-01.3b/d/e. A retained TableOptions value alone does not complete
+HTTP response recovery or those parent tasks.
+
 Status: table/field/enum/link/navigation/pivot adapters implemented; seventeen
 repository scenarios passed on MySQL with race detection and module-wide vet.
 The full selected regression passed 67 MySQL scenarios. Runtime integration remains

@@ -223,6 +223,8 @@ type testMutationStore struct {
 	dataset    *testDatasetRepo
 }
 
+func (t testMutationStore) ObjectExclusions() ports.ObjectExclusionRepository { return nil }
+
 func (t testMutationStore) CaseEvents() ports.CaseEventRepository { return testCaseEvents{} }
 
 type testCaseEvents struct{}

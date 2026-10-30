@@ -258,3 +258,19 @@ visibility, table options, grants and complete expected-schema comparisons remai
 pending. The fields follow MySQL's
 [referential constraint metadata](https://dev.mysql.com/doc/refman/8.4/en/information-schema-referential-constraints-table.html)
 and [check enforcement metadata](https://dev.mysql.com/doc/refman/8.4/en/information-schema-table-constraints-table.html).
+
+
+## Shared work runner telemetry
+
+Set RunnerConfig.Metrics to a work.RunnerMetrics instance to collect bounded,
+process-local counters and duration buckets. Queue.Telemetry returns a copied
+snapshot and database/sql pool stats without querying MySQL. Nil metrics preserve
+existing callers. Metrics retain no identities, payloads or raw errors. Attach one
+instance per runner; the existing reaper is owner-wide across queues. Confirmed
+retry/expiry counts require acknowledged commits and can undercount unknown
+outcomes. They are not durable business accounting.
+
+QueueWait is database time since available_at at claim, not oldest backlog age.
+Histogram buckets are <=10ms, <=100ms, <=1s, <=10s, <=1m, <=1h, <=24h and >24h.
+Service owners must provide an authorized exporter and handle process resets.
+The ingestion operation contract documents exact counter semantics and tests.

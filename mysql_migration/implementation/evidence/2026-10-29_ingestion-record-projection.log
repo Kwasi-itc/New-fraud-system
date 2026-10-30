@@ -1,0 +1,24 @@
+=== RUN   TestRecordProjectionRequestValidation
+--- PASS: TestRecordProjectionRequestValidation (0.00s)
+=== RUN   TestRecordProjectionMappingFailures
+=== RUN   TestRecordProjectionMappingFailures/tenant
+=== RUN   TestRecordProjectionMappingFailures/version
+=== RUN   TestRecordProjectionMappingFailures/closed
+=== RUN   TestRecordProjectionMappingFailures/archived_field
+=== RUN   TestRecordProjectionMappingFailures/wrong_type
+=== RUN   TestRecordProjectionMappingFailures/missing_component
+--- PASS: TestRecordProjectionMappingFailures (2.58s)
+    --- PASS: TestRecordProjectionMappingFailures/tenant (0.48s)
+    --- PASS: TestRecordProjectionMappingFailures/version (0.46s)
+    --- PASS: TestRecordProjectionMappingFailures/closed (0.38s)
+    --- PASS: TestRecordProjectionMappingFailures/archived_field (0.39s)
+    --- PASS: TestRecordProjectionMappingFailures/wrong_type (0.45s)
+    --- PASS: TestRecordProjectionMappingFailures/missing_component (0.42s)
+=== RUN   TestRecordProjectionRoundTripAndCopies
+--- PASS: TestRecordProjectionRoundTripAndCopies (0.43s)
+=== RUN   TestRecordProjectionBarrierLifetime
+--- PASS: TestRecordProjectionBarrierLifetime (0.54s)
+=== RUN   TestRecordProjectionLogicalNamesNeverBecomeSQL
+--- PASS: TestRecordProjectionLogicalNamesNeverBecomeSQL (0.40s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	5.004s

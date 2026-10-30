@@ -18,8 +18,9 @@ import (
 const defaultRecordReadLimit = 100
 
 type IngestHandler struct {
-	ingestService         service.IngestService
-	deferredIngestService service.DeferredIngestService
+	writeService          IngestWriter
+	ingestService         IngestReader
+	deferredIngestService DeferredService
 	writePathOverloadMode string
 	writeLimiter          chan struct{}
 	readLimiter           chan struct{}
@@ -28,9 +29,11 @@ type IngestHandler struct {
 }
 
 type IngestHandlerConfig struct {
+	ReadBackend                    IngestReader
+	WriteBackend                   IngestWriter
 	WritePathLimiter               chan struct{}
 	WritePathOverloadMode          string
-	DeferredIngestService          service.DeferredIngestService
+	DeferredIngestService          DeferredService
 	ReadQueryConcurrencyLimit      int
 	AggregateQueryConcurrencyLimit int
 	AggregateQueryTimeout          time.Duration
@@ -45,8 +48,17 @@ func NewIngestHandler(ingestService service.IngestService, cfg IngestHandlerConf
 	if cfg.AggregateQueryConcurrencyLimit > 0 {
 		aggregateLimiter = make(chan struct{}, cfg.AggregateQueryConcurrencyLimit)
 	}
+	writer := cfg.WriteBackend
+	if writer == nil {
+		writer = ingestService
+	}
+	reader := cfg.ReadBackend
+	if reader == nil {
+		reader = ingestService
+	}
 	return IngestHandler{
-		ingestService:         ingestService,
+		writeService:          writer,
+		ingestService:         reader,
 		deferredIngestService: cfg.DeferredIngestService,
 		writePathOverloadMode: cfg.WritePathOverloadMode,
 		writeLimiter:          cfg.WritePathLimiter,
@@ -245,7 +257,7 @@ func (h IngestHandler) ingest(c *gin.Context, mode ingestion.Mode) {
 	}
 	defer release()
 
-	result, validationErrors, err := h.ingestService.Ingest(c.Request.Context(), service.IngestInput{
+	result, validationErrors, err := h.writeService.Ingest(c.Request.Context(), service.IngestInput{
 		TenantID:       tenantID,
 		ObjectType:     c.Param("objectType"),
 		Mode:           mode,
@@ -326,7 +338,7 @@ func (h IngestHandler) batchIngest(c *gin.Context, mode ingestion.Mode) {
 		return
 	}
 
-	results, validationErrors, err := h.ingestService.BatchIngest(c.Request.Context(), service.BatchIngestInput{
+	results, validationErrors, err := h.writeService.BatchIngest(c.Request.Context(), service.BatchIngestInput{
 		TenantID:       tenantID,
 		ObjectType:     c.Param("objectType"),
 		Mode:           mode,

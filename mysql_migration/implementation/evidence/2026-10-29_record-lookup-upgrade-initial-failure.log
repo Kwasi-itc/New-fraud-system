@@ -1,0 +1,6 @@
+=== RUN   TestRecordLookupUpgrade
+    record_lookup_upgrade_test.go:37: {  []} object definition must use canonical JSON
+--- FAIL: TestRecordLookupUpgrade (0.00s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation	0.055s
+FAIL

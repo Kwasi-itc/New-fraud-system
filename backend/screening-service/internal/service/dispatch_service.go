@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"strings"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
@@ -112,11 +113,9 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 	}
 
 	item.Status = screening.StatusNoHit
-	continuous, err := s.screeningRepo.IsContinuousRun(ctx, item.TenantID, item.ID)
-	if err != nil {
-		return err
-	}
-	if len(result.Matches) > 0 || ((continuous || item.DecisionID != "") && result.Partial) {
+	// An incomplete provider response cannot establish a negative result,
+	// regardless of whether this run is manual, scenario or continuous.
+	if len(result.Matches) > 0 || result.Partial {
 		item.Status = screening.StatusAwaitingReview
 	}
 	item.ResponseJSON = result.RawResponse
@@ -128,6 +127,13 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 	item.LastError = ""
 
 	matches := make([]screening.Match, 0, len(result.Matches))
+	// Counterparty identity belongs to the application, not the matching
+	// provider. Never allow an echoed or invented provider value to determine
+	// the scope of a future analyst exclusion.
+	counterparty := item.UniqueCounterpartyIdentifier
+	if counterparty != nil && strings.TrimSpace(*counterparty) == "" {
+		counterparty = nil
+	}
 	for _, providerMatch := range result.Matches {
 		matches = append(matches, screening.Match{
 			ID:                           providerMatch.EntityID + "-" + item.ID,
@@ -140,7 +146,7 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 			Score:                        providerMatch.Score,
 			Payload:                      providerMatch.Payload,
 			MatchedTexts:                 append([]string{}, providerMatch.MatchedTexts...),
-			UniqueCounterpartyIdentifier: providerMatch.UniqueCounterpartyIdentifier,
+			UniqueCounterpartyIdentifier: counterparty,
 			Enriched:                     false,
 			CreatedAt:                    item.UpdatedAt,
 			UpdatedAt:                    item.UpdatedAt,
@@ -151,14 +157,42 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 		if err := store.Screenings().LockClaim(ctx, item.TenantID, item.ID, token); err != nil {
 			return err
 		}
+		continuous, err := store.Screenings().IsContinuousRun(ctx, item.TenantID, item.ID)
+		if err != nil {
+			return err
+		}
+		applications := map[string]string{}
+		if scope, ok := objectExclusionScope(item); ok && continuous && len(matches) > 0 {
+			entities := make([]string, 0, len(matches))
+			for _, match := range matches {
+				entities = append(entities, match.EntityID)
+			}
+			excluded, err := store.ObjectExclusions().Active(ctx, scope, entities)
+			if err != nil {
+				return err
+			}
+			pending := 0
+			for i := range matches {
+				if operation := excluded[matches[i].EntityID]; operation != "" {
+					matches[i].Status = screening.MatchStatusSkipped
+					applications[matches[i].ID] = operation
+				} else {
+					pending++
+				}
+			}
+			if pending == 0 && !item.Partial {
+				item.Status = screening.StatusNoHit
+			}
+		}
 		if err := store.ScreeningMatches().ReplaceForScreening(ctx, item.ID, matches); err != nil {
 			return err
 		}
-		if _, err := store.Screenings().Update(ctx, item); err != nil {
-			return err
+		if len(applications) > 0 {
+			if err := store.ObjectExclusions().RecordApplications(ctx, item.TenantID, item.ID, applications); err != nil {
+				return err
+			}
 		}
-		continuous, err := store.Screenings().IsContinuousRun(ctx, item.TenantID, item.ID)
-		if err != nil {
+		if _, err := store.Screenings().Update(ctx, item); err != nil {
 			return err
 		}
 		if (continuous || item.DecisionID != "") && item.Status == screening.StatusAwaitingReview {

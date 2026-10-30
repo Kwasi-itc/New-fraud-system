@@ -1,0 +1,20 @@
+=== RUN   TestWorkTelemetryCompletionAndPool
+--- PASS: TestWorkTelemetryCompletionAndPool (0.59s)
+=== RUN   TestWorkTelemetryRetriesAndExhaustion
+--- PASS: TestWorkTelemetryRetriesAndExhaustion (1.70s)
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/expired
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/claim_failure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/retry_failure
+=== RUN   TestWorkTelemetryExpiredAndClaimFailure/reap_failure
+--- PASS: TestWorkTelemetryExpiredAndClaimFailure (1.83s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/expired (0.53s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/claim_failure (0.42s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/retry_failure (0.39s)
+    --- PASS: TestWorkTelemetryExpiredAndClaimFailure/reap_failure (0.49s)
+=== RUN   TestWorkTelemetryHeartbeatFence
+--- PASS: TestWorkTelemetryHeartbeatFence (2.58s)
+=== RUN   TestWorkTelemetryQueueWaitUsesDatabaseTime
+--- PASS: TestWorkTelemetryQueueWaitUsesDatabaseTime (0.47s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	8.206s

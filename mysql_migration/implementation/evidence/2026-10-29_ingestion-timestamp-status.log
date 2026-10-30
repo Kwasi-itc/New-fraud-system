@@ -1,0 +1,44 @@
+=== RUN   TestIngestionWorkAttemptTimestamps
+=== RUN   TestIngestionWorkAttemptTimestamps/upload_log_execute
+=== RUN   TestIngestionWorkAttemptTimestamps/deferred_ingest_execute
+--- PASS: TestIngestionWorkAttemptTimestamps (1.24s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/upload_log_execute (0.57s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/deferred_ingest_execute (0.67s)
+=== RUN   TestIngestionWorkRestrictedGrants
+--- PASS: TestIngestionWorkRestrictedGrants (0.74s)
+=== RUN   TestIngestionWorkLifecycle
+=== RUN   TestIngestionWorkLifecycle/deferred
+=== RUN   TestIngestionWorkLifecycle/upload
+=== RUN   TestIngestionWorkLifecycle/validation
+=== RUN   TestIngestionWorkLifecycle/malformed_csv
+=== RUN   TestIngestionWorkLifecycle/stale
+=== RUN   TestIngestionWorkLifecycle/completion_rollback
+=== RUN   TestIngestionWorkLifecycle/enqueue_rollback
+=== RUN   TestIngestionWorkLifecycle/identity
+=== RUN   TestIngestionWorkLifecycle/public_key
+=== RUN   TestIngestionWorkLifecycle/future
+--- PASS: TestIngestionWorkLifecycle (9.43s)
+    --- PASS: TestIngestionWorkLifecycle/deferred (0.87s)
+    --- PASS: TestIngestionWorkLifecycle/upload (0.59s)
+    --- PASS: TestIngestionWorkLifecycle/validation (0.67s)
+    --- PASS: TestIngestionWorkLifecycle/malformed_csv (0.88s)
+    --- PASS: TestIngestionWorkLifecycle/stale (0.91s)
+    --- PASS: TestIngestionWorkLifecycle/completion_rollback (1.46s)
+    --- PASS: TestIngestionWorkLifecycle/enqueue_rollback (0.66s)
+    --- PASS: TestIngestionWorkLifecycle/identity (1.14s)
+    --- PASS: TestIngestionWorkLifecycle/public_key (1.33s)
+    --- PASS: TestIngestionWorkLifecycle/future (0.91s)
+=== RUN   TestIngestionWorkRunnerAndConcurrentClaims
+--- PASS: TestIngestionWorkRunnerAndConcurrentClaims (2.19s)
+=== RUN   TestIngestionWorkScopeAndPrivateReceipts
+--- PASS: TestIngestionWorkScopeAndPrivateReceipts (1.10s)
+=== RUN   TestIngestionWorkRecovery
+=== RUN   TestIngestionWorkRecovery/retry
+=== RUN   TestIngestionWorkRecovery/expiry
+=== RUN   TestIngestionWorkRecovery/noop
+--- PASS: TestIngestionWorkRecovery (3.42s)
+    --- PASS: TestIngestionWorkRecovery/retry (1.01s)
+    --- PASS: TestIngestionWorkRecovery/expiry (1.40s)
+    --- PASS: TestIngestionWorkRecovery/noop (1.02s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	19.195s

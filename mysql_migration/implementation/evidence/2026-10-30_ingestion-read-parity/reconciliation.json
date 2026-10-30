@@ -1,0 +1,122 @@
+[
+  {
+    "Test": "TestProcessReadContracts",
+    "Counts": {
+      "Records": 5,
+      "PublicReceipts": 10,
+      "ExecutionReceipts": 0,
+      "Audits": 10,
+      "Outbox": 10,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessReadRevocation",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessPublicationRace",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessConcurrentReadsAndWrites",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 13,
+      "ExecutionReceipts": 0,
+      "Audits": 13,
+      "Outbox": 13,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessReadBudgetsAndMembership",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 2,
+      "ExecutionReceipts": 0,
+      "Audits": 2,
+      "Outbox": 2,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessCrossTenantReadAndWork",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 1,
+      "ExecutionReceipts": 0,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 0,
+      "Jobs": 0
+    },
+    "Outcomes": []
+  },
+  {
+    "Test": "TestProcessAPIRuntimeGrants",
+    "Counts": {
+      "Records": 1,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 1,
+      "Outbox": 1,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "856C72D00CD7472FB23E68E3DEBC581B",
+        "State": "available",
+        "Attempts": 0,
+        "Reservations": 1,
+        "Disposition": "explicitly_pending_fixture_boundary"
+      }
+    ]
+  },
+  {
+    "Test": "TestProcessUploadLifecycle",
+    "Counts": {
+      "Records": 2,
+      "PublicReceipts": 0,
+      "ExecutionReceipts": 1,
+      "Audits": 2,
+      "Outbox": 3,
+      "Resources": 1,
+      "Jobs": 1
+    },
+    "Outcomes": [
+      {
+        "ID": "36A09CB2431046C6B51920E750BBE989",
+        "State": "completed",
+        "Attempts": 1,
+        "Reservations": 0,
+        "Disposition": "terminal"
+      }
+    ]
+  }
+]

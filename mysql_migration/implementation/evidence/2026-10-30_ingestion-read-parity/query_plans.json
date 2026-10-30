@@ -1,0 +1,1758 @@
+[
+  {
+    "Name": "contract_bound_key",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(t.schema_name)<=? THEN t.schema_name ELSE '' END,OCTET_LENGTH(t.schema_name),t.status,c.table_id,c.version,m.archived,p.write_state,p.published_version,OCTET_LENGTH(c.payload),CASE WHEN c.table_id=? AND c.version=? THEN NULL WHEN OCTET_LENGTH(c.payload)<=? THEN c.payload ELSE NULL END FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.data_model_tenants t LEFT JOIN `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.data_model_ingestion_contracts c ON c.tenant_id=t.id AND c.table_name_key_id=? LEFT JOIN `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.data_model_tables m ON m.tenant_id=c.tenant_id AND m.id=c.table_id LEFT JOIN `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.data_model_physical_tables p ON p.tenant_id=c.tenant_id AND p.table_id=c.table_id WHERE t.id=?",
+    "Args": "[1048576 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] 1048576 [107 165 108 21 212 103 17 241 144 13 18 28 13 203 83 213] [112 7 125 220 214 63 70 133 179 203 57 73 47 26 116 172]]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "1.00"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "t",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "16",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "184"
+              },
+              "used_columns": [
+                "id",
+                "schema_name",
+                "status"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "c",
+              "access_type": "const",
+              "possible_keys": [
+                "tenant_id",
+                "table_name_key_id"
+              ],
+              "key": "table_name_key_id",
+              "used_key_parts": [
+                "table_name_key_id"
+              ],
+              "key_length": "17",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "96"
+              },
+              "used_columns": [
+                "table_id",
+                "tenant_id",
+                "version",
+                "payload",
+                "table_name_key_id"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "m",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY",
+                "tenant_id",
+                "data_model_tables_created"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "16",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "136"
+              },
+              "used_columns": [
+                "id",
+                "tenant_id",
+                "archived"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "p",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY",
+                "table_id",
+                "data_model_physical_active_intent"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "tenant_id",
+                "table_id"
+              ],
+              "key_length": "32",
+              "ref": [
+                "const",
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "176"
+              },
+              "used_columns": [
+                "tenant_id",
+                "table_id",
+                "published_version",
+                "write_state"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Name": "exact_previous_scan",
+    "Rows": 1000,
+    "Query": "SELECT OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`),CASE WHEN OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`)<=? THEN `field_value_be492d222e8547dba60bc30be81cb064_value` ELSE NULL END,`field_value_5fdb669ac26f4069ad67884962a16c20_value`,`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE record_object_key_id=ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07.data_model_find_record_object_key_v1(?,?,?) AND CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)=? LIMIT 1",
+    "Args": "[1024 [112 7 125 220 214 63 70 133 179 203 57 73 47 26 116 172] [103 186 64 211 50 83 73 66 177 83 216 187 165 25 3 151] [114 101 99 111 114 100 45 48 53 48 48] [114 101 99 111 114 100 45 48 53 48 48]]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 100,
+          "filtered": "10.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "10.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "10K"
+          },
+          "used_columns": [
+            "record_object_key_id",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "((`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`record_object_key_id` = `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`data_model_find_record_object_key_v1`('p\u0007}\\?\\??F??\\?9I/\\Zt?','g?@\\?2SIB?S\u00d8\u00bb?\u0019\u0003?','record-0500')) and (cast(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_be492d222e8547dba60bc30be81cb064_value` as char charset binary) = 'record-0500'))"
+        }
+      }
+    }
+  },
+  {
+    "Name": "exact_bound_key",
+    "Rows": 1000,
+    "Query": "SELECT OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`),CASE WHEN OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`)<=? THEN `field_value_be492d222e8547dba60bc30be81cb064_value` ELSE NULL END,`field_value_5fdb669ac26f4069ad67884962a16c20_value`,`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE record_object_key_id=? AND CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)=? LIMIT 1",
+    "Args": "[1024 [111 180 103 254 212 103 17 241 144 13 18 28 13 203 83 213] [114 101 99 111 114 100 45 48 53 48 48]]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "1.00"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "const",
+          "possible_keys": [
+            "record_object_key_id"
+          ],
+          "key": "record_object_key_id",
+          "used_key_parts": [
+            "record_object_key_id"
+          ],
+          "key_length": "17",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 1,
+          "rows_produced_per_join": 1,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.00",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.00",
+            "data_read_per_join": "104"
+          },
+          "used_columns": [
+            "record_object_key_id",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "selection_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`),CASE WHEN OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`)<=? THEN `field_value_be492d222e8547dba60bc30be81cb064_value` ELSE NULL END,`field_value_5fdb669ac26f4069ad67884962a16c20_value`,`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` LIMIT ?",
+    "Args": "[1024 10]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "index",
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "sum_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), COUNT(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), MAX(ABS(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "AVG_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "index",
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT MIN(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "index",
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT MAX(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "index",
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "100.10"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1001,
+          "rows_produced_per_join": 1001,
+          "filtered": "100.00",
+          "using_index_for_group_by": "scanning",
+          "cost_info": {
+            "read_cost": "0.00",
+            "eval_cost": "100.10",
+            "prefix_cost": "100.10",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_text_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_text_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_text_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_ip_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "distinct_ip_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_ip_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` ASC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` ASC LIMIT 1",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 1000,
+            "rows_produced_per_join": 899,
+            "filtered": "90.00",
+            "cost_info": {
+              "read_cost": "12.25",
+              "eval_cost": "90.00",
+              "prefix_cost": "102.25",
+              "data_read_per_join": "91K"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix"
+            ],
+            "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null)"
+          }
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_ip_unfiltered",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` DESC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` DESC LIMIT 1",
+    "Args": "[]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 1000,
+            "rows_produced_per_join": 899,
+            "filtered": "90.00",
+            "cost_info": {
+              "read_cost": "12.25",
+              "eval_cost": "90.00",
+              "prefix_cost": "102.25",
+              "data_read_per_join": "91K"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix"
+            ],
+            "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null)"
+          }
+        }
+      }
+    }
+  },
+  {
+    "Name": "selection_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`),CASE WHEN OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`)<=? THEN `field_value_be492d222e8547dba60bc30be81cb064_value` ELSE NULL END,`field_value_5fdb669ac26f4069ad67884962a16c20_value`,`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ? LIMIT ?",
+    "Args": "[1024 990 10]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "sum_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), COUNT(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), MAX(ABS(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "AVG_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT MIN(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT MAX(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_text_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_text_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_text_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_ip_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "distinct_ip_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+          "used_key_parts": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_ip_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL AND (`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?) ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` ASC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` ASC LIMIT 1",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "range",
+            "possible_keys": [
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "used_key_parts": [
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "key_length": "5",
+            "rows_examined_per_scan": 10,
+            "rows_produced_per_join": 8,
+            "filtered": "90.00",
+            "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+            "cost_info": {
+              "read_cost": "3.86",
+              "eval_cost": "0.90",
+              "prefix_cost": "4.76",
+              "data_read_per_join": "935"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null)"
+          }
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_ip_unique_range",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL AND (`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= ?) ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` DESC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` DESC LIMIT 1",
+    "Args": "[990]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "range",
+            "possible_keys": [
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "key": "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "used_key_parts": [
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "key_length": "5",
+            "rows_examined_per_scan": 10,
+            "rows_produced_per_join": 8,
+            "filtered": "90.00",
+            "index_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_5fdb669ac26f4069ad67884962a16c20_value` >= 990)",
+            "cost_info": {
+              "read_cost": "3.86",
+              "eval_cost": "0.90",
+              "prefix_cost": "4.76",
+              "data_read_per_join": "935"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+              "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+            ],
+            "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null)"
+          }
+        }
+      }
+    }
+  },
+  {
+    "Name": "selection_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`),CASE WHEN OCTET_LENGTH(`field_value_be492d222e8547dba60bc30be81cb064_value`)<=? THEN `field_value_be492d222e8547dba60bc30be81cb064_value` ELSE NULL END,`field_value_5fdb669ac26f4069ad67884962a16c20_value`,`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ? LIMIT ?",
+    "Args": "[1024 9 10]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "sum_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), COUNT(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`), MAX(ABS(`field_value_eb5f0c052b414cd99b3c5de1611f76de_value`)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "AVG_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT SUM(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT MIN(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT MAX(`field_value_5fdb669ac26f4069ad67884962a16c20_value`), COUNT(`field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_5fdb669ac26f4069ad67884962a16c20_value`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "possible_keys": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value"
+          ],
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_5fdb669ac26f4069ad67884962a16c20_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_text_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MIN(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_text_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT CASE WHEN OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)))<=16384 THEN MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) ELSE NULL END, COUNT(`field_value_be492d222e8547dba60bc30be81cb064_value`), OCTET_LENGTH(MAX(CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY))) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "COUNT DISTINCT_text_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT CAST(`field_value_be492d222e8547dba60bc30be81cb064_value` AS BINARY)) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_be492d222e8547dba60bc30be81cb064_value",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "count_ip_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "distinct_ip_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT COUNT(DISTINCT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`) FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "table": {
+          "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.25",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.25",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+            "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+            "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "Name": "MIN_ip_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL AND (`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?) ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` ASC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` ASC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` ASC LIMIT 1",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 1000,
+            "rows_produced_per_join": 299,
+            "filtered": "30.00",
+            "cost_info": {
+              "read_cost": "72.25",
+              "eval_cost": "30.00",
+              "prefix_cost": "102.25",
+              "data_read_per_join": "30K"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+              "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+            ],
+            "attached_condition": "((`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null) and (`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9))"
+          }
+        }
+      }
+    }
+  },
+  {
+    "Name": "MAX_ip_unindexed_amount",
+    "Rows": 1000,
+    "Query": "SELECT `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_family`,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` FROM `ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397` WHERE `field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` IS NOT NULL AND (`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= ?) ORDER BY `field_value_0208ec58ab2d4328bd45e53973e0f2b6_family` DESC,(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` & UNHEX(CONCAT(REPEAT('FF',`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DIV 8),IF(MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8)=0,'',LPAD(HEX(256-POW(2,8-MOD(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`,8))),2,'0')),REPEAT('00',OCTET_LENGTH(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address`)-CEIL(`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix`/8))))) DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix` DESC,`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` DESC LIMIT 1",
+    "Args": "[9]",
+    "Plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.25"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "table_name": "tenant_test_records_67ba40d332534942b153d8bba5190397",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 1000,
+            "rows_produced_per_join": 299,
+            "filtered": "30.00",
+            "cost_info": {
+              "read_cost": "72.25",
+              "eval_cost": "30.00",
+              "prefix_cost": "102.25",
+              "data_read_per_join": "30K"
+            },
+            "used_columns": [
+              "id",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_address",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_family",
+              "field_value_0208ec58ab2d4328bd45e53973e0f2b6_prefix",
+              "field_value_eb5f0c052b414cd99b3c5de1611f76de_value"
+            ],
+            "attached_condition": "((`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_0208ec58ab2d4328bd45e53973e0f2b6_address` is not null) and (`ingestion_full_test_fdf5bf07f4ad4aeab09a22912e27ad07`.`tenant_test_records_67ba40d332534942b153d8bba5190397`.`field_value_eb5f0c052b414cd99b3c5de1611f76de_value` >= 9))"
+          }
+        }
+      }
+    }
+  }
+]

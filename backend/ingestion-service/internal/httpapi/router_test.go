@@ -10,12 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestRouterReadMetricsPoolContract(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	// Lazy pools expose actual pgx limits without a database or network queries.
 	pool := func(max int32) *pgxpool.Pool {
 		cfg, err := pgxpool.ParseConfig("postgres://test@127.0.0.1:1/test?sslmode=disable")
@@ -42,9 +40,12 @@ func TestRouterReadMetricsPoolContract(t *testing.T) {
 		{"implicit_shared", nil, true, 12},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			router := NewRouter(slog.Default(), primary, tc.read, RouterConfig{
+			router, err := NewRouter(slog.Default(), primary, tc.read, RouterConfig{
 				AuthMode: "token", AuthToken: "test-token", DataModelServiceURL: "http://example.com", HTTPClientTimeout: time.Second,
 			})
+			if err != nil {
+				t.Fatal(err)
+			}
 			request := httptest.NewRequest(http.MethodGet, "/v1/admin/read-metrics", nil)
 			denied := httptest.NewRecorder()
 			router.ServeHTTP(denied, request)
@@ -80,14 +81,16 @@ func TestRouterReadMetricsPoolContract(t *testing.T) {
 
 func TestRouterHealthz(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, nil, RouterConfig{
 		AuthMode:            "disabled",
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -100,14 +103,16 @@ func TestRouterHealthz(t *testing.T) {
 
 func TestRouterHandlesCORSPreflight(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, nil, RouterConfig{
 		AuthMode:            "disabled",
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest(http.MethodOptions, "/v1/tenants/test/ingest/accounts/csv", nil)
 	req.Header.Set("Origin", "http://localhost:3000")
@@ -124,9 +129,8 @@ func TestRouterHandlesCORSPreflight(t *testing.T) {
 
 func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, nil, RouterConfig{
 		AuthMode:            "disabled",
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
@@ -138,6 +142,9 @@ func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 			UpstreamTimeoutRatePct: 5,
 		},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/read-metrics", nil)
 	rec := httptest.NewRecorder()
@@ -157,14 +164,16 @@ func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 
 func TestRouterExposesDeferredIngestMetricsEndpoint(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, nil, RouterConfig{
 		AuthMode:            "disabled",
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/deferred-ingest-metrics", nil)
 	rec := httptest.NewRecorder()

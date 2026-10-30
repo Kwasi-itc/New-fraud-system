@@ -1,0 +1,12 @@
+=== RUN   TestRecordDecodeScalars
+--- PASS: TestRecordDecodeScalars (0.00s)
+=== RUN   TestRecordDecodeStringsAndNulls
+--- PASS: TestRecordDecodeStringsAndNulls (0.00s)
+=== RUN   TestRecordDecodeTimestamp
+--- PASS: TestRecordDecodeTimestamp (0.00s)
+=== RUN   TestRecordDecodeIP
+--- PASS: TestRecordDecodeIP (0.00s)
+=== RUN   TestRecordDecodeDatabaseRoundTrips
+--- PASS: TestRecordDecodeDatabaseRoundTrips (0.67s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	1.720s

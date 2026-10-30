@@ -1,0 +1,40 @@
+{
+  "Summary": {
+    "Discovered": 17,
+    "Executed": 17,
+    "Passed": 17,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "Tests": [
+    "TestProcessLostCommitAcknowledgement",
+    "TestProcessWriteBaseline",
+    "TestProcessStartupChecks",
+    "TestProcessAPIRuntimeGrants",
+    "TestProcessUploadLifecycle",
+    "TestProcessDeferredLifecycle",
+    "TestProcessScheduledKinds",
+    "TestProcessCompetingWorkers",
+    "TestProcessScopedWorkerClaims",
+    "TestProcessFailedWorkDetails",
+    "TestProcessIdenticalReceipts",
+    "TestProcessConflictingReceipts",
+    "TestProcessAlternateUniqueRace",
+    "TestProcessEffectGrantRollback",
+    "TestProcessCancellationBeforeCommit",
+    "TestProcessOrderedPatches",
+    "TestProcessLimitsAndAuthentication"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=360s",
+    "./internal/store/mysql",
+    "-run",
+    "^TestProcess"
+  ]
+}

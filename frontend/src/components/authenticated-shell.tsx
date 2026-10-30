@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Shield,
+  Search,
   Settings,
   SquareUserRound,
   FolderSearch2,
@@ -40,6 +41,7 @@ const primaryLinks = [
 ];
 
 const operationsLinks = [
+  { href: "/screening-search", label: "Screening", icon: Search },
   {
     href: "/cases",
     label: "Case Manager",

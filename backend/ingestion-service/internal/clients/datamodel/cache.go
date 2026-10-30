@@ -3,6 +3,7 @@ package datamodel
 import (
 	"container/list"
 	"sync"
+	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/google/uuid"
@@ -11,12 +12,16 @@ import (
 const defaultCacheEntries = 128
 const defaultCacheBytes = 16 << 20
 
+// Absolute representation reuse age; every hit still revalidates at the origin.
+const modelCacheMaxAge = 5 * time.Minute
+
 type cacheEntry struct {
 	tenantID     uuid.UUID
 	objectType   string
 	etag         string
 	model        ingestion.PublishedDataModel
 	encodedBytes int
+	expiresAt    time.Time
 }
 
 type modelCacheKey struct {
@@ -32,10 +37,11 @@ type modelCache struct {
 	entries                     map[modelCacheKey]*list.Element
 	lru                         *list.List
 	maxEntries, maxBytes, bytes int
+	now                         func() time.Time
 }
 
 func newModelCache(maxEntries, maxBytes int) *modelCache {
-	return &modelCache{entries: make(map[modelCacheKey]*list.Element), lru: list.New(), maxEntries: maxEntries, maxBytes: maxBytes}
+	return &modelCache{entries: make(map[modelCacheKey]*list.Element), lru: list.New(), maxEntries: maxEntries, maxBytes: maxBytes, now: time.Now}
 }
 
 func (c *modelCache) get(id uuid.UUID) (cacheEntry, bool) {
@@ -52,6 +58,10 @@ func (c *modelCache) getTable(id uuid.UUID, objectType string) (cacheEntry, bool
 	if !ok {
 		return cacheEntry{}, false
 	}
+	if !c.now().Before(e.Value.(cacheEntry).expiresAt) {
+		c.remove(e)
+		return cacheEntry{}, false
+	}
 	c.lru.MoveToFront(e)
 	return e.Value.(cacheEntry), true
 }
@@ -66,12 +76,13 @@ func (c *modelCache) put(entry cacheEntry) {
 	if old, ok := c.entries[key]; ok {
 		c.remove(old)
 	}
-	if c.maxEntries <= 0 || c.maxBytes <= 0 || entry.encodedBytes > c.maxBytes {
+	if c.maxEntries <= 0 || c.maxBytes <= 0 || entry.encodedBytes <= 0 || entry.encodedBytes > c.maxBytes {
 		return
 	}
 	for c.lru.Len() >= c.maxEntries || c.bytes+entry.encodedBytes > c.maxBytes {
 		c.remove(c.lru.Back())
 	}
+	entry.expiresAt = c.now().Add(modelCacheMaxAge)
 	c.entries[key] = c.lru.PushFront(entry)
 	c.bytes += entry.encodedBytes
 }

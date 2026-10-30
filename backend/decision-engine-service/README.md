@@ -935,3 +935,91 @@ The case workspace now uses human-authenticated owner review commands. See [the 
 ## Durable execution projection
 
 Screening status now reconciles through an atomic source queue and decision-owned SQL contract. See [deployment and recovery](../screening-service/EXECUTION_PROJECTION.md) for migrations, worker operation, callback compatibility and source-managed retry behavior.
+
+## Dedicated screening service authentication
+
+Decision intake uses `SCREENING_INTAKE_TOKEN`; source-status callbacks use
+`SCREENING_CALLBACK_TOKEN`. Configure matching values on the receiving API and
+sending worker/API. Each must be at least32 non-padding characters and distinct
+from each other, general service and screening operator/authoring credentials.
+No legacy disabled-auth or general-token fallback applies. Missing receiver
+configuration returns503; wrong bearer returns401. Configured senders refuse
+missing/short credentials before sending. Empty values leave the corresponding
+integration unavailable; they do not silently authorize work.
+
+Repository compose wiring is supplied for both service APIs and workers, never
+the frontend. Deploy sender/receiver configuration together; queued failures
+require the existing owner-specific recovery process after configuration repair.
+This change does not deploy or rotate secrets, nor certify production ingress.
+
+
+### Optional scenario address mapping
+
+The supported scenario-authoring contract accepts optional `address_field` for
+Person and Organization. It must reference a current text field on the scenario's
+trigger object. The API checks `SCREENING_SERVICE_URL`'s private
+`/internal/screening-capabilities` using `SCREENING_INTAKE_TOKEN` before saving an
+address mapping. Only configured direct OpenSanctions currently advertises it.
+This is configuration evidence, not provider health. Capability lookup failure
+hides new address selection and rejects address-bearing saves with422; existing
+name-only authoring remains available. Clear an unavailable mapping explicitly to
+save a name-only replacement. No mapping is silently removed.
+
+Execution trims mapped addresses, omits absent/null/blank values, and rejects
+non-text values or more than300 Unicode characters before decision persistence.
+The existing JSON config stores `query_fields.address`; no migration is needed.
+Address is provider matching input, not an exact geographic filter. Screening
+still runs after decision evaluation and does not recalculate its score/outcome.
+
+
+### Optional Person birth-date mapping
+
+Scenario authoring also accepts `birth_date_field` for Person only, referencing a
+current text field on the trigger object. The private capability endpoint must
+explicitly advertise `birth_date_supported`; an older address-only response does
+not enable it. One bounded capability lookup serves both optional fields.
+
+Values are trimmed and may contain a year (`YYYY`) or full date (`YYYY-MM-DD`),
+matching manual search semantics. Missing/null/blank values are omitted. Invalid
+calendar dates, year zero, future dates, numbers and timestamp strings are rejected
+before decision persistence. Timestamp metadata is not accepted for this mapping;
+no timezone conversion is implied. Configuration uses existing JSON
+`query_fields.birth_date`, without a migration. OpenSanctions receives
+`properties.birthDate`; generic adapters reject the unsupported property before HTTP.
+
+The editor preserves a selected birth-date mapping when switching to Organization,
+shows why it is incompatible and requires explicitly clearing it before saving.
+Provider capability loss similarly retains the mapping and blocks an unsupported
+save. Existing name/address configurations remain compatible.
+
+
+### Scenario nationality and organization country
+
+`nationality_field` maps a text field for Person; `country_field` maps a text field
+for Organization. Each requires its explicit private capability flag
+(`nationality_supported` / `country_supported`). Older capability responses do
+not enable either. Existing configuration JSON stores `query_fields.nationality`
+or `query_fields.country`; no migration is required.
+
+Mapped values follow manual screening: trim, lowercase, require a two-letter
+country region accepted by `language.ParseRegion` and `IsCountry`. Missing/null/
+blank values are omitted. Numeric values, lists, region aggregates and invalid
+codes reject evaluation before persistence. These fields supply provider identity
+matching properties, not strict geographic result filters. The editor preserves
+incompatible mappings and requires explicit clearing on entity changes or
+capability loss. Generic adapters reject these fields before making a request.
+
+
+### Organization registration-number mapping
+
+Optional `registration_number_field` references current text metadata for
+Organization only. It requires explicit `registration_number_supported` from the
+private capability response; a missing flag means unsupported. Existing JSON
+stores `query_fields.registration_number`, without a migration.
+
+Mapped values are trimmed, but case, punctuation, internal spaces and leading
+zeros are preserved. Missing/null/blank values are omitted; non-text values or
+more than100 Unicode characters reject evaluation before persistence. Direct
+OpenSanctions receives `properties.registrationNumber`; generic adapters reject
+this unsupported identity property before HTTP. Switching to Person or losing
+provider capability requires explicitly clearing the retained mapping to save.

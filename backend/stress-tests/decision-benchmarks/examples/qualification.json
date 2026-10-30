@@ -1,0 +1,14 @@
+{
+  "schema_version": "decision-benchmark/v1",
+  "experiments": [
+    {"name":"Q-numeric","families":["numeric"],"read_mode":"direct_db"},
+    {"name":"Q-string","families":["string"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-membership","families":["membership"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-boolean","families":["boolean"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-nonnull","families":["nonnull"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-date","families":["date"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-field","families":["field"],"read_mode":"direct_db","repeats":1,"duration":2,"warmup":1},
+    {"name":"Q-nested-aggregate","families":["count","sum","avg","count_distinct","min","max"],"rules":6,"combination":"and","predicates":3,"depth":3,"predicate_position":"last","history_rows":100,"read_mode":"direct_db","repeats":1,"duration":3,"warmup":1},
+    {"name":"Q-tenant-interference","families":["numeric","date","field","count","sum"],"rules":5,"scenarios":2,"route":"all","tenants":2,"trigger_ratio":0.5,"rule_mix":"alternating","history_rows":100,"ingestion_rate":2,"ingestion_concurrency":2,"concurrency":2,"rate":2,"read_mode":"direct_db","repeats":1,"duration":3,"warmup":1}
+  ]
+}

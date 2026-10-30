@@ -3,9 +3,12 @@ package ingestion
 import "github.com/google/uuid"
 
 type PublishedDataModel struct {
-	TenantID            uuid.UUID
-	SchemaName          string
-	RevisionID          string
+	TenantID   uuid.UUID
+	SchemaName string
+	RevisionID string
+	// PublicationVersion is the physical registry token, distinct from the
+	// externally visible revision string. Legacy readers may leave it empty.
+	PublicationVersion  uuid.UUID
 	TenantStatus        string
 	Writable            bool
 	RecordLookupField   string

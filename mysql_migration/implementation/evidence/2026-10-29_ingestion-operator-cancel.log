@@ -1,0 +1,36 @@
+=== RUN   TestWorkOperatorCancellation
+=== RUN   TestWorkOperatorCancellation/queued
+=== RUN   TestWorkOperatorCancellation/running
+=== RUN   TestWorkOperatorCancellation/completed
+=== RUN   TestWorkOperatorCancellation/audit_failure
+=== RUN   TestWorkOperatorCancellation/denied
+=== RUN   TestWorkOperatorCancellation/foreign
+=== RUN   TestWorkOperatorCancellation/conflict
+=== RUN   TestWorkOperatorCancellation/missing_reservation
+--- PASS: TestWorkOperatorCancellation (7.66s)
+    --- PASS: TestWorkOperatorCancellation/queued (0.84s)
+    --- PASS: TestWorkOperatorCancellation/running (1.14s)
+    --- PASS: TestWorkOperatorCancellation/completed (1.04s)
+    --- PASS: TestWorkOperatorCancellation/audit_failure (1.30s)
+    --- PASS: TestWorkOperatorCancellation/denied (1.03s)
+    --- PASS: TestWorkOperatorCancellation/foreign (0.77s)
+    --- PASS: TestWorkOperatorCancellation/conflict (0.93s)
+    --- PASS: TestWorkOperatorCancellation/missing_reservation (0.62s)
+=== RUN   TestWorkOperatorCancelWorkerRace
+=== RUN   TestWorkOperatorCancelWorkerRace/a
+=== RUN   TestWorkOperatorCancelWorkerRace/b
+=== RUN   TestWorkOperatorCancelWorkerRace/c
+=== RUN   TestWorkOperatorCancelWorkerRace/d
+=== RUN   TestWorkOperatorCancelWorkerRace/e
+=== RUN   TestWorkOperatorCancelWorkerRace/f
+--- PASS: TestWorkOperatorCancelWorkerRace (4.40s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/a (0.75s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/b (0.70s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/c (0.57s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/d (0.75s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/e (0.88s)
+    --- PASS: TestWorkOperatorCancelWorkerRace/f (0.74s)
+=== RUN   TestWorkOperatorRestrictedGrants
+--- PASS: TestWorkOperatorRestrictedGrants (0.79s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	13.906s

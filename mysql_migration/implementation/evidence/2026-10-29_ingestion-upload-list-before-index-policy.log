@@ -1,0 +1,106 @@
+=== RUN   TestUploadListPaginationAndPlan
+    upload_list_test.go:125: upload history plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "153.94"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "r",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "tenant_id",
+                      "history",
+                      "upload_history"
+                    ],
+                    "key": "history",
+                    "used_key_parts": [
+                      "tenant_id",
+                      "table_id"
+                    ],
+                    "key_length": "32",
+                    "ref": [
+                      "const",
+                      "const"
+                    ],
+                    "rows_examined_per_scan": 832,
+                    "rows_produced_per_join": 83,
+                    "filtered": "10.00",
+                    "index_condition": "((`ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`r`.`table_id` = 'v\\?ˀ\u0014\\?@4?????\\\\\u0010\t') and (`ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`r`.`tenant_id` = '??\u0012\u0012|?N??\\?%?\\?\\?D?'))",
+                    "cost_info": {
+                      "read_cost": "41.62",
+                      "eval_cost": "8.32",
+                      "prefix_cost": "124.83",
+                      "data_read_per_join": "17K"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "table_id",
+                      "kind",
+                      "mode",
+                      "filename",
+                      "content_type",
+                      "total_rows",
+                      "successful_rows",
+                      "failed_rows",
+                      "created_at",
+                      "completed_at"
+                    ],
+                    "attached_condition": "(`ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`r`.`kind` = 'upload_log_execute')"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "j",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "tenant_id",
+                      "resource"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "id"
+                    ],
+                    "key_length": "16",
+                    "ref": [
+                      "ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987.r.id"
+                    ],
+                    "rows_examined_per_scan": 1,
+                    "rows_produced_per_join": 83,
+                    "filtered": "100.00",
+                    "cost_info": {
+                      "read_cost": "20.80",
+                      "eval_cost": "8.32",
+                      "prefix_cost": "153.95",
+                      "data_read_per_join": "109K"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "resource_id",
+                      "state",
+                      "attempt",
+                      "started_at",
+                      "finished_at",
+                      "last_error"
+                    ],
+                    "attached_condition": "<if>(is_not_null_compl(j), ((`ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`j`.`tenant_id` = '??\u0012\u0012|?N??\\?%?\\?\\?D?') and (`ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`j`.`resource_id` = `ingestion_mysql_test_ea29f5b99b1c4b85a5fce793a599b987`.`r`.`id`)), true)"
+                  }
+                }
+              ]
+            }
+          }
+        }
+    upload_list_test.go:127: expected scoped upload_history access
+--- FAIL: TestUploadListPaginationAndPlan (3.32s)
+=== RUN   TestUploadListAuthorizationAndProjection
+--- PASS: TestUploadListAuthorizationAndProjection (1.63s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	5.104s
+FAIL

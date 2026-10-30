@@ -3,7 +3,9 @@ module github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service
 go 1.25.0
 
 require (
+	github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore v0.0.0
 	github.com/gin-gonic/gin v1.10.1
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
@@ -12,7 +14,10 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
 )
 
+replace github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore => ../mysqlstore
+
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect

@@ -1,0 +1,14 @@
+﻿[
+    {
+        "Path":  "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\internal\\store\\mysql\\legacy_inspect.go",
+        "Hash":  "230681736ECA3C86B733F0EFBBB495C4035AC01F3CA3B95A5132883D29279D37"
+    },
+    {
+        "Path":  "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\cmd\\inspect-legacy-receipts\\main.go",
+        "Hash":  "30514C0DEB7C7069997D639FBA52376893619AE2D2E37BC343D3B27592C026CA"
+    },
+    {
+        "Path":  "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\cmd\\inspect-legacy-receipts\\main_test.go",
+        "Hash":  "FA33ED94D687F2BD40F571B8A62C7098827F6AC5409FD3A94A1B35BF3F54C060"
+    }
+]

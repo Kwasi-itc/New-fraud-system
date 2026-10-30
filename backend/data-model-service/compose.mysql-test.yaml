@@ -30,4 +30,4 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["sh", "-ec", "go mod download && go vet ./internal/contract ./internal/store/mysql/... && go test -mod=readonly -race -count=1 -timeout=120s -v ./internal/contract ./internal/store/mysql/..."]
+    command: ["sh", "-ec", "go mod download && go vet ./... && go test -mod=readonly -race -count=1 -timeout=240s -v ./cmd/build-mysql-reference ./cmd/migrate-mysql ./cmd/reconcile-physical-mysql ./internal/contract ./internal/ports ./internal/worker ./internal/store/mysql/..."]

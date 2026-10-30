@@ -12,7 +12,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 )
 
 type UploadLogService struct {
@@ -22,7 +21,6 @@ type UploadLogService struct {
 	idGenerator   ports.IDGenerator
 	clock         ports.Clock
 	maxAttempts   int
-	enqueuer      riverjobs.UploadLogEnqueuer
 }
 
 func NewUploadLogService(
@@ -32,13 +30,9 @@ func NewUploadLogService(
 	idGenerator ports.IDGenerator,
 	clock ports.Clock,
 	maxAttempts int,
-	enqueuer riverjobs.UploadLogEnqueuer,
 ) UploadLogService {
 	if maxAttempts <= 0 {
 		maxAttempts = 3
-	}
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopUploadLogEnqueuer{}
 	}
 	return UploadLogService{
 		uploadLogs:    uploadLogs,
@@ -47,7 +41,6 @@ func NewUploadLogService(
 		idGenerator:   idGenerator,
 		clock:         clock,
 		maxAttempts:   maxAttempts,
-		enqueuer:      enqueuer,
 	}
 }
 
@@ -69,19 +62,13 @@ func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, object
 		return ingestion.UploadLog{}, err
 	}
 	if s.txManager == nil {
-		if err := s.uploadLogs.Create(ctx, log); err != nil {
-			return ingestion.UploadLog{}, err
-		}
-		if err := s.enqueuer.Enqueue(ctx, logID, nil); err != nil {
-			return ingestion.UploadLog{}, err
-		}
-		return log, nil
+		return ingestion.UploadLog{}, fmt.Errorf("transaction manager unavailable")
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.UploadLogs().Create(ctx, log); err != nil {
 			return err
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), logID, nil)
+		return store.EnqueueUploadLog(ctx, logID, nil)
 	}); err != nil {
 		return ingestion.UploadLog{}, err
 	}
@@ -140,22 +127,10 @@ func (s UploadLogService) handleRetryableFailure(ctx context.Context, log *inges
 		log.Status = ingestion.UploadLogStatusUploaded
 		log.StartedAt = nil
 		log.CompletedAt = nil
-		id, err := uuid.Parse(log.ID)
-		if err != nil {
+		if err := s.uploadLogs.Update(ctx, *log); err != nil {
 			return err
 		}
-		if s.txManager == nil {
-			if err := s.uploadLogs.Update(ctx, *log); err != nil {
-				return err
-			}
-			return s.enqueuer.Enqueue(ctx, id, nil)
-		}
-		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
-			if err := store.UploadLogs().Update(ctx, *log); err != nil {
-				return err
-			}
-			return s.enqueuer.EnqueueTx(ctx, store.RawTx(), id, nil)
-		})
+		return fmt.Errorf("retryable UploadLog failure: %s", message)
 	}
 	log.Status = ingestion.UploadLogStatusFailed
 	log.CompletedAt = &now

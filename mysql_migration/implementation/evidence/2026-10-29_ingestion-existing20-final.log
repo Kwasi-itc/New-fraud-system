@@ -1,0 +1,137 @@
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts	1.096s
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture	(cached)
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/testfixtures	(cached)
+discovered=12 executed=12 passed=12 failed=0 skipped=0 output=/backend/ingestion-service/testdata/full-foundation-run5
+discovered=12 executed=12 passed=12 failed=0 skipped=0 output=/backend/ingestion-service/testdata/full-foundation-run6
+=== RUN   TestIngestionInstallationLineage
+--- PASS: TestIngestionInstallationLineage (2.71s)
+=== RUN   TestIngestionInstallationRecoveryBoundaries
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/drift
+--- PASS: TestIngestionInstallationRecoveryBoundaries (44.06s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/before_ddl (0.68s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/after_ddl (1.10s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/drift (0.20s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/before_ddl (0.55s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/after_ddl (0.63s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/drift (0.21s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/before_ddl (0.90s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/after_ddl (0.67s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/drift (0.25s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/before_ddl (0.59s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/after_ddl (1.32s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/drift (0.46s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/before_ddl (0.87s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/after_ddl (0.69s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/drift (0.28s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/before_ddl (0.62s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/after_ddl (0.77s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/drift (0.44s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/before_ddl (0.83s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/after_ddl (0.62s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/drift (0.30s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/before_ddl (0.61s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/after_ddl (0.68s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/drift (0.32s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/before_ddl (0.71s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/after_ddl (0.78s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/drift (0.72s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/before_ddl (1.01s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/after_ddl (0.73s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/drift (0.39s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/before_ddl (0.69s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/after_ddl (0.63s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/drift (0.34s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/before_ddl (1.09s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/after_ddl (0.66s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/drift (0.37s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/before_ddl (0.59s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/after_ddl (0.80s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/drift (0.46s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/before_ddl (0.62s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/after_ddl (0.76s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/drift (0.91s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/before_ddl (1.26s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/after_ddl (0.91s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/drift (0.49s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/before_ddl (0.67s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/after_ddl (0.60s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/drift (0.85s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/before_ddl (0.65s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/after_ddl (0.60s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/drift (0.57s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/before_ddl (0.68s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/after_ddl (0.68s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/drift (0.62s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/before_ddl (0.80s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/after_ddl (1.51s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v002_work_actions/drift (0.64s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/before_ddl (0.88s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/after_ddl (0.60s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v003_operator_history/drift (0.70s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/before_ddl (1.11s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/after_ddl (0.73s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v004_deferred_metrics/drift (0.61s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	47.865s

@@ -1,0 +1,40 @@
+{
+  "Requested": 20,
+  "CompletedThisBatch": [
+    "IN-01.3.015f",
+    "IN-01.3.016f",
+    "IN-01.3.018f",
+    "IN-01.3.020f",
+    "IN-01.3.021f",
+    "IN-01.3.023f",
+    "IN-01.3.024f",
+    "IN-01.3.025f",
+    "IN-01.3.026f",
+    "IN-01.3.027f",
+    "IN-01.3.028f",
+    "IN-01.4.007",
+    "IN-01.4.008",
+    "IN-01.4.009",
+    "IN-01.4.010",
+    "IN-01.4.018"
+  ],
+  "Count": 16,
+  "RequestComplete": false,
+  "LeafTotals": {
+    "Complete": 206,
+    "Open": 10,
+    "Total": 216
+  },
+  "Blocked": {
+    "IN-01.2.018": "Independent reviewer identity and schema/grants decision have not been supplied; self-review cannot close this gate.",
+    "IN-01.2.054": "Reviewed replay/redrive horizons, holds, delivery obligations and permitted archival/deletion scope are missing; current retention contract defines no default deletion set.",
+    "IN-01.2.057": "Shared Q-01 acceptance evidence has not been supplied; ingestion-only tests do not satisfy the gate.",
+    "IN-01.2.062": "Approved retained source snapshot/export and original-input/historical-schema coverage are unavailable.",
+    "IN-01.2.063": "Actual retained-source exceptions and reviewed dispositions require the missing inventory; fixture exceptions are not a substitute.",
+    "IN-01.2.064": "Trusted source access/snapshot and historical tenant/table/mode/raw-input attribution contracts are unavailable; no fabricated evidence export is permitted.",
+    "IN-01.2.068": "Requires actual source/target inventory and approved exception dispositions, not generated fixture counts.",
+    "IN-01.2.069": "Pending legacy River work snapshot, schedules, attempts and resource/key attribution have not been supplied.",
+    "IN-01.2.070": "Requires approved pending-work input and handover authority/rehearsal environment; default runtime remains PostgreSQL/River.",
+    "IN-01.4.029": "Requires representative approved retained-source/pending-work snapshots and exception decisions; existing synthetic importer tests do not establish migration acceptance."
+  }
+}

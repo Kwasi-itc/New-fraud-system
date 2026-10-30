@@ -1,0 +1,30 @@
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/28 15:53:01 connection.go:189 closing connection:close tcp 172.21.0.3:54954->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 15:53:01 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.04s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.04s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.06s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.03s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.03s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (0.41s)
+    --- PASS: TestReceiptExecution/replay (0.04s)
+    --- PASS: TestReceiptExecution/concurrent (0.05s)
+    --- PASS: TestReceiptExecution/rollback (0.03s)
+    --- PASS: TestReceiptExecution/result_limit (0.03s)
+    --- PASS: TestReceiptExecution/key_collision (0.06s)
+    --- PASS: TestReceiptExecution/cancel (0.14s)
+    --- PASS: TestReceiptExecution/restricted (0.05s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	1.575s

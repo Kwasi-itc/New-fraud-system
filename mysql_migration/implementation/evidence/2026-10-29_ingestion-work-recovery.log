@@ -1,0 +1,10 @@
+=== RUN   TestIngestionWorkRecovery
+=== RUN   TestIngestionWorkRecovery/retry
+=== RUN   TestIngestionWorkRecovery/expiry
+=== RUN   TestIngestionWorkRecovery/noop
+--- PASS: TestIngestionWorkRecovery (3.13s)
+    --- PASS: TestIngestionWorkRecovery/retry (1.07s)
+    --- PASS: TestIngestionWorkRecovery/expiry (0.97s)
+    --- PASS: TestIngestionWorkRecovery/noop (1.09s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	4.224s

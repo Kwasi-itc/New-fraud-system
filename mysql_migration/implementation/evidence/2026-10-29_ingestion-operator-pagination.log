@@ -1,0 +1,11 @@
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts	1.065s
+=== RUN   TestFullSharedLegacyOperatorCommands
+    shared_legacy_command_test.go:21: complete shared fixture: MySQL=8.4.8 data_model_steps=91 ingestion_steps=21
+    shared_legacy_command_test.go:88: expected command error/report: {"Read":1,"WouldImport":0,"AlreadyImported":0,"Imported":1,"Conflicts":0,"Rejected":0,"LastCommittedLine":0,"HasMore":false}
+        commit succeeded; replay required before checkpoint: open /tmp/TestFullSharedLegacyOperatorCommands1390524463/001/missing/.receipt-checkpoint-3150553651: no such file or directory
+        
+    shared_legacy_command_test.go:133: expected command error/report: checkpoint does not match immutable source and target
+        
+--- PASS: TestFullSharedLegacyOperatorCommands (4.84s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	5.879s

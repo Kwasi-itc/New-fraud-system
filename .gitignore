@@ -43,3 +43,11 @@ ui_inspo/
 
 # Local IP geolocation databases (mounted at runtime)
 *.mmdb
+
+# Local ingestion verification runs; curated evidence lives in mysql_migration.
+/backend/ingestion-service/testdata/operations20-*
+/backend/ingestion-service/testdata/parity20-*
+/backend/ingestion-service/testdata/process-*
+/backend/ingestion-service/testdata/remaining3-*
+/backend/ingestion-service/testdata/offline-preflight-*
+!/mysql_migration/implementation/evidence/**/*.log

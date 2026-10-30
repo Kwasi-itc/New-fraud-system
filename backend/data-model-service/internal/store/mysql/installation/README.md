@@ -1,5 +1,12 @@
 # Data-model installation artifacts
 
+`OptionsOwnerPolicy` supplies a separate staged ordered-options owner policy:
+read-only model/contract/gate snapshots, UPDATE only on table display_version
+and options updated_at, INSERT/DELETE on ordered option rows, and INSERT/SELECT
+on audit/revision/publication/result evidence. It cannot edit display JSON,
+caption, field enforcement, physical gates or retained receipts. Tenant and actor
+authorization remain mandatory. Deployment account review remains open.
+
 ## Shared exact-key dependency inspection
 
 `NewExactKeyReadiness` binds a complete reviewed v001 artifact, optionally with
@@ -329,3 +336,52 @@ updates, audit/revision/result inserts and existing caption-job producer grants.
 It grants no DDL, dictionary, contract/gate mutations or receipt UPDATE/DELETE.
 Object grants do not replace tenant authorization or approve production account
 composition. Runtime wiring and operational acceptance remain separate gates.
+
+## Staged v005 record lookup capability
+
+`RecordLookupUpgradeStatements` and `ExtendRecordLookupPlan` define an append-only
+upgrade after v004. The new `data_model_find_record_object_key_v1` function accepts
+tenant/table UUIDs and 1..1048576 value bytes. It uses the exact-key digest index
+and full raw-byte equality within the fixed `record_object_id` domain. A missing
+key returns NULL; duplicate full keys fail. The routine never allocates a key,
+reads arbitrary domains or exposes raw dictionary rows.
+
+`RecordLookupDefinerPolicy` requires a separate locked principal with SELECT on
+the dictionary and EXECUTE on the digest and lookup functions. MySQL requires
+the latter self-EXECUTE grant even for this locked definer. Consumers receive
+EXECUTE on the lookup only, alongside their separately reviewed physical-table
+and registry grants. Current tenant authorization and transaction-held publication
+locks remain consumer requirements; a supplied tenant UUID is not authentication.
+
+Reference binding rejects substituted source, identity, kind and preconditions;
+prior migration steps remain unchanged. Frozen v001-v004 artifacts are not
+rewritten. The existing reference CLI and shared readiness constructors do not
+yet adopt v005: complete installation, dependency/definer verification and
+production principal review remain mandatory before enabling this capability.
+Ingestion's fixture tests exercise the actual function source with a locked
+definer, direct-dictionary/resolver denial, forced digest collisions and physical
+transaction recovery. Fixture metadata and record triggers do not constitute
+complete production-lineage acceptance.
+
+
+## Fixed-domain ingestion contract lookup (v006)
+
+`ContractLookupUpgradeStatements` appends
+`data_model_find_ingestion_contract_key_v1` after v005. It accepts a nonzero tenant
+UUID and 1..1,048,576 bytes, resolves only `dm.contract.name` in that tenant scope,
+and compares full bytes after the digest lookup. It performs no allocation or
+writes. `ContractLookupDefinerPolicy` uses another locked, read-only definer.
+Consumers receive EXECUTE on the lookup and the documented metadata projection;
+they do not receive private dictionary SELECT. Authorization is still required
+at the consumer boundary. `ExtendContractLookupPlan` binds source and reference
+without changing earlier lineage.
+
+The disposable `cmd/export-mysql-fixture` emits the complete v001-v006 owner
+source, locked-definer creation and exact grants for generated ingestion test
+identities. It performs no database operations. Ingestion's complete-schema
+fixture records pinned MySQL 8.4.8 definitions, recreates only its own fresh test
+database and verifies both actual migration ledgers. This does not replace the
+reviewed deployment-artifact CLI or authorize runtime activation. The historical
+v005 paragraph above describes the earlier component-only evidence; complete
+shared-schema tests now exist, while production publication/definer adoption and
+independent deployment review remain open.

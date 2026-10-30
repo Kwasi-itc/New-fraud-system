@@ -277,3 +277,22 @@ func TestMySQLTransactions(t *testing.T) {
 		t.Fatalf("panic committed: %v", err)
 	}
 }
+
+func TestBoundedLockWaitConfiguration(t *testing.T) {
+	c := testConfig()
+	c.AllowInsecureTransport = true
+	c.LockWaitTimeout = time.Second
+	config, e := c.connector()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if config.Params["innodb_lock_wait_timeout"] != "1" || config.Params["lock_wait_timeout"] != "1" {
+		t.Fatal(config.Params)
+	}
+	for _, bad := range []time.Duration{-time.Second, time.Millisecond, 31 * time.Second} {
+		c.LockWaitTimeout = bad
+		if _, e = c.connector(); e == nil {
+			t.Fatal("invalid lock policy", bad)
+		}
+	}
+}

@@ -1,0 +1,37 @@
+{
+  "Summary": {
+    "Discovered": 13,
+    "Executed": 13,
+    "Passed": 12,
+    "Failed": 2,
+    "Skipped": 0,
+    "Error": "exit status 1\nempty, skipped or failed required suite"
+  },
+  "Tests": [
+    "TestFullSharedContractTransitions",
+    "TestFullSharedAuthorizedReadLifetime",
+    "TestFullSharedContractReader",
+    "TestFullSharedInstallation",
+    "TestFullSharedLegacyOperatorCommands",
+    "TestFullSharedReadPlans",
+    "TestFullSharedRestrictedOwners",
+    "TestFullSharedEffectGrantRollback",
+    "TestFullSharedRouteBinding",
+    "TestFullSharedSourceDataset",
+    "TestFullSharedCurrentAndTimeWindowSemantics",
+    "TestFullSharedDeferredMetrics",
+    "TestFullSharedRedrive"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=10m45s",
+    "./internal/store/mysql",
+    "-run",
+    "^TestFullShared"
+  ]
+}

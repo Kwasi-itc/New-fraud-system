@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -217,6 +218,7 @@ func main() {
 		cfg.AggregateRemoteConcurrencyLimit,
 		dbPoolStatsProvider(db),
 	)
+	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(geoIPLookup)
 
 	executionService := service.NewExecutionService(
@@ -261,7 +263,7 @@ func main() {
 		firstNonEmpty(cfg.ScreeningServiceURL, cfg.ScreeningProviderURL),
 		cfg.ScoringProviderURL,
 		cfg.OutboxPublisherURL,
-	).WithCaseAuthToken(cfg.CaseServiceAuthToken)
+	).WithCaseAuthToken(cfg.CaseServiceAuthToken).WithScreeningAuthToken(cfg.ScreeningIntakeToken)
 	dispatchService := service.NewDispatchService(
 		workflowExecutionRepo,
 		screeningExecutionRepo,

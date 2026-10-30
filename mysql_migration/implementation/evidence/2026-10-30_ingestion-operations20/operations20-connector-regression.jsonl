@@ -1,0 +1,8 @@
+{"Time":"2026-10-30T10:54:11.380972898Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"}
+{"Time":"2026-10-30T10:54:11.424136514Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestBoundedLockWaitConfiguration"}
+{"Time":"2026-10-30T10:54:11.425571598Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestBoundedLockWaitConfiguration","Output":"=== RUN   TestBoundedLockWaitConfiguration\n"}
+{"Time":"2026-10-30T10:54:11.427496837Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestBoundedLockWaitConfiguration","Output":"--- PASS: TestBoundedLockWaitConfiguration (0.00s)\n"}
+{"Time":"2026-10-30T10:54:11.428512832Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestBoundedLockWaitConfiguration","Elapsed":0}
+{"Time":"2026-10-30T10:54:11.429521845Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Output":"PASS\n"}
+{"Time":"2026-10-30T10:54:12.430206736Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/mysqlstore\t1.047s\n"}
+{"Time":"2026-10-30T10:54:12.434361023Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Elapsed":1.053}

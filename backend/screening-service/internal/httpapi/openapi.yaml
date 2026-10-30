@@ -5,6 +5,9 @@ info:
   description: |-
     This service handles screening requests, match review, whitelist management, continuous screening,
     dataset updates, and the related file and callback flows around screening work.
+    Legacy owner /v1 operations require the private X-Screening-Operator-Token
+    in addition to service authentication. Manual-screenings and investigator
+    endpoints retain independent identity checks; internal intake is separate.
 tags:
   - name: Service
     description: Basic service checks, metrics, and connection details.
@@ -21,6 +24,218 @@ tags:
   - name: Internal
     description: Internal service-to-service screening intake routes.
 paths:
+  /v1/manual-screenings/capabilities:
+    get:
+      tags: [Provider]
+      summary: Capabilities of the fixed manual screening provider
+      description: Active investigator session and current tenant membership required. Deployment configuration only, not tenant entitlements or health. No outbound provider call. No secrets or endpoint addresses. Same private no-store policy as manual searches.
+      security: [{investigatorJWT: []}]
+      responses:
+        '200':
+          description: Public capability projection. Health remains unknown until independently verified. Live enrichment is not exposed by this manual API.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string, enum: [opensanctions]}
+                  name: {type: string}
+                  adapter: {type: string, enum: [generic, opensanctions_match]}
+                  configured: {type: boolean}
+                  health: {type: string, enum: [unknown]}
+                  entity_types: {type: array, items: {type: string}}
+                  fields: {type: object, additionalProperties: {type: array, items: {type: string}}}
+                  dataset_selection: {type: boolean}
+                  threshold_min: {type: integer}
+                  threshold_max: {type: integer}
+                  limit_max: {type: integer}
+                  threshold_semantics: {type: string}
+                  result_semantics: {type: string}
+                  candidate_metadata: {type: array, items: {type: string}}
+                  live_enrichment: {type: boolean}
+                  limitations: {type: array, items: {type: string}}
+        '401': {description: Missing or invalid session}
+        '403': {description: Investigator role or active tenant membership missing}
+        '503': {description: Screening infrastructure unavailable}
+  /v1/manual-screenings:
+    get:
+      tags: [Screenings]
+      summary: List the current creator's persisted manual searches
+      description: Active investigator session required; admins also see only their own searches. Tenant and creator are derived from the JWT. Ordered by created_at descending then ID descending. Follow next_cursor; opening a result never reruns its provider.
+      security: [{investigatorJWT: []}]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+        - {name: cursor, in: query, schema: {type: string, maxLength: 512}, description: Opaque next_cursor from the prior page; reset when filters change.}
+        - {name: status, in: query, schema: {type: string, enum: [pending, queued, processing, awaiting_review, no_hit, confirmed_hit, failed, archived]}}
+        - {name: entity_type, in: query, schema: {type: string, enum: [Person, Organization]}}
+        - {name: from, in: query, schema: {type: string, format: date}, description: Inclusive UTC date}
+        - {name: to, in: query, schema: {type: string, format: date}, description: Inclusive UTC date}
+      responses:
+        '200':
+          description: Bounded history projection; empty next_cursor means no more rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_cursor: {type: string}
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        name: {type: string}
+                        entity_type: {type: string}
+                        status: {type: string}
+                        partial: {type: boolean}
+                        created_at: {type: string, format: date-time}
+        '400': {description: Invalid filters, cursor or unknown parameters}
+        '401': {description: Invalid session}
+        '403': {description: Current role or membership denied}
+        '503': {description: History unavailable}
+    post:
+      tags: [Screenings]
+      summary: Queue a creator-scoped manual name search
+      description: Requires an active platform session with investigator or case-manager-admin role. Tenant and actor come only from the JWT. Persists the search and River job atomically. Retry an uncertain response with identical operation ID and input. A concurrent first insert can return 503; retry the same operation. No case is created by this endpoint.
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [operation_id, name, entity_type, limit]
+              properties:
+                operation_id: {type: string, format: uuid}
+                name: {type: string, minLength: 1, maxLength: 200}
+                entity_type: {type: string, enum: [Person, Organization]}
+                threshold: {type: integer, minimum: 0, maximum: 100, default: 0, description: 'UI defaults to 70; omitted API value means 0.'}
+                limit: {type: integer, minimum: 1, maximum: 50}
+                birth_date: {type: string, description: 'Person only; YYYY or valid YYYY-MM-DD, no future dates.'}
+                nationality: {type: string, description: 'Person only; ISO alpha2 country code, normalized lowercase.'}
+                country: {type: string, description: 'Organization only; ISO alpha2 country code, normalized lowercase.'}
+                registration_number: {type: string, maxLength: 100, description: Organization only}
+                address: {type: string, maxLength: 300}
+                datasets:
+                  type: array
+                  maxItems: 10
+                  items: {type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,79}$'}
+                  description: 'Provider include_dataset filters; syntax validated locally, catalog membership and entitlement provider-dependent.'
+      responses:
+        '202':
+          description: Created or identical replay; fetch the result by ID even when replay status is terminal.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: {type: string, format: uuid}
+                  status: {type: string}
+        '400': {description: Invalid input, unknown fields or body exceeding 4KiB}
+        '401': {description: Invalid or missing platform session}
+        '403': {description: Role or current membership/session denied}
+        '409': {description: Operation ID reused with different input}
+        '415': {description: Expected application/json}
+        '503': {description: Identity, queue, persistence or configuration unavailable}
+  /v1/manual-screenings/{id}:
+    get:
+      tags: [Screenings]
+      summary: Read the authenticated creator's persisted manual search
+      description: Rechecks current membership. Tenant, creator and manual-only boundaries enforced before returning matches. Decision/scenario screenings cannot be accessed here. Never returns raw requests, provider errors or credentials. Result details are persisted snapshots, not live enrichment.
+      security: [{investigatorJWT: []}]
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Current run state and score-ordered candidates; partial remains meaningful even with no candidates.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, provider, status, partial, created_at, matches]
+                properties:
+                  id: {type: string, format: uuid}
+                  provider: {type: string, description: Provider identifier only; no endpoint or credentials.}
+                  status: {type: string, enum: [pending, queued, processing, awaiting_review, no_hit, confirmed_hit, failed, archived]}
+                  partial: {type: boolean}
+                  created_at: {type: string, format: date-time}
+                  query:
+                    type: object
+                    description: Whitelisted original name, entity_type, threshold, limit and identifying fields/datasets. No credentials or raw provider configuration; operation_id empty.
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string}
+                        entity_id: {type: string}
+                        status: {type: string, description: Persisted candidate review state at retrieval.}
+                        name: {type: string}
+                        score: {type: number}
+                        schema: {type: string}
+                        datasets: {type: array, nullable: true, items: {type: string}}
+                        properties:
+                          type: object
+                          description: Optional alias, country, nationality, birthDate, address and topics arrays only.
+                          additionalProperties: {type: array, items: {type: string}}
+        '400': {description: Invalid identifier}
+        '401': {description: Invalid or missing platform session}
+        '403': {description: Role or current membership/session denied}
+        '404': {description: Not found or outside tenant/creator/manual scope}
+        '503': {description: Identity or screening service unavailable}
+  /v1/investigator/tenants/{tenantId}/cases/{caseId}/exclusions:
+    get:
+      summary: Read exclusion actions or suppression applications within an authorized case
+      description: Signed current investigator session and case/inbox access required. Without operation_id returns actions recorded in this case with current scoped exclusion state. With operation_id returns only its applications linked to this same case; the operation must belong to the case. No other case evidence is exposed. Closed cases remain readable; mutations use the existing review endpoint and require reopening. No provider calls.
+      security: [{investigatorJWT: []}]
+      parameters:
+        - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: caseId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: operation_id, in: query, schema: {type: string, format: uuid}}
+        - {name: cursor, in: query, schema: {type: string, maxLength: 2048}, description: Opaque next_cursor from the same listing. Empty starts the first page.}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+      responses:
+        '200':
+          description: Descending timestamp and ID keyset page, no-store. Exactly one array is populated. An empty application page is not evidence that the exclusion was never used in other cases.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, applications, next_cursor]
+                properties:
+                  next_cursor: {type: string}
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        operation_id: {type: string, format: uuid}
+                        match_id: {type: string}
+                        object_type: {type: string}
+                        object_id: {type: string}
+                        provider: {type: string}
+                        entity_id: {type: string}
+                        actor_id: {type: string}
+                        findings: {type: string}
+                        activated: {type: boolean, description: Historical action state}
+                        active: {type: boolean, description: Current scoped exclusion state}
+                        created_at: {type: string, format: date-time}
+                  applications:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        screening_id: {type: string, format: uuid}
+                        match_id: {type: string}
+                        applied_at: {type: string, format: date-time}
+        '400': {description: Invalid identifier, cursor or limit}
+        '401': {description: Missing or invalid session}
+        '403': {description: Current identity, tenant, case, inbox or operation access denied}
+        '500': {description: Redacted history read failure}
+        '503': {description: Identity or service configuration unavailable}
   /v1/investigator/tenants/{tenantId}/cases/{caseId}/review:
     parameters:
       - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
@@ -42,8 +257,8 @@ paths:
         '403': {description: Current case or resource access denied}
         '500': {description: Owner state could not be read}
     post:
-      summary: Record the first human review with atomic case history
-      description: Open linked case and active inbox required. Findings are trimmed and limited to 10000 UTF-8 bytes. Original actor is verified from JWT; extra fields are rejected. Retry uncertain responses with the identical operation ID and payload. Human review does not change case lifecycle or machine outcome.
+      summary: Record a human review or scoped exclusion removal with atomic case history
+      description: Open linked case and active inbox required. Only actions returned by GET are allowed. Continuous candidates may support dismiss_and_exclude for the same tenant, object type/ID, provider, entity and identifying query fingerprint; manual/scenario exclusions are unavailable. Removal from an accessible dismissed candidate affects future screenings only and remains available when its source screening is archived. Removal writes exclusion audit, review receipt and case history without changing the historical screening, candidate or match comments. Closed cases still require reopening and inaccessible cases remain denied. Findings are trimmed and limited to 10000 UTF-8 bytes including the server action prefix for exclusion actions (use at most 9900). Original actor is verified from JWT; extra fields are rejected. Retry uncertain responses with the identical operation ID and payload. Human review does not change case lifecycle or machine outcome.
       security: [{investigatorJWT: []}]
       requestBody:
         required: true
@@ -57,7 +272,7 @@ paths:
                 operation_id: {type: string, format: uuid}
                 resource_id: {type: string}
                 expected_version: {type: string}
-                action: {type: string, enum: [confirmed_hit, no_hit]}
+                action: {type: string, enum: [confirmed_hit, no_hit, dismiss_and_exclude, remove_exclusion]}
                 findings: {type: string, minLength: 1}
       responses:
         '200':
@@ -119,6 +334,14 @@ paths:
       description: Shows the downstream services and provider settings currently configured for screening-service.
       security:
         - bearerAuth: []
+      parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
       responses:
         '200':
           description: Service information
@@ -134,6 +357,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - name: provider
           in: query
           description: Provider key to inspect. If omitted, the default provider is used.
@@ -156,6 +386,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - name: provider
           in: query
           description: Provider key to inspect. If omitted, the default provider is used.
@@ -178,6 +415,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       responses:
         '200':
@@ -195,6 +439,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
@@ -223,6 +474,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/JobId'
       responses:
@@ -242,6 +500,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/JobId'
       responses:
@@ -261,6 +526,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
@@ -285,6 +557,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
@@ -309,9 +588,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; not a browser credential.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
       responses:
+        '403':
+          description: Private owner credential missing, invalid or unconfigured.
         '200':
           description: Screenings for the decision
           content:
@@ -326,9 +614,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; not a browser credential.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
       responses:
+        '403':
+          description: Private owner credential missing, invalid or unconfigured.
         '200':
           description: Screening detail payload
           content:
@@ -345,9 +642,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private source-recovery credential, distinct from service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
       responses:
+        '403':
+          description: Private recovery credential missing, invalid or unconfigured.
         '200':
           description: Screening retried
           content:
@@ -364,6 +670,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MatchId'
       requestBody:
@@ -389,6 +702,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MatchId'
       requestBody:
@@ -414,6 +734,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MatchId'
       responses:
@@ -433,6 +760,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
       responses:
@@ -451,6 +785,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
       requestBody:
@@ -476,6 +817,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
       requestBody:
@@ -501,6 +849,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
         - $ref: '#/components/parameters/FileId'
@@ -521,6 +876,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScreeningId'
         - $ref: '#/components/parameters/FileId'
@@ -541,6 +903,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - name: entity_id
           in: query
@@ -568,6 +937,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
@@ -591,6 +967,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - name: entity_id
           in: query
@@ -616,6 +999,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       responses:
         '200':
@@ -633,6 +1023,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
@@ -657,6 +1054,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ConfigId'
       responses:
@@ -675,6 +1079,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ConfigId'
       requestBody:
@@ -699,6 +1110,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ConfigId'
       responses:
@@ -714,6 +1132,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ConfigId'
       responses:
@@ -732,6 +1157,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ConfigId'
       requestBody:
@@ -757,6 +1189,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MonitoredObjectId'
       responses:
@@ -775,6 +1214,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MonitoredObjectId'
       responses:
@@ -790,6 +1236,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: X-Screening-Operator-Token
+          in: header
+          required: true
+          description: Private owner credential; additional to service authentication.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/MonitoredObjectId'
       requestBody:
@@ -807,13 +1260,47 @@ paths:
                 $ref: '#/components/schemas/GenericObject'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /internal/screening-capabilities:
+    get:
+      tags: [Internal]
+      summary: Advertised scenario authoring capabilities
+      description: Configuration-derived capability only, not a provider health check. Requires the dedicated intake credential. No provider request is made and no endpoint or credentials are returned.
+      security:
+        - screeningIntakeAuth: []
+      responses:
+        '200':
+          description: Configuration-derived address, Person birth-date/nationality and Organization country/registration-number support
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [address_supported, birth_date_supported, nationality_supported, country_supported, registration_number_supported, matching_settings_supported]
+                properties:
+                  address_supported:
+                    type: boolean
+                  birth_date_supported:
+                    type: boolean
+                  nationality_supported:
+                    type: boolean
+                  country_supported:
+                    type: boolean
+                  matching_settings_supported:
+                    type: boolean
+                    description: Explicit threshold, result limit and dataset selection require the configured direct adapter; not a health check.
+                  registration_number_supported:
+                    type: boolean
+        '401':
+          description: Dedicated integration credential missing or invalid.
+        '503':
+          description: Dedicated integration credential not configured.
   /internal/v1/tenants/{tenantId}/decision-screenings:
     post:
       tags: [Internal]
       summary: Create or reuse a decision-linked screening
       description: Internal decision-engine intake endpoint. Calls are idempotent on `idempotency_key`.
       security:
-        - bearerAuth: []
+        - screeningIntakeAuth: []
       parameters:
         - $ref: '#/components/parameters/TenantId'
       requestBody:
@@ -823,6 +1310,10 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateScreeningRequest'
       responses:
+        '401':
+          description: Dedicated integration credential missing or invalid.
+        '503':
+          description: Dedicated integration credential not configured.
         '201':
           description: Screening created or reused
           content:
@@ -833,6 +1324,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
+    screeningIntakeAuth:
+      type: http
+      scheme: bearer
+      description: Dedicated SCREENING_INTAKE_TOKEN; distinct from general, operator and opposite-direction credentials.
     investigatorJWT:
       type: http
       scheme: bearer

@@ -1,0 +1,198 @@
+=== RUN   TestValidateAggregateQueryRejectsDeepFilter
+=== PAUSE TestValidateAggregateQueryRejectsDeepFilter
+=== RUN   TestValidateAggregateQueryRejectsLargeInList
+=== PAUSE TestValidateAggregateQueryRejectsLargeInList
+=== RUN   TestValidateAggregateQueryAllowsOrGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsOrGroupOperator
+=== RUN   TestValidateAggregateQueryAllowsNotGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsNotGroupOperator
+=== RUN   TestValidateAggregateQueryRejectsInvalidNotArity
+=== PAUSE TestValidateAggregateQueryRejectsInvalidNotArity
+=== RUN   TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== PAUSE TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== RUN   TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== PAUSE TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== RUN   TestCanonicalReceiptCommandGolden
+--- PASS: TestCanonicalReceiptCommandGolden (0.00s)
+=== RUN   TestCanonicalReceiptCommandIdentity
+=== RUN   TestCanonicalReceiptCommandIdentity/tenant
+=== RUN   TestCanonicalReceiptCommandIdentity/table
+=== RUN   TestCanonicalReceiptCommandIdentity/mode
+=== RUN   TestCanonicalReceiptCommandIdentity/kind
+=== RUN   TestCanonicalReceiptCommandIdentity/value
+=== RUN   TestCanonicalReceiptCommandIdentity/null
+=== RUN   TestCanonicalReceiptCommandIdentity/unicode
+=== RUN   TestCanonicalReceiptCommandIdentity/numeric
+--- PASS: TestCanonicalReceiptCommandIdentity (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/value (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/null (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/unicode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/numeric (0.00s)
+=== RUN   TestCanonicalReceiptCommandRejection
+=== RUN   TestCanonicalReceiptCommandRejection/tenant
+=== RUN   TestCanonicalReceiptCommandRejection/table
+=== RUN   TestCanonicalReceiptCommandRejection/mode
+=== RUN   TestCanonicalReceiptCommandRejection/kind
+=== RUN   TestCanonicalReceiptCommandRejection/empty
+=== RUN   TestCanonicalReceiptCommandRejection/nil_record
+=== RUN   TestCanonicalReceiptCommandRejection/single_many
+=== RUN   TestCanonicalReceiptCommandRejection/batch_many
+=== RUN   TestCanonicalReceiptCommandRejection/bytes
+--- PASS: TestCanonicalReceiptCommandRejection (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/empty (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/nil_record (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/single_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/batch_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/bytes (0.00s)
+=== RUN   TestValidateRecordCreateRequiresNonNullableFields
+=== PAUSE TestValidateRecordCreateRequiresNonNullableFields
+=== RUN   TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== PAUSE TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== RUN   TestValidateRecordRejectsUnknownAndManagedFields
+=== PAUSE TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsDeepFilter
+=== CONT  TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+--- PASS: TestValidateAggregateQueryRejectsDeepFilter (0.00s)
+=== CONT  TestValidateAggregateQueryRejectsLargeInList
+=== CONT  TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== CONT  TestValidateAggregateQueryRejectsInvalidNotArity
+--- PASS: TestValidateAggregateQueryAllowsStartsWithPredicateOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsLargeInList (0.00s)
+=== CONT  TestValidateRecordCreateRequiresNonNullableFields
+=== CONT  TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== CONT  TestValidateAggregateQueryAllowsNotGroupOperator
+=== CONT  TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryAllowsOrGroupOperator
+--- PASS: TestValidateRecordPatchAllowsOmittedNonNullableFields (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsOrGroupOperator (0.00s)
+--- PASS: TestValidateRecordCreateRequiresNonNullableFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsNotGroupOperator (0.00s)
+--- PASS: TestValidateRecordRejectsUnknownAndManagedFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsInvalidNotArity (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion	1.039s
+=== RUN   TestEffectsReceiptAtomicity
+=== RUN   TestEffectsReceiptAtomicity/replay
+=== RUN   TestEffectsReceiptAtomicity/outbox_failure
+=== RUN   TestEffectsReceiptAtomicity/receipt_failure
+=== RUN   TestEffectsReceiptAtomicity/owner_failure
+=== RUN   TestEffectsReceiptAtomicity/restricted
+=== RUN   TestEffectsReceiptAtomicity/grant_denial
+=== RUN   TestEffectsReceiptAtomicity/cancel_after_effects
+=== RUN   TestEffectsReceiptAtomicity/batch
+--- PASS: TestEffectsReceiptAtomicity (0.57s)
+    --- PASS: TestEffectsReceiptAtomicity/replay (0.09s)
+    --- PASS: TestEffectsReceiptAtomicity/outbox_failure (0.06s)
+    --- PASS: TestEffectsReceiptAtomicity/receipt_failure (0.06s)
+    --- PASS: TestEffectsReceiptAtomicity/owner_failure (0.06s)
+    --- PASS: TestEffectsReceiptAtomicity/restricted (0.09s)
+    --- PASS: TestEffectsReceiptAtomicity/grant_denial (0.08s)
+    --- PASS: TestEffectsReceiptAtomicity/cancel_after_effects (0.06s)
+    --- PASS: TestEffectsReceiptAtomicity/batch (0.07s)
+=== RUN   TestEffectsValidationBeforeWrites
+=== RUN   TestEffectsValidationBeforeWrites/tenant
+=== RUN   TestEffectsValidationBeforeWrites/event_tenant
+=== RUN   TestEffectsValidationBeforeWrites/table_name
+=== RUN   TestEffectsValidationBeforeWrites/pair_key
+=== RUN   TestEffectsValidationBeforeWrites/pair_time
+=== RUN   TestEffectsValidationBeforeWrites/invalid_json
+=== RUN   TestEffectsValidationBeforeWrites/utf8
+=== RUN   TestEffectsValidationBeforeWrites/precision
+=== RUN   TestEffectsValidationBeforeWrites/row_bytes
+--- PASS: TestEffectsValidationBeforeWrites (0.06s)
+    --- PASS: TestEffectsValidationBeforeWrites/tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/event_tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/table_name (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_key (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_time (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/invalid_json (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/utf8 (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/precision (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/row_bytes (0.00s)
+=== RUN   TestEffectsBulkWrites
+=== RUN   TestEffectsBulkWrites/500_records
+=== RUN   TestEffectsBulkWrites/late_validation
+=== RUN   TestEffectsBulkWrites/late_duplicate
+=== RUN   TestEffectsBulkWrites/byte_limit
+--- PASS: TestEffectsBulkWrites (0.38s)
+    --- PASS: TestEffectsBulkWrites/500_records (0.12s)
+    --- PASS: TestEffectsBulkWrites/late_validation (0.07s)
+    --- PASS: TestEffectsBulkWrites/late_duplicate (0.14s)
+    --- PASS: TestEffectsBulkWrites/byte_limit (0.05s)
+=== RUN   TestLookupGuards
+=== RUN   TestLookupGuards/missing_key_serialized
+=== RUN   TestLookupGuards/opposite_batch_orders
+=== RUN   TestLookupGuards/collision_only_serializes
+=== RUN   TestLookupGuards/invalid_keys_and_scope
+--- PASS: TestLookupGuards (0.32s)
+    --- PASS: TestLookupGuards/missing_key_serialized (0.17s)
+    --- PASS: TestLookupGuards/opposite_batch_orders (0.01s)
+    --- PASS: TestLookupGuards/collision_only_serializes (0.00s)
+    --- PASS: TestLookupGuards/invalid_keys_and_scope (0.02s)
+=== RUN   TestRestrictedWriteCoordination
+--- PASS: TestRestrictedWriteCoordination (0.14s)
+=== RUN   TestCanonicalReceiptReplay
+--- PASS: TestCanonicalReceiptReplay (0.05s)
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/28 16:59:11 connection.go:189 closing connection:close tcp 172.21.0.3:57814->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 16:59:11 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.07s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.06s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.08s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.04s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.04s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (0.54s)
+    --- PASS: TestReceiptExecution/replay (0.05s)
+    --- PASS: TestReceiptExecution/concurrent (0.09s)
+    --- PASS: TestReceiptExecution/rollback (0.04s)
+    --- PASS: TestReceiptExecution/result_limit (0.04s)
+    --- PASS: TestReceiptExecution/key_collision (0.08s)
+    --- PASS: TestReceiptExecution/cancel (0.16s)
+    --- PASS: TestReceiptExecution/restricted (0.07s)
+=== RUN   TestWriteBarrierSnapshot
+=== RUN   TestWriteBarrierSnapshot/ready
+=== RUN   TestWriteBarrierSnapshot/stale
+=== RUN   TestWriteBarrierSnapshot/tenant
+=== RUN   TestWriteBarrierSnapshot/closed
+=== RUN   TestWriteBarrierSnapshot/archived
+=== RUN   TestWriteBarrierSnapshot/retired
+=== RUN   TestWriteBarrierSnapshot/active_operation
+=== RUN   TestWriteBarrierSnapshot/missing_mapping
+=== RUN   TestWriteBarrierSnapshot/bad_name
+=== RUN   TestWriteBarrierSnapshot/field_limit
+--- PASS: TestWriteBarrierSnapshot (1.16s)
+    --- PASS: TestWriteBarrierSnapshot/ready (0.11s)
+    --- PASS: TestWriteBarrierSnapshot/stale (0.12s)
+    --- PASS: TestWriteBarrierSnapshot/tenant (0.11s)
+    --- PASS: TestWriteBarrierSnapshot/closed (0.11s)
+    --- PASS: TestWriteBarrierSnapshot/archived (0.11s)
+    --- PASS: TestWriteBarrierSnapshot/retired (0.11s)
+    --- PASS: TestWriteBarrierSnapshot/active_operation (0.12s)
+    --- PASS: TestWriteBarrierSnapshot/missing_mapping (0.12s)
+    --- PASS: TestWriteBarrierSnapshot/bad_name (0.12s)
+    --- PASS: TestWriteBarrierSnapshot/field_limit (0.12s)
+=== RUN   TestWriteBarrierBlocksDDLPreparation
+--- PASS: TestWriteBarrierBlocksDDLPreparation (0.38s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	4.858s

@@ -4,6 +4,26 @@ Implementation started on 2026-10-22 following the user instruction "start imple
 
 ## Phases
 
+Current implementation focus (2026-10-29): user requested work on IN-01.2.
+The staged keyed record owner now joins physical writes, audit/outbox and v1
+receipt results. Production schema/grants, authorization/model integration,
+legacy translation and upload/deferred/shared-queue integration remain open.
+No parent completion or PostgreSQL/River runtime switch is implied.
+
+Current user-directed focus (2026-10-28): expand the ingestion implementation
+plan and source characterization under IN-01.1. This supersedes the earlier
+data-model-only work sequence for planning; DM-01 remains incomplete and remains
+an integration/activation dependency. See the
+[ingestion implementation map](modules/02_ingestion_implementation_map.md).
+No adapter switch or completed task is implied by the planning work.
+
+Follow-up evidence: IN-01.1 source characterization is complete after 29 behavior
+scenarios, source-column inventory and explicit compatibility/consumer closure.
+Full ingestion vet/race regression passed (85 top-level tests, no skips/failures),
+with five repeated receipt-race runs. IN-01.2/3/4 and DM-01 remain incomplete;
+no MySQL ingestion runtime has been activated. See the
+[characterization contract](modules/02_ingestion_characterization_contract.md).
+
 1. G0 baseline and requirements: B-01.
 2. G1 feasibility/ADRs: PX-01.
 3. G2 schema and shared mechanics: SC-01, DB-01, Q-01, AU-01.

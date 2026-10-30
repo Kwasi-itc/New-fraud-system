@@ -5,6 +5,7 @@ service input values only:
 
 | Input | Operation kind | Included mutation data |
 |---|---|---|
+| ReplaceTableOptionsInput | table_options.replace | Table ID and both ordered UUID lists; nil/empty distinctions retained, server-owned options identity/timestamps excluded |
 | CreateNavigationOptionInput | navigation.create | Tenant ID, source table/field, target table, filter and ordering fields; source table is the receipt scope |
 | CreateTableInput | table.create | Tenant ID, name, description, alias, semantic type; stable allocated table ID in scope |
 | CreateLinkInput | link.create | Tenant ID, name, both table IDs and both field IDs; child table is the receipt scope |

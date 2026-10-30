@@ -54,7 +54,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	router := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
+	router, err := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
 		AuthMode:                       cfg.ServiceAuthMode,
 		AuthToken:                      cfg.ServiceAuthToken,
 		AllowedOrigins:                 cfg.AllowedOrigins,
@@ -78,6 +78,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 			UpstreamTimeoutRatePct: cfg.UpstreamTimeoutRateThresholdPct,
 		},
 	})
+	if err != nil {
+		if readDB != db {
+			readDB.Close()
+		}
+		db.Close()
+		return nil, fmt.Errorf("initialize ingestion router: %w", err)
+	}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,

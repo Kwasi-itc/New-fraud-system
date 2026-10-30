@@ -1,0 +1,150 @@
+=== RUN   TestPrivateDataModelCredentialAndRedirectBoundary
+--- PASS: TestPrivateDataModelCredentialAndRedirectBoundary (0.03s)
+=== RUN   TestCacheRevalidatesEveryRequestAndIsolatesCallers
+--- PASS: TestCacheRevalidatesEveryRequestAndIsolatesCallers (0.01s)
+=== RUN   TestCacheNeverFallsBackOnErrors
+=== RUN   TestCacheNeverFallsBackOnErrors/unavailable
+=== RUN   TestCacheNeverFallsBackOnErrors/malformed
+=== RUN   TestCacheNeverFallsBackOnErrors/bad304
+=== RUN   TestCacheNeverFallsBackOnErrors/canceled
+--- PASS: TestCacheNeverFallsBackOnErrors (0.03s)
+    --- PASS: TestCacheNeverFallsBackOnErrors/unavailable (0.01s)
+    --- PASS: TestCacheNeverFallsBackOnErrors/malformed (0.01s)
+    --- PASS: TestCacheNeverFallsBackOnErrors/bad304 (0.01s)
+    --- PASS: TestCacheNeverFallsBackOnErrors/canceled (0.01s)
+=== RUN   TestCacheTenantIsolationAndConcurrentAccess
+--- PASS: TestCacheTenantIsolationAndConcurrentAccess (0.12s)
+=== RUN   TestCacheBoundsAndLRU
+--- PASS: TestCacheBoundsAndLRU (0.00s)
+=== RUN   TestCacheNoStoreAndOlderServers
+=== RUN   TestCacheNoStoreAndOlderServers/no-store
+=== RUN   TestCacheNoStoreAndOlderServers/no-etag
+--- PASS: TestCacheNoStoreAndOlderServers (0.02s)
+    --- PASS: TestCacheNoStoreAndOlderServers/no-store (0.01s)
+    --- PASS: TestCacheNoStoreAndOlderServers/no-etag (0.01s)
+=== RUN   TestCacheRejectsUnsolicitedNotModified
+--- PASS: TestCacheRejectsUnsolicitedNotModified (0.00s)
+=== RUN   TestCacheDisabled
+--- PASS: TestCacheDisabled (0.01s)
+=== RUN   TestContractReaderVersionStatusFailureAndIsolation
+--- PASS: TestContractReaderVersionStatusFailureAndIsolation (0.00s)
+=== RUN   TestContractReaderRejectsInvalidResponses
+=== RUN   TestContractReaderRejectsInvalidResponses/tenant
+=== RUN   TestContractReaderRejectsInvalidResponses/version
+=== RUN   TestContractReaderRejectsInvalidResponses/payload
+=== RUN   TestContractReaderRejectsInvalidResponses/uncached
+--- PASS: TestContractReaderRejectsInvalidResponses (0.00s)
+    --- PASS: TestContractReaderRejectsInvalidResponses/tenant (0.00s)
+    --- PASS: TestContractReaderRejectsInvalidResponses/version (0.00s)
+    --- PASS: TestContractReaderRejectsInvalidResponses/payload (0.00s)
+    --- PASS: TestContractReaderRejectsInvalidResponses/uncached (0.00s)
+=== RUN   TestHTTPClientGetPublishedDataModelMapsContract
+=== PAUSE TestHTTPClientGetPublishedDataModelMapsContract
+=== RUN   TestHTTPClientGetPublishedDataModelRequiresRevisionID
+=== PAUSE TestHTTPClientGetPublishedDataModelRequiresRevisionID
+=== RUN   TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200
+=== PAUSE TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200
+=== RUN   TestReaderExplicitHTTPMode
+--- PASS: TestReaderExplicitHTTPMode (0.01s)
+=== RUN   TestReaderHTTPTimeout
+--- PASS: TestReaderHTTPTimeout (0.05s)
+=== RUN   TestReaderSQLNeverFallsBackToConfiguredHTTP
+--- PASS: TestReaderSQLNeverFallsBackToConfiguredHTTP (0.00s)
+=== RUN   TestReaderRecreatedTableAndPublicationVersion
+--- PASS: TestReaderRecreatedTableAndPublicationVersion (0.00s)
+=== RUN   TestSQLCacheBoundedConcurrentRevalidation
+--- PASS: TestSQLCacheBoundedConcurrentRevalidation (0.01s)
+=== RUN   TestReaderRejectsIncompleteConfiguration
+--- PASS: TestReaderRejectsIncompleteConfiguration (0.00s)
+=== RUN   TestCacheAbsoluteReuseLifetime
+--- PASS: TestCacheAbsoluteReuseLifetime (0.00s)
+=== CONT  TestHTTPClientGetPublishedDataModelMapsContract
+=== CONT  TestHTTPClientGetPublishedDataModelRequiresRevisionID
+=== CONT  TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200
+--- PASS: TestHTTPClientGetPublishedDataModelRequiresRevisionID (0.00s)
+--- PASS: TestHTTPClientGetPublishedDataModelMapsContract (0.00s)
+--- PASS: TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200 (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/clients/datamodel	1.380s
+=== RUN   TestValidateAggregateQueryRejectsDeepFilter
+=== PAUSE TestValidateAggregateQueryRejectsDeepFilter
+=== RUN   TestValidateAggregateQueryRejectsLargeInList
+=== PAUSE TestValidateAggregateQueryRejectsLargeInList
+=== RUN   TestValidateAggregateQueryAllowsOrGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsOrGroupOperator
+=== RUN   TestValidateAggregateQueryAllowsNotGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsNotGroupOperator
+=== RUN   TestValidateAggregateQueryRejectsInvalidNotArity
+=== PAUSE TestValidateAggregateQueryRejectsInvalidNotArity
+=== RUN   TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== PAUSE TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== RUN   TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== PAUSE TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== RUN   TestCanonicalReceiptCommandGolden
+--- PASS: TestCanonicalReceiptCommandGolden (0.00s)
+=== RUN   TestCanonicalReceiptCommandIdentity
+=== RUN   TestCanonicalReceiptCommandIdentity/tenant
+=== RUN   TestCanonicalReceiptCommandIdentity/table
+=== RUN   TestCanonicalReceiptCommandIdentity/mode
+=== RUN   TestCanonicalReceiptCommandIdentity/kind
+=== RUN   TestCanonicalReceiptCommandIdentity/value
+=== RUN   TestCanonicalReceiptCommandIdentity/null
+=== RUN   TestCanonicalReceiptCommandIdentity/unicode
+=== RUN   TestCanonicalReceiptCommandIdentity/numeric
+--- PASS: TestCanonicalReceiptCommandIdentity (0.01s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/value (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/null (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/unicode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/numeric (0.00s)
+=== RUN   TestCanonicalReceiptCommandRejection
+=== RUN   TestCanonicalReceiptCommandRejection/tenant
+=== RUN   TestCanonicalReceiptCommandRejection/table
+=== RUN   TestCanonicalReceiptCommandRejection/mode
+=== RUN   TestCanonicalReceiptCommandRejection/kind
+=== RUN   TestCanonicalReceiptCommandRejection/empty
+=== RUN   TestCanonicalReceiptCommandRejection/nil_record
+=== RUN   TestCanonicalReceiptCommandRejection/single_many
+=== RUN   TestCanonicalReceiptCommandRejection/batch_many
+=== RUN   TestCanonicalReceiptCommandRejection/bytes
+--- PASS: TestCanonicalReceiptCommandRejection (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/empty (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/nil_record (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/single_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/batch_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/bytes (0.00s)
+=== RUN   TestValidateRecordCreateRequiresNonNullableFields
+=== PAUSE TestValidateRecordCreateRequiresNonNullableFields
+=== RUN   TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== PAUSE TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== RUN   TestValidateRecordRejectsUnknownAndManagedFields
+=== PAUSE TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsDeepFilter
+--- PASS: TestValidateAggregateQueryRejectsDeepFilter (0.00s)
+=== CONT  TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== CONT  TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+--- PASS: TestValidateAggregateQueryAllowsStartsWithPredicateOperator (0.00s)
+--- PASS: TestValidateRecordPatchAllowsOmittedNonNullableFields (0.00s)
+=== CONT  TestValidateAggregateQueryRejectsLargeInList
+=== CONT  TestValidateAggregateQueryAllowsOrGroupOperator
+--- PASS: TestValidateAggregateQueryRejectsLargeInList (0.00s)
+=== CONT  TestValidateAggregateQueryAllowsNotGroupOperator
+=== CONT  TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== CONT  TestValidateRecordCreateRequiresNonNullableFields
+=== CONT  TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsInvalidNotArity
+--- PASS: TestValidateAggregateQueryAllowsOrGroupOperator (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsNotGroupOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator (0.00s)
+--- PASS: TestValidateRecordCreateRequiresNonNullableFields (0.00s)
+--- PASS: TestValidateRecordRejectsUnknownAndManagedFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsInvalidNotArity (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion	1.080s

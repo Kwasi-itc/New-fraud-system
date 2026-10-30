@@ -30,6 +30,9 @@ func (r *ContractReader) GetPublishedDataModel(ctx context.Context, tenantID uui
 }
 
 func (r *ContractReader) GetPublishedTable(ctx context.Context, tenantID uuid.UUID, objectType string) (ingestion.PublishedDataModel, error) {
+	if r.store == nil {
+		return ingestion.PublishedDataModel{}, fmt.Errorf("authoritative contract store not configured")
+	}
 	cached, found := r.cache.getTable(tenantID, objectType)
 	var knownTable uuid.UUID
 	var knownVersion uuid.UUID
@@ -45,7 +48,7 @@ func (r *ContractReader) GetPublishedTable(ctx context.Context, tenantID uuid.UU
 		return ingestion.PublishedDataModel{}, fmt.Errorf("contract tenant mismatch")
 	}
 	model := ingestion.PublishedDataModel{
-		TenantID: tenantID, SchemaName: state.SchemaName,
+		TenantID: tenantID, SchemaName: state.SchemaName, PublicationVersion: state.Version,
 		TenantStatus: state.TenantStatus, Writable: state.TenantStatus == "active",
 		RecordLookupField: "object_id", PartialUpdates: true,
 		ManagedSystemFields: []string{"object_id", "updated_at", "valid_from", "valid_until"},
@@ -65,12 +68,27 @@ func (r *ContractReader) GetPublishedTable(ctx context.Context, tenantID uuid.UU
 		model.Tables = cloneModel(cached.model).Tables
 		return model, nil
 	}
-	var table assembledTableResponse
-	if err := json.Unmarshal(state.Payload, &table); err != nil {
-		return ingestion.PublishedDataModel{}, fmt.Errorf("decode table contract: %w", err)
+	table, err := DecodePublishedTable(state.Payload, state.TableID, objectType)
+	if err != nil {
+		return ingestion.PublishedDataModel{}, err
 	}
-	if table.ID != state.TableID || table.Name != objectType || table.Fields == nil {
-		return ingestion.PublishedDataModel{}, fmt.Errorf("invalid table contract payload")
+	model.Tables[objectType] = table
+
+	if r.cache.maxEntries > 0 && len(state.Payload) <= r.cache.maxBytes {
+		r.cache.put(cacheEntry{tenantID: tenantID, objectType: objectType, etag: state.Version.String(), model: cloneModel(model), encodedBytes: len(state.Payload)})
+	}
+	return model, nil
+}
+
+// DecodePublishedTable is the common wire decoder for SQL and HTTP-owned table
+// contracts. Callers separately validate tenant, publication state and byte bounds.
+func DecodePublishedTable(payload []byte, tableID uuid.UUID, objectType string) (ingestion.ObjectSchema, error) {
+	var table assembledTableResponse
+	if err := json.Unmarshal(payload, &table); err != nil {
+		return ingestion.ObjectSchema{}, fmt.Errorf("decode table contract: %w", err)
+	}
+	if table.ID != tableID || table.Name != objectType || table.Fields == nil {
+		return ingestion.ObjectSchema{}, fmt.Errorf("invalid table contract payload")
 	}
 	fields := make(map[string]ingestion.FieldSchema, len(table.Fields))
 	for name, field := range table.Fields {
@@ -80,9 +98,5 @@ func (r *ContractReader) GetPublishedTable(ctx context.Context, tenantID uuid.UU
 		}
 		fields[name] = ingestion.FieldSchema{ID: field.ID, Name: field.Name, DataType: field.DataType, Nullable: field.Nullable, IsEnum: field.IsEnum, IsUnique: field.IsUnique, Archived: field.Archived, EnumValues: values}
 	}
-	model.Tables[objectType] = ingestion.ObjectSchema{ID: table.ID, Name: table.Name, Archived: table.Archived, Fields: fields}
-	if r.cache.maxEntries > 0 && len(state.Payload) <= r.cache.maxBytes {
-		r.cache.put(cacheEntry{tenantID: tenantID, objectType: objectType, etag: state.Version.String(), model: cloneModel(model), encodedBytes: len(state.Payload)})
-	}
-	return model, nil
+	return ingestion.ObjectSchema{ID: table.ID, Name: table.Name, Archived: table.Archived, Fields: fields}, nil
 }

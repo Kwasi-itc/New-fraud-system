@@ -1,0 +1,199 @@
+=== RUN   TestUploadListPaginationAndPlan
+    upload_list_test.go:126: upload history plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "492.00"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "r",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "upload_history"
+                    ],
+                    "key": "upload_history",
+                    "used_key_parts": [
+                      "tenant_id",
+                      "table_id",
+                      "kind"
+                    ],
+                    "key_length": "82",
+                    "ref": [
+                      "const",
+                      "const",
+                      "const"
+                    ],
+                    "rows_examined_per_scan": 1000,
+                    "rows_produced_per_join": 1000,
+                    "filtered": "100.00",
+                    "index_condition": "((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`table_id` = '#?@Y\\?cLŧ=?$\u0013$??') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`tenant_id` = '?\\?t?+?E\u0001?4us\\Z???'))",
+                    "cost_info": {
+                      "read_cost": "42.00",
+                      "eval_cost": "100.00",
+                      "prefix_cost": "142.00",
+                      "data_read_per_join": "210K"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "table_id",
+                      "kind",
+                      "mode",
+                      "filename",
+                      "content_type",
+                      "total_rows",
+                      "successful_rows",
+                      "failed_rows",
+                      "created_at",
+                      "completed_at"
+                    ]
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "j",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "tenant_id",
+                      "resource"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "id"
+                    ],
+                    "key_length": "16",
+                    "ref": [
+                      "ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32.r.id"
+                    ],
+                    "rows_examined_per_scan": 1,
+                    "rows_produced_per_join": 1000,
+                    "filtered": "100.00",
+                    "cost_info": {
+                      "read_cost": "250.00",
+                      "eval_cost": "100.00",
+                      "prefix_cost": "492.00",
+                      "data_read_per_join": "1M"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "resource_id",
+                      "state",
+                      "attempt",
+                      "started_at",
+                      "finished_at",
+                      "last_error"
+                    ],
+                    "attached_condition": "<if>(is_not_null_compl(j), ((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`j`.`tenant_id` = '?\\?t?+?E\u0001?4us\\Z???') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`j`.`resource_id` = `ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`id`)), true)"
+                  }
+                }
+              ]
+            }
+          }
+        }
+    upload_list_test.go:126: upload history plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "2.11"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "r",
+                    "access_type": "range",
+                    "possible_keys": [
+                      "upload_history"
+                    ],
+                    "key": "upload_history",
+                    "used_key_parts": [
+                      "tenant_id",
+                      "table_id",
+                      "kind",
+                      "created_at",
+                      "id"
+                    ],
+                    "key_length": "106",
+                    "rows_examined_per_scan": 2,
+                    "rows_produced_per_join": 2,
+                    "filtered": "100.00",
+                    "index_condition": "((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`kind` = 'upload_log_execute') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`table_id` = '#?@Y\\?cLŧ=?$\u0013$??') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`tenant_id` = '?\\?t?+?E\u0001?4us\\Z???') and ((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`created_at` < TIMESTAMP'2020-01-01 00:00:00') or ((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`created_at` = TIMESTAMP'2020-01-01 00:00:00') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`id` < '\u0003????\\?Pܒ? ҉\u001c?r'))))",
+                    "cost_info": {
+                      "read_cost": "1.21",
+                      "eval_cost": "0.20",
+                      "prefix_cost": "1.41",
+                      "data_read_per_join": "432"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "table_id",
+                      "kind",
+                      "mode",
+                      "filename",
+                      "content_type",
+                      "total_rows",
+                      "successful_rows",
+                      "failed_rows",
+                      "created_at",
+                      "completed_at"
+                    ]
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "j",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "tenant_id",
+                      "resource"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "id"
+                    ],
+                    "key_length": "16",
+                    "ref": [
+                      "ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32.r.id"
+                    ],
+                    "rows_examined_per_scan": 1,
+                    "rows_produced_per_join": 2,
+                    "filtered": "100.00",
+                    "cost_info": {
+                      "read_cost": "0.50",
+                      "eval_cost": "0.20",
+                      "prefix_cost": "2.11",
+                      "data_read_per_join": "2K"
+                    },
+                    "used_columns": [
+                      "id",
+                      "tenant_id",
+                      "resource_id",
+                      "state",
+                      "attempt",
+                      "started_at",
+                      "finished_at",
+                      "last_error"
+                    ],
+                    "attached_condition": "<if>(is_not_null_compl(j), ((`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`j`.`tenant_id` = '?\\?t?+?E\u0001?4us\\Z???') and (`ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`j`.`resource_id` = `ingestion_mysql_test_79f1db12608f482f9b59e0a53083ea32`.`r`.`id`)), true)"
+                  }
+                }
+              ]
+            }
+          }
+        }
+--- PASS: TestUploadListPaginationAndPlan (1.83s)
+=== RUN   TestUploadListAuthorizationAndProjection
+--- PASS: TestUploadListAuthorizationAndProjection (0.89s)
+=== RUN   TestUploadListMissingJobFailsClosed
+--- PASS: TestUploadListMissingJobFailsClosed (0.82s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	4.603s

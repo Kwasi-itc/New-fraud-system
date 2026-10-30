@@ -23,6 +23,7 @@ func TestMetadataResultWireContract(t *testing.T) {
 		want  string
 		id    uuid.UUID
 	}{
+		{optionsResultKind, datamodel.TableOptions{ID: field, TenantID: tenant, TableID: id, DisplayedFields: []uuid.UUID{field}, FieldOrder: []uuid.UUID{field}, UpdatedAt: at}, `{"ID":"33333333-3333-4333-8333-333333333333","TenantID":"22222222-2222-4222-8222-222222222222","TableID":"11111111-1111-4111-8111-111111111111","DisplayedFields":["33333333-3333-4333-8333-333333333333"],"FieldOrder":["33333333-3333-4333-8333-333333333333"],"UpdatedAt":"2026-10-28T00:00:00.123456Z"}`, id},
 		{tableResultKind, table, `{"ID":"11111111-1111-4111-8111-111111111111","TenantID":"22222222-2222-4222-8222-222222222222","Name":"records","Description":"description","Alias":"alias","SemanticType":"customer","CaptionField":"","Archived":false,"CreatedAt":"2026-10-28T00:00:00.123456Z","UpdatedAt":"2026-10-28T00:00:00.123456Z"}`, id},
 		{fieldResultKind, col, `{"ID":"33333333-3333-4333-8333-333333333333","TenantID":"22222222-2222-4222-8222-222222222222","TableID":"11111111-1111-4111-8111-111111111111","Name":"value","Description":"","Alias":"","DataType":"string","Nullable":true,"IsEnum":false,"IsUnique":false,"Archived":false,"CreatedAt":"2026-10-28T00:00:00.123456Z","UpdatedAt":"2026-10-28T00:00:00.123456Z"}`, field},
 	} {

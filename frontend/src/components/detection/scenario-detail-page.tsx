@@ -146,6 +146,9 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
         </div>
       </div>
 
+      <Link href={`/detection/${scenarioId}/screening`} className="inline-flex rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-blue-800">
+        Configure screening after decisions
+      </Link>
       <section className="space-y-3">
         <h2 className="text-[1rem] font-semibold text-slate-950">Execution</h2>
         <div className="grid gap-3 xl:grid-cols-2">

@@ -47,6 +47,9 @@ func TestBuildScreeningDispatchRequestUsesQueryFieldAndConfig(t *testing.T) {
 	if got["idempotency_key"] != "exec-1" {
 		t.Fatalf("idempotency_key = %v, want exec-1", got["idempotency_key"])
 	}
+	if got["unique_counterparty_identifier"] != "cp-1" {
+		t.Fatalf("mapped counterparty identity lost: %v", got["unique_counterparty_identifier"])
+	}
 	queries, ok := got["queries"].([]any)
 	if !ok || len(queries) != 1 {
 		t.Fatalf("queries = %v, want one query", got["queries"])

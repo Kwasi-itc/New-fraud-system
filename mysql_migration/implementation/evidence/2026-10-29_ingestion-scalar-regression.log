@@ -1,0 +1,64 @@
+=== RUN   TestRecordBoundsConfiguration
+--- PASS: TestRecordBoundsConfiguration (0.00s)
+=== RUN   TestRecordBoundsDecode
+--- PASS: TestRecordBoundsDecode (0.00s)
+=== RUN   TestRecordBoundsSQLTransferGuard
+--- PASS: TestRecordBoundsSQLTransferGuard (0.38s)
+=== RUN   TestRecordBoundsPageCollection
+=== RUN   TestRecordBoundsPageCollection/exact
+=== RUN   TestRecordBoundsPageCollection/page_over
+=== RUN   TestRecordBoundsPageCollection/row_over
+=== RUN   TestRecordBoundsPageCollection/row_count
+--- PASS: TestRecordBoundsPageCollection (0.39s)
+    --- PASS: TestRecordBoundsPageCollection/exact (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/page_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_count (0.00s)
+=== RUN   TestRecordBoundsRestrictedAndCancellation
+--- PASS: TestRecordBoundsRestrictedAndCancellation (0.50s)
+=== RUN   TestRecordDecodeScalars
+--- PASS: TestRecordDecodeScalars (0.00s)
+=== RUN   TestRecordDecodeStringsAndNulls
+--- PASS: TestRecordDecodeStringsAndNulls (0.00s)
+=== RUN   TestRecordDecodeTimestamp
+--- PASS: TestRecordDecodeTimestamp (0.00s)
+=== RUN   TestRecordDecodeIP
+--- PASS: TestRecordDecodeIP (0.00s)
+=== RUN   TestRecordDecodeDatabaseRoundTrips
+--- PASS: TestRecordDecodeDatabaseRoundTrips (0.36s)
+=== RUN   TestRecordProjectionRequestValidation
+--- PASS: TestRecordProjectionRequestValidation (0.00s)
+=== RUN   TestRecordProjectionMappingFailures
+=== RUN   TestRecordProjectionMappingFailures/tenant
+=== RUN   TestRecordProjectionMappingFailures/version
+=== RUN   TestRecordProjectionMappingFailures/closed
+=== RUN   TestRecordProjectionMappingFailures/archived_field
+=== RUN   TestRecordProjectionMappingFailures/wrong_type
+=== RUN   TestRecordProjectionMappingFailures/missing_component
+--- PASS: TestRecordProjectionMappingFailures (2.08s)
+    --- PASS: TestRecordProjectionMappingFailures/tenant (0.34s)
+    --- PASS: TestRecordProjectionMappingFailures/version (0.36s)
+    --- PASS: TestRecordProjectionMappingFailures/closed (0.34s)
+    --- PASS: TestRecordProjectionMappingFailures/archived_field (0.39s)
+    --- PASS: TestRecordProjectionMappingFailures/wrong_type (0.35s)
+    --- PASS: TestRecordProjectionMappingFailures/missing_component (0.29s)
+=== RUN   TestRecordProjectionRoundTripAndCopies
+--- PASS: TestRecordProjectionRoundTripAndCopies (0.26s)
+=== RUN   TestRecordProjectionBarrierLifetime
+--- PASS: TestRecordProjectionBarrierLifetime (0.48s)
+=== RUN   TestRecordProjectionLogicalNamesNeverBecomeSQL
+--- PASS: TestRecordProjectionLogicalNamesNeverBecomeSQL (0.26s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	5.762s
+=== RUN   TestExactReadInvalidIdentity
+--- PASS: TestExactReadInvalidIdentity (0.01s)
+=== RUN   TestExactReadByteIdentity
+--- PASS: TestExactReadByteIdentity (0.34s)
+=== RUN   TestExactReadScopeAndVersion
+--- PASS: TestExactReadScopeAndVersion (0.29s)
+=== RUN   TestExactReadBounds
+--- PASS: TestExactReadBounds (0.30s)
+=== RUN   TestExactReadFailuresAreNotMissing
+--- PASS: TestExactReadFailuresAreNotMissing (0.30s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.274s

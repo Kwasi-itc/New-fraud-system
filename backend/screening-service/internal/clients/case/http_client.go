@@ -48,13 +48,13 @@ func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("create case request: %w", err)
+		return fmt.Errorf("create case request: invalid request")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("execute case request: %w", err)
+		return fmt.Errorf("execute case request: transport failure")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

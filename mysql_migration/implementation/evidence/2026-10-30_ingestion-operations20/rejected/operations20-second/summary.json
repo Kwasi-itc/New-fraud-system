@@ -1,0 +1,53 @@
+{
+  "Summary": {
+    "Discovered": 29,
+    "Executed": 15,
+    "Passed": 14,
+    "Failed": 0,
+    "Skipped": 0,
+    "Error": "signal: killed\ntest did not run/pass exactly once: TestProcessStartupChecks"
+  },
+  "Tests": [
+    "TestProcessLostCommitAcknowledgement",
+    "TestProcessWriteBaseline",
+    "TestProcessReceiptCollision",
+    "TestProcessMeasuredWorkloads",
+    "TestProcessWorkerInterruption",
+    "TestProcessWorkerCommitLoss",
+    "TestProcessMalformedWork",
+    "TestProcessRetryExhaustion",
+    "TestProcessDependencyOutage",
+    "TestProcessOperatorRecovery",
+    "TestProcessReadContracts",
+    "TestProcessReadRevocation",
+    "TestProcessPublicationRace",
+    "TestProcessConcurrentReadsAndWrites",
+    "TestProcessStartupChecks",
+    "TestProcessAPIRuntimeGrants",
+    "TestProcessUploadLifecycle",
+    "TestProcessDeferredLifecycle",
+    "TestProcessScheduledKinds",
+    "TestProcessCompetingWorkers",
+    "TestProcessScopedWorkerClaims",
+    "TestProcessFailedWorkDetails",
+    "TestProcessIdenticalReceipts",
+    "TestProcessConflictingReceipts",
+    "TestProcessAlternateUniqueRace",
+    "TestProcessEffectGrantRollback",
+    "TestProcessCancellationBeforeCommit",
+    "TestProcessOrderedPatches",
+    "TestProcessLimitsAndAuthentication"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=360s",
+    "./internal/store/mysql",
+    "-run",
+    "^TestProcess"
+  ]
+}

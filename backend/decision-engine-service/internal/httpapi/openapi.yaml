@@ -1622,6 +1622,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs:
+    parameters:
+      - name: X-Screening-Authoring-Token
+        in: header
+        required: true
+        description: Private operator credential, additional to service authentication. Missing or invalid credentials return 403. Never expose to browser clients.
+        schema:
+          type: string
     get:
       tags: [Screening and Scoring]
       summary: List screening configs by scenario
@@ -1659,6 +1666,13 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}:
+    parameters:
+      - name: X-Screening-Authoring-Token
+        in: header
+        required: true
+        description: Private operator credential, additional to service authentication. Missing or invalid credentials return 403. Never expose to browser clients.
+        schema:
+          type: string
     get:
       tags: [Screening and Scoring]
       summary: Get one screening config
@@ -1732,9 +1746,18 @@ paths:
       summary: List screening executions by decision
       description: Lists screening execution records produced from one decision.
       parameters:
+        - name: X-Screening-Authoring-Token
+          in: header
+          required: true
+          description: Private operator credential; additional to service authentication. Never expose in browser code.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/DecisionId'
       responses:
+        '403':
+          description: Private screening operator credential missing, invalid or unconfigured.
         '200':
           description: Screening execution list
           content:
@@ -1749,6 +1772,13 @@ paths:
       summary: Get one screening execution
       description: Returns one screening execution record and its latest provider result details.
       parameters:
+        - name: X-Screening-Authoring-Token
+          in: header
+          required: true
+          description: Private operator credential; additional to service authentication. Never expose in browser code.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
@@ -1757,6 +1787,8 @@ paths:
           schema:
             type: string
       responses:
+        '403':
+          description: Private screening operator credential missing, invalid or unconfigured.
         '200':
           description: Screening execution
           content:
@@ -1771,6 +1803,13 @@ paths:
       summary: Update screening execution status and provider result payload
       description: Records provider-side status, references, and result payloads for a screening execution.
       parameters:
+        - name: X-Screening-Authoring-Token
+          in: header
+          required: true
+          description: Private operator credential; additional to service authentication. Never expose in browser code.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
@@ -1794,6 +1833,8 @@ paths:
                 provider_status: cleared
               last_error: ''
       responses:
+        '403':
+          description: Private screening operator credential missing, invalid or unconfigured.
         '200':
           description: Screening execution updated
           content:
@@ -1808,6 +1849,13 @@ paths:
       summary: Retry a screening execution
       description: Requeues a screening execution that needs another provider attempt.
       parameters:
+        - name: X-Screening-Authoring-Token
+          in: header
+          required: true
+          description: Private operator credential; additional to service authentication. Never expose in browser code.
+          schema:
+            type: string
+            minLength: 32
         - $ref: '#/components/parameters/TenantId'
         - name: executionId
           in: path
@@ -1816,6 +1864,8 @@ paths:
           schema:
             type: string
       responses:
+        '403':
+          description: Private screening operator credential missing, invalid or unconfigured.
         '200':
           description: Screening execution requeued
           content:
@@ -2754,6 +2804,7 @@ paths:
           $ref: '#/components/responses/InternalError'
   /internal/screening-status-updates:
     post:
+      security: [{screeningCallbackAuth: []}]
       tags: [Internal]
       summary: Receive screening status updates from the screening service
       description: Reconciles current screening-owner state in the shared database. Tenant, screening, decision and config identifiers must match. Status, provider and other snapshot fields are retained for wire compatibility but never override authoritative source state.
@@ -2780,6 +2831,10 @@ paths:
               completed_at: '2026-07-14T10:23:00Z'
               match_count: 0
       responses:
+        '401':
+          description: Dedicated integration credential missing or invalid.
+        '503':
+          description: Dedicated integration credential not configured.
         '200':
           description: Screening execution updated from callback
           content:
@@ -2790,6 +2845,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
+    screeningCallbackAuth:
+      type: http
+      scheme: bearer
+      description: Dedicated SCREENING_CALLBACK_TOKEN; distinct from general, operator and opposite-direction credentials.
     investigatorJWT:
       type: http
       scheme: bearer

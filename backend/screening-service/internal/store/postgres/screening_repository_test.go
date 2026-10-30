@@ -227,7 +227,7 @@ func TestScreeningWhitelistRepositorySearchBuildsExpectedQuery(t *testing.T) {
 func TestScreeningMatchRepositoryReplaceForScreeningDeletesThenInserts(t *testing.T) {
 	now := time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC)
 	counterparty := "cp-1"
-	q := &fakeQueryable{}
+	q := &fakeQueryable{row: fakeRow{values: []any{"tenant-1"}}}
 	repo := NewScreeningMatchRepository(q)
 
 	err := repo.ReplaceForScreening(context.Background(), "screening-1", []screening.Match{
@@ -274,10 +274,10 @@ func TestScreeningMatchRepositoryReplaceForScreeningDeletesThenInserts(t *testin
 }
 
 func TestScreeningMatchRepositoryReplaceForScreeningStopsOnDeleteError(t *testing.T) {
-	q := &fakeQueryable{execErrs: []error{errors.New("delete failed")}}
+	q := &fakeQueryable{row: fakeRow{values: []any{"tenant-1"}}, execErrs: []error{errors.New("delete failed")}}
 	repo := NewScreeningMatchRepository(q)
 
-	err := repo.ReplaceForScreening(context.Background(), "screening-1", []screening.Match{{ID: "match-1"}})
+	err := repo.ReplaceForScreening(context.Background(), "screening-1", []screening.Match{{ID: "match-1", TenantID: "tenant-1", ScreeningID: "screening-1"}})
 	if err == nil {
 		t.Fatalf("expected error")
 	}

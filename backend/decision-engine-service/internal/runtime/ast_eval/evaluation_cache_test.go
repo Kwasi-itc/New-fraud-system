@@ -614,3 +614,7 @@ func TestAggregateMetricsSharedInflightDoesNotCountAsSecondRemoteCall(t *testing
 		t.Fatalf("rule cache hit count = %d, want unchanged", ruleMetrics.CacheHitCount)
 	}
 }
+
+func (*countingCustomListRepo) ScreeningIgnoreWords(context.Context, string, string) ([]string, error) {
+	return nil, nil
+}

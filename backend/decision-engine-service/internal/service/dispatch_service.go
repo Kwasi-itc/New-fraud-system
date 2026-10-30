@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
@@ -104,7 +105,7 @@ func (s DispatchService) RunScreeningExecution(ctx context.Context, tenantID, ex
 		return nil
 	}
 	if err := s.screeningProvider.SendScreeningExecution(ctx, item); err != nil {
-		return s.screeningExecRepo.UpdateStatus(ctx, item.ID, screening.ExecutionStatusFailed)
+		return errors.Join(err, s.screeningExecRepo.UpdateStatus(ctx, item.ID, screening.ExecutionStatusFailed))
 	}
 	return s.screeningExecRepo.UpdateStatus(ctx, item.ID, screening.ExecutionStatusSent)
 }

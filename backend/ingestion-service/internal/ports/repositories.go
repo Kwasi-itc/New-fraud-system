@@ -2,10 +2,10 @@ package ports
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
@@ -55,6 +55,8 @@ const (
 	IdempotencyResponseKindBatch  = "batch"
 )
 
+var ErrJobQueueUnavailable = errors.New("transactional job queue unavailable")
+
 type MutationStore interface {
 	RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error
 	Audits() IngestionAuditRepository
@@ -64,7 +66,8 @@ type MutationStore interface {
 	DeferredIngests() DeferredIngestRepository
 	TenantWriter() TenantDataWriter
 	TenantReader() TenantDataReader
-	RawTx() pgx.Tx
+	EnqueueUploadLog(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
+	EnqueueDeferredIngest(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
 }
 
 type TransactionManager interface {

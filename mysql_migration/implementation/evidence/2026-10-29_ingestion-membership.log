@@ -1,0 +1,24 @@
+=== RUN   TestMembershipMappingAndOwnership
+--- PASS: TestMembershipMappingAndOwnership (2.04s)
+=== RUN   TestMembershipTypedTruthTables
+--- PASS: TestMembershipTypedTruthTables (0.91s)
+=== RUN   TestMembershipNullLogic
+--- PASS: TestMembershipNullLogic (0.81s)
+=== RUN   TestMembershipListBounds
+--- PASS: TestMembershipListBounds (0.73s)
+=== RUN   TestMembershipRejectsInvalidMembersAndFields
+--- PASS: TestMembershipRejectsInvalidMembersAndFields (0.71s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	6.259s
+=== RUN   TestScalarPredicateMappingAndArguments
+--- PASS: TestScalarPredicateMappingAndArguments (0.48s)
+=== RUN   TestScalarPredicateNumericTruthTables
+--- PASS: TestScalarPredicateNumericTruthTables (0.38s)
+=== RUN   TestScalarPredicateBooleanAndTime
+--- PASS: TestScalarPredicateBooleanAndTime (0.44s)
+=== RUN   TestScalarPredicateNullSemantics
+--- PASS: TestScalarPredicateNullSemantics (0.46s)
+=== RUN   TestScalarPredicateRejectsCoercionAndUnsupported
+--- PASS: TestScalarPredicateRejectsCoercionAndUnsupported (0.43s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	3.224s

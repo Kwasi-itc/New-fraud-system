@@ -166,7 +166,7 @@ Evidence and reproduction: [execution log](../16_execution_log.md).
 | Field/link deletion, archive, table retirement/restore and import | Display cleanup primitives and physical barriers | Complete canonical commands, owner lifecycle coordination, retained evidence/results and replay acceptance |
 | Receipt retention | Immutable update guards, restricted insert/read policies and table-deletion barriers | Reviewed retention/retirement protocol; never delete retained evidence merely to allow table deletion |
 | Tenant registration and provisioning | Scoped registration transaction and canonical registration fingerprint; authorized catalogue adapter | Durable registration identity/result recovery, provisioning readiness/grants, trusted platform authorization and API integration |
-| Table options replacement | Transaction-bound ordered persistence and active-field validation | Concrete authorized owner coordination with display state, revision/audit, canonical replay/results and API acceptance |
+| Table options replacement | Concrete authorized owner, canonical ordered-list request, locked active-field validation, atomic options/display-version/audit/revision/publication and immutable original TableOptions result; restricted owner grants | API/request-key integration and original enriched field-detail response, complete lifecycle coordination, reviewed grant deployment and runtime acceptance |
 | Enum, pivot and navigation deletion | Existing PostgreSQL endpoints and staged repository primitives | Operation-specific dependency cleanup, publication/version effects, immutable replay results and rollback/concurrency acceptance |
 | Index-job retry and administrative reconcile | Existing PostgreSQL owner routes; staged delivery/recovery primitives and operator commands | Authorized MySQL API binding, atomic job/history/delivery effects, physical fencing, duplicate/ambiguous recovery and operator audit |
 
@@ -200,6 +200,22 @@ POC-04; V-DM. Reuse internal/service/transaction_manager_test.go, internal/servi
 No success response before PUBLISHED. Failed or ambiguous DDL is visible and recoverable. No whole-system model lock. New pending API semantics are not approved; table-specific transient errors must remain explicit.
 
 ## Delivery and rollback dependency
+
+Ordered-options owner verification (2026-10-28): six full-lineage real-MySQL
+journeys passed for commit, eight concurrent duplicates, revision rollback,
+closed physical gate, restricted grants and actual lost-COMMIT acknowledgement.
+They also cover changed requests, invalid/foreign field lists, missing legacy
+results, revoked replay, retained options identity, later replacement followed by
+historical replay behind a closed barrier, and denied result INSERT rollback.
+Canonical request regression and pinned result/scope tests passed. Module-wide
+vet and the selected command/contract/ports/worker/recursive MySQL race suite
+passed without failures or skips (metadata 136.349s). The Compose default now
+uses that package set, module-wide vet and a 240-second package timeout.
+Evidence: [owner scenarios](../evidence/2026-10-28_options-owner-focused.log),
+[canonical requests](../evidence/2026-10-28_options-canonical.log),
+[regression](../evidence/2026-10-28_options-regression.log).
+No parent checkbox changed. The API still enriches options with separately read
+field details; exact replay of that full response and runtime wiring remain open.
 
 Implement and validate in disposable environments. All shared consumers must be compatible before live activation; an individual module passing its suite does not authorize a partial cross-engine production cutover. Preserve old adapters/compatible API artifacts through rehearsal as needed, with a single chosen runtime authority. The [roadmap](../10_implementation_roadmap.md) owns task dependencies and [cutover plan](../11_data_transfer_and_cutover.md) owns data rollback. Module schema rollback cannot undo externally delivered effects.
 

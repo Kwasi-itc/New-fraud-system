@@ -1,0 +1,344 @@
+=== RUN   TestAuthorizedPublishedRecordOwner
+--- PASS: TestAuthorizedPublishedRecordOwner (5.97s)
+=== RUN   TestEffectsReceiptAtomicity
+=== RUN   TestEffectsReceiptAtomicity/replay
+=== RUN   TestEffectsReceiptAtomicity/outbox_failure
+=== RUN   TestEffectsReceiptAtomicity/receipt_failure
+=== RUN   TestEffectsReceiptAtomicity/owner_failure
+=== RUN   TestEffectsReceiptAtomicity/restricted
+=== RUN   TestEffectsReceiptAtomicity/grant_denial
+=== RUN   TestEffectsReceiptAtomicity/cancel_after_effects
+=== RUN   TestEffectsReceiptAtomicity/batch
+--- PASS: TestEffectsReceiptAtomicity (5.41s)
+    --- PASS: TestEffectsReceiptAtomicity/replay (0.82s)
+    --- PASS: TestEffectsReceiptAtomicity/outbox_failure (1.17s)
+    --- PASS: TestEffectsReceiptAtomicity/receipt_failure (0.66s)
+    --- PASS: TestEffectsReceiptAtomicity/owner_failure (0.40s)
+    --- PASS: TestEffectsReceiptAtomicity/restricted (1.11s)
+    --- PASS: TestEffectsReceiptAtomicity/grant_denial (0.64s)
+    --- PASS: TestEffectsReceiptAtomicity/cancel_after_effects (0.27s)
+    --- PASS: TestEffectsReceiptAtomicity/batch (0.34s)
+=== RUN   TestEffectsValidationBeforeWrites
+=== RUN   TestEffectsValidationBeforeWrites/tenant
+=== RUN   TestEffectsValidationBeforeWrites/event_tenant
+=== RUN   TestEffectsValidationBeforeWrites/table_name
+=== RUN   TestEffectsValidationBeforeWrites/pair_key
+=== RUN   TestEffectsValidationBeforeWrites/pair_time
+=== RUN   TestEffectsValidationBeforeWrites/invalid_json
+=== RUN   TestEffectsValidationBeforeWrites/utf8
+=== RUN   TestEffectsValidationBeforeWrites/precision
+=== RUN   TestEffectsValidationBeforeWrites/row_bytes
+--- PASS: TestEffectsValidationBeforeWrites (0.31s)
+    --- PASS: TestEffectsValidationBeforeWrites/tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/event_tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/table_name (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_key (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_time (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/invalid_json (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/utf8 (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/precision (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/row_bytes (0.00s)
+=== RUN   TestEffectsBulkWrites
+=== RUN   TestEffectsBulkWrites/500_records
+=== RUN   TestEffectsBulkWrites/late_validation
+=== RUN   TestEffectsBulkWrites/late_duplicate
+=== RUN   TestEffectsBulkWrites/byte_limit
+--- PASS: TestEffectsBulkWrites (2.30s)
+    --- PASS: TestEffectsBulkWrites/500_records (0.72s)
+    --- PASS: TestEffectsBulkWrites/late_validation (0.35s)
+    --- PASS: TestEffectsBulkWrites/late_duplicate (0.74s)
+    --- PASS: TestEffectsBulkWrites/byte_limit (0.50s)
+=== RUN   TestIngestionInstallationLineage
+--- PASS: TestIngestionInstallationLineage (3.70s)
+=== RUN   TestIngestionInstallationRecoveryBoundaries
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/drift
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/before_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/after_ddl
+=== RUN   TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/drift
+--- PASS: TestIngestionInstallationRecoveryBoundaries (66.96s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/before_ddl (1.76s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/after_ddl (1.61s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_01/drift (0.51s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/before_ddl (1.51s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/after_ddl (2.02s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_02/drift (0.66s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/before_ddl (1.71s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/after_ddl (1.42s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_03/drift (0.51s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/before_ddl (1.20s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/after_ddl (1.29s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_04/drift (0.48s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/before_ddl (1.71s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/after_ddl (2.51s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_05/drift (0.49s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/before_ddl (1.25s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/after_ddl (1.36s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_06/drift (0.48s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/before_ddl (1.03s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/after_ddl (1.36s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_07/drift (0.48s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/before_ddl (1.27s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/after_ddl (1.13s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_08/drift (0.71s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/before_ddl (1.04s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/after_ddl (1.14s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_09/drift (0.70s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/before_ddl (0.89s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/after_ddl (0.83s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_10/drift (0.52s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/before_ddl (1.15s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/after_ddl (0.80s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_11/drift (0.73s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/before_ddl (1.08s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/after_ddl (1.29s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_12/drift (0.75s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/before_ddl (1.08s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/after_ddl (1.03s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_13/drift (0.77s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/before_ddl (1.49s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/after_ddl (1.93s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_14/drift (1.53s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/before_ddl (1.81s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/after_ddl (2.40s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_15/drift (1.52s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/before_ddl (1.54s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/after_ddl (1.80s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_16/drift (1.37s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/before_ddl (2.02s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/after_ddl (1.19s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_17/drift (1.12s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/before_ddl (1.13s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/after_ddl (0.76s)
+    --- PASS: TestIngestionInstallationRecoveryBoundaries/ingestion_v001_legacy/drift (1.11s)
+=== RUN   TestLegacyAggregateEvidenceBounds
+=== RUN   TestLegacyAggregateEvidenceBounds/model_text
+=== RUN   TestLegacyAggregateEvidenceBounds/model_entries
+=== RUN   TestLegacyAggregateEvidenceBounds/audits
+=== RUN   TestLegacyAggregateEvidenceBounds/raw
+=== RUN   TestLegacyAggregateEvidenceBounds/aggregate
+--- PASS: TestLegacyAggregateEvidenceBounds (0.04s)
+    --- PASS: TestLegacyAggregateEvidenceBounds/model_text (0.02s)
+    --- PASS: TestLegacyAggregateEvidenceBounds/model_entries (0.00s)
+    --- PASS: TestLegacyAggregateEvidenceBounds/audits (0.01s)
+    --- PASS: TestLegacyAggregateEvidenceBounds/raw (0.01s)
+    --- PASS: TestLegacyAggregateEvidenceBounds/aggregate (0.00s)
+=== RUN   TestLegacyReceiptTranslation
+=== RUN   TestLegacyReceiptTranslation/single
+=== RUN   TestLegacyReceiptTranslation/batch
+--- PASS: TestLegacyReceiptTranslation (1.55s)
+    --- PASS: TestLegacyReceiptTranslation/single (0.60s)
+    --- PASS: TestLegacyReceiptTranslation/batch (0.94s)
+=== RUN   TestLegacyReceiptRejectsMissingOrConflictingEvidence
+--- PASS: TestLegacyReceiptRejectsMissingOrConflictingEvidence (0.56s)
+=== RUN   TestLookupGuards
+=== RUN   TestLookupGuards/missing_key_serialized
+=== RUN   TestLookupGuards/opposite_batch_orders
+=== RUN   TestLookupGuards/collision_only_serializes
+=== RUN   TestLookupGuards/invalid_keys_and_scope
+--- PASS: TestLookupGuards (0.74s)
+    --- PASS: TestLookupGuards/missing_key_serialized (0.22s)
+    --- PASS: TestLookupGuards/opposite_batch_orders (0.05s)
+    --- PASS: TestLookupGuards/collision_only_serializes (0.02s)
+    --- PASS: TestLookupGuards/invalid_keys_and_scope (0.10s)
+=== RUN   TestRestrictedWriteCoordination
+--- PASS: TestRestrictedWriteCoordination (0.43s)
+=== RUN   TestCanonicalReceiptReplay
+--- PASS: TestCanonicalReceiptReplay (0.11s)
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/29 10:44:29 connection.go:189 closing connection:close tcp 172.23.0.3:49548->172.23.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:44:29 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.18s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.11s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.17s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.09s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.08s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (1.16s)
+    --- PASS: TestReceiptExecution/replay (0.13s)
+    --- PASS: TestReceiptExecution/concurrent (0.17s)
+    --- PASS: TestReceiptExecution/rollback (0.11s)
+    --- PASS: TestReceiptExecution/result_limit (0.12s)
+    --- PASS: TestReceiptExecution/key_collision (0.22s)
+    --- PASS: TestReceiptExecution/cancel (0.25s)
+    --- PASS: TestReceiptExecution/restricted (0.17s)
+=== RUN   TestKeyedRecordOwnerAtomicity
+=== RUN   TestKeyedRecordOwnerAtomicity/replay
+=== RUN   TestKeyedRecordOwnerAtomicity/batch
+=== RUN   TestKeyedRecordOwnerAtomicity/outbox_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/receipt_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/late_unique
+=== RUN   TestKeyedRecordOwnerAtomicity/validation
+=== RUN   TestKeyedRecordOwnerAtomicity/audit_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/revoked
+=== RUN   TestKeyedRecordOwnerAtomicity/frozen_input
+=== RUN   TestKeyedRecordOwnerAtomicity/concurrent
+--- PASS: TestKeyedRecordOwnerAtomicity (5.80s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/replay (0.56s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/batch (0.58s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/outbox_failure (0.71s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/receipt_failure (0.56s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/late_unique (0.48s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/validation (0.56s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/audit_failure (0.75s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/revoked (0.55s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/frozen_input (0.46s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/concurrent (0.58s)
+=== RUN   TestKeyedRecordOwnerScopeAndDuplicateValidation
+--- PASS: TestKeyedRecordOwnerScopeAndDuplicateValidation (1.00s)
+=== RUN   TestKeyedRecordOwnerLostCommit
+[mysql] 2026/10/29 10:44:38 connection.go:189 closing connection:close tcp 172.23.0.3:50896->172.23.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:44:38 packets.go:58 unexpected EOF
+--- PASS: TestKeyedRecordOwnerLostCommit (0.91s)
+=== RUN   TestKeyedRecordOwnerRestrictedGrants
+--- PASS: TestKeyedRecordOwnerRestrictedGrants (1.06s)
+=== RUN   TestPhysicalTransactionReceipt
+=== RUN   TestPhysicalTransactionReceipt/replay
+=== RUN   TestPhysicalTransactionReceipt/owner_rollback
+=== RUN   TestPhysicalTransactionReceipt/receipt_rollback
+=== RUN   TestPhysicalTransactionReceipt/lost_commit
+[mysql] 2026/10/29 10:44:43 connection.go:189 closing connection:close tcp 172.23.0.3:32936->172.23.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:44:43 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalTransactionReceipt (3.08s)
+    --- PASS: TestPhysicalTransactionReceipt/replay (0.76s)
+    --- PASS: TestPhysicalTransactionReceipt/owner_rollback (0.86s)
+    --- PASS: TestPhysicalTransactionReceipt/receipt_rollback (0.77s)
+    --- PASS: TestPhysicalTransactionReceipt/lost_commit (0.69s)
+=== RUN   TestPhysicalLookupForcedCollision
+--- PASS: TestPhysicalLookupForcedCollision (0.61s)
+=== RUN   TestPhysicalRecordWriter
+--- PASS: TestPhysicalRecordWriter (1.03s)
+=== RUN   TestPhysicalWriterRestrictedLookup
+--- PASS: TestPhysicalWriterRestrictedLookup (0.65s)
+=== RUN   TestIngestionWorkAttemptTimestamps
+=== RUN   TestIngestionWorkAttemptTimestamps/upload_log_execute
+=== RUN   TestIngestionWorkAttemptTimestamps/deferred_ingest_execute
+--- PASS: TestIngestionWorkAttemptTimestamps (2.56s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/upload_log_execute (1.40s)
+    --- PASS: TestIngestionWorkAttemptTimestamps/deferred_ingest_execute (1.16s)
+=== RUN   TestReceiptCreationTimeSurvivesReplay
+--- PASS: TestReceiptCreationTimeSurvivesReplay (0.79s)
+=== RUN   TestIngestionWorkRestrictedGrants
+--- PASS: TestIngestionWorkRestrictedGrants (1.33s)
+=== RUN   TestIngestionWorkLifecycle
+=== RUN   TestIngestionWorkLifecycle/deferred
+=== RUN   TestIngestionWorkLifecycle/upload
+=== RUN   TestIngestionWorkLifecycle/validation
+=== RUN   TestIngestionWorkLifecycle/malformed_csv
+=== RUN   TestIngestionWorkLifecycle/stale
+=== RUN   TestIngestionWorkLifecycle/completion_rollback
+=== RUN   TestIngestionWorkLifecycle/enqueue_rollback
+=== RUN   TestIngestionWorkLifecycle/identity
+=== RUN   TestIngestionWorkLifecycle/public_key
+=== RUN   TestIngestionWorkLifecycle/future
+--- PASS: TestIngestionWorkLifecycle (9.28s)
+    --- PASS: TestIngestionWorkLifecycle/deferred (0.98s)
+    --- PASS: TestIngestionWorkLifecycle/upload (0.78s)
+    --- PASS: TestIngestionWorkLifecycle/validation (1.03s)
+    --- PASS: TestIngestionWorkLifecycle/malformed_csv (0.87s)
+    --- PASS: TestIngestionWorkLifecycle/stale (0.81s)
+    --- PASS: TestIngestionWorkLifecycle/completion_rollback (1.17s)
+    --- PASS: TestIngestionWorkLifecycle/enqueue_rollback (0.61s)
+    --- PASS: TestIngestionWorkLifecycle/identity (0.89s)
+    --- PASS: TestIngestionWorkLifecycle/public_key (1.01s)
+    --- PASS: TestIngestionWorkLifecycle/future (1.11s)
+=== RUN   TestIngestionWorkRunnerAndConcurrentClaims
+--- PASS: TestIngestionWorkRunnerAndConcurrentClaims (1.36s)
+=== RUN   TestIngestionWorkScopeAndPrivateReceipts
+--- PASS: TestIngestionWorkScopeAndPrivateReceipts (0.66s)
+=== RUN   TestWorkCSVBounds
+--- PASS: TestWorkCSVBounds (0.00s)
+=== RUN   TestIngestionWorkRecovery
+=== RUN   TestIngestionWorkRecovery/retry
+=== RUN   TestIngestionWorkRecovery/expiry
+=== RUN   TestIngestionWorkRecovery/noop
+--- PASS: TestIngestionWorkRecovery (1.74s)
+    --- PASS: TestIngestionWorkRecovery/retry (0.60s)
+    --- PASS: TestIngestionWorkRecovery/expiry (0.55s)
+    --- PASS: TestIngestionWorkRecovery/noop (0.58s)
+=== RUN   TestWriteBarrierSnapshot
+=== RUN   TestWriteBarrierSnapshot/ready
+=== RUN   TestWriteBarrierSnapshot/stale
+=== RUN   TestWriteBarrierSnapshot/tenant
+=== RUN   TestWriteBarrierSnapshot/closed
+=== RUN   TestWriteBarrierSnapshot/archived
+=== RUN   TestWriteBarrierSnapshot/retired
+=== RUN   TestWriteBarrierSnapshot/active_operation
+=== RUN   TestWriteBarrierSnapshot/missing_mapping
+=== RUN   TestWriteBarrierSnapshot/bad_name
+=== RUN   TestWriteBarrierSnapshot/field_limit
+--- PASS: TestWriteBarrierSnapshot (2.48s)
+    --- PASS: TestWriteBarrierSnapshot/ready (0.22s)
+    --- PASS: TestWriteBarrierSnapshot/stale (0.19s)
+    --- PASS: TestWriteBarrierSnapshot/tenant (0.22s)
+    --- PASS: TestWriteBarrierSnapshot/closed (0.20s)
+    --- PASS: TestWriteBarrierSnapshot/archived (0.22s)
+    --- PASS: TestWriteBarrierSnapshot/retired (0.26s)
+    --- PASS: TestWriteBarrierSnapshot/active_operation (0.23s)
+    --- PASS: TestWriteBarrierSnapshot/missing_mapping (0.25s)
+    --- PASS: TestWriteBarrierSnapshot/bad_name (0.34s)
+    --- PASS: TestWriteBarrierSnapshot/field_limit (0.35s)
+=== RUN   TestWriteBarrierBlocksDDLPreparation
+--- PASS: TestWriteBarrierBlocksDDLPreparation (0.52s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	125.771s

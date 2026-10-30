@@ -310,6 +310,11 @@ def ingestion() -> ApiClient:
 @pytest.fixture(scope="session")
 def decision_engine() -> ApiClient:
     headers = {}
+    # Operator-only screening routes require a separate server-side credential.
+    # Never derive it from the browser/general service token.
+    screening_operator = os.getenv("SCREENING_AUTHORING_TOKEN")
+    if screening_operator:
+        headers["X-Screening-Authoring-Token"] = screening_operator
     token = os.getenv("SERVICE_AUTH_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -330,6 +335,9 @@ def create_tenant_model(data_model: ApiClient) -> dict[str, Any]:
 @pytest.fixture(scope="session")
 def screening_service() -> ApiClient:
     headers = {}
+    operator = os.getenv("SCREENING_OPERATOR_TOKEN")
+    if operator:
+        headers["X-Screening-Operator-Token"] = operator
     token = os.getenv("SERVICE_AUTH_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"

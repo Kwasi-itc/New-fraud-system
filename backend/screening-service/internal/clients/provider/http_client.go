@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -145,6 +146,24 @@ func (c HTTPClient) Search(ctx context.Context, request screening.SearchRequest)
 	if c.shouldUseOpenSanctions(request.Provider) {
 		return c.openSanctions.Search(ctx, request)
 	}
+	if parseOpenSanctionsProviderConfig(request.ProviderConfig).RequiresDirectAdapter {
+		return screening.ProviderResult{}, fmt.Errorf("advanced search requires direct OpenSanctions configuration")
+	}
+	// Generic /search adapters have no verified contract for these FTM fields.
+	// Reject rather than silently degrade a manual identifying-field search.
+	hasAdvancedFields := false
+	for _, q := range request.Queries {
+		hasAdvancedFields = hasAdvancedFields || (q.Address != "" || q.BirthDate != "" || q.Nationality != "" || q.Country != "" || q.RegistrationNumber != "")
+	}
+	if request.IsManual || hasAdvancedFields || len(parseOpenSanctionsProviderConfig(request.ProviderConfig).Datasets) > 0 {
+		advanced := len(parseOpenSanctionsProviderConfig(request.ProviderConfig).Datasets) > 0
+		for _, q := range request.Queries {
+			advanced = advanced || q.BirthDate != "" || q.Nationality != "" || q.Country != "" || q.RegistrationNumber != "" || q.Address != ""
+		}
+		if advanced {
+			return screening.ProviderResult{}, fmt.Errorf("advanced search requires direct OpenSanctions configuration")
+		}
+	}
 	client, err := c.resolveProvider(request.Provider)
 	if err != nil {
 		return screening.ProviderResult{}, err
@@ -157,7 +176,7 @@ func (c HTTPClient) Search(ctx context.Context, request screening.SearchRequest)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, client.baseURL+"/search", bytes.NewReader(body))
 	if err != nil {
-		return screening.ProviderResult{}, fmt.Errorf("create provider request: %w", err)
+		return screening.ProviderResult{}, fmt.Errorf("invalid provider request configuration")
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -168,7 +187,7 @@ func (c HTTPClient) Search(ctx context.Context, request screening.SearchRequest)
 
 	var result screening.ProviderResult
 	if err := json.Unmarshal(raw, &result); err != nil {
-		return screening.ProviderResult{}, fmt.Errorf("decode provider response: %w", err)
+		return screening.ProviderResult{}, fmt.Errorf("invalid provider response")
 	}
 	if len(result.RawResponse) == 0 {
 		result.RawResponse = raw
@@ -194,7 +213,7 @@ func (c HTTPClient) Enrich(ctx context.Context, provider, entityID string) (scre
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, client.baseURL+"/enrich", bytes.NewReader(body))
 	if err != nil {
-		return screening.EnrichmentResult{}, fmt.Errorf("create enrichment request: %w", err)
+		return screening.EnrichmentResult{}, fmt.Errorf("invalid enrichment request configuration")
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -304,26 +323,13 @@ func (c singleProviderClient) get(ctx context.Context, path, cursor string) ([]b
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("create provider request: %w", err)
+		return nil, fmt.Errorf("invalid provider request configuration")
 	}
 	return c.do(req)
 }
 
 func (c singleProviderClient) do(req *http.Request) ([]byte, error) {
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("execute provider request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read provider response: %w", err)
-	}
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("provider returned status %d: %s", resp.StatusCode, string(raw))
-	}
-	return raw, nil
+	return safeProviderResponse(c.client, req)
 }
 
 func (c openSanctionsClient) isConfigured() bool {
@@ -350,7 +356,7 @@ func (c openSanctionsClient) Search(ctx context.Context, request screening.Searc
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
-		return screening.ProviderResult{}, fmt.Errorf("create opensanctions request: %w", err)
+		return screening.ProviderResult{}, fmt.Errorf("invalid opensanctions request configuration")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.authenticateRequest(req)
@@ -368,7 +374,7 @@ func (c openSanctionsClient) Enrich(ctx context.Context, entityID string) (scree
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.host+"/entities/"+url.PathEscape(entityID)+c.authQuerySuffix(), nil)
 	if err != nil {
-		return screening.EnrichmentResult{}, fmt.Errorf("create opensanctions enrichment request: %w", err)
+		return screening.EnrichmentResult{}, fmt.Errorf("invalid opensanctions enrichment configuration")
 	}
 	c.authenticateRequest(req)
 	raw, err := c.do(req)
@@ -439,25 +445,40 @@ func (c openSanctionsClient) get(ctx context.Context, path string) ([]byte, erro
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.host+path+c.authQuerySuffix(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("create opensanctions request: %w", err)
+		return nil, fmt.Errorf("invalid opensanctions request configuration")
 	}
 	c.authenticateRequest(req)
 	return c.do(req)
 }
 
 func (c openSanctionsClient) do(req *http.Request) ([]byte, error) {
-	resp, err := c.client.Do(req)
+	return safeProviderResponse(c.client, req)
+}
+
+// Error bodies and URL-bearing transport errors may contain credentials or PII.
+// Keep only status and safe timeout/cancellation classification for callers/logs.
+func safeProviderResponse(client *http.Client, req *http.Request) ([]byte, error) {
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("execute opensanctions request: %w", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("provider timeout: %w", context.DeadlineExceeded)
+		}
+		if errors.Is(err, context.Canceled) {
+			return nil, context.Canceled
+		}
+		return nil, fmt.Errorf("provider transport unavailable")
 	}
 	defer resp.Body.Close()
-
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read opensanctions response: %w", err)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("provider returned status %d", resp.StatusCode)
 	}
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("opensanctions returned status %d: %s", resp.StatusCode, string(raw))
+	const maxResponse = 16 << 20
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
+	if err != nil {
+		return nil, fmt.Errorf("provider response unreadable")
+	}
+	if len(raw) > maxResponse {
+		return nil, fmt.Errorf("provider response exceeds size limit")
 	}
 	return raw, nil
 }
@@ -472,9 +493,15 @@ func (c openSanctionsClient) buildSearchPayload(request screening.SearchRequest)
 		}
 		queryID := "q" + strconv.Itoa(idx+1)
 		queryOrder[queryID] = name
+		properties := map[string][]string{"name": {name}}
+		for key, value := range map[string]string{"birthDate": query.BirthDate, "nationality": query.Nationality, "country": query.Country, "registrationNumber": query.RegistrationNumber, "address": query.Address} {
+			if value != "" {
+				properties[key] = []string{value}
+			}
+		}
 		queries[queryID] = map[string]any{
 			"schema":     normalizeOpenSanctionsSchema(query.Type),
-			"properties": map[string][]string{"name": {name}},
+			"properties": properties,
 		}
 	}
 	if len(queries) == 0 {
@@ -535,8 +562,20 @@ func (c openSanctionsClient) adaptSearchResponse(raw []byte, queryOrder map[stri
 		} `json:"responses"`
 	}
 	if err := json.Unmarshal(raw, &response); err != nil {
-		return screening.ProviderResult{}, fmt.Errorf("decode opensanctions response: %w", err)
+		return screening.ProviderResult{}, fmt.Errorf("invalid opensanctions response")
 	}
+	queryIDs := make([]string, 0, len(queryOrder))
+	for id := range queryOrder {
+		item, ok := response.Responses[id]
+		if !ok || item.Results == nil || item.Total.Value < 0 {
+			return screening.ProviderResult{}, fmt.Errorf("incomplete opensanctions response")
+		}
+		queryIDs = append(queryIDs, id)
+	}
+	if len(response.Responses) != len(queryOrder) {
+		return screening.ProviderResult{}, fmt.Errorf("unexpected opensanctions response queries")
+	}
+	sort.Strings(queryIDs)
 
 	type parsedResult struct {
 		ID         string  `json:"id"`
@@ -551,15 +590,19 @@ func (c openSanctionsClient) adaptSearchResponse(raw []byte, queryOrder map[stri
 	matchMap := map[string]screening.ProviderMatch{}
 	queryMatches := map[string][]string{}
 	partial := false
-	for queryID, item := range response.Responses {
+	for _, queryID := range queryIDs {
+		item := response.Responses[queryID]
 		matchCount := 0
 		for _, rawResult := range item.Results {
 			var parsed parsedResult
 			if err := json.Unmarshal(rawResult, &parsed); err != nil {
-				return screening.ProviderResult{}, fmt.Errorf("decode opensanctions match: %w", err)
+				return screening.ProviderResult{}, fmt.Errorf("invalid opensanctions match")
 			}
 			if !parsed.Match {
 				continue
+			}
+			if strings.TrimSpace(parsed.ID) == "" || parsed.Score < 0 || parsed.Score > 1 {
+				return screening.ProviderResult{}, fmt.Errorf("invalid opensanctions match identity or score")
 			}
 			matchCount++
 			name := parsed.Caption
@@ -634,10 +677,11 @@ func (c openSanctionsClient) authQueryValue() string {
 }
 
 type openSanctionsProviderConfig struct {
-	Datasets  []string `json:"datasets"`
-	Threshold *int     `json:"threshold"`
-	Algorithm string   `json:"algorithm"`
-	Scope     string   `json:"scope"`
+	RequiresDirectAdapter bool     `json:"requires_direct_adapter"`
+	Datasets              []string `json:"datasets"`
+	Threshold             *int     `json:"threshold"`
+	Algorithm             string   `json:"algorithm"`
+	Scope                 string   `json:"scope"`
 }
 
 func parseOpenSanctionsProviderConfig(raw json.RawMessage) openSanctionsProviderConfig {

@@ -1,0 +1,20 @@
+=== RUN   TestRecordBoundsConfiguration
+--- PASS: TestRecordBoundsConfiguration (0.00s)
+=== RUN   TestRecordBoundsDecode
+--- PASS: TestRecordBoundsDecode (0.00s)
+=== RUN   TestRecordBoundsSQLTransferGuard
+--- PASS: TestRecordBoundsSQLTransferGuard (0.52s)
+=== RUN   TestRecordBoundsPageCollection
+=== RUN   TestRecordBoundsPageCollection/exact
+=== RUN   TestRecordBoundsPageCollection/page_over
+=== RUN   TestRecordBoundsPageCollection/row_over
+=== RUN   TestRecordBoundsPageCollection/row_count
+--- PASS: TestRecordBoundsPageCollection (0.52s)
+    --- PASS: TestRecordBoundsPageCollection/exact (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/page_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_over (0.00s)
+    --- PASS: TestRecordBoundsPageCollection/row_count (0.00s)
+=== RUN   TestRecordBoundsRestrictedAndCancellation
+--- PASS: TestRecordBoundsRestrictedAndCancellation (0.64s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.738s

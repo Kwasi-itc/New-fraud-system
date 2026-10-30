@@ -65,6 +65,20 @@ func classifyServiceError(err error) (apiErrorSpec, string, string) {
 	}
 
 	switch {
+	case errors.Is(err, service.ErrCommitUnknown):
+		return apiErrorSpec{Status: 503, Category: "unknown_outcome"}, "commit_outcome_unknown", "commit outcome is unknown; reconcile using the same identity"
+	case errors.Is(err, service.ErrRecordConflict):
+		return apiErrorSpec{Status: 409, Category: "record_conflict"}, "record_unique_conflict", "record conflicts with a unique field"
+	case errors.Is(err, service.ErrForbidden):
+		return apiErrorSpec{Status: 403, Category: "forbidden"}, "forbidden", "operation is not authorized"
+	case errors.Is(err, service.ErrRequestLimits):
+		return apiErrorSpec{Status: 413, Category: "request_limit"}, "request_limit", "request exceeds configured limits"
+	case errors.Is(err, service.ErrUnavailable):
+		return apiErrorSpec{Status: 503, Category: "dependency_failure"}, "dependency_unavailable", "required storage capability unavailable"
+	case errors.Is(err, service.ErrResourceMissing):
+		return apiErrorSpec{Status: 404, Category: "not_found"}, "not_found", "resource not found"
+	case errors.Is(err, service.ErrBadInput):
+		return apiErrorSpec{Status: 400, Category: "invalid_request"}, "bad_parameter", "invalid bounded request"
 	case errors.Is(err, service.ErrIdempotencyKeyReused):
 		return apiErrorSpec{Status: http.StatusConflict, Category: "idempotency_conflict"}, "idempotency_key_reused", "idempotency key was reused with a different payload"
 	case errors.Is(err, context.DeadlineExceeded):

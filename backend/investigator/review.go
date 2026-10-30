@@ -210,7 +210,14 @@ func Run(ctx context.Context, db *pgxpool.Pool, p Principal, tenant, caseID uuid
 	if err != nil {
 		return State{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO `+table+`(tenant_id,operation_id,case_id,resource_id,actor_id,previous_status,status,findings,payload_hash,result) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, tenant, cmd.OperationID, caseID, resource, p.Subject, before.Status, out.Status, cmd.Findings, hash, result)
+	auditFindings := cmd.Findings
+	if owner == "screening" && (cmd.Action == "dismiss_and_exclude" || cmd.Action == "remove_exclusion") {
+		auditFindings = "[" + cmd.Action + "] " + auditFindings
+		if len(auditFindings) > 10000 {
+			return State{}, Invalid("Exclusion findings must leave room for the recorded action; use at most 9900 UTF-8 bytes.")
+		}
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO `+table+`(tenant_id,operation_id,case_id,resource_id,actor_id,previous_status,status,findings,payload_hash,result) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, tenant, cmd.OperationID, caseID, resource, p.Subject, before.Status, out.Status, auditFindings, hash, result)
 	if err != nil {
 		return State{}, err
 	}

@@ -158,6 +158,7 @@ type ContributorRepository interface {
 
 // ReferenceRepository is a read-only contract over service-owned shared schemas.
 type ReferenceRepository interface {
+	ManualScreening(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, bool) (bool, error)
 	DecisionScreening(context.Context, uuid.UUID, uuid.UUID) (*DecisionScreeningReference, error)
 	ContinuousScreening(context.Context, uuid.UUID, uuid.UUID) (*ContinuousScreeningReference, error)
 	Decisions(ctx context.Context, tenantID uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]casepkg.DecisionReference, error)

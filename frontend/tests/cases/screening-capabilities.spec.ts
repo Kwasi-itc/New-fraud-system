@@ -1,0 +1,71 @@
+import { expect, test } from "@playwright/test";
+
+const base = { id: "opensanctions", name: "OpenSanctions", configured: true, health: "unknown", entity_types: ["Person", "Organization"], threshold_min: 0, threshold_max: 100, limit_max: 50, limitations: [] };
+test.beforeEach(async ({ context, request }) => {
+  await request.post("http://127.0.0.1:3199/reset");
+  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
+});
+test("identity fields work independently of datasets and type drafts survive switching", async ({ page }) => {
+  await page.route("**/api/screening-search/capabilities", route => route.fulfill({ json: { ...base, dataset_selection: false, fields: { Person: ["name", "nationality", "address"], Organization: ["name", "country", "address"] } } }));
+  await page.goto("/screening-search");
+  await page.getByText("Additional search fields", { exact: true }).click();
+  await expect(page.getByLabel("Dataset IDs")).toHaveCount(0);
+  await expect(page.getByLabel("Birth date")).toHaveCount(0);
+  await page.getByLabel("Name", { exact: true }).fill("Synthetic");
+  await page.getByLabel("Nationality").fill("GB");
+  await page.getByLabel("Address").fill("Shared address");
+  await page.getByLabel("Entity type").selectOption("Organization");
+  await page.getByLabel("Country", { exact: true }).fill("US");
+  await expect(page.getByLabel("Address")).toHaveValue("Shared address");
+  await page.getByLabel("Entity type").selectOption("Person");
+  await expect(page.getByLabel("Nationality")).toHaveValue("GB");
+  const sent = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith("/api/screening-search"));
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  expect((await sent).postDataJSON()).toMatchObject({ nationality: "GB", address: "Shared address" });
+  await expect(page.getByRole("heading", { name: "2 potential matches" })).toBeVisible();
+});
+test("dataset-only capability and tighter bounds cannot submit unsupported defaults", async ({ page }) => {
+  await page.route("**/api/screening-search/capabilities", route => route.fulfill({ json: { ...base, entity_types: ["Organization"], threshold_min: 80, threshold_max: 90, limit_max: 5, dataset_selection: true, fields: { Organization: ["name"] } } }));
+  await page.goto("/screening-search");
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toBeDisabled();
+  await page.getByLabel("Entity type").selectOption("Organization");
+  await page.getByLabel("Name", { exact: true }).fill("Synthetic");
+  await page.getByText("Additional search fields", { exact: true }).click();
+  await expect(page.getByLabel("Address")).toHaveCount(0);
+  await expect(page.getByLabel("Registration number")).toHaveCount(0);
+  await page.getByLabel("Dataset IDs").fill("test_dataset");
+  await page.getByLabel("Matching threshold").selectOption("80");
+  await page.getByLabel("Result limit").selectOption("5");
+  const sent = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith("/api/screening-search"));
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  expect((await sent).postDataJSON()).toMatchObject({ entity_type: "Organization", threshold: 80, limit: 5, datasets: ["test_dataset"] });
+  await expect(page.getByRole("heading", { name: "2 potential matches" })).toBeVisible();
+});
+test("clearing unsupported refinement preserves supported identifying fields", async ({ page }) => {
+  await page.goto("/screening-search");
+  await page.getByLabel("Name", { exact: true }).fill("Stored");
+  await page.getByText("Additional search fields", { exact: true }).click();
+  await page.getByLabel("Birth date").fill("1980");
+  await page.getByLabel("Address").fill("Keep this address");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "2 potential matches" })).toBeVisible();
+  await page.route("**/api/screening-search/capabilities", route => route.fulfill({ json: { ...base, dataset_selection: false, fields: { Person: ["name", "address"], Organization: ["name"] } } }));
+  await page.reload();
+  await page.getByRole("button", { name: /Stored/ }).click();
+  await page.getByRole("button", { name: "Refine as new search" }).click();
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Clear unsupported settings" }).click();
+  await page.getByText("Additional search fields", { exact: true }).click();
+  await expect(page.getByLabel("Address")).toHaveValue("Keep this address");
+  const sent = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith("/api/screening-search"));
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const body = (await sent).postDataJSON();
+  expect(body.address).toBe("Keep this address");
+  expect(body).not.toHaveProperty("birth_date");
+});
+test("incomplete capability contract fails closed", async ({ page }) => {
+  await page.route("**/api/screening-search/capabilities", route => route.fulfill({ json: { configured: true, fields: {}, limitations: [] } }));
+  await page.goto("/screening-search");
+  await expect(page.getByText("Provider capabilities are incomplete or invalid. New searches are unavailable.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toBeDisabled();
+});

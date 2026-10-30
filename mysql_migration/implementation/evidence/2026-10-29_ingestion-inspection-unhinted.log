@@ -1,0 +1,125 @@
+=== RUN   TestWorkInspectionBoundsAndAuthorization
+--- PASS: TestWorkInspectionBoundsAndAuthorization (2.04s)
+=== RUN   TestWorkInspectionPaginationAndPlan
+    work_inspection_test.go:124: inspection plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "101.75"
+            },
+            "ordering_operation": {
+              "using_filesort": true,
+              "table": {
+                "table_name": "ingestion_work_jobs",
+                "access_type": "ref",
+                "possible_keys": [
+                  "tenant_id",
+                  "ready",
+                  "expired",
+                  "terminal",
+                  "resource",
+                  "operator_history"
+                ],
+                "key": "ready",
+                "used_key_parts": [
+                  "queue",
+                  "state"
+                ],
+                "key_length": "144",
+                "ref": [
+                  "const",
+                  "const"
+                ],
+                "rows_examined_per_scan": 800,
+                "rows_produced_per_join": 780,
+                "filtered": "97.51",
+                "cost_info": {
+                  "read_cost": "21.75",
+                  "eval_cost": "78.01",
+                  "prefix_cost": "101.75",
+                  "data_read_per_join": "1M"
+                },
+                "used_columns": [
+                  "id",
+                  "tenant_id",
+                  "resource_id",
+                  "kind",
+                  "queue",
+                  "state",
+                  "available_at",
+                  "attempt",
+                  "max_attempts",
+                  "created_at",
+                  "started_at",
+                  "finished_at"
+                ],
+                "attached_condition": "(`ingestion_mysql_test_383c180daac845929a044e660c35f68e`.`ingestion_work_jobs`.`tenant_id` = '\u0017\\?j\\?@?J??\\?u?o^\\?\u0019')"
+              }
+            }
+          }
+        }
+    work_inspection_test.go:152: expected scoped ordered index {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "101.75"
+            },
+            "ordering_operation": {
+              "using_filesort": true,
+              "table": {
+                "table_name": "ingestion_work_jobs",
+                "access_type": "ref",
+                "possible_keys": [
+                  "tenant_id",
+                  "ready",
+                  "expired",
+                  "terminal",
+                  "resource",
+                  "operator_history"
+                ],
+                "key": "ready",
+                "used_key_parts": [
+                  "queue",
+                  "state"
+                ],
+                "key_length": "144",
+                "ref": [
+                  "const",
+                  "const"
+                ],
+                "rows_examined_per_scan": 800,
+                "rows_produced_per_join": 780,
+                "filtered": "97.51",
+                "cost_info": {
+                  "read_cost": "21.75",
+                  "eval_cost": "78.01",
+                  "prefix_cost": "101.75",
+                  "data_read_per_join": "1M"
+                },
+                "used_columns": [
+                  "id",
+                  "tenant_id",
+                  "resource_id",
+                  "kind",
+                  "queue",
+                  "state",
+                  "available_at",
+                  "attempt",
+                  "max_attempts",
+                  "created_at",
+                  "started_at",
+                  "finished_at"
+                ],
+                "attached_condition": "(`ingestion_mysql_test_383c180daac845929a044e660c35f68e`.`ingestion_work_jobs`.`tenant_id` = '\u0017\\?j\\?@?J??\\?u?o^\\?\u0019')"
+              }
+            }
+          }
+        }
+--- FAIL: TestWorkInspectionPaginationAndPlan (4.75s)
+=== RUN   TestWorkInspectionRestrictedGrants
+--- PASS: TestWorkInspectionRestrictedGrants (1.56s)
+=== RUN   TestWorkInspectionConcurrentReadsAndFailure
+--- PASS: TestWorkInspectionConcurrentReadsAndFailure (1.16s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	9.581s
+FAIL

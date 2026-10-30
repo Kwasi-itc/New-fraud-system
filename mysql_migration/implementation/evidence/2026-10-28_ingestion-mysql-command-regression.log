@@ -1,0 +1,114 @@
+=== RUN   TestValidateAggregateQueryRejectsDeepFilter
+=== PAUSE TestValidateAggregateQueryRejectsDeepFilter
+=== RUN   TestValidateAggregateQueryRejectsLargeInList
+=== PAUSE TestValidateAggregateQueryRejectsLargeInList
+=== RUN   TestValidateAggregateQueryAllowsOrGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsOrGroupOperator
+=== RUN   TestValidateAggregateQueryAllowsNotGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsNotGroupOperator
+=== RUN   TestValidateAggregateQueryRejectsInvalidNotArity
+=== PAUSE TestValidateAggregateQueryRejectsInvalidNotArity
+=== RUN   TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== PAUSE TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== RUN   TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== PAUSE TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== RUN   TestCanonicalReceiptCommandGolden
+--- PASS: TestCanonicalReceiptCommandGolden (0.00s)
+=== RUN   TestCanonicalReceiptCommandIdentity
+=== RUN   TestCanonicalReceiptCommandIdentity/tenant
+=== RUN   TestCanonicalReceiptCommandIdentity/table
+=== RUN   TestCanonicalReceiptCommandIdentity/mode
+=== RUN   TestCanonicalReceiptCommandIdentity/kind
+=== RUN   TestCanonicalReceiptCommandIdentity/value
+=== RUN   TestCanonicalReceiptCommandIdentity/null
+=== RUN   TestCanonicalReceiptCommandIdentity/unicode
+=== RUN   TestCanonicalReceiptCommandIdentity/numeric
+--- PASS: TestCanonicalReceiptCommandIdentity (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/value (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/null (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/unicode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/numeric (0.00s)
+=== RUN   TestCanonicalReceiptCommandRejection
+=== RUN   TestCanonicalReceiptCommandRejection/tenant
+=== RUN   TestCanonicalReceiptCommandRejection/table
+=== RUN   TestCanonicalReceiptCommandRejection/mode
+=== RUN   TestCanonicalReceiptCommandRejection/kind
+=== RUN   TestCanonicalReceiptCommandRejection/empty
+=== RUN   TestCanonicalReceiptCommandRejection/nil_record
+=== RUN   TestCanonicalReceiptCommandRejection/single_many
+=== RUN   TestCanonicalReceiptCommandRejection/batch_many
+=== RUN   TestCanonicalReceiptCommandRejection/bytes
+--- PASS: TestCanonicalReceiptCommandRejection (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/empty (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/nil_record (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/single_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/batch_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/bytes (0.00s)
+=== RUN   TestValidateRecordCreateRequiresNonNullableFields
+=== PAUSE TestValidateRecordCreateRequiresNonNullableFields
+=== RUN   TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== PAUSE TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== RUN   TestValidateRecordRejectsUnknownAndManagedFields
+=== PAUSE TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== CONT  TestValidateAggregateQueryRejectsInvalidNotArity
+--- PASS: TestValidateAggregateQueryAllowsStartsWithPredicateOperator (0.00s)
+=== CONT  TestValidateAggregateQueryRejectsLargeInList
+=== CONT  TestValidateAggregateQueryAllowsOrGroupOperator
+--- PASS: TestValidateAggregateQueryRejectsLargeInList (0.00s)
+=== CONT  TestValidateRecordCreateRequiresNonNullableFields
+--- PASS: TestValidateAggregateQueryRejectsInvalidNotArity (0.00s)
+=== CONT  TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== CONT  TestValidateAggregateQueryAllowsNotGroupOperator
+=== CONT  TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== CONT  TestValidateAggregateQueryRejectsDeepFilter
+--- PASS: TestValidateAggregateQueryAllowsOrGroupOperator (0.00s)
+--- PASS: TestValidateRecordCreateRequiresNonNullableFields (0.00s)
+--- PASS: TestValidateRecordRejectsUnknownAndManagedFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator (0.00s)
+--- PASS: TestValidateAggregateQueryAllowsNotGroupOperator (0.00s)
+--- PASS: TestValidateRecordPatchAllowsOmittedNonNullableFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsDeepFilter (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion	1.030s
+=== RUN   TestCanonicalReceiptReplay
+--- PASS: TestCanonicalReceiptReplay (0.08s)
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/28 16:06:56 connection.go:189 closing connection:close tcp 172.21.0.3:33598->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/28 16:06:56 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.08s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.05s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.07s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.03s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.03s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (0.50s)
+    --- PASS: TestReceiptExecution/replay (0.05s)
+    --- PASS: TestReceiptExecution/concurrent (0.09s)
+    --- PASS: TestReceiptExecution/rollback (0.05s)
+    --- PASS: TestReceiptExecution/result_limit (0.04s)
+    --- PASS: TestReceiptExecution/key_collision (0.08s)
+    --- PASS: TestReceiptExecution/cancel (0.15s)
+    --- PASS: TestReceiptExecution/restricted (0.05s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	1.805s

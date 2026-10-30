@@ -1,0 +1,48 @@
+{
+  "Summary": {
+    "Discovered": 25,
+    "Executed": 25,
+    "Passed": 25,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "Tests": [
+    "TestIngestionWorkAttemptTimestamps",
+    "TestIngestionWorkRestrictedGrants",
+    "TestWorkInspectionBoundsAndAuthorization",
+    "TestWorkInspectionPaginationAndPlan",
+    "TestWorkInspectionRestrictedGrants",
+    "TestWorkInspectionConcurrentReadsAndFailure",
+    "TestWorkInspectionStateFilters",
+    "TestFullSharedDeferredMetrics",
+    "TestWorkOperatorCancellation",
+    "TestWorkOperatorCancelWorkerRace",
+    "TestWorkOperatorRestrictedGrants",
+    "TestWorkOperatorLostCommit",
+    "TestIngestionWorkLifecycle",
+    "TestIngestionWorkRunnerAndConcurrentClaims",
+    "TestIngestionWorkScopeAndPrivateReceipts",
+    "TestIngestionWorkRecovery",
+    "TestFullSharedRedrive",
+    "TestWorkRedriveIneligible",
+    "TestWorkRedriveReceiptAndCancellation",
+    "TestWorkRedriveLostCommit",
+    "TestWorkTelemetryCompletionAndPool",
+    "TestWorkTelemetryRetriesAndExhaustion",
+    "TestWorkTelemetryExpiredAndClaimFailure",
+    "TestWorkTelemetryHeartbeatFence",
+    "TestWorkTelemetryQueueWaitUsesDatabaseTime"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=19m45s",
+    "./internal/store/mysql",
+    "-run",
+    "^Test(IngestionWork|WorkOperator|WorkRedrive|WorkInspection|WorkTelemetry|FullSharedRedrive|FullSharedDeferredMetrics)"
+  ]
+}

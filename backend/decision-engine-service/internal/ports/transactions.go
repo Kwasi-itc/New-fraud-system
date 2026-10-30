@@ -289,6 +289,7 @@ type ScoringRequestRepository interface {
 }
 
 type CustomListRepository interface {
+	ScreeningIgnoreWords(context.Context, string, string) ([]string, error)
 	CreateList(ctx context.Context, item platform.CustomList) (platform.CustomList, error)
 	ListLists(ctx context.Context, tenantID string) ([]platform.CustomList, error)
 	GetListByID(ctx context.Context, tenantID, listID string) (platform.CustomList, error)

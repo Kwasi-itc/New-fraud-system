@@ -12,13 +12,23 @@ import (
 
 const tableResultKind = "datamodel.table/v1"
 const fieldResultKind = "datamodel.field/v1"
+const optionsResultKind = "datamodel.table_options/v1"
 
 type metadataResult struct {
-	kind  string
-	id    uuid.UUID
-	raw   []byte
-	table datamodel.Table
-	field datamodel.Field
+	kind    string
+	id      uuid.UUID
+	raw     []byte
+	table   datamodel.Table
+	field   datamodel.Field
+	options datamodel.TableOptions
+}
+
+func (m *MetadataPublicationManager) PublishOptions(ctx context.Context, r ports.MetadataPublicationRequest, effects func(ports.MutationStore) error) (datamodel.TableOptions, error) {
+	retained := &metadataResult{kind: optionsResultKind, id: r.TableID}
+	if _, err := m.publish(ctx, r, effects, retained); err != nil {
+		return datamodel.TableOptions{}, err
+	}
+	return retained.options, nil
 }
 
 func (m *MetadataPublicationManager) PublishTable(ctx context.Context, r ports.MetadataPublicationRequest, effects func(ports.MutationStore) error) (datamodel.Table, error) {
@@ -42,6 +52,22 @@ func (m *MetadataPublicationManager) PublishField(ctx context.Context, r ports.M
 func (r *metadataResult) capture(ctx context.Context, repos MetadataRepositories, table uuid.UUID) error {
 	var err error
 	switch r.kind {
+	case optionsResultKind:
+		var value *datamodel.TableOptions
+		value, err = repos.Options.GetByTableID(ctx, table)
+		if err != nil {
+			return err
+		}
+		if value == nil {
+			return ErrOwnerResultUnavailable
+		}
+		fields, e := repos.Fields.ListByTable(ctx, table)
+		if e != nil {
+			return e
+		}
+		value.FieldOrder = datamodel.SortFieldOrder(fields, *value)
+		r.options = *value
+		r.raw, err = json.Marshal(r.options)
 	case tableResultKind:
 		r.table, err = repos.Tables.GetByID(ctx, table)
 		if err == nil {
@@ -59,6 +85,13 @@ func (r *metadataResult) capture(ctx context.Context, repos MetadataRepositories
 }
 func (r *metadataResult) decode(tenant, table uuid.UUID) error {
 	switch r.kind {
+	case optionsResultKind:
+		if err := json.Unmarshal(r.raw, &r.options); err != nil {
+			return err
+		}
+		if r.options.ID == uuid.Nil || r.id != table || r.options.TableID != table || r.options.TenantID != tenant {
+			return ErrPublicationOperationConflict
+		}
 	case tableResultKind:
 		if err := json.Unmarshal(r.raw, &r.table); err != nil {
 			return err
@@ -80,3 +113,4 @@ func (r *metadataResult) decode(tenant, table uuid.UUID) error {
 }
 
 var _ ports.MetadataResultPublicationManager = (*MetadataPublicationManager)(nil)
+var _ ports.OptionsPublicationManager = (*MetadataPublicationManager)(nil)

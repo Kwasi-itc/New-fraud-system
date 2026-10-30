@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   FilePlus,
   FolderInput,
@@ -18,6 +19,8 @@ import {
   useCaseQueue,
   useCaseWrite,
 } from "@/lib/case-manager-query";
+import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { displayValue, useRecordDisplays } from "@/components/detection/decision-display";
 import {
   CaseNav,
   Panel,
@@ -25,6 +28,7 @@ import {
   fieldClass,
   labelClass,
   readable,
+  timestamp,
 } from "./shared";
 import { Evidence } from "./evidence";
 import { RecordExplorer } from "./record-explorer";
@@ -83,21 +87,110 @@ export function DecisionCase({
   const canChoose =
     identity.isSuccess && membership.isSuccess && !membership.error && !linked.length;
 
+  const decisionQuery = useQuery({
+    queryKey: ["decision-engine", "decision", tenant, decisionId],
+    queryFn: () => decisionEngineApi.getDecision(tenant, decisionId),
+    enabled: Boolean(tenant && decisionId),
+  });
+  const decision = decisionQuery.data?.decision;
+
+  const scenariosQuery = useQuery({
+    queryKey: ["decision-engine", "scenarios", tenant],
+    queryFn: () => decisionEngineApi.listScenarios(tenant),
+    enabled: Boolean(tenant),
+    staleTime: 300_000,
+  });
+  const scenarioName = useMemo(() => {
+    if (!decision?.scenario_id || !scenariosQuery.data?.scenarios) return undefined;
+    return scenariosQuery.data.scenarios.find((s) => s.id === decision.scenario_id)?.name;
+  }, [decision?.scenario_id, scenariosQuery.data?.scenarios]);
+
+  const objects = useMemo(
+    () => (decision ? [{ object_type: decision.object_type, object_id: decision.object_id }] : []),
+    [decision]
+  );
+  const displays = useRecordDisplays(tenant, session, objects);
+  const targetRec = decision
+    ? displays.record({ object_type: decision.object_type, object_id: decision.object_id })
+    : undefined;
+  const tableCols = decision
+    ? (displays.allColumns[decision.object_type] ?? [])
+    : [];
+
   return (
     <div className="space-y-6">
       <CaseNav tenant={tenant} />
 
       {/* Header Banner */}
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-          Decision investigation
-        </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-mono text-slate-500 font-medium">
-            Decision {decisionId}
-          </span>
-          <CopyButton text={decisionId} />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <span className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700 shadow-2xs border border-blue-100">
+              <Shield className="size-6" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                  {scenarioName || "Decision investigation"}
+                </h1>
+                {decision?.outcome && <StatusPill value={decision.outcome} />}
+                {decision?.score != null && (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+                    Score: {decision.score}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="font-mono text-xs text-slate-400">
+                  Decision {decisionId}
+                </span>
+                <CopyButton text={decisionId} />
+                {decision?.created_at && (
+                  <>
+                    <span>·</span>
+                    <span>Evaluated {timestamp(decision.created_at)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {decision && (
+          <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold mr-1">Target</span>
+              <span className="rounded-md bg-blue-50 px-2.5 py-0.5 font-bold text-blue-700 uppercase tracking-wider text-xs border border-blue-200">
+                {decision.object_type}
+              </span>
+              <span className="font-semibold text-slate-900">
+                {targetRec?.caption || decision.object_id}
+              </span>
+              {targetRec?.caption && targetRec.caption !== decision.object_id && (
+                <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  ID: {decision.object_id}
+                </span>
+              )}
+              <CopyButton text={decision.object_id} />
+            </div>
+
+            {tableCols.length > 0 && targetRec?.values && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {tableCols.map((col) => (
+                  <div
+                    key={col.id}
+                    className="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1 text-xs flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span className="text-slate-500 font-medium">{col.label}:</span>
+                    <span className="text-slate-900 font-semibold">
+                      {displayValue(targetRec.values[col.id])}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <Problem error={identity.error} retry={() => void identity.refetch()} />

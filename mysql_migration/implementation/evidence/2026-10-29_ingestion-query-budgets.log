@@ -1,0 +1,36 @@
+=== RUN   TestRecordQueryLimitConfiguration
+--- PASS: TestRecordQueryLimitConfiguration (0.01s)
+=== RUN   TestRecordQueryValueAccounting
+--- PASS: TestRecordQueryValueAccounting (0.00s)
+=== RUN   TestRecordQueryCompositionBudget
+--- PASS: TestRecordQueryCompositionBudget (0.36s)
+=== RUN   TestRecordQuerySelection
+--- PASS: TestRecordQuerySelection (0.37s)
+=== RUN   TestRecordQueryRejectsBeforeExecution
+--- PASS: TestRecordQueryRejectsBeforeExecution (0.71s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.481s
+=== RUN   TestExactReadInvalidIdentity
+--- PASS: TestExactReadInvalidIdentity (0.00s)
+=== RUN   TestExactReadByteIdentity
+--- PASS: TestExactReadByteIdentity (0.40s)
+=== RUN   TestExactReadScopeAndVersion
+--- PASS: TestExactReadScopeAndVersion (0.34s)
+=== RUN   TestExactReadBounds
+--- PASS: TestExactReadBounds (0.32s)
+=== RUN   TestExactReadFailuresAreNotMissing
+--- PASS: TestExactReadFailuresAreNotMissing (0.31s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.408s
+=== RUN   TestRecordFilterTruthTables
+--- PASS: TestRecordFilterTruthTables (0.48s)
+=== RUN   TestRecordFilterEmptySemantics
+--- PASS: TestRecordFilterEmptySemantics (0.50s)
+=== RUN   TestRecordFilterParameterOrderAndCopies
+--- PASS: TestRecordFilterParameterOrderAndCopies (0.44s)
+=== RUN   TestRecordFilterTraversalBounds
+--- PASS: TestRecordFilterTraversalBounds (0.43s)
+=== RUN   TestRecordFilterFailureIsAtomic
+--- PASS: TestRecordFilterFailureIsAtomic (0.44s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	3.335s

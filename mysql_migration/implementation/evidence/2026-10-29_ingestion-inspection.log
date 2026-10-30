@@ -1,0 +1,117 @@
+=== RUN   TestWorkInspectionBoundsAndAuthorization
+--- PASS: TestWorkInspectionBoundsAndAuthorization (1.73s)
+=== RUN   TestWorkInspectionPaginationAndPlan
+    work_inspection_test.go:125: inspection plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "87.45"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "table": {
+                "table_name": "ingestion_work_jobs",
+                "access_type": "ref",
+                "possible_keys": [
+                  "operator_history"
+                ],
+                "key": "operator_history",
+                "used_key_parts": [
+                  "tenant_id",
+                  "queue",
+                  "state"
+                ],
+                "key_length": "160",
+                "ref": [
+                  "const",
+                  "const",
+                  "const"
+                ],
+                "rows_examined_per_scan": 657,
+                "rows_produced_per_join": 657,
+                "filtered": "100.00",
+                "index_condition": "(`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`tenant_id` = 'o헝\u0007|G\\n??\\?\\?Ç?%')",
+                "cost_info": {
+                  "read_cost": "21.75",
+                  "eval_cost": "65.70",
+                  "prefix_cost": "87.45",
+                  "data_read_per_join": "867K"
+                },
+                "used_columns": [
+                  "id",
+                  "tenant_id",
+                  "resource_id",
+                  "kind",
+                  "queue",
+                  "state",
+                  "available_at",
+                  "attempt",
+                  "max_attempts",
+                  "created_at",
+                  "started_at",
+                  "finished_at"
+                ]
+              }
+            }
+          }
+        }
+    work_inspection_test.go:125: inspection plan: {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "1.41"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "table": {
+                "table_name": "ingestion_work_jobs",
+                "access_type": "range",
+                "possible_keys": [
+                  "operator_history"
+                ],
+                "key": "operator_history",
+                "used_key_parts": [
+                  "tenant_id",
+                  "queue",
+                  "state",
+                  "created_at",
+                  "id"
+                ],
+                "key_length": "184",
+                "rows_examined_per_scan": 2,
+                "rows_produced_per_join": 2,
+                "filtered": "100.00",
+                "index_condition": "((`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`state` = 'completed') and (`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`queue` = 'uploads') and (`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`tenant_id` = 'o헝\u0007|G\\n??\\?\\?Ç?%') and ((`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`created_at` < TIMESTAMP'2020-01-01 00:00:04') or ((`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`created_at` = TIMESTAMP'2020-01-01 00:00:04') and (`ingestion_mysql_test_ea6bdeb074c04977bf16bf1d93cf4a4e`.`ingestion_work_jobs`.`id` < '}F\\?\\?\u000el\\\\k???B-lj?'))))",
+                "cost_info": {
+                  "read_cost": "1.21",
+                  "eval_cost": "0.20",
+                  "prefix_cost": "1.41",
+                  "data_read_per_join": "2K"
+                },
+                "used_columns": [
+                  "id",
+                  "tenant_id",
+                  "resource_id",
+                  "kind",
+                  "queue",
+                  "state",
+                  "available_at",
+                  "attempt",
+                  "max_attempts",
+                  "created_at",
+                  "started_at",
+                  "finished_at"
+                ]
+              }
+            }
+          }
+        }
+--- PASS: TestWorkInspectionPaginationAndPlan (6.11s)
+=== RUN   TestWorkInspectionRestrictedGrants
+--- PASS: TestWorkInspectionRestrictedGrants (4.48s)
+=== RUN   TestWorkInspectionConcurrentReadsAndFailure
+--- PASS: TestWorkInspectionConcurrentReadsAndFailure (1.19s)
+=== RUN   TestWorkInspectionStateFilters
+--- PASS: TestWorkInspectionStateFilters (0.94s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	15.511s

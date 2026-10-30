@@ -1,0 +1,25 @@
+﻿{
+    "queue":  {
+                  "Discovered":  25,
+                  "Executed":  25,
+                  "Passed":  25,
+                  "Failed":  0,
+                  "Skipped":  0
+              },
+    "schema":  {
+                   "Discovered":  13,
+                   "Executed":  13,
+                   "Passed":  13,
+                   "Failed":  0,
+                   "Skipped":  0
+               },
+    "verifier_tests_passed":  6,
+    "scoped_vet_exit":  0,
+    "go_version":  "go1.25.8 linux/amd64",
+    "fixture_exporter_sha256":  "0dce3bd57686eaf6005f1fd5da145f1e19b6ce345ad4c3adfd52bbea659afa8c",
+    "rejected_run":  "rejected-schema-missing-importer: test prerequisite missing; not accepted evidence",
+    "independent_review":  "pending",
+    "retention_policy":  "retain by existing default; explicit first-release proposal pending",
+    "shared_queue_acceptance":  "pending: other consumers and deployment budget",
+    "new_completed_tasks":  0
+}

@@ -134,10 +134,44 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 	check("confirmed_hit")
 	// Real callback HTTP route ignores stale status/provider/count fields.
 	if binary := os.Getenv("DECISION_INTEGRATION_BINARY"); binary != "" {
-		endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant)
+		operatorToken := "synthetic-screening-operator-token-32"
+		endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant, "SCREENING_AUTHORING_TOKEN="+operatorToken)
 		raw, _ := json.Marshal(map[string]any{"tenant_id": tenant, "screening_id": source, "decision_id": decision, "screening_config_id": config, "status": "failed", "provider_reference": "stale", "match_count": 999})
+		for _, deniedToken := range []string{token, testIntakeToken} {
+			req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(raw))
+			req.Header.Set("Authorization", "Bearer "+deniedToken)
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != 401 {
+				t.Fatal("callback accepted wrong credential", resp.StatusCode)
+			}
+			check("confirmed_hit")
+		}
+		for _, mismatched := range []map[string]any{
+			{"tenant_id": uuid.NewString(), "screening_id": source, "decision_id": decision, "screening_config_id": config},
+			{"tenant_id": tenant, "screening_id": uuid.NewString(), "decision_id": decision, "screening_config_id": config},
+			{"tenant_id": tenant, "screening_id": source, "decision_id": uuid.NewString(), "screening_config_id": config},
+		} {
+			payload, _ := json.Marshal(mismatched)
+			req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(payload))
+			req.Header.Set("Authorization", "Bearer "+testCallbackToken)
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != 400 {
+				t.Fatal("mismatched callback accepted", resp.StatusCode)
+			}
+			check("confirmed_hit")
+		}
 		req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(raw))
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", "Bearer "+testCallbackToken)
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -151,6 +185,7 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 		req, _ = http.NewRequest(http.MethodPost, endpoint+"/v1/tenants/"+tenant+"/screening-executions/"+execution+"/status", bytes.NewBufferString(`{"status":"failed"}`))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Screening-Authoring-Token", operatorToken)
 		resp, err = http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)

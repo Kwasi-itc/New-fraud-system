@@ -29,6 +29,7 @@ from production_replay.replay import LatencyMetric
 from .queue_recovery import QueueCollector, QueueRecoveryMonitor, RecoveryGate, RecoveryPolicy
 from .input_source import InputSource, inspect_source, read_inputs
 from .worker_outage import DockerWorker, bounded_control, run_outage
+from .arrival_schedule import arrivals
 
 
 @dataclass(frozen=True)
@@ -247,33 +248,26 @@ async def run_campaign(
             raise failure or RuntimeError("campaign_task_failed")
 
         try:
-            for stage in stages:
+            async for stage, slot, scheduled in arrivals(stages, started, wait=wait_until, on_stage=on_stage):
                 current = stage.name
-                if on_stage is not None:
-                    on_stage(stage.name)
-                stage_start = started + stage_offsets[stage.name]
-                for slot in range(stage.count):
-                    if failure:
-                        raise failure
-                    if progress.done():
-                        progress.result()
-                    scheduled = stage_start + slot / stage.rate
-                    await wait_until(scheduled)
-                    try:
-                        fields = next(inputs)
-                    except StopIteration as exc:
-                        raise ValueError("input_exhausted_before_schedule_end") from exc
-                    increment(stage.name, "offered")
-                    if time.monotonic() - scheduled > max_lag or len(tasks) >= max_inflight:
-                        increment(stage.name, "generator_dropped")
-                        continue
-                    ledger.register(tenant, fields["object_id"])
-                    increment(stage.name, "submitted")
-                    task = asyncio.create_task(operation(stage.name, fields, scheduled))
-                    tasks.add(task)
-                    task.add_done_callback(finished)
-                    peak = max(peak, len(tasks))
-                await wait_until(stage_start + stage.seconds)
+                if failure:
+                    raise failure
+                if progress.done():
+                    progress.result()
+                try:
+                    fields = next(inputs)
+                except StopIteration as exc:
+                    raise ValueError("input_exhausted_before_schedule_end") from exc
+                increment(stage.name, "offered")
+                if time.monotonic() - scheduled > max_lag or len(tasks) >= max_inflight:
+                    increment(stage.name, "generator_dropped")
+                    continue
+                ledger.register(tenant, fields["object_id"])
+                increment(stage.name, "submitted")
+                task = asyncio.create_task(operation(stage.name, fields, scheduled))
+                tasks.add(task)
+                task.add_done_callback(finished)
+                peak = max(peak, len(tasks))
             current = "final_drain"
             if tasks:
                 await asyncio.gather(*tasks)

@@ -1,0 +1,296 @@
+=== RUN   TestValidateAggregateQueryRejectsDeepFilter
+=== PAUSE TestValidateAggregateQueryRejectsDeepFilter
+=== RUN   TestValidateAggregateQueryRejectsLargeInList
+=== PAUSE TestValidateAggregateQueryRejectsLargeInList
+=== RUN   TestValidateAggregateQueryAllowsOrGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsOrGroupOperator
+=== RUN   TestValidateAggregateQueryAllowsNotGroupOperator
+=== PAUSE TestValidateAggregateQueryAllowsNotGroupOperator
+=== RUN   TestValidateAggregateQueryRejectsInvalidNotArity
+=== PAUSE TestValidateAggregateQueryRejectsInvalidNotArity
+=== RUN   TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== PAUSE TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+=== RUN   TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== PAUSE TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== RUN   TestCanonicalReceiptCommandGolden
+--- PASS: TestCanonicalReceiptCommandGolden (0.00s)
+=== RUN   TestCanonicalReceiptCommandIdentity
+=== RUN   TestCanonicalReceiptCommandIdentity/tenant
+=== RUN   TestCanonicalReceiptCommandIdentity/table
+=== RUN   TestCanonicalReceiptCommandIdentity/mode
+=== RUN   TestCanonicalReceiptCommandIdentity/kind
+=== RUN   TestCanonicalReceiptCommandIdentity/value
+=== RUN   TestCanonicalReceiptCommandIdentity/null
+=== RUN   TestCanonicalReceiptCommandIdentity/unicode
+=== RUN   TestCanonicalReceiptCommandIdentity/numeric
+--- PASS: TestCanonicalReceiptCommandIdentity (0.01s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/value (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/null (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/unicode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandIdentity/numeric (0.00s)
+=== RUN   TestCanonicalReceiptCommandRejection
+=== RUN   TestCanonicalReceiptCommandRejection/tenant
+=== RUN   TestCanonicalReceiptCommandRejection/table
+=== RUN   TestCanonicalReceiptCommandRejection/mode
+=== RUN   TestCanonicalReceiptCommandRejection/kind
+=== RUN   TestCanonicalReceiptCommandRejection/empty
+=== RUN   TestCanonicalReceiptCommandRejection/nil_record
+=== RUN   TestCanonicalReceiptCommandRejection/single_many
+=== RUN   TestCanonicalReceiptCommandRejection/batch_many
+=== RUN   TestCanonicalReceiptCommandRejection/bytes
+--- PASS: TestCanonicalReceiptCommandRejection (0.01s)
+    --- PASS: TestCanonicalReceiptCommandRejection/tenant (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/table (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/mode (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/kind (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/empty (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/nil_record (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/single_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/batch_many (0.00s)
+    --- PASS: TestCanonicalReceiptCommandRejection/bytes (0.00s)
+=== RUN   TestValidateRecordCreateRequiresNonNullableFields
+=== PAUSE TestValidateRecordCreateRequiresNonNullableFields
+=== RUN   TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== PAUSE TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== RUN   TestValidateRecordRejectsUnknownAndManagedFields
+=== PAUSE TestValidateRecordRejectsUnknownAndManagedFields
+=== CONT  TestValidateAggregateQueryRejectsLargeInList
+=== CONT  TestValidateAggregateQueryAllowsStartsWithPredicateOperator
+--- PASS: TestValidateAggregateQueryAllowsStartsWithPredicateOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsLargeInList (0.00s)
+=== CONT  TestValidateAggregateQueryAllowsOrGroupOperator
+--- PASS: TestValidateAggregateQueryAllowsOrGroupOperator (0.00s)
+=== CONT  TestValidateAggregateQueryAllowsNotGroupOperator
+=== CONT  TestValidateRecordCreateRequiresNonNullableFields
+=== CONT  TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator
+=== CONT  TestValidateRecordPatchAllowsOmittedNonNullableFields
+=== CONT  TestValidateAggregateQueryRejectsDeepFilter
+=== CONT  TestValidateAggregateQueryRejectsInvalidNotArity
+=== CONT  TestValidateRecordRejectsUnknownAndManagedFields
+--- PASS: TestValidateAggregateQueryAllowsNotGroupOperator (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsNonIndexFriendlyPredicateOperator (0.00s)
+--- PASS: TestValidateRecordCreateRequiresNonNullableFields (0.00s)
+--- PASS: TestValidateRecordPatchAllowsOmittedNonNullableFields (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsDeepFilter (0.00s)
+--- PASS: TestValidateAggregateQueryRejectsInvalidNotArity (0.00s)
+--- PASS: TestValidateRecordRejectsUnknownAndManagedFields (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion	1.081s
+=== RUN   TestAuthorizedPublishedRecordOwner
+--- PASS: TestAuthorizedPublishedRecordOwner (0.52s)
+=== RUN   TestEffectsReceiptAtomicity
+=== RUN   TestEffectsReceiptAtomicity/replay
+=== RUN   TestEffectsReceiptAtomicity/outbox_failure
+=== RUN   TestEffectsReceiptAtomicity/receipt_failure
+=== RUN   TestEffectsReceiptAtomicity/owner_failure
+=== RUN   TestEffectsReceiptAtomicity/restricted
+=== RUN   TestEffectsReceiptAtomicity/grant_denial
+=== RUN   TestEffectsReceiptAtomicity/cancel_after_effects
+=== RUN   TestEffectsReceiptAtomicity/batch
+--- PASS: TestEffectsReceiptAtomicity (1.10s)
+    --- PASS: TestEffectsReceiptAtomicity/replay (0.18s)
+    --- PASS: TestEffectsReceiptAtomicity/outbox_failure (0.20s)
+    --- PASS: TestEffectsReceiptAtomicity/receipt_failure (0.14s)
+    --- PASS: TestEffectsReceiptAtomicity/owner_failure (0.11s)
+    --- PASS: TestEffectsReceiptAtomicity/restricted (0.15s)
+    --- PASS: TestEffectsReceiptAtomicity/grant_denial (0.12s)
+    --- PASS: TestEffectsReceiptAtomicity/cancel_after_effects (0.09s)
+    --- PASS: TestEffectsReceiptAtomicity/batch (0.10s)
+=== RUN   TestEffectsValidationBeforeWrites
+=== RUN   TestEffectsValidationBeforeWrites/tenant
+=== RUN   TestEffectsValidationBeforeWrites/event_tenant
+=== RUN   TestEffectsValidationBeforeWrites/table_name
+=== RUN   TestEffectsValidationBeforeWrites/pair_key
+=== RUN   TestEffectsValidationBeforeWrites/pair_time
+=== RUN   TestEffectsValidationBeforeWrites/invalid_json
+=== RUN   TestEffectsValidationBeforeWrites/utf8
+=== RUN   TestEffectsValidationBeforeWrites/precision
+=== RUN   TestEffectsValidationBeforeWrites/row_bytes
+--- PASS: TestEffectsValidationBeforeWrites (0.10s)
+    --- PASS: TestEffectsValidationBeforeWrites/tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/event_tenant (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/table_name (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_key (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/pair_time (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/invalid_json (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/utf8 (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/precision (0.00s)
+    --- PASS: TestEffectsValidationBeforeWrites/row_bytes (0.00s)
+=== RUN   TestEffectsBulkWrites
+=== RUN   TestEffectsBulkWrites/500_records
+=== RUN   TestEffectsBulkWrites/late_validation
+=== RUN   TestEffectsBulkWrites/late_duplicate
+=== RUN   TestEffectsBulkWrites/byte_limit
+--- PASS: TestEffectsBulkWrites (0.73s)
+    --- PASS: TestEffectsBulkWrites/500_records (0.21s)
+    --- PASS: TestEffectsBulkWrites/late_validation (0.11s)
+    --- PASS: TestEffectsBulkWrites/late_duplicate (0.33s)
+    --- PASS: TestEffectsBulkWrites/byte_limit (0.08s)
+=== RUN   TestIngestionInstallationLineage
+--- PASS: TestIngestionInstallationLineage (1.37s)
+=== RUN   TestLegacyReceiptTranslation
+=== RUN   TestLegacyReceiptTranslation/single
+=== RUN   TestLegacyReceiptTranslation/batch
+--- PASS: TestLegacyReceiptTranslation (0.95s)
+    --- PASS: TestLegacyReceiptTranslation/single (0.44s)
+    --- PASS: TestLegacyReceiptTranslation/batch (0.51s)
+=== RUN   TestLegacyReceiptRejectsMissingOrConflictingEvidence
+--- PASS: TestLegacyReceiptRejectsMissingOrConflictingEvidence (0.34s)
+=== RUN   TestLookupGuards
+=== RUN   TestLookupGuards/missing_key_serialized
+=== RUN   TestLookupGuards/opposite_batch_orders
+=== RUN   TestLookupGuards/collision_only_serializes
+=== RUN   TestLookupGuards/invalid_keys_and_scope
+--- PASS: TestLookupGuards (0.49s)
+    --- PASS: TestLookupGuards/missing_key_serialized (0.19s)
+    --- PASS: TestLookupGuards/opposite_batch_orders (0.03s)
+    --- PASS: TestLookupGuards/collision_only_serializes (0.01s)
+    --- PASS: TestLookupGuards/invalid_keys_and_scope (0.06s)
+=== RUN   TestRestrictedWriteCoordination
+--- PASS: TestRestrictedWriteCoordination (0.22s)
+=== RUN   TestCanonicalReceiptReplay
+--- PASS: TestCanonicalReceiptReplay (0.06s)
+=== RUN   TestReceiptLostCommit
+[mysql] 2026/10/29 10:21:27 connection.go:189 closing connection:close tcp 172.21.0.3:60502->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:21:27 packets.go:58 unexpected EOF
+--- PASS: TestReceiptLostCommit (0.10s)
+=== RUN   TestReceiptBoundsAndLocalAuthorization
+--- PASS: TestReceiptBoundsAndLocalAuthorization (0.08s)
+=== RUN   TestReceiptInvalidResponseRollback
+=== RUN   TestReceiptInvalidResponseRollback/invalid
+=== RUN   TestReceiptInvalidResponseRollback/invalid#01
+--- PASS: TestReceiptInvalidResponseRollback (0.10s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid (0.05s)
+    --- PASS: TestReceiptInvalidResponseRollback/invalid#01 (0.05s)
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+=== RUN   TestReceiptExecution/concurrent
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+=== RUN   TestReceiptExecution/cancel
+=== RUN   TestReceiptExecution/restricted
+--- PASS: TestReceiptExecution (0.91s)
+    --- PASS: TestReceiptExecution/replay (0.07s)
+    --- PASS: TestReceiptExecution/concurrent (0.11s)
+    --- PASS: TestReceiptExecution/rollback (0.07s)
+    --- PASS: TestReceiptExecution/result_limit (0.07s)
+    --- PASS: TestReceiptExecution/key_collision (0.20s)
+    --- PASS: TestReceiptExecution/cancel (0.27s)
+    --- PASS: TestReceiptExecution/restricted (0.13s)
+=== RUN   TestKeyedRecordOwnerAtomicity
+=== RUN   TestKeyedRecordOwnerAtomicity/replay
+=== RUN   TestKeyedRecordOwnerAtomicity/batch
+=== RUN   TestKeyedRecordOwnerAtomicity/outbox_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/receipt_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/late_unique
+=== RUN   TestKeyedRecordOwnerAtomicity/validation
+=== RUN   TestKeyedRecordOwnerAtomicity/audit_failure
+=== RUN   TestKeyedRecordOwnerAtomicity/revoked
+=== RUN   TestKeyedRecordOwnerAtomicity/frozen_input
+=== RUN   TestKeyedRecordOwnerAtomicity/concurrent
+--- PASS: TestKeyedRecordOwnerAtomicity (3.74s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/replay (0.36s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/batch (0.43s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/outbox_failure (0.36s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/receipt_failure (0.34s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/late_unique (0.40s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/validation (0.45s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/audit_failure (0.35s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/revoked (0.35s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/frozen_input (0.33s)
+    --- PASS: TestKeyedRecordOwnerAtomicity/concurrent (0.38s)
+=== RUN   TestKeyedRecordOwnerScopeAndDuplicateValidation
+--- PASS: TestKeyedRecordOwnerScopeAndDuplicateValidation (0.34s)
+=== RUN   TestKeyedRecordOwnerLostCommit
+[mysql] 2026/10/29 10:21:33 connection.go:189 closing connection:close tcp 172.21.0.3:53450->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:21:33 packets.go:58 unexpected EOF
+--- PASS: TestKeyedRecordOwnerLostCommit (0.40s)
+=== RUN   TestKeyedRecordOwnerRestrictedGrants
+--- PASS: TestKeyedRecordOwnerRestrictedGrants (0.39s)
+=== RUN   TestPhysicalTransactionReceipt
+=== RUN   TestPhysicalTransactionReceipt/replay
+=== RUN   TestPhysicalTransactionReceipt/owner_rollback
+=== RUN   TestPhysicalTransactionReceipt/receipt_rollback
+=== RUN   TestPhysicalTransactionReceipt/lost_commit
+[mysql] 2026/10/29 10:21:35 connection.go:189 closing connection:close tcp 172.21.0.3:53584->172.21.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 10:21:35 packets.go:58 unexpected EOF
+--- PASS: TestPhysicalTransactionReceipt (1.52s)
+    --- PASS: TestPhysicalTransactionReceipt/replay (0.36s)
+    --- PASS: TestPhysicalTransactionReceipt/owner_rollback (0.37s)
+    --- PASS: TestPhysicalTransactionReceipt/receipt_rollback (0.36s)
+    --- PASS: TestPhysicalTransactionReceipt/lost_commit (0.43s)
+=== RUN   TestPhysicalLookupForcedCollision
+--- PASS: TestPhysicalLookupForcedCollision (0.45s)
+=== RUN   TestPhysicalRecordWriter
+--- PASS: TestPhysicalRecordWriter (0.89s)
+=== RUN   TestPhysicalWriterRestrictedLookup
+--- PASS: TestPhysicalWriterRestrictedLookup (0.40s)
+=== RUN   TestIngestionWorkRestrictedGrants
+--- PASS: TestIngestionWorkRestrictedGrants (0.78s)
+=== RUN   TestIngestionWorkLifecycle
+=== RUN   TestIngestionWorkLifecycle/deferred
+=== RUN   TestIngestionWorkLifecycle/upload
+=== RUN   TestIngestionWorkLifecycle/validation
+=== RUN   TestIngestionWorkLifecycle/malformed_csv
+=== RUN   TestIngestionWorkLifecycle/stale
+=== RUN   TestIngestionWorkLifecycle/completion_rollback
+=== RUN   TestIngestionWorkLifecycle/enqueue_rollback
+=== RUN   TestIngestionWorkLifecycle/identity
+=== RUN   TestIngestionWorkLifecycle/public_key
+=== RUN   TestIngestionWorkLifecycle/future
+--- PASS: TestIngestionWorkLifecycle (5.33s)
+    --- PASS: TestIngestionWorkLifecycle/deferred (0.55s)
+    --- PASS: TestIngestionWorkLifecycle/upload (0.78s)
+    --- PASS: TestIngestionWorkLifecycle/validation (0.63s)
+    --- PASS: TestIngestionWorkLifecycle/malformed_csv (0.54s)
+    --- PASS: TestIngestionWorkLifecycle/stale (0.57s)
+    --- PASS: TestIngestionWorkLifecycle/completion_rollback (0.51s)
+    --- PASS: TestIngestionWorkLifecycle/enqueue_rollback (0.45s)
+    --- PASS: TestIngestionWorkLifecycle/identity (0.41s)
+    --- PASS: TestIngestionWorkLifecycle/public_key (0.48s)
+    --- PASS: TestIngestionWorkLifecycle/future (0.40s)
+=== RUN   TestIngestionWorkRunnerAndConcurrentClaims
+--- PASS: TestIngestionWorkRunnerAndConcurrentClaims (0.76s)
+=== RUN   TestIngestionWorkScopeAndPrivateReceipts
+--- PASS: TestIngestionWorkScopeAndPrivateReceipts (0.51s)
+=== RUN   TestWorkCSVBounds
+--- PASS: TestWorkCSVBounds (0.00s)
+=== RUN   TestIngestionWorkRecovery
+=== RUN   TestIngestionWorkRecovery/retry
+=== RUN   TestIngestionWorkRecovery/expiry
+=== RUN   TestIngestionWorkRecovery/noop
+--- PASS: TestIngestionWorkRecovery (1.29s)
+    --- PASS: TestIngestionWorkRecovery/retry (0.45s)
+    --- PASS: TestIngestionWorkRecovery/expiry (0.40s)
+    --- PASS: TestIngestionWorkRecovery/noop (0.45s)
+=== RUN   TestWriteBarrierSnapshot
+=== RUN   TestWriteBarrierSnapshot/ready
+=== RUN   TestWriteBarrierSnapshot/stale
+=== RUN   TestWriteBarrierSnapshot/tenant
+=== RUN   TestWriteBarrierSnapshot/closed
+=== RUN   TestWriteBarrierSnapshot/archived
+=== RUN   TestWriteBarrierSnapshot/retired
+=== RUN   TestWriteBarrierSnapshot/active_operation
+=== RUN   TestWriteBarrierSnapshot/missing_mapping
+=== RUN   TestWriteBarrierSnapshot/bad_name
+=== RUN   TestWriteBarrierSnapshot/field_limit
+--- PASS: TestWriteBarrierSnapshot (1.99s)
+    --- PASS: TestWriteBarrierSnapshot/ready (0.17s)
+    --- PASS: TestWriteBarrierSnapshot/stale (0.20s)
+    --- PASS: TestWriteBarrierSnapshot/tenant (0.32s)
+    --- PASS: TestWriteBarrierSnapshot/closed (0.15s)
+    --- PASS: TestWriteBarrierSnapshot/archived (0.13s)
+    --- PASS: TestWriteBarrierSnapshot/retired (0.13s)
+    --- PASS: TestWriteBarrierSnapshot/active_operation (0.17s)
+    --- PASS: TestWriteBarrierSnapshot/missing_mapping (0.31s)
+    --- PASS: TestWriteBarrierSnapshot/bad_name (0.28s)
+    --- PASS: TestWriteBarrierSnapshot/field_limit (0.13s)
+=== RUN   TestWriteBarrierBlocksDDLPreparation
+--- PASS: TestWriteBarrierBlocksDDLPreparation (0.30s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	27.233s

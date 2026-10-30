@@ -14,6 +14,10 @@ import (
 )
 
 func restrictedPresentationPool(t *testing.T, ctx context.Context, db *sql.DB, database string) (*sql.DB, string) {
+	return restrictedOwnerPool(t, ctx, db, database, installation.PresentationOwnerPolicy)
+}
+
+func restrictedOwnerPool(t *testing.T, ctx context.Context, db *sql.DB, database string, policyFor func(installation.Definer, bool) (installation.AccountPolicy, error)) (*sql.DB, string) {
 	t.Helper()
 	principal := installation.Definer{User: "pr_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:24], Host: "%"}
 	account, err := principal.SQLAccount()
@@ -28,7 +32,7 @@ func restrictedPresentationPool(t *testing.T, ctx context.Context, db *sql.DB, d
 			t.Error(e)
 		}
 	})
-	policy, err := installation.PresentationOwnerPolicy(principal, false)
+	policy, err := policyFor(principal, false)
 	if err != nil {
 		t.Fatal(err)
 	}

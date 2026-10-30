@@ -1,0 +1,24 @@
+=== RUN   TestReceiptExecution
+=== RUN   TestReceiptExecution/replay
+    receipts_test.go:205: Error 3819 (HY000): Check constraint 'ingestion_request_receipts_chk_4' is violated.
+=== RUN   TestReceiptExecution/concurrent
+    receipts_test.go:169: Error 3819 (HY000): Check constraint 'ingestion_request_receipts_chk_4' is violated.
+=== RUN   TestReceiptExecution/rollback
+=== RUN   TestReceiptExecution/result_limit
+=== RUN   TestReceiptExecution/key_collision
+    receipts_test.go:205: Error 3819 (HY000): Check constraint 'ingestion_request_receipts_chk_4' is violated.
+=== RUN   TestReceiptExecution/cancel
+    receipts_test.go:205: Error 3819 (HY000): Check constraint 'ingestion_request_receipts_chk_4' is violated.
+=== RUN   TestReceiptExecution/restricted
+    receipts_test.go:205: Error 1143 (42000): SELECT command denied to user 'ir_b483591c6b764be5b2265f66'@'172.21.0.3' for column 'key_digest' in table 'ingestion_receipt_buckets'
+--- FAIL: TestReceiptExecution (0.39s)
+    --- FAIL: TestReceiptExecution/replay (0.05s)
+    --- FAIL: TestReceiptExecution/concurrent (0.04s)
+    --- PASS: TestReceiptExecution/rollback (0.04s)
+    --- PASS: TestReceiptExecution/result_limit (0.04s)
+    --- FAIL: TestReceiptExecution/key_collision (0.04s)
+    --- FAIL: TestReceiptExecution/cancel (0.14s)
+    --- FAIL: TestReceiptExecution/restricted (0.04s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	0.409s
+FAIL

@@ -30,3 +30,9 @@ type MetadataResultPublicationManager interface {
 	PublishTable(context.Context, MetadataPublicationRequest, func(MutationStore) error) (datamodel.Table, error)
 	PublishField(context.Context, MetadataPublicationRequest, uuid.UUID, func(MutationStore) error) (datamodel.Field, error)
 }
+
+// OptionsPublicationManager retains the original ordered options response in
+// the same authorized transaction as publication and owner effects.
+type OptionsPublicationManager interface {
+	PublishOptions(context.Context, MetadataPublicationRequest, func(MutationStore) error) (datamodel.TableOptions, error)
+}

@@ -18,7 +18,7 @@ func TestDecisionDispatchPublicationAndRollback(t *testing.T) {
 		matches, events int
 		status          string
 	}{
-		{"matched", true, false, 2, 1, "awaiting_review"}, {"partial-empty", true, true, 0, 1, "awaiting_review"}, {"complete-empty", true, false, 0, 0, "no_hit"}, {"freeform-unchanged", false, true, 0, 0, "no_hit"},
+		{"matched", true, false, 2, 1, "awaiting_review"}, {"partial-empty", true, true, 0, 1, "awaiting_review"}, {"complete-empty", true, false, 0, 0, "no_hit"}, {"freeform-partial-without-auto-case", false, true, 0, 0, "awaiting_review"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			id := uuid.NewString()

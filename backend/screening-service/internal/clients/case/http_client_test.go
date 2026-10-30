@@ -5,6 +5,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,6 +27,17 @@ func TestAuthenticatedDelivery(t *testing.T) {
 	for _, client := range []HTTPClient{NewHTTPClient("", "token", time.Second), NewHTTPClient("http://unused", "", time.Second)} {
 		if err := client.PublishScreeningReviewed(context.Background(), ports.ScreeningReviewedCommand{}); err == nil {
 			t.Fatal("missing integration configuration reported delivery")
+		}
+	}
+}
+
+func TestCallbackErrorsDoNotExposeEndpoint(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, endpoint := range []string{"http://private.invalid/private-secret", "http://%private-secret"} {
+		err := NewHTTPClient(endpoint, "secret-token", time.Second).PublishScreeningReviewed(ctx, ports.ScreeningReviewedCommand{})
+		if err == nil || strings.Contains(err.Error(), "private-secret") || strings.Contains(err.Error(), "private.invalid") {
+			t.Fatalf("callback endpoint leaked: %v", err)
 		}
 	}
 }

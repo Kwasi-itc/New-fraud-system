@@ -7,18 +7,17 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 )
 
 type DeferredIngestHandler struct {
-	service service.DeferredIngestService
+	service DeferredService
 }
 
 type DeferredIngestMetricsHandler struct {
 	provider func(*gin.Context) (any, error)
 }
 
-func NewDeferredIngestHandler(service service.DeferredIngestService) DeferredIngestHandler {
+func NewDeferredIngestHandler(service DeferredService) DeferredIngestHandler {
 	return DeferredIngestHandler{service: service}
 }
 

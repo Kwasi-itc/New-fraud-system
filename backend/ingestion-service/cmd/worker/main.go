@@ -75,7 +75,6 @@ func main() {
 		uuidGenerator{},
 		systemClock{},
 		cfg.WorkerMaxAttempts,
-		riverjobs.NoopUploadLogEnqueuer{},
 	)
 	deferredIngestService := service.NewDeferredIngestService(
 		storepostgres.NewDeferredIngestRepository(db),
@@ -84,7 +83,6 @@ func main() {
 		uuidGenerator{},
 		systemClock{},
 		cfg.WorkerMaxAttempts,
-		riverjobs.NoopDeferredIngestEnqueuer{},
 	)
 
 	workers := river.NewWorkers()

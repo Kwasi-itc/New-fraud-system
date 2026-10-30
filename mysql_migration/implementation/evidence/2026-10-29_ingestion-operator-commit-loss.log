@@ -1,0 +1,6 @@
+=== RUN   TestWorkOperatorLostCommit
+[mysql] 2026/10/29 12:17:42 connection.go:189 closing connection:close tcp 172.23.0.3:43676->172.23.0.2:3306: use of closed network connection
+[mysql] 2026/10/29 12:17:42 packets.go:58 unexpected EOF
+--- PASS: TestWorkOperatorLostCommit (7.58s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	8.653s

@@ -12,7 +12,6 @@ import (
 
 func TestUploadLogHandlerRejectsWhenWriteConcurrencyLimitReached(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	writeLimiter := make(chan struct{}, 1)
 	handler := NewUploadLogHandler(service.UploadLogService{}, UploadLogHandlerConfig{

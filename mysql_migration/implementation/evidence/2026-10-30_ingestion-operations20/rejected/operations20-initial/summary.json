@@ -1,0 +1,49 @@
+{
+  "Summary": {
+    "Discovered": 25,
+    "Executed": 25,
+    "Passed": 23,
+    "Failed": 3,
+    "Skipped": 0,
+    "Error": "exit status 1\nempty, skipped or failed required suite"
+  },
+  "Tests": [
+    "TestProcessLostCommitAcknowledgement",
+    "TestProcessWriteBaseline",
+    "TestProcessWorkerInterruption",
+    "TestProcessWorkerCommitLoss",
+    "TestProcessMalformedWork",
+    "TestProcessRetryExhaustion",
+    "TestProcessDependencyOutage",
+    "TestProcessOperatorRecovery",
+    "TestProcessReadContracts",
+    "TestProcessReadRevocation",
+    "TestProcessStartupChecks",
+    "TestProcessAPIRuntimeGrants",
+    "TestProcessUploadLifecycle",
+    "TestProcessDeferredLifecycle",
+    "TestProcessScheduledKinds",
+    "TestProcessCompetingWorkers",
+    "TestProcessScopedWorkerClaims",
+    "TestProcessFailedWorkDetails",
+    "TestProcessIdenticalReceipts",
+    "TestProcessConflictingReceipts",
+    "TestProcessAlternateUniqueRace",
+    "TestProcessEffectGrantRollback",
+    "TestProcessCancellationBeforeCommit",
+    "TestProcessOrderedPatches",
+    "TestProcessLimitsAndAuthentication"
+  ],
+  "Command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-json",
+    "-race",
+    "-count=1",
+    "-timeout=360s",
+    "./internal/store/mysql",
+    "-run",
+    "^TestProcess"
+  ]
+}

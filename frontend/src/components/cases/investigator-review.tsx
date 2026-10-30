@@ -2,11 +2,10 @@
 
 import { useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ShieldCheck, UserCheck } from "lucide-react";
+import { CheckCircle2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { caseKeys } from "@/lib/case-manager-query";
 import { fieldClass, Problem, readable } from "./shared";
-import { StatusPill } from "./structured-data-viewer";
 import { cn } from "@/lib/utils";
 
 type ReviewState = {
@@ -108,7 +107,7 @@ export function InvestigatorReview({
 
               {!query.data.eligible ? (
                 <p className="text-sm text-slate-500 italic">
-                  No first-review action is available. Reviews require an open case in an active inbox and an eligible pending resource.
+                  No action is available. Review and exclusion changes require current case access, an open case and an active inbox.
                 </p>
               ) : (
                 <form
@@ -119,10 +118,10 @@ export function InvestigatorReview({
                     if (
                       !action ||
                       !findings.trim() ||
-                      new TextEncoder().encode(findings.trim()).length > 10000
+                      new TextEncoder().encode(findings.trim()).length > (action === "dismiss_and_exclude" || action === "remove_exclusion" ? 9900 : 10000)
                     ) {
                       setError(
-                        new Error("Choose an action and enter findings of 1–10000 UTF-8 bytes.")
+                        new Error(`Choose an action and enter findings of 1–${action === "dismiss_and_exclude" || action === "remove_exclusion" ? 9900 : 10000} UTF-8 bytes.`)
                       );
                       return;
                     }
@@ -150,6 +149,7 @@ export function InvestigatorReview({
                       if (!response.ok) throw new Error(data.error ?? "Review failed.");
                       setSaved(true);
                       setConfirm(false);
+                      setAction("");
                       await client.invalidateQueries({
                         queryKey: caseKeys.scope(tenant, session),
                       });
@@ -181,10 +181,12 @@ export function InvestigatorReview({
                       <option value="">Choose an action</option>
                       {query.data.actions.map((value) => (
                         <option key={value} value={value}>
-                          {readable(value)}
+                          {value === "dismiss_and_exclude" ? "Dismiss and exclude for this monitored object" : value === "remove_exclusion" ? "Remove exclusion for future screenings" : readable(value)}
                         </option>
                       ))}
                     </select>
+                    {action === "dismiss_and_exclude" && <p className="text-sm text-amber-900">Future continuous screenings will skip this provider entity only for this object and unchanged identifying query fields. Suppressed candidates remain stored. This does not exclude other customers or manual searches.</p>}
+                    {action === "remove_exclusion" && <p className="text-sm text-blue-900">Future screenings will evaluate this entity again. The historical screening and candidate remain unchanged, including archived screenings. Removal is recorded in case history; removing an exclusion does not trigger a new search.</p>}
 
                     <label className="block text-sm font-semibold uppercase tracking-wider text-slate-600" htmlFor={`${label}-findings`}>
                       Review findings
@@ -221,7 +223,7 @@ export function InvestigatorReview({
 
                     {confirm && (
                       <p role="status" className="rounded-lg bg-blue-50 p-2.5 text-sm font-medium text-blue-900 border border-blue-200">
-                        Confirm {readable(action)}. This first review cannot be edited here.
+                        {action === "remove_exclusion" ? "Confirm removal for future screenings. Historical screening results will not change." : `Confirm ${readable(action)}. This first review cannot be edited here.`}
                       </p>
                     )}
 

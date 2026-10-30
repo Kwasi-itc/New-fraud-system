@@ -59,6 +59,16 @@ func encodePublicationRequest(scope PublicationRequestContext, input any) ([]byt
 		}
 	}
 	switch in := input.(type) {
+	case ReplaceTableOptionsInput:
+		if in.TableID != scope.TableID {
+			return nil, errors.New("options table scope mismatch")
+		}
+		kind = "table_options.replace"
+		body = struct {
+			TableID         uuid.UUID   `json:"table_id"`
+			DisplayedFields []uuid.UUID `json:"displayed_fields"`
+			FieldOrder      []uuid.UUID `json:"field_order"`
+		}{in.TableID, in.DisplayedFields, in.FieldOrder}
 	case CreateNavigationOptionInput:
 		if in.TenantID != scope.TenantID || in.SourceTableID != scope.TableID || in.SourceFieldID == uuid.Nil || in.TargetTableID == uuid.Nil || in.FilterFieldID == uuid.Nil || in.OrderingFieldID == uuid.Nil {
 			return nil, errors.New("navigation create requires scoped source and complete endpoints")

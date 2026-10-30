@@ -1,0 +1,1199 @@
+[
+  {
+    "name": "contract_bound_key",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "t",
+        "access_type": "const",
+        "key": "PRIMARY",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "using_index": null
+      },
+      {
+        "table_name": "c",
+        "access_type": "const",
+        "key": "table_name_key_id",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "using_index": null
+      },
+      {
+        "table_name": "m",
+        "access_type": "const",
+        "key": "PRIMARY",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "using_index": null
+      },
+      {
+        "table_name": "p",
+        "access_type": "const",
+        "key": "PRIMARY",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "1.00"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "t",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "16",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "184"
+              },
+              "used_columns": [
+                "id",
+                "schema_name",
+                "status"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "c",
+              "access_type": "const",
+              "possible_keys": [
+                "tenant_id",
+                "table_name_key_id"
+              ],
+              "key": "table_name_key_id",
+              "used_key_parts": [
+                "table_name_key_id"
+              ],
+              "key_length": "17",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "96"
+              },
+              "used_columns": [
+                "table_id",
+                "tenant_id",
+                "version",
+                "payload",
+                "table_name_key_id"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "m",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY",
+                "tenant_id",
+                "data_model_tables_created"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "16",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "136"
+              },
+              "used_columns": [
+                "id",
+                "tenant_id",
+                "archived"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "p",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY",
+                "table_id",
+                "data_model_physical_active_intent"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "tenant_id",
+                "table_id"
+              ],
+              "key_length": "32",
+              "ref": [
+                "const",
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "176"
+              },
+              "used_columns": [
+                "tenant_id",
+                "table_id",
+                "published_version",
+                "write_state"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "exact_previous_scan",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 100,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 100,
+          "filtered": "10.00",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "10.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "10K"
+          },
+          "used_columns": [
+            "record_object_key_id",
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_967f2145dd1244caa1475667485caaa2_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "((`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`record_object_key_id` = `ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`data_model_find_record_object_key_v1`('?\u000e\u00100\\??D\\??\u001b\\?\\?\u0011T??','\\?\\?\\?J;DHw?)?\u000f?\u00c4\u00a8n','record-0500')) and (cast(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_967f2145dd1244caa1475667485caaa2_value` as char charset binary) = 'record-0500'))"
+        }
+      }
+    }
+  },
+  {
+    "name": "exact_bound_key",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "const",
+        "key": "record_object_key_id",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "1.00"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "const",
+          "possible_keys": [
+            "record_object_key_id"
+          ],
+          "key": "record_object_key_id",
+          "used_key_parts": [
+            "record_object_key_id"
+          ],
+          "key_length": "17",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 1,
+          "rows_produced_per_join": 1,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.00",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.00",
+            "data_read_per_join": "104"
+          },
+          "used_columns": [
+            "record_object_key_id",
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_967f2145dd1244caa1475667485caaa2_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "selection_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_967f2145dd1244caa1475667485caaa2_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "count_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "index",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "index",
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "sum_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "AVG_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "index",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "index",
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "MIN_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "index",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "index",
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "MAX_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "index",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 1000,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "index",
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 1000,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "100.00",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "COUNT DISTINCT_unfiltered",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 1001,
+        "rows_produced_per_join": 1001,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "100.10"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 1001,
+          "rows_produced_per_join": 1001,
+          "filtered": "100.00",
+          "using_index_for_group_by": "scanning",
+          "cost_info": {
+            "read_cost": "0.00",
+            "eval_cost": "100.10",
+            "prefix_cost": "100.10",
+            "data_read_per_join": "101K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "selection_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_967f2145dd1244caa1475667485caaa2_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "count_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "name": "sum_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.76"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "index_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)",
+          "cost_info": {
+            "read_cost": "3.76",
+            "eval_cost": "1.00",
+            "prefix_cost": "4.76",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "AVG_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "name": "MIN_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "name": "MAX_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "name": "COUNT DISTINCT_unique_range",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "range",
+        "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "using_index": true
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.26"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "range",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key": "field_value_dd5e2cc40214475384fe19b8f4c16350_value",
+          "used_key_parts": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "key_length": "5",
+          "rows_examined_per_scan": 10,
+          "rows_produced_per_join": 10,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "1.27",
+            "eval_cost": "1.00",
+            "prefix_cost": "2.27",
+            "data_read_per_join": "1K"
+          },
+          "used_columns": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_dd5e2cc40214475384fe19b8f4c16350_value` >= 990)"
+        }
+      }
+    }
+  },
+  {
+    "name": "selection_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_967f2145dd1244caa1475667485caaa2_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "count_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "sum_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "AVG_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "MIN_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "MAX_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  },
+  {
+    "name": "COUNT DISTINCT_unindexed_amount",
+    "dataset_rows": 1000,
+    "tables": [
+      {
+        "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+        "access_type": "ALL",
+        "key": null,
+        "rows_examined_per_scan": 1000,
+        "rows_produced_per_join": 333,
+        "using_index": null
+      }
+    ],
+    "plan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "102.50"
+        },
+        "table": {
+          "table_name": "tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e",
+          "access_type": "ALL",
+          "possible_keys": [
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "rows_examined_per_scan": 1000,
+          "rows_produced_per_join": 333,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "2.50",
+            "eval_cost": "33.33",
+            "prefix_cost": "102.50",
+            "data_read_per_join": "33K"
+          },
+          "used_columns": [
+            "field_value_4e54f9370970460c81a25847fab40d0d_value",
+            "field_value_dd5e2cc40214475384fe19b8f4c16350_value"
+          ],
+          "attached_condition": "(`ingestion_full_test_691886eb95544f00ba2ae4c35764e0c3`.`tenant_test_records_d6f7ee4a3b444877b929880fa3c4a86e`.`field_value_4e54f9370970460c81a25847fab40d0d_value` >= 9)"
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,38 @@
+=== RUN   TestRecordSumCompilation
+--- PASS: TestRecordSumCompilation (0.40s)
+=== RUN   TestRecordSumIntegerPrecision
+--- PASS: TestRecordSumIntegerPrecision (0.48s)
+=== RUN   TestRecordSumFloatAndEmptyInputs
+--- PASS: TestRecordSumFloatAndEmptyInputs (0.46s)
+=== RUN   TestRecordSumDecoderBounds
+--- PASS: TestRecordSumDecoderBounds (0.00s)
+=== RUN   TestRecordSumFailuresAndOverflow
+    record_sum_test.go:174: stored min=1.7976931348623157e+308 max=1.7976931348623157e+308
+    record_sum_test.go:175: overflow fixture: nonnull=4 total=4 rawSum=0 type=float64
+--- PASS: TestRecordSumFailuresAndOverflow (0.46s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.840s
+=== RUN   TestRecordCountMappedTypes
+--- PASS: TestRecordCountMappedTypes (0.41s)
+=== RUN   TestRecordCountFilteredEmptyAndNull
+--- PASS: TestRecordCountFilteredEmptyAndNull (0.39s)
+=== RUN   TestRecordCountCompilationAndBounds
+--- PASS: TestRecordCountCompilationAndBounds (0.37s)
+=== RUN   TestRecordCountDecoding
+--- PASS: TestRecordCountDecoding (0.00s)
+=== RUN   TestRecordCountErrorsAreNotZeroSuccess
+--- PASS: TestRecordCountErrorsAreNotZeroSuccess (0.35s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.558s
+=== RUN   TestRecordQueryLimitConfiguration
+--- PASS: TestRecordQueryLimitConfiguration (0.01s)
+=== RUN   TestRecordQueryValueAccounting
+--- PASS: TestRecordQueryValueAccounting (0.00s)
+=== RUN   TestRecordQueryCompositionBudget
+--- PASS: TestRecordQueryCompositionBudget (0.45s)
+=== RUN   TestRecordQuerySelection
+--- PASS: TestRecordQuerySelection (0.48s)
+=== RUN   TestRecordQueryRejectsBeforeExecution
+--- PASS: TestRecordQueryRejectsBeforeExecution (0.84s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql	2.828s

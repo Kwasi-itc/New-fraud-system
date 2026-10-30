@@ -1,0 +1,43 @@
+{
+  "accepted-1": {
+    "Discovered": 32,
+    "Executed": 32,
+    "Passed": 32,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "accepted-2": {
+    "Discovered": 32,
+    "Executed": 32,
+    "Passed": 32,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "operations20-component-regressions.jsonl": {
+    "Passed": 21,
+    "Failed": 0,
+    "SkippedTests": 0,
+    "PackagesWithoutTests": []
+  },
+  "operations20-handler-accepted.jsonl": {
+    "Passed": 28,
+    "Failed": 0,
+    "SkippedTests": 0,
+    "PackagesWithoutTests": [
+      "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto"
+    ]
+  },
+  "operations20-connector-regression.jsonl": {
+    "Passed": 1,
+    "Failed": 0,
+    "SkippedTests": 0,
+    "PackagesWithoutTests": []
+  },
+  "full-schema": {
+    "Discovered": 13,
+    "Executed": 13,
+    "Passed": 13,
+    "Failed": 0,
+    "Skipped": 0
+  }
+}

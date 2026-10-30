@@ -15,11 +15,72 @@ Use the common [schema contract](../04_schema_and_data_access_design.md), [secur
 ## Implementation checklist
 
 - [ ] **DB-01.1 ? IN_PROGRESS:** DB-01: implement driver/codecs/transaction/error contract and contract tests, then migrate ports without leaking sql.Tx into unrelated domain logic.
-- [ ] **DB-01.2 ? NOT_STARTED:** Q-01: inventory every kind, payload, retry, unique scope, schedule, timeout, cancellation and domain effect; implement claims/fencing/retention/operator visibility.
+- [ ] **DB-01.2 ? IN_PROGRESS:** Q-01: inventory every kind, payload, retry, unique scope, schedule, timeout, cancellation and domain effect; implement claims/fencing/retention/operator visibility. Ingestion shared mechanics and scoped acceptance exist; the cross-service operational gate remains open. See the current inventory below.
 - [ ] **DB-01.3 ? NOT_STARTED:** SC-01/OP-01: implement ledger/checksum, fixed routine deployment/privileges and schema compatibility checks; coordinate bootstrap dependency passes.
 - [ ] **DB-01.4 ? NOT_STARTED:** V-01: test pool reuse/session settings, cancellation, cleanup, enqueue rollback, lost acknowledgement, reaper races and versioned job migration.
 
 ## Verified foundation subtasks
+
+### Q-01 fresh-deployment review inventory (2026-10-30)
+
+Confirmed 15 source River kinds by inspecting `Kind()` implementations. This is
+the source registration/identity inventory, not proof that all consumers have
+MySQL adapters or operational acceptance. Sources below are relative to `backend/`.
+Retry/uniqueness/timeout/effect contracts still require owner-specific review;
+absence of legacy data removes transfer work, not those runtime obligations.
+
+| Owner and source directory | Kind | Queue | Payload identity |
+|---|---|---|---|
+| data-model-service/internal/riverjobs | index_job_execute | index_jobs | index_job_id |
+| ingestion-service/internal/riverjobs | upload_log_execute | upload_logs | upload_log_id |
+| ingestion-service/internal/riverjobs | deferred_ingest_execute | deferred_ingests | deferred_ingest_id |
+| decision-engine-service/internal/riverjobs | async_decision_execution | async_decision_executions | execution_id |
+| decision-engine-service/internal/riverjobs | async_decision_execution_callback | async_decision_execution_callbacks | tenant_id, execution_id |
+| decision-engine-service/internal/riverjobs | outbox_event | outbox_events | tenant_id, event_id |
+| decision-engine-service/internal/riverjobs | scheduled_execution | scheduled_executions | execution_id |
+| decision-engine-service/internal/riverjobs | scoring_request | scoring_requests | tenant_id, request_id |
+| decision-engine-service/internal/riverjobs | screening_execution | screening_executions | tenant_id, execution_id |
+| decision-engine-service/internal/riverjobs | workflow_execution | workflow_executions | tenant_id, execution_id |
+| screening-service/internal/riverjobs | screening_dispatch | screening_dispatch | tenant_id, screening_id |
+| screening-service/internal/riverjobs | monitored_object | monitored_objects | tenant_id, monitored_object_id |
+| screening-service/internal/riverjobs | dataset_update_job | dataset_update_jobs | tenant_id, job_id |
+| case-manager-service/internal/worker/maintenance.go | case_maintenance | case_maintenance | empty periodic command |
+| case-manager-service/internal/worker/maintenance.go | case_delivery | case_delivery | empty periodic command |
+
+Tenant-less payloads are not tenant authorization. Their workers must recover
+trusted owner scope from the referenced record; the two periodic case kinds have
+separate maintenance/delivery authority. Do not copy an ingestion receipt contract
+onto external network delivery or treat job acknowledgment as delivered effects.
+
+The existing ingestion verifier now accepts `INGESTION_VERIFY_SUITE=queue`.
+It discovers and executes the same selected tests with the race detector, refusing
+zero discovery, skips, failures, duplicate execution or missing passes. It selects
+ingestion lifecycle/recovery/grants, operator cancellation/redrive, inspection,
+telemetry and complete-schema redrive/metrics tests. Default full-schema and
+`process` suites are preserved. Results include exact test names and command.
+This queue suite is component evidence for IN-01.2.057, not whole-system approval.
+
+Reproduce only in the disposable ingestion Compose verifier, from the ingestion
+module, with a fresh output directory and the existing owner fixture exporter:
+
+```sh
+INGESTION_MYSQL_TEST_ADDRESS=mysql:3306 INGESTION_REQUIRE_MYSQL_TEST=1 \
+INGESTION_DATA_MODEL_FIXTURE_EXPORTER=/tmp/ingestion-dm-fixture \
+INGESTION_VERIFY_SUITE=queue go run -mod=readonly ./cmd/verify-mysql-fixture RESULTS_DIR
+```
+
+Before deployment acceptance, record every API/worker replica and every separate
+pool. Sum `replicas * max_open_connections` across all pools and services, add
+migration/monitoring/admin reservations, and compare with the agreed database-wide
+budget. Include rolling-update overlap and transient replacement workers. No
+production budget is supplied yet. Ingestion's isolated configuration currently
+checks `4 * Concurrency <= Pool` (Pool 4..64, Concurrency 1..16); this local check
+does not establish database-wide capacity or sustained throughput.
+
+Remaining Q-01 acceptance: owner contracts and actual adapters for all kinds;
+concurrent workload/connection-budget evidence; recovery and worker supervision;
+retention policy; deployment credentials, readiness and one configured authority.
+Do not mark IN-01.2.057 complete based only on this inventory or ingestion tests.
 
 Parent DB-01 remains IN_PROGRESS: these ticks cover the reusable foundation only,
 not service conversion or production acceptance. Evidence: [execution log](../16_execution_log.md).

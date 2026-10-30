@@ -1,0 +1,33 @@
+{
+  "git_head": "fce2d39d8311ef2b38e9cd11cf411da643427854",
+  "dirty_workspace": true,
+  "source_sha256": {
+    "backend/ingestion-service/internal/store/mysql/installation.go": "038938175610bec06834accc8ba6bcb0f0034c8ca900f3526d19cc0acee1c087",
+    "backend/ingestion-service/internal/store/mysql/installation_test.go": "af0af9c30cc7eeb56489b8ce427a7ae1d24ee14499b2bd27720e8f217db3c75f",
+    "backend/ingestion-service/internal/store/mysql/work_owner.go": "06a4bb79cd35e585929e34ab10f8544ca3023556c2e61a8d318751d56c85e369",
+    "backend/ingestion-service/internal/store/mysql/work_owner_test.go": "9e7c9e261659cb81c017eecdf65e5327f8d74d144367da0168fad8c5796c9a71",
+    "backend/ingestion-service/internal/store/mysql/work_operator.go": "9598c5bdd726f71ebd41191ba8eb51d678ff5133184fd148790fc493059915d1",
+    "backend/ingestion-service/internal/store/mysql/upload_list.go": "bafad998e4b7d1abbfb88ef70cc09172aa85ce9d0c7422ad3b013277ae995570",
+    "backend/ingestion-service/internal/store/mysql/work_redrive.go": "f5c1cf2f2722f688efd7409c00351a1981a0710d1852a3f08b67c243464d5f59",
+    "backend/ingestion-service/internal/store/mysql/work_redrive_test.go": "157ec45b46f1bc2318b5dfde1964e6601b8da9f42f58a2ddc32164b94fc162a5"
+  },
+  "mysql": "8.4.8",
+  "go": "go1.25.8 linux/amd64",
+  "results": {
+    "full_suite": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "operator_regressions": "go test -race -count=1 -timeout=300s ./internal/store/mysql -run TestWork: PASS",
+    "lineage_recovery": "go test -race -count=1 -timeout=300s ./internal/store/mysql -run TestIngestionInstallation: PASS; 23 steps, 69 recovery boundaries",
+    "lost_commit": "go test -race -count=2 -timeout=120s ./internal/store/mysql -run TestWorkRedriveLostCommit: PASS",
+    "vet": "go vet ./internal/store/mysql: PASS"
+  },
+  "limitations": [
+    "staged adapter only",
+    "production API/worker and operator IAM not selected",
+    "independent schema/grants review remains open",
+    "previous draft rejected; rejected-grants is not acceptance evidence"
+  ]
+}

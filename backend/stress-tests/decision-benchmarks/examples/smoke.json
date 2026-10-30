@@ -1,0 +1,10 @@
+{
+  "schema_version": "decision-benchmark/v1",
+  "experiments": [
+    {"name": "L1-numeric", "read_mode": "direct_db"},
+    {"name": "L3-mixed", "read_mode": "direct_db", "route": "all", "scenarios": 2, "rules": 5,
+     "families": ["numeric", "string", "membership", "boolean", "nonnull"]},
+    {"name": "L4-small-history", "read_mode": "direct_db", "rules": 6, "history_rows": 100,
+     "families": ["count", "sum", "avg", "count_distinct", "min", "max"]}
+  ]
+}

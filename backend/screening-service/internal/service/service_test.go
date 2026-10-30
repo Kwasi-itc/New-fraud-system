@@ -345,6 +345,8 @@ type fakeMutationStore struct {
 	datasetJobs *fakeDatasetJobRepo
 }
 
+func (f fakeMutationStore) ObjectExclusions() ports.ObjectExclusionRepository { return nil }
+
 func (f fakeMutationStore) CaseEvents() ports.CaseEventRepository { return f.caseEvents }
 func (f *fakeCasePublisher) Enqueue(_ context.Context, id, tenant, kind string, payload any) error {
 	if kind != "reviewed" {

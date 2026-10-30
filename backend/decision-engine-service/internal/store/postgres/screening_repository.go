@@ -200,12 +200,13 @@ func (r ScreeningExecutionRepository) Update(ctx context.Context, item screening
 			sent_at = $6,
 			completed_at = $7,
 			failed_at = $8
-		where id = $9 AND projection_source_id IS NULL
+		where id = $9 AND tenant_id = $10 AND projection_source_id IS NULL
+			AND ($1 <> 'pending' OR status IN ('failed','sent'))
 		returning id, tenant_id, config_id, decision_id, scenario_id, status, request_json, response_json, provider_reference, last_error, created_at, updated_at, sent_at, completed_at, failed_at
 	`
 	var out screening.Execution
 	var status string
-	err := r.q.QueryRow(ctx, stmt, string(item.Status), responseJSON, item.ProviderReference, item.LastError, item.UpdatedAt, item.SentAt, item.CompletedAt, item.FailedAt, item.ID).
+	err := r.q.QueryRow(ctx, stmt, string(item.Status), responseJSON, item.ProviderReference, item.LastError, item.UpdatedAt, item.SentAt, item.CompletedAt, item.FailedAt, item.ID, item.TenantID).
 		Scan(&out.ID, &out.TenantID, &out.ConfigID, &out.DecisionID, &out.ScenarioID, &status, &out.RequestJSON, &out.ResponseJSON, &out.ProviderReference, &out.LastError, &out.CreatedAt, &out.UpdatedAt, &out.SentAt, &out.CompletedAt, &out.FailedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return screening.Execution{}, fmt.Errorf("execution is missing or source-managed; retry the screening through screening-service")

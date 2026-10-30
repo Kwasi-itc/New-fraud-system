@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/google/uuid","Action":"build-output","Output":"# github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work\n"}
+{"ImportPath":"github.com/google/uuid","Action":"build-output","Output":"work/cancel.go:9:2: cannot find module providing package github.com/google/uuid: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/google/uuid","Action":"build-fail"}
+{"Time":"2026-10-30T08:45:04.25396229Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work"}
+{"Time":"2026-10-30T08:45:04.254796256Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work","Output":"FAIL\tgithub.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work [setup failed]\n"}
+{"Time":"2026-10-30T08:45:04.255367026Z","Action":"fail","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work","Elapsed":0.001,"FailedBuild":"github.com/google/uuid"}
