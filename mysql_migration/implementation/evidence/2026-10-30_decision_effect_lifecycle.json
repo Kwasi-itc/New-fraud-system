@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "scope": "B2 staged four-effect dispatch lifecycle; not runtime activation",
+  "contracts": {
+    "domain_retry": "Expected-current-identity, failed decision-owned dispatch only; increments domain attempt within the configured budget; required successor is atomic with owner reset.",
+    "redrive": "Separate permission; increments generation without resetting the monotone domain counter or replenishing its budget. Provider sent requires explicit redrive. Completed work and source-managed screening cannot be reset.",
+    "cancellation": "User approved permanent decision-owned exact-attempt dispatch cancellation. Active transport and cancellation record commit together; business results are preserved; external actions cannot be undone. Same-identity/same-reason replay preserves the original timestamp. Cancelled pending work requires explicit redrive.",
+    "maintenance": "Actual shared scheduler composes bounded SQL recovery and transport-only retention. Real local dispatch-exhaustion mutation fails closed for sent/completed or source-managed work. Receipts and owner rows remain permanent.",
+    "locking": "One resource, latest permanent receipt, exact transport. No network work under database locks; no automatic retries of uncertain commits. Final stale-worker predicates remain required."
+  },
+  "migration": {
+    "plan": "EffectCancellationStatements / EffectCancellationPlan",
+    "steps": 145,
+    "preserved_prefixes": [115, 140],
+    "addition": "Cancellation table and three immutable/binding triggers; effect-receipt deletion protection trigger.",
+    "executed_in_disposable_fixtures": ["fresh install", "repeat apply", "platform-prefix upgrade", "exact 140 to 145 upgrade", "definition verification"],
+    "application_database_changes": "none",
+    "release_limit": "Generated disposable reference definitions are not frozen release definitions or a complete shared-owner/restricted-runtime upgrade rehearsal."
+  },
+  "environment": {
+    "mysql_version": "8.4.8",
+    "mysql_image": "mysql@sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "postgres_fixture": "postgres:16",
+    "go_runner": "golang:1.25.0",
+    "project": "decision-lifecycle-test",
+    "source_root": "/verification/backend/decision-engine-service",
+    "network": "private; no published database ports",
+    "database_storage": "disposable tmpfs",
+    "ec2_aurora_or_application_database_access": false,
+    "application_containers_modified": false
+  },
+  "source_attestation": {
+    "method": "SHA-256 of sorted per-file SHA-256 manifest for every Go/SQL/go.mod/go.sum file under the decision-service module; identical relative paths on host and copied runner.",
+    "host_manifest_sha256": "6c5b4f4806a79d4250aaeddb4fdbfce6f21f3067f2e491e019a563bd2f2791b0",
+    "runner_manifest_sha256": "6c5b4f4806a79d4250aaeddb4fdbfce6f21f3067f2e491e019a563bd2f2791b0"
+  },
+  "verification": {
+    "native_focused_race": "passed: retry identity/eligibility, cancellation append-only plan/grants, unchanged execution plan",
+    "pinned_new_lifecycle_race": {
+      "status": "passed",
+      "seconds": 30.052,
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s -v -run '^Test(MySQLEffect(Cancellation|DomainRetry|Retry|ProviderSent)|MySQLOwnedEffectMaintenance|EffectRetryIdentity)' ./internal/store/mysql",
+      "coverage": [
+        "all four kinds: domain retry, redrive, counter monotonicity and budget",
+        "required successor insert failure rolls back owner reset and receipt",
+        "separate action authorization and tenant isolation",
+        "two concurrent retries create exactly one successor",
+        "source-managed screening reset/redrive/cancellation rejected",
+        "pending and in-flight cancellation; replay and retention",
+        "cancellation queue-update failure rolls back the permanent record",
+        "cancellation versus finish has one winner",
+        "superseded and cancelled workers cannot acknowledge owner writes",
+        "immutable cancellation and receipt deletion protection",
+        "provider sent requires explicit redrive; complete source-compatible reset",
+        "actual shared scheduler SQL recovery and retention; bounded cancellation",
+        "real owner exhaustion is atomic with discard, including injected discard failure"
+      ]
+    },
+    "latest_receipt_plan": {
+      "history_rows": 5000,
+      "status": "passed",
+      "actual_query": "currentEffectReceiptSQL, including tenant/kind/resource, descending counters, LIMIT 1 and FOR UPDATE",
+      "observed": "Reverse covering lookup on de_effect_job_identity; actual one row, one loop; no table scan or sort.",
+      "limit": "Synthetic scoped query-plan evidence, not representative application EPS/load acceptance."
+    },
+    "complete_adapter_regression": {
+      "status": "passed",
+      "root_adapter_top_level_tests": 86,
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=600s ./internal/store/mysql/... ./internal/runtime/ast_eval ./internal/mysqljobs ./internal/recurrence",
+      "integration_requirements": "DECISION_MYSQL_REQUIRE_INTEGRATION=1; DECISION_MYSQL_EXPECT_VERSION=8.4.8; DECISION_ENGINE_REQUIRE_INTEGRATION=1; private PostgreSQL fixture URL provided.",
+      "package_seconds": {
+        "internal/store/mysql": 196.252,
+        "internal/store/mysql/metadata": 1.179,
+        "internal/runtime/ast_eval": 1.278,
+        "internal/mysqljobs": 1.021,
+        "internal/recurrence": 1.045
+      },
+      "includes": "Existing authoring, execution and wallet PostgreSQL/MySQL/SQL-backed HTTP fixture comparisons; not deployed ingestion/provider acceptance."
+    },
+    "complete_module_compile_only": "passed; not full service/HTTP behavior tests",
+    "affected_package_vet": "passed",
+    "git_diff_check": "passed"
+  },
+  "remaining": [
+    "Real trusted identity/auth/case/screening providers and required owner retry/cancel contracts.",
+    "Complete main seven-kind transaction and public DTO/source adapter composition.",
+    "External business handlers, provider idempotency/reconciliation, poller/runtime startup and activation.",
+    "Browser-specific copy audit and complete service/business/browser differential corpus.",
+    "Uncertain-commit business-crash/cleanup acceptance and full real-runtime maintenance composition.",
+    "Frozen release definitions, full restricted runtime grants/readiness and shared-owner migration rehearsal.",
+    "Representative application and cleanup load/budgets; no Aurora testing requested."
+  ],
+  "commit_or_push": "none",
+  "runtime_selection": "unchanged PostgreSQL",
+  "fixture_teardown": "completed: verifier, private MySQL/PostgreSQL tmpfs containers and project network removed; no private project containers remain. All 13 pre-existing fraud-host-local containers remain running. Cached images and host dependency cache retained."
+}

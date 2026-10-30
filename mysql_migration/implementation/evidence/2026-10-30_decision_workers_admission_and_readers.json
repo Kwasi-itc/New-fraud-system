@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "scope": "Three five-subtask batches: staged scheduled/async worker composition, durable admission/API adapters, and actual evaluation read composition. These are implemented components, not complete public runtime or release acceptance.",
+  "implementation": {
+    "W1-W5": "Actual scoped transport/owner claim/start, shared supervised poller, exact prepared identity binding, whole-batch completion, atomic result/callback/effects and enabled lifecycle events. Confirmed output rollback records transport failure; domain retries remain separate. Uncertain completion reads exact permanent receipt/current owner; no automatic replay follows an unconfirmed outcome.",
+    "A1-A5": "Detached bounded manual scheduled/async admission; request authority, live link and published registry gates rechecked on owner/job/event transaction. Concurrent key replay creates one owner/job/event; replay survives model changes. Bounded committed-state wait and explicit expected-generation redrive adapters. Ambiguous admission and post-admission wait errors retain opaque execution IDs for reconciliation.",
+    "C1-C5": "Narrow read-only evaluation ports and actual configuration/history/platform/custom-list read facades with matching scope and per-read authorization. NewTargetPreparer uses real reads rather than nil-embedded test facades. Source full repositories remain structurally compatible; runtime selector is unchanged.",
+    "async_semantics": "Live scenario/iteration/rule reads are bounded batches, not per-scenario metadata queries. Registry gates are batched by used table. All item outputs persist atomically; the source final-item-only result envelope is preserved. Total fan-out and encoded output budgets are enforced. Historical data is not claimed to share a global snapshot.",
+    "optional_outbox": "Prepared lifecycle events derive enabled/disabled behavior from the evaluator's actual publication setting. Enabled event/job insertion must commit with the owner transition; disabled publication intentionally creates neither.",
+    "durable_requests": "Stored-record requests preserve omitted field maps rather than persisting normalized managed fields as incoming payloads. Canonical detached requests contain no private prepared authority."
+  },
+  "verification": {
+    "final_race_command": "go test -mod=readonly -race -p 2 -count=1 ./internal/service ./internal/ports ./internal/mysqlexecution ./internal/mysqlapi ./internal/runtime/ast_eval ./internal/store/mysql/metadata ./internal/mysqljobs ./internal/recurrence",
+    "final_race_status": "passed",
+    "final_package_seconds": {
+      "internal/service": 5.306,
+      "internal/ports": 1.020,
+      "internal/mysqlexecution": 20.392,
+      "internal/mysqlapi": 2.156,
+      "internal/runtime/ast_eval": 1.147,
+      "internal/store/mysql/metadata": 1.184,
+      "internal/mysqljobs": 1.018,
+      "internal/recurrence": 1.072
+    },
+    "selected_store_regression_command": "go test -mod=readonly -race -p 2 -count=1 -run '^TestMySQL(Combined|ActualDecisionService|ExecutionTransportClaimHeartbeatAndOwnerAck|ExecutionLeaseRetryCallbackAndRedrive)' ./internal/store/mysql",
+    "selected_store_regression_status": "passed; 33.478 seconds",
+    "compile_only": "passed: go test -mod=readonly -p 2 -run '^$' ./...; not whole-module behavioral acceptance",
+    "vet": "passed: internal/ports, internal/service, internal/mysqlapi, internal/mysqlexecution, internal/store/mysql and internal/runtime/ast_eval",
+    "cases": [
+      "Actual scheduled claim/start, whole-batch decisions/evidence/effect jobs and lifecycle event, repeated completion rejection and exact receipt reconciliation after delivery retention",
+      "Cancellation during model preparation leaves no decisions; invalid second input produces no partial batch and a redacted terminal failure",
+      "Injected required outbox failure rolls back all outputs; subsequent transport retry creates no duplicate decisions and consumes no new domain attempt",
+      "Actual shared poller completes work and joins on cancellation",
+      "Async explicit/new-live selection and multi-scenario fan-out, empty live selection, source final-item result shape and required callback insertion",
+      "Injected required callback insertion failure rolls back decisions, result and effect jobs; transport retry succeeds without duplication",
+      "Cross-kind transport, wrong preparer, foreign tenant/generation and revoked claim/read authority fail closed",
+      "Scheduled/async actual admission, candidate limits, invalid callback syntax and empty async rejection",
+      "Changed publication, closed registry and revoked final authority reject stale admission without owner/job writes",
+      "Injected queued lifecycle event failure rolls back owner/jobs; concurrent same-key submissions produce one owner/job/event",
+      "Authorized replay after model closure requires no new provider read, job or queued event",
+      "Bounded waiting distinguishes completed, failed, cancelled, timeout, first-read error and caller cancellation; no transaction is held while waiting",
+      "Strict redrive preconditions reject omitted/NULL/duplicate/negative/trailing values; callback redrive preserves terminal evaluation and rejects stale/foreign/revoked scope",
+      "Actual platform/list read values, exact spaced object IDs, risk absence, foreign tenant and revoked read errors",
+      "Missing/foreign reader scope and unsupported/duplicate aggregate policy fail target construction",
+      "Pure uncertain-commit/rollback decision branches and opaque admission reconciliation identity; this is not a full wire-level lost-COMMIT fault rehearsal",
+      "Raw request cloning rejects cyclic material, preserves stored-read omission and removes private preparation authority"
+    ],
+    "fixture_correction": "The first new worker fixture attempted to regress an already-started owner counter and was rejected by the existing SQL trigger. The fixture was corrected to create a genuinely pending owner/job. Production monotonicity guards were not weakened.",
+    "source_manifest": "Explicit isolated PostgreSQL refresh reviewed. Two new production source-file entries and changed source hashes only; source catalog and target mappings unchanged. Source inventory contains 164 files.",
+    "diff_check": "passed",
+    "performance_load_query_plans": "not run; deferred by user"
+  },
+  "environment": {
+    "mysql": "8.4.8",
+    "postgres": "postgres:16",
+    "go": "golang:1.25.0; offline dependencies",
+    "project": "decision-worker-test",
+    "network": "private, no published database ports",
+    "database_storage": "disposable tmpfs; generated component databases only",
+    "source_root": "/verification/decision-engine-service",
+    "fixture_authority": "Explicit test-only authorizers and data-model publication registry fixture; not an implementation of real foreign providers.",
+    "ec2_or_aurora_or_application_database_access": false,
+    "application_containers_modified": false,
+    "existing_application_containers_retained": 13,
+    "application_database_changes": "none",
+    "target_migration_sql_changes": "none"
+  },
+  "source_attestation": {
+    "method": "SHA-256 of sorted per-file SHA-256 manifest for all Go/SQL/go.mod/go.sum under decision-engine-service, mysqlstore, investigator and data-model-service; same relative paths on host and copied runner.",
+    "host_sha256": "f33f8b879d200a4223982ce8fe4019471c981f4f21ab2e7d8c8d3d2cda815f10",
+    "runner_sha256": "f33f8b879d200a4223982ce8fe4019471c981f4f21ab2e7d8c8d3d2cda815f10",
+    "decision_schema_mapping_sha256": "66d7650a209db2ef8e93daffe8fcc2d0b8cd0dbb2e5ea5f393196e0c03921f59"
+  },
+  "remaining": [
+    "Actual trusted authentication/service identity, data-model publication provider and case/screening providers/grants remain dependencies, not successful substitutes.",
+    "Public HTTP route/error/identity wiring and application runtime composition are not activated or completed by the library adapters.",
+    "External callback/workflow/screening/scoring/outbox business dispatch and calendar scheduling loop composition remain implementation work.",
+    "Full cross-engine business/browser and concurrent/crash/uncertain-COMMIT acceptance remain; selected component tests are not that acceptance.",
+    "Frozen release definitions, complete shared-owner upgrade/dirty-recovery and restricted grants/readiness rehearsal remain open.",
+    "Performance/load/query-plan acceptance remains deferred."
+  ],
+  "git": {
+    "preexisting_staged_diff_preserved": "59 files, 20063 insertions, 88 deletions",
+    "commit": "not created",
+    "push": "not performed",
+    "parent_todos_newly_closed": 0,
+    "scoped_batches_finished": ["W1-W5", "A1-A5", "C1-C5"]
+  }
+}

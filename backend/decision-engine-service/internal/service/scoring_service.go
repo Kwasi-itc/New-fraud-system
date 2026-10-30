@@ -7,7 +7,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 type ScoringService struct {
@@ -17,15 +16,11 @@ type ScoringService struct {
 	scenarioRepo     ports.ScenarioRepository
 	configRepo       ports.ScoringConfigRepository
 	requestRepo      ports.ScoringRequestRepository
-	enqueuer         riverjobs.ScoringRequestEnqueuer
 	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
-func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScoringConfigRepository, requestRepo ports.ScoringRequestRepository, enqueuer riverjobs.ScoringRequestEnqueuer) ScoringService {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopScoringRequestEnqueuer{}
-	}
-	return ScoringService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, requestRepo: requestRepo, enqueuer: enqueuer}
+func NewScoringService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScoringConfigRepository, requestRepo ports.ScoringRequestRepository) ScoringService {
+	return ScoringService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, requestRepo: requestRepo}
 }
 
 func (s *ScoringService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
@@ -159,7 +154,7 @@ func (s ScoringService) UpdateRequestStatus(ctx context.Context, tenantID, reque
 		if runErr != nil {
 			return runErr
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
+		return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScoring, TenantID: updated.TenantID, ResourceID: updated.ID, ScheduledAt: nil})
 	})
 	return updated, err
 }

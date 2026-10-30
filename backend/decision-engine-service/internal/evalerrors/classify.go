@@ -7,6 +7,7 @@ import (
 
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
 type Classification struct {
@@ -15,6 +16,16 @@ type Classification struct {
 }
 
 func Classify(err error) Classification {
+	if errors.Is(err, ports.ErrAggregateCapability) {
+		return Classification{Status: http.StatusUnprocessableEntity, Category: "aggregate_pushdown_unsupported"}
+	}
+	if errors.Is(err, ports.ErrPublishedModelUnavailable) {
+		return Classification{Status: http.StatusServiceUnavailable, Category: "published_model_unavailable"}
+	}
+	var local *ports.LocalTenantReadError
+	if errors.As(err, &local) {
+		return Classification{Status: http.StatusInternalServerError, Category: "internal_error"}
+	}
 	var contract *payload.ModelContractError
 	if errors.As(err, &contract) {
 		return Classification{Status: http.StatusBadGateway, Category: "dependency_failure"}

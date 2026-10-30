@@ -20,10 +20,10 @@ type Runtime struct {
 	Now                         time.Time
 	Model                       *ports.TenantModel
 	TenantDataReader            ports.TenantDataReader
-	CustomListRepo              ports.CustomListRepository
-	RecordTagRepo               ports.RecordTagRepository
-	RiskRepo                    ports.RiskSnapshotRepository
-	IPFlagRepo                  ports.IPFlagRepository
+	CustomListRepo              ports.EvaluationCustomLists
+	RecordTagRepo               ports.EvaluationRecordTags
+	RiskRepo                    ports.EvaluationRiskSnapshots
+	IPFlagRepo                  ports.EvaluationIPFlags
 	GeoIPLookup                 ports.GeoIPLookup
 	DecisionRepo                ports.DecisionRepository
 	AggregatePushdownMode       string

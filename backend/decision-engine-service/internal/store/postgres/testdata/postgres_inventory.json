@@ -1,0 +1,943 @@
+[
+  {
+    "path": "../../migrations/metadata/000001_init.down.sql",
+    "sha256": "5f4d2e89a148c4b28d2c0f1398ededb6e2547e9803131e99c4638fbee0752967",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.custom_list_entries",
+      "core.decisions",
+      "core.ip_flags",
+      "core.outbox_events",
+      "core.phantom_decisions",
+      "core.phantom_rule_executions",
+      "core.record_tags",
+      "core.risk_snapshots",
+      "core.rule_executions",
+      "core.rule_snoozes",
+      "core.rules",
+      "core.scenario_iterations",
+      "core.scenario_publications",
+      "core.scenarios",
+      "core.scheduled_executions",
+      "core.scoring_configs",
+      "core.scoring_requests",
+      "core.screening_configs",
+      "core.screening_executions",
+      "core.test_runs",
+      "core.workflow_executions",
+      "core.workflows"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000001_init.up.sql",
+    "sha256": "0d4c77208fea62f9f18cd3cc18ce5fae9cbe2964d09f48ec4cb0903367e85809",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.custom_list_entries",
+      "core.decisions",
+      "core.ip_flags",
+      "core.outbox_events",
+      "core.phantom_decisions",
+      "core.phantom_rule_executions",
+      "core.record_tags",
+      "core.risk_snapshots",
+      "core.rule_executions",
+      "core.rule_snoozes",
+      "core.rules",
+      "core.scenario_iterations",
+      "core.scenario_publications",
+      "core.scenarios",
+      "core.scheduled_executions",
+      "core.scoring_configs",
+      "core.scoring_requests",
+      "core.screening_configs",
+      "core.screening_executions",
+      "core.test_runs",
+      "core.workflow_executions",
+      "core.workflows"
+    ],
+    "features": [
+      "jsonb",
+      "text[]",
+      "::"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000002_workflow_display_order.down.sql",
+    "sha256": "d9c471ab3c9265084e3e6645c597afbe2d2802bf43966745a54d4810a886976d",
+    "qualified_references": [
+      "core.workflows"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000002_workflow_display_order.up.sql",
+    "sha256": "59707f99cd010ede281e01da926bbddcd2ddaeb1949acf1d57d6b3c7ee87b11f",
+    "qualified_references": [
+      "core.workflows"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000003_structured_workflows.down.sql",
+    "sha256": "b9d289b74e708b0cf9ed644b6b1680aeb0cf64f82e71d1b8c24e86aaa7b42c49",
+    "qualified_references": [
+      "core.workflow_actions",
+      "core.workflow_conditions",
+      "core.workflow_executions",
+      "core.workflow_rules"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000003_structured_workflows.up.sql",
+    "sha256": "7b60d6600ae090b6546fe95a4eab21001bf78093dd0627d712c611c9e000f2ea",
+    "qualified_references": [
+      "core.scenarios",
+      "core.workflow_actions",
+      "core.workflow_conditions",
+      "core.workflow_executions",
+      "core.workflow_rules"
+    ],
+    "features": [
+      "jsonb",
+      "::"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000004_provider_result_payloads.down.sql",
+    "sha256": "f4443ae418a02cff6e8a2d9bb2bf9427c703054d1e70c712585e827d4c4d964c",
+    "qualified_references": [
+      "core.scoring_requests",
+      "core.screening_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000004_provider_result_payloads.up.sql",
+    "sha256": "a2a5b3c319b033af9a7bc74c72213ab4b4b0819b11c4c8ddbd689206dfa60717",
+    "qualified_references": [
+      "core.scoring_requests",
+      "core.screening_executions"
+    ],
+    "features": [
+      "jsonb",
+      "::"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000005_scenario_descriptions.down.sql",
+    "sha256": "3dcee06cb1391db281971991c7324e48690a94760268cb2dec8bebc14e40a734",
+    "qualified_references": [
+      "core.scenarios"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000005_scenario_descriptions.up.sql",
+    "sha256": "efe47a510a7399a61575b4c42a5e28e1213a51fd48b4cc1c85de972c64934262",
+    "qualified_references": [
+      "core.scenarios"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000006_custom_lists.down.sql",
+    "sha256": "b2fadcbc0a200ba22c21943ab7feca3777c56bfc29c42c1bd21d839a937796ce",
+    "qualified_references": [
+      "core.custom_list_entries",
+      "core.custom_lists"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000006_custom_lists.up.sql",
+    "sha256": "59f79de240bd5239b8f907a94fde4f9703a24a2de41c7a4f419c0254ba3be5af",
+    "qualified_references": [
+      "core.custom_list_entries",
+      "core.custom_lists"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000007_scheduled_execution_source.down.sql",
+    "sha256": "0055beb717b13d4fc18de8d15cda99a1be71e8d0b64b575e280675307e17ce96",
+    "qualified_references": [
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000007_scheduled_execution_source.up.sql",
+    "sha256": "893c3609c899ffcd72f2d5c9d2b82496f39969625cbd8869532cf028aa718081",
+    "qualified_references": [
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000008_scheduled_execution_recurring_index.down.sql",
+    "sha256": "402947d0889b474e381605956569b2bea1052c89e65971374256689e43ad7b6e",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000008_scheduled_execution_recurring_index.up.sql",
+    "sha256": "019975fde48482b03c4915ba0452728c28a0cf747e575f17d5e249f20b293f07",
+    "qualified_references": [
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000009_execution_retry_state.down.sql",
+    "sha256": "bb18d808fe423c773c8772ffc0fac4855addd0e2b32092a90d126a6e4a390384",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000009_execution_retry_state.up.sql",
+    "sha256": "a59149abe865767f728369408b36ca256c50883313ca790eb91bcfe34a6597e4",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000010_execution_idempotency.down.sql",
+    "sha256": "4bd39af6f9d7582ee1c0dbbe38f897cf3801dd0f03a86cdb0ada7ef4e11195b3",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000010_execution_idempotency.up.sql",
+    "sha256": "764186b48f684682438ce8ac97de78076e636113e48d296bbc27b8b34d759ada",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.scheduled_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000011_async_execution_wait_window.down.sql",
+    "sha256": "4abff9448796315f127d143b75ea9b3d9f121d3de0df2415f4ba00004046fe0e",
+    "qualified_references": [
+      "core.async_decision_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000011_async_execution_wait_window.up.sql",
+    "sha256": "cb9cd91ac1bd70c6e0937eb94f250fc034b5e86b012774ba62aae68b8a6d0bbd",
+    "qualified_references": [
+      "core.async_decision_executions"
+    ],
+    "features": [
+      "jsonb"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000012_decision_request_body.down.sql",
+    "sha256": "19cfe48e173f551592ff266ba9f8572374afa7ddf05e8a1fbb168b533f3fe2d9",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000012_decision_request_body.up.sql",
+    "sha256": "5af9231d60fdb73919790e94be7e840b514af4cedc60c26f68cdd439be917513",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [
+      "jsonb",
+      "::"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000013_decisions_tenant_created_idx.down.sql",
+    "sha256": "2b8973c114fcdc2d40261e12681662a621fba3bb91f6fdd9c7b32aad29a87591",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000013_decisions_tenant_created_idx.up.sql",
+    "sha256": "57877fae1a3e233a8c80a7b8796d73976cdd92c71efb72e0c4352dae6058e437",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000014_decisions_filter_indexes.down.sql",
+    "sha256": "b2edf10b2547b8b0ebdf1c797dc756c6ca6f1bafc0490ca02e68a83ad1689fae",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000014_decisions_filter_indexes.up.sql",
+    "sha256": "bfdf76ca86f03864c481d8172ac81fe5757ba6eed5deb86f4ab4dee71078988a",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000015_decisions_object_id_prefix_idx.down.sql",
+    "sha256": "bef9b39ea84cceed226b11a319f8529789b01db5de1d8f9c2631a0eb3e6962d4",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000015_decisions_object_id_prefix_idx.up.sql",
+    "sha256": "8cdf56f2024503ecd6661eee7b457d9eb56c122d26c41472ee7655e1bb152728",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000016_rule_execution_evidence.down.sql",
+    "sha256": "9095f66ffc47f49184c97d56a31dba764dac62b6f5d697828d57417b6fa2d53b",
+    "qualified_references": [
+      "core.rule_executions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000016_rule_execution_evidence.up.sql",
+    "sha256": "90db8be5fbab1061831324c2faaef190e08091255097e5de4a0fcd1a16eb67ec",
+    "qualified_references": [
+      "core.rule_executions"
+    ],
+    "features": [
+      "jsonb"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000017_screening_review_inbox.down.sql",
+    "sha256": "f60b8f77c8d30357a3a1a8e1b7ce73b615c66975976e7ee7f0ca290c8a313416",
+    "qualified_references": [
+      "core.screening_configs"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000017_screening_review_inbox.up.sql",
+    "sha256": "80e3c1128375bbc59d422fb01167c4e3ee78ca949b393377ad0a9d015d8c8fd2",
+    "qualified_references": [
+      "core.screening_configs"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000018_investigator_reviews.down.sql",
+    "sha256": "0bcfb3c874f5b7fdb78ee65c4de59cf630e7b61a6c9fbbffb2b551d80ebba54c",
+    "qualified_references": [
+      "core.guard_investigator_review",
+      "core.investigator_reviews"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000018_investigator_reviews.up.sql",
+    "sha256": "182e2781b071e7447c6d69b18d629568f345707ece2d4d04663526751c2ca168",
+    "qualified_references": [
+      "core.decisions",
+      "core.guard_investigator_review",
+      "core.investigator_reviews"
+    ],
+    "features": [
+      "jsonb",
+      "::",
+      "for key share"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000019_screening_projection.down.sql",
+    "sha256": "0db76a7c333687f9ee587d7b345345f3323a536673e3946550fa4924e6b16531",
+    "qualified_references": [
+      "core.reconcile_screening_source"
+    ],
+    "features": [
+      "reconcile_screening_source"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000019_screening_projection.up.sql",
+    "sha256": "39aa8793cb608c890d731538e2680514dd80c10139c2a77130d7e7c38b28267a",
+    "qualified_references": [
+      "core.reconcile_screening_source",
+      "core.screening_executions",
+      "screening.screening_matches",
+      "screening.screenings"
+    ],
+    "features": [
+      "jsonb",
+      "::",
+      "for update",
+      "reconcile_screening_source"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000020_workflow_authoring_audit.down.sql",
+    "sha256": "48fd28e7fbbe5cff107e816aecd43e7f96f7e177f812071ea61d9b65be409925",
+    "qualified_references": [
+      "core.workflow_authoring_events"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000020_workflow_authoring_audit.up.sql",
+    "sha256": "03e70775ebd2f89cdfc8523896d6c525721a11ac696f76c95229c189918f3520",
+    "qualified_references": [
+      "core.workflow_authoring_events"
+    ],
+    "features": [
+      "jsonb"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000021_workflow_soft_delete.down.sql",
+    "sha256": "23dc92827174627d3b3549b66ad6b56245df88dfbd0082bf1fc17c5f863b3e31",
+    "qualified_references": [
+      "core.workflow_rules",
+      "core.workflow_rules_active_order_idx"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000021_workflow_soft_delete.up.sql",
+    "sha256": "596b09bc91776d4d9b54077152bb1ee393af14986062bcf63a60d07d645da8ed",
+    "qualified_references": [
+      "core.workflow_rules"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000022_decisions_metric_filter_indexes.down.sql",
+    "sha256": "59f1e5ad845a803f31d727d31cdb7bde7dd1df3f467bfdf9722e6c5bff9a3c78",
+    "qualified_references": [
+      "core.decisions_tenant_score_created_idx"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../migrations/metadata/000022_decisions_metric_filter_indexes.up.sql",
+    "sha256": "6d02da5cfa09a6cf702dd3f8977567e965bfd2f7f630babd7d9018aa18f7d6e9",
+    "qualified_references": [
+      "core.decisions"
+    ],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/clock.go",
+    "sha256": "cd366c3a92440ec98d36767dbc905af67c9d3b5e72a102bed4da37eff2e2bf65",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/data_model_reader.go",
+    "sha256": "8701ee6238c69b9248e569d1ecb068477a6db536116d0ef8c446fe20e84dd503",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/dispatch.go",
+    "sha256": "d2269ae143a3c4043a80c7240ed371c0517fa15e62e61d143278f34821dd2fe4",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/errors.go",
+    "sha256": "acb3643e81f13c17c0341bd74106ef2865b010aa9ee8e0343837a5bdae05136f",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/geoip_lookup.go",
+    "sha256": "c98c9e8ac603b4e35f75e4f7ec7c2845c396fdbaa15cfe49691039b0142990d1",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/id_generator.go",
+    "sha256": "890f4fad003498ee21f9f48e64b7f428301aa9932c359bef504466c54ff58bd8",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/ingestion_reader.go",
+    "sha256": "dbff2d7af478e6f0ed1521a68b16fdaa4588ac00b5b0ea51bbd6dec37954247c",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/jobs.go",
+    "sha256": "caf22ed6fa69fa58fc5c0a4535fc94cce30f60b6186ee293c5ae7d04f0fc9a8e",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/tenant_data_reader.go",
+    "sha256": "f4bbd73fe1a4737571ea3df9a78b684d55eca420f840ed9dd172b44d7908bc9f",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../ports/transactions.go",
+    "sha256": "ee3d7bc8d0cfdbcd9594b90cdc96ce31941a7439697e9d4a34b217e2b85ba68c",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "../../tenantdata/reader_factory.go",
+    "sha256": "2d383bf0cee128b28aebc5b5d340bbdc36186c4a6a3ad3b8381c4c91a33c435a",
+    "qualified_references": [],
+    "features": [
+      "pgx"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "async_decision_execution_repository.go",
+    "sha256": "e745c75074ed0c51514297bf6236d34d3738f0223c8f75e68fb337cf52a0f961",
+    "qualified_references": [
+      "core.async_decision_executions"
+    ],
+    "features": [
+      "returning",
+      "on conflict",
+      "::"
+    ],
+    "scan_calls": 4
+  },
+  {
+    "path": "db.go",
+    "sha256": "ac0261ad2549f0be390f5f54f8a1c876f312257066d6f86f49f5c8ba73a826a9",
+    "qualified_references": [],
+    "features": [
+      "pgx"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "decision_repository.go",
+    "sha256": "03d7af7d3a57f8d749334bbf2735e239bcc65c6e156be0a8ba453c3f5d100ff0",
+    "qualified_references": [
+      "core.decisions",
+      "core.scenarios"
+    ],
+    "features": [
+      "returning",
+      "::",
+      "ilike",
+      "fmt.sprintf"
+    ],
+    "scan_calls": 3
+  },
+  {
+    "path": "helpers.go",
+    "sha256": "4d13f72dfbaef6703a999c21d50c7c8babdfb5c4ebe68d8aa7f110553a08041a",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "identifier.go",
+    "sha256": "a39a2d72ddaf62dde692fab474629c6e46247a94ff549f46958e1e3a5d58dfda",
+    "qualified_references": [],
+    "features": [],
+    "scan_calls": 0
+  },
+  {
+    "path": "investigator.go",
+    "sha256": "18ea0360a299c4a5298fa6a93589383e0501828f6c13121a38fd65bddeb95133",
+    "qualified_references": [
+      "core.decisions",
+      "core.investigator_reviews"
+    ],
+    "features": [
+      "pgx"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "jobs.go",
+    "sha256": "d25748c43ffb0fe224da3fe61597a47fd014d1be4570ab501b9e61cad5401552",
+    "qualified_references": [
+      "core.async_decision_executions",
+      "core.outbox_events",
+      "core.scheduled_executions",
+      "core.scoring_requests",
+      "core.screening_executions",
+      "core.workflow_executions"
+    ],
+    "features": [
+      "for key share"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "outbox_event_repository.go",
+    "sha256": "47b1439cf3a475fe5ca1870ea1fc4ac9cba22bd137b200eb6810935ff354dc65",
+    "qualified_references": [
+      "core.outbox_events"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "phantom_decision_repository.go",
+    "sha256": "2a42db76d7982fdb2629c6101b0f0def63fdbcc979c0ebf0cfa6f6ecab7031e4",
+    "qualified_references": [
+      "core.phantom_decisions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "phantom_rule_execution_repository.go",
+    "sha256": "57df219855af0f1c01dc55b2a5a34a74ec9e1327df4323bf6957074f02abfab6",
+    "qualified_references": [
+      "core.phantom_decisions",
+      "core.phantom_rule_executions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "platform_repository.go",
+    "sha256": "ca8bb0ae58abfe2a829819a75ec9987d1e924211fe239fd81953ae72c600dec6",
+    "qualified_references": [
+      "core.custom_list_entries",
+      "core.custom_lists",
+      "core.ip_flags",
+      "core.record_tags",
+      "core.risk_snapshots"
+    ],
+    "features": [
+      "returning",
+      "pgx"
+    ],
+    "scan_calls": 17
+  },
+  {
+    "path": "publication_repository.go",
+    "sha256": "410ee2e97613e315a4e43e6056c22525f18ffdc0c090206160489b491f7234aa",
+    "qualified_references": [
+      "core.scenario_publications"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "queue_readiness.go",
+    "sha256": "e482d01ae630431c3601b51bff2ed09fdb8341e504676aad3c06814582b8a7e7",
+    "qualified_references": [
+      "public.river_client",
+      "public.river_client_queue",
+      "public.river_job",
+      "public.river_job_id_seq",
+      "public.river_job_state",
+      "public.river_job_state_in_bitmask",
+      "public.river_job_unique_idx",
+      "public.river_leader",
+      "public.river_migration",
+      "public.river_queue"
+    ],
+    "features": [
+      "pgx"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "rule_execution_repository.go",
+    "sha256": "080547dcdce7ee1a436776b69d4d2ebf0a146a6180486b0871eb4d2f9cbcb2bf",
+    "qualified_references": [
+      "core.decisions",
+      "core.rule_executions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "rule_repository.go",
+    "sha256": "a58a57634a0df65f29535625f9d9eb69c4208599245962ed456c876b088c7706",
+    "qualified_references": [
+      "core.rules",
+      "core.scenario_iterations"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 5
+  },
+  {
+    "path": "rule_snooze_repository.go",
+    "sha256": "9b5674f64160a266ab3d30c01eb2972cc19a9fed7d77f3d3a81e50104a6095c0",
+    "qualified_references": [
+      "core.rule_snoozes"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "scenario_iteration_repository.go",
+    "sha256": "8ab71089d0056a58e88cb9dead79dc58d4de6bd7d3d7a2c3f051d7526eab12dc",
+    "qualified_references": [
+      "core.scenario_iterations",
+      "core.scenarios"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 7
+  },
+  {
+    "path": "scenario_repository.go",
+    "sha256": "bd66e62aa7cb4e460e98f1e1bde52c67ca3942610fb9aedb229c1f12486fcacd",
+    "qualified_references": [
+      "core.scenarios"
+    ],
+    "features": [
+      "returning",
+      "pgx"
+    ],
+    "scan_calls": 5
+  },
+  {
+    "path": "scheduled_execution_repository.go",
+    "sha256": "7f8c74a681e15f2d21b150c1f9342d183e3a4162ba5db9b3ee2b763efa652e15",
+    "qualified_references": [
+      "core.scheduled_executions"
+    ],
+    "features": [
+      "returning",
+      "on conflict"
+    ],
+    "scan_calls": 3
+  },
+  {
+    "path": "scoring_repository.go",
+    "sha256": "b5156a3e4f5547f5a6456f69014f8ea8134325e0dca514ec454b155ec58b6a4c",
+    "qualified_references": [
+      "core.scoring_configs",
+      "core.scoring_requests"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 3
+  },
+  {
+    "path": "screening_repository.go",
+    "sha256": "d7da757475bf57564425d903c778ad79ad1ded30c29ab0459408755937f544f0",
+    "qualified_references": [
+      "core.reconcile_screening_source",
+      "core.screening_configs",
+      "core.screening_executions"
+    ],
+    "features": [
+      "returning",
+      "::",
+      "pgx",
+      "reconcile_screening_source"
+    ],
+    "scan_calls": 4
+  },
+  {
+    "path": "tenant_data_reader.go",
+    "sha256": "fdb6bd478df31b7d227da9af7d3abf861bd91be693c414a66555b0cf29633b62",
+    "qualified_references": [],
+    "features": [
+      "jsonb",
+      "pgx",
+      "fmt.sprintf"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "testrun_repository.go",
+    "sha256": "135c93f08c38f199f5ff4ecab71895dc77f4c0fe93a3f8ee61861487e1fa8055",
+    "qualified_references": [
+      "core.test_runs"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "transaction_manager.go",
+    "sha256": "f003f62f5f5a291f0bbf5a143d2cf6b1f9706298ac090543c21b1e1ff131375a",
+    "qualified_references": [],
+    "features": [
+      "pgx"
+    ],
+    "scan_calls": 0
+  },
+  {
+    "path": "workflow_action_repository.go",
+    "sha256": "afe715c679d3539759f28d67e352468ed86f9870f882df1e529eb6b627511390",
+    "qualified_references": [
+      "core.workflow_actions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "workflow_authoring.go",
+    "sha256": "36e7fae49776d5ead38d58f82636791b029a1d9649ac0a06198eb34bb032f878",
+    "qualified_references": [
+      "core.scenarios",
+      "core.workflow_authoring_events",
+      "core.workflow_conditions",
+      "core.workflow_rules",
+      "core.workflows"
+    ],
+    "features": [
+      "uuid[]",
+      "::",
+      "for update",
+      "pgx"
+    ],
+    "scan_calls": 13
+  },
+  {
+    "path": "workflow_condition_repository.go",
+    "sha256": "171a0f7f143361d62e0718a72ca76ecbc9cb1f95227979f07e13b3a9468b7cf3",
+    "qualified_references": [
+      "core.workflow_conditions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "workflow_execution_repository.go",
+    "sha256": "cdb135601738a84c3a1205b5bcaa9da2a4f6ba7025f4c48fd0499a67366d4509",
+    "qualified_references": [
+      "core.workflow_executions"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 2
+  },
+  {
+    "path": "workflow_repository.go",
+    "sha256": "f33039b24b17f8e927a864145b6ab8bbc6e757ddaedf5be1c79639075aa2673e",
+    "qualified_references": [
+      "core.workflows"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "workflow_rule_repository.go",
+    "sha256": "51f23a5bcfc6a1ff2f2039d76a28d8488f2f036141e756e8b2454365456df9c7",
+    "qualified_references": [
+      "core.workflow_rules"
+    ],
+    "features": [
+      "returning"
+    ],
+    "scan_calls": 1
+  },
+  {
+    "path": "workflow_snapshot.go",
+    "sha256": "88161af14e48101742fa2d26efb665b9667b1b0514cf7219d57ff9563fb30620",
+    "qualified_references": [
+      "core.workflow_actions",
+      "core.workflow_conditions",
+      "core.workflow_rules"
+    ],
+    "features": [
+      "jsonb",
+      "lateral",
+      "jsonb_agg"
+    ],
+    "scan_calls": 1
+  }
+]

@@ -6,15 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestRouterHealthz(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, RouterConfig{
 		AuthMode:              "disabled",
 		AllowedOrigins:        []string{"http://localhost:3000"},
 		DataModelServiceURL:   "http://example.com",
@@ -24,6 +21,9 @@ func TestRouterHealthz(t *testing.T) {
 		AggregatePushdownMode: "enabled",
 	})
 
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -35,9 +35,8 @@ func TestRouterHealthz(t *testing.T) {
 
 func TestRouterExposesRuntimeMetricsEndpoint(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, RouterConfig{
 		AuthMode:              "disabled",
 		AllowedOrigins:        []string{"http://localhost:3000"},
 		DataModelServiceURL:   "http://example.com",
@@ -47,6 +46,9 @@ func TestRouterExposesRuntimeMetricsEndpoint(t *testing.T) {
 		AggregatePushdownMode: "enabled",
 	})
 
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/runtime-metrics", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -58,9 +60,8 @@ func TestRouterExposesRuntimeMetricsEndpoint(t *testing.T) {
 
 func TestRouterRequiresAuthTokenWhenConfigured(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, RouterConfig{
+	router, err := NewRouter(slog.Default(), nil, RouterConfig{
 		AuthMode:              "token",
 		AuthToken:             "secret-token",
 		AllowedOrigins:        []string{"http://localhost:3000"},
@@ -71,6 +72,9 @@ func TestRouterRequiresAuthTokenWhenConfigured(t *testing.T) {
 		AggregatePushdownMode: "enabled",
 	})
 
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/runtime-metrics", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

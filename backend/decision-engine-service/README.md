@@ -203,7 +203,16 @@ Relevant optional downstream variables:
 - `SCREENING_PROVIDER_URL`
 - `SCORING_PROVIDER_URL`
 - `WORKFLOW_ACTION_URL`
-- `OUTBOX_PUBLISHER_URL`
+- `OUTBOX_PUBLISHER_URL`: optional absolute HTTP(S) endpoint, configured identically
+  on the decision API and worker. Unset/blank disables integration outbox event
+  creation and its River queue consumer; decisions and rule executions still
+  persist, and workflow actions, screening/scoring work and async decision
+  callbacks remain enabled independently. A malformed nonblank URL fails startup.
+  When enabled, event persistence and queue insertion remain in the decision's
+  transaction; either failure rolls back the transaction. Runtime metrics expose
+  `outbox_publication_enabled`. Disabling does not delete existing events/jobs:
+  queued jobs remain available for later resumption. Already failed events whose
+  River jobs completed under older versions are not automatically replayed.
 - `SERVICE_AUTH_MODE`
 - `SERVICE_AUTH_TOKEN`
 - `AGGREGATE_PUSHDOWN_MODE`
@@ -935,3 +944,866 @@ The case workspace now uses human-authenticated owner review commands. See [the 
 ## Durable execution projection
 
 Screening status now reconciles through an atomic source queue and decision-owned SQL contract. See [deployment and recovery](../screening-service/EXECUTION_PROJECTION.md) for migrations, worker operation, callback compatibility and source-managed retry behavior.
+
+Service `migrate down` preserves the shared River schema: it rolls back only
+decision-engine metadata and logs that distinction. Stop/drain the owner's
+consumers before metadata rollback; shared queue rollback requires a separately
+reviewed whole-stack operation. No migration-down command is a queue repair.
+
+## Portable decision persistence preparation
+
+Decision/execution services now submit typed `ports.JobRequest` operations through
+their mutation store. They no longer expose pgx transactions or import River;
+PostgreSQL adapters own producer configuration, tenant/resource binding and the
+actual transactional INSERT. API and worker wiring preserve current queues,
+attempt limits and payloads. Missing required producers return errors rather than
+successful no-ops; router construction propagates queue-client initialization errors.
+
+Execution terminal state, required callback enqueue and enabled lifecycle outbox
+writes share one short transaction. On failure, recovery may requeue only the same
+still-running tenant/resource/attempt; newer attempts and committed terminal rows
+are preserved. Evaluation and HTTP delivery stay outside these locks. This does
+not establish exactly-once evaluation or full stale-worker effect fencing.
+Optional outbox publication retains its separate configured enable/disable policy.
+
+The [migration inventory](../../mysql_migration/implementation/modules/03_decision_source_inventory.md)
+lists source groups, drift checks and remaining target contracts. Staged MySQL
+adapters are described below; there is no runtime cutover. Existing River retry/redrive
+deduplication needs separate lifecycle work.
+
+The API, workers and migrator explicitly select the shared `public` River schema.
+Startup checks pinned migration lineage, required objects and runtime access;
+`/readyz` repeats these checks and returns 503 for a missing/incompatible queue
+or missing pool. `/healthz` remains a liveness check. Readiness performs bounded,
+read-only catalog queries, not migration/repair, queue scans or a complete drift
+audit. Mutations still fail atomically if queue objects become invalid afterwards.
+
+Run the disposable PostgreSQL baseline and boundary suite from the repository root:
+
+```sh
+docker compose -p decision-port-test -f backend/decision-engine-service/compose.test.yaml run --rm test
+docker compose -p decision-port-test -f backend/decision-engine-service/compose.test.yaml down --volumes
+```
+
+The fixture has no application network, published database ports or persistent
+database volume. Service integration tests require local `decision_test_*` admin
+configuration, create a fresh generated database per test and drop only that DB.
+The separate existing `DECISION_TEST_DATABASE_URL` store suite is not enabled by
+this fixture; its specialized setup and full MySQL differential acceptance remain
+separate work. Passing the preparatory suite is not migration release approval.
+
+## Staged MySQL platform and scenario foundations
+
+`internal/store/mysql` now provides tenant-/transaction-bound record-tag,
+risk-snapshot and textual IP-flag repositories. `PlatformStore` requires a local
+authorization callback and explicit row/text budgets, and exposes only implemented
+operations. It is not a partially successful main decision transaction manager.
+Current API/worker construction remains PostgreSQL/River.
+
+The [full mapping review](../../mysql_migration/implementation/modules/03_decision_source_inventory.md#full-owner-mapping-and-review-checkpoint)
+covers all fresh decision-owned schema objects. The user-approved semantic
+choices and remaining privilege/queue dependencies are recorded there.
+The machine artifact is proposed design, not a deployment migration or evidence
+that existing data/grants were inspected.
+
+The dedicated platform fixture is:
+
+```sh
+docker compose -p decision-platform-mysql-test -f backend/decision-engine-service/compose.mysql.test.yaml run --rm test
+docker compose -p decision-platform-mysql-test -f backend/decision-engine-service/compose.mysql.test.yaml down --volumes
+```
+
+It uses generated disposable reference/target databases and no application
+network or published ports. MySQL 9.7.1 cached-image exploratory tests are not
+acceptance on the committed 8.4.8 target. No runtime cutover or full decision
+MySQL persistence/queue implementation is supplied by this slice.
+
+Batch D01–D05 adds decision-owned exact keys and scenario/iteration/rule/publication
+definitions, an optional live-iteration relation and `IterationCreator.CreateDraft`.
+`metadata.ScenarioFoundationStatements` appends to the three existing platform
+steps; `ScenarioFoundationPlan` requires independently supplied exact definitions.
+It does not learn/adopt an existing application schema, install at startup or
+provision accounts. The locked local definer and `ScenarioDefinerGrants` are
+explicit privileged deployment inputs; runtime has no dictionary access or
+standalone resolver EXECUTE. Production account verification, frozen 8.4.8
+definitions and the complete owner installer remain pending.
+
+Name triggers overwrite supplied key IDs from the actual tenant/name bytes.
+Dictionary hashes are non-unique accelerators; complete bytes establish equality.
+Buckets/keys are retained after scenario deletion; GC is not implemented. Caller
+authorization still comes from trusted local identity, not a tenant parameter.
+Live links use tenant/scenario/iteration foreign keys; deleting the referenced
+iteration removes only the link, leaving the scenario and its tenant intact.
+Owner guards reject disabled FK/unique checks and ownership changes. Creation
+receipts/publication events reject direct UPDATE/DELETE; parent cascades retain
+the source deletion policy. See [MySQL FK actions](https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html)
+and [trigger security](https://dev.mysql.com/doc/refman/8.4/en/create-trigger.html).
+
+Draft creation uses a dedicated counter per tenant/scenario. Lock order is local
+authorization, counter, creation receipt, then iteration insertion/counter update
+and receipt insertion. It does not lock a tenant or scenario parent FOR UPDATE.
+Only the staged creator allocates versions; arbitrary direct iteration INSERTs
+are not a supported allocation path. Whole-mutation failures roll back all three
+writes. A stable operation UUID and stable input IDs are mandatory; changed input
+for that operation conflicts. The hash covers the typed JSON-encoded input
+(whitespace compacted; it is not a semantic JSON-equivalence algorithm).
+This is a storage component: the authoring service must validate the AST against
+the current model before invoking it. It is not a complete scenario-authoring API.
+
+Receipts store the original encoded response bytes, not the current mutable
+iteration. They survive iteration deletion, preserving replay of that original
+creation; deleting the whole scenario removes its counter and scoped receipts.
+An uncertain commit must be reconciled with the same operation/input and fresh
+authorization. There is no automatic retry or claim of exactly-once external
+effects. Formula JSON is read back on the insertion transaction before encoding
+the response. Inputs are explicitly bounded to 1 MiB encoded and receipts to
+2 MiB; overflow errors are not truncated successful values. UTC microsecond time
+is generated during processing without request-boundary timestamp checks.
+
+Subsequent local work adds staged scenario/rule CRUD, commit/clone/publication
+atomicity, decision/evidence and test-run/phantom storage, bounded history
+search/paging/snoozes, configuration arrays and structured workflow reads. These
+stores deliberately expose only implemented slices; none is a partially
+successful live `TransactionManager`. Required queue/effect composition remains
+unfinished. The [task checklist](../../mysql_migration/implementation/modules/03_decision_engine_service.md#granular-execution-plan-five-tasks-per-batch)
+distinguishes completed storage work from full-owner acceptance.
+
+The approved auth, case-inbox/tag and screening-source consumer contracts fail closed
+when a provider is absent. Their fixture providers are tests, not implementations
+of AU-01, CM-01 or SR-01. MySQL activation stays blocked pending those owners.
+
+`BrowserWorkflowStore` implements snapshot list, optimistic-version save and
+audited soft delete, but is not wired into the router. It uses the portable
+v1/v2 browser decoder, retains existing condition/action IDs and rejects arbitrary
+structured configurations rather than overwriting them. All legacy/structured
+workflow configuration writers take a dedicated per-scenario authoring guard;
+they do not take an exclusive lock on the scenario used by decision FKs. The
+additive browser lineage has 109 steps, preserving the 106-step effects prefix.
+Workflow mutations require that guard installation; there is no old-schema
+fallback. Staged `AuthoringStore.CopyScenario` and
+`ConfigurationStore.CopyWorkflowRules` now copy bounded repeatable-read source
+snapshots into one atomic destination mutation. Fresh identities and ordered
+children retain relationships; source history/decisions/jobs are not copied.
+Scenario-copy scope matches the source operation: iterations, rules and active
+structured workflows, not legacy workflow definitions or screening/scoring
+configurations. Source snooze-group references are retained, not cloned/reset.
+Live selection requires a new guarded publication and event. Explicit local
+dependency guards must validate current case/tag/model permissions; workflow-only
+copy also fences concurrent destination changes. There is no blind retry after
+uncertain commit and no successful replay inferred from an existing destination.
+`BrowserWorkflowStore.Copy` now composes bounded destination validation and
+batched copy audit inserts with graph creation on that SAME transaction. It
+rejects unsupported browser graphs, checks the actual destination model through
+a mandatory local guard, appends priorities under the destination authoring guard
+and records the trusted actor/source scenario with the new rule identities.
+Audit or preparation failure rolls back every copied rule and child. Pinned
+MySQL 8.4.8 correctness tests cover denied/inactive/missing providers, tenant
+isolation, audit failure, bounds and concurrent copies. Real provider integration
+and full cross-engine browser acceptance remain open.
+
+The auth-owned `decision.workflow.read` and `decision.workflow.author` actions
+must retain the source's platform-administrator AND case-access requirement;
+ordinary scenario authoring permission must not imply browser workflow access.
+The established verifier supplies the actor/session/membership binding, and the
+store checks that the browser actor matches it. Identity authorization precedes
+case authorization, the authoring guard and workflow row locks. An unlocked
+old-rule preview is only authorization input; save/delete reload and fence its
+version under the guard before mutation. Owner providers must use
+short local SQL and the caller transaction, not network calls under locks.
+
+Case-owned `case_manager_authorize_decision_tags_v1` accepts at most 25 unique,
+nonzero tag UUIDs as a sorted JSON array (including `[]` for no tags), checking
+tenant, permission and active status when enabling. The read-only
+`case_manager_visible_decision_inboxes_v1` accepts up to 500 unique inbox UUIDs
+and returns a JSON array of the visible subset. Inactive but authorized inboxes
+remain visible for editing history. NULL, malformed, duplicate, oversized or
+unrequested returned IDs fail closed. Listing uses one bounded visibility query,
+not a query per rule. These are tested consumer contracts only; no case-owner
+provider, grants or activation is supplied here.
+
+The additionally approved `case_manager_authorize_decision_inboxes_v1` accepts
+the trusted actor, tenant, session, membership version, a sorted JSON array of
+at most 500 unique nonzero inbox UUIDs, `require_active` and `write`. The case
+owner must authorize EVERY requested inbox, recheck current identity/permissions
+and lock in deterministic order for writes, on the caller's transaction. It must
+not commit, issue DDL, write unrelated owner data or perform network IO. A false
+result denies the operation; a missing/NULL result is an unavailable contract,
+not successful empty authorization. Browser copying uses one batch rather than
+one inbox call per rule; tag checks use sorted batches of at most 25 unique IDs.
+Save checks old/new inbox authority before workflow locks and requires active
+new routing when enabled, while allowing an authorized inactive historical
+inbox. This is a tested consumer contract, NOT a case-provider implementation.
+
+`DecisionUnitOfWorkStore` combines queued effects, explicitly authorized custom
+lists and optionally requested fenced execution operations on one MySQL
+transaction. Stores must share the exact pool/schema/tenant/row/byte scope.
+The portable `DecisionTransactionManager` is consumed by the actual
+`DecisionService`; it does not pretend to implement legacy unfenced execution
+mutations. Explicit source enqueue calls revalidate the already-atomic initial
+delivery, not create duplicates. Missing execution capabilities or ignored
+required-job failures poison the entire transaction. Scheduled/async prepared
+output completion fences owner scope and the lease before AND after all writes;
+completion, callbacks and required jobs roll back together. Evaluation/network
+work must happen before these short persistence callbacks. Request preparation
+and pinned scheduled evaluation are now staged below. Runtime worker/identity
+composition remains unfinished; the old commit-per-item loop must not be reused.
+
+Target-only `internal/mysqlapi` adapters expose generation, cancellation and
+replay fields without changing PostgreSQL DTOs/routes. Reads and generation-
+conditional cancellation use the authorized execution store, including caller
+tenant/scenario checks before UUID-only mutations. Cancellation JSON requires an
+explicit signed `expected_generation` (zero is valid); missing/NULL/duplicate/
+unknown/oversized/trailing input is rejected. Creation-response conversion does
+not claim inline evaluation. Actual SQL adapter tests cover tenant/scenario
+checks, stale generations, cancellation replay, callback-only cancellation,
+revocation and required-callback insertion rollback. The checkpoint below adds
+admission, waiting and expected-generation redrive adapters. Public HTTP route
+integration and real owner-provider/runtime activation remain pending.
+
+### Staged execution request preparation and pinned evaluation
+
+`internal/mysqlexecution.NewPreparer` requires the execution and registry readers
+to share the exact pool, logical database, tenant and projection budgets, plus
+the real evaluator's required read dependencies. `PrepareRequest` authorizes
+the request, resolves a fresh model, verifies the published trigger/aggregate
+registry and validates the full bounded batch. Payload and model snapshots are
+detached, IDs stay byte-exact (including trailing spaces), and repeated object
+IDs remain independent items rather than being silently deduplicated. Invalid
+items never produce a partial successful batch. No-scenario requests prepare
+only payload/model evidence; all-live scenario selection remains execution-time.
+This operation is NOT durable admission or a new HTTP route. Later creation must
+recheck current identity/live/model bindings before committing an owner and jobs.
+
+`PrepareScheduled` reads the real running owner at its expected tenant/attempt/
+generation and loads that owner's committed iteration/rules, bypassing live
+scenario/iteration/rule caches. The shared real evaluator creates opaque local
+output plans, with independent per-item AST/aggregate caches and no persistence
+transaction. Model/provider/record IO occurs before the eventual short write
+transaction. Explicit items and bounded candidate selection are supported; an
+empty candidate set is valid, but missing/invalid input is not a successful
+no-match. Count, normalized-byte, model and AST budgets fail explicitly.
+
+Pinning freezes iteration formulas/rules/thresholds, not the data model or every
+mutable scenario parent field. Parent trigger object type, scenario-level
+routing and historical reads retain the existing current-state contract; they
+must validate against the attempt's current published model. Each data read
+rechecks its registry gate. This is not a global historical-data snapshot.
+
+`PreparedScheduled.PersistAll` writes on the supplied decision mutation contract
+and returns provisional results; it does not commit or acknowledge a job. The
+staged worker now verifies its identity against the actual lease and calls
+`DecisionUnitOfWorkStore.CompleteScheduled` once for the whole batch. Plans are
+single-use: rollback/uncertain commit requires reconciliation/repreparation,
+not automatic replay. Source PostgreSQL live evaluation still uses its existing
+path and source-compatible identity normalization. No workers, routes, owner
+providers or database selector are activated by this staged implementation.
+
+### Staged worker, admission and reader composition (2026-10-30)
+
+`NewTargetPreparer` now connects the shared evaluator to actual same-scope
+`mysql.EvaluationReaders`: configuration/workflow reads, snoozes, platform risk/
+tags/IP flags and custom lists. These expose narrow read capabilities, not
+nil-embedded writable repositories. Every SQL read retains its owner authority,
+projection limits and tenant predicates. The supplied model provider must still
+implement the real data-model owner's published-version contract. Missing
+providers are not replaced with successful empty results.
+
+`ScheduledWorker` and `AsyncWorker` compose actual scoped claim/start stores,
+the shared `DeliveryPoller`/`LeaseSupervisor`, preparation and fenced unit of
+work. Constructors reject different pools, tenants, schemas, queue policies or
+budgets. Polling/work/heartbeat durations and concurrency are explicit. Claim
+commits before execution; evaluation/provider IO does not retain owner write
+locks. Completion binds the exact prepared identity to the actual lease and
+persists the WHOLE batch, evidence, effects/jobs, result, enabled lifecycle event
+and required callback together. A callback/job failure rolls back every output.
+
+Scheduled attempts retain the owner's stored iteration. Async attempts select
+current live iterations once per attempt, using bounded batched metadata/rule
+reads and one registry gate per used table, not per scenario/rule. All item
+outputs persist atomically. The source async result format is intentionally
+preserved: it contains the FINAL item's explicit/multi-scenario result, not a
+new array containing every item's result. Zero live scenarios remains valid,
+but payload/model validation is never skipped. Total fan-out/output bytes are
+bounded independently of input-item count.
+
+Validation failures and bounded business retries record redacted owner errors
+and atomic lifecycle events. Confirmed output rollback retries transport without
+consuming a new domain attempt; plans are never reused. Cancelled contexts,
+stale leases and uncertain transactions never authorize an unfenced failure or
+replay. Ambiguous completion reads the exact permanent receipt and owner outcome;
+only confirmed completed state counts as success. Unconfirmed outcomes remain
+observable for rescue/reconciliation. A heartbeat error racing a committed result
+is conservatively observable under the shared supervisor contract.
+
+`Admission.CreateScheduled/CreateAsync` performs bounded detached input/model/
+AST preparation first, then reauthorizes and rechecks the selected live link and
+registered published versions inside owner/job/event creation. Concurrent key
+replays create no duplicate work/events; an existing authorized original request
+can be replayed after model/publication changes. Durable bodies preserve omitted
+field maps as stored-record lookups rather than serializing managed fields as
+incoming payloads. `AdmissionOutcomeUnknown` retains the server-generated
+execution ID even without a supplied idempotency key. A future HTTP adapter must
+preserve this reconciliation ID rather than invite a new submission.
+
+`mysqlapi.ExecutionSubmission` adapts real creation and bounded committed-state
+waiting. Waiting takes independently authorized short reads and holds no SQL
+transaction while sleeping. Failed/cancelled/expired waits are not completed-
+inline success. A wait error AFTER committed admission retains the execution ID
+in `ExecutionWaitError`; it does not mean admission rolled back. Separate redrive
+adapters require explicit expected generation and redrive authority. Callback
+redrive preserves the terminal evaluation/result.
+
+Pinned MySQL 8.4.8 and PostgreSQL 16 component/regression tests cover these paths,
+including concurrency, revocation, stale publication/model, required-job/event
+rollback, exact IDs and shutdown joining. This is NOT public HTTP or deployment
+acceptance. Runtime route/auth wiring, real foreign owner providers, callback/
+workflow/screening/scoring/outbox business dispatch, calendar loop composition,
+restricted grants/readiness and frozen release rehearsal remain open. No source
+runtime selector, API route, worker command, live database or migration lineage
+is activated/changed by these components. Performance/load/query-plan testing
+remains deferred at the user's request.
+
+The staged tenant reader consumes the data-model owner's physical registry and
+table-scoped published version (not the global revision). It pins the shared
+registry barrier through each data query, validates registered field identities
+and types, and never guesses a physical name or switches readers on failure.
+The approved indexed object lookup extension uses a registered key column and
+read-only owner resolver, without exposing the private exact-key dictionary.
+Current PostgreSQL HTTP model responses do not supply the required table version;
+the target model provider/complete publication preparation still need composition.
+
+Exact object IDs remain binary exact, including trailing spaces. History search
+uses the approved `utf8mb4_0900_as_ci` contract, not deployment-specific PostgreSQL
+locale emulation; see [MySQL comparison collations](https://dev.mysql.com/doc/refman/8.4/en/case-sensitivity.html).
+General aggregate comparisons retain SQL NULL semantics (`neq` excludes NULL);
+explicit null predicates remain available. A wallet ownership rule still needs
+valid incoming hash/user input enforced by its model/preparation or explicit
+rule guards. A missing stored owner does not establish another account.
+
+The approved optional `text_equality_indexes` owner payload contains field/index
+UUIDs, `sha256_binary_v1`, and explicit generated-column/index names. When present,
+string equality (including each `IN` element) narrows candidates with the
+registered nonunique hash and retains a complete binary value comparison.
+`neq`, range and prefix predicates do not gain an indexed guarantee from this
+strategy. Tests use 5,000 LONGTEXT wallets with a hot hash and a synthetic forced
+collision; they are query-plan evidence, not production EPS evidence.
+The data-model typed planner, payload builder and verified publication
+mapping persistence/retention passed scoped MySQL 8.4.8 SQL race tests.
+Target `RegistryAggregatePublicationGuard` uses the same AST compiler
+and SQL capability compiler as evaluation. It validates static identifiers,
+cross-table filter bindings, literals and dynamic expression types, pins used
+owner registry versions in deterministic order and composes a mandatory remaining
+full preparation guard. Typed witnesses validate compilation only, never replace
+actual runtime input checking or execute queries against tenant records. It does
+not call the model HTTP provider under locks or certify unrelated AST/index
+preparation. Real full owner/provider composition remains pending.
+Missing optional mappings retain the existing unindexed
+comparison path; this must not be labelled performance-ready by an activation
+guard. No runtime selector or automatic owner index creation was added.
+
+`EffectStore` stages decision/evidence, workflow/screening/scoring execution,
+outbox and record-tag/risk/IP writes on one authorized owner transaction. Parent
+iteration bindings are derived from authoritative decisions; foreign-key checks
+bind effects to the same tenant/scenario/config. Batch writes/readback use at
+most 100 identities per statement and fail rather than return partial results.
+As with the other owner stores, callers must propagate every repository error
+and roll back the whole mutation. Results are provisional until commit.
+`WithCustomLists` adds an explicit custom-list capability to that exact effect/job
+transaction, not a second pool/transaction. Separate `decision.list.read` and
+`decision.list.mutate` owner-auth actions run before owner locks. Read-only access
+cannot mutate lists even inside a writable decision transaction; a generic
+persistence grant is insufficient. Missing capability/provider fails explicitly.
+The real auth provider must support these actions before activation. Full main
+TransactionManager composition remains separate from this staged integration.
+Global worker listings deliberately require an explicit system-scope adapter;
+the tenant store does not disguise a tenant subset as a global queue.
+
+Screening reconciliation consumes the approved read-only owner publication,
+locks source before projection and advances only a newer version. Once attached,
+legacy dispatcher writes are rejected. Only decision-owned projection rows are
+updated. The real screening/case/auth providers and complete durable lifecycle
+composition remain activation prerequisites. This storage slice must not be used as
+an independently activated dispatcher or reported as completed D21–D25 work.
+
+The approved `internal/mysqljobs` target v1 identity contract covers all seven
+decision job kinds using `(kind, tenant, resource, domain_attempt,
+redrive_generation)` as the exact reservation tuple. Transport retries keep that
+tuple; a legitimate new domain retry or authorized redrive does not collide with
+retained completion of an earlier one. Callback counters are separate from
+evaluation counters. Payload encoding and queue overrides are not logical
+identity. The strict codec rejects ambiguous/unversioned input but does not
+authorize the caller or prove owner state/lease validity. Durable reservation,
+receipt and worker composition for all seven kinds remain unfinished; workers
+remain inactive.
+
+`NewQueuedEffectStore` is the explicitly job-producing alternative to the
+persistence-only `NewEffectStore`. Its additive 115-step lineage implements
+workflow, screening, scoring and outbox first-attempt deliveries. All four queue
+policies are mandatory and copied at construction. Bounded 100-row receipt/job
+batches commit with their authorized owner effects; required enqueue failure
+also poisons the transaction if the callback ignores the repository error.
+Same-tenant FKs bind every receipt to one real owner row. The full exact
+attempt/generation tuple is unique; receipts outlive transport rows, and neither
+transport retries nor deletion of a transport row may allocate that tuple again.
+`EffectRetryStore` now stages separately authorized, expected-identity domain
+retry and redrive for these four dispatch owners. Each operation locks one
+resource, its latest permanent receipt and its terminal transport before
+resetting the eligible owner and inserting the required successor atomically.
+Retry increments the domain attempt within an explicit configured budget;
+redrive increments its generation without resetting the domain attempt or
+replenishing that budget. Both counters are monotone, so the existing exact
+identity index supports a reverse `LIMIT 1` current-attempt fence. A scoped
+5,000-receipt MySQL 8.4.8 plan used that index and read one row; this is not an
+application-throughput claim. Active transports must finish/rescue first.
+Failed dispatches are retryable; an uncertain provider `sent` state requires
+explicit redrive, never automatic retry. Successful work and source-managed
+screening projections cannot be reset. Source-compatible provider resets clear
+the prior response/reference/error/timestamps, retaining immutable request and
+owner relationships. Real provider idempotency/reconciliation and trusted
+retry/redrive identities remain activation prerequisites. Permanent receipts
+are not cleaned; owner deletion remains restricted while receipts exist.
+
+`EffectDeliveryStore` adds tenant/kind-scoped claim, heartbeat and transactional
+finish for those four owners, with a separate mandatory worker authorizer.
+Claims use `SKIP LOCKED`; lost commit acknowledgement exposes no lease. The
+shared River error-count retry policy is reused without conflating transport
+and domain attempts. Finish locks resource -> receipt -> delivery, validates
+the complete lease, runs only a short local-SQL outcome callback and rechecks
+expiry before committing. A stale/replayed acknowledgement cannot commit local
+effects. External calls belong outside that transaction and still require
+receiver idempotency; this is not an exactly-once network-delivery guarantee.
+The current-attempt receipt is also fenced before four-effect finish/rescue;
+superseded workers cannot write newer owner outcomes. The real worker identity
+provider, external business handlers and full runtime/startup/grant verification
+remain open. Recovery, cancellation and retention have staged implementations
+and scoped tests, not automatically activated workers.
+That four-owner transport does not accept scheduled/async/callback jobs. No
+API/worker runtime selector was changed.
+
+The additive `EffectCancellationStatements` lineage appends five steps to the
+unchanged 140-step execution plan. It records permanent, exact-attempt dispatch
+cancellations and prevents deletion of effect receipts. `EffectRetryStore.Cancel`
+requires distinct authority and atomically records a redacted reason and cancels
+an available/running transport. It preserves business results and never claims
+to undo an external send. Same-identity/same-reason replay returns the original
+record, including after transport retention; changed reasons and stale identities
+fail. Public adapters must expose the separate dispatch cancellation state, not
+rewrite provider status. Only explicitly authorized redrive can resend cancelled
+pending work. Screening-owned projections remain an owner-contract dependency.
+
+`NewOwnedEffectDeliveryMaintenance` supplies a real local dispatch-exhaustion
+mutation for the shared maintenance scheduler. It fails pending decision-owned
+dispatches atomically with transport discard, preserving evidence; sent/completed
+work and screening-owned projections fail closed for reconciliation. No goroutine,
+external handler or application worker is enabled by constructing this adapter.
+
+`ExecutionStore` separately stages scheduled evaluations, asynchronous evaluations
+and callbacks in the additive 140-step lineage, preserving all 115 earlier steps.
+Its required action-specific authority distinguishes read, request, worker run,
+redrive, schedule administration and schedule tick. It does not implement legacy
+mutation methods that cannot express an expected attempt, generation or lease.
+All three copied queue policies and a separate positive callback limit are
+mandatory. Each new request commits with its required exact job receipt/delivery;
+ignored repository mutation errors poison this owner transaction too.
+
+Nonempty request keys are byte-exact, tenant-scoped and first-request-wins, even
+if a later body differs. Empty keys disable deduplication. Recurring evaluations
+also deduplicate the same tenant/scenario/scheduled instant. Conflicting explicit
+ID, key and occurrence bindings fail instead of choosing an arbitrary match.
+The existing private collision-safe key resolver enforces uniqueness; a nonunique
+SHA index plus full binary residual makes key replay a bounded lookup. Async
+scenario ownership is an optional same-tenant link: deleting a scenario removes
+only the link, not the execution or its tenant identity. Scheduled executions
+pin their same-tenant scenario/iteration with restrictive foreign keys.
+
+Worker mutations require the complete current SQL delivery lease, domain attempt
+and redrive generation. Lock order is execution -> receipt -> delivery. Final
+expiry checks roll back outcome changes and required successor/callback jobs
+together. Resuming the same running domain attempt does not consume a new domain
+retry. Evaluation, callback and transport attempts are independent. Authorized
+redrive uses an expected generation; async redrive also cancels old callback
+identities and invalidates their tokens. An already sent external HTTP request
+cannot be undone: send outside all owner transactions, with receiver idempotency
+based on the complete delivery identity. No exactly-once external-send claim.
+
+The interval schedule definitions require an explicit anchor, interval and shared-worker
+`catch_up`, `coalesce` or `skip_late` policy. Configuration is immutable: replace
+by deactivating the old definition and inserting a new one atomically. At most
+one definition per tenant/scenario is active. A tick locks only that schedule,
+checks its published iteration, reads database time and materializes at most 100
+occurrences with bounded batched reads/inserts. Executions, required jobs,
+occurrence receipts, skipped counts and next watermark commit together. Missed
+work is never silently discarded by a default policy. The due cursor reads only
+an indexed, authorized tenant page, not complete execution histories.
+
+The approved corrected calendar v1 contract is implemented separately in
+`internal/recurrence`; calendars are NEVER converted to elapsed intervals:
+
+- Explicit hourly minute, or daily/weekly/monthly local `HH:MM`, named IANA zone,
+  frequency and DST policies are required. Weekly means the local weekday.
+- Monthly day 29–31 clamps independently within each month, then returns to the
+  requested day in later months. It does not drift from February or skip March.
+- A nonexistent local time is skipped and counted. An ambiguous fall-back time
+  runs once, at the earlier instant. Invalid configuration is an error, not a
+  successful skip. These are intentional source-edge corrections, not a claim
+  to reproduce PostgreSQL scheduler bugs.
+- A calendar definition requires an explicit local anchor rather than `StartAt`
+  or `Interval`. Its immutable versioned spec, original anchor, next logical
+  local slot and indexed UTC `next_at` are retained in the SAME schedule owner.
+  Creation counts initial gap slots; a tick counts any subsequently crossed
+  gaps, even when the next real occurrence is in the future.
+- Catch-up emits bounded real occurrences; coalescing emits the latest due one;
+  skip-late emits that one only within the explicit elapsed lateness allowance.
+  Skipped totals include missed nominal slots and gaps, never a second fold.
+  Skip-late windows must be shorter than the minimum nominal period (1h, 24h,
+  7d or 28d respectively); this is not a guarantee of fixed elapsed spacing.
+- Coalescing uses civil arithmetic and a bounded timezone-offset search, not a
+  backlog/history scan. Each gap/due search is capped at 128 slots; unsupported
+  offsets/transitions and DATETIME-range exhaustion fail the transaction rather
+  than silently skipping work. Clock and timezone resolution stay outside SQL.
+- Execution/job/occurrence writes and both cursors commit atomically. A cursor
+  that no longer resolves to its stored UTC instant fails closed. All replicas
+  must pin the same timezone database release (including OS-vs-Go tzdata source)
+  before activation; changing timezone data needs an owner migration/review.
+
+This refines the new, unreleased execution draft and appends two cleanup-index
+ALTERs (140 steps total), without modifying any earlier 115 effect-job steps.
+It is not an upgrade for a previously frozen 138-step release. ALTER references
+require the exact preceding table snapshot, not an absent-object precondition.
+Calendar SQL tests and their exact execution status are in the
+module checklist. The source/public-DTO adapter, real scheduling loop and worker
+composition remain inactive; defining this contract does not enable a scheduler.
+
+`ExecutionDeliveryStore` stages tenant/kind-scoped claim and heartbeat for these
+three queues using the same fixed-catalog lease machinery as the four effect
+queues. Its typed wrapper does not expose generic effect completion. Owner
+`RetryDelivery` records transport failures without consuming another evaluation
+attempt, reuses the shared error-count retry policy and atomically records owner
+failure plus a required failure callback on exhaustion. A callback-only
+authorized redrive allocates a new generation without rerunning or clearing a
+terminal evaluation. Delivery receipts remain retained, including on exhaustion.
+
+This is staged owner code, not an active evaluator or a production worker.
+Source calendar adapter/runtime integration, domain handlers, real
+auth/provider composition, restricted deployment
+grants and startup/readiness integration remain open. Receipt deletion is not
+enabled and owner deletion is intentionally restricted. Test execution evidence
+and pinned-version acceptance status are recorded in the module checklist; the
+presence of this code does not establish full seven-kind or runtime readiness.
+
+Staged expired-delivery recovery now has explicit `Expired`/`Rescue` paths for
+both fixed owner families. Discovery projects only identities, in tenant/kind/
+queue-scoped keyset pages of at most 100. Candidates are not work leases. Rescue
+requires separate worker rescue authority; execution recovery additionally
+requires owner rescue authority and exactly matching pool/database/tenant/queue.
+It locks resource → receipt → delivery and verifies the observed token, transport
+attempt and expiry, both under lock and at the final write. It never temporarily
+extends an expired lease to pass the normal worker API.
+
+Each recovered expiry records one transport error, retains its exact receipt
+and reuses the shared error-history retry policy, without consuming a domain
+attempt. Exhaustion commits the real owner failure and required async callback
+with transport discard. Four-effect exhaustion requires an explicit trusted
+local owner handler, not an implicit success/no-op; real handler composition is
+still activation work. Local outcome failures roll everything back. An external
+send already performed still needs receiver idempotency; rescue cannot undo it.
+Native guard/policy tests do not prove SQL locking or query cost. Disposable
+seven-kind, stale-token, concurrent-rescue, rollback and 5,000-row query-plan
+test code is written but Docker execution is deferred by user request.
+
+The approved execution cancellation contract adds a target-only `cancelled`
+status and separate owner/callback cancellation timestamps. It does NOT alter
+the PostgreSQL status enum or activate legacy handlers. Dedicated cancellation
+authority and an expected generation are required. Pending/running cancellation
+requires and invalidates the exact active delivery; a missing delivery fails
+the transaction. It preserves the generation, so repeating the same cancellation
+does not allocate duplicate jobs. Owner status and revoked tokens fence stale
+workers. Cancelling a scheduled occurrence does not disable its definition.
+
+Async cancellation commits a required cancellation callback when configured;
+enqueue failure also rolls back owner cancellation and transport cancellation.
+Cancelled is terminal for callback dispatch but not eligible for evaluation
+redrive. Callback-only cancellation leaves evaluation status/result/timestamps
+untouched. A separately authorized callback redrive creates a new generation
+and clears only callback cancellation state. Already-sent callbacks cannot be
+unsent; an in-flight external send can still occur despite local cancellation.
+Four-effect domain cancellation and real business handlers remain owner/provider
+composition work, not supplied by this execution-only state contract.
+
+`CleanupTerminalPage` is a bounded, tenant/kind/queue-authorized maintenance
+primitive, not an activated sweeper. It uses shared retention: completed and
+cancelled transports expire after 24 hours, discarded after seven days. Owners
+and permanent identity receipts NEVER expire through this operation. Discovery
+uses an appended cleanup index and at most 100 IDs; batch receipt locks precede
+batch delivery locks, avoiding a reversed finish/cancel/rescue lock order.
+The cursor advances across locked/skipped identities, so zero deletions does
+not mean the stream is exhausted. Paced cycles must wrap after a nil cursor.
+Full current lineage/index attestation and narrow SELECT/DELETE transport grants
+are runtime prerequisites; no DELETE grant on receipts/owners is required.
+
+### Target stage 1–2 checkpoint (2026-10-30)
+
+These are opt-in components, not a backend switch or permission to start MySQL
+services. PostgreSQL/River command selection remains unchanged.
+
+- `internal/mysqlapi.ExecutionHTTP` supplies creation, single-record status,
+  wait-on-creation, expected-generation cancellation and separately authorized
+  retry/redrive routes. A mandatory request-scoped factory must derive trusted
+  identity from authenticated context. Strict bounded JSON rejects unknown and
+  duplicate fields; responses redact internal failures and retain the execution
+  ID when admission committed or its outcome needs reconciliation. Execution
+  collection/filter and recurring-schedule administration routes are not
+  registered by this narrow component; legacy routes must not be mixed in as
+  a silent fallback when selecting the target backend.
+- `internal/mysqlexecution.Scheduler` processes a bounded keyset page and bounded
+  occurrence batch per tick, paced between pages. Calendar wall-clock planning,
+  database-time eligibility, owner locks, receipts and watermark/job atomicity
+  remain in the real SQL owner. Ambiguous commits stop the loop, not an automatic
+  replay. Concurrent deactivation/publication mismatch is an observable skip.
+- `mysqlexecution.Publication` performs full committed-rule/model/type validation
+  before write locks, then reauthorizes and rechecks the parent and sorted owner
+  registry gates on commit. Trigger, aggregate and intermediate related-field
+  tables are included. No model-provider/network call runs under owner locks.
+- `mysqlexecution.DispatchWorker` binds callback/workflow/screening/scoring/outbox
+  work to actual scoped owners and the shared supervisor/poller. It requires
+  `ports.ReceiptDispatcher`; legacy send-only HTTP clients do not satisfy the
+  contract and are not silently wrapped. Send intent commits before IO. A
+  resumed intent reconciles first; only definitive absence permits another
+  idempotent send of the same key/body. Unknown/timeout outcomes remain unknown.
+  Definitive acceptance/rejection, the owner outcome and queue acknowledgement
+  commit together. Callback rejection reserves a bounded domain retry atomically.
+  Cancellation cannot undo an external action already accepted.
+- The optional **149-step** `metadata.DispatchStatements/DispatchPlan` appends
+  four steps to the unchanged 145-step cancellation lineage. The decision-owned
+  intent table has tenant-consistent receipt FKs, immutable identities/body/hash,
+  permanent terminal receipts and no cleanup grant. Bodies are stored as exact
+  bounded JSON wire bytes in a binary column: MySQL JSON-number reformatting must
+  not invalidate the SHA-256 receipt binding. This intentionally increases
+  retained storage; no intent-body archival/expiry policy is activated here.
+- `mysql.RuntimeReadiness` is a cold deployment prerequisite, not a hot health
+  probe or a cached readiness certificate. It requires reviewed exact migration
+  definitions, all real owner-health contracts, matching runtime/inspection
+  database+writer identity, actual pool maxima and the explicit shared connection
+  inventory. The inspection pool/role is separate so API roles need no installer
+  privileges. The inventory cannot discover pools/replicas omitted by operators.
+
+Pinned disposable MySQL 8.4.8/PostgreSQL 16 correctness fixtures cover SQL
+effect/browser comparisons, callback crash/rescue, cancellation/finish races,
+rollback, missing providers, revoked/path tenant authority and restricted worker
+grants. Foreign-owner test routines are fixtures, not provider implementations.
+Full public backend selection/routes, production identity/model/case/screening/
+dispatch provider conformance, frozen release/grants rehearsal and activation
+remain open. Performance/load/query-plan acceptance is deferred; no production
+or EC2 database was changed.
+
+Cancellation, retention, locked-page/rollback and seven-kind SQL tests are
+written but await the Docker window. Native compilation/vet/guard evidence is
+separate in the checklist and does not establish MySQL locking/DDL correctness.
+The lock-read syntax follows the [MySQL 8.4 locking-read contract](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html);
+target-version SQL execution and representative maintenance plans remain open.
+
+### Inactive public API and application composition (2026-10-30)
+
+This checkpoint supersedes earlier notes that collection and recurring-admin
+adapters were missing. It does **not** activate MySQL or supply missing owners.
+
+`internal/mysqlapi` now provides scheduled/async collection and status-summary
+routes alongside the existing create/detail/wait/cancel/redrive routes. Collection
+queries accept `status`, `min_attempt_count`, `limit` and `cursor`. The default
+limit is 100 (clamped to the configured row budget), with a maximum of 500.
+Unknown/duplicate/malformed query parameters are rejected. Cursors bind the
+tenant, scenario, filters and immutable descending time/UUID ordering. They are
+not authorization or a cross-request snapshot: permission is rechecked on every
+page, and mutable status filters may change between pages. Collection rows omit
+request/result bodies, callback URLs and error text; individual detail reads
+retain those separate bounded projections. Status summaries include cancelled
+owners. These queries use the existing history ordering; filtered-query cost
+and representative plans remain performance-acceptance work, not a measured
+optimization claim.
+
+Recurring administration uses
+`/v1/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule`:
+
+- `GET` returns the active definition, or `recurring_schedule: null`.
+- `GET /:scheduleId` reads a retained definition, including disabled ones.
+- `PUT` creates/replaces a calendar definition. Supply a new `schedule_id`, the
+  observed `expected_schedule_id` (zero UUID for initial absence), an explicit
+  `expected_watermark_version`, `calendar`, `start_local`, `missed_policy`,
+  `lateness_ms` and a positive bounded `candidate_limit`. Retry limits are server
+  policy, not caller-controlled. Calendar v1 retains the approved month-end
+  clamp, DST-gap skip and first-overlap policies.
+- `DELETE` requires the exact active schedule ID and observed watermark version.
+
+Replacement validates the published model/full formulas before the write
+transaction, then rechecks current authority, live binding and registry gates.
+Old deactivation and new creation are atomic. Lock order agrees with occurrence
+materialization: schedule, live link, then registry. A concurrent tick can make
+the supplied watermark stale and yield a conflict. Disabling a definition stops
+future materialization; it does not cancel executions already queued. A lost
+commit acknowledgement must be reconciled through the original schedule ID,
+not blindly repeated with a new identity. Definitions/history are not deleted.
+
+`internal/mysqlruntime` builds the actual same-pool/database/tenant read stores,
+queued effects, execution unit of work, evaluator, publication, admission,
+execution HTTP endpoints and optional trusted browser consumer. It requires
+explicit policies, real request authentication, separate user/service authority
+providers, a fresh read-only `TenantModelReader`, all five receipt dispatchers
+and exact pool-bound readiness. The legacy model HTTP client does not invent
+MySQL publication tokens. Missing browser session authority returns an
+unavailable capability rather than silently granting access.
+
+`Runtime.Start` checks the cold 149-step lineage and owner readiness before
+returning a handler. It builds seven delivery loops, seven bounded maintenance
+loops and one calendar scheduler per explicitly configured tenant, within a
+total slot budget. HTTP tenant scope is restricted to that deployment inventory;
+no queue payload grants service authority. `RunWorkers` is explicit and single
+use: failure cancels and joins siblings and withdraws readiness. `Shutdown`
+withdraws admission first and waits within the caller's deadline. Pools and the
+HTTP listener remain caller-owned; `HTTPServer` configures bounded socket-level
+header/body/write/idle deadlines without listening. Hot readiness checks real
+owner availability and required queue columns/access, not the full installer
+DDL/trigger shape on every HTTP request.
+
+Receipt-aware maintenance refuses terminal exhaustion when a send intent exists
+without committed owner/receipt acknowledgement. A lost external response is
+not proof of rejection; it requires outcome reconciliation. Retriable transport
+work still resumes with the original key/body. Permanent identity receipts and
+send intents remain retained; this pass adds no archival policy.
+
+`DATABASE_BACKEND` defaults to `postgres`. Selecting `mysql` fails explicitly
+before PostgreSQL startup; the deployed commands do not enable the target
+composition yet. Real auth/session/revocation, service identities, complete
+published-model delivery, case permissions, screening source publication and
+receipt-provider conformance remain dependencies. The user deferred additional
+auth action adapters to the auth integration pass. Existing send-only HTTP
+clients are not treated as receipt-aware providers. No cross-owner DML, EC2,
+Aurora, application-database changes or performance acceptance is included.
+
+### Decision-owned release verification and rehearsal (2026-10-30)
+
+`internal/mysqlrelease` and the separate `/app/mysql-release` executable prepare
+the decision release boundary without activating a mixed-backend stack. The
+legacy `/app/migrate` still handles PostgreSQL; do not point it at MySQL.
+`DATABASE_BACKEND=mysql` still fails closed in API/worker startup. This checkpoint
+does not implement any foreign-owner provider or the deferred auth adapters.
+
+The release artifact contains format `1`, the exact shared database and locked
+localhost definer, MySQL `8.4.8`, a full Git revision, approved source-tree SHA-256,
+immutable image digest and all 149 migration steps with frozen canonical
+before/after definitions. Its encoding is compact `encoding/json` output plus
+one LF. Verification rejects duplicate/unknown fields, oversized/noncanonical
+JSON, altered SQL, incomplete prefixes, broken definition chains and identity
+mismatches. SQL must equal the compiled decision source, not arbitrary artifact
+SQL. A SHA-256 binds bytes; it does not authenticate the publisher or approve a
+release. The approved checksum/source/image values must come from the reviewed
+release channel, independently of the file being checked.
+
+Production definitions must be captured/reviewed on an independent, disposable
+reference server with the same exact schema/definer/version, then frozen and
+promoted with the image. There is deliberately no command that learns existing
+deployment-target definitions and calls them approved. No production artifact
+has been frozen/promoted in this pass. Rehearsal definitions are private fixture
+observations, NOT production release artifacts. A clean reviewed source checkout
+and an external comparison of the actual deployed image digest/OCI labels are
+still required; passing a claimed manifest identity is not image attestation.
+
+The decision Dockerfile now includes its local `../mysqlstore` dependency before
+module download. Build inputs `SOURCE_REVISION` and `SOURCE_TREE_SHA256` become
+OCI labels and are embedded into the release verifier. An unstamped or
+mismatched verifier can perform offline artifact checks, but cannot verify a
+deployment database. Image digest comparison remains an operator/pipeline gate.
+Example build for a later approved release, from the repository root:
+
+```sh
+docker build -f backend/decision-engine-service/Dockerfile \
+  --build-arg SOURCE_REVISION="$APPROVED_REVISION" \
+  --build-arg SOURCE_TREE_SHA256="$APPROVED_SOURCE_SHA256" \
+  -t "$REVIEWED_CANDIDATE_TAG" backend
+```
+
+Do not use the current dirty working tree as an approved release checkout.
+The complete production image build/promotion is not established by the local
+Go compilation or component SQL tests.
+
+The verifier accepts these common arguments:
+
+```text
+--artifact /release/decision.json --sha256 <approved-artifact-sha256>
+--database <shared-database> --definer <locked-decision-definer>
+--mysql-version 8.4.8 --revision <approved-40-hex-revision>
+--source-sha256 <approved-source-digest> --image sha256:<approved-image-digest>
+```
+
+- `--mode artifact` verifies offline; no database is accessed.
+- `--mode grants --role api|worker --runtime-user <dedicated-account>
+  --runtime-host <literal-host>` prints decision-owned DML grants, without
+  applying them, creating accounts, granting foreign access or altering roles.
+- `--mode verify --address <writer-host:port> --server-uuid <verified-writer-uuid>
+  --user <separate-inspector> --password-env DECISION_INSTALLER_PASSWORD
+  --ca <trusted-ca.pem>` verifies TLS, exact version/database/writer, writer
+  status, locked definer, complete checksummed lineage and full object shapes.
+  The target check is repeated on the actual pinned verification connection.
+  This operation does not create a ledger or repair missing/dirty objects.
+
+There is **no production `apply`, `force`, `down` or `activate` operation**.
+The shared runner supports pinned DDL locking/recovery, but has no caller target
+guard immediately before writes on that same session. A pooled diagnostic
+preflight alone is not sufficient: reconnect/failover could change the target
+between checking and applying. A shared-installer owner must provide/rehearse
+that guard before production writes are exposed. This pass does not modify that
+shared component or substitute a copied migration runner.
+
+Owner grants enumerate every decision table and fail if a new table lacks an
+explicit classification. There are no schema wildcards, DDL, grant options,
+runtime dictionary access or resolver execution. API cannot delete delivery
+copies or insert send intents; workers can clean delivery copies but cannot
+delete decisions, identity receipts or send intents. Required `FOR UPDATE`
+receipt fences use `UPDATE(id)` on immutable receipt keys; API intent fences use
+`UPDATE(receipt_id)`. Owner guards still reject changes. These narrow privileges
+follow [MySQL locking-read requirements](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html).
+Table grants are not tenant authorization; trusted caller-transaction checks
+remain mandatory. Existing accounts/inherited roles need independent grant
+review; printing grants does not revoke any pre-existing privilege.
+
+Cold inspection is a separate deployment policy gate. Full routine-definition
+visibility requires a definer or broader inspection privilege; ordinary
+object-level `EXECUTE` does not expose the routine body. Do not grant global
+`SELECT`, unlocked definer access or installer credentials to runtime accounts
+to make readiness pass. The [SHOW CREATE PROCEDURE contract](https://dev.mysql.com/doc/refman/8.4/en/show-create-procedure.html)
+and [routine privilege documentation](https://dev.mysql.com/doc/refman/8.4/en/stored-routines-privileges.html)
+explain this constraint. A production inspection-account policy remains open;
+this pass does not claim a fully least-privileged deployed inspector.
+
+Disposable rehearsal covers fresh install, unchanged 140→145→149 upgrade,
+dirty-before-DDL and dirty-after-DDL recovery, repeat apply, missing schema,
+wrong writer, unlocked definer, tampered checksums and drift refusal. Separate
+foreign-owner table and migration sentinels must remain unchanged. Real decision
+service evaluation is exercised under the explicit API grant plan, including
+threshold outcomes/evidence, tenant denial and required-job failure rollback.
+Worker grants are exercised through real claim/intent/receipt/ack SQL plus
+forbidden dictionary/foreign-owner/DDL/history-mutation negatives. No external
+provider is contacted, and this is not complete provider or production-grant
+acceptance.
+
+Controlled activation remains a coordinated deployment gate:
+
+1. Obtain the approved target/window, clean source and immutable image/artifact;
+   review all API/worker/inspection/installer and foreign contract grants.
+2. Require real auth/model/case/screening and receipt-aware providers, the shared
+   pre-write target guard and an approved complete connection/worker budget.
+3. Rehearse backup/restore and source-writer fencing, including all outstanding
+   executions, cancellations and unknown external outcomes. Do not duplicate
+   deliveries or silently omit unresolved intents.
+4. Install/verify through the approved shared installer before accepting traffic.
+   Start with mutation/delivery admission disabled; verify actual images, target,
+   readiness, authorization negatives, bounded evaluation and outcome/queue
+   reconciliation before enabling the single authoritative writer set.
+5. Stop admission and claimers on mismatch or owner/readiness loss. Before target
+   writes, a fenced return to source can be considered. After target writes or
+   external effects, do not flip URLs: reconcile accepted operations and receipts
+   through the approved recovery plan or roll forward.
+
+No EC2, Aurora, application database, live container, configured backend or
+runtime activation has been changed by this work. Performance/load acceptance
+remains explicitly deferred. Full deployment and controlled activation cannot
+be reported complete from these decision-only fixtures.

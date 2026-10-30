@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-29",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "scope": "Approved sections 1 and 2: verify the staged platform adapters and build the complete fresh decision-owner catalog/proposed mapping; stop for review before scenario/rule storage",
+  "implemented_local_not_pushed": [
+    "Tenant- and transaction-bound MySQL record-tag, latest-risk and textual IP-flag repositories, with required local authorization callbacks, shared codecs/transaction cleanup and explicit row/aggregate-text budgets.",
+    "Additive three-table platform definitions and source-bound reference-plan builder using the shared owner migration runner. Reference observations in tests come only from generated disposable databases; no production definitions are learned/adopted and no frozen 8.4.8 release artifact is supplied.",
+    "Complete 17-business-column platform source mapping, non-unique generated SHA accelerators plus full binary residual equality, storage NUL checks and no silent truncation/partial successful lists.",
+    "Driver-neutral confirmed risk absence in both readers; arbitrary failures and a successful nil result without confirmed absence remain errors. Latest-risk equal-time ties use created_at DESC,id DESC in both readers.",
+    "Fresh PG16 decision schema catalog through migration 22: full column defaults/nullability/collations, constraints/reference bindings, expression/partial index definitions, complete routines and trigger definitions.",
+    "Proposed target mapping for every captured owner object, with scalar/JSON/ordered-array/null/default/reverse/preflight rules, source/query candidates and reviewed source-owner DML sets; unresolved target/security choices remain explicitly proposed/blocked.",
+    "Unit source/proposal drift test and required disposable-PG catalog comparison; unknown table/type/default/constraint/routine kinds are not silently accepted.",
+    "Updated module checklist and readable review checkpoint; no scenario/rule storage implementation, runtime switch, deployment or push in this pass."
+  ],
+  "catalog_coverage": {
+    "owner_tables": 29,
+    "columns": 284,
+    "constraints": 73,
+    "indexes": 71,
+    "routines": 2,
+    "triggers": 1,
+    "query_access_contract_records": 183,
+    "source_files": 157,
+    "source_migration_up_files": 22,
+    "source_migration_up_and_down_files": 44,
+    "note": "Decision-only fresh migration catalog, not every core/shared database table or the deployed database. Query associations are source-fragment/manual-contract candidates, not a complete SQL parser/call graph or proof of index usage."
+  },
+  "verification": [
+    {
+      "suite": "Dedicated MySQL platform and AST vet/race fixture",
+      "command": "docker compose -p decision-platform-mysql-test -f backend/decision-engine-service/compose.mysql.test.yaml -f /tmp/decision-platform-mysql-exploratory.yml run --rm --pull never test",
+      "result": "passed",
+      "environment": "MySQL SELECT VERSION() confirmed 9.7.1, cached digest ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3; Go 1.25.0 override; private network, tmpfs DB and generated reference/target databases",
+      "coverage": [
+        "Round trips for all three repositories and tenant separation; missing risk contract, positive tag/flag lookup, exact textual IPv6 spelling and readonly mutation rejection",
+        "Deterministic equal-time risk ordering matching PostgreSQL UUID order",
+        "Case, trailing spaces, Unicode normalization differences, empty/long/injection-like opaque IDs and forced digest-bucket collision residuals",
+        "Row/aggregate-byte/projection limits without partial results; invalid UUID/tenant/UTF-8/NUL/time precision/range and direct storage NUL CHECK rejection",
+        "Callback error, duplicate-key, cancellation and panic rollback; denied authorization, repeatable read snapshot and concurrent identical-ID winner/conflict",
+        "Restricted SELECT/INSERT account can operate but cannot UPDATE/DELETE/DDL/read migration ledger or other-owner table; generated-column drift is rejected",
+        "Source-bound migration plan validation, repeat apply/verify and refusal to adopt altered shapes"
+      ],
+      "limitations": "Exploratory 9.7.1 run is NOT pinned 8.4.8/Go1.25.8 or Aurora acceptance. Real production identity SQL, installed runtime grants, full decision/queue composition and uncertain-commit operation receipts are not implemented."
+    },
+    {
+      "suite": "Platform query plans",
+      "result": "passed",
+      "data": "5,000 synthetic records per table (15,000 total): 2,000 hot-key rows and 3,000 selective keys per table",
+      "operations": "Tag list, latest risk, IP flag list, tag existence and IP flag existence; selective and hot keys (ten EXPLAIN ANALYZE executions)",
+      "observed_indexed_paths_include": ["de_record_tags_object", "de_risk_object", "de_ip_object"],
+      "limitations": "Measured on the disposable 9.7.1 fixture only. Plan checks establish indexed lookup for those inputs, not RDS throughput/latency, full-scale selectivity or benefit of every additional candidate index."
+    },
+    {
+      "suite": "Fresh schema generation plus full decision-engine vet/race regression",
+      "command": "docker compose -p decision-port-test -f backend/decision-engine-service/compose.test.yaml -f /tmp/decision-port-test-go.yml run --rm --pull never -e GOMAXPROCS=2 test sh -ec 'go mod download && go test -mod=readonly -p 2 -count=1 -timeout=120s -v ./internal/service -run TestIntegrationDecisionSchemaManifest -args -update-decision-schema-manifest && go vet -p 2 ./... && go test -mod=readonly -race -p 2 -count=1 -timeout=240s ./...'",
+      "result": "passed",
+      "environment": "Private PostgreSQL 16 fixture, Go1.25.0 override, DECISION_ENGINE_REQUIRE_INTEGRATION=1; generated decision_test_* databases only",
+      "coverage": "All service fixtures, PostgreSQL risk absence/equal-time/tenant/failure regression, queue boundary/readiness, catalog comparison, source/proposal drift and existing decision/AST suites",
+      "limitations": "MySQL integration is skipped in this PG-only run and is covered separately above. Specialized existing store tests using DECISION_TEST_DATABASE_URL remain unconfigured; this is not all-owner migration or full cross-engine acceptance."
+    },
+    {
+      "suite": "Worktree safety",
+      "result": "git diff --check passed; original staged index unchanged at 59 files, 20063 insertions, 88 deletions",
+      "note": "Unrelated optional-outbox/performance work is preserved, not committed or pushed by this pass."
+    }
+  ],
+  "verification_setup_limitations": [
+    "Pinned mysql:8.4.8 download failed through the local Docker credential helper with error -50, including an isolated empty CLI-config attempt; user Docker credential settings were not changed.",
+    "Host Go dependency download could not resolve proxy.golang.org. The already-pinned sibling mysqlstore driver/checksums were used and container networking completed dependency download; readonly compilation/vet/tests passed."
+  ],
+  "review_gates_before_section_3": [
+    "Optional relationship rows versus other safe tenant-composite ON DELETE SET NULL handling for live iteration and async scenario",
+    "Decision-owned collision-safe exact-key dictionary and raw/key guard for scenario names/idempotency; source-equivalent Unicode lower(name) uniqueness for custom lists",
+    "Tenant/scenario/iteration strengthening and preflight/backfill policy for legacy ID-only FKs and evidence without tenant columns",
+    "Array NULL-element/dimension/lower-bound fidelity and clock/default/version-allocation semantics",
+    "Separate API/worker/system scope and restricted identity/case/screening/queue owner contracts; no arbitrary cross-owner writes",
+    "Pinned 8.4.8 installation/upgrade/grants, frozen reference definitions, production data profiling, full differential corpus and representative application-scale plans"
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_access": false,
+    "application_database_changes": false,
+    "runtime_engine_changed": false,
+    "deployment_or_application_image_rebuild": false,
+    "decision_changes_committed_or_pushed": false,
+    "scenario_rule_storage_started": false,
+    "aurora_testing_excluded": true
+  }
+}

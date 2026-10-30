@@ -19,7 +19,6 @@ import (
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/jackc/pgx/v5"
 )
 
 type marbleFilter struct {
@@ -286,13 +285,13 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		snapshot, err := runtime.RiskRepo.GetByObject(ctx, runtime.TenantID, runtime.ObjectType, runtime.ObjectID)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
+			if errors.Is(err, ports.ErrRiskSnapshotNotFound) {
 				return nil, nil
 			}
 			return nil, err
 		}
 		if snapshot == nil {
-			return nil, nil
+			return nil, errors.New("risk snapshot repository returned no value without confirmed absence")
 		}
 		return snapshot.RiskLevel, nil
 	case "has_ip_flag":

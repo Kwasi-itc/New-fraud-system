@@ -1,0 +1,59 @@
+{
+  "format": "decision-platform-mapping/v1",
+  "status": "needs_review",
+  "scope": "Record tags, risk snapshots and IP flags only; not the complete decision schema or deployment approval",
+  "source_file": "internal/migrations/metadata/000001_init.up.sql",
+  "source_sha256_lf": "0d4c77208fea62f9f18cd3cc18ce5fae9cbe2964d09f48ec4cb0903367e85809",
+  "tables": [
+    {
+      "source": "core.record_tags",
+      "target": "decision_engine_record_tags",
+      "columns": [
+        {"name":"id","source":"UUID PRIMARY KEY","target":"BINARY(16)","rule":"Standard UUID bytes, no byte swap; retain global primary-key uniqueness"},
+        {"name":"tenant_id","source":"UUID NOT NULL","target":"BINARY(16)","rule":"Required immutable transaction scope; no source tenant FK exists, do not invent a cross-owner dependency"},
+        {"name":"object_type","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Full UTF-8 text, no NUL, no case/space/Unicode normalization; SHA index is non-unique"},
+        {"name":"object_id","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Opaque full text, never UUID-convert; non-unique hash plus full binary residual equality"},
+        {"name":"tag","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Exact full text; duplicates with distinct row IDs remain allowed"},
+        {"name":"created_at","source":"TIMESTAMPTZ NOT NULL","target":"DATETIME(6)","rule":"UTC instant, explicit microsecond precision, reject unrepresentable values"}
+      ],
+      "source_indexes": ["record_tags_tenant_object_idx"],
+      "target_indexes": ["PRIMARY", "de_record_tags_object", "de_record_tags_value"],
+      "auxiliary_columns": ["object_type_sha", "object_id_sha", "tag_sha"],
+      "integrity": "No source FK/check/secondary uniqueness. Target NUL checks preserve the PostgreSQL text domain; digest columns are database-generated and never unique."
+    },
+    {
+      "source": "core.risk_snapshots",
+      "target": "decision_engine_risk_snapshots",
+      "columns": [
+        {"name":"id","source":"UUID PRIMARY KEY","target":"BINARY(16)","rule":"Standard UUID bytes, global PK; descending binary ID breaks equal-time ties"},
+        {"name":"tenant_id","source":"UUID NOT NULL","target":"BINARY(16)","rule":"Exact scoped tenant predicate; no source tenant FK"},
+        {"name":"object_type","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Exact full text with generated non-unique SHA accelerator and residual binary equality"},
+        {"name":"object_id","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Opaque full text, no truncation or UUID conversion"},
+        {"name":"risk_level","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Preserve text; configured projection overflow is an error, never absent/no-risk"},
+        {"name":"created_at","source":"TIMESTAMPTZ NOT NULL","target":"DATETIME(6)","rule":"UTC microseconds; profile out-of-range timestamps before transfer"}
+      ],
+      "source_indexes": ["risk_snapshots_tenant_object_idx"],
+      "target_indexes": ["PRIMARY", "de_risk_object"],
+      "auxiliary_columns": ["object_type_sha", "object_id_sha"],
+      "integrity": "No source FK/check/secondary uniqueness. Both readers explicitly choose created_at DESC,id DESC; the previous PostgreSQL equal-time result was undefined."
+    },
+    {
+      "source": "core.ip_flags",
+      "target": "decision_engine_ip_flags",
+      "columns": [
+        {"name":"id","source":"UUID PRIMARY KEY","target":"BINARY(16)","rule":"Standard UUID bytes, global PK"},
+        {"name":"tenant_id","source":"UUID NOT NULL","target":"BINARY(16)","rule":"Exact scoped tenant predicate; no source tenant FK"},
+        {"name":"ip_address","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Source is TEXT, NOT INET; do not canonicalize IPv4/IPv6 spellings or use INET codecs"},
+        {"name":"flag","source":"TEXT NOT NULL","target":"LONGTEXT","rule":"Full exact text, no case folding/trailing-space equivalence; duplicates remain allowed"},
+        {"name":"created_at","source":"TIMESTAMPTZ NOT NULL","target":"DATETIME(6)","rule":"UTC, microsecond and MySQL range validation"}
+      ],
+      "source_indexes": ["ip_flags_tenant_ip_idx"],
+      "target_indexes": ["PRIMARY", "de_ip_object", "de_ip_value"],
+      "auxiliary_columns": ["ip_address_sha", "flag_sha"],
+      "integrity": "No source FK/check/secondary uniqueness. Non-unique accelerators cannot replace full text equality or tenant scope."
+    }
+  ],
+  "grant_contract": "These append/read repositories require SELECT and INSERT only on the three owner tables. No runtime UPDATE, DELETE, DDL, ledger access or cross-owner access. Deployment identities/actor authorization still require integration.",
+  "resource_contract": "Explicit row and aggregate-text-byte budgets; server suppresses oversized projections and readers fail with ErrProjectionLimit, returning no partial list. These budgets are not new column-length restrictions or a throughput claim.",
+  "remaining": ["Full decision owner/source-to-target manifest", "Frozen pinned-8.4.8 reference definitions and upgrade/grant installation approval", "Data profiles and transfer verification", "Production identity authorizer and service/runtime composition", "Operation receipts for ambiguous commits", "Representative application-scale plans and Aurora acceptance (Aurora excluded for now)"]
+}

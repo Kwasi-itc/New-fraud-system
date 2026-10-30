@@ -84,7 +84,6 @@ func TestScreeningServiceUpdateExecutionStatusFromScreeningCallback(t *testing.T
 		scenarioRepoStub{item: scenario.Scenario{ID: "scenario-1", TenantID: "tenant-1"}},
 		nilScreeningConfigRepository{},
 		repo,
-		nil,
 	)
 
 	updated, err := svc.UpdateExecutionStatusFromScreeningCallback(context.Background(), "tenant-1", ScreeningStatusUpdate{

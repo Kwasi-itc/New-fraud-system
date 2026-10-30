@@ -89,6 +89,10 @@ func main() {
 
 	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
 	slog.SetDefault(logger)
+	if err := cfg.ValidateRuntimeBackend(); err != nil {
+		logger.Error("unsupported runtime backend", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
 		MaxConns: int32(cfg.DatabaseMaxConns), MinConns: int32(cfg.DatabaseMinConns),
@@ -98,6 +102,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	queueContext, cancelQueueCheck := context.WithTimeout(context.Background(), 3*time.Second)
+	err = storepostgres.ValidateQueueReadiness(queueContext, db, true)
+	cancelQueueCheck()
+	if err != nil {
+		logger.Error("decision worker queue startup check failed", "error", err)
+		os.Exit(1)
+	}
 
 	var geoIPLookup *geoip.MMDBLookup
 	if cfg.GeoIPMMDBPath != "" {
@@ -143,30 +154,9 @@ func main() {
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
+		Schema:  riverjobs.Schema,
 		Workers: workers,
-		Queues: map[string]river.QueueConfig{
-			cfg.ScheduledExecutionQueueName: {
-				MaxWorkers: cfg.ScheduledExecutionQueueWorkers,
-			},
-			cfg.AsyncExecutionQueueName: {
-				MaxWorkers: cfg.AsyncExecutionQueueWorkers,
-			},
-			cfg.AsyncExecutionCallbackQueueName: {
-				MaxWorkers: cfg.AsyncExecutionCallbackQueueWorkers,
-			},
-			cfg.WorkflowDispatchQueueName: {
-				MaxWorkers: cfg.WorkflowDispatchQueueWorkers,
-			},
-			cfg.ScreeningDispatchQueueName: {
-				MaxWorkers: cfg.ScreeningDispatchQueueWorkers,
-			},
-			cfg.ScoringDispatchQueueName: {
-				MaxWorkers: cfg.ScoringDispatchQueueWorkers,
-			},
-			cfg.OutboxQueueName: {
-				MaxWorkers: cfg.OutboxQueueWorkers,
-			},
-		},
+		Queues:  executionQueues(cfg),
 	})
 	if err != nil {
 		logger.Error("failed to initialize river client", "error", err)
@@ -179,6 +169,10 @@ func main() {
 	screeningEnqueuer := riverjobs.NewRiverScreeningExecutionEnqueuer(riverClient, 1, cfg.ScreeningDispatchQueueName)
 	scoringEnqueuer := riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
 	outboxEnqueuer := riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
+	txManager = storepostgres.NewTransactionManager(db).WithJobEnqueuers(storepostgres.JobEnqueuers{
+		Scheduled: scheduledEnqueuer, Async: asyncEnqueuer, Callback: asyncCallbackEnqueuer,
+		Workflow: workflowEnqueuer, Screening: screeningEnqueuer, Scoring: scoringEnqueuer, Outbox: outboxEnqueuer,
+	})
 
 	decisionService := service.NewDecisionService(
 		txManager,
@@ -206,10 +200,8 @@ func main() {
 		screeningExecutionRepo,
 		scoringConfigRepo,
 		scoringRequestRepo,
-		workflowEnqueuer,
-		screeningEnqueuer,
-		scoringEnqueuer,
-		outboxEnqueuer,
+
+		cfg.OutboxPublishingEnabled(),
 		cfg.AggregatePushdownMode,
 		cfg.AggregatePushdownAggregates,
 		cfg.RuleEvaluationConcurrency,
@@ -242,10 +234,6 @@ func main() {
 			CallbackTimeout:       cfg.AsyncExecutionCallbackTimeout,
 			CallbackSigningSecret: cfg.AsyncExecutionCallbackSigningSecret,
 		},
-		scheduledEnqueuer,
-		asyncEnqueuer,
-		asyncCallbackEnqueuer,
-		outboxEnqueuer,
 	)
 	scheduledWorker := riverjobs.NewScheduledExecutionWorker(executionService)
 	asyncWorker := riverjobs.NewAsyncDecisionExecutionWorker(executionService)
@@ -294,6 +282,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	logger.Info("starting decision engine execution workers",
+		"outbox_publication_enabled", cfg.OutboxPublishingEnabled(),
 		"scheduled_queue", cfg.ScheduledExecutionQueueName,
 		"scheduled_workers", cfg.ScheduledExecutionQueueWorkers,
 		"async_queue", cfg.AsyncExecutionQueueName,
@@ -491,6 +480,23 @@ func firstNonEmpty(values ...string) string {
 
 func legacyWorkerTasks(tasks []string) []string {
 	return nil
+}
+
+func executionQueues(cfg app.Config) map[string]river.QueueConfig {
+	queues := map[string]river.QueueConfig{
+		cfg.ScheduledExecutionQueueName:     {MaxWorkers: cfg.ScheduledExecutionQueueWorkers},
+		cfg.AsyncExecutionQueueName:         {MaxWorkers: cfg.AsyncExecutionQueueWorkers},
+		cfg.AsyncExecutionCallbackQueueName: {MaxWorkers: cfg.AsyncExecutionCallbackQueueWorkers},
+		cfg.WorkflowDispatchQueueName:       {MaxWorkers: cfg.WorkflowDispatchQueueWorkers},
+		cfg.ScreeningDispatchQueueName:      {MaxWorkers: cfg.ScreeningDispatchQueueWorkers},
+		cfg.ScoringDispatchQueueName:        {MaxWorkers: cfg.ScoringDispatchQueueWorkers},
+	}
+	// Old jobs are retained, not acknowledged, discarded or marked failed when
+	// publication is disabled. They become eligible again once a URL is configured.
+	if cfg.OutboxPublishingEnabled() {
+		queues[cfg.OutboxQueueName] = river.QueueConfig{MaxWorkers: cfg.OutboxQueueWorkers}
+	}
+	return queues
 }
 
 func max(a, b int) int {

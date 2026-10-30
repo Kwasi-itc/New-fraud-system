@@ -15,13 +15,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 type AsyncDecisionExecutionRequest struct {
@@ -75,22 +72,18 @@ type AsyncExecutionBehavior struct {
 }
 
 type ExecutionService struct {
-	txManager             ports.TransactionManager
-	idGen                 ports.IDGenerator
-	clock                 ports.Clock
-	scenarioRepo          ports.ScenarioRepository
-	iterationRepo         ports.ScenarioIterationRepository
-	tenantDataReader      ports.TenantDataReader
-	scheduledRepo         ports.ScheduledExecutionRepository
-	asyncRepo             ports.AsyncDecisionExecutionRepository
-	outboxRepo            ports.OutboxEventRepository
-	decisionSvc           DecisionService
-	retryPolicy           ExecutionRetryPolicy
-	asyncBehavior         AsyncExecutionBehavior
-	scheduledEnqueuer     riverjobs.ScheduledExecutionEnqueuer
-	asyncEnqueuer         riverjobs.AsyncDecisionExecutionEnqueuer
-	asyncCallbackEnqueuer riverjobs.AsyncDecisionExecutionCallbackEnqueuer
-	outboxEnqueuer        riverjobs.OutboxEventEnqueuer
+	txManager        ports.TransactionManager
+	idGen            ports.IDGenerator
+	clock            ports.Clock
+	scenarioRepo     ports.ScenarioRepository
+	iterationRepo    ports.ScenarioIterationRepository
+	tenantDataReader ports.TenantDataReader
+	scheduledRepo    ports.ScheduledExecutionRepository
+	asyncRepo        ports.AsyncDecisionExecutionRepository
+	outboxRepo       ports.OutboxEventRepository
+	decisionSvc      DecisionService
+	retryPolicy      ExecutionRetryPolicy
+	asyncBehavior    AsyncExecutionBehavior
 }
 
 func normalizeScheduledExecutionCandidateLimit(limit int) int {
@@ -116,23 +109,7 @@ func NewExecutionService(
 	decisionSvc DecisionService,
 	retryPolicy ExecutionRetryPolicy,
 	asyncBehavior AsyncExecutionBehavior,
-	scheduledEnqueuer riverjobs.ScheduledExecutionEnqueuer,
-	asyncEnqueuer riverjobs.AsyncDecisionExecutionEnqueuer,
-	asyncCallbackEnqueuer riverjobs.AsyncDecisionExecutionCallbackEnqueuer,
-	outboxEnqueuer riverjobs.OutboxEventEnqueuer,
 ) ExecutionService {
-	if scheduledEnqueuer == nil {
-		scheduledEnqueuer = riverjobs.NoopScheduledExecutionEnqueuer{}
-	}
-	if asyncEnqueuer == nil {
-		asyncEnqueuer = riverjobs.NoopAsyncDecisionExecutionEnqueuer{}
-	}
-	if asyncCallbackEnqueuer == nil {
-		asyncCallbackEnqueuer = riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{}
-	}
-	if outboxEnqueuer == nil {
-		outboxEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
-	}
 	if asyncBehavior.DefaultWaitWindow <= 0 {
 		asyncBehavior.DefaultWaitWindow = 300 * time.Millisecond
 	}
@@ -149,22 +126,18 @@ func NewExecutionService(
 		asyncBehavior.CallbackHTTPClient = &http.Client{Timeout: asyncBehavior.CallbackTimeout}
 	}
 	return ExecutionService{
-		txManager:             txManager,
-		idGen:                 idGen,
-		clock:                 clock,
-		scenarioRepo:          scenarioRepo,
-		iterationRepo:         iterationRepo,
-		tenantDataReader:      tenantDataReader,
-		scheduledRepo:         scheduledRepo,
-		asyncRepo:             asyncRepo,
-		outboxRepo:            outboxRepo,
-		decisionSvc:           decisionSvc,
-		retryPolicy:           retryPolicy,
-		asyncBehavior:         asyncBehavior,
-		scheduledEnqueuer:     scheduledEnqueuer,
-		asyncEnqueuer:         asyncEnqueuer,
-		asyncCallbackEnqueuer: asyncCallbackEnqueuer,
-		outboxEnqueuer:        outboxEnqueuer,
+		txManager:        txManager,
+		idGen:            idGen,
+		clock:            clock,
+		scenarioRepo:     scenarioRepo,
+		iterationRepo:    iterationRepo,
+		tenantDataReader: tenantDataReader,
+		scheduledRepo:    scheduledRepo,
+		asyncRepo:        asyncRepo,
+		outboxRepo:       outboxRepo,
+		decisionSvc:      decisionSvc,
+		retryPolicy:      retryPolicy,
+		asyncBehavior:    asyncBehavior,
 	}
 }
 
@@ -264,17 +237,17 @@ func (s ExecutionService) CreateScheduledExecution(ctx context.Context, tenantID
 		if err != nil {
 			return err
 		}
-		if err := s.scheduledEnqueuer.EnqueueTx(ctx, store.RawTx(), created.ID, scheduledExecutionRunAt(now, created.ScheduledFor)); err != nil {
+		if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScheduled, TenantID: created.TenantID, ResourceID: created.ID, ScheduledAt: scheduledExecutionRunAt(now, created.ScheduledFor)}); err != nil {
 			return err
 		}
-		return s.writeExecutionLifecycleEvents(ctx, store.RawTx(), created.TenantID, "scheduled_execution", created.ID, "scheduled_execution.queued", map[string]any{
+		return s.writeExecutionLifecycleEvents(ctx, store, created.TenantID, "scheduled_execution", created.ID, "scheduled_execution.queued", map[string]any{
 			"status":          created.Status,
 			"scenario_id":     created.ScenarioID,
 			"scheduled_for":   created.ScheduledFor,
 			"attempt_count":   created.AttemptCount,
 			"max_attempts":    created.MaxAttempts,
 			"idempotency_key": created.IdempotencyKey,
-		}, store.OutboxEvents())
+		})
 	})
 	return created, err
 }
@@ -316,7 +289,7 @@ func (s ExecutionService) RetryScheduledExecution(ctx context.Context, tenantID,
 		if err := store.ScheduledExecutions().ResetForRetry(ctx, executionID, execution.StatusPending); err != nil {
 			return err
 		}
-		return s.scheduledEnqueuer.EnqueueTx(ctx, store.RawTx(), executionID, scheduledExecutionRunAt(now, item.ScheduledFor))
+		return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScheduled, TenantID: tenantID, ResourceID: executionID, ScheduledAt: scheduledExecutionRunAt(now, item.ScheduledFor)})
 	})
 	if err != nil {
 		return execution.ScheduledExecution{}, err
@@ -357,18 +330,18 @@ func (s ExecutionService) CreateAsyncDecisionExecution(ctx context.Context, tena
 			return err
 		}
 		if created.ID == item.ID {
-			if err := s.asyncEnqueuer.EnqueueTx(ctx, store.RawTx(), created.ID, nil); err != nil {
+			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobAsync, TenantID: created.TenantID, ResourceID: created.ID, ScheduledAt: nil}); err != nil {
 				return err
 			}
 		}
-		return s.writeExecutionLifecycleEvents(ctx, store.RawTx(), created.TenantID, "async_decision_execution", created.ID, "async_decision_execution.queued", map[string]any{
+		return s.writeExecutionLifecycleEvents(ctx, store, created.TenantID, "async_decision_execution", created.ID, "async_decision_execution.queued", map[string]any{
 			"status":          created.Status,
 			"scenario_id":     created.ScenarioID,
 			"object_type":     created.ObjectType,
 			"attempt_count":   created.AttemptCount,
 			"max_attempts":    created.MaxAttempts,
 			"idempotency_key": created.IdempotencyKey,
-		}, store.OutboxEvents())
+		})
 	})
 	if err != nil {
 		return AsyncDecisionExecutionCreateResult{}, err
@@ -438,7 +411,7 @@ func (s ExecutionService) RetryAsyncDecisionExecution(ctx context.Context, tenan
 		if err := store.AsyncDecisionExecutions().ResetForRetry(ctx, executionID, execution.StatusQueued); err != nil {
 			return err
 		}
-		return s.asyncEnqueuer.EnqueueTx(ctx, store.RawTx(), executionID, nil)
+		return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobAsync, TenantID: tenantID, ResourceID: executionID, ScheduledAt: nil})
 	})
 	if err != nil {
 		return execution.AsyncDecisionExecution{}, err
@@ -447,6 +420,9 @@ func (s ExecutionService) RetryAsyncDecisionExecution(ctx context.Context, tenan
 }
 
 func (s ExecutionService) RunScheduledExecution(ctx context.Context, executionID string) error {
+	if s.txManager == nil {
+		return fmt.Errorf("scheduled execution requires a transaction manager")
+	}
 	item, err := s.scheduledRepo.StartAttempt(ctx, executionID)
 	if err != nil {
 		return err
@@ -454,17 +430,22 @@ func (s ExecutionService) RunScheduledExecution(ctx context.Context, executionID
 	if err := s.runScheduledExecution(ctx, item); err != nil {
 		return s.handleScheduledExecutionFailure(ctx, item, err)
 	}
-	if err := s.scheduledRepo.UpdateStatus(ctx, item.ID, execution.StatusCompleted); err != nil {
-		return err
-	}
-	return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.completed", map[string]any{
-		"status":        execution.StatusCompleted,
-		"scenario_id":   item.ScenarioID,
-		"attempt_count": item.AttemptCount,
-	}, s.outboxRepo)
+	return s.persistExecutionTransition(ctx, s.scheduledRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
+		if err := store.ScheduledExecutions().UpdateStatus(ctx, item.ID, execution.StatusCompleted); err != nil {
+			return err
+		}
+		return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.completed", map[string]any{
+			"status":        execution.StatusCompleted,
+			"scenario_id":   item.ScenarioID,
+			"attempt_count": item.AttemptCount,
+		})
+	})
 }
 
 func (s ExecutionService) RunAsyncDecisionExecution(ctx context.Context, executionID string) error {
+	if s.txManager == nil {
+		return fmt.Errorf("async execution requires a transaction manager")
+	}
 	item, err := s.asyncRepo.StartAttempt(ctx, executionID)
 	if err != nil {
 		return err
@@ -478,22 +459,24 @@ func (s ExecutionService) RunAsyncDecisionExecution(ctx context.Context, executi
 		callbackStatus = "pending"
 	}
 	completedAt := s.clock.Now()
-	if err := s.asyncRepo.MarkCompleted(ctx, item.ID, resultBody, completedAt, callbackStatus); err != nil {
-		return err
-	}
 	item.Status = execution.StatusCompleted
 	item.ResultBody = resultBody
 	item.CompletedAt = &completedAt
 	item.CallbackStatus = callbackStatus
-	if err := s.enqueueAsyncExecutionCallback(ctx, item); err != nil {
-		return err
-	}
-	return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.completed", map[string]any{
-		"status":        execution.StatusCompleted,
-		"scenario_id":   item.ScenarioID,
-		"object_type":   item.ObjectType,
-		"attempt_count": item.AttemptCount,
-	}, s.outboxRepo)
+	return s.persistExecutionTransition(ctx, s.asyncRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
+		if err := store.AsyncDecisionExecutions().MarkCompleted(ctx, item.ID, resultBody, completedAt, callbackStatus); err != nil {
+			return err
+		}
+		if err := s.enqueueAsyncExecutionCallback(ctx, store, item); err != nil {
+			return err
+		}
+		return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.completed", map[string]any{
+			"status":        execution.StatusCompleted,
+			"scenario_id":   item.ScenarioID,
+			"object_type":   item.ObjectType,
+			"attempt_count": item.AttemptCount,
+		})
+	})
 }
 
 func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, limit int) error {
@@ -549,7 +532,7 @@ func (s ExecutionService) materializeRecurringSchedules(ctx context.Context, lim
 				if err != nil {
 					return err
 				}
-				return s.scheduledEnqueuer.EnqueueTx(ctx, store.RawTx(), created.ID, scheduledExecutionRunAt(now, created.ScheduledFor))
+				return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScheduled, TenantID: created.TenantID, ResourceID: created.ID, ScheduledAt: scheduledExecutionRunAt(now, created.ScheduledFor)})
 			}); err != nil {
 				return err
 			}
@@ -635,60 +618,50 @@ func adaptExecutionStatusSummary(counts map[execution.Status]int) ExecutionStatu
 }
 
 func (s ExecutionService) handleScheduledExecutionFailure(ctx context.Context, item execution.ScheduledExecution, runErr error) error {
+	if s.txManager == nil {
+		return fmt.Errorf("scheduled failure requires transactional persistence and scheduling")
+	}
 	now := s.clock.Now()
 	var validation *payload.Error
 	if errors.As(runErr, &validation) || item.AttemptCount >= max(1, item.MaxAttempts) {
-		if err := s.scheduledRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
-			return err
-		}
-		return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.failed", map[string]any{
-			"validation":    validation,
-			"status":        execution.StatusFailed,
-			"scenario_id":   item.ScenarioID,
-			"attempt_count": item.AttemptCount,
-			"max_attempts":  item.MaxAttempts,
-			"last_error":    runErr.Error(),
-			"failed_at":     now,
-		}, s.outboxRepo)
-	}
-	nextAttemptAt := now.Add(s.retryDelay(s.retryPolicy.ScheduledBaseBackoff, item.AttemptCount))
-	if s.txManager == nil {
-		if err := s.scheduledRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusPending, &nextAttemptAt, runErr.Error(), nil); err != nil {
-			return err
-		}
-		if s.scheduledEnqueuer != nil {
-			if err := s.scheduledEnqueuer.Enqueue(ctx, item.ID, &nextAttemptAt); err != nil {
+		return s.persistExecutionTransition(ctx, s.scheduledRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
+			if err := store.ScheduledExecutions().RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
 				return err
 			}
-		}
-		return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.retry_scheduled", map[string]any{
-			"status":          execution.StatusPending,
-			"scenario_id":     item.ScenarioID,
-			"attempt_count":   item.AttemptCount,
-			"max_attempts":    item.MaxAttempts,
-			"last_error":      runErr.Error(),
-			"next_attempt_at": nextAttemptAt,
-		}, s.outboxRepo)
+			return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.failed", map[string]any{
+				"validation":    validation,
+				"status":        execution.StatusFailed,
+				"scenario_id":   item.ScenarioID,
+				"attempt_count": item.AttemptCount,
+				"max_attempts":  item.MaxAttempts,
+				"last_error":    runErr.Error(),
+				"failed_at":     now,
+			})
+		})
 	}
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	nextAttemptAt := now.Add(s.retryDelay(s.retryPolicy.ScheduledBaseBackoff, item.AttemptCount))
+	return s.persistExecutionTransition(ctx, s.scheduledRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
 		if err := store.ScheduledExecutions().RecordAttemptFailure(ctx, item.ID, execution.StatusPending, &nextAttemptAt, runErr.Error(), nil); err != nil {
 			return err
 		}
-		if err := s.scheduledEnqueuer.EnqueueTx(ctx, store.RawTx(), item.ID, &nextAttemptAt); err != nil {
+		if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScheduled, TenantID: item.TenantID, ResourceID: item.ID, ScheduledAt: &nextAttemptAt}); err != nil {
 			return err
 		}
-		return s.writeExecutionLifecycleEvents(ctx, store.RawTx(), item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.retry_scheduled", map[string]any{
+		return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "scheduled_execution", item.ID, "scheduled_execution.retry_scheduled", map[string]any{
 			"status":          execution.StatusPending,
 			"scenario_id":     item.ScenarioID,
 			"attempt_count":   item.AttemptCount,
 			"max_attempts":    item.MaxAttempts,
 			"last_error":      runErr.Error(),
 			"next_attempt_at": nextAttemptAt,
-		}, store.OutboxEvents())
+		})
 	})
 }
 
 func (s ExecutionService) handleAsyncExecutionFailure(ctx context.Context, item execution.AsyncDecisionExecution, runErr error) error {
+	if s.txManager == nil {
+		return fmt.Errorf("async failure requires transactional persistence and scheduling")
+	}
 	now := s.clock.Now()
 	var validation *payload.Error
 	if errors.As(runErr, &validation) {
@@ -702,53 +675,36 @@ func (s ExecutionService) handleAsyncExecutionFailure(ctx context.Context, item 
 		return nil
 	}
 	if item.AttemptCount >= max(1, item.MaxAttempts) {
-		if err := s.asyncRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
-			return err
-		}
-		item.Status = execution.StatusFailed
-		item.LastError = runErr.Error()
-		item.FailedAt = &now
-		if err := s.enqueueAsyncExecutionCallback(ctx, item); err != nil {
-			return err
-		}
-		return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.failed", map[string]any{
-			"status":        execution.StatusFailed,
-			"scenario_id":   item.ScenarioID,
-			"object_type":   item.ObjectType,
-			"attempt_count": item.AttemptCount,
-			"max_attempts":  item.MaxAttempts,
-			"last_error":    runErr.Error(),
-			"failed_at":     now,
-		}, s.outboxRepo)
-	}
-	nextAttemptAt := now.Add(s.retryDelay(s.retryPolicy.AsyncBaseBackoff, item.AttemptCount))
-	if s.txManager == nil {
-		if err := s.asyncRepo.RecordAttemptFailure(ctx, item.ID, execution.StatusQueued, &nextAttemptAt, runErr.Error(), nil); err != nil {
-			return err
-		}
-		if s.asyncEnqueuer != nil {
-			if err := s.asyncEnqueuer.Enqueue(ctx, item.ID, &nextAttemptAt); err != nil {
+		return s.persistExecutionTransition(ctx, s.asyncRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
+			if err := store.AsyncDecisionExecutions().RecordAttemptFailure(ctx, item.ID, execution.StatusFailed, nil, runErr.Error(), &now); err != nil {
 				return err
 			}
-		}
-		return s.writeExecutionLifecycleEvents(ctx, nil, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.retry_scheduled", map[string]any{
-			"status":          execution.StatusQueued,
-			"scenario_id":     item.ScenarioID,
-			"object_type":     item.ObjectType,
-			"attempt_count":   item.AttemptCount,
-			"max_attempts":    item.MaxAttempts,
-			"last_error":      runErr.Error(),
-			"next_attempt_at": nextAttemptAt,
-		}, s.outboxRepo)
+			item.Status = execution.StatusFailed
+			item.LastError = runErr.Error()
+			item.FailedAt = &now
+			if err := s.enqueueAsyncExecutionCallback(ctx, store, item); err != nil {
+				return err
+			}
+			return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.failed", map[string]any{
+				"status":        execution.StatusFailed,
+				"scenario_id":   item.ScenarioID,
+				"object_type":   item.ObjectType,
+				"attempt_count": item.AttemptCount,
+				"max_attempts":  item.MaxAttempts,
+				"last_error":    runErr.Error(),
+				"failed_at":     now,
+			})
+		})
 	}
-	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	nextAttemptAt := now.Add(s.retryDelay(s.retryPolicy.AsyncBaseBackoff, item.AttemptCount))
+	return s.persistExecutionTransition(ctx, s.asyncRepo, item.TenantID, item.ID, item.AttemptCount, func(store ports.MutationStore) error {
 		if err := store.AsyncDecisionExecutions().RecordAttemptFailure(ctx, item.ID, execution.StatusQueued, &nextAttemptAt, runErr.Error(), nil); err != nil {
 			return err
 		}
-		if err := s.asyncEnqueuer.EnqueueTx(ctx, store.RawTx(), item.ID, &nextAttemptAt); err != nil {
+		if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobAsync, TenantID: item.TenantID, ResourceID: item.ID, ScheduledAt: &nextAttemptAt}); err != nil {
 			return err
 		}
-		return s.writeExecutionLifecycleEvents(ctx, store.RawTx(), item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.retry_scheduled", map[string]any{
+		return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.retry_scheduled", map[string]any{
 			"status":          execution.StatusQueued,
 			"scenario_id":     item.ScenarioID,
 			"object_type":     item.ObjectType,
@@ -756,7 +712,7 @@ func (s ExecutionService) handleAsyncExecutionFailure(ctx context.Context, item 
 			"max_attempts":    item.MaxAttempts,
 			"last_error":      runErr.Error(),
 			"next_attempt_at": nextAttemptAt,
-		}, store.OutboxEvents())
+		})
 	})
 }
 
@@ -769,6 +725,24 @@ func (s ExecutionService) resolveAsyncWaitWindow(waitTimeoutMS int) time.Duratio
 		return s.asyncBehavior.MaxWaitWindow
 	}
 	return waitWindow
+}
+
+// Evaluation/network work has finished before this short mutation starts.
+// If it rolls back (or its acknowledgement is uncertain), allow only the SAME
+// still-running attempt to be claimed again. Committed terminal/newer attempts
+// are never reset, and the original failure always propagates to the transport.
+func (s ExecutionService) persistExecutionTransition(ctx context.Context, repo any, tenant, id string, attempt int, fn func(ports.MutationStore) error) error {
+	err := s.txManager.Run(ctx, fn)
+	if err == nil {
+		return nil
+	}
+	recovery, ok := repo.(ports.ExecutionCompletionRecoveryRepository)
+	if !ok {
+		return errors.Join(err, fmt.Errorf("execution persistence recovery is not configured"))
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	return errors.Join(err, recovery.RequeueCompletionPersistenceFailure(cleanup, tenant, id, attempt))
 }
 
 func (s ExecutionService) waitForAsyncExecutionTerminalState(ctx context.Context, tenantID, executionID string, waitWindow time.Duration) (execution.AsyncDecisionExecution, error) {
@@ -796,12 +770,17 @@ func (s ExecutionService) waitForAsyncExecutionTerminalState(ctx context.Context
 	}
 }
 
-func (s ExecutionService) enqueueAsyncExecutionCallback(ctx context.Context, item execution.AsyncDecisionExecution) error {
+func (s ExecutionService) enqueueAsyncExecutionCallback(ctx context.Context, store ports.MutationStore, item execution.AsyncDecisionExecution) error {
 	if item.CallbackURL == "" {
 		return nil
 	}
-	return s.asyncCallbackEnqueuer.Enqueue(ctx, item.TenantID, item.ID, nil)
+	return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobCallback, TenantID: item.TenantID, ResourceID: item.ID})
 }
+
+// ValidateAsyncCallbackURL exposes the same source request syntax validation to
+// staged admission. It is NOT outbound SSRF authorization; the real delivery
+// provider must additionally enforce its network/redirect policy.
+func ValidateAsyncCallbackURL(rawURL string) error { return validateAsyncCallbackURL(rawURL) }
 
 func validateAsyncCallbackURL(rawURL string) error {
 	if rawURL == "" {
@@ -946,13 +925,24 @@ func scheduledExecutionRunAt(now, scheduledFor time.Time) *time.Time {
 
 func (s ExecutionService) writeExecutionLifecycleEvents(
 	ctx context.Context,
-	tx pgx.Tx,
+	store ports.MutationStore,
 	tenantID, aggregateType, aggregateID, eventType string,
 	payload map[string]any,
-	repo ports.OutboxEventRepository,
 ) error {
-	if repo == nil {
+	if !s.decisionSvc.publishOutboxEvents {
 		return nil
+	}
+	if store == nil {
+		if s.txManager == nil {
+			return fmt.Errorf("outbox publication requires a transaction manager")
+		}
+		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			return s.writeExecutionLifecycleEvents(ctx, store, tenantID, aggregateType, aggregateID, eventType, payload)
+		})
+	}
+	repo := store.OutboxEvents()
+	if repo == nil {
+		return fmt.Errorf("outbox publication enabled without repository")
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -972,13 +962,7 @@ func (s ExecutionService) writeExecutionLifecycleEvents(
 		return err
 	}
 	for _, item := range events {
-		if tx != nil {
-			if err := s.outboxEnqueuer.EnqueueTx(ctx, tx, item.TenantID, item.ID, nil); err != nil {
-				return err
-			}
-			continue
-		}
-		if err := s.outboxEnqueuer.Enqueue(ctx, item.TenantID, item.ID, nil); err != nil {
+		if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobOutbox, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
 			return err
 		}
 	}

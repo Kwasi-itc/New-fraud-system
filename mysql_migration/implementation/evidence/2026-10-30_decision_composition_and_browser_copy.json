@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "scope": "B3 combined decision persistence and fenced completion; B4 audited browser copy; staged target execution read/cancellation adapters",
+  "runtime_activated": false,
+  "performance_testing": "Deferred by the user. No performance acceptance, load, benchmark or query-plan suites executed in this pass.",
+  "implementation": {
+    "transaction": "One short caller transaction for queued decision/effect/list repositories and explicitly requested execution authority. Exact pool/schema/tenant/budgets required. Missing capabilities and ignored required-job failures poison the whole mutation.",
+    "service": "Actual DecisionService consumes a narrow portable persistence port. A configured target failure never falls back to PostgreSQL. Legacy unfenced execution ports are not implemented by this unit of work.",
+    "completion": "Prepared local-SQL outputs, required effect jobs, owner acknowledgement and required callback share one transaction. Owner scope and lease are checked before and after writes. Evaluation and external IO belong before this boundary; complete request-item/pinned scheduled preparation remains unfinished.",
+    "browser_copy": "Bounded coherent source graph, new identities, destination authoring guard/cap/priority append and batched actor/source-attributed audit on the same transaction. Required destination model preparation and real identity/case providers are not substituted.",
+    "batch_case_contract": "Approved <=500 unique nonzero inbox UUIDs, sorted JSON input; current actor/tenant/session/membership and write/active flags; caller-transaction case provider, missing/NULL fail closed. Consumer only, no owner provider or activation.",
+    "lock_order": "Browser identity and case/tag authority before workflow authoring/row locks. Unlocked old-rule previews are reloaded and version-fenced before mutation.",
+    "target_boundary": "Separate MySQL response adapters expose generation/cancellation/replay. Strict bounded cancellation requires explicit expected_generation and rejects duplicate/unknown keys. Authorized read/cancel operations verify caller tenant/scenario before UUID-only mutation. Creation/admission, inline waiting and route activation remain open."
+  },
+  "environment": {
+    "mysql_version": "8.4.8",
+    "mysql_image": "mysql@sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "postgres_fixture": "postgres:16",
+    "go_runner": "golang:1.25.0",
+    "project": "decision-composition-test",
+    "source_root": "/verification/backend/decision-engine-service",
+    "network": "private; no database host ports",
+    "database_storage": "disposable tmpfs",
+    "application_database_changes": "none",
+    "application_containers_modified": false,
+    "ec2_or_aurora_access": false
+  },
+  "source_attestation": {
+    "method": "SHA-256 of sorted per-file SHA-256 manifest, relative paths, every Go/SQL/go.mod/go.sum under decision-engine-service, mysqlstore, investigator and data-model-service; host equals copied runner.",
+    "host_sha256": "02eb62587e033e941697fbadb8ecec5a8c508548ee852d924be1682fa168f4f9",
+    "runner_sha256": "02eb62587e033e941697fbadb8ecec5a8c508548ee852d924be1682fa168f4f9",
+    "decision_schema_mapping_sha256": "ca32632bf6e5b3a0b9a3eaea5407c622432581c33fd6908495ba9cd2c35c7e04",
+    "inventory_refresh": "Initial full service regression failed on source drift. Explicit disposable PostgreSQL regeneration added decision_transactions ports/service and aggregate_template source hashes, updated the decision_service hash and one line reference. Reviewed diff contained no catalog/schema/constraint changes. Full service regression then passed."
+  },
+  "verification": {
+    "selected_adapter_race": {
+      "status": "passed",
+      "top_level_tests": 12,
+      "seconds": 48.088,
+      "command": "go test -mod=readonly -race -p 2 -count=1 -run '^Test(MySQL(Combined|ActualDecisionService|Browser|CaseInboxBatch|CaseTagBatch|EffectCustomLists|WorkflowCopy|ScenarioCopy)|DecisionUnitOfWork)' ./internal/store/mysql ./internal/mysqlapi",
+      "coverage": [
+        "Combined decision/list/four-effect jobs and scheduled/async jobs commit together",
+        "Ignored execution job failure rolls back list and decision",
+        "Missing capability, revoked authority and unsafe unfenced enqueue fail closed",
+        "Async completion plus callback atomicity and duplicate completion rejection",
+        "Wrong scheduled owner rejected; expiry after writes rolls back outputs",
+        "Actual DecisionService scores 0/9/10/20/30 and all four outcome boundaries",
+        "Actual SQL evidence, request/model revision, configured effects and job/outbox counts",
+        "Required queue insertion failure rolls back service writes; invalid/cross-tenant request rejected",
+        "Browser audit/permission/active/provider/tenant/cap rollback and concurrent copy priorities",
+        "Existing browser optimistic editing/delete and list visibility regressions",
+        "Batch inbox/tag consumer arguments, missing/NULL/revoked/read-only/bounds checks",
+        "Scenario-copy publication atomicity and tenant isolation"
+      ]
+    },
+    "service_and_boundary_race": {
+      "status": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 ./internal/service ./internal/ports ./internal/mysqlapi",
+      "service_seconds": 6.719,
+      "ports_seconds": 1.020,
+      "note": "Target boundary package subsequently rerun with the additional real SQL adapter fixture."
+    },
+    "target_boundary_race": {
+      "status": "passed",
+      "tests": 3,
+      "seconds": 2.146,
+      "command": "go test -mod=readonly -race -p 2 -count=1 ./internal/mysqlapi",
+      "coverage": "Strict JSON and generation DTOs; actual SQL tenant/scenario binding, stale generation, cancellation replay, callback-only cancellation, revocation and required-callback rollback; no provisional success response on failed commit.",
+      "fixture_correction": "Initial adapter fixture tried root as SQL definer and was correctly rejected by existing production metadata validation. Fixture corrected to a dedicated locked definer plus published owner definer grants; no production guard weakened."
+    },
+    "whole_module_compile_only": "passed: go test -mod=readonly -p 2 -run '^$' ./...; not full-module behavior acceptance",
+    "affected_vet": "passed: internal/store/mysql, internal/service, internal/ports, internal/mysqlapi",
+    "git_diff_check": "passed",
+    "not_claimed": "No complete cross-engine business/browser differential, application performance, deployed provider, restricted full runtime installation, release upgrade or activation acceptance."
+  },
+  "remaining": [
+    "Full public request creation/admission, waiting and prepared request-item binding.",
+    "Pinned scheduled-iteration evaluation and real prepared-output worker composition without commit-per-item semantics.",
+    "Full local data-model/publication preparation and real trusted identity/case/screening providers.",
+    "External business handlers, worker/poller startup, provider idempotency and reconciliation.",
+    "Full cross-engine business/browser and concurrent/crash/uncertain-commit acceptance.",
+    "Restricted runtime grants/readiness, frozen release definitions and shared-owner upgrade/recovery rehearsal.",
+    "Performance/load/query-plan acceptance remains deferred by the user."
+  ],
+  "completion": {
+    "parent_tasks_marked_complete": false,
+    "committed_or_pushed": false,
+    "existing_staged_changes_preserved": "59 files, 20063 insertions, 88 deletions; not staged or committed by this pass",
+    "cleanup": "Only this pass's private verifier, Compose database containers/network and generated temporary comparison/overlay files removed; host dependency cache/images and application containers retained."
+  }
+}

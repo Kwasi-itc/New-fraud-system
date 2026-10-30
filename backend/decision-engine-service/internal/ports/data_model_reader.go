@@ -18,11 +18,15 @@ type ManagedIndexJob struct {
 }
 
 type TenantModelTable struct {
-	ID            string
-	Name          string
-	Archived      bool
-	Fields        map[string]TenantModelField
-	LinksToSingle map[string]TenantModelLink
+	ID string
+	// PublishedVersion is the table-scoped owner publication token, not the
+	// global model revision. Required by the MySQL physical-registry reader;
+	// existing PostgreSQL/HTTP readers do not manufacture a value for it.
+	PublishedVersion string
+	Name             string
+	Archived         bool
+	Fields           map[string]TenantModelField
+	LinksToSingle    map[string]TenantModelLink
 }
 
 type TenantModelField struct {
@@ -42,8 +46,14 @@ type TenantModelLink struct {
 	ChildFieldName  string
 }
 
-type DataModelReader interface {
+// TenantModelReader is the read-only owner publication boundary. Evaluation
+// must not require fake index-management methods from a read-only provider.
+type TenantModelReader interface {
 	GetTenantModel(ctx context.Context, tenantID string) (TenantModel, error)
+}
+
+type DataModelReader interface {
+	TenantModelReader
 	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
 	RetryIndexJob(ctx context.Context, jobID string) error

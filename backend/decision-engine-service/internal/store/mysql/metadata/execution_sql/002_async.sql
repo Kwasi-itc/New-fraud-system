@@ -1,0 +1,20 @@
+CREATE TABLE {{database}}.decision_engine_async_executions(
+ id BINARY(16) PRIMARY KEY,tenant_id BINARY(16) NOT NULL,object_type LONGTEXT NOT NULL,
+ status VARBINARY(16) NOT NULL CHECK(status IN('queued','running','completed','failed','cancelled')),
+ idempotency_key LONGTEXT NOT NULL,idempotency_key_id BINARY(16) NULL,
+ idempotency_sha BINARY(32) GENERATED ALWAYS AS(CASE WHEN OCTET_LENGTH(idempotency_key)=0 THEN NULL ELSE UNHEX(SHA2(CAST(idempotency_key AS BINARY),256)) END) STORED,
+ generation INT NOT NULL DEFAULT 0 CHECK(generation>=0),attempt_count INT NOT NULL DEFAULT 0 CHECK(attempt_count>=0),max_attempts INT NOT NULL CHECK(max_attempts>0),
+ next_attempt_at DATETIME(6) NULL,request_body JSON NOT NULL,result_body JSON NULL,last_error LONGTEXT NOT NULL,
+ callback_url LONGTEXT NOT NULL,callback_status VARBINARY(16) NOT NULL DEFAULT '' CHECK(callback_status IN('','pending','running','failed','sent','cancelled')),
+ callback_attempt_count INT NOT NULL DEFAULT 0 CHECK(callback_attempt_count>=0),callback_max_attempts INT NOT NULL CHECK(callback_max_attempts>0),callback_last_error LONGTEXT NOT NULL,
+ callback_sent_at DATETIME(6) NULL,created_at DATETIME(6) NOT NULL,completed_at DATETIME(6) NULL,failed_at DATETIME(6) NULL,cancelled_at DATETIME(6) NULL,callback_cancelled_at DATETIME(6) NULL,
+ UNIQUE KEY de_async_tenant(tenant_id,id),UNIQUE KEY de_async_request(tenant_id,idempotency_key_id),KEY de_async_key_lookup(tenant_id,idempotency_sha),
+ KEY de_async_history(tenant_id,created_at DESC,id DESC),KEY de_async_count(tenant_id,status),KEY de_async_due(tenant_id,status,next_attempt_at,id),
+ FOREIGN KEY(idempotency_key_id) REFERENCES {{database}}.decision_engine_exact_keys(id) ON DELETE RESTRICT,
+ CHECK(attempt_count<=max_attempts),CHECK(callback_attempt_count<=callback_max_attempts),CHECK((idempotency_key_id IS NULL)=(OCTET_LENGTH(idempotency_key)=0)),
+ CHECK((status=_binary'cancelled')=(cancelled_at IS NOT NULL)),CHECK((callback_status=_binary'cancelled')=(callback_cancelled_at IS NOT NULL)),
+ CHECK(callback_status=_binary'' OR status IN('completed','failed','cancelled')),
+ CHECK(OCTET_LENGTH(callback_url)>0 OR(callback_status=_binary'' AND callback_attempt_count=0 AND callback_sent_at IS NULL)),
+ CHECK(LOCATE(X'00',CAST(object_type AS BINARY))=0),CHECK(LOCATE(X'00',CAST(idempotency_key AS BINARY))=0),CHECK(LOCATE(X'00',CAST(callback_url AS BINARY))=0),
+ CHECK(LOCATE(X'00',CAST(last_error AS BINARY))=0),CHECK(LOCATE(X'00',CAST(callback_last_error AS BINARY))=0)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin

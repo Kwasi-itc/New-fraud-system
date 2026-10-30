@@ -2,6 +2,29 @@ package app
 
 import "testing"
 
+func TestOutboxPublicationRequiresValidNonblankURL(t *testing.T) {
+	for _, tc := range []struct {
+		url            string
+		enabled, valid bool
+	}{
+		{"", false, true}, {"  ", false, true}, {" http://receiver:8080/events ", true, true},
+		{"https://receiver.test/events", true, true}, {"not-a-url", true, false},
+		{"file:///tmp/outbox", true, false}, {"/", true, false}, {"http://user:secret@receiver/events", true, false},
+	} {
+		t.Run(tc.url, func(t *testing.T) {
+			setRequiredConfigEnv(t)
+			t.Setenv("OUTBOX_PUBLISHER_URL", tc.url)
+			cfg, err := LoadConfig()
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid=%t error=%v", tc.valid, err)
+			}
+			if err == nil && cfg.OutboxPublishingEnabled() != tc.enabled {
+				t.Fatal("incorrect publication policy")
+			}
+		})
+	}
+}
+
 func setRequiredConfigEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("SERVICE_AUTH_MODE", "token")

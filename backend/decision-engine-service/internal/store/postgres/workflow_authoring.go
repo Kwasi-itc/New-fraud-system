@@ -115,50 +115,7 @@ func workflowInbox(ctx context.Context, q queryable, t, inbox string, a workflow
 	return nil
 }
 func decodeCaseRule(v workflow.StructuredRule) (workflow.CaseRule, bool) {
-	var out workflow.CaseRule
-	if v.Rule.Fallthrough || len(v.Conditions) != 1 || len(v.Actions) != 1 {
-		return out, false
-	}
-	c, a := v.Conditions[0], v.Actions[0]
-	var cfg struct {
-		Version   int      `json:"authoring_version"`
-		Inbox     string   `json:"inbox_id"`
-		Name      string   `json:"name"`
-		TitleMode string   `json:"title_mode"`
-		Tags      []string `json:"tag_ids"`
-	}
-	if json.Unmarshal(a.ActionConfig, &cfg) != nil || (cfg.Version != 1 && cfg.Version != 2) {
-		return out, false
-	}
-	if cfg.Version == 1 {
-		if c.Function != workflow.ConditionNever && c.Function != workflow.ConditionOutcomeIn {
-			return out, false
-		}
-		if json.Unmarshal(c.Params, &out.Outcomes) != nil {
-			return out, false
-		}
-	} else {
-		out.Outcomes = []string{}
-		if c.Function != workflow.ConditionNever && c.Function != workflow.ConditionTreeMatch {
-			return out, false
-		}
-		if json.Unmarshal(c.Params, &out.Condition) != nil || out.Condition == nil {
-			return out, false
-		}
-	}
-	out.ID = v.Rule.ID
-	out.Name = v.Rule.Name
-	out.Enabled = c.Function != workflow.ConditionNever
-	out.ActionType = a.ActionType
-	out.InboxID = cfg.Inbox
-	out.Title = cfg.Name
-	out.TitleMode = cfg.TitleMode
-	out.TagIDs = cfg.Tags
-	if out.TagIDs == nil {
-		out.TagIDs = []string{}
-	}
-	out.UpdatedAt = &v.Rule.UpdatedAt
-	return out, out.Validate() == nil
+	return workflow.DecodeCaseRule(v)
 }
 func (r WorkflowAuthoringRepository) List(ctx context.Context, t, sc string, a workflow.AuthoringActor) (workflow.AuthoringPage, error) {
 	out := workflow.AuthoringPage{Rules: []workflow.CaseRule{}}

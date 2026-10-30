@@ -25,6 +25,9 @@ type App struct {
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
+	if err := cfg.ValidateRuntimeBackend(); err != nil {
+		return nil, err
+	}
 	gin.SetMode(cfg.GinMode)
 
 	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
@@ -48,7 +51,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		db.Close()
 		return nil, err
 	}
-	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+	router, err := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		OutboxPublisherURL:                  cfg.OutboxPublisherURL,
 		WorkflowAuthoringToken:              cfg.WorkflowAuthoringToken,
 		InvestigatorVerifier:                verifier,
 		AuthMode:                            cfg.ServiceAuthMode,
@@ -84,6 +88,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		ScoringDispatchQueueName:            cfg.ScoringDispatchQueueName,
 		OutboxQueueName:                     cfg.OutboxQueueName,
 	})
+	if err != nil {
+		if geoIPLookup != nil {
+			_ = geoIPLookup.Close()
+		}
+		db.Close()
+		return nil, err
+	}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
@@ -100,6 +111,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 }
 
 func (a *App) Run() error {
+	a.logger.Info("outbox publication configured", "enabled", a.cfg.OutboxPublishingEnabled())
 	a.logger.Info("starting decision engine service", "port", a.cfg.Port)
 	if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("listen and serve: %w", err)

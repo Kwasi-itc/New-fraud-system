@@ -1,0 +1,20 @@
+CREATE TABLE {{database}}.decision_engine_workflows (
+ id BINARY(16) PRIMARY KEY,
+ tenant_id BINARY(16) NOT NULL,
+ scenario_id BINARY(16) NOT NULL,
+ display_order INT NOT NULL DEFAULT 0,
+ name LONGTEXT NOT NULL,
+ description LONGTEXT NOT NULL DEFAULT (''),
+ action_type LONGTEXT NOT NULL,
+ action_config JSON NOT NULL DEFAULT (JSON_OBJECT()),
+ active BOOLEAN NOT NULL DEFAULT TRUE CHECK(active IN (0,1)),
+ created_at DATETIME(6) NOT NULL,
+ updated_at DATETIME(6) NOT NULL,
+ UNIQUE KEY de_workflow_tenant(tenant_id,id),
+ UNIQUE KEY de_workflow_parent(tenant_id,scenario_id,id),
+ KEY de_workflow_order(tenant_id,scenario_id,display_order,created_at,id),
+ FOREIGN KEY(tenant_id,scenario_id) REFERENCES {{database}}.decision_engine_scenarios(tenant_id,id) ON DELETE CASCADE,
+ CHECK(LOCATE(X'00',CAST(name AS BINARY))=0),
+ CHECK(LOCATE(X'00',CAST(description AS BINARY))=0),
+ CHECK(LOCATE(X'00',CAST(action_type AS BINARY))=0)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin

@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-29",
+  "branch": "my_sql-migration",
+  "scope": "Approved first decision-engine pass: source inventory, behavioral baseline and portable PostgreSQL transaction/enqueue preparation; not a MySQL implementation/cutover",
+  "implemented": [
+    "Source-hashed drift inventory covering 85 production/migration files, including all 44 decision metadata up/down files, ports, tenant-reader factory and PostgreSQL adapters. Qualified references, SQL feature markers and Scan-call counts are lexical observations, not an inferred target schema or complete dynamic-query parser.",
+    "Grouped ownership/access inventory documenting authoring, decisions/evidence, historical reads, ordered workflow snapshots, execution/queue work, screening/scoring configuration, source reconciliation, platform effects, search/cursors and shared investigator contracts.",
+    "Typed owner JobRequest mutation contract for scheduled/async evaluation, callbacks, workflow, screening, scoring and outbox. No pgx/River imports remain in production service/port code; an AST boundary test enforces this.",
+    "PostgreSQL adapter owns producer wiring and validates nonzero tenant/resource IDs and owner-row binding in the same transaction as queue insertion. The lookup is a fixed-table primary-key operation, not caller-supplied SQL. It adds a per-enqueue lookup; no performance optimization is claimed.",
+    "Removed required no-op producer types and non-atomic retry fallbacks. Every concrete required producer rejects missing client/transaction. Router/app initialization propagates River client errors. Existing optional-outbox enable/disable semantics remain intact.",
+    "Execution terminal state, required callback jobs and enabled lifecycle outbox events now commit together. Failed transition recovery matches tenant, resource, running state and attempt; committed terminal or newer attempts are not reset. Cleanup has an independent five-second budget and retains the original error.",
+    "Transaction manager rejects missing infrastructure, rolls back cancellation/panic/callback failures with independent cleanup and reports rollback errors instead of ignoring them. Existing transaction timing collection is preserved.",
+    "Added service baseline assertions for approve/review/block-and-review/decline score boundaries, no-hit evidence, persisted decision identity/request and response/persistence agreement.",
+    "Added private disposable PostgreSQL test fixture and required-integration configuration guard; each service integration test creates/drops only a generated local decision_test_* database.",
+    "Fixed pre-existing test-only concurrent Gin global-mode writes by initializing mode once per package without disabling parallel tests.",
+    "API, worker and migrator explicitly select the public River schema. API/worker startup and API readiness check pinned lineage, required objects and runtime-role privileges. Readiness is fail-closed for missing infrastructure, bounded and read-only; it never repairs the shared queue or replaces transactional INSERT error handling."
+  ],
+  "verification": [
+    {
+      "suite": "Decision-engine full Go vet/race suite with real PostgreSQL service fixtures",
+      "command": "docker compose -p decision-port-test -f backend/decision-engine-service/compose.test.yaml -f /tmp/decision-port-test-go.yml run --rm --pull never test",
+      "executed_inside_fixture": "go mod download && go vet ./... && go test -mod=readonly -race -count=1 -timeout=240s ./...",
+      "result": "passed",
+      "environment": "Private PostgreSQL 16 tmpfs fixture; Go 1.25.0 cached-image override; DECISION_ENGINE_REQUIRE_INTEGRATION=1 and local decision_test_admin URL; no published DB ports or application network",
+      "limitations": "Committed Go fixture image remains 1.25.8. Separate existing store tests requiring DECISION_TEST_DATABASE_URL were intentionally not configured; passing the service fixture does not certify those specialized suites or full-system migration ordering. No MySQL or Aurora integration was run for decision repositories because those repositories are not implemented."
+    },
+    {
+      "suite": "New real-PostgreSQL boundary and recovery tests",
+      "tests": [
+        "TestIntegrationAllDecisionJobsAtomicAndTenantBound (all seven kinds; cross-tenant rejection, callback-error rollback, exact resource and scheduled instant/state)",
+        "TestIntegrationRequiredQueueFailureRollsBackOwner (real River INSERT constraint failure for each kind rolls back preceding owner mutation; missing producer fails)",
+        "TestIntegrationAsyncCompletionCallbackRollbackAndRecovery (actual callback INSERT failure rolls back completion; same-attempt recovery, cross-tenant and stale-attempt refusal, successful callback commit, terminal preservation)",
+        "TestIntegrationDecisionQueueCancellationAndPanicRollback (owner mutation and queue insert both roll back)",
+        "Existing TestIntegrationDecisionOutboxPublicationAtomicity, async validation and rule evidence persistence tests remain active and passed",
+        "TestDecisionQueueReadinessRequiresPinnedSchema (missing schema, pinned migrations, explicit public schema despite altered search_path, future lineage rejection, missing uniqueness index)",
+        "TestDecisionQueueReadinessSeparatesProducerAndWorkerAccess (least-privilege producer, denied worker access, granted worker access, denied sequence usage)",
+        "TestRouterQueueStartupAndReadiness and TestRouterWithoutDatabaseIsNotReady (startup refusal, readiness after migrations, post-start table removal, independent liveness)"
+      ],
+      "result": "passed"
+    },
+    {
+      "suite": "Host full decision-engine unit/regression race suite",
+      "command": "GOTOOLCHAIN=go1.25.0 GOCACHE=/tmp/fraud-foundation-go-cache go vet ./...; GOTOOLCHAIN=go1.25.0 GOCACHE=/tmp/fraud-foundation-go-cache go test -race -count=1 ./...",
+      "result": "passed",
+      "limitations": "No DB environment variables in this host run; real-DB service coverage is reported separately above. Local HTTP tests required sandbox escalation for loopback listeners, not external/EC2 access."
+    },
+    {
+      "suite": "Source inventory review and worktree checks",
+      "command": "go test ./internal/store/postgres -run TestDecisionPostgresSourceInventory -args -update-postgres-inventory; git diff --check; git diff --cached --shortstat",
+      "result": "passed; pre-existing staged index remains 59 files, 20063 insertions, 88 deletions"
+    }
+  ],
+  "corrected_verification_failures": [
+    "First host full run could not bind local httptest ports under sandbox restrictions; reran with approved escalation.",
+    "Race detector exposed existing parallel Gin.SetMode writes; moved mode initialization to TestMain.",
+    "Portable-boundary extraction required updating fakes and constructor callers; missing required queue dependencies now fail explicitly rather than using no-ops. Idempotent-replay tests now inspect the actual port recorder, not an unused transport mock.",
+    "Initial synthetic seed reused a parameter across UUID and text contexts, producing SQLSTATE 42P08. Corrected fixture parameter contexts and reran the entire real-DB suite.",
+    "An early Docker run overlapped source/inventory edits and correctly detected inventory drift. Regenerated after source review and the final stable-source run passed."
+  ],
+  "remaining_implementation_and_acceptance": [
+    "DE-01.1 full source-to-target column/type/collation/constraint/index/grant manifest and semantic query mapping; source inventory alone is not that manifest.",
+    "Decision MySQL repositories/migrations and cross-owner dependency installation, restricted authorization/grants and durable MySQL queue adapters.",
+    "Registry-authorized MySQL historical reads, SQL aggregates and direct_db/ingestion_http parity; current reader-mode fallback is unchanged and must be reviewed before target activation.",
+    "MySQL scenario/workflow authoring, ordered bounded snapshots, pagination/collation semantics and decision-owned screening source reconciliation.",
+    "Explicit retry/redrive identity and retained-argument River deduplication review; this pass preserves existing payloads and transport uniqueness, and does not certify retry/rescue delivery completeness.",
+    "Full stale-worker effect fencing, exactly-once local effect receipts, legacy work translation/import, persisted schedule watermarks and external receiver idempotency.",
+    "Complete queue schema-drift auditing and target MySQL queue readiness beyond the implemented PostgreSQL pinned-version/object/access checks.",
+    "Full cross-engine AST/numeric/null/JSON/collation evidence corpus, concurrent authoring/snapshot tests, all-owner migration compatibility and representative query plans/load acceptance.",
+    "Aurora testing remains excluded by the user."
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_access": false,
+    "application_schema_changes_applied": false,
+    "runtime_engine_changed": false,
+    "deployment_or_image_rebuild": false,
+    "decision_changes_committed_or_pushed": false,
+    "shared_foundation_pushed_separately": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d on my_sql-migration; no upstream changes/conflicts; original 59 staged files excluded",
+    "unrelated_staged_work_preserved": true
+  }
+}

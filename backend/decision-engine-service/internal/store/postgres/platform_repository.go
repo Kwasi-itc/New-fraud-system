@@ -2,8 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/jackc/pgx/v5"
 )
 
 type CustomListRepository struct{ q queryable }
@@ -181,9 +184,12 @@ func (r RiskSnapshotRepository) Create(ctx context.Context, item platform.RiskSn
 }
 
 func (r RiskSnapshotRepository) GetByObject(ctx context.Context, tenantID, objectType, objectID string) (*platform.RiskSnapshot, error) {
-	const stmt = `select id, tenant_id, object_type, object_id, risk_level, created_at from core.risk_snapshots where tenant_id = $1 and object_type = $2 and object_id = $3 order by created_at desc limit 1`
+	const stmt = `select id, tenant_id, object_type, object_id, risk_level, created_at from core.risk_snapshots where tenant_id = $1 and object_type = $2 and object_id = $3 order by created_at desc, id desc limit 1`
 	var out platform.RiskSnapshot
 	err := r.q.QueryRow(ctx, stmt, tenantID, objectType, objectID).Scan(&out.ID, &out.TenantID, &out.ObjectType, &out.ObjectID, &out.RiskLevel, &out.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ports.ErrRiskSnapshotNotFound
+	}
 	if err != nil {
 		return nil, err
 	}

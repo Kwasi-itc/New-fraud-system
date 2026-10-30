@@ -36,15 +36,12 @@ func (s ExecutionService) failAsyncValidation(ctx context.Context, item executio
 			return err
 		}
 		if item.CallbackURL != "" {
-			if s.asyncCallbackEnqueuer == nil {
-				return fmt.Errorf("async callback enqueuer is not configured")
-			}
-			if err := s.asyncCallbackEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobCallback, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
 				return err
 			}
 		}
-		return s.writeExecutionLifecycleEvents(ctx, store.RawTx(), item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.failed", map[string]any{
+		return s.writeExecutionLifecycleEvents(ctx, store, item.TenantID, "async_decision_execution", item.ID, "async_decision_execution.failed", map[string]any{
 			"status": execution.StatusFailed, "attempt_count": item.AttemptCount, "last_error": validation.Error(), "failed_at": now, "validation": validation,
-		}, store.OutboxEvents())
+		})
 	})
 }

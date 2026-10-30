@@ -1,0 +1,26 @@
+CREATE TABLE {{database}}.decision_engine_decisions (
+ id BINARY(16) PRIMARY KEY,
+ tenant_id BINARY(16) NOT NULL,
+ scenario_id BINARY(16) NOT NULL,
+ scenario_iteration_id BINARY(16) NOT NULL,
+ object_id LONGTEXT NOT NULL,
+ object_type LONGTEXT NOT NULL,
+ request_body JSON NOT NULL DEFAULT (JSON_OBJECT()),
+ outcome LONGTEXT NOT NULL,
+ score INT NOT NULL DEFAULT 0,
+ triggered BOOLEAN NOT NULL DEFAULT TRUE,
+ created_at DATETIME(6) NOT NULL,
+ object_id_sha BINARY(32) GENERATED ALWAYS AS (UNHEX(SHA2(CAST(object_id AS BINARY),256))) STORED,
+ object_type_sha BINARY(32) GENERATED ALWAYS AS (UNHEX(SHA2(CAST(object_type AS BINARY),256))) STORED,
+ UNIQUE KEY de_decision_tenant (tenant_id,id),
+ UNIQUE KEY de_decision_iteration (tenant_id,id,scenario_iteration_id),
+ KEY de_decision_history (tenant_id,created_at DESC,id DESC),
+ KEY de_decision_scenario (tenant_id,scenario_id,created_at DESC,id DESC),
+ KEY de_decision_object (tenant_id,object_type_sha,object_id_sha,created_at DESC,id DESC),
+ CONSTRAINT de_decision_parent FOREIGN KEY(tenant_id,scenario_id,scenario_iteration_id)
+ REFERENCES {{database}}.decision_engine_scenario_iterations(tenant_id,scenario_id,id) ON DELETE CASCADE,
+ CONSTRAINT de_decision_triggered CHECK (triggered IN (0,1)),
+ CONSTRAINT de_decision_id_text CHECK (LOCATE(X'00',CAST(object_id AS BINARY))=0),
+ CONSTRAINT de_decision_type_text CHECK (LOCATE(X'00',CAST(object_type AS BINARY))=0),
+ CONSTRAINT de_decision_outcome_text CHECK (LOCATE(X'00',CAST(outcome AS BINARY))=0)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin

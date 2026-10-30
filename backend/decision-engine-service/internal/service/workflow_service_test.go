@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
@@ -248,7 +247,7 @@ func (s mutationStoreStub) CustomLists() ports.CustomListRepository         { re
 func (s mutationStoreStub) RecordTags() ports.RecordTagRepository           { return nil }
 func (s mutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository     { return nil }
 func (s mutationStoreStub) IPFlags() ports.IPFlagRepository                 { return nil }
-func (s mutationStoreStub) RawTx() pgx.Tx                                   { return nil }
+func (s mutationStoreStub) Enqueue(context.Context, ports.JobRequest) error { return nil }
 
 type fixedIDGenerator struct {
 	id uuid.UUID

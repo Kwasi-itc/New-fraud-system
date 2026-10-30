@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "scope": "D22 staged execution owner/calendar storage and D23.1-2 execution transport; not full seven-kind/runtime completion",
+  "implemented": {
+    "metadata": "138-step additive lineage preserving all 115 effect-job steps. Scheduled/async owners, optional same-tenant async scenario links, execution receipts/deliveries, immutable schedule definitions and occurrence receipts. Private exact-key resolver enforces byte-exact nonempty tenant request keys; empty keys disable deduplication. Recurring tenant/scenario/instant is unique. Occurrence trigger also verifies scenario, iteration, source and instant bindings",
+    "repositories": "Mandatory action-specific execution authority, copied three-kind queue policies and independent callback limit. Bounded create/replay/read/count operations, JSON SQL-NULL versus JSON-null preservation, current shared replay reads and explicit conflicting-key rejection. First request wins; no overwrite of changed replay bodies. Required job failure poisons the transaction even if ignored",
+    "lifecycle": "Current SQL lease, exact identity, transport attempt, domain attempt and redrive generation fence all worker owner mutations. Resource -> receipt -> delivery lock order. Resuming the same domain attempt does not consume a domain retry. Completion/failure plus required next-domain/callback job plus transport acknowledgement are atomic; final expiry check rolls back local effects",
+    "callbacks": "Separate callback and evaluation counters. Callback HTTP occurs outside owner transactions. Explicit expected-generation redrive cancels old available/running callback identities and invalidates their tokens. A remote send already performed cannot be undone; receiver identity-based idempotency is still required",
+    "scheduling": "Explicit anchor, interval and shared catch_up/coalesce/skip_late policy. One active definition per tenant/scenario. Bounded tenant due cursor and at most 100 materialized occurrences per transaction. Batched execution/job/occurrence writes and skipped counts/watermark advance share one transaction. Published iteration is checked. No history scan or per-occurrence database read",
+    "calendar": "User-approved corrected v1 local calendar contract: hourly/daily/weekly/monthly IANA schedules, independent month clamp, skip/count gaps and once at earlier overlap instant. Pure bounded planner and staged SQL preserve immutable spec, original anchor and separate local/UTC cursors; invalid/mismatched cursors fail closed. Initial gap skips counted at creation. New unreleased execution draft revised while preserving all earlier 115 steps; not an upgrade for an already frozen 138-step release. Source/public adapter and activation not supplied",
+    "transport": "D23.1 typed ExecutionDeliveryStore exposes mandatory tenant/kind-authorized claim/heartbeat for the three execution queues over fixed-catalog lease machinery. Generic effect completion is not exposed. D23.2 owner RetryDelivery retains domain identity across transport retries and atomically fails owner plus inserts required callback on exhaustion. Callback-only expected-generation redrive preserves completed evaluation/result and schedules only a new callback generation"
+  },
+  "verification": {
+    "status": "calendar_scoped_race_passed_broader_regression_failed_during_fixture_io_stalls",
+    "environment": "Private decision-authoring-test project only, no published ports or application networks; generated disposable databases/accounts; exploratory MySQL 9.7.1, PostgreSQL 16, Go 1.25.0",
+    "scoped_command": "go test -mod=readonly -p 2 -count=1 -timeout=240s -run 'Test(ExecutionPlan|MySQLExecution|ExecutionPostgres)' -v ./internal/store/mysql/...",
+    "scoped_result": "PASS, exit 0: MySQL package 34.163s, metadata 0.008s. Actual source/target request creation/replay/count corpus passed, as did concurrent first writers, recurring identity conflicts, tenant isolation, ignored enqueue failure rollback, optional scenario deletion, bounded projection, SQL lease retry/callback/redrive, scheduling policies and atomic watermark rollback",
+    "first_affected_functional_run": "New D22/D23.1-2 and four-effect tests passed, but suite FAIL 172.264s: unchanged TestMySQLConcurrentPublicationSerializesOnlyItsScenario hit its 3-second performance_schema observation deadline at authoring_integration_test.go:468. No assertion/deadline was weakened. Exact timing cause not proven",
+    "publication_isolated_rerun": "PASS count=3, individual 0.71/0.70/0.75s, package 2.172s",
+    "affected_vet": "PASS exit 0: go vet -mod=readonly -p 1 ./internal/store/mysql/... ./internal/mysqljobs, before calendar additions",
+    "affected_race": "PASS exit 0: go test -mod=readonly -vet=off -race -p 1 -count=1 -timeout=500s ./internal/store/mysql/... ./internal/mysqljobs; MySQL 83.748s, metadata 1.273s, identity 1.014s. Includes original publication concurrency case, D22 final expiry rollback/occurrence binding and real D23.1-2 claim/heartbeat/retry/exhaustion tests. Before calendar additions",
+    "calendar_pure": "PASS race-enabled internal/recurrence: initial configuration/resolution 1.505s; configuration plus planner/civil enumeration 1.257s; broader run pure package 1.375s",
+    "calendar_sql": "PASS TestMySQLExecutionCalendarAtomicityCivilTimesAndTenantIsolation with race detection, 56.67s. Monthly leap clamp, local weekly weekday, spring gap skip, fall-back once/earlier instant, queued-job failure rollback of both cursors and all owners/jobs/receipts, immutable definition and no cursor regression, concurrent ticks, cross-tenant rejection and explicit invalid-input cases",
+    "calendar_broader_regression": "FAIL exit 1: MySQL package 219.626s, while pure recurrence 1.375s and metadata 1.663s passed. Calendar SQL, execution claim/heartbeat, retry/exhaustion/callback rollback, replay/isolation and lease/expiry/redrive cases passed. TestExecutionPostgresMySQLDifferentialCorpus failed at testsupport.PostgresDatabaseURL (existing 15-second setup context); TestMySQLExecutionScheduleAtomicWatermarkAndPolicies failed creating its disposable fixture: unchanged prefix step 110 read timed out, invalid connection and DDL lock cleanup failed. No timeout/assertion weakened. A clean rerun is required; this is not a broader pass",
+    "calendar_isolated_differential_rerun": "Outer timeout exit 124 after 180 seconds, no test result produced: go test -mod=readonly -vet=off -race -p 1 -count=1 -timeout=150s -run '^TestExecutionPostgresMySQLDifferentialCorpus$' ./internal/store/mysql. No pass claimed; local I/O stalls remain an environment blocker for further verification",
+    "source_integrity": "Full copied decision/mysqlstore/investigator source SHA256 preflight passed before calendar regression. Post-run hash of all new/modified calendar Go/SQL files plus refreshed README matched the copied verifier source. Staged index remained 59 files, 20063 insertions and 88 deletions",
+    "fixture_diagnostics": "Host disk had 501GiB available. Docker VM /proc/pressure/io reported some avg10=94.80/avg60=94.50 and full avg10=86.47/avg60=87.50; memory some avg10=4.99. Docker _ping responded, but bounded containers-list API timed out after 5.005s; container listing/log/exec calls also stalled. DNS subsequently resolved postgres to the expected private fixture address. Severe I/O contention is observed, not proof of the sole cause of each timeout. Other unrelated application/test containers are running; none were stopped or reconfigured. Stopped only this agent's stalled read-only docker-system-df client; no prune or global Docker restart",
+    "initial_compile": "First compile found four required JSON alias conversions and one unused import, corrected before the successful scoped run",
+    "tooling_attempts": "Mounted-cache broad verification stalled in filesystem I/O and was intentionally terminated, not reported as a pass. Native fallback encountered a missing dependency/DNS failure; a second fallback had an inherited GOROOT/tool-version mismatch. The corrected native fallback compiled the main package but was stopped in favor of the configured disposable integration fixture. Successful affected verification uses SHA256-checked copied host source, original module-cache mount and a container-local build cache. No full-service vet/race pass claimed",
+    "pinned_target": "MySQL 8.4.8 image absent locally. Public-image pull retried on 2026-10-30 with a task-local Docker config; it failed in the Docker credential helper (-50). No pinned-target or Aurora pass claimed",
+    "performance_scope": "A scoped scheduler due-selector EXPLAIN ANALYZE used de_execution_schedule_due with no table scan on the small functional fixture. This is not representative application load, locking-query or EPS/connection-budget acceptance",
+    "remaining_fixture_gaps": "Real auth/case/screening providers are not installed. Tests use explicit fixture authority. Earlier lifecycle tests use clearly labeled fixture SQL claims; added D23.1-2 tests exercise actual staged Claim/Heartbeat/RetryDelivery code. Expired-lease rescue and real handler/runtime integration remain unimplemented"
+  },
+  "remaining": [
+    "Expired-lease rescue, cancellation and full seven-kind crash/recovery acceptance; real worker runtime composition (claim/heartbeat/retry code and tests exist)",
+    "Clean broader regression/vet rerun after observed Docker I/O stalls; new calendar SQL cases passed but the broader suite failed during fixture setup",
+    "Calendar source/public schedule adapter and pinned timezone-data deployment contract",
+    "Real worker identity and business handlers, including replay-safe business effects across rescued transport attempts",
+    "Atomic main decision-store composition, real auth/case/screening/model providers and runtime wiring",
+    "Retention/deletion and four-effect domain retry/redrive policies; permanent receipts intentionally restrict owner deletion",
+    "Restricted runtime grants, readiness/compatibility checks, pinned 8.4.8 fresh/upgrade artifacts and representative resource-budget/load tests",
+    "Remaining authoring/browser copy, full effects/service differential corpus and other open D tasks"
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_changes": false,
+    "runtime_engine_changed": false,
+    "workers_activated": false,
+    "committed_or_pushed": false,
+    "aurora_testing_excluded": true,
+    "fixture_cleanup": "Requested compose down --volumes --remove-orphans only for the private decision-authoring-test project; completion still pending while Docker container operations stall. No application projects or resources are cleanup targets",
+    "unrelated_staged_index_preserved": "59 files, 20063 insertions, 88 deletions"
+  }
+}

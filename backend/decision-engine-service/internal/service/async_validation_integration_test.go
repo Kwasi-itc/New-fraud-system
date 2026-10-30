@@ -29,7 +29,7 @@ func TestIntegrationAsyncValidationFailureRollbackAndTenantIsolation(t *testing.
 	}
 	validation := &payload.Error{Category: "payload_validation_failed", ModelRevision: "rev-2", Issues: []payload.Issue{{Field: "amount", Code: "missing_required", Message: "required"}}}
 	injected := errors.New("callback enqueue failure")
-	svc := ExecutionService{txManager: storepostgres.NewTransactionManager(pool), asyncCallbackEnqueuer: &validationCallbackEnqueuer{err: injected}}
+	svc := ExecutionService{txManager: storepostgres.NewTransactionManager(pool).WithJobEnqueuers(storepostgres.JobEnqueuers{Callback: &validationCallbackEnqueuer{err: injected}})}
 	if err := svc.failAsyncValidation(ctx, item, validation, time.Now()); !errors.Is(err, injected) {
 		t.Fatalf("expected injected error: %v", err)
 	}

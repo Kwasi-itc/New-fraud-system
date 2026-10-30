@@ -1,6 +1,6 @@
 # Implementation roadmap and checklist
 
-Implementation started on 2026-10-22 following the user instruction "start implementing". DB-01 and PX-01 are IN_PROGRESS for the isolated shared foundation; IN-01 is IN_PROGRESS for portable ingestion queue boundaries; DM-01 is IN_PROGRESS with staged MySQL metadata, aggregate snapshots, publication and delivery/worker metadata adapters. Runtime remains PostgreSQL/River. Remaining tasks have not started; production cutover is not being performed. Status vocabulary: NOT_STARTED, IN_PROGRESS, BLOCKED, COMPLETED, NEEDS_REVIEW. Design review is NEEDS_REVIEW; a document existing does not mark its implementation complete. Dependencies are acceptance dependencies; isolated development can proceed earlier with explicit interface fixtures, never partial live database cutover.
+Implementation started on 2026-10-22 following the user instruction "start implementing". DB-01 and PX-01 are IN_PROGRESS for the isolated shared foundation; IN-01 is IN_PROGRESS for portable ingestion queue boundaries; DM-01 is IN_PROGRESS with staged MySQL metadata, aggregate snapshots, publication and delivery/worker metadata adapters. DE-01 has staged MySQL repositories/jobs; descriptive active, remaining-implementation, testing and dependency statuses are maintained in module 03. Previously started work is not automatically active. Runtime remains PostgreSQL/River. Other tasks have not started; production cutover is not being performed. Status vocabulary: NOT_STARTED, IN_PROGRESS, BLOCKED, COMPLETED, NEEDS_REVIEW. Design review is NEEDS_REVIEW; a document existing does not mark its implementation complete. Dependencies are acceptance dependencies; isolated development can proceed earlier with explicit interface fixtures, never partial live database cutover.
 
 ## Phases
 
@@ -25,7 +25,7 @@ Cross-owner schema dependencies may require bootstrap stubs/tables in SC-01 befo
 | AU-01 | Local identity/authorization: Auth + shared consumers; PG-11/17/21/23/35 | SC-01, DB-01 | Port schema/routines/roles/sessions/invitations/preflight and restricted owner contracts. | Revocation/admin/tenant invariants and session replay preserved. | POC-08 and V-AU, grant bypass tests | NOT_STARTED |
 | DM-01 | Data model and publication: Data-model; PG-03?07/20/21/27/32 | SC-01, DB-01, Q-01, AU-01 | Implement full P-01 lifecycle, display/contracts, indexes and API/worker/reconcile wiring. | All physical changes verify before publication; crash repair and old-writer drain proven. | POC-04, V-DM and concurrent DDL/load | IN_PROGRESS |
 | IN-01 | Ingestion and reads: Ingestion; PG-08/09/20/24/28/32/34 | DM-01, DB-01, Q-01 | Implement P-02, uploads/deferred jobs, atomic receipt/audit/outbox and query builders. | Target-specific conflicts, batch atomicity, exact replay and read-mode parity. | POC-05, V-IN and PERF-02 | IN_PROGRESS |
-| DE-01 | Decisions and workflows: Decision; PG-10/15/20/25/26/32/34 | IN-01, SC-01, DB-01, Q-01 | Port evaluation readers, persistence/jobs, authoring/snapshots/cursors and projection contract. | Rule/evidence parity, bounded snapshots and monotonic tenant-bound projections. | POC-10/11, V-DE and PERF-01/06 | NOT_STARTED |
+| DE-01 | Decisions and workflows: Decision; PG-10/15/20/25/26/32/34 | IN-01, SC-01, DB-01, Q-01 | Port evaluation readers, persistence/jobs, authoring/snapshots/cursors and projection contract. | Rule/evidence parity, bounded snapshots and monotonic tenant-bound projections. | POC-10/11, V-DE and PERF-01/06 | IMPLEMENTATION REMAINS; exact active work, scoped completion and testing/dependency states have one source of truth in [module 03](modules/03_decision_engine_service.md#granular-execution-plan-five-tasks-per-batch) |
 | SR-01 | Screening and exclusions: Screening; PG-13?16/20/21/25/33/35 | DE-01, AU-01, SC-01, DB-01, Q-01 | Implement P-04/P-05, manual history, continuous/dataset work and review ledger. | No stale publication; immediate FK ledger atomicity; private history. | POC-03/06/07/11, V-SR and candidate/review races | NOT_STARTED |
 | CM-01 | Cases/shared investigation: Cases/investigator; PG-11/18/19/20/25/26/33/35 | SR-01, DE-01, AU-01, SC-01, DB-01, Q-01 | Port intake, capacity, memberships/review, evidence, analytics/explorer and schedules. | All mutation paths enforce capacity/permissions; no partial review/case/outbox. | POC-07/09/10, V-CM and shared contention suite | NOT_STARTED |
 | AU-02 | Provider migration decision: Keycloak/OIDC; PG-29 | B-01, PX-01, AU-01 | Pin supported release and storage topology; design supported state transfer and session policy. | No unapproved extra DB, unsupported vendor table changes or silent security-state loss. | Provider migration rehearsal and login/refresh/logout/revocation checks | NOT_STARTED |
@@ -80,3 +80,33 @@ and explicit lock-busy recovery passed. Runtime authorization additionally depen
 on auth-owned AU-01.2/3 (currently NOT_STARTED); data-model calls the PostgreSQL
 identity.authorize_data_model_v1 routine. No runtime activation or parent
 completion is implied. See the existing DM-01.3b/c coverage matrix and evidence.
+
+Decision stages 1–2 implementation checkpoint (2026-10-30): the target-only
+execution HTTP component, bounded calendar scheduler, complete prepared
+publication/model binding and receipt-aware callback/four-effect workers are
+implemented. The approved durable intent/provider-reconciliation contract adds
+an optional 149-step append-only lineage. Local pinned-engine correctness adds
+source/target effects/browser corpora, real callback crash/rescue and lost-commit
+acknowledgement reconciliation, cancellation races and restricted worker checks.
+Cold prerequisites use exact migration definitions, mandatory owner health
+contracts, distinct inspection/runtime pool binding and the shared connection
+budget. These are decision-owned components, not live provider implementations.
+The module checklist records precise scoped verification and remaining public
+collection/recurring-admin adapters, real providers, release/grants rehearsal and
+approved activation. D13–D15 and D17–D25 remain open at those integration/release
+gates; performance/load/query-plan acceptance and Aurora remain excluded.
+
+Decision public API/application checkpoint (2026-10-30): collection/status-summary
+and prepared calendar schedule administration now join the existing execution
+APIs. The explicit inactive application graph composes same-scope stores,
+evaluator, admission/publication, all seven delivery kinds, receipt-aware
+maintenance, bounded tenant/worker inventory and joined shutdown. Cold/hot
+readiness and a fail-closed backend guard prevent an accidental runtime switch.
+Scoped MySQL 8.4.8 HTTP/SQL/race, PostgreSQL/source regressions, whole-module
+compile and affected vet passed. The source artifact now tracks 166 files;
+PostgreSQL catalog/proposed mapping are unchanged. Auth/case/screening owners,
+complete fresh model delivery, receipt providers and command activation remain
+blocked; the user explicitly deferred additional auth action adapters. No
+foreign-owner migrations, live activation or performance acceptance occurred.
+See the module's R1–R10 statuses and
+[verification evidence](evidence/2026-10-30_decision_public_api_and_runtime.json).

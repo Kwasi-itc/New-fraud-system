@@ -8,7 +8,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 type ScreeningService struct {
@@ -18,15 +17,11 @@ type ScreeningService struct {
 	scenarioRepo     ports.ScenarioRepository
 	configRepo       ports.ScreeningConfigRepository
 	execRepo         ports.ScreeningExecutionRepository
-	enqueuer         riverjobs.ScreeningExecutionEnqueuer
 	cacheInvalidator DecisionMetadataCacheInvalidator
 }
 
-func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScreeningConfigRepository, execRepo ports.ScreeningExecutionRepository, enqueuer riverjobs.ScreeningExecutionEnqueuer) ScreeningService {
-	if enqueuer == nil {
-		enqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
-	}
-	return ScreeningService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, execRepo: execRepo, enqueuer: enqueuer}
+func NewScreeningService(txManager ports.TransactionManager, idGen ports.IDGenerator, clock ports.Clock, scenarioRepo ports.ScenarioRepository, configRepo ports.ScreeningConfigRepository, execRepo ports.ScreeningExecutionRepository) ScreeningService {
+	return ScreeningService{txManager: txManager, idGen: idGen, clock: clock, scenarioRepo: scenarioRepo, configRepo: configRepo, execRepo: execRepo}
 }
 
 func (s *ScreeningService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
@@ -162,7 +157,7 @@ func (s ScreeningService) UpdateExecutionStatus(ctx context.Context, tenantID, e
 		if runErr != nil {
 			return runErr
 		}
-		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), updated.TenantID, updated.ID, nil)
+		return store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScreening, TenantID: updated.TenantID, ResourceID: updated.ID, ScheduledAt: nil})
 	})
 	return updated, err
 }

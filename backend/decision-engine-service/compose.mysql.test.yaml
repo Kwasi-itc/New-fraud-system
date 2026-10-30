@@ -1,0 +1,33 @@
+# Private decision-adapter fixture only: no published ports, application
+# networks or persistent DB volumes; never selects MySQL in the live services.
+services:
+  mysql:
+    image: mysql:8.4.8
+    # Disposable owner/definer tests require reviewed function creation. This is
+    # fixture configuration, not a recommendation to change application RDS.
+    command: ["--log-bin-trust-function-creators=ON"]
+    environment:
+      MYSQL_ROOT_PASSWORD: isolated-test-root-only
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: decision_platform_test
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  test:
+    image: golang:1.25.8
+    working_dir: /backend/decision-engine-service
+    volumes:
+      - ..:/backend
+    environment:
+      GOMAXPROCS: "2"
+      DECISION_MYSQL_TEST_ADDRESS: mysql:3306
+      DECISION_MYSQL_REQUIRE_INTEGRATION: "1"
+      DECISION_MYSQL_EXPECT_VERSION: 8.4.8
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["sh", "-ec", "go mod download && go vet -p 2 ./... && go test -mod=readonly -race -p 2 -count=1 -timeout=240s -v ./internal/store/mysql/... ./internal/runtime/ast_eval"]

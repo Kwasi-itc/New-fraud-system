@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/integration"
@@ -44,11 +42,20 @@ type MutationStore interface {
 	RecordTags() RecordTagRepository
 	RiskSnapshots() RiskSnapshotRepository
 	IPFlags() IPFlagRepository
-	RawTx() pgx.Tx
+	// Enqueue persists required work on this exact mutation transaction.
+	// Implementations validate the owner/tenant binding and fail if unavailable.
+	Enqueue(context.Context, JobRequest) error
 }
 
 type TransactionManager interface {
 	Run(ctx context.Context, fn func(store MutationStore) error) error
+}
+
+// Completion recovery may requeue only the same still-running attempt after a
+// rolled-back/uncertain terminal write. A committed terminal result must survive
+// lost acknowledgement; this is not permission to retry evaluation blindly.
+type ExecutionCompletionRecoveryRepository interface {
+	RequeueCompletionPersistenceFailure(context.Context, string, string, int) error
 }
 
 type TransactionTimings struct {
@@ -311,6 +318,8 @@ type RecordTagRepository interface {
 
 type RiskSnapshotRepository interface {
 	Create(ctx context.Context, item platform.RiskSnapshot) (platform.RiskSnapshot, error)
+	// GetByObject orders by created_at DESC, id DESC and reports confirmed
+	// absence as ErrRiskSnapshotNotFound. Other failures must propagate.
 	GetByObject(ctx context.Context, tenantID, objectType, objectID string) (*platform.RiskSnapshot, error)
 }
 

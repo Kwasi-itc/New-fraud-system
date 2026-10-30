@@ -15,7 +15,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
 
@@ -67,11 +66,11 @@ func (s executionHandlerMutationStore) ScoringConfigs() ports.ScoringConfigRepos
 func (s executionHandlerMutationStore) ScoringRequests() ports.ScoringRequestRepository {
 	return nil
 }
-func (s executionHandlerMutationStore) CustomLists() ports.CustomListRepository     { return nil }
-func (s executionHandlerMutationStore) RecordTags() ports.RecordTagRepository       { return nil }
-func (s executionHandlerMutationStore) RiskSnapshots() ports.RiskSnapshotRepository { return nil }
-func (s executionHandlerMutationStore) IPFlags() ports.IPFlagRepository             { return nil }
-func (s executionHandlerMutationStore) RawTx() pgx.Tx                               { return nil }
+func (s executionHandlerMutationStore) CustomLists() ports.CustomListRepository         { return nil }
+func (s executionHandlerMutationStore) RecordTags() ports.RecordTagRepository           { return nil }
+func (s executionHandlerMutationStore) RiskSnapshots() ports.RiskSnapshotRepository     { return nil }
+func (s executionHandlerMutationStore) IPFlags() ports.IPFlagRepository                 { return nil }
+func (s executionHandlerMutationStore) Enqueue(context.Context, ports.JobRequest) error { return nil }
 
 type executionHandlerIDGen struct{}
 
@@ -147,16 +146,11 @@ func newExecutionHandlerForTests(repo ports.AsyncDecisionExecutionRepository) Ex
 		service.DecisionService{},
 		service.ExecutionRetryPolicy{AsyncMaxAttempts: 3, AsyncBaseBackoff: 30 * time.Second},
 		service.AsyncExecutionBehavior{DefaultWaitWindow: 5 * time.Millisecond, MaxWaitWindow: 5 * time.Millisecond, WaitPollInterval: time.Millisecond},
-		nil,
-		executionHandlerAsyncEnqueuer{},
-		riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{},
-		nil,
 	)
 	return NewExecutionHandler(svc)
 }
 
 func TestExecutionHandlerCreateAsyncDecisionExecutionReturnsCompletedInline(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	repo := &executionHandlerAsyncRepoStub{
 		getByIDResult: execution.AsyncDecisionExecution{
 			ID:         "exec-1",
@@ -200,7 +194,6 @@ func TestExecutionHandlerCreateAsyncDecisionExecutionReturnsCompletedInline(t *t
 }
 
 func TestExecutionHandlerCreateAsyncDecisionExecutionReturnsQueuedWhenNotFinishedInTime(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	repo := &executionHandlerAsyncRepoStub{
 		getByIDResult: execution.AsyncDecisionExecution{
 			ID:         "exec-2",
@@ -242,7 +235,6 @@ func TestExecutionHandlerCreateAsyncDecisionExecutionReturnsQueuedWhenNotFinishe
 }
 
 func TestExecutionHandlerCreateAsyncDecisionExecutionRejectsInvalidCallbackURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	repo := &executionHandlerAsyncRepoStub{}
 	handler := newExecutionHandlerForTests(repo)
 	router := gin.New()
