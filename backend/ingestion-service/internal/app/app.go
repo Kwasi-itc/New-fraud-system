@@ -33,6 +33,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	queueCtx, queueCancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
+	err = storepostgres.ValidateQueueReadiness(queueCtx, db, false)
+	queueCancel()
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ingestion queue not ready: %w", err)
+	}
 	if cfg.DataModelReadMode == "sql" {
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPClientTimeout)
 		err := storepostgres.NewIngestionContractStore(db).Validate(ctx)
@@ -83,7 +90,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 			readDB.Close()
 		}
 		db.Close()
-		return nil, fmt.Errorf("initialize ingestion router: %w", err)
+		return nil, err
 	}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

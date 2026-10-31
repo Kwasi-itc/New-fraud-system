@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -82,13 +83,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	if db != nil {
 		uploadLogRepository = storepostgres.NewUploadLogRepository(db)
 		deferredIngestRepository = storepostgres.NewDeferredIngestRepository(db)
-		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{})
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{Schema: riverjobs.Schema})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("initialize ingestion queue producer: %w", err)
 		}
-		uploadLogEnqueuer := riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName)
-		deferredIngestEnqueuer := riverjobs.NewRiverDeferredIngestEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.DeferredIngestQueueName)
-		txManager = storepostgres.NewTransactionManager(db).WithJobEnqueuers(uploadLogEnqueuer, deferredIngestEnqueuer)
+		txManager = storepostgres.NewTransactionManager(db).WithEnqueuers(
+			riverjobs.NewRiverUploadLogEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.UploadLogQueueName),
+			riverjobs.NewRiverDeferredIngestEnqueuer(riverClient, max(1, cfg.WorkerMaxAttempts), cfg.DeferredIngestQueueName),
+		)
 	}
 	var readDataReader ports.TenantDataReader
 	if readDB != nil {

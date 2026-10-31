@@ -106,6 +106,16 @@ type Runner struct {
 	plan Plan
 }
 
+// NewForOwner binds an explicit deployment owner without losing the owner token
+// carried by reviewed plans. Both entry points use identical ledgers and locks.
+func NewForOwner(db *sql.DB, owner string, plan Plan) (*Runner, error) {
+	if owner == "" || (plan.Owner != "" && plan.Owner != owner) {
+		return nil, errors.New("explicit owner must match reviewed migration plan")
+	}
+	plan.Owner = owner
+	return New(db, plan)
+}
+
 func New(db *sql.DB, plan Plan) (*Runner, error) {
 	if db == nil {
 		return nil, errors.New("migration database required")

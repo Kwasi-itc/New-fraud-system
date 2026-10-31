@@ -62,7 +62,8 @@ func TestMySQLLostRollbackAcknowledgement(t *testing.T) {
 	original := &mysql.MySQLError{Number: 1205, Message: "injected callback timeout"}
 	calls := 0
 	var firstID, nextID int64
-	err = Mutation(ctx, faultDB, func(tx *sql.Tx) error {
+	metrics := &TransactionMetrics{}
+	err = metrics.Mutation(ctx, faultDB, func(tx *sql.Tx) error {
 		calls++
 		if err := tx.QueryRowContext(ctx, "SELECT CONNECTION_ID()").Scan(&firstID); err != nil {
 			return err
@@ -75,6 +76,9 @@ func TestMySQLLostRollbackAcknowledgement(t *testing.T) {
 	var rollback *RollbackError
 	if !errors.As(err, &rollback) || !errors.Is(err, original) || Classify(err) != Other || !observed.Load() || calls != 1 {
 		t.Fatalf("cleanup outcome lost: err=%v observed=%v calls=%d", err, observed.Load(), calls)
+	}
+	if snapshot := metrics.Snapshot(); snapshot.Uncertain != 1 || snapshot.Completed != 0 || snapshot.Active != 0 {
+		t.Fatalf("ambiguous rollback miscounted: %+v", snapshot)
 	}
 	var count int
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+name).Scan(&count); err != nil || count != 0 {

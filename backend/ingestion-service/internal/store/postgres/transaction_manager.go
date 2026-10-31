@@ -16,20 +16,26 @@ import (
 )
 
 type TransactionManager struct {
-	db           *pgxpool.Pool
-	uploadJobs   riverjobs.UploadLogEnqueuer
-	deferredJobs riverjobs.DeferredIngestEnqueuer
-}
-
-// WithJobEnqueuers binds backend-specific producers to this transaction manager.
-// Only the adapter sees pgx.Tx; services enqueue through the mutation store.
-func (m TransactionManager) WithJobEnqueuers(upload riverjobs.UploadLogEnqueuer, deferred riverjobs.DeferredIngestEnqueuer) TransactionManager {
-	m.uploadJobs, m.deferredJobs = upload, deferred
-	return m
+	db       *pgxpool.Pool
+	uploads  riverjobs.UploadLogEnqueuer
+	deferred riverjobs.DeferredIngestEnqueuer
 }
 
 func NewTransactionManager(db *pgxpool.Pool) TransactionManager {
 	return TransactionManager{db: db}
+}
+
+// WithEnqueuers binds backend producers to this adapter's transaction. Domain
+// services never receive a driver transaction. Missing required producers fail
+// the mutation explicitly, rather than saving unscheduled work successfully.
+func (m TransactionManager) WithEnqueuers(uploads riverjobs.UploadLogEnqueuer, deferred riverjobs.DeferredIngestEnqueuer) TransactionManager {
+	m.uploads, m.deferred = uploads, deferred
+	return m
+}
+
+// WithJobEnqueuers preserves the existing adapter composition entry point.
+func (m TransactionManager) WithJobEnqueuers(uploads riverjobs.UploadLogEnqueuer, deferred riverjobs.DeferredIngestEnqueuer) TransactionManager {
+	return m.WithEnqueuers(uploads, deferred)
 }
 
 func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore) error) (result error) {
@@ -41,25 +47,28 @@ func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore
 		return err
 	}
 	defer func() {
-		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := tx.Rollback(cleanup); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			result = errors.Join(result, fmt.Errorf("rollback ingestion transaction: %w", err))
 		}
 	}()
 
-	store := mutationStore{tx: tx, uploadJobs: m.uploadJobs, deferredJobs: m.deferredJobs}
+	store := mutationStore{tx: tx, uploads: m.uploads, deferred: m.deferred}
 	if err := fn(store); err != nil {
 		return err
 	}
 
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 
 type mutationStore struct {
-	tx           pgx.Tx
-	uploadJobs   riverjobs.UploadLogEnqueuer
-	deferredJobs riverjobs.DeferredIngestEnqueuer
+	tx       pgx.Tx
+	uploads  riverjobs.UploadLogEnqueuer
+	deferred riverjobs.DeferredIngestEnqueuer
 }
 
 func (s mutationStore) RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error {
@@ -87,14 +96,35 @@ func (s mutationStore) DeferredIngests() ports.DeferredIngestRepository {
 func (s mutationStore) TenantWriter() ports.TenantDataWriter { return NewTenantDataWriter(s.tx) }
 func (s mutationStore) TenantReader() ports.TenantDataReader { return NewTenantDataReader(s.tx) }
 func (s mutationStore) EnqueueUploadLog(ctx context.Context, id uuid.UUID, at *time.Time) error {
-	if s.uploadJobs == nil {
-		return ports.ErrJobQueueUnavailable
+	if s.tx == nil || s.uploads == nil || id == uuid.Nil {
+		return fmt.Errorf("%w: upload enqueue requires a transaction, producer and resource identity", ports.ErrJobQueueUnavailable)
 	}
-	return s.uploadJobs.EnqueueTx(ctx, s.tx, id, at)
+	return s.uploads.EnqueueTx(ctx, s.tx, id, at)
 }
 func (s mutationStore) EnqueueDeferredIngest(ctx context.Context, id uuid.UUID, at *time.Time) error {
-	if s.deferredJobs == nil {
-		return ports.ErrJobQueueUnavailable
+	if s.tx == nil || s.deferred == nil || id == uuid.Nil {
+		return fmt.Errorf("%w: deferred enqueue requires a transaction, producer and resource identity", ports.ErrJobQueueUnavailable)
 	}
-	return s.deferredJobs.EnqueueTx(ctx, s.tx, id, at)
+	return s.deferred.EnqueueTx(ctx, s.tx, id, at)
+}
+
+func (s mutationStore) RetryUploadLog(ctx context.Context, id uuid.UUID, at *time.Time) error {
+	if s.tx == nil || s.uploads == nil || id == uuid.Nil {
+		return fmt.Errorf("%w: upload retry requires a transaction, producer and resource identity", ports.ErrJobQueueUnavailable)
+	}
+	var attempt int
+	if err := s.tx.QueryRow(ctx, "SELECT attempt_count FROM core_ingestion.upload_logs WHERE id=$1 FOR UPDATE", id).Scan(&attempt); err != nil {
+		return err
+	}
+	return s.uploads.RetryTx(ctx, s.tx, id, attempt, at)
+}
+func (s mutationStore) RetryDeferredIngest(ctx context.Context, id uuid.UUID, at *time.Time) error {
+	if s.tx == nil || s.deferred == nil || id == uuid.Nil {
+		return fmt.Errorf("%w: deferred retry requires a transaction, producer and resource identity", ports.ErrJobQueueUnavailable)
+	}
+	var attempt int
+	if err := s.tx.QueryRow(ctx, "SELECT attempt_count FROM core_ingestion.deferred_ingests WHERE id=$1 FOR UPDATE", id).Scan(&attempt); err != nil {
+		return err
+	}
+	return s.deferred.RetryTx(ctx, s.tx, id, attempt, at)
 }

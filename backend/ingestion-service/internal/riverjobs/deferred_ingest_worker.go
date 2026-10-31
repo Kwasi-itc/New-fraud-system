@@ -23,6 +23,15 @@ func NewDeferredIngestWorker(runner DeferredIngestRunner) DeferredIngestWorker {
 }
 
 func (w *DeferredIngestWorker) Work(ctx context.Context, job *river.Job[DeferredIngestArgs]) error {
+	if w == nil || w.runner == nil {
+		return errRunnerUnavailable
+	}
+	if job == nil {
+		return errPayloadContract
+	}
+	if err := validateDeliveryPayload(job.Args.DeferredIngestID, job.Args.PayloadVersion, job.Args.RetryAttempt); err != nil {
+		return err
+	}
 	return w.runner.RunDeferredIngest(ctx, job.Args.DeferredIngestID)
 }
 

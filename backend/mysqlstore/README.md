@@ -1,5 +1,18 @@
 # MySQL repository foundation
 
+Merge integration note (2026-10-30): `workers/` contains the shared delivery
+catalog, scheduling, retry, fairness, maintenance and observability contracts
+introduced by remote commit 61b2f9a. The ingestion transactional executor in
+`work/` remains a separate existing integration; neither package alone certifies
+all service consumers. `budget.go` supplies deployment budget validation.
+
+Migration callers use `migrations.New(db, plan)` with the reviewed Plan.Owner,
+or `migrations.NewForOwner(db, owner, plan)` for an explicit deployment binding.
+The latter rejects mismatched nonempty plan owners. Both retain the same lock
+identity, ledger definition and step checksums; an omitted plan owner preserves
+the data-model default. Owner identifiers are bounded so ledger names fit MySQL's
+64-character identifier limit. Existing schema references remain immutable.
+
 Initial DB-01 implementation, not a service migration. No existing service imports
 this module yet. The application still uses PostgreSQL.
 

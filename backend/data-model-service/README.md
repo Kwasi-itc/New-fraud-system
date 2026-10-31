@@ -494,3 +494,8 @@ Detailed setup steps are in [SETUP_AND_RUN_GUIDE.md](./SETUP_AND_RUN_GUIDE.md).
 - [DATA_MODEL_SERVICE_EXTRACTION_DESIGN.md](./DATA_MODEL_SERVICE_EXTRACTION_DESIGN.md)
 - [DATA_MODEL_SERVICE_IMPLEMENTATION_BLUEPRINT.md](./DATA_MODEL_SERVICE_IMPLEMENTATION_BLUEPRINT.md)
 - [IMPLEMENTATION_TODO.md](./IMPLEMENTATION_TODO.md)
+
+Service `migrate down` preserves the shared River schema: it rolls back only
+data-model metadata and logs that distinction. Stop/drain the owner's consumers
+before metadata rollback; shared queue rollback requires a separately reviewed
+whole-stack operation. No migration-down command should be used as queue repair.

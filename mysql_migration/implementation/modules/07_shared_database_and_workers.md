@@ -14,6 +14,16 @@ Use the common [schema contract](../04_schema_and_data_access_design.md), [secur
 
 ## Implementation checklist
 
+Merge update: remote commit 61b2f9a adds shared scalar/text codecs, budget checking,
+observability, bootstrap coordination and `mysqlstore/workers` contracts/catalog.
+Its [foundation evidence](../evidence/2026-10-28_shared_foundation.json) and
+[dependency-free evidence](../evidence/2026-10-29_dependency_free_shared_work.json)
+are retained. These components coexist with ingestion's `mysqlstore/work`
+executor; neither is silently substituted for the other. `NewForOwner` reconciles
+explicit owner callers with reviewed Plan.Owner and preserves local ledger/lock
+lineage. Shared queue operational approval still requires actual owner adoption
+and deployment evidence; component implementations do not close IN-01.2.057.
+
 - [ ] **DB-01.1 ? IN_PROGRESS:** DB-01: implement driver/codecs/transaction/error contract and contract tests, then migrate ports without leaking sql.Tx into unrelated domain logic.
 - [ ] **DB-01.2 ? IN_PROGRESS:** Q-01: inventory every kind, payload, retry, unique scope, schedule, timeout, cancellation and domain effect; implement claims/fencing/retention/operator visibility. Ingestion shared mechanics and scoped acceptance exist; the cross-service operational gate remains open. See the current inventory below.
 - [ ] **DB-01.3 ? NOT_STARTED:** SC-01/OP-01: implement ledger/checksum, fixed routine deployment/privileges and schema compatibility checks; coordinate bootstrap dependency passes.

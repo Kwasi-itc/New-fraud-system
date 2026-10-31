@@ -10,6 +10,14 @@ the existing IN-01 tasks. All services retain one logical application database.
 
 ## Verified execution path
 
+Merge update: remote commit 61b2f9a adds PostgreSQL/River startup readiness checks,
+versioned payload validation and atomic per-domain-attempt successor scheduling.
+Retries now acknowledge the old delivery only after resource state and successor
+enqueue commit together. The source characterization test verifies the durable
+retry_attempt=1 successor rather than requiring the previous retryable error.
+Earlier characterization evidence describes the prior source revision. MySQL
+is still isolated-only and the three fresh-deployment gates remain open.
+
 [Source entry point](../../../backend/ingestion-service/internal/service/ingest_service.go#L112). Ingest/BatchIngest validate a model contract, enter a transaction, check receipt/hash/kind, write tenant records and persist audit/outbox/idempotency response. Upload/deferred creation also enqueues work transactionally. SQL model reader and HTTP model fallback plus aggregate endpoints are part of the migration. Full source occurrences are in the [audit catalog](../../11_source_evidence_catalog.md).
 
 ## Target implementation

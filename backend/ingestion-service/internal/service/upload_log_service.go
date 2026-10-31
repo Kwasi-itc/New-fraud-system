@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -45,6 +46,9 @@ func NewUploadLogService(
 }
 
 func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, objectType string, mode ingestion.Mode, filename, contentType string, payload []byte) (ingestion.UploadLog, error) {
+	if s.txManager == nil {
+		return ingestion.UploadLog{}, errors.New("upload creation requires transactional persistence and scheduling")
+	}
 	now := s.clock.Now()
 	log := ingestion.UploadLog{
 		ID:          s.idGenerator.New().String(),
@@ -60,9 +64,6 @@ func (s UploadLogService) Create(ctx context.Context, tenantID uuid.UUID, object
 	logID, err := uuid.Parse(log.ID)
 	if err != nil {
 		return ingestion.UploadLog{}, err
-	}
-	if s.txManager == nil {
-		return ingestion.UploadLog{}, fmt.Errorf("transaction manager unavailable")
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.UploadLogs().Create(ctx, log); err != nil {
@@ -127,10 +128,19 @@ func (s UploadLogService) handleRetryableFailure(ctx context.Context, log *inges
 		log.Status = ingestion.UploadLogStatusUploaded
 		log.StartedAt = nil
 		log.CompletedAt = nil
-		if err := s.uploadLogs.Update(ctx, *log); err != nil {
+		id, err := uuid.Parse(log.ID)
+		if err != nil {
 			return err
 		}
-		return fmt.Errorf("retryable UploadLog failure: %s", message)
+		if s.txManager == nil {
+			return errors.New("upload retry requires transactional persistence and scheduling")
+		}
+		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			if err := store.UploadLogs().Update(ctx, *log); err != nil {
+				return err
+			}
+			return store.RetryUploadLog(ctx, id, nil)
+		})
 	}
 	log.Status = ingestion.UploadLogStatusFailed
 	log.CompletedAt = &now

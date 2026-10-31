@@ -23,6 +23,15 @@ func NewUploadLogWorker(runner UploadLogRunner) UploadLogWorker {
 }
 
 func (w *UploadLogWorker) Work(ctx context.Context, job *river.Job[UploadLogArgs]) error {
+	if w == nil || w.runner == nil {
+		return errRunnerUnavailable
+	}
+	if job == nil {
+		return errPayloadContract
+	}
+	if err := validateDeliveryPayload(job.Args.UploadLogID, job.Args.PayloadVersion, job.Args.RetryAttempt); err != nil {
+		return err
+	}
 	return w.runner.RunLog(ctx, job.Args.UploadLogID)
 }
 

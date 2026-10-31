@@ -288,6 +288,17 @@ type capturingMutationStore struct {
 	reader ports.TenantDataReader
 }
 
+func (stubMutationStore) RetryUploadLog(context.Context, uuid.UUID, *time.Time) error { return nil }
+func (stubMutationStore) RetryDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+func (capturingMutationStore) RetryUploadLog(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+func (capturingMutationStore) RetryDeferredIngest(context.Context, uuid.UUID, *time.Time) error {
+	return nil
+}
+
 func (capturingMutationStore) RecordIngestion(context.Context, ingestion.IngestionAudit, ingestion.OutboxEvent) error {
 	return nil
 }

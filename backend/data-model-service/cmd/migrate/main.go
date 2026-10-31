@@ -62,9 +62,7 @@ func main() {
 		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			log.Fatalf("migrate down: %v", err)
 		}
-		if err := runRiverMigrations(context.Background(), cfg.DatabaseURL, rivermigrate.DirectionDown, &rivermigrate.MigrateOpts{MaxSteps: steps}); err != nil {
-			log.Fatalf("river migrate down: %v", err)
-		}
+		log.Print("service metadata rollback complete; shared River schema preserved (coordinated queue rollback is a separate operation)")
 	case "version":
 		version, dirty, err := m.Version()
 		if err != nil {
@@ -81,6 +79,9 @@ func main() {
 }
 
 func runRiverMigrations(ctx context.Context, databaseURL string, direction rivermigrate.Direction, opts *rivermigrate.MigrateOpts) error {
+	if direction != rivermigrate.DirectionUp {
+		return fmt.Errorf("shared River rollback requires a separately reviewed coordinated operation")
+	}
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		return fmt.Errorf("open river migration database: %w", err)

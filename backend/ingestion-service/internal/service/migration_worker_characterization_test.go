@@ -92,8 +92,14 @@ func TestMigrationWorkerFailureCharacterization(t *testing.T) {
 					if kind == "upload" {
 						pending = "uploaded"
 					}
-					if err == nil || status != pending || attempt != 1 {
+					if err != nil || status != pending || attempt != 1 {
 						t.Fatal("retry state", err, status, attempt)
+					}
+					// The merged portable boundary atomically schedules a versioned
+					// successor before acknowledging the failed delivery.
+					var retries int
+					if e := b.db.QueryRow(b.ctx, "SELECT count(*) FROM public.river_job WHERE args->>'retry_attempt'='1'").Scan(&retries); e != nil || retries != 1 {
+						t.Fatal("durable successor missing", retries, e)
 					}
 					if e := run(); e != nil {
 						t.Fatal("exhausted source job should acknowledge persisted terminal state", e)

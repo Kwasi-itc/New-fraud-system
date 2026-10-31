@@ -9,11 +9,12 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/workers"
 	"github.com/google/uuid"
 )
 
 var ErrStaleDeliveryLease = errors.New("index delivery lease is stale or expired")
-var ErrDeliveryTerminal = errors.New("index delivery is already terminal")
+var ErrDeliveryTerminal = workers.ErrTerminalDelivery
 var queueNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,128}$`)
 var deliveryErrorPattern = regexp.MustCompile(`^[a-z0-9_]{0,64}$`)
 
@@ -116,8 +117,12 @@ func (s *IndexDeliveryStore) Claim(ctx context.Context) (*DeliveryLease, error) 
 			if err := tx.QueryRowContext(ctx, "SELECT error_count FROM "+s.schema+".data_model_index_deliveries WHERE tenant_id=? AND job_id=? AND id=?", mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID)).Scan(&count); err != nil {
 				return err
 			}
-			if !count.Valid || count.Int64 < 0 || count.Int64 > int64(v.Attempt) {
-				return errors.New("delivery error history unknown or invalid; explicit translation required before claiming")
+			var history *int64
+			if count.Valid {
+				history = &count.Int64
+			}
+			if err := workers.ValidateErrorHistory(v.Attempt, history, false); err != nil {
+				return err
 			}
 		}
 		v.Attempt++
@@ -195,13 +200,14 @@ func (s *IndexDeliveryStore) Finish(ctx context.Context, v DeliveryLease, retry 
 			if err := tx.QueryRowContext(ctx, "SELECT error_count FROM "+s.schema+".data_model_index_deliveries WHERE tenant_id=? AND job_id=? AND id=?", mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID)).Scan(&priorErrors); err != nil {
 				return err
 			}
-			if !priorErrors.Valid || priorErrors.Int64 < 0 || priorErrors.Int64 > int64(v.Attempt) {
-				return errors.New("delivery error history unknown or invalid; explicit translation required")
+			var history *int64
+			if priorErrors.Valid {
+				history = &priorErrors.Int64
+			}
+			if err := workers.ValidateErrorHistory(v.Attempt, history, retry); err != nil {
+				return err
 			}
 			if retry {
-				if priorErrors.Int64 >= int64(v.Attempt) {
-					return errors.New("delivery error count exceeds completed attempts")
-				}
 				if v.Attempt < maxAttempts {
 					delay, err = s.retryPolicy.Delay(int(priorErrors.Int64))
 					if err != nil {
@@ -218,15 +224,13 @@ func (s *IndexDeliveryStore) Finish(ctx context.Context, v DeliveryLease, retry 
 				return err
 			}
 		}
-		state := "completed"
-		retention := 24 * time.Hour
-		if retry {
-			state = "available"
-			if v.Attempt >= maxAttempts {
-				state = "discarded"
-				retention = 7 * 24 * time.Hour
-				errorCode = "delivery_attempts_exhausted"
-			}
+		outcome, err := workers.ResolveDeliveryOutcome(v.Attempt, maxAttempts, retry)
+		if err != nil {
+			return err
+		}
+		state, retention := string(outcome.State), outcome.Retention
+		if outcome.State == workers.Discarded {
+			errorCode = "delivery_attempts_exhausted"
 		}
 		finalized := ",finalized_at=UTC_TIMESTAMP(6),retain_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6))"
 		args := []any{state, delay.Microseconds(), errorCode, retention.Microseconds()}
@@ -243,7 +247,7 @@ func (s *IndexDeliveryStore) Finish(ctx context.Context, v DeliveryLease, retry 
 		if err := deliveryChanged(result, err); err != nil {
 			return err
 		}
-		if state == "discarded" {
+		if outcome.ReleaseReservation {
 			return s.release(ctx, tx, v)
 		}
 		return nil
@@ -270,18 +274,19 @@ func (s *IndexDeliveryStore) Cancel(ctx context.Context, tenant, job, id uuid.UU
 		if err := tx.QueryRowContext(ctx, "SELECT state FROM "+s.schema+".data_model_index_deliveries WHERE tenant_id=? AND job_id=? AND id=? AND queue_name=? FOR UPDATE", mysqlstore.UUID(tenant), mysqlstore.UUID(job), mysqlstore.UUID(id), s.queue).Scan(&state); err != nil {
 			return err
 		}
-		if state == "cancelled" {
-			return nil
+		outcome, already, err := workers.ResolveCancellation(workers.DeliveryState(state))
+		if err != nil {
+			return err
 		}
-		if state == "completed" || state == "discarded" {
-			return ErrDeliveryTerminal
+		if already {
+			return nil
 		}
 		if fn != nil {
 			if err := fn(tx); err != nil {
 				return err
 			}
 		}
-		_, err := tx.ExecContext(ctx, "UPDATE "+s.schema+".data_model_index_deliveries SET state='cancelled',lease_token=NULL,lease_until=NULL,finalized_at=UTC_TIMESTAMP(6),retain_until=TIMESTAMPADD(DAY,1,UTC_TIMESTAMP(6)) WHERE tenant_id=? AND id=?", mysqlstore.UUID(tenant), mysqlstore.UUID(id))
+		_, err = tx.ExecContext(ctx, "UPDATE "+s.schema+".data_model_index_deliveries SET state='cancelled',lease_token=NULL,lease_until=NULL,finalized_at=UTC_TIMESTAMP(6),retain_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)) WHERE tenant_id=? AND id=?", outcome.Retention.Microseconds(), mysqlstore.UUID(tenant), mysqlstore.UUID(id))
 		if err != nil {
 			return err
 		}
@@ -390,14 +395,22 @@ func (s *IndexDeliveryStore) MaintainPage(ctx context.Context, limit int, cleanu
 					return err
 				}
 			} else {
+				outcome, err := workers.ResolveDeliveryOutcome(attempt, maxAttempts, true)
+				if err != nil {
+					return err
+				}
 				delay := time.Duration(0)
 				if s.retryPolicy != nil {
 					var prior sql.NullInt64
 					if err := tx.QueryRowContext(ctx, "SELECT error_count FROM "+s.schema+".data_model_index_deliveries WHERE tenant_id=? AND job_id=? AND id=?", mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID)).Scan(&prior); err != nil {
 						return err
 					}
-					if !prior.Valid || prior.Int64 < 0 || prior.Int64 >= int64(attempt) {
-						return errors.New("delivery error history unknown or invalid; explicit translation required before rescue")
+					var history *int64
+					if prior.Valid {
+						history = &prior.Int64
+					}
+					if err := workers.ValidateErrorHistory(attempt, history, true); err != nil {
+						return err
 					}
 					if attempt < maxAttempts {
 						delay, err = s.retryPolicy.Delay(int(prior.Int64))
@@ -412,8 +425,8 @@ func (s *IndexDeliveryStore) MaintainPage(ctx context.Context, limit int, cleanu
 						return err
 					}
 				}
-				if attempt >= maxAttempts {
-					_, err = tx.ExecContext(ctx, "UPDATE "+s.schema+".data_model_index_deliveries SET state='discarded',lease_token=NULL,lease_until=NULL,last_error_code='lease_expired',finalized_at=UTC_TIMESTAMP(6),retain_until=TIMESTAMPADD(DAY,7,UTC_TIMESTAMP(6)) WHERE tenant_id=? AND job_id=? AND id=?", mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID))
+				if outcome.State == workers.Discarded {
+					_, err = tx.ExecContext(ctx, "UPDATE "+s.schema+".data_model_index_deliveries SET state='discarded',lease_token=NULL,lease_until=NULL,last_error_code='lease_expired',finalized_at=UTC_TIMESTAMP(6),retain_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)) WHERE tenant_id=? AND job_id=? AND id=?", outcome.Retention.Microseconds(), mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID))
 					if err != nil {
 						return err
 					}

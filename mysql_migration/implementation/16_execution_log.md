@@ -3126,3 +3126,23 @@ Evidence: evidence/2026-10-30_ingestion-remaining3/verification.json.
 No independent approval or retention selection was inferred. Three tasks remain
 open; totals stay 206 complete, 7 not applicable, 3 open. No application runtime,
 production database, dependency, grant policy or deletion behavior changed.
+
+## 2026-10-30 — Commit/pull integration with 61b2f9a
+
+Saved accumulated work as d7eff3f, then merged remote shared-foundation commit
+61b2f9a. Retained the remote versioned River retry and queue-readiness changes,
+shared workers/catalog/budget/bootstrap implementations, and local reviewed
+Plan.Owner, owner ledger/checksum/lock lineage and staged ingestion MySQL path.
+Added typed NewForOwner with owner-mismatch checks; retained WithJobEnqueuers
+compatibility and the missing-queue domain sentinel. Shared work's existing UUID
+import is now declared in its own module. Updated retry characterization to verify
+one durable successor and corrected a stale fixture SELECT grant for current_job_id.
+
+Verification: PostgreSQL service/store/River race integration passed on disposable
+fixtures; rebuilt exporter/importer full-schema acceptance passed 13/13 with no
+skips; restricted upload read regression passed. Shared-foundation race tests,
+data-model module tests and ingestion vet passed. Shared/data-model unit runs do
+not imply their optional database integrations ran. Initial broad ingestion run
+lacked required exporter/importer settings and failed; use the configured accepted
+schema evidence in evidence/2026-10-30_merge-sync, not that rejected run.
+No production switch, data deletion or acceptance-gate closure was performed.

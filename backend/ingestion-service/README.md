@@ -413,3 +413,45 @@ The service exposes:
 - [INGESTION_SERVICE_IMPLEMENTATION_BLUEPRINT.md](./INGESTION_SERVICE_IMPLEMENTATION_BLUEPRINT.md)
 - [IMPLEMENTATION_TODO.md](./IMPLEMENTATION_TODO.md)
 - [SETUP_AND_RUN_GUIDE.md](./SETUP_AND_RUN_GUIDE.md)
+
+## Portable transactional work boundary
+
+Domain services use typed enqueue/retry methods on `ports.MutationStore`; they
+never receive `pgx.Tx`. The PostgreSQL adapter owns the transaction and configured
+River producers. Upload/deferred creation and retry persist their owner state
+and delivery together. Missing transactions/producers or failed queue inserts
+return errors and roll back; there is no no-op producer fallback.
+
+New deliveries use payload version 1 with a stable per-domain-attempt retry
+identity. Version 0 resource-only jobs remain readable. Retrying against a
+running/completed prior delivery must not swallow the new attempt; repeating
+the same retry identity still deduplicates. Queue payload retry numbers are not
+authority to overwrite the domain attempt counter. This remains at-least-once
+execution, not a claim of exactly-once ingestion effects.
+
+API/worker startup and `/readyz` verify the primary queue's pinned River lineage,
+required objects, job columns, unique-index validity and role-specific access.
+They do not install/repair tables or perform a complete drift audit. Migration,
+producer and worker use `public`; queue objects disappearing after readiness
+still cause transactional errors, not partial successful writes. Rebuild matching
+API/worker/migration images together when deploying these changes.
+
+`migrate down` rolls back only ingestion metadata and logs that shared River
+objects are preserved. Quiesce/drain this service's consumers before its metadata
+rollback. Shared queue rollback is a separate reviewed whole-stack operation;
+it is not performed automatically or provided as a repair here.
+
+Disposable PostgreSQL contract/regression tests (from repository root):
+
+```sh
+docker compose -p shared-port-test -f backend/ingestion-service/compose.test.yaml up -d --wait postgres
+docker compose -p shared-port-test -f backend/ingestion-service/compose.test.yaml run --rm test
+docker compose -p shared-port-test -f backend/ingestion-service/compose.test.yaml down --volumes
+```
+
+This fixture publishes no ports and uses tmpfs. Service integration tests accept
+only a local `ingestion_test_*` administration database, create a new named
+database per test and remove only that generated database. Setting the fixture's
+`INGESTION_REQUIRE_INTEGRATION=1` makes absent configuration an error. Existing
+separate SQL model-contract tests still need their own `CONTRACT_TEST_DATABASE_URL`
+fixture; their unconfigured skips do not establish MySQL or all-reader parity.

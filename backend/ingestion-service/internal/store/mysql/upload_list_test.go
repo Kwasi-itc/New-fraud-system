@@ -175,7 +175,7 @@ func TestUploadListAuthorizationAndProjection(t *testing.T) {
 	account := "'" + strings.Split(login, "@")[0] + "'@'%'"
 	s := w.owner.receipts.schema
 	for _, q := range []string{
-		"GRANT SELECT(id,tenant_id,table_id,kind,mode,filename,content_type,total_rows,successful_rows,failed_rows,created_at,completed_at) ON " + s + ".ingestion_work_resources TO " + account,
+		"GRANT SELECT(id,tenant_id,table_id,current_job_id,kind,mode,filename,content_type,total_rows,successful_rows,failed_rows,created_at,completed_at) ON " + s + ".ingestion_work_resources TO " + account,
 		"GRANT SELECT(id,tenant_id,resource_id,state,attempt,started_at,finished_at,last_error) ON " + s + ".ingestion_work_jobs TO " + account,
 	} {
 		if _, err := f.db.Exec(q); err != nil {

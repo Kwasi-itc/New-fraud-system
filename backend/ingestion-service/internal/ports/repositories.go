@@ -10,6 +10,8 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
 
+var ErrJobQueueUnavailable = errors.New("transactional job queue unavailable")
+
 type IngestionAuditRepository interface {
 	Create(ctx context.Context, audit ingestion.IngestionAudit) error
 }
@@ -55,8 +57,6 @@ const (
 	IdempotencyResponseKindBatch  = "batch"
 )
 
-var ErrJobQueueUnavailable = errors.New("transactional job queue unavailable")
-
 type MutationStore interface {
 	RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error
 	Audits() IngestionAuditRepository
@@ -68,6 +68,8 @@ type MutationStore interface {
 	TenantReader() TenantDataReader
 	EnqueueUploadLog(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
 	EnqueueDeferredIngest(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
+	RetryUploadLog(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
+	RetryDeferredIngest(ctx context.Context, id uuid.UUID, scheduledAt *time.Time) error
 }
 
 type TransactionManager interface {

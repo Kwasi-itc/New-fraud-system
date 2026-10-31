@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -43,6 +44,9 @@ func NewDeferredIngestService(
 }
 
 func (s DeferredIngestService) Create(ctx context.Context, tenantID uuid.UUID, objectType string, mode ingestion.Mode, payload map[string]any, idempotencyKey *string) (ingestion.DeferredIngest, error) {
+	if s.txManager == nil {
+		return ingestion.DeferredIngest{}, errors.New("deferred creation requires transactional persistence and scheduling")
+	}
 	now := s.clock.Now()
 	execution := ingestion.DeferredIngest{
 		ID:             s.idGenerator.New().String(),
@@ -57,9 +61,6 @@ func (s DeferredIngestService) Create(ctx context.Context, tenantID uuid.UUID, o
 	executionID, err := uuid.Parse(execution.ID)
 	if err != nil {
 		return ingestion.DeferredIngest{}, err
-	}
-	if s.txManager == nil {
-		return ingestion.DeferredIngest{}, fmt.Errorf("transaction manager unavailable")
 	}
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		if err := store.DeferredIngests().Create(ctx, execution); err != nil {
@@ -131,10 +132,19 @@ func (s DeferredIngestService) handleRetryableFailure(ctx context.Context, execu
 		execution.Status = ingestion.DeferredIngestStatusQueued
 		execution.StartedAt = nil
 		execution.CompletedAt = nil
-		if err := s.deferredIngests.Update(ctx, *execution); err != nil {
+		id, err := uuid.Parse(execution.ID)
+		if err != nil {
 			return err
 		}
-		return fmt.Errorf("retryable DeferredIngest failure: %s", message)
+		if s.txManager == nil {
+			return errors.New("deferred retry requires transactional persistence and scheduling")
+		}
+		return s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			if err := store.DeferredIngests().Update(ctx, *execution); err != nil {
+				return err
+			}
+			return store.RetryDeferredIngest(ctx, id, nil)
+		})
 	}
 	execution.Status = ingestion.DeferredIngestStatusFailed
 	execution.CompletedAt = &now

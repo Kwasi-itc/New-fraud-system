@@ -34,7 +34,7 @@ type Plan struct {
 }
 
 func (p Plan) Validate() error {
-	if _, err := mysqlstore.Identifier(p.owner()); err != nil || len(p.owner()) > 24 {
+	if _, err := mysqlstore.Identifier(p.owner()); err != nil || len(p.owner()) > 46 {
 		return errors.New("invalid migration owner")
 	}
 	if _, err := mysqlstore.Identifier(p.Database); err != nil {

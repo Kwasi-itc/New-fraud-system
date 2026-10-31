@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/testfixtures"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	"github.com/golang-migrate/migrate/v4"
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -26,6 +24,7 @@ import (
 	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/riverjobs"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/postgres"
 )
 
@@ -46,7 +45,7 @@ func TestIntegrationSingleAndPatchIngestWritesTenantRecordAndMetadata(t *testing
 		stubPublishedModelReader{
 			model: publishedTransactionsModel(tenantID),
 		},
-		integrationTransactionManager(t, pool),
+		storepostgres.NewTransactionManager(pool),
 		nil,
 		idGenerator,
 		fixedClock{now: time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)},
@@ -113,7 +112,7 @@ func TestIntegrationSingleIngestReplaysStoredIdempotentResponse(t *testing.T) {
 		stubPublishedModelReader{
 			model: publishedTransactionsModel(tenantID),
 		},
-		integrationTransactionManager(t, pool),
+		storepostgres.NewTransactionManager(pool),
 		nil,
 		idGenerator,
 		fixedClock{now: time.Date(2026, 5, 20, 12, 30, 0, 0, time.UTC)},
@@ -181,7 +180,7 @@ func TestIntegrationCSVUploadServiceProcessesUploadedLog(t *testing.T) {
 		stubPublishedModelReader{
 			model: publishedTransactionsModel(tenantID),
 		},
-		integrationTransactionManager(t, pool),
+		storepostgres.NewTransactionManager(pool),
 		nil,
 		idGenerator,
 		clock,
@@ -189,7 +188,7 @@ func TestIntegrationCSVUploadServiceProcessesUploadedLog(t *testing.T) {
 	uploadService := NewUploadLogService(
 		storepostgres.NewUploadLogRepository(pool),
 		ingestService,
-		integrationTransactionManager(t, pool),
+		integrationQueueManager(t, pool),
 		idGenerator,
 		clock,
 		3,
@@ -250,7 +249,7 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 		stubPublishedModelReader{
 			model: publishedTransactionsModel(tenantID),
 		},
-		integrationTransactionManager(t, pool),
+		storepostgres.NewTransactionManager(pool),
 		nil,
 		idGenerator,
 		clock,
@@ -258,7 +257,7 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 	uploadService := NewUploadLogService(
 		storepostgres.NewUploadLogRepository(pool),
 		ingestService,
-		integrationTransactionManager(t, pool),
+		integrationQueueManager(t, pool),
 		idGenerator,
 		clock,
 		2,
@@ -277,8 +276,8 @@ func TestIntegrationCSVUploadRetriesBeforeTerminalFailure(t *testing.T) {
 		t.Fatalf("create upload log: %v", err)
 	}
 
-	if err := uploadService.RunLog(ctx, uuid.MustParse(log.ID)); err == nil {
-		t.Fatal("retryable failure must reach the durable worker")
+	if err := uploadService.RunLog(ctx, uuid.MustParse(log.ID)); err != nil {
+		t.Fatalf("first run upload log: %v", err)
 	}
 
 	reloaded, err := uploadService.Get(ctx, uuid.MustParse(log.ID))
@@ -338,7 +337,7 @@ func TestIntegrationDeferredIngestServiceProcessesQueuedExecution(t *testing.T) 
 		stubPublishedModelReader{
 			model: publishedTransactionsModel(tenantID),
 		},
-		integrationTransactionManager(t, pool),
+		storepostgres.NewTransactionManager(pool),
 		nil,
 		idGenerator,
 		clock,
@@ -346,7 +345,7 @@ func TestIntegrationDeferredIngestServiceProcessesQueuedExecution(t *testing.T) 
 	deferredService := NewDeferredIngestService(
 		storepostgres.NewDeferredIngestRepository(pool),
 		ingestService,
-		integrationTransactionManager(t, pool),
+		integrationQueueManager(t, pool),
 		idGenerator,
 		clock,
 		3,
@@ -412,20 +411,92 @@ func (c fixedClock) Now() time.Time {
 }
 
 func publishedTransactionsModel(tenantID uuid.UUID) ingestion.PublishedDataModel {
-	return testfixtures.SourceTransactionModel(tenantID)
+	return ingestion.PublishedDataModel{
+		TenantID:            tenantID,
+		RevisionID:          "rev_transactions_v1",
+		TenantStatus:        "active",
+		Writable:            true,
+		RecordLookupField:   "object_id",
+		PartialUpdates:      true,
+		ManagedSystemFields: []string{"object_id", "updated_at", "valid_from", "valid_until"},
+		Tables: map[string]ingestion.ObjectSchema{
+			"transactions": {
+				ID:           uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+				Name:         "transactions",
+				Description:  "Transaction records",
+				CaptionField: "object_id",
+				Fields: map[string]ingestion.FieldSchema{
+					"amount": {
+						ID:       uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+						Name:     "amount",
+						DataType: "float",
+						Nullable: false,
+					},
+					"status": {
+						ID:       uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+						Name:     "status",
+						DataType: "string",
+						Nullable: false,
+						IsEnum:   true,
+						EnumValues: []ingestion.EnumValue{
+							{ID: uuid.MustParse("66666666-6666-6666-6666-666666666666"), Value: "pending", Label: "Pending"},
+							{ID: uuid.MustParse("77777777-7777-7777-7777-777777777777"), Value: "approved", Label: "Approved"},
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func integrationDatabaseURL(t *testing.T) string {
 	t.Helper()
-	if raw := os.Getenv("INGESTION_TEST_DATABASE_URL"); raw != "" {
-		u, err := url.Parse(raw)
-		if err != nil || !strings.HasPrefix(u.Path, "/ingestion_test_") || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1") {
-			t.Fatal("requires a local disposable ingestion_test_* database")
+	raw := os.Getenv("INGESTION_TEST_DATABASE_URL")
+	if raw == "" {
+		if os.Getenv("INGESTION_REQUIRE_INTEGRATION") == "1" {
+			t.Fatal("required disposable ingestion database is absent")
 		}
-		return raw
+		t.Skip("run compose.test.yaml for disposable PostgreSQL tests")
 	}
-	t.Skip("set INGESTION_TEST_DATABASE_URL to run PostgreSQL integration tests")
-	return ""
+	u, err := url.Parse(raw)
+	if err != nil || !strings.HasPrefix(u.Path, "/ingestion_test_") || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" && u.Hostname() != "postgres") {
+		t.Fatal("ingestion tests require a local disposable ingestion_test_* administration database")
+	}
+	ctx := context.Background()
+	admin, err := pgxpool.New(ctx, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "ingestion_test_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+	if _, err := admin.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()); err != nil {
+		admin.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, err := admin.Exec(context.Background(), "DROP DATABASE "+pgx.Identifier{name}.Sanitize()+" WITH (FORCE)")
+		admin.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	u.Path = "/" + name
+	return u.String()
+}
+
+func integrationQueueManager(t *testing.T, pool *pgxpool.Pool) storepostgres.TransactionManager {
+	t.Helper()
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := migrator.Migrate(context.Background(), rivermigrate.DirectionUp, nil); err != nil {
+		t.Fatal(err)
+	}
+	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return storepostgres.NewTransactionManager(pool).WithEnqueuers(riverjobs.NewRiverUploadLogEnqueuer(client, 3, riverjobs.UploadLogQueueName), riverjobs.NewRiverDeferredIngestEnqueuer(client, 3, riverjobs.DeferredIngestQueueName))
 }
 
 func integrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {
@@ -575,17 +646,5 @@ func integrationUUIDSequence(count int) []uuid.UUID {
 }
 
 func integrationTransactionManager(t *testing.T, pool *pgxpool.Pool) storepostgres.TransactionManager {
-	t.Helper()
-	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := migrator.Migrate(context.Background(), rivermigrate.DirectionUp, nil); err != nil {
-		t.Fatal(err)
-	}
-	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return storepostgres.NewTransactionManager(pool).WithJobEnqueuers(riverjobs.NewRiverUploadLogEnqueuer(client, 3, ""), riverjobs.NewRiverDeferredIngestEnqueuer(client, 3, ""))
+	return integrationQueueManager(t, pool)
 }

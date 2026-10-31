@@ -1,13 +1,14 @@
 package httpapi
 
 import (
-	"github.com/gin-gonic/gin"
 	"os"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Gin mode is global; configure it before any parallel tests run.
 func TestMain(m *testing.M) {
+	// Gin's mode is process-global; parallel tests must not mutate it.
 	gin.SetMode(gin.TestMode)
 	os.Exit(m.Run())
 }
