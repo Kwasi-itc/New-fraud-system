@@ -281,3 +281,9 @@ func (r AsyncDecisionExecutionRepository) RequeueValidationPersistenceFailure(ct
 	 WHERE tenant_id=$1 AND id=$2 AND status='running' AND result_body IS NULL`, tenantID, id)
 	return err
 }
+
+func (r AsyncDecisionExecutionRepository) RequeueCompletionPersistenceFailure(ctx context.Context, tenantID, id string, attempt int) error {
+	_, err := r.q.Exec(ctx, `UPDATE core.async_decision_executions SET status='queued', next_attempt_at=NULL
+	 WHERE tenant_id=$1 AND id=$2 AND status='running' AND attempt_count=$3 AND result_body IS NULL`, tenantID, id, attempt)
+	return err
+}

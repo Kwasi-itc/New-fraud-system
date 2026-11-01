@@ -18,6 +18,7 @@ import (
 	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 )
 
 func main() {
@@ -93,7 +94,7 @@ func runRiverMigrations(ctx context.Context, databaseURL string, direction river
 	}
 	defer pool.Close()
 
-	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), &rivermigrate.Config{Schema: riverjobs.Schema})
 	if err != nil {
 		return fmt.Errorf("create river migrator: %w", err)
 	}

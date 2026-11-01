@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-30",
+  "status": "decision_owned_verification_and_release_preparation_finished_real_deployment_activation_blocked",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "worktree": "Existing staged, unstaged and untracked work preserved. No commit, push, fetch or pull in this pass.",
+  "scope": {
+    "requested": "Decision-owned broader correctness/security verification, release preparation/rehearsal and deployment/controlled-activation work; do not implement foreign owners",
+    "excluded": ["EC2", "application database operations", "Aurora", "foreign/shared component implementation", "new auth authority adapters", "performance/load/query-plan acceptance", "unapproved runtime activation"]
+  },
+  "implemented": [
+    "Separate mysql-release executable: artifact verification, owner grant-plan output and read-only deployment inspection only",
+    "Canonical bounded JSON artifact, external SHA-256, full source/image/revision identity, exact pinned version and exact compiled 149-step SQL/definition lineage; copies prevent caller mutation after verification",
+    "Verified-TLS-only deployment connection, exact logical database/version/writer UUID/status and locked definer; repeat target checks on actual pinned schema-inspection connection",
+    "Exhaustive explicit owner API/worker DML grant plans, literal account hosts, no wildcard/DDL/grant-option/dictionary/resolver access; narrow immutable receipt-key UPDATE privileges permit required FOR UPDATE fences",
+    "Actual DecisionService thresholds/outcomes/evidence/effects and required-job rollback under owner API grants, alongside installer fixture control",
+    "Restricted worker claim/send-intent/provider-receipt/ack SQL for workflow, screening, scoring and outbox, without contacting external providers",
+    "Disposable exact decision-lineage fresh/140-to-145-to-149 and interrupted-DDL recovery rehearsal, drift/checksum rejection and unrelated-owner preservation",
+    "Decision Dockerfile copies mysqlstore before module download, packages mysql-release, emits source/revision labels and embeds verifier build provenance",
+    "Decision-owned release/inspection/activation runbook and explicit pending production gates"
+  ],
+  "findings": [
+    "Candidate grant rehearsal initially failed because MySQL FOR UPDATE requires a mutation privilege in addition to SELECT; fixed with UPDATE(id) on immutable receipt keys rather than DELETE, LOCK TABLES or general receipt UPDATE",
+    "Effect-receipt identity guards reject value changes but allow harmless unchanged-key statements; tests preserve that existing contract rather than altering the shipped 149-step lineage",
+    "Earlier actual-service fixture stopped at the cancellation prefix; extended that fixture explicitly to the full dispatch lineage for final release-account testing",
+    "A pool preflight is not a same-session pre-write target guard. The shared runner lacks that caller hook; production apply is intentionally NOT exposed by decision tooling, and the shared component was not changed",
+    "Full routine-definition inspection needs definer/global inspection privileges. Production inspector policy is still open; no global SELECT or installer credentials were granted to runtime accounts"
+  ],
+  "fixture": {
+    "project": "decision-release-krsj1s",
+    "go": "1.25.0 linux/amd64 (cached image override, not the base fixture's 1.25.8)",
+    "mysql": "8.4.8",
+    "postgres": "16.13",
+    "isolation": "Private Compose network, no published database ports, tmpfs DBs, copied source tree without a host source bind; generated disposable databases and users only",
+    "foreign_owner_limit": "Existing explicit auth/case/model/screening/dispatch contract fixtures are test implementations, not real provider acceptance",
+    "cleanup": "Only this private fixture project's containers/network and ephemeral databases were removed after verification; existing fraud-host-local services were not stopped or recreated"
+  },
+  "verification": [
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/mysqlrelease ./cmd/mysql-release ./internal/store/mysql -run 'Test(Release|OwnerGrants|MySQLReleaseRuntimeGrant|MySQLActualDecisionService)'",
+      "scope": "Artifact checksum/canonical JSON/source and identity failures; immutable plan copies; missing schema, wrong writer, unlocked definer, prefix upgrades, pre/post-DDL dirty recovery, repeat apply, drift and tampered history; unrelated-owner table/ledger preservation; actual-service restricted API score/evidence/effect/job rollback; four-effect restricted worker and forbidden writes; unstamped command denial and no production apply/force/down/activation command"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=600s ./internal/store/mysql -skip 'Test(MySQLActualDecisionServiceThresholdsEvidenceEffectsAndRequiredJobRollback|MySQLReleaseRuntimeGrantBoundaryAndWorkerDispatch|DeliveryMaintenanceCleanupCyclesAndScope|MySQLRequiredEffectJobsAtomicOwnerBindingAndReceipts|MySQLEffectRetryReceiptFenceAndPlan|MySQLExecutionScheduleAtomicWatermarkAndPolicies|MySQLDecisionHistoryRepresentativeIndexedPlans|MySQLPlatformQueryPlans|MySQLRegisteredTextIndexWalletAggregationAndCollisionResidual)$'",
+      "scope": "93 other owner top-level tests; actual PostgreSQL/MySQL SQL differential, tenant/concurrency, authorization-consumer, authoring/publication, history, required-write rollback, jobs, dispatch cancellation/recovery and readiness. Seven mixed query-plan/performance cases excluded; two new release/actual-service cases executed separately. Not full provider/business end-to-end acceptance."
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/app ./internal/mysqlrelease ./cmd/mysql-release ./internal/runtime/ast_eval ./internal/evalerrors ./internal/ports ./internal/mysqljobs ./internal/recurrence ./internal/store/mysql/metadata",
+      "scope": "Actual SQL/HTTP/application preparation, execution, schedule, cancellation/recovery, tenant, readiness/activation-denial, worker shutdown and portable AST/contract tests; release cases re-executed after final changes"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/service ./internal/riverjobs ./internal/httpapi/... ./cmd/migrate ./cmd/worker ./internal/migrationaudit",
+      "scope": "Source/portable regressions and private PostgreSQL integration, including source-mapping drift verification"
+    },
+    {"result": "passed", "command": "go test -mod=readonly -p 2 -run '^$' ./...", "scope": "Whole decision module compiles; not test execution"},
+    {"result": "passed", "command": "go vet -mod=readonly -p 2 ./internal/mysqlrelease ./cmd/mysql-release ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/store/mysql/... ./internal/app ./internal/ports ./internal/testsupport", "scope": "Affected packages; release/store vet repeated after final changes"},
+    {"result": "passed", "command": "go build -mod=readonly -p 2 ./cmd/...", "scope": "Linux command executable build; NOT complete Docker image packaging/promotion"},
+    {"result": "passed", "command": "git diff --check -- backend/decision-engine-service/Dockerfile backend/decision-engine-service/README.md mysql_migration/implementation/modules/03_decision_engine_service.md", "scope": "Pass-owned tracked edits only; unrelated existing changes preserved"}
+  ],
+  "source_attestation": {
+    "algorithm": "SHA-256 of LC_ALL=C sorted sha256sum-format lines for all .go/.sql/.json files under decision cmd and internal; identical host and copied runner tree",
+    "host_and_runner_sha256": "31b3f4ea827ef5c315228ca59aadd138d33ecd754cb62843485b6535ef2139c2",
+    "dockerfile_sha256": "e982b19c0e7c80baadea3659f79873ad0c4bf4f4ba65136e1985a29c27317748",
+    "source_mapping_sha256": "a2cad64c226a2b43171da87be0967e5acce59e6305eeb3ff3e58b8e2dc784393",
+    "go_mod_sha256": "8f492b925ac066391cfb0135602dfc813d0ad74ce30926912c08c93b34bed2a4",
+    "go_sum_sha256": "1eb4a8fecf312148ba22b587d7ae765d38af658e78e099c3a4ad584848236899",
+    "source_inventory_files": 166,
+    "limitation": "Local test attestation of a dirty candidate, NOT an approved clean release or a production image/source signature"
+  },
+  "remaining": [
+    "Full actual-service PostgreSQL/MySQL business differential corpus and real provider conformance; current component/SQL fixtures are not complete end-to-end deployment acceptance",
+    "All-path restricted-account compatibility and review of existing/inherited roles, foreign contract grants and production routine-inspection policy",
+    "Independently frozen/reviewed production definitions, externally approved source/image/artifact identities, full Docker packaging and image promotion",
+    "Shared-installer same-session pre-write target guard; decision tool deliberately has no production apply operation",
+    "Real auth/session/service identities, deferred auth action adapters, complete published-model delivery, case/screening owners and receipt-aware external providers",
+    "Approved coordinated target/window, backup/restore proof, source-writer fencing, queue/unknown-outcome reconciliation, shared connection budget and explicit activation approval",
+    "Aurora, performance/load/query-plan acceptance and actual controlled activation remain deferred/not performed"
+  ],
+  "database_changes_applied": "Only generated private fixture databases/roles and reference/target migration objects; no application DB changes",
+  "deployment": "Not deployed. Existing app containers/backend flags unchanged. No production MySQL writes or activation exposed. No commit or push."
+}

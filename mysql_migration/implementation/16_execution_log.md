@@ -3146,3 +3146,24 @@ not imply their optional database integrations ran. Initial broad ingestion run
 lacked required exporter/importer settings and failed; use the configured accepted
 schema evidence in evidence/2026-10-30_merge-sync, not that rejected run.
 No production switch, data deletion or acceptance-gate closure was performed.
+
+## 2026-11-01 — Integrate remote decision-engine commit before push
+
+Remote advanced to 69cfec9 while the first merge was being prepared. Reconciled
+its staged MySQL decision engine with local screening authentication/authoring
+work, retaining both startup readiness and error classification paths. Updated
+explicit migration calls to NewForOwner, screening retry to the typed Enqueue
+boundary, and the evaluation custom-list port/read adapter. Added the bounded
+MySQL ScreeningIgnoreWords reader with missing-versus-empty list semantics,
+exact tenant/list scope and row/value/total-byte rejection. Private-boundary tests
+now handle the error-returning router and test middleware without bypassing the
+production startup check. Platform manifest parsing consistently uses normalized
+line endings.
+
+Regenerated the proposed source inventory/catalog from a disposable PostgreSQL
+database, including the existing version-23 screening_authoring_events migration;
+this remains a needs_review proposal, not deployed DDL or independent approval.
+Decision-engine module tests and vet passed; optional database tests in the broad
+suite remain opt-in. Explicit schema-manifest PostgreSQL integration and new
+MySQL ignore-list race integration passed on isolated fixtures. Both merge parents
+remain preserved. No force push or production runtime change is authorized here.

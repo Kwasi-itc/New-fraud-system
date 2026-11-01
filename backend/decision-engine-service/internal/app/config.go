@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -14,6 +15,7 @@ type Config struct {
 	NameRecognitionToken                string
 	ScreeningIntakeToken                string
 	ScreeningCallbackToken              string
+	DatabaseBackend                     string
 	WorkflowAuthoringToken              string
 	ScreeningAuthoringToken             string
 	CaseServiceAuthToken                string
@@ -100,6 +102,10 @@ var defaultWorkerTaskPriorities = map[string]int{
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
+	backend := strings.ToLower(strings.TrimSpace(getEnv("DATABASE_BACKEND", "postgres")))
+	if err := (Config{DatabaseBackend: backend, DatabaseURL: os.Getenv("DATABASE_URL")}).ValidateRuntimeBackend(); err != nil {
+		return Config{}, err
+	}
 
 	httpClientTimeout, err := getEnvDuration("HTTP_CLIENT_TIMEOUT", 10*time.Second)
 	if err != nil {
@@ -221,6 +227,7 @@ func LoadConfig() (Config, error) {
 		NameRecognitionToken:                os.Getenv("SCREENING_NAME_RECOGNITION_TOKEN"),
 		ScreeningIntakeToken:                os.Getenv("SCREENING_INTAKE_TOKEN"),
 		ScreeningCallbackToken:              os.Getenv("SCREENING_CALLBACK_TOKEN"),
+		DatabaseBackend:                     backend,
 		CaseServiceAuthToken:                os.Getenv("CASE_SERVICE_AUTH_TOKEN"),
 		WorkflowAuthoringToken:              os.Getenv("WORKFLOW_AUTHORING_TOKEN"),
 		ScreeningAuthoringToken:             os.Getenv("SCREENING_AUTHORING_TOKEN"),
@@ -240,7 +247,7 @@ func LoadConfig() (Config, error) {
 		ScreeningServiceURL:                 strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
 		ScreeningProviderURL:                strings.TrimRight(os.Getenv("SCREENING_PROVIDER_URL"), "/"),
 		ScoringProviderURL:                  strings.TrimRight(os.Getenv("SCORING_PROVIDER_URL"), "/"),
-		OutboxPublisherURL:                  strings.TrimRight(os.Getenv("OUTBOX_PUBLISHER_URL"), "/"),
+		OutboxPublisherURL:                  strings.TrimSpace(os.Getenv("OUTBOX_PUBLISHER_URL")),
 		LogLevel:                            getEnv("LOG_LEVEL", "debug"),
 		GinMode:                             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:                   httpClientTimeout,
@@ -381,6 +388,12 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.OutboxQueueWorkers <= 0 {
 		return Config{}, fmt.Errorf("OUTBOX_QUEUE_WORKERS must be greater than zero")
+	}
+	if cfg.OutboxPublishingEnabled() {
+		target, err := url.Parse(cfg.OutboxPublisherURL)
+		if err != nil || target.Hostname() == "" || (target.Scheme != "http" && target.Scheme != "https") || target.User != nil || target.Fragment != "" {
+			return Config{}, fmt.Errorf("OUTBOX_PUBLISHER_URL must be an absolute HTTP(S) URL without userinfo or fragment")
+		}
 	}
 	if strings.TrimSpace(cfg.WorkflowDispatchQueueName) == "" {
 		return Config{}, fmt.Errorf("WORKFLOW_DISPATCH_QUEUE_NAME must not be empty")

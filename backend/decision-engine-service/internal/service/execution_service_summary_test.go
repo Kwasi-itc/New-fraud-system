@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
 type executionSummaryScheduledRepoStub struct {
@@ -222,6 +223,7 @@ func TestExecutionServiceHandleScheduledExecutionFailureRequeuesBeforeMaxAttempt
 	svc := ExecutionService{
 		clock:         retryFixedClock{now: now},
 		scheduledRepo: repo,
+		txManager:     txManagerStub{store: retryQueueStore{scheduled: repo}},
 		retryPolicy: ExecutionRetryPolicy{
 			ScheduledBaseBackoff: 30 * time.Second,
 		},
@@ -252,6 +254,7 @@ func TestExecutionServiceHandleAsyncExecutionFailureMarksFailedAtMaxAttempts(t *
 	svc := ExecutionService{
 		clock:     retryFixedClock{now: now},
 		asyncRepo: repo,
+		txManager: txManagerStub{store: retryQueueStore{async: repo}},
 		retryPolicy: ExecutionRetryPolicy{
 			AsyncBaseBackoff: 30 * time.Second,
 		},
@@ -277,5 +280,22 @@ func TestExecutionServiceHandleAsyncExecutionFailureMarksFailedAtMaxAttempts(t *
 }
 
 type assertErr string
+
+type retryQueueStore struct {
+	ports.MutationStore
+	scheduled ports.ScheduledExecutionRepository
+	async     ports.AsyncDecisionExecutionRepository
+}
+
+func (s retryQueueStore) ScheduledExecutions() ports.ScheduledExecutionRepository { return s.scheduled }
+func (s retryQueueStore) AsyncDecisionExecutions() ports.AsyncDecisionExecutionRepository {
+	return s.async
+}
+func (s retryQueueStore) Enqueue(_ context.Context, job ports.JobRequest) error {
+	if job.Kind != ports.JobScheduled || job.ResourceID != "sched-1" || job.ScheduledAt == nil {
+		return assertErr("unexpected retry job")
+	}
+	return nil
+}
 
 func (e assertErr) Error() string { return string(e) }

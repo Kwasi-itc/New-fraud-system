@@ -18,7 +18,6 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
@@ -79,6 +78,7 @@ type DecisionService struct {
 	preparationMetrics            *preparationMetrics
 	payloadValidator              *payload.Validator
 	txManager                     ports.TransactionManager
+	decisionTransactions          ports.DecisionTransactionManager
 	idGen                         ports.IDGenerator
 	clock                         ports.Clock
 	dataModelReader               ports.DataModelReader
@@ -88,26 +88,23 @@ type DecisionService struct {
 	tenantDataReader              ports.TenantDataReader
 	decisionRepo                  ports.DecisionRepository
 	ruleExecRepo                  ports.RuleExecutionRepository
-	workflowRepo                  ports.WorkflowRepository
-	workflowRuleRepo              ports.WorkflowRuleRepository
+	workflowRepo                  ports.EvaluationWorkflows
+	workflowRuleRepo              ports.EvaluationWorkflowRules
 	workflowCondRepo              ports.WorkflowConditionRepository
 	workflowActionRepo            ports.WorkflowActionRepository
 	workflowExecRepo              ports.WorkflowExecutionRepository
-	snoozeRepo                    ports.RuleSnoozeRepository
+	snoozeRepo                    ports.EvaluationSnoozes
 	outboxRepo                    ports.OutboxEventRepository
-	customListRepo                ports.CustomListRepository
-	recordTagRepo                 ports.RecordTagRepository
-	riskRepo                      ports.RiskSnapshotRepository
-	ipFlagRepo                    ports.IPFlagRepository
+	customListRepo                ports.EvaluationCustomLists
+	recordTagRepo                 ports.EvaluationRecordTags
+	riskRepo                      ports.EvaluationRiskSnapshots
+	ipFlagRepo                    ports.EvaluationIPFlags
 	geoIPLookup                   ports.GeoIPLookup
-	screeningConfigRepo           ports.ScreeningConfigRepository
+	screeningConfigRepo           ports.EvaluationScreeningConfigs
 	screeningExecRepo             ports.ScreeningExecutionRepository
-	scoringConfigRepo             ports.ScoringConfigRepository
+	scoringConfigRepo             ports.EvaluationScoringConfigs
 	scoringRequestRepo            ports.ScoringRequestRepository
-	workflowExecutionEnqueuer     riverjobs.WorkflowExecutionEnqueuer
-	screeningExecutionEnqueuer    riverjobs.ScreeningExecutionEnqueuer
-	scoringRequestEnqueuer        riverjobs.ScoringRequestEnqueuer
-	outboxEventEnqueuer           riverjobs.OutboxEventEnqueuer
+	publishOutboxEvents           bool
 	aggregatePushdownMode         string
 	aggregatePushdownAggregates   []string
 	ruleEvaluationConcurrency     int
@@ -156,15 +153,16 @@ type decisionCacheStatsSnapshot struct {
 }
 
 type DecisionRuntimeMetrics struct {
-	Preparation       PreparationMetrics        `json:"preparation"`
-	PayloadSchemas    payload.Metrics           `json:"payload_schemas"`
-	Cache             DecisionCacheMetrics      `json:"cache"`
-	DBPool            *DBPoolStats              `json:"db_pool,omitempty"`
-	Pressure          DecisionRuntimePressure   `json:"pressure"`
-	AggregatePushdown AggregatePushdownMetrics  `json:"aggregate_pushdown"`
-	BroadReadHelpers  BroadReadHelperMetrics    `json:"broad_read_helpers"`
-	TenantDataReads   TenantDataReadMetrics     `json:"tenant_data_reads"`
-	Evaluation        DecisionEvaluationMetrics `json:"evaluation"`
+	OutboxPublicationEnabled bool                      `json:"outbox_publication_enabled"`
+	Preparation              PreparationMetrics        `json:"preparation"`
+	PayloadSchemas           payload.Metrics           `json:"payload_schemas"`
+	Cache                    DecisionCacheMetrics      `json:"cache"`
+	DBPool                   *DBPoolStats              `json:"db_pool,omitempty"`
+	Pressure                 DecisionRuntimePressure   `json:"pressure"`
+	AggregatePushdown        AggregatePushdownMetrics  `json:"aggregate_pushdown"`
+	BroadReadHelpers         BroadReadHelperMetrics    `json:"broad_read_helpers"`
+	TenantDataReads          TenantDataReadMetrics     `json:"tenant_data_reads"`
+	Evaluation               DecisionEvaluationMetrics `json:"evaluation"`
 }
 
 type DecisionRuntimePressure struct {
@@ -276,25 +274,22 @@ func NewDecisionService(
 	tenantDataReader ports.TenantDataReader,
 	decisionRepo ports.DecisionRepository,
 	ruleExecRepo ports.RuleExecutionRepository,
-	workflowRepo ports.WorkflowRepository,
-	workflowRuleRepo ports.WorkflowRuleRepository,
+	workflowRepo ports.EvaluationWorkflows,
+	workflowRuleRepo ports.EvaluationWorkflowRules,
 	workflowCondRepo ports.WorkflowConditionRepository,
 	workflowActionRepo ports.WorkflowActionRepository,
 	workflowExecRepo ports.WorkflowExecutionRepository,
-	snoozeRepo ports.RuleSnoozeRepository,
+	snoozeRepo ports.EvaluationSnoozes,
 	outboxRepo ports.OutboxEventRepository,
-	customListRepo ports.CustomListRepository,
-	recordTagRepo ports.RecordTagRepository,
-	riskRepo ports.RiskSnapshotRepository,
-	ipFlagRepo ports.IPFlagRepository,
-	screeningConfigRepo ports.ScreeningConfigRepository,
+	customListRepo ports.EvaluationCustomLists,
+	recordTagRepo ports.EvaluationRecordTags,
+	riskRepo ports.EvaluationRiskSnapshots,
+	ipFlagRepo ports.EvaluationIPFlags,
+	screeningConfigRepo ports.EvaluationScreeningConfigs,
 	screeningExecRepo ports.ScreeningExecutionRepository,
-	scoringConfigRepo ports.ScoringConfigRepository,
+	scoringConfigRepo ports.EvaluationScoringConfigs,
 	scoringRequestRepo ports.ScoringRequestRepository,
-	workflowExecutionEnqueuer riverjobs.WorkflowExecutionEnqueuer,
-	screeningExecutionEnqueuer riverjobs.ScreeningExecutionEnqueuer,
-	scoringRequestEnqueuer riverjobs.ScoringRequestEnqueuer,
-	outboxEventEnqueuer riverjobs.OutboxEventEnqueuer,
+	publishOutboxEvents bool,
 	aggregatePushdownMode string,
 	aggregatePushdownAggregates []string,
 	ruleEvaluationConcurrency int,
@@ -302,18 +297,6 @@ func NewDecisionService(
 	aggregateRemoteConcurrency int,
 	dbPoolStatsProvider DBPoolStatsProvider,
 ) DecisionService {
-	if workflowExecutionEnqueuer == nil {
-		workflowExecutionEnqueuer = riverjobs.NoopWorkflowExecutionEnqueuer{}
-	}
-	if screeningExecutionEnqueuer == nil {
-		screeningExecutionEnqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
-	}
-	if scoringRequestEnqueuer == nil {
-		scoringRequestEnqueuer = riverjobs.NoopScoringRequestEnqueuer{}
-	}
-	if outboxEventEnqueuer == nil {
-		outboxEventEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
-	}
 	readMetrics := &tenantDataReadMetrics{}
 	if tenantDataReader != nil {
 		tenantDataReader = instrumentedTenantDataReader{reader: tenantDataReader, metrics: readMetrics}
@@ -344,10 +327,7 @@ func NewDecisionService(
 		screeningExecRepo:             screeningExecRepo,
 		scoringConfigRepo:             scoringConfigRepo,
 		scoringRequestRepo:            scoringRequestRepo,
-		workflowExecutionEnqueuer:     workflowExecutionEnqueuer,
-		screeningExecutionEnqueuer:    screeningExecutionEnqueuer,
-		scoringRequestEnqueuer:        scoringRequestEnqueuer,
-		outboxEventEnqueuer:           outboxEventEnqueuer,
+		publishOutboxEvents:           publishOutboxEvents,
 		aggregatePushdownMode:         aggregatePushdownMode,
 		aggregatePushdownAggregates:   append([]string(nil), aggregatePushdownAggregates...),
 		ruleEvaluationConcurrency:     ruleEvaluationConcurrency,
@@ -382,6 +362,14 @@ func (s DecisionService) evaluateScenario(
 	evalCache *asteval.EvaluationCache,
 	aggregateCache *asteval.AggregateResultCache,
 	evaluationNow time.Time,
+) (result DecisionEvaluationResult, err error) {
+	return s.evaluateScenarioWithOptions(ctx, tenantID, scenarioID, req, evalCache, aggregateCache, evaluationNow, pinnedEvaluationOptions{})
+}
+
+func (s DecisionService) evaluateScenarioWithOptions(
+	ctx context.Context, tenantID, scenarioID string, req DecisionEvaluationRequest,
+	evalCache *asteval.EvaluationCache, aggregateCache *asteval.AggregateResultCache,
+	evaluationNow time.Time, options pinnedEvaluationOptions,
 ) (result DecisionEvaluationResult, err error) {
 	req, err = s.prepare(ctx, tenantID, req)
 	if err != nil {
@@ -426,16 +414,29 @@ func (s DecisionService) evaluateScenario(
 		)
 	}()
 
-	scn, err := s.getScenario(ctx, tenantID, scenarioID)
+	var scn scenarioDomain.Scenario
+	if options.snapshot != nil {
+		if options.snapshot.TenantID() != tenantID || options.snapshot.ScenarioID() != scenarioID {
+			return DecisionEvaluationResult{}, ErrExecutionPreparation
+		}
+		scn = options.snapshot.scenario
+	} else {
+		scn, err = s.getScenario(ctx, tenantID, scenarioID)
+	}
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
 	markTiming("scenario_get")
-	if scn.LiveIterationID == nil {
+	if options.snapshot == nil && scn.LiveIterationID == nil {
 		return DecisionEvaluationResult{}, fmt.Errorf("scenario has no live iteration")
 	}
 	currentStage = "iteration_get"
-	iteration, err := s.getIteration(ctx, tenantID, scenarioID, *scn.LiveIterationID)
+	var iteration scenarioDomain.Iteration
+	if options.snapshot != nil {
+		iteration = options.snapshot.iteration
+	} else {
+		iteration, err = s.getIteration(ctx, tenantID, scenarioID, *scn.LiveIterationID)
+	}
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -473,6 +474,12 @@ func (s DecisionService) evaluateScenario(
 	}
 	markTiming("trigger_eval")
 	if !triggered {
+		if options.capture != nil {
+			options.capture.persist = func(context.Context, ports.DecisionMutationStore) (DecisionEvaluationResult, error) {
+				return DecisionEvaluationResult{Triggered: false, ModelRevision: model.RevisionID}, nil
+			}
+			options.capture.bytes = len(model.RevisionID) + 32
+		}
 		logDecisionEvaluationTimings(
 			tenantID,
 			scenarioID,
@@ -492,7 +499,12 @@ func (s DecisionService) evaluateScenario(
 	}
 
 	currentStage = "rules_list"
-	rules, err := s.getRules(ctx, tenantID, scenarioID, iteration.ID)
+	var rules []scenarioDomain.Rule
+	if options.snapshot != nil {
+		rules = options.snapshot.rules
+	} else {
+		rules, err = s.getRules(ctx, tenantID, scenarioID, iteration.ID)
+	}
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -594,7 +606,9 @@ func (s DecisionService) evaluateScenario(
 	var outboxEventCount int
 	txTimings := &ports.TransactionTimings{}
 	currentStage = "tx_begin"
-	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+	// This local persistence function is shared by ordinary synchronous writes
+	// and target pinned preparation. It retains outputs, not a transaction.
+	persist := func(ctx context.Context, store ports.DecisionMutationStore) error {
 		txStartedAt := time.Now()
 		txStageStartedAt := txStartedAt
 		markTxTiming := func(stage string) {
@@ -622,7 +636,7 @@ func (s DecisionService) evaluateScenario(
 			return err
 		}
 		for _, item := range storedWorkflowExecs {
-			if err := s.workflowExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobWorkflow, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
 				return err
 			}
 		}
@@ -633,7 +647,7 @@ func (s DecisionService) evaluateScenario(
 			return err
 		}
 		for _, item := range storedScreeningExecs {
-			if err := s.screeningExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScreening, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
 				return err
 			}
 		}
@@ -644,11 +658,20 @@ func (s DecisionService) evaluateScenario(
 			return err
 		}
 		for _, item := range storedScoringReqs {
-			if err := s.scoringRequestEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScoring, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
 				return err
 			}
 		}
 		markTxTiming("scoring_insert")
+		// Optional integration publication is independent of workflow dispatch and
+		// async callbacks. When disabled, create neither an event nor its queue job.
+		if !s.publishOutboxEvents {
+			timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
+			return nil
+		}
+		if store.OutboxEvents() == nil {
+			return fmt.Errorf("outbox publication enabled without repository")
+		}
 		currentStage = "tx_outbox_build"
 		outboxEvents, err := s.buildOutboxEvents(stored, storedWorkflowExecs, storedScreeningExecs, storedScoringReqs)
 		if err != nil {
@@ -660,7 +683,7 @@ func (s DecisionService) evaluateScenario(
 		storedOutboxEvents, err := store.OutboxEvents().CreateMany(ctx, outboxEvents)
 		if err == nil {
 			for _, item := range storedOutboxEvents {
-				if enqueueErr := s.outboxEventEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); enqueueErr != nil {
+				if enqueueErr := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobOutbox, TenantID: item.TenantID, ResourceID: item.ID}); enqueueErr != nil {
 					return enqueueErr
 				}
 			}
@@ -668,7 +691,28 @@ func (s DecisionService) evaluateScenario(
 		markTxTiming("outbox_insert")
 		timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
 		return err
-	})
+	}
+	if options.capture != nil {
+		encoded, encodingErr := json.Marshal(struct {
+			Decision   decision.Decision
+			Rules      []decision.RuleExecution
+			Workflows  []workflow.Execution
+			Screenings []screening.Execution
+			Scorings   []scoring.Request
+		}{item, ruleExecs, workflowExecs, screeningExecs, scoringReqs})
+		if encodingErr != nil {
+			return DecisionEvaluationResult{}, encodingErr
+		}
+		options.capture.bytes = len(encoded)
+		options.capture.persist = func(ctx context.Context, store ports.DecisionMutationStore) (DecisionEvaluationResult, error) {
+			if err := persist(ctx, store); err != nil {
+				return DecisionEvaluationResult{}, err
+			}
+			return DecisionEvaluationResult{ModelRevision: model.RevisionID, Triggered: true, Decision: &stored, RuleExecutions: storedExecs}, nil
+		}
+		return DecisionEvaluationResult{ModelRevision: model.RevisionID, Triggered: true}, nil
+	}
+	err = s.runDecisionMutation(ports.WithTransactionTimings(ctx, txTimings), func(store ports.DecisionMutationStore) error { return persist(ctx, store) })
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -1425,12 +1469,13 @@ func (s DecisionService) RuntimeMetrics() DecisionRuntimeMetrics {
 		TopRemoteShapes:                  aggregateSnapshot.TopRemoteShapes,
 	}
 	return DecisionRuntimeMetrics{
-		Preparation:       s.preparationMetrics.snapshot(),
-		PayloadSchemas:    s.payloadValidator.Metrics(),
-		Cache:             cache,
-		DBPool:            dbPool,
-		Pressure:          buildDecisionRuntimePressure(dbPool, aggregateMetrics),
-		AggregatePushdown: aggregateMetrics,
+		OutboxPublicationEnabled: s.publishOutboxEvents,
+		Preparation:              s.preparationMetrics.snapshot(),
+		PayloadSchemas:           s.payloadValidator.Metrics(),
+		Cache:                    cache,
+		DBPool:                   dbPool,
+		Pressure:                 buildDecisionRuntimePressure(dbPool, aggregateMetrics),
+		AggregatePushdown:        aggregateMetrics,
 		BroadReadHelpers: BroadReadHelperMetrics{
 			RejectedCount:          broadReadSnapshot.RejectedCount,
 			RejectedByFunctionName: broadReadSnapshot.RejectedByFunctionName,

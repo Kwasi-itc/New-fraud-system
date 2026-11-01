@@ -1,0 +1,38 @@
+{
+  "branch": "my_sql-migration",
+  "scope": "D23.4 staged execution cancellation and seven-kind terminal transport cleanup; not runtime activation",
+  "approved_contract": {
+    "cancellation": "Distinct cancelled evaluation state, expected generation, required cancellation callback; callback-only cancellation preserves completed evaluation; approved 2026-10-30",
+    "retention": "Shared 24h completed/cancelled and seven-day discarded transport retention; permanent receipts and owners retained; approved 2026-10-30"
+  },
+  "implementation": {
+    "owner": "Target-only cancelled status/timestamps and dedicated cancellation action. Lock owner -> exact required receipt -> active delivery; failure to find/cancel required work rolls back. Generation preserved, same-generation repeat idempotent; no duplicate cancellation callback. Evaluation redrive of cancelled owners is not enabled",
+    "callbacks": "Async cancellation and required callback enqueue are atomic with transport cancellation, including ignored-error transaction poisoning. Callback-only cancellation preserves result, status and evaluation timestamps; authorized callback redrive increments generation and clears only callback cancellation. Already sent/in-flight external requests cannot be undone",
+    "cleanup": "CleanupTerminalPage limits discovery to 100 scoped IDs per state. Batched receipt FOR SHARE SKIP LOCKED precedes delivery FOR UPDATE SKIP LOCKED; cursor advances over locked/skipped discovery rows. Only eligible terminal transports deleted; no receipt/owner deletion or dedupe release. Database-time eligibility rechecked on delete; uncertain commit never returns claimed deletion count",
+    "metadata": "140-step unreleased execution draft. Earlier 115 effect-job SQL steps preserved. Two appended online cleanup-index ALTERs use exact reviewed predecessor/after snapshots; definition-chain binder rejects missing/mismatched before shapes. Cancellation column changes are within new unreleased execution steps, not a frozen-release upgrade. No SQL applied in this pass",
+    "integration_tests_written": "Scheduled pending/running cancellation/replay/tenant/stale generation; ignored required-callback failure rollback; cancelled callback dispatch, callback-only cancellation and redrive; completed evaluation preserved. Seven-kind terminal retention/recent-live exclusion, retained receipt and legitimate replay without resurrection; scoped denial, locked receipt pagination and delete-error rollback"
+  },
+  "verification": {
+    "native_environment": "Go 1.25.0 darwin/amd64, explicit GOROOT, offline existing module cache; no database connections",
+    "selected_race": "PASS prior to final metadata predecessor assertion: mysql 3.538s, metadata 2.465s, recurrence 1.730s; mysqljobs 1.600s had no matching tests and was compile-only. All SQL test source files compiled, but no SQL assertions executed",
+    "native_vet": "PASS exit 0: native go vet -mod=readonly -p 2 ./internal/store/mysql/... ./internal/recurrence ./internal/mysqljobs after cancellation/cleanup and SQL fixture test additions",
+    "final_pure_packages": "PASS native -race -count=1 for complete metadata (1.883s), recurrence (2.019s) and mysqljobs (1.394s) packages. Includes the final ALTER-predecessor rejection assertion and complete identity unit tests; no SQL fixtures invoked",
+    "full_service_compile": "PASS exit 0: native go test -mod=readonly -vet=off -p 2 -run '^$' ./... across the full decision-engine service. This compiles SQL test sources but does NOT execute behavioral or database tests",
+    "docker": "Deferred by explicit user request. No new container commands, migration application, database test run, grants or deployed images",
+    "source_reference": "MySQL 8.4 locking reads document FOR SHARE / FOR UPDATE SKIP LOCKED support; syntax documentation is not execution evidence",
+    "source_reference_url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html"
+  },
+  "remaining": [
+    "Docker fresh/upgrade/replay and restricted-grant validation for the new cancellation columns, 140-step lineage and two index ALTERs",
+    "Run all recovery/cancellation/cleanup SQL tests, concurrent interactions and exact retention boundaries on the pinned target",
+    "Representative cleanup query plans, resource-budget/load validation and complete real owner/auth/provider/maintenance wiring",
+    "Four-effect domain cancellation, complete business-handler composition and remaining D13/D15/D17/D18-D25 acceptance/integration scope"
+  ],
+  "safety": {
+    "docker_commands_this_pass": false,
+    "ec2_or_application_database_access": false,
+    "workers_or_cleanup_activated": false,
+    "committed_or_pushed": false,
+    "staged_index_preserved": "59 files, 20063 insertions, 88 deletions"
+  }
+}

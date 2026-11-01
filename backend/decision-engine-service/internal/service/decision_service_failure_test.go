@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
@@ -152,10 +151,8 @@ func newFailureTestDecisionService(
 		nilScreeningExecutionRepository(nil),
 		scoringConfigRepo,
 		scoringRequestRepo,
-		nil,
-		nil,
-		nil,
-		nil,
+
+		false,
 		"",
 		nil,
 		0,
@@ -189,6 +186,7 @@ func (s rollbackTxManagerStub) Run(ctx context.Context, fn func(store ports.Muta
 }
 
 type decisionMutationStoreStub struct {
+	enqueue                func(context.Context, ports.JobRequest) error
 	decisionRepo           ports.DecisionRepository
 	ruleExecutionRepo      ports.RuleExecutionRepository
 	workflowExecutionRepo  ports.WorkflowExecutionRepository
@@ -237,7 +235,12 @@ func (s decisionMutationStoreStub) CustomLists() ports.CustomListRepository     
 func (s decisionMutationStoreStub) RecordTags() ports.RecordTagRepository       { return nil }
 func (s decisionMutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository { return nil }
 func (s decisionMutationStoreStub) IPFlags() ports.IPFlagRepository             { return nil }
-func (s decisionMutationStoreStub) RawTx() pgx.Tx                               { return nil }
+func (s decisionMutationStoreStub) Enqueue(ctx context.Context, job ports.JobRequest) error {
+	if s.enqueue == nil {
+		return errors.New("unexpected required queue operation")
+	}
+	return s.enqueue(ctx, job)
+}
 
 type decisionCreateRepoStub struct{}
 

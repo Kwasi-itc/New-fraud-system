@@ -19,7 +19,7 @@ var executionRoutes = []struct{ method, path, request string }{
 func TestLegacyExecutionRoutesRejectGeneralCredential(t *testing.T) {
 	for _, mode := range []string{"disabled", "token"} {
 		for _, secret := range []string{"", "short", strings.Repeat("p", 32)} {
-			router := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: mode, AuthToken: "general", ScreeningAuthoringToken: secret})
+			router := mustScreeningRouter(t, slog.Default(), nil, RouterConfig{AuthMode: mode, AuthToken: "general", ScreeningAuthoringToken: secret})
 			for _, route := range executionRoutes {
 				req := httptest.NewRequest(route.method, route.request, nil)
 				req.Header.Set("Authorization", "Bearer general")

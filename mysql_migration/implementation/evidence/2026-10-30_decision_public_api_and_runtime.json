@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-30",
+  "status": "decision_side_implementation_and_scoped_local_tests_finished_real_owner_integration_blocked",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "worktree": "Existing staged, unstaged and untracked work preserved. This pass is not committed or pushed.",
+  "authority": {
+    "task": "Roadmap items 1, 2 and decision-side item 3 in one pass",
+    "clarifications": [
+      "Finish decision-side integration; leave missing auth/case/screening MySQL owners blocked",
+      "Leave additional user authority adapters for the auth integration pass"
+    ],
+    "excluded": ["EC2", "application databases", "Aurora", "performance/load/query-plan acceptance", "runtime activation", "foreign owner migrations", "commit/push"]
+  },
+  "implemented": [
+    "Summary-only scheduled/async keyset collection queries with SQL status/attempt filters, bounded rows/bytes, exact cursor scope and tenant predicates",
+    "Strict collection/status-summary HTTP routes, including cancelled counts; reject duplicate, unknown, oversized and malformed queries",
+    "Prepared calendar schedule create/replace/read/disable APIs; immutable IDs, exact watermark preconditions, atomic old/new switch and tick-compatible lock order",
+    "Concrete same-pool/database/tenant graph for readers, queued effects, execution unit of work, real evaluator, publication, admission, schedule administration and optional trusted browser consumer",
+    "Explicit inactive application startup with exact cold readiness, bounded hot readiness, mandatory trusted authentication/authority providers and per-transaction authorization contracts",
+    "All seven delivery kinds, seven bounded maintenance loops and one scheduler per configured tenant; total worker-slot budget and HTTP tenant inventory binding",
+    "Single-use worker supervision, sibling cancellation/join, readiness withdrawal and bounded shutdown; caller-owned HTTP server/pools with configured socket deadlines",
+    "Receipt-aware maintenance refuses terminal exhaustion of a dispatch with an existing send intent; requires explicit outcome reconciliation instead of inventing rejection",
+    "Read-only TenantModelReader boundary without fake index-management methods",
+    "DATABASE_BACKEND defaults to postgres; mysql selection fails before legacy PostgreSQL startup while activation is unapproved"
+  ],
+  "fixture": {
+    "project": "decision-roadmap-123-o5k7en",
+    "go": "1.25.0 linux/amd64",
+    "mysql": "8.4.8",
+    "postgres": "16.13",
+    "isolation": "Private Compose network, no published DB ports, tmpfs databases, copied source tree without a host source bind; only generated disposable DBs/roles and fixture containers changed. Existing fraud-host-local services untouched.",
+    "owner_provider_limit": "Auth, case, screening and dispatch health/identity/provider fixtures are explicitly test implementations, not the real foreign owners. Model registry fixtures are declared owner read contracts, not complete data-model installation acceptance."
+  },
+  "verification": [
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/app",
+      "scope": "Actual HTTP/SQL collections, tie pagination, status/attempt filters, cross-tenant exclusion, request validation, admission, scheduling, publication, rollback, concurrent replacement/tick, model closure/publication fencing, revoked authority, missing providers/queues, worker-slot inventory, server deadlines and supervisor shutdown"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s -run 'Test(MySQLReceiptAwareMaintenance|MySQLRuntimeReadiness|MySQLDispatch|MySQLExecutionRescue|MySQLDecisionUnit|MySQLBrowserWorkflow|MySQLCaseInbox|MySQLCaseTag|MySQLEffectCancellation|MySQLExecutionCancellation|MySQLCallbackCancellation|MySQLOwnedEffectMaintenance|PublicationRegistry)' ./internal/store/mysql",
+      "scope": "Selected real SQL recovery, cancellation, readiness, same-transaction persistence/job, restricted dispatch, tenant, browser-consumer and receipt regressions; not the entire SQL adapter suite"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/service ./internal/runtime/ast_eval ./internal/ports ./internal/mysqljobs ./internal/recurrence ./internal/store/mysql/metadata ./internal/evalerrors",
+      "scope": "Portable/source regressions and contract/metadata verification, with private PostgreSQL integration enabled"
+    },
+    {"result": "passed", "command": "go test -mod=readonly -p 2 -run '^$' ./...", "scope": "Whole-module compilation only"},
+    {"result": "passed", "command": "go vet -mod=readonly -p 2 ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/store/mysql/... ./internal/app ./internal/ports ./internal/testsupport"},
+    {"result": "passed", "command": "go test -mod=readonly -p 2 -count=1 -run '^TestIntegrationDecisionSchemaManifest$' ./internal/service -args -update-decision-schema-manifest", "scope": "Explicit disposable PostgreSQL source refresh. Only backend guard/wiring source hashes changed; catalog and proposed mappings unchanged. Service suite and separate manifest check reverified the result."},
+    {"result": "passed", "command": "git diff --check"}
+  ],
+  "source_attestation": {
+    "algorithm": "SHA-256 of LC_ALL=C sorted sha256sum-format lines for all .go/.sql/.json files under cmd and internal",
+    "host_and_runner_sha256": "e0b924663abfa0ef69817c71b00fcecdcd4a456f5c57aa8ae832abbdcd9a638d",
+    "source_mapping_sha256": "a2cad64c226a2b43171da87be0967e5acce59e6305eeb3ff3e58b8e2dc784393",
+    "go_mod_sha256": "8f492b925ac066391cfb0135602dfc813d0ad74ce30926912c08c93b34bed2a4",
+    "go_sum_sha256": "1eb4a8fecf312148ba22b587d7ae765d38af658e78e099c3a4ad584848236899",
+    "source_inventory_files": 166,
+    "source_catalog": {"tables":29,"columns":284,"constraints":73,"indexes":71,"routines":2,"triggers":1}
+  },
+  "remaining": [
+    "Real auth/session/revocation and service identities; expanded authority adapters explicitly deferred by the user",
+    "Complete fresh published-model delivery with actual MySQL table publication tokens; legacy HTTP model responses do not manufacture these tokens",
+    "Real case inbox/tag permissions and screening publication/reconciliation provider implementations",
+    "Real receipt-aware dispatch providers and destination/idempotency/reconciliation conformance; no legacy send-only adapter",
+    "Owner-authorized reconciliation when transport is exhausted with a send intent; no automatic external-action rollback or false rejection",
+    "Broader full public backend/provider deployment acceptance, frozen release/grants rehearsal and approved command activation",
+    "Filtered history query cost/representative plans, load and performance acceptance are deliberately deferred"
+  ],
+  "database_changes_applied": "Only private generated test databases and roles, including reference/target migration fixtures; no application migrations or data changes",
+  "deployment": "Not deployed; no application images rebuilt and no live backend or workers activated"
+}

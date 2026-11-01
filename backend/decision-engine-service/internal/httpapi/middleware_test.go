@@ -13,7 +13,6 @@ import (
 
 func TestRequestContextMiddlewareSetsRequestIDHeader(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
@@ -49,7 +48,6 @@ func TestRequestContextMiddlewareSetsRequestIDHeader(t *testing.T) {
 
 func TestRequestContextMiddlewarePreservesIncomingRequestID(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	logger := slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil))
 	router := gin.New()

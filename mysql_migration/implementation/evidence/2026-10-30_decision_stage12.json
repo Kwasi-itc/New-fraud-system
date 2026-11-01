@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-30",
+  "status": "decision_owned_implementation_and_scoped_local_correctness_finished_not_release_ready",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "worktree": "Existing staged, unstaged and untracked work preserved. This pass is uncommitted and not pushed.",
+  "authority": {
+    "task": "Complete roadmap stages 1-2 in one pass",
+    "approved_contract": "Decision-owned durable send intent/receipt with attempt-aware provider idempotency and outcome reconciliation; real activation blocked",
+    "excluded": ["EC2 access", "application database access", "Aurora", "performance/load/query-plan acceptance", "runtime activation", "production migrations", "commit/push"]
+  },
+  "implemented": [
+    "Opt-in execution HTTP create/single-status/wait-on-create/cancel/redrive handlers; trusted per-request scope, strict bounded JSON, duplicate/unknown field rejection, safe errors and retained reconciliation ID",
+    "Paced bounded calendar/interval scheduler using real tenant-scoped Due/Materialize transactions and permanent occurrence receipts",
+    "Full prepared publication coordinator: committed AST/model validation before owner locks, reauthorization before owner/registry locks, exact parent snapshot fencing and trigger/aggregate/intermediate-related-table registry binding",
+    "Decision-owned callback/workflow/screening/scoring/outbox dispatch components using the existing shared poller and supervisor",
+    "Durable original body/hash before network IO, reconcile-first resumed intent, safe same-key resend only on definitive absence, terminal receipt/owner/queue acknowledgement in one transaction",
+    "Callback domain retry reservation on definitive provider rejection; uncertain transport outcomes never treated as successful no-match or blindly resent",
+    "Optional 149-step append-only dispatch lineage retaining exact 145-step prefix, tenant-consistent receipt relationships, immutable intent/body/hash and permanent terminal receipt guards",
+    "Cold deployment prerequisites with reviewed exact migration definitions, mandatory owner health contracts, separate inspection/runtime pool support, same writer/database identity, actual pool maxima and explicit shared connection budget"
+  ],
+  "contract_details": {
+    "provider_identity": "kind + tenant + resource + domain attempt + explicit redrive generation; excludes transport retry and payload encoding version",
+    "payload_storage": "Bounded original JSON wire bytes in LONGBLOB, validated as JSON and SHA-256-bound by insert trigger; avoids MySQL JSON numeric reformatting changing receipt hashes",
+    "provider_obligations": ["Atomic key/body deduplication", "Echo exact key/hash", "Definitive accepted/rejected receipt or explicit unknown/not-found", "Retained outcome reconciliation", "Context deadlines", "Destination and credential policy", "No unsafe redirects"],
+    "legacy_http_clients": "Not adapted: send-only HTTP 2xx cannot satisfy the reconciliation contract",
+    "cancellation": "Local cancellation fences SQL work but cannot undo an external action already accepted",
+    "retention": "Intents/receipts retained, including payload; no body archival/expiry policy or provider activation enabled"
+  },
+  "environment": {
+    "private_compose_project": "decision-stage12-r0xfii",
+    "go": "go1.25.0 linux/amd64",
+    "mysql": "8.4.8",
+    "postgres": "16.13 (Debian 16.13-1.pgdg13+1)",
+    "go_image_id": "sha256:5502b0e56fca23feba76dbc5387ba59c593c02ccc2f0f7355871ea9a0852cebe",
+    "mysql_image_id": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "postgres_image_id": "sha256:5d143123fdf80462d1778cd4f24b9f7ca13c87174bca19141fb194c5a1ebca59",
+    "isolation": "Private network, no published database ports, tmpfs databases, generated disposable database/role names. Copied sources under /verification, no host source bind mount. Existing fraud-host-local containers untouched."
+  },
+  "verification": [
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/mysqlexecution ./internal/mysqlapi ./internal/service ./internal/ports ./internal/mysqljobs ./internal/recurrence ./internal/runtime/ast_eval ./internal/store/mysql/metadata ./internal/evalerrors",
+      "scope": "Full named packages, required isolated SQL fixtures enabled; portable evaluator and actual request/prepared-worker/admission/wait/callback correctness"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=300s -run 'Test(EffectsPostgres|BrowserPostgres|AuthoringPostgres|ExecutionPostgres|WalletRulePostgres|MySQLDispatch|MySQLRuntimeReadiness|MySQLBrowserWorkflow|MySQLWorkflowAuthoringGuard|MySQLPlatformRestricted|MySQLScenarioExactKeysAndRestricted|MySQLExecutionCancellation|MySQLCallbackCancellation|MySQLCaseInbox|MySQLCaseTag|MySQLEffectCancellation|MySQLEffectRetryRollback|MySQLExecutionRescue|MySQLDecisionUnit|MySQLRegistryWallet|MySQLRegistryRejects|PublicationRegistry)' ./internal/store/mysql",
+      "scope": "Selected actual SQL source/target, browser, tenant/auth, restricted-role, atomicity, race, recovery, readiness and dispatch regressions. Not the entire SQL adapter suite; performance-plan tests intentionally excluded."
+    },
+    {
+      "result": "passed",
+      "test": "TestMySQLCallbackDispatchLostCommitAcknowledgementReconcilesWithoutResend",
+      "scope": "Real MySQL transaction commits; private connector then returns simulated lost acknowledgement. Exact durable receipt confirms success without resend. When authorization is revoked immediately after commit, error remains observable and no resend occurs."
+    },
+    {
+      "result": "passed",
+      "test": "TestMySQLCallbackDispatchCrashRescueReconcilesOriginalIntent",
+      "scope": "Actual intent, lease expiry, owner rescue and new transport claim; provider acceptance reconciliation avoids another Deliver call and keeps callback domain attempt unchanged"
+    },
+    {
+      "result": "passed",
+      "scope": "149-step fresh/repeated installation, unchanged 140/145 prefixes, explicit 145-to-149 upgrade and exact object verification on generated fixtures. These learned fixture definitions are NOT a frozen release artifact."
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly -p 2 -run '^TestIntegrationDecisionSchemaManifest$' ./internal/service -args -update-decision-schema-manifest",
+      "scope": "Explicit fresh disposable PostgreSQL source artifact regeneration; only the new dispatch contract source hash was added. Source catalog and proposed mappings unchanged. Subsequent full service test reverified the artifact."
+    },
+    {"result": "passed", "command": "go test -mod=readonly -p 2 -run '^$' ./...", "scope": "Whole-module compilation, not whole-module behavioral testing"},
+    {"result": "passed", "command": "go vet -mod=readonly -p 2 ./internal/mysqlapi ./internal/mysqlexecution ./internal/store/mysql/... ./internal/ports ./internal/testsupport"},
+    {"result": "passed", "command": "git diff --check"}
+  ],
+  "source_attestation": {
+    "algorithm": "SHA-256 of LC_ALL=C sorted sha256sum-format lines for all .go/.sql/.json files under cmd and internal",
+    "host_and_runner_sha256": "e68a31cd56fc55aeb9a2a3a06fc17a5d71f2639536c8c32e246913d8204ab964",
+    "host_runner_full_file_hash_diff": "empty",
+    "go_mod_sha256": "8f492b925ac066391cfb0135602dfc813d0ad74ce30926912c08c93b34bed2a4",
+    "go_sum_sha256": "1eb4a8fecf312148ba22b587d7ae765d38af658e78e099c3a4ad584848236899",
+    "source_mapping_sha256": "4b8b7791f0cfad97d4003e9d0f674dcbe2fd596b611fd76abaf43d79c539e285",
+    "source_inventory_files": 165,
+    "source_catalog": {"tables":29,"columns":284,"constraints":73,"indexes":71,"routines":2,"triggers":1}
+  },
+  "issues_found_and_corrected": [
+    "New dispatch FK initially combined ASCII effect kind with the existing VARBINARY execution kind; use a separately checked binary execution-kind binding without rewriting either owner's shipped prefix",
+    "Preserve exact original payload bytes rather than hashing MySQL-reformatted JSON numbers",
+    "Classify invalid scheduled time/callback syntax and typed incoming-payload validation as local input failures, not generic internal/upstream failures",
+    "Publication guard must include trigger and intermediate related-field tables even without an aggregate",
+    "Do not require API roles to inherit installer inspection privileges; separate inspection/runtime pools and verify their actual target and connection inventory"
+  ],
+  "remaining_gates": [
+    "Real trusted auth/session/revocation, published data-model, case-management, screening and external receipt-provider implementations/conformance",
+    "Execution collection/filter and recurring-schedule administration public adapters; existing PostgreSQL routes must not be mixed in as target fallback",
+    "Full backend/public-route/provider integration and approved runtime selection/activation",
+    "Frozen release definitions and complete restricted installation/grants/shared-lineage dirty-recovery rehearsal",
+    "Broader provider/production fault matrix and operational acceptance beyond these scoped fixtures",
+    "Performance/load/representative query plans and Aurora remain excluded by user direction"
+  ],
+  "application_database_changes_applied": [],
+  "runtime_behavior_changed": false,
+  "live_migrations_or_image_rebuilds": false,
+  "parent_todos": "D13-D15 and D17-D25 remain open at integration/release gates; scoped stages are not blanket parent completion."
+}

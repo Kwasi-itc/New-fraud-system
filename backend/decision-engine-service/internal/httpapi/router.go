@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"context"
+	"fmt"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +32,7 @@ type RouterConfig struct {
 	ScreeningServiceURL                 string
 	ScreeningIntakeToken                string
 	ScreeningCallbackToken              string
+	OutboxPublisherURL                  string
 	WorkflowAuthoringToken              string
 	ScreeningAuthoringToken             string
 	InvestigatorVerifier                *identity.Verifier
@@ -99,7 +103,15 @@ func dbPoolStatsProvider(db *pgxpool.Pool) service.DBPoolStatsProvider {
 	}
 }
 
-func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
+func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) (*gin.Engine, error) {
+	if db != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		err := storepostgres.ValidateQueueReadiness(ctx, db, false)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("decision queue startup check: %w", err)
+		}
+	}
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
@@ -140,13 +152,6 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	var recordTagRepo ports.RecordTagRepository
 	var riskRepo ports.RiskSnapshotRepository
 	var ipFlagRepo ports.IPFlagRepository
-	var scheduledEnqueuer riverjobs.ScheduledExecutionEnqueuer = riverjobs.NoopScheduledExecutionEnqueuer{}
-	var asyncEnqueuer riverjobs.AsyncDecisionExecutionEnqueuer = riverjobs.NoopAsyncDecisionExecutionEnqueuer{}
-	var asyncCallbackEnqueuer riverjobs.AsyncDecisionExecutionCallbackEnqueuer = riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{}
-	var workflowEnqueuer riverjobs.WorkflowExecutionEnqueuer = riverjobs.NoopWorkflowExecutionEnqueuer{}
-	var screeningEnqueuer riverjobs.ScreeningExecutionEnqueuer = riverjobs.NoopScreeningExecutionEnqueuer{}
-	var scoringEnqueuer riverjobs.ScoringRequestEnqueuer = riverjobs.NoopScoringRequestEnqueuer{}
-	var outboxEnqueuer riverjobs.OutboxEventEnqueuer = riverjobs.NoopOutboxEventEnqueuer{}
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		scenarioRepo = storepostgres.NewScenarioRepository(db)
@@ -175,14 +180,19 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		recordTagRepo = storepostgres.NewRecordTagRepository(db)
 		riskRepo = storepostgres.NewRiskSnapshotRepository(db)
 		ipFlagRepo = storepostgres.NewIPFlagRepository(db)
-		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
-		scheduledEnqueuer = riverjobs.NewRiverScheduledExecutionEnqueuer(riverClient, max(1, cfg.ScheduledExecutionMaxAttempts), cfg.ScheduledExecutionQueueName)
-		asyncEnqueuer = riverjobs.NewRiverAsyncDecisionExecutionEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionQueueName)
-		asyncCallbackEnqueuer = riverjobs.NewRiverAsyncDecisionExecutionCallbackEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionCallbackQueueName)
-		workflowEnqueuer = riverjobs.NewRiverWorkflowExecutionEnqueuer(riverClient, 1, cfg.WorkflowDispatchQueueName)
-		screeningEnqueuer = riverjobs.NewRiverScreeningExecutionEnqueuer(riverClient, 1, cfg.ScreeningDispatchQueueName)
-		scoringEnqueuer = riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
-		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{Schema: riverjobs.Schema})
+		if err != nil {
+			return nil, fmt.Errorf("initialize decision queue producer: %w", err)
+		}
+		txManager = storepostgres.NewTransactionManager(db).WithJobEnqueuers(storepostgres.JobEnqueuers{
+			Scheduled: riverjobs.NewRiverScheduledExecutionEnqueuer(riverClient, max(1, cfg.ScheduledExecutionMaxAttempts), cfg.ScheduledExecutionQueueName),
+			Async:     riverjobs.NewRiverAsyncDecisionExecutionEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionQueueName),
+			Callback:  riverjobs.NewRiverAsyncDecisionExecutionCallbackEnqueuer(riverClient, max(1, cfg.AsyncExecutionMaxAttempts), cfg.AsyncExecutionCallbackQueueName),
+			Workflow:  riverjobs.NewRiverWorkflowExecutionEnqueuer(riverClient, 1, cfg.WorkflowDispatchQueueName),
+			Screening: riverjobs.NewRiverScreeningExecutionEnqueuer(riverClient, 1, cfg.ScreeningDispatchQueueName),
+			Scoring:   riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName),
+			Outbox:    riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName),
+		})
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
 	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
@@ -193,7 +203,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
-	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
+	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, strings.TrimSpace(cfg.OutboxPublisherURL) != "", cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(cfg.GeoIPLookup)
@@ -225,13 +235,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			CallbackTimeout:       cfg.AsyncExecutionCallbackTimeout,
 			CallbackSigningSecret: cfg.AsyncExecutionCallbackSigningSecret,
 		},
-		scheduledEnqueuer,
-		asyncEnqueuer,
-		asyncCallbackEnqueuer,
-		outboxEnqueuer,
 	)
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, screeningConfigRepo, screeningExecutionRepo, screeningEnqueuer)
-	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo, scoringEnqueuer)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, screeningConfigRepo, screeningExecutionRepo)
+	scoringService := service.NewScoringService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, scoringConfigRepo, scoringRequestRepo)
 	platformService := service.NewPlatformService(txManager, uuidGenerator{}, systemClock{}, customListRepo, recordTagRepo, riskRepo, ipFlagRepo)
 	cacheInvalidator := decisionService.CacheInvalidator()
 	scenarioService.SetCacheInvalidator(cacheInvalidator)
@@ -412,7 +418,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.Use(screeningServiceBoundary(cfg.ScreeningCallbackToken, cfg.AuthToken, cfg.ScreeningAuthoringToken, cfg.ScreeningIntakeToken))
 	internal.POST("/screening-status-updates", internalScreeningHandler.UpdateStatus)
 
-	return router
+	return router, nil
 }
 
 func max(a, b int) int {

@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
@@ -136,10 +135,8 @@ func newDecisionHandlerWithRuleRepoForTests(repo ports.DecisionRepository, ruleE
 		nil,
 		nil,
 		nil,
-		nil,
-		nil,
-		nil,
-		nil,
+
+		false,
 		"",
 		nil,
 		0,
@@ -253,7 +250,9 @@ func (s decisionHandlerMutationStoreStub) CustomLists() ports.CustomListReposito
 func (s decisionHandlerMutationStoreStub) RecordTags() ports.RecordTagRepository       { return nil }
 func (s decisionHandlerMutationStoreStub) RiskSnapshots() ports.RiskSnapshotRepository { return nil }
 func (s decisionHandlerMutationStoreStub) IPFlags() ports.IPFlagRepository             { return nil }
-func (s decisionHandlerMutationStoreStub) RawTx() pgx.Tx                               { return nil }
+func (s decisionHandlerMutationStoreStub) Enqueue(context.Context, ports.JobRequest) error {
+	return nil
+}
 
 type decisionHandlerTxManagerStub struct {
 	store ports.MutationStore
@@ -291,15 +290,10 @@ func newAsyncExecutionServiceForHandlerTests(asyncRepo ports.AsyncDecisionExecut
 			MaxWaitWindow:     time.Millisecond,
 			WaitPollInterval:  time.Millisecond,
 		},
-		nil,
-		nil,
-		nil,
-		nil,
 	)
 }
 
 func TestDecisionHandlerListDecisionsOmitsTotalCountByDefault(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	repo := &decisionHandlerRepoStub{
 		items: []decision.Decision{{
@@ -345,7 +339,6 @@ func TestDecisionHandlerListDecisionsOmitsTotalCountByDefault(t *testing.T) {
 }
 
 func TestDecisionHandlerListDecisionsIncludesTotalCountWhenRequested(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	repo := &decisionHandlerRepoStub{
 		items: []decision.Decision{{
@@ -391,7 +384,6 @@ func TestDecisionHandlerListDecisionsIncludesTotalCountWhenRequested(t *testing.
 }
 
 func TestDecisionHandlerListDecisionsSupportsCursorPagination(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	firstPageCreatedAt := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
 	repo := &decisionHandlerRepoStub{
@@ -464,7 +456,6 @@ func TestDecisionHandlerListDecisionsSupportsCursorPagination(t *testing.T) {
 }
 
 func TestDecisionHandlerGetDecisionIncludesRuleEvaluationEvidence(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	repo := &decisionHandlerRepoStub{
 		itemByID: decision.Decision{
@@ -542,7 +533,6 @@ func TestDecisionHandlerGetDecisionIncludesRuleEvaluationEvidence(t *testing.T) 
 }
 
 func TestDecisionHandlerGetDecisionIncludesNoHitEvaluationEvidence(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	repo := &decisionHandlerRepoStub{
 		itemByID: decision.Decision{
@@ -620,7 +610,6 @@ func TestDecisionHandlerGetDecisionIncludesNoHitEvaluationEvidence(t *testing.T)
 }
 
 func TestDecisionHandlerCountDecisionsReturnsCountOnly(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	repo := &decisionHandlerRepoStub{totalCount: 37}
 	handler := newDecisionHandlerForTests(repo)
@@ -651,7 +640,6 @@ func TestDecisionHandlerCountDecisionsReturnsCountOnly(t *testing.T) {
 }
 
 func TestDecisionHandlerAsyncOnlyModeUsesDeferPath(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "async_only", nil, 0, false)
 	router := gin.New()
@@ -675,7 +663,6 @@ func TestDecisionHandlerAsyncOnlyModeUsesDeferPath(t *testing.T) {
 }
 
 func TestDecisionHandlerRecordIngestedLiveLimitFallsBackAsyncByDefault(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
@@ -703,7 +690,6 @@ func TestDecisionHandlerRecordIngestedLiveLimitFallsBackAsyncByDefault(t *testin
 }
 
 func TestDecisionHandlerRecordIngestedOverloadDefersAsyncWhenConfigured(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
@@ -734,7 +720,6 @@ func TestDecisionHandlerRecordIngestedOverloadDefersAsyncWhenConfigured(t *testi
 }
 
 func TestDecisionHandlerForcedAsyncObjectTypeUsesDeferPath(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", []string{"transactions"}, 0, false)
@@ -759,7 +744,6 @@ func TestDecisionHandlerForcedAsyncObjectTypeUsesDeferPath(t *testing.T) {
 }
 
 func TestDecisionHandlerRecordIngestedAsyncModeEnqueuesAsyncExecution(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
@@ -793,7 +777,6 @@ func TestDecisionHandlerRecordIngestedAsyncModeEnqueuesAsyncExecution(t *testing
 }
 
 func TestDecisionHandlerRecordIngestedAsyncModePassesCallbackURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
@@ -819,7 +802,6 @@ func TestDecisionHandlerRecordIngestedAsyncModePassesCallbackURL(t *testing.T) {
 }
 
 func TestDecisionHandlerRecordIngestedAsyncModePassesWaitTimeoutMS(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	asyncRepo := &decisionHandlerAsyncRepoStub{}
 	handler := NewDecisionHandler(service.DecisionService{}, newAsyncExecutionServiceForHandlerTests(asyncRepo), "sync", nil, 1, false)
@@ -849,7 +831,6 @@ func TestDecisionHandlerRecordIngestedAsyncModePassesWaitTimeoutMS(t *testing.T)
 }
 
 func TestDecisionHandlerRecordIngestedRejectsInvalidMode(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 
 	handler := NewDecisionHandler(service.DecisionService{}, service.ExecutionService{}, "sync", nil, 1, false)
 	router := gin.New()

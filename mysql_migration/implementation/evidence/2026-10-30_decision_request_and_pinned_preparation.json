@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "authorized_scope": "Roadmap steps 1-2: staged request preparation and pinned scheduled evaluation; no runtime activation or later worker/HTTP rollout",
+  "implementation": {
+    "P1": "Bounded all-or-nothing object batches, detached model/payload data, UseNumber, exact object IDs, source-compatible independent repeated-ID items, explicit stored-record validation.",
+    "P2": "Authorized current request selection or actual scheduled owner at expected tenant/running attempt/generation; read its immutable committed iteration/rules, not current live-cache selection.",
+    "P3": "Fresh model resolution, bounded typed metadata, static boolean AST/type checks, actual published trigger/aggregate registry and SQL compiler checks; closed/stale/missing contracts fail closed.",
+    "P4": "Real shared evaluator and local persistence body produce opaque single-use prepared outputs before any writes. Per-item caches prevent cross-item payload/history contamination. No transaction manager call during preparation.",
+    "P5": "Pure, real MySQL, source PostgreSQL service regressions, affected vet and complete-module compilation passed; larger release/provider acceptance remains separate."
+  },
+  "contracts": {
+    "admission": "PrepareRequest is read-only evidence, NOT durable owner/job creation. Creation must recheck current identity/live/model bindings in its own transaction. No-scenario requests prepare payload/model only; all-live scenario selection remains execution-time.",
+    "scheduled_pinning": "Pins iteration trigger formula/rules/thresholds. It does not freeze every mutable scenario parent setting, workflow routing or the data model. Parent trigger object type and historical reads retain existing current-state semantics; explicit item types/formulas must validate against the current published model.",
+    "consistency": "Short authorized READ COMMITTED metadata operation allows identity locks; selected committed content is immutable. No provider/network IO while holding that transaction. Registry queries recheck their gates individually; no global historical-data snapshot is claimed.",
+    "candidates": "Explicit items or source-style candidate selection; default min(100, configured item bound). Explicit over-budget limits fail rather than silently clamp. Empty candidate set is valid. Missing/invalid records are not silently skipped.",
+    "persistence": "PreparedScheduled.PersistAll performs local SQL on the caller's decision mutation contract and returns provisional results. Step-3 worker composition must bind its prepared identity to the actual lease and call whole-batch fenced completion. No commit or owner acknowledgement is performed by preparation itself.",
+    "recovery": "Single-use plans must not be blindly replayed after rollback or uncertain commit. Reconcile and reprepare. Full worker/commit-recovery composition remains the next roadmap stage."
+  },
+  "environment": {
+    "mysql": "8.4.8; verified by isolated fixture",
+    "postgres": "postgres:16 isolated fixture",
+    "go": "golang:1.25.0 offline runner",
+    "project": "decision-preparation-test",
+    "source_root": "/verification/backend/decision-engine-service",
+    "network": "private; no published database ports",
+    "database_storage": "disposable tmpfs",
+    "application_or_ec2_or_aurora_access": false,
+    "application_database_changes": "none",
+    "application_containers_modified": false
+  },
+  "source_attestation": {
+    "method": "SHA-256 of sorted per-file SHA-256 manifest for every Go/SQL/go.mod/go.sum under decision-engine-service, mysqlstore, investigator and data-model-service; identical relative paths on host and copied runner.",
+    "host_sha256": "fc5666adc934e6825d3c7192088577b83fa926ca569d8f29cf838416a97a6cb7",
+    "runner_sha256": "fc5666adc934e6825d3c7192088577b83fa926ca569d8f29cf838416a97a6cb7",
+    "decision_schema_mapping_sha256": "e12d5e748d8e4bb6a8a3f0bce316446619c03217eee27e72d9216c4e02ba8bb2",
+    "source_inventory": "Explicit disposable PostgreSQL regeneration reviewed: two new service-file hashes, changed decision/object-preparation hashes and one line reference. Catalog and target schema mapping unchanged; source inventory now 162 files."
+  },
+  "verification": {
+    "native_focused_race": "passed on cached Go 1.25 toolchain: new batch/pinned tests and existing score baseline",
+    "full_service_boundary_ast_race": {
+      "status": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 ./internal/service ./internal/ports ./internal/mysqlexecution ./internal/mysqlapi ./internal/runtime/ast_eval",
+      "package_seconds": {
+        "internal/service": 6.090,
+        "internal/ports": 1.016,
+        "internal/mysqlexecution": 4.932,
+        "internal/mysqlapi": 2.152,
+        "internal/runtime/ast_eval": 1.149
+      }
+    },
+    "new_coordinator_mysql_cases": [
+      "Explicit and no-scenario payload preparation, fresh model on every request, correct optional pin, no decisions/jobs created",
+      "Foreign/revoked authority, invalid payload, closed registry and stale published version fail",
+      "Actual scheduled owner pins old score 15 rather than newly published score 50",
+      "One-open-connection model provider publishes a new live iteration without a retained preparation transaction",
+      "No decision/effect job before persistence; whole prepared decision/evidence/outbox/job rollback",
+      "Reprepare after confirmed rollback and atomic completion persists exact spaced object ID and old rule evidence",
+      "Completed owner cannot prepare again",
+      "Empty candidate set, stored-record validation, explicit candidate bound, overflow and foreign worker scope"
+    ],
+    "new_pure_cases": [
+      "Detached model/input/accessor values and exact identity",
+      "Invalid second item returns no partial batch",
+      "Count, per-item bytes, total batch bytes and cyclic-value bounds",
+      "Missing model/stored-reader and cancelled-context failures",
+      "Real evaluator without live scenario/iteration/rule/model repositories or transaction manager",
+      "Old thresholds/score, wrong tenant and incompatible field rejection",
+      "Independent repeated IDs with different amounts do not share cached results",
+      "Single-use plans and legitimate non-triggered outputs"
+    ],
+    "final_pure_bounds_rerun": "passed: go test -mod=readonly -race -p 2 -count=1 -run '^Test(ExecutionBatch|PinnedPreparation)' ./internal/service; 1.025 seconds",
+    "actual_service_combined_mysql_regression": {
+      "status": "passed",
+      "command": "go test -mod=readonly -race -p 2 -count=1 -run '^TestMySQL(Combined|ActualDecisionService)' ./internal/store/mysql",
+      "seconds": 24.711
+    },
+    "whole_module_compile_only": "passed: go test -mod=readonly -p 2 -run '^$' ./...; not full-module behavioral acceptance",
+    "affected_vet": "passed: service, ports, store/mysql, mysqlapi, mysqlexecution, testsupport",
+    "git_diff_check": "passed",
+    "fixture_correction": "Initial new registry fixture used simplified physical table/column names and was correctly rejected. Fixture was corrected to the existing registered naming contract; production guards were not weakened.",
+    "performance_load_query_plans": "Not run; explicitly deferred by the user"
+  },
+  "remaining": [
+    "Stage 3: actual business worker loops, trusted identities, prepared identity/lease binding, heartbeat/failure/whole-batch acknowledgement and uncertain-commit recovery composition.",
+    "Stage 4: durable admission with final identity/live/model rechecks, complete HTTP creation/wait/retry integration and route acceptance.",
+    "Actual data-model/auth/case/screening owner providers and full publication/index/API integration.",
+    "Full cross-engine business/browser and concurrent/crash acceptance, restricted runtime grants/readiness and frozen release/upgrade recovery rehearsal.",
+    "Performance/load/query-plan acceptance remains deferred."
+  ],
+  "handoff": {
+    "staged_steps_1_2": "implemented; scoped correctness tests passed",
+    "parent_tasks_closed": false,
+    "runtime_activated": false,
+    "committed_or_pushed": false,
+    "existing_staged_changes": "preserved: 59 files, 20063 insertions, 88 deletions",
+    "cleanup": "Only this pass's private verifier, database containers/network and generated temporary files removed. Application containers and shared host dependency cache/images retained."
+  }
+}

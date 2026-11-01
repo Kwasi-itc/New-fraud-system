@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-29",
+  "branch": "my_sql-migration",
+  "scope": "Staged four-owner effect jobs; not seven-kind completion or runtime activation",
+  "implemented": {
+    "schema": "115-step source-bound additive lineage, preserving the preceding 109 steps. Exact attempt/generation receipts have real same-tenant workflow/screening/scoring/outbox FKs; deliveries reference receipt tenant/kind/id. Identity triggers and state/counter checks fail closed",
+    "producer": "Explicit NewQueuedEffectStore requires all four copied queue policies. Effect, receipt and initial delivery batches share the authorized owner transaction. Any batch/enqueue failure poisons the queued transaction even if the caller ignores the returned batch error",
+    "identity": "Only domain attempt 1 and redrive generation 0 are allocated/executed by this slice. The general seven-kind codec is not an arbitrary-attempt producer. Transport retry retains the exact owner identity",
+    "receipts": "Permanent owner receipts deduplicate after transport deletion. No receipt sweep or redrive allocator exists. FK RESTRICT deliberately prevents orphaning receipts through owner deletion",
+    "worker_primitives": "Separate mandatory tenant/kind/action worker authorizer; SKIP LOCKED claim, lease heartbeat and transactional finish. Resource -> receipt -> delivery lock order. Identity/token/transport attempt checked; final expiry predicate rolls back local effects. Shared River error-count retry policy and exhaustion code reused",
+    "external_delivery": "No external call is made by the adapter. Outcome callbacks permit only short local SQL; receivers still need stable identity-based idempotency. No exactly-once external-effect claim"
+  },
+  "verification": {
+    "environment": "Only private decision-authoring-test project: generated disposable MySQL databases/accounts, tmpfs MySQL 9.7.1 and PostgreSQL 16, cached Go 1.25.0; no published DB ports or application networks",
+    "first_attempt": "An initial targeted invocation reported an unexpected EOF in a fixture source; a later invocation parsed it. The next fixture rejected two inline cross-column CHECK constraints, corrected to table-level checks without removing validation. Final delta verification again reported EOF: docker exec confirmed its bind mount saw 214 lines / hash 3f1f19107f65e2cbdcbe6951e6dd8b1779e33fc5bd66f4da22131b09ee4de1e4 while the host had 260 lines / hash 5b0a026fc1f0e7fe8326d75136f9552c0d6d86b79aa1f75b7e73a4a46331e669. Final verification therefore switches to a copied, hash-checked source snapshot rather than trusting the inconsistent mount",
+    "regression_command": "go vet -mod=readonly -p 1 ./... && go test -mod=readonly -race -p 1 -count=1 -timeout=600s ./internal/store/mysql/... ./internal/mysqljobs -v",
+    "regression_result": "Vet passed. Complete MySQL package passed (57.088s), metadata passed (1.662s), seven-kind identity codec passed (1.017s). Includes real fresh/upgrade lineage replay, four-kind owner/job atomicity, 120-row batches per kind, concurrent retained receipt scheduling, cross-tenant FK rejection, worker retry/replay/forged identity checks and post-effect expiry rollback",
+    "final_delta_command": "go vet -mod=readonly -p 1 ./... && go test -mod=readonly -race -p 1 -count=1 -timeout=240s ./internal/store/mysql ./internal/store/mysql/metadata ./internal/mysqljobs -run 'Test(MySQLRequiredEffectJobs|MySQLEffectDelivery|EffectQueue|EffectJobs|AllDecisionKinds|DecisionDelivery)' -v",
+    "final_delta_result": "This bind-mounted rerun failed parsing the truncated Docker view described above. It is superseded by the successful hash-checked copied-snapshot full-suite run below; the failed invocation is not reported as a pass",
+    "copied_snapshot": "Copied decision-engine-service, mysqlstore and investigator into /verification/backend in the private verifier. SHA-256 checked all 547 files against the host before and after verification; both comparisons passed. The copied test file has the complete host 260-line / 5b0a026fc1f0e7fe8326d75136f9552c0d6d86b79aa1f75b7e73a4a46331e669 contents",
+    "copied_snapshot_command": "docker exec -w /verification/backend/decision-engine-service decision-authoring-verifier sh -ec 'go vet -mod=readonly -p 1 ./... && go test -mod=readonly -race -p 1 -count=1 -timeout=600s ./...'",
+    "copied_snapshot_result": "PASS, exit 0. Vet passed and all configured decision-engine packages passed the race suite: service 7.567s, complete MySQL package 63.113s, metadata 1.168s, PostgreSQL store 1.991s. Includes the latest late-chunk poisoning, concurrent first scheduling, scoped claim-selector plan, receipt owner-delete protection and transport exhaustion tests",
+    "fixture_gaps": "DECISION_ENGINE_TEST_DATABASE_URL and required private MySQL integration were configured. Specialized tests gated on DECISION_TEST_DATABASE_URL or other unconfigured fixture variables still skip; the full command passing is not evidence that those optional suites ran",
+    "pinned_target": "MySQL 8.4.8 and Go 1.25.8 not verified; exploratory versions are not pinned/Aurora acceptance",
+    "performance_scope": "Bounded 100-row statements and scoped queue index supplied. EXPLAIN ANALYZE assertion for the non-locking claim-selector shape over the 480-delivery synthetic fixture passed, requiring de_effect_delivery_claim and rejecting a table scan. This is not an actual locking-plan/load or application-scale EPS/connection-budget acceptance claim",
+    "worktree": "Unrelated staged index preserved at 59 files, 20063 insertions, 88 deletions; git diff --check, target gofmt check and evidence JSON parsing passed"
+  },
+  "remaining": [
+    "Scheduled/async/callback owner SQL lifecycle, request idempotency, callback counters and scheduling watermarks",
+    "Authorized new-domain-attempt and redrive allocation, including recovery receipts and business state transitions",
+    "Expired-lease rescue, cancellation, bounded retention and explicit receipt/resource deletion policy",
+    "Real worker identity provider and domain/external handlers; current function contract is a mandatory consumer boundary, not an implemented auth provider",
+    "Screening source-before-projection reconciliation composition and other cross-owner handler lock ordering",
+    "Restricted runtime installation/grants and startup/readiness compatibility acceptance",
+    "All seven-kind crash/recovery and full service/effect differential tests",
+    "Frozen pinned-version artifacts, representative load/resource budget and main TransactionManager/runtime wiring"
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_changes": false,
+    "runtime_engine_changed": false,
+    "workers_activated": false,
+    "committed_or_pushed": false,
+    "aurora_testing_excluded": true
+  }
+}

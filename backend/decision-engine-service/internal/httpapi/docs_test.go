@@ -1,16 +1,14 @@
 package httpapi
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestDocsRoutes(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	registerDocsRoutes(router)
 

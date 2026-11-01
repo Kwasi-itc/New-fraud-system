@@ -11,7 +11,7 @@ import (
 func TestInternalScreeningRejectsGeneralAndDisabledAuth(t *testing.T) {
 	for _, mode := range []string{"token", "disabled"} {
 		for _, secret := range []string{"", "short", strings.Repeat("s", 32), "general"} {
-			r := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: mode, AuthToken: "general", ScreeningCallbackToken: secret})
+			r := mustScreeningRouter(t, slog.Default(), nil, RouterConfig{AuthMode: mode, AuthToken: "general", ScreeningCallbackToken: secret})
 			req := httptest.NewRequest("POST", "/internal/screening-status-updates", strings.NewReader("{}"))
 			req.Header.Set("Authorization", "Bearer general")
 			w := httptest.NewRecorder()

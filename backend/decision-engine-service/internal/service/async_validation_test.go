@@ -10,7 +10,6 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -51,7 +50,12 @@ type validationFailureTx struct {
 
 func (tx validationFailureTx) Run(ctx context.Context, fn func(ports.MutationStore) error) error {
 	beforeRepo, beforeCallback := *tx.repo, *tx.callback
-	if err := fn(asyncWaitWindowMutationStore{asyncRepo: tx.repo}); err != nil {
+	if err := fn(asyncWaitWindowMutationStore{asyncRepo: tx.repo, enqueue: func(ctx context.Context, job ports.JobRequest) error {
+		if job.Kind != ports.JobCallback || job.TenantID != "tenant-1" || job.ResourceID != "exec-1" {
+			return errors.New("unexpected callback identity")
+		}
+		return tx.callback.EnqueueTx(ctx, nil, job.TenantID, job.ResourceID, job.ScheduledAt)
+	}}); err != nil {
 		*tx.repo, *tx.callback = beforeRepo, beforeCallback
 		return err
 	}
@@ -70,7 +74,7 @@ func TestAsyncValidationFailureIsTerminalAndCallbackIsAtomic(t *testing.T) {
 			if stage == "callback" {
 				callback.err = injected
 			}
-			svc := ExecutionService{txManager: validationFailureTx{repo, callback}, clock: realClock{}, asyncCallbackEnqueuer: callback}
+			svc := ExecutionService{txManager: validationFailureTx{repo, callback}, clock: realClock{}}
 			validation := &payload.Error{Category: "payload_validation_failed", ModelRevision: "rev-2", Issues: []payload.Issue{{Field: "amount", Code: "missing_required", Message: "required"}}}
 			err := svc.handleAsyncExecutionFailure(context.Background(), execution.AsyncDecisionExecution{ID: "exec-1", TenantID: "tenant-1", AttemptCount: 1, MaxAttempts: 5, CallbackURL: "https://example.test/callback"}, validation)
 			if stage != "success" {
@@ -108,7 +112,7 @@ func TestAsyncValidationOccursAtExecutionAndUsesExecutionModel(t *testing.T) {
 func TestAsyncValidationNoCallbackRequiresNoDeliveryWork(t *testing.T) {
 	repo := &validationFailureRepo{}
 	callback := &validationCallbackEnqueuer{}
-	svc := ExecutionService{txManager: validationFailureTx{repo, callback}, clock: realClock{}, asyncCallbackEnqueuer: riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{}}
+	svc := ExecutionService{txManager: validationFailureTx{repo, callback}, clock: realClock{}}
 	err := svc.handleAsyncExecutionFailure(context.Background(), execution.AsyncDecisionExecution{ID: "exec-1", TenantID: "tenant-1"}, &payload.Error{Category: "payload_validation_failed"})
 	if err != nil || !repo.failed || repo.status != "" || callback.called {
 		t.Fatalf("%v", err)

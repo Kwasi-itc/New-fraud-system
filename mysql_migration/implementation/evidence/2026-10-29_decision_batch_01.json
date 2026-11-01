@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-29",
+  "branch": "my_sql-migration",
+  "base_commit": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "scope": "First five granular tasks D01-D05 only; DE-01.1 through DE-01.4 remain in progress",
+  "implemented_local_not_pushed": {
+    "D01": "All nine approved design choices recorded; 25 granular tasks grouped into five batches. Fresh development installation only, no backfill tooling or exact PostgreSQL clock/case-fold emulation.",
+    "D02": "Decision-owned bucket/dictionary/digest/resolver and scenario name INSERT/UPDATE triggers. Same tenant/name bytes reuse a key, distinct colliding bytes do not. Caller-supplied derived IDs are overwritten. Locked local definer and minimal grant statements are explicit deployment inputs, not automatically installed runtime accounts.",
+    "D03": "Complete 39 source business-column coverage for scenarios, iterations, rules and publications (live_iteration_id represented by an optional relationship). Tenant/scenario/iteration composite FKs, original platform lineage prefix, checksummed append-only plan builder and integrity/immutable identity/history guards.",
+    "D04": "Mandatory same-transaction authorization callback; per-scenario version counter and atomic draft/counter/creation receipt. Immutable response bytes support authorized same-operation replay; changed input conflicts, signed INT overflow fails and failed persistence rolls back. Stored formula JSON is read back before response encoding. No automatic retry or runtime authoring activation.",
+    "D05": "Real disposable MySQL fresh/upgrade/repeat/drift, exact text/collision, restricted-account, disabled-integrity-check, tenant relationship, optional-link deletion, immutable receipt, rollback, replay/conflict and concurrent version tests. Full module vet/race regression passed in the exploratory fixture."
+  },
+  "foundation_lineage": {
+    "steps": 30,
+    "tables": 12,
+    "routines": 2,
+    "triggers": 16,
+    "unchanged_initial_platform_steps": 3,
+    "frozen_8_4_8_release_definitions_supplied": false
+  },
+  "verification": {
+    "command": "docker compose -p decision-foundation-test -f backend/decision-engine-service/compose.mysql.test.yaml -f /tmp/decision-platform-mysql-exploratory.yml run --rm --pull never -v /tmp/fraud-decision-go-cache.Bjgjzc:/verify-cache -e GOMODCACHE=/verify-cache/mod -e GOCACHE=/verify-cache/build test sh -ec 'go mod download && go vet -mod=readonly -p 2 ./... && go test -mod=readonly -race -p 2 -count=1 -timeout=240s ./...'",
+    "result": "passed",
+    "environment": "Cached MySQL 9.7.1 digest ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3, Go 1.25.0; private Docker network, tmpfs database, generated reference/target/fresh databases and disposable accounts only",
+    "test_functions_added": [
+      "TestScenarioFoundationPlanAppendOnlyAndSourceBound",
+      "TestScenarioFoundationSourceColumnCoverage",
+      "TestDraftValidation",
+      "TestMySQLScenarioExactKeysAndRestrictedBoundary",
+      "TestMySQLScenarioTenantRelationshipsAndDeletion",
+      "TestMySQLIterationCreationReplayConcurrencyAndRollback",
+      "TestMySQLIterationCounterDoesNotSerializeOtherScenario",
+      "TestMySQLScenarioNameAllocationRollbackAndConcurrency"
+    ],
+    "additional_regression": "Existing staged platform adapter tests, ten platform EXPLAIN ANALYZE cases and all configured module unit/race suites passed. PostgreSQL service/store integration fixtures were not configured in this MySQL-only run and were skipped, not passed.",
+    "setup_notes": [
+      "Host Go verification failed before compilation because proxy.golang.org could not resolve; container networking completed dependency download and verification.",
+      "Initial collision-fixture failure was an EXECUTE grant removed by test-only DROP FUNCTION. The fixture now restores the recreated function privilege; normal restricted-definer operation and final collision tests pass.",
+      "Pinned mysql:8.4.8 was not available locally; prior credential-helper download failure remains unresolved. Exploratory 9.7.1 is not 8.4.8 or Aurora acceptance."
+    ],
+    "worktree_check": "git diff --check passed; unrelated staged index unchanged at 59 files, 20063 insertions, 88 deletions"
+  },
+  "material_limitations": [
+    "No main scenario/rule CRUD, clone/commit/publication service or runtime selection yet; the staged creator is a storage component and assumes caller-side current model/AST validation.",
+    "Authorizer callback is mandatory but real identity/revocation SQL contracts await review before composition. No default production allow/no-op authorizer is provided.",
+    "Production definer/account privilege attestation, frozen pinned reference definitions and complete owner installation remain D24/D25. Fixture accounts/grants do not establish deployment readiness.",
+    "Receipt replay is scoped to tenant/scenario/operation and returns the original creation image, not the current iteration. Receipts survive iteration deletion; whole-scenario deletion cascades scoped receipts/counter. Dictionary keys/buckets are retained without garbage collection.",
+    "Same-operation logical replay and forced later-write rollback were tested; this batch did not inject a real lost COMMIT acknowledgement into the new creator. Shared transaction CommitError must trigger reconciliation, not blind retry.",
+    "No performance improvement or application-scale authoring EPS claim. Additional query plans/load and complete cross-engine differential corpus remain open.",
+    "Ordered outcome rows, async optional scenario link, remaining owner repositories, worker/system scope and all seven target jobs are later tasks. No queue insertion is silently skipped by this staged storage component."
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_changes": false,
+    "runtime_engine_changed": false,
+    "deployment_or_application_image_rebuild": false,
+    "decision_changes_committed_or_pushed": false,
+    "aurora_testing_excluded": true
+  },
+  "next_batch": ["D06", "D07", "D08", "D09", "D10"]
+}

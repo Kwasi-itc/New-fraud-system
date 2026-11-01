@@ -13,7 +13,7 @@ import (
 
 func TestScreeningConfigurationRejectsLegacyCredential(t *testing.T) {
 	for _, mode := range []string{"disabled", "token"} {
-		router := NewRouter(slog.Default(), nil, RouterConfig{
+		router := mustScreeningRouter(t, slog.Default(), nil, RouterConfig{
 			AuthMode: mode, AuthToken: "legacy-token",
 			DataModelServiceURL: "http://127.0.0.1:1",
 			IngestionServiceURL: "http://127.0.0.1:1",

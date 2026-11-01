@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -134,9 +133,7 @@ func (s publicationTestMutationStore) IPFlags() ports.IPFlagRepository {
 	return nil
 }
 
-func (s publicationTestMutationStore) RawTx() pgx.Tx {
-	return nil
-}
+func (s publicationTestMutationStore) Enqueue(context.Context, ports.JobRequest) error { return nil }
 
 type publicationTestScenarioRepo struct {
 	item       scenario.Scenario
@@ -199,8 +196,6 @@ func (publicationTestClock) Now() time.Time {
 
 func TestDeactivateIteration(t *testing.T) {
 	t.Parallel()
-
-	gin.SetMode(gin.TestMode)
 
 	liveIterationID := "iter-live"
 	scenarioRepo := &publicationTestScenarioRepo{

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -16,6 +17,9 @@ type HealthHandler struct {
 }
 
 func NewHealthHandler(logger *slog.Logger, db *pgxpool.Pool) HealthHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return HealthHandler{
 		logger: logger,
 		db:     db,
@@ -30,8 +34,9 @@ func (h HealthHandler) Healthz(c *gin.Context) {
 
 func (h HealthHandler) Readyz(c *gin.Context) {
 	if h.db == nil {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ready",
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unready",
+			"error":  "database_unavailable",
 		})
 		return
 	}
@@ -39,11 +44,11 @@ func (h HealthHandler) Readyz(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
 	defer cancel()
 
-	if err := h.db.Ping(ctx); err != nil {
+	if err := storepostgres.ValidateQueueReadiness(ctx, h.db, false); err != nil {
 		h.logger.Error("readiness probe failed", "error", err)
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unready",
-			"error":  "database_unreachable",
+			"error":  "queue_or_database_unavailable",
 		})
 		return
 	}

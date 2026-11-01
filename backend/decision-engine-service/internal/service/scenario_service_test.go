@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
@@ -190,8 +189,8 @@ func (s scenarioMutationStore) RecordTags() ports.RecordTagRepository {
 func (s scenarioMutationStore) RiskSnapshots() ports.RiskSnapshotRepository {
 	return nilRiskSnapshotRepository{}
 }
-func (s scenarioMutationStore) IPFlags() ports.IPFlagRepository { return nilIPFlagRepository{} }
-func (s scenarioMutationStore) RawTx() pgx.Tx                   { return nil }
+func (s scenarioMutationStore) IPFlags() ports.IPFlagRepository                 { return nilIPFlagRepository{} }
+func (s scenarioMutationStore) Enqueue(context.Context, ports.JobRequest) error { return nil }
 
 type nilWorkflowRepository struct{}
 

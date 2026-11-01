@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -43,65 +44,6 @@ type OutboxEventEnqueuer interface {
 	EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, eventID string, scheduledAt *time.Time) error
 }
 
-type NoopAsyncDecisionExecutionEnqueuer struct{}
-
-func (NoopAsyncDecisionExecutionEnqueuer) Enqueue(context.Context, string, *time.Time) error {
-	return nil
-}
-func (NoopAsyncDecisionExecutionEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, *time.Time) error {
-	return nil
-}
-
-type NoopAsyncDecisionExecutionCallbackEnqueuer struct{}
-
-func (NoopAsyncDecisionExecutionCallbackEnqueuer) Enqueue(context.Context, string, string, *time.Time) error {
-	return nil
-}
-func (NoopAsyncDecisionExecutionCallbackEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, string, *time.Time) error {
-	return nil
-}
-
-type NoopScheduledExecutionEnqueuer struct{}
-
-func (NoopScheduledExecutionEnqueuer) Enqueue(context.Context, string, *time.Time) error { return nil }
-func (NoopScheduledExecutionEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, *time.Time) error {
-	return nil
-}
-
-type NoopWorkflowExecutionEnqueuer struct{}
-
-func (NoopWorkflowExecutionEnqueuer) Enqueue(context.Context, string, string, *time.Time) error {
-	return nil
-}
-func (NoopWorkflowExecutionEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, string, *time.Time) error {
-	return nil
-}
-
-type NoopScreeningExecutionEnqueuer struct{}
-
-func (NoopScreeningExecutionEnqueuer) Enqueue(context.Context, string, string, *time.Time) error {
-	return nil
-}
-func (NoopScreeningExecutionEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, string, *time.Time) error {
-	return nil
-}
-
-type NoopScoringRequestEnqueuer struct{}
-
-func (NoopScoringRequestEnqueuer) Enqueue(context.Context, string, string, *time.Time) error {
-	return nil
-}
-func (NoopScoringRequestEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, string, *time.Time) error {
-	return nil
-}
-
-type NoopOutboxEventEnqueuer struct{}
-
-func (NoopOutboxEventEnqueuer) Enqueue(context.Context, string, string, *time.Time) error { return nil }
-func (NoopOutboxEventEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, string, *time.Time) error {
-	return nil
-}
-
 type RiverAsyncDecisionExecutionEnqueuer struct {
 	client      *river.Client[pgx.Tx]
 	maxAttempts int
@@ -123,14 +65,14 @@ func NewRiverAsyncDecisionExecutionCallbackEnqueuer(client *river.Client[pgx.Tx]
 
 func (e RiverAsyncDecisionExecutionCallbackEnqueuer) Enqueue(ctx context.Context, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return enqueue(ctx, e.client, nil, AsyncDecisionExecutionCallbackArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverAsyncDecisionExecutionCallbackEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return enqueue(ctx, e.client, tx, AsyncDecisionExecutionCallbackArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
@@ -148,14 +90,14 @@ func NewRiverAsyncDecisionExecutionEnqueuer(client *river.Client[pgx.Tx], maxAtt
 
 func (e RiverAsyncDecisionExecutionEnqueuer) Enqueue(ctx context.Context, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return e.enqueue(ctx, nil, executionID, scheduledAt)
 }
 
 func (e RiverAsyncDecisionExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return e.enqueue(ctx, tx, executionID, scheduledAt)
 }
@@ -199,14 +141,14 @@ func NewRiverScheduledExecutionEnqueuer(client *river.Client[pgx.Tx], maxAttempt
 
 func (e RiverScheduledExecutionEnqueuer) Enqueue(ctx context.Context, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return e.enqueue(ctx, nil, executionID, scheduledAt)
 }
 
 func (e RiverScheduledExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return e.enqueue(ctx, tx, executionID, scheduledAt)
 }
@@ -246,14 +188,14 @@ func NewRiverWorkflowExecutionEnqueuer(client *river.Client[pgx.Tx], maxAttempts
 
 func (e RiverWorkflowExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return enqueue(ctx, e.client, nil, WorkflowExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverWorkflowExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return enqueue(ctx, e.client, tx, WorkflowExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
@@ -273,14 +215,14 @@ func NewRiverScreeningExecutionEnqueuer(client *river.Client[pgx.Tx], maxAttempt
 
 func (e RiverScreeningExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return enqueue(ctx, e.client, nil, ScreeningExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverScreeningExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return enqueue(ctx, e.client, tx, ScreeningExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
@@ -300,14 +242,14 @@ func NewRiverScoringRequestEnqueuer(client *river.Client[pgx.Tx], maxAttempts in
 
 func (e RiverScoringRequestEnqueuer) Enqueue(ctx context.Context, tenantID, requestID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("required River client is not initialized")
 	}
 	return enqueue(ctx, e.client, nil, ScoringRequestArgs{TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverScoringRequestEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, requestID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("required enqueue needs a River client and transaction")
 	}
 	return enqueue(ctx, e.client, tx, ScoringRequestArgs{TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
 }
@@ -327,14 +269,14 @@ func NewRiverOutboxEventEnqueuer(client *river.Client[pgx.Tx], maxAttempts int, 
 
 func (e RiverOutboxEventEnqueuer) Enqueue(ctx context.Context, tenantID, eventID string, scheduledAt *time.Time) error {
 	if e.client == nil {
-		return nil
+		return fmt.Errorf("outbox river client is not initialized")
 	}
 	return enqueue(ctx, e.client, nil, OutboxEventArgs{TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverOutboxEventEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, eventID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
-		return nil
+		return fmt.Errorf("outbox enqueue requires an initialized river client and transaction")
 	}
 	return enqueue(ctx, e.client, tx, OutboxEventArgs{TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
 }

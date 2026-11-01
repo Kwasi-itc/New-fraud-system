@@ -20,9 +20,15 @@ type preparedObject struct {
 }
 
 func prepareObject(ctx context.Context, tenant string, req DecisionEvaluationRequest, model ports.TenantModel, reader ports.TenantDataReader, validator *payload.Validator) (DecisionEvaluationRequest, error) {
+	return prepareObjectIdentity(ctx, tenant, req, model, reader, validator, true)
+}
+
+func prepareObjectIdentity(ctx context.Context, tenant string, req DecisionEvaluationRequest, model ports.TenantModel, reader ports.TenantDataReader, validator *payload.Validator, normalize bool) (DecisionEvaluationRequest, error) {
 	started := time.Now()
-	req.ObjectID, req.ObjectType = strings.TrimSpace(req.ObjectID), strings.TrimSpace(req.ObjectType)
-	if req.ObjectID == "" || req.ObjectType == "" {
+	if normalize {
+		req.ObjectID, req.ObjectType = strings.TrimSpace(req.ObjectID), strings.TrimSpace(req.ObjectType)
+	}
+	if strings.TrimSpace(req.ObjectID) == "" || strings.TrimSpace(req.ObjectType) == "" {
 		return req, &payload.Error{Category: "payload_validation_failed", ModelRevision: model.RevisionID, Issues: []payload.Issue{{Field: "object_id/object_type", Code: "missing_required", Message: "object ID and object type are required"}}}
 	}
 	if table, ok := model.Tables[req.ObjectType]; !ok || table.Archived {

@@ -2,7 +2,9 @@ package httpapi
 
 import (
 	"context"
-	"log/slog"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers"
+	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	"github.com/gin-gonic/gin"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -18,7 +20,12 @@ func TestScreeningReadPrivateBoundary(t *testing.T) {
 	}
 	defer db.Close()
 	token := strings.Repeat("s", 32)
-	router := NewRouter(slog.Default(), db, RouterConfig{AuthMode: "disabled", ScreeningAuthoringToken: token})
+	// Exercise the private route boundary independently of startup's required
+	// queue database check. The lazy pool still catches accidental DB access.
+	router := gin.New()
+	group := router.Group("/internal/screening-authoring", authMiddleware(AuthConfig{Mode: "token", Token: token}))
+	read := handlers.ScreeningReadHandler{Store: storepostgres.ScreeningReadRepository{DB: db}}
+	group.GET("/tenants/:tenantId/decisions/:decisionId/screenings", read.List)
 	path := "/internal/screening-authoring/tenants/11111111-1111-4111-8111-111111111111/decisions/44444444-4444-4444-8444-444444444444/screenings"
 	for _, tc := range []struct {
 		token, user, session, version string

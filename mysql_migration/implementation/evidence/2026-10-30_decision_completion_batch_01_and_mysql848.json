@@ -1,0 +1,236 @@
+{
+  "date": "2026-10-30",
+  "branch": "my_sql-migration",
+  "head": "61b2f9a0bc6e095c5743c8c83720092bf215cd1d",
+  "status": "scoped_implementation_and_pinned_database_tests_passed_not_runtime_ready",
+  "source_attestation": {
+    "method": "Sorted relative Go/SQL/go.mod/go.sum SHA-256 manifest digest per module; host and copied Linux test sources match. Documentation excluded.",
+    "modules": {
+      "decision-engine-service": {
+        "sha256": "3192289b9e7eca5d38764104e6ea653541980b6fc42a7cb2c178f85e4ae5efd5",
+        "copied_sha256": "3192289b9e7eca5d38764104e6ea653541980b6fc42a7cb2c178f85e4ae5efd5",
+        "matches": true
+      },
+      "data-model-service": {
+        "sha256": "24075cc8b7b53205f20a6ab1b9bc9e097b14df98c80c3c69bd4661274da85f79",
+        "copied_sha256": "24075cc8b7b53205f20a6ab1b9bc9e097b14df98c80c3c69bd4661274da85f79",
+        "matches": true
+      },
+      "mysqlstore": {
+        "sha256": "895f46b093359e1cb81f6ee1f51ea74d47e087728f114f1f0a000b79da4dbed8",
+        "copied_sha256": "895f46b093359e1cb81f6ee1f51ea74d47e087728f114f1f0a000b79da4dbed8",
+        "matches": true
+      },
+      "investigator": {
+        "sha256": "7e7750d3ae068d7a24d132b774f5206bc384f20532cbf5ec0ab9afa4263cf480",
+        "copied_sha256": "7e7750d3ae068d7a24d132b774f5206bc384f20532cbf5ec0ab9afa4263cf480",
+        "matches": true
+      }
+    }
+  },
+  "implementation": {
+    "owner_text_indexes": "Verified typed DDL publication applies mapping additions/removals to the canonical ingestion contract and operation receipt; metadata-only paths retain mappings. No live-index discovery/adoption or automatic API/job activation.",
+    "aggregate_publication": "Static template preparation reuses the runtime AST compiler and SQL capability compiler, checks literal/dynamic types and requires registry-version pins plus a separate complete owner preparation guard. Witnesses are not evaluation input/results.",
+    "copying": "Bounded coherent scenario/workflow source snapshots; fresh destination identities and ordered child relationships; same-tenant atomic destination mutation, dependency guards and guarded live-copy publication. Standalone workflow copy fences destination model edits. Browser-specific copy audit/provider integration remains open.",
+    "lists": "Distinct decision.list.read/decision.list.mutate auth actions; explicitly configured custom-list capability shares staged decision/effect/job transaction. Generic persistence permission does not imply mutation permission.",
+    "maintenance": "Inactive shared-scheduler adapter for bounded recovery and three retained-cleanup streams. Pure cursor/scope/stale/error/cancellation tests passed; real scheduler/handler SQL composition remains open.",
+    "rescue_cancellation_race": "Revalidate expired transport after owner lock and before interpreting changed execution owner state. Atomic cancellation/completion becomes a stale candidate; missing owner, authorization, rollback and commit failures are not suppressed."
+  },
+  "environment": {
+    "mysql_version": "8.4.8",
+    "mysql_image": "mysql@sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "postgres_image": "postgres:16",
+    "go_image": "golang:1.25.0",
+    "compose_project": "decision-authoring-test",
+    "private_network": true,
+    "published_test_ports": false,
+    "test_databases": "Generated disposable decision_* and data_model_* databases on the isolated Compose fixture only.",
+    "source_copy": "/verification/backend, explicitly copied and checksummed; not the previously stale /backend bind mount.",
+    "issues_resolved": [
+      "Normal and empty-config Docker pulls triggered macOS credential-helper error -50. A temporary config with an empty Docker Hub auth entry allowed an anonymous public pull; saved Docker configuration/credentials were untouched.",
+      "Docker VM I/O pressure delayed image extraction and old fixture removal. Started only the already-created private pinned fixture; Compose then completed healthy. No daemon restart or application-container changes.",
+      "Initial text-index publication fixture used field_score while its new field registered a different label. Corrected the fixture's short ASCII label and matching physical column; production verification and timeouts were not weakened."
+    ]
+  },
+  "verification": [
+    {
+      "scope": "new_decision_sql",
+      "top_level_tests": 3,
+      "race": true,
+      "engine": "MySQL 8.4.8",
+      "pattern": "^TestMySQL(AggregatePublication|ScenarioCopy|EffectCustomLists)",
+      "package": "./internal/store/mysql",
+      "seconds": 8.99,
+      "result": "passed"
+    },
+    {
+      "scope": "lifecycle_sql",
+      "top_level_tests": 13,
+      "race": true,
+      "engine": "MySQL 8.4.8",
+      "pattern": "^Test(MySQLExecution|MySQLCallbackCancellation|MySQLEffectRescue|MySQLCleanup|MySQLDelivery)",
+      "package": "./internal/store/mysql",
+      "seconds": 75.862,
+      "result": "passed",
+      "includes": "140-step fresh/repeated/scoped prefix installations; cleanup across seven kinds, rescue/exhaustion, callback rollback, concurrency/stale fences, calendar, retry/redrive, 5000-row real rescue-query EXPLAIN ANALYZE"
+    },
+    {
+      "scope": "source_target_differential",
+      "top_level_tests": 3,
+      "race": true,
+      "engines": [
+        "PostgreSQL 16",
+        "MySQL 8.4.8"
+      ],
+      "pattern": "Differential",
+      "package": "./internal/store/mysql",
+      "seconds": 7.813,
+      "result": "passed",
+      "limitations": "Authoring, execution and wallet AST corpus only; HTTP comparison uses an SQL-backed contract endpoint, not a deployed ingestion service."
+    },
+    {
+      "scope": "remaining_decision_adapter_regressions",
+      "top_level_tests": 59,
+      "race": true,
+      "engine": "MySQL 8.4.8",
+      "exact_test_names": [
+        "TestMySQLConfigurationOrderedArraysAndAtomicReplacement",
+        "TestMySQLBrowserWorkflowVersioningAuthorizationAuditAndRollback",
+        "TestMySQLWorkflowAuthoringGuardScopesAndLegacyParticipation",
+        "TestDeliveryFailureUsesErrorHistoryAndNeverReportsSuccess",
+        "TestExpiredDeliveryRejectsForgedScopeAndUninitializedAdapters",
+        "TestExecutionRescueOwnerEligibilityRequiresExactDomainGenerationAndOwnership",
+        "TestExpiredDeliveryQueryIsBoundedParameterizedAndUsesObservedFence",
+        "TestMySQLRequiredEffectJobsAtomicOwnerBindingAndReceipts",
+        "TestAggregatePublicationWalletCompilerParity",
+        "TestAggregatePublicationRejectsStaticCapabilityDefects",
+        "TestAggregatePublicationStaticScalarValues",
+        "TestMySQLEffectDeliveryFencesAndTransactionalOutcomes",
+        "TestMySQLCustomListFoldExactValuesAndRenameAtomicity",
+        "TestMySQLCaseInboxBatchVisibilityContractFailsClosed",
+        "TestMySQLScenarioExactKeysAndRestrictedBoundary",
+        "TestMySQLScenarioTenantRelationshipsAndDeletion",
+        "TestMySQLIterationCreationReplayConcurrencyAndRollback",
+        "TestMySQLIterationCounterDoesNotSerializeOtherScenario",
+        "TestMySQLScenarioNameAllocationRollbackAndConcurrency",
+        "TestMySQLCaseInboxConsumerContractFailsClosed",
+        "TestMySQLScreeningSourceConsumerContractBindings",
+        "TestMySQLEffectsBatchRelationshipsAndAtomicRollback",
+        "TestMySQLScreeningProjectionMonotonicAuthority",
+        "TestMySQLSnoozeExpiryTenantAndRollback",
+        "TestMySQLDecisionHistoryRepresentativeIndexedPlans",
+        "TestPlatformStoreRejectsMissingDependencies",
+        "TestMySQLRegisteredTextIndexWalletAggregationAndCollisionResidual",
+        "TestMySQLRegistryWalletRuleValuesAndGroups",
+        "TestMySQLRegistryRejectsStaleClosedAndUnregisteredModels",
+        "TestMySQLRegistryReadHoldsSchemaBarrier",
+        "TestExecutionConfigurationRequiresExplicitOwnedPoliciesAndAuthority",
+        "TestExecutionTransportRejectsUnsupportedKindsAndMissingAuthority",
+        "TestMySQLCaseTagBatchConsumerContractFailsClosed",
+        "TestScenarioCopyReidentifiesWithoutMutationOrReordering",
+        "TestScenarioCopyRejectsBrokenOwnershipAndBounds",
+        "TestEffectQueueConfigurationRequiresCompleteOwnedProducers",
+        "TestMySQLCallbackOnlyRedrivePreservesCompletedResult",
+        "TestDraftValidation",
+        "TestEffectCustomListsRequireExplicitAuthority",
+        "TestMySQLStructuredWorkflowSnapshotOrderSoftDeleteAndIsolation",
+        "TestMySQLPlatformRoundTripAndTenantIsolation",
+        "TestMySQLPlatformExactTextAndHashCollisions",
+        "TestMySQLPlatformBudgetsAndInvalidValues",
+        "TestMySQLPlatformTransactionsAndSnapshot",
+        "TestMySQLPlatformRestrictedGrantsAndOwnership",
+        "TestMySQLPlatformQueryPlans",
+        "TestMySQLAuthoringCRUDOrderingBoundsAndIsolation",
+        "TestMySQLAuthoringCommitCloneAndPublicationAtomicity",
+        "TestMySQLAuthoringCommitWaitsForRuleMutation",
+        "TestMySQLDecisionAuthConsumerContractFailsClosed",
+        "TestMySQLConcurrentPublicationSerializesOnlyItsScenario",
+        "TestDeliveryMaintenanceRecoveryProgressAndPartialFailure",
+        "TestDeliveryMaintenanceCleanupCyclesAndScope",
+        "TestCancellationAttemptNeverCancelsTerminalOrInventsAttempt",
+        "TestDeliveryRetentionUsesSharedPolicyAndRejectsLiveCleanup",
+        "TestMySQLDecisionPersistenceEvidenceAndRollback",
+        "TestMySQLDecisionPagingSearchAndProjection",
+        "TestMySQLPhantomComparisonBindingAndExpiry",
+        "TestMySQLHistoryApprovedUnicodeSearchAndExactIDs"
+      ],
+      "package": "./internal/store/mysql",
+      "seconds": 65.136,
+      "result": "passed",
+      "includes": "Owner relationships, rollback, restricted boundary, tenant/concurrency, authoring/history/configuration/effects/registry/browser fixtures and representative scoped plans."
+    },
+    {
+      "scope": "complete_pure_packages",
+      "race": true,
+      "packages": [
+        "./internal/store/mysql/metadata",
+        "./internal/mysqljobs",
+        "./internal/recurrence",
+        "./internal/runtime/ast_eval"
+      ],
+      "result": "passed",
+      "seconds_by_package": [
+        1.153,
+        1.017,
+        1.086,
+        1.209
+      ]
+    },
+    {
+      "scope": "data_model_owner_regressions",
+      "race": true,
+      "engine": "MySQL 8.4.8",
+      "pattern": "^Test(PhysicalCreationAllocated|OwnerTextEqualityDDLOnPopulatedLongText|PublicationComposition)$",
+      "package": "./internal/store/mysql/metadata",
+      "seconds": 59.591,
+      "result": "passed",
+      "includes": "All allocated publication subcases, lost-ack/commit fault injection, ownership/permission/schema errors, concurrent results, text-index retention/version/receipt and invalid-archive rollback, populated DDL create/drop."
+    },
+    {
+      "scope": "data_model_pure_contracts",
+      "race": true,
+      "pattern": "Test(PublicationTextIndexes|TextEqualityIndex|PrepareIngestion)",
+      "packages": [
+        "./internal/contract",
+        "./internal/store/mysql"
+      ],
+      "result": "passed"
+    },
+    {
+      "scope": "affected_vet",
+      "modules": [
+        "decision-engine-service",
+        "data-model-service"
+      ],
+      "result": "passed",
+      "limitations": "Affected MySQL/AST or contract/MySQL package trees, not full-repository vet."
+    },
+    {
+      "scope": "decision_service_compile",
+      "command": "go test -mod=readonly -vet=off -p 2 -run '^$' ./...",
+      "result": "passed",
+      "limitations": "Compile only, not service/HTTP behavioral acceptance."
+    }
+  ],
+  "remaining": [
+    "Real auth/case/screening providers and grants, including the new separate custom-list action support.",
+    "Main decision/effect/seven-kind owner transaction composition and actual public/API/worker wiring.",
+    "Four-effect domain retry/redrive/cancellation and real business/maintenance handlers.",
+    "Browser-specific copy auditing and complete cross-engine browser/service scores/effects corpus.",
+    "Maintenance scheduler-to-real-owner SQL acceptance, complete crash/cancel/cleanup stress and cleanup plans/load.",
+    "Frozen release definitions, complete shared-lineage upgrade/dirty-step recovery and restricted installation rehearsal.",
+    "Representative application-scale load, connection budgets and runtime readiness/deployment rehearsal.",
+    "Text-index job/API activation and end-to-end publication removal acceptance beyond scoped pure mapping/drop-DDL fixtures."
+  ],
+  "safety": {
+    "ec2_access": false,
+    "application_database_access": false,
+    "application_container_changes": false,
+    "mysql_runtime_activated": false,
+    "aurora_tested": false,
+    "commit_created": false,
+    "pushed": false,
+    "preexisting_staged_diff": "59 files, 20063 insertions, 88 deletions; left unchanged.",
+    "teardown": "Completed: all three private test containers and decision-authoring-test_default network removed. Disposable databases were confined to fixture tmpfs. The downloaded 8.4.8 image is retained; application containers were untouched. Temporary anonymous Docker config removed."
+  }
+}

@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	neturl "net/url"
-	"os"
 	"path/filepath"
 	"runtime"
 	"sync/atomic"
@@ -24,6 +22,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/testsupport"
 )
 
 func TestIntegrationAsyncExecutionCreateReturnsCompletedInlineWhenRowCompletesWithinWaitWindow(t *testing.T) {
@@ -37,7 +36,7 @@ func TestIntegrationAsyncExecutionCreateReturnsCompletedInlineWhenRowCompletesWi
 
 	repo := storepostgres.NewAsyncDecisionExecutionRepository(pool)
 	svc := NewExecutionService(
-		storepostgres.NewTransactionManager(pool),
+		decisionQueueManager(t, pool),
 		&executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(20)},
 		realClock{},
 		nil,
@@ -53,10 +52,6 @@ func TestIntegrationAsyncExecutionCreateReturnsCompletedInlineWhenRowCompletesWi
 			MaxWaitWindow:     200 * time.Millisecond,
 			WaitPollInterval:  5 * time.Millisecond,
 		},
-		nil,
-		nil,
-		nil,
-		nil,
 	)
 
 	done := make(chan struct{})
@@ -113,7 +108,7 @@ func TestIntegrationAsyncExecutionCreateTimesOutThenCompletesLater(t *testing.T)
 
 	repo := storepostgres.NewAsyncDecisionExecutionRepository(pool)
 	svc := NewExecutionService(
-		storepostgres.NewTransactionManager(pool),
+		decisionQueueManager(t, pool),
 		&executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(20)},
 		realClock{},
 		nil,
@@ -129,10 +124,6 @@ func TestIntegrationAsyncExecutionCreateTimesOutThenCompletesLater(t *testing.T)
 			MaxWaitWindow:     10 * time.Millisecond,
 			WaitPollInterval:  time.Millisecond,
 		},
-		nil,
-		nil,
-		nil,
-		nil,
 	)
 
 	completeDone := make(chan struct{})
@@ -235,7 +226,7 @@ func TestIntegrationAsyncExecutionCallbackFailureThenSuccessUpdatesDeliveryState
 	}
 
 	svc := NewExecutionService(
-		storepostgres.NewTransactionManager(pool),
+		decisionQueueManager(t, pool),
 		&executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(10)},
 		fixedClock{now: now},
 		nil,
@@ -251,10 +242,6 @@ func TestIntegrationAsyncExecutionCallbackFailureThenSuccessUpdatesDeliveryState
 			CallbackHTTPClient:    server.Client(),
 			CallbackSigningSecret: "test-secret",
 		},
-		nil,
-		nil,
-		nil,
-		nil,
 	)
 
 	if err := svc.DeliverAsyncExecutionCallback(ctx, record.TenantID, record.ID); err != nil {
@@ -315,42 +302,7 @@ func executionIntegrationUUIDSequence(count int) []uuid.UUID {
 
 func executionIntegrationDatabaseURL(t *testing.T) string {
 	t.Helper()
-	url := os.Getenv("DECISION_ENGINE_TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("set DECISION_ENGINE_TEST_DATABASE_URL with CREATE DATABASE permission; each test uses a disposable database")
-	}
-	config, err := pgxpool.ParseConfig(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	admin, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := "decision_test_" + uuid.New().String()
-	// Generated identifiers are quoted; only this freshly created database is dropped.
-	if _, err := admin.Exec(context.Background(), `CREATE DATABASE "`+name+`"`); err != nil {
-		admin.Close()
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		defer admin.Close()
-		if _, err := admin.Exec(context.Background(), `DROP DATABASE "`+name+`" WITH (FORCE)`); err != nil {
-			t.Errorf("drop disposable test database: %v", err)
-		}
-	})
-	// ConnString returns the original input, even after ConnConfig.Database changes.
-	// Rewrite the actual DSN so destructive setup only reaches the new database.
-	parsedURL, err := neturl.Parse(url)
-	if err == nil && (parsedURL.Scheme == "postgres" || parsedURL.Scheme == "postgresql") {
-		parsedURL.Path = "/" + name
-		parsedURL.RawPath = ""
-		query := parsedURL.Query()
-		query.Del("dbname")
-		parsedURL.RawQuery = query.Encode()
-		return parsedURL.String()
-	}
-	return url + " dbname='" + name + "'"
+	return testsupport.PostgresDatabaseURL(t)
 }
 
 func executionIntegrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {

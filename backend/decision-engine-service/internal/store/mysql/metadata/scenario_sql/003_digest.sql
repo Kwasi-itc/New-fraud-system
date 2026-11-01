@@ -1,0 +1,3 @@
+CREATE DEFINER={{definer}} FUNCTION {{database}}.decision_engine_exact_key_digest(p_value LONGBLOB)
+RETURNS BINARY(32) DETERMINISTIC NO SQL SQL SECURITY DEFINER
+RETURN UNHEX(SHA2(p_value,256))

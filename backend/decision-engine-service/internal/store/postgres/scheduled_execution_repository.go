@@ -7,6 +7,12 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 )
 
+func (r ScheduledExecutionRepository) RequeueCompletionPersistenceFailure(ctx context.Context, tenantID, id string, attempt int) error {
+	_, err := r.q.Exec(ctx, `UPDATE core.scheduled_executions SET status='pending', next_attempt_at=NULL
+	 WHERE tenant_id=$1 AND id=$2 AND status='running' AND attempt_count=$3`, tenantID, id, attempt)
+	return err
+}
+
 type ScheduledExecutionRepository struct{ q queryable }
 
 func NewScheduledExecutionRepository(q queryable) ScheduledExecutionRepository {

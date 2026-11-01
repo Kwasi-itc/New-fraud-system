@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,11 +10,10 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
-	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
-	"github.com/jackc/pgx/v5"
 )
 
 type asyncWaitWindowRepoStub struct {
+	jobs              []ports.JobRequest
 	created           execution.AsyncDecisionExecution
 	createResult      execution.AsyncDecisionExecution
 	getByIDResult     execution.AsyncDecisionExecution
@@ -80,6 +80,7 @@ func (s *asyncWaitWindowRepoStub) ResetForRetry(context.Context, string, executi
 
 type asyncWaitWindowMutationStore struct {
 	asyncRepo ports.AsyncDecisionExecutionRepository
+	enqueue   func(context.Context, ports.JobRequest) error
 }
 
 func (s asyncWaitWindowMutationStore) Scenarios() ports.ScenarioRepository               { return nil }
@@ -122,26 +123,15 @@ func (s asyncWaitWindowMutationStore) CustomLists() ports.CustomListRepository  
 func (s asyncWaitWindowMutationStore) RecordTags() ports.RecordTagRepository       { return nil }
 func (s asyncWaitWindowMutationStore) RiskSnapshots() ports.RiskSnapshotRepository { return nil }
 func (s asyncWaitWindowMutationStore) IPFlags() ports.IPFlagRepository             { return nil }
-func (s asyncWaitWindowMutationStore) RawTx() pgx.Tx                               { return nil }
-
-type asyncNoopEnqueuer struct{}
-
-func (asyncNoopEnqueuer) Enqueue(context.Context, string, *time.Time) error { return nil }
-
-func (asyncNoopEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, *time.Time) error { return nil }
-
-type asyncCountingEnqueuer struct {
-	count int
-}
-
-func (e *asyncCountingEnqueuer) Enqueue(context.Context, string, *time.Time) error {
-	e.count++
-	return nil
-}
-
-func (e *asyncCountingEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, *time.Time) error {
-	e.count++
-	return nil
+func (s asyncWaitWindowMutationStore) Enqueue(ctx context.Context, job ports.JobRequest) error {
+	if s.enqueue == nil {
+		if repo, ok := s.asyncRepo.(*asyncWaitWindowRepoStub); ok && job.Kind == ports.JobAsync && job.TenantID == repo.created.TenantID && job.ResourceID == repo.created.ID {
+			repo.jobs = append(repo.jobs, job)
+			return nil
+		}
+		return fmt.Errorf("unexpected required queue operation: %+v", job)
+	}
+	return s.enqueue(ctx, job)
 }
 
 type realClock struct{}
@@ -173,10 +163,6 @@ func TestCreateAsyncDecisionExecutionReturnsCompletedInlineWhenFinishedWithinWai
 		DecisionService{},
 		ExecutionRetryPolicy{AsyncMaxAttempts: 3, AsyncBaseBackoff: 30 * time.Second},
 		AsyncExecutionBehavior{DefaultWaitWindow: 25 * time.Millisecond, MaxWaitWindow: 25 * time.Millisecond, WaitPollInterval: time.Millisecond},
-		nil,
-		asyncNoopEnqueuer{},
-		riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{},
-		nil,
 	)
 
 	out, err := svc.CreateAsyncDecisionExecution(context.Background(), "tenant-1", AsyncDecisionExecutionRequest{
@@ -226,10 +212,6 @@ func TestCreateAsyncDecisionExecutionReturnsQueuedWhenWaitWindowExpires(t *testi
 		DecisionService{},
 		ExecutionRetryPolicy{AsyncMaxAttempts: 3, AsyncBaseBackoff: 30 * time.Second},
 		AsyncExecutionBehavior{DefaultWaitWindow: 5 * time.Millisecond, MaxWaitWindow: 5 * time.Millisecond, WaitPollInterval: time.Millisecond},
-		nil,
-		asyncNoopEnqueuer{},
-		riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{},
-		nil,
 	)
 
 	out, err := svc.CreateAsyncDecisionExecution(context.Background(), "tenant-1", AsyncDecisionExecutionRequest{
@@ -308,7 +290,6 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 		createResult:  existing,
 		getByIDResult: existing,
 	}
-	enqueuer := &asyncCountingEnqueuer{}
 	svc := NewExecutionService(
 		txManagerStub{store: asyncWaitWindowMutationStore{asyncRepo: repo}},
 		fixedIDGenerator{},
@@ -322,10 +303,6 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 		DecisionService{},
 		ExecutionRetryPolicy{AsyncMaxAttempts: 3, AsyncBaseBackoff: 30 * time.Second},
 		AsyncExecutionBehavior{DefaultWaitWindow: 5 * time.Millisecond, MaxWaitWindow: 20 * time.Millisecond, WaitPollInterval: time.Millisecond},
-		nil,
-		enqueuer,
-		riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{},
-		nil,
 	)
 
 	first, err := svc.CreateAsyncDecisionExecution(context.Background(), "tenant-1", AsyncDecisionExecutionRequest{
@@ -359,8 +336,8 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 	if first.Execution.ID != "existing-exec" || second.Execution.ID != "existing-exec" {
 		t.Fatalf("expected both calls to return existing execution, got %q and %q", first.Execution.ID, second.Execution.ID)
 	}
-	if enqueuer.count != 0 {
-		t.Fatalf("enqueuer count = %d, want 0 for reused execution", enqueuer.count)
+	if len(repo.jobs) != 0 {
+		t.Fatalf("enqueued jobs = %d, want 0 for reused execution", len(repo.jobs))
 	}
 }
 
@@ -379,7 +356,6 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 		createResult:  existing,
 		getByIDResult: existing,
 	}
-	enqueuer := &asyncCountingEnqueuer{}
 	svc := NewExecutionService(
 		txManagerStub{store: asyncWaitWindowMutationStore{asyncRepo: repo}},
 		fixedIDGenerator{},
@@ -393,10 +369,6 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 		DecisionService{},
 		ExecutionRetryPolicy{AsyncMaxAttempts: 3, AsyncBaseBackoff: 30 * time.Second},
 		AsyncExecutionBehavior{DefaultWaitWindow: 5 * time.Millisecond, MaxWaitWindow: 20 * time.Millisecond, WaitPollInterval: time.Millisecond},
-		nil,
-		enqueuer,
-		riverjobs.NoopAsyncDecisionExecutionCallbackEnqueuer{},
-		nil,
 	)
 
 	out, err := svc.CreateAsyncDecisionExecution(context.Background(), "tenant-1", AsyncDecisionExecutionRequest{
@@ -419,7 +391,7 @@ func TestCreateAsyncDecisionExecutionReusesExistingIdempotentExecutionAcrossDiff
 	if out.Execution.CallbackURL != "https://first.example.com/hook" {
 		t.Fatalf("callback URL = %q, want existing callback URL", out.Execution.CallbackURL)
 	}
-	if enqueuer.count != 0 {
-		t.Fatalf("enqueuer count = %d, want 0 for reused execution", enqueuer.count)
+	if len(repo.jobs) != 0 {
+		t.Fatalf("enqueued jobs = %d, want 0 for reused execution", len(repo.jobs))
 	}
 }

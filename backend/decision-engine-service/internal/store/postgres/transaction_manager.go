@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -11,14 +13,23 @@ import (
 )
 
 type TransactionManager struct {
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	jobs JobEnqueuers
 }
 
 func NewTransactionManager(db *pgxpool.Pool) TransactionManager {
 	return TransactionManager{db: db}
 }
 
-func (m TransactionManager) Run(ctx context.Context, fn func(store ports.MutationStore) error) error {
+func (m TransactionManager) WithJobEnqueuers(jobs JobEnqueuers) TransactionManager {
+	m.jobs = jobs
+	return m
+}
+
+func (m TransactionManager) Run(ctx context.Context, fn func(store ports.MutationStore) error) (result error) {
+	if m.db == nil || fn == nil {
+		return errors.New("database and mutation callback are required")
+	}
 	timings, hasTimings := ports.TransactionTimingsFromContext(ctx)
 	beginStartedAt := time.Now()
 	tx, err := m.db.BeginTx(ctx, pgx.TxOptions{})
@@ -29,12 +40,14 @@ func (m TransactionManager) Run(ctx context.Context, fn func(store ports.Mutatio
 		return err
 	}
 	defer func() {
-		rollbackCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		rollbackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
-		_ = tx.Rollback(rollbackCtx)
+		if err := tx.Rollback(rollbackCtx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			result = errors.Join(result, fmt.Errorf("rollback decision transaction: %w", err))
+		}
 	}()
 
-	store := mutationStore{tx: tx}
+	store := mutationStore{tx: tx, jobs: m.jobs}
 	bodyStartedAt := time.Now()
 	if err := fn(store); err != nil {
 		if hasTimings {
@@ -47,6 +60,9 @@ func (m TransactionManager) Run(ctx context.Context, fn func(store ports.Mutatio
 	}
 
 	commitStartedAt := time.Now()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	err = tx.Commit(ctx)
 	if hasTimings {
 		timings.CommitMicros = time.Since(commitStartedAt).Microseconds()
@@ -55,7 +71,8 @@ func (m TransactionManager) Run(ctx context.Context, fn func(store ports.Mutatio
 }
 
 type mutationStore struct {
-	tx pgx.Tx
+	tx   pgx.Tx
+	jobs JobEnqueuers
 }
 
 func (s mutationStore) Scenarios() ports.ScenarioRepository {
@@ -160,8 +177,4 @@ func (s mutationStore) RiskSnapshots() ports.RiskSnapshotRepository {
 
 func (s mutationStore) IPFlags() ports.IPFlagRepository {
 	return NewIPFlagRepository(s.tx)
-}
-
-func (s mutationStore) RawTx() pgx.Tx {
-	return s.tx
 }

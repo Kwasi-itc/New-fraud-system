@@ -1,0 +1,32 @@
+{
+  "branch": "my_sql-migration",
+  "scope": "D23.3 staged seven-kind expired transport recovery; runtime inactive",
+  "implementation": {
+    "discovery": "Tenant/kind/queue-authorized keyset pages 1..100; fixed owner catalog, bounded identity-only SQL join and observed token/attempt/expiry. Candidate discovery is not authority to run work",
+    "fencing": "Mandatory rescue authority, execution-owner action additionally required; exact pool/schema/tenant/queue binding; resource -> receipt -> delivery lock order; exact token/attempt/expiry and expired database-time predicate repeated at final write. No synthetic lease renewal or bypass of live worker fences",
+    "outcomes": "One transport error per successful rescue, shared error-count backoff, no new domain attempt, permanent receipts retained. Execution exhaustion atomically fails owner and creates required callback; callback exhaustion preserves terminal evaluation result. Four-effect exhaustion requires real local owner mutation handler",
+    "tests_written": "Database-free policy/scope/query/owner guards; disposable scheduled/async/callback rescue retries, exhaustion and required-callback rollback; four-effect real owner failure rollback; late heartbeat and concurrent rescuer fencing; 5,000-row actual-query EXPLAIN fixtures for both families"
+  },
+  "verification": {
+    "native_environment": "Cached Go 1.25.0 darwin/amd64; explicit matching GOROOT, GOTOOLCHAIN=local and offline module cache; no Docker or external database access",
+    "initial_compile": "First native compile overlapped implementation edits, reporting an unused time import and a newly added helper not yet present in its file list; corrected and not counted as a pass",
+    "first_scoped_native": "PASS: compiled package including SQL test sources and ran three new database-free guard/policy tests; mysql package 3.307s",
+    "native_race": "PASS: selected database-free guards, execution configuration/transport, metadata plan and calendar tests with -race. mysql 2.499s, metadata 1.949s, recurrence 1.802s; mysqljobs 2.081s compiled with no matching tests, NOT identity behavior verification",
+    "native_vet": "PASS exit 0: go vet -mod=readonly -p 2 ./internal/store/mysql/... ./internal/recurrence ./internal/mysqljobs; native Go 1.25.0 with Docker deferred",
+    "docker": "DEFERRED by user request. No new MySQL integration, SQL concurrency, rollback, migration or query-plan result is claimed",
+    "performance": "Bounded query design and EXPLAIN test code exist; plans and representative application load have not been executed for this change"
+  },
+  "remaining": [
+    "Run Docker fresh/upgrade, all recovery SQL cases, both query plans and affected regression on a stable fixture; pinned MySQL 8.4.8 acceptance remains open",
+    "Real trusted identity/owner providers, seven business handlers and maintenance/poller integration; no worker activated",
+    "User approved distinct cancellation state and shared transport retention on 2026-10-30; separate implementation group follows, keeping owners/receipts",
+    "Full main decision-store atomic composition, application-scale load and D25 activation prerequisites"
+  ],
+  "safety": {
+    "docker_commands_this_pass": false,
+    "ec2_or_live_database_access": false,
+    "runtime_activation": false,
+    "committed_or_pushed": false,
+    "staged_index_preserved": "59 files, 20063 insertions, 88 deletions"
+  }
+}
