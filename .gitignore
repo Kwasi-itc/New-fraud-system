@@ -52,3 +52,4 @@ ui_inspo/
 /backend/ingestion-service/testdata/remaining3-*
 /backend/ingestion-service/testdata/offline-preflight-*
 !/mysql_migration/implementation/evidence/**/*.log
+!/backend/auth-service/evidence/**/*.log

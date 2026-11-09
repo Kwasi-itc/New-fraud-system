@@ -87,7 +87,7 @@ func Install(ctx context.Context, installation Installation) error {
 	if _, err := Origin(os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN")); err != nil {
 		return err
 	}
-	if installation.Owner != "data_model" && installation.Owner != "ingestion" && installation.Owner != "decision_engine" && installation.Owner != "identity" && installation.Owner != "case_manager" && installation.Owner != "screening" && installation.Owner != "decision_local" {
+	if installation.Owner != "data_model" && installation.Owner != "ingestion" && installation.Owner != "decision_engine" && installation.Owner != "identity" && installation.Owner != "identity_auth" && installation.Owner != "case_manager" && installation.Owner != "screening" && installation.Owner != "decision_local" {
 		return errors.New("unsupported local owner")
 	}
 	password, err := os.ReadFile("/run/secrets/mysql_root_password")

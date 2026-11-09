@@ -35,12 +35,26 @@ type Invitation struct {
 	Expires  time.Time `json:"expires_at"`
 	Delivery string    `json:"delivery"`
 }
-type deliveryPayload struct {
+type DeliveryPayload struct {
 	Email string
 	Token string
 }
+type deliveryPayload = DeliveryPayload
+
+type InvitationEnvelope struct {
+	Issuer, Origin string
+	Cipher         cipher.AEAD
+}
 
 func NewInvitations(s Store, issuer, origin, key string) (*InvitationService, error) {
+	e, err := NewInvitationEnvelope(issuer, origin, key)
+	if err != nil {
+		return nil, err
+	}
+	return &InvitationService{s, e.Issuer, e.Origin, e.Cipher}, nil
+}
+
+func NewInvitationEnvelope(issuer, origin, key string) (*InvitationEnvelope, error) {
 	u, err := url.Parse(origin)
 	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))) || issuer == "" {
 		return nil, errors.New("invalid invitation origin or issuer")
@@ -57,7 +71,7 @@ func NewInvitations(s Store, issuer, origin, key string) (*InvitationService, er
 	if err != nil {
 		return nil, err
 	}
-	return &InvitationService{s, issuer, strings.TrimSuffix(origin, "/"), a}, nil
+	return &InvitationEnvelope{issuer, strings.TrimSuffix(origin, "/"), a}, nil
 }
 
 // Preserve local-part case and reject display names/SMTP header injection. Only
@@ -78,6 +92,9 @@ func invitationEmail(v string) (string, error) {
 	return v[:at] + "@" + strings.ToLower(v[at+1:]), nil
 }
 func (i *InvitationService) seal(id uuid.UUID, email, token string) ([]byte, error) {
+	return (&InvitationEnvelope{Cipher: i.Cipher}).Seal(id, email, token)
+}
+func (i *InvitationEnvelope) Seal(id uuid.UUID, email, token string) ([]byte, error) {
 	p, err := json.Marshal(deliveryPayload{email, token})
 	if err != nil {
 		return nil, err
@@ -89,6 +106,9 @@ func (i *InvitationService) seal(id uuid.UUID, email, token string) ([]byte, err
 	return i.Cipher.Seal(nonce, nonce, p, []byte(id.String())), nil
 }
 func (i *InvitationService) open(id uuid.UUID, b []byte) (deliveryPayload, error) {
+	return (&InvitationEnvelope{Cipher: i.Cipher}).Open(id, b)
+}
+func (i *InvitationEnvelope) Open(id uuid.UUID, b []byte) (DeliveryPayload, error) {
 	var p deliveryPayload
 	n := i.Cipher.NonceSize()
 	if len(b) < n {
@@ -101,6 +121,9 @@ func (i *InvitationService) open(id uuid.UUID, b []byte) (deliveryPayload, error
 	err = json.Unmarshal(raw, &p)
 	return p, err
 }
+
+// NormalizeInvitationEmail preserves the existing exact local-part semantics.
+func NormalizeInvitationEmail(value string) (string, error) { return invitationEmail(value) }
 func lockInvitationTenant(ctx context.Context, tx pgx.Tx, tenant uuid.UUID) error {
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "identity-admin:"+tenant.String())
 	return err

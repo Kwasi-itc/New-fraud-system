@@ -1,0 +1,9 @@
+**/.git
+**/.local
+**/node_modules
+**/evidence
+**/*.log
+**/*.jsonl
+**/*.exe
+**/.gocache*
+**/.mysql-auth-first-tests.jsonl

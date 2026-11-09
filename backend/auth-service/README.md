@@ -1,5 +1,11 @@
 # Auth service workspace
 
+The dedicated MySQL API/worker setup and Swagger documentation are described in
+[MYSQL_DOCKER.md](MYSQL_DOCKER.md). Track the local migration in
+[MYSQL_PLAN.md](MYSQL_PLAN.md), [MYSQL_ENDPOINT_STATUS.md](MYSQL_ENDPOINT_STATUS.md)
+and [MYSQL_WORKER_STATUS.md](MYSQL_WORKER_STATUS.md). The existing OIDC provider
+contract and PostgreSQL entrypoint below remain available separately.
+
 2026-10-09 invitation increment: tenant administrators can invite users and manage
 invitations, member access and audit at `/administration/users`. Auth schema v3,
 SMTP configuration and an approved provider account path are required. Invitations

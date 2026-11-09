@@ -1,0 +1,180 @@
+{
+  "at": "2026-11-09T10:16:00.046Z",
+  "scope": "Local development auth with MySQL application data, existing real Keycloak and SMTP capture; excludes production cutover",
+  "suites": [
+    {
+      "name": "docs-readiness-and-proxy-boundary",
+      "passed": true
+    },
+    {
+      "name": "existing-keycloak-and-explicit-operator-provisioning",
+      "passed": true
+    },
+    {
+      "name": "real-oidc-login-signed-session-and-tenant-isolation",
+      "passed": true
+    },
+    {
+      "name": "session-list-single-revoke-and-replay",
+      "passed": true
+    },
+    {
+      "name": "invitation-replay-real-smtp-and-provider-acceptance",
+      "passed": true
+    },
+    {
+      "name": "membership-version-revocation-and-scoped-audit",
+      "passed": true
+    },
+    {
+      "name": "all-session-revocation-logout-and-final-readiness",
+      "passed": true
+    }
+  ],
+  "requestCount": 60,
+  "documentedOperations": 14,
+  "successfulOperations": 14,
+  "matrix": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/audit/list",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/invitations/change",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/invitations/list",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/invitations/start",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/login/complete",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/login/start",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/logout",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/members/change",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/members/list",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/session",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/sessions/list",
+      "successVerified": true
+    },
+    {
+      "method": "POST",
+      "path": "/internal/sessions/revoke",
+      "successVerified": true
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "successVerified": true
+    }
+  ],
+  "runtimeUnchanged": true,
+  "runtimeBefore": [
+    {
+      "name": "fraud-mysql-dev-auth-service-1",
+      "image": "sha256:7ba0d02ea8fd4586a8a6451bf089d3525225ff9cd3e43cb9aecf1bdebbef0196",
+      "id": "11ddde8a90b28e6fa9fbfef818dc70948925c73d3f73c8f7d181f2accfc53b37",
+      "started": "2026-11-09T10:11:48.959294082Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "fraud-mysql-dev-auth-worker-1",
+      "image": "sha256:7ba0d02ea8fd4586a8a6451bf089d3525225ff9cd3e43cb9aecf1bdebbef0196",
+      "id": "8a58eceb597b767ce879334410836f1119625f06d5a8acbe913c4494b4f1622f",
+      "started": "2026-11-09T10:11:49.3016506Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "fraud-mysql-dev-auth-mail-1",
+      "image": "sha256:74d609a42ec279aa63c6b4622a6fa9b5408d1ad5b1d76a1c4be40a265ce0863d",
+      "id": "a8ab14773a66b085784a81bc6a3e4f3c898d5da9110f998c6af9f31b719fb2f5",
+      "started": "2026-11-09T10:11:48.947787797Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "new-fraud-system-keycloak-1",
+      "image": "sha256:b0f60d489d51c5d113390bdf5461d4c06e6051be026c05549f2e1e10ec352bcc",
+      "id": "a3b6d3ded026d90cbc4be4504f562fad59e6e6890b682a4dcd5162f390ca89b9",
+      "started": "2026-11-09T09:47:52.062060259Z",
+      "state": "running",
+      "health": "healthy"
+    }
+  ],
+  "runtimeAfter": [
+    {
+      "name": "fraud-mysql-dev-auth-service-1",
+      "image": "sha256:7ba0d02ea8fd4586a8a6451bf089d3525225ff9cd3e43cb9aecf1bdebbef0196",
+      "id": "11ddde8a90b28e6fa9fbfef818dc70948925c73d3f73c8f7d181f2accfc53b37",
+      "started": "2026-11-09T10:11:48.959294082Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "fraud-mysql-dev-auth-worker-1",
+      "image": "sha256:7ba0d02ea8fd4586a8a6451bf089d3525225ff9cd3e43cb9aecf1bdebbef0196",
+      "id": "8a58eceb597b767ce879334410836f1119625f06d5a8acbe913c4494b4f1622f",
+      "started": "2026-11-09T10:11:49.3016506Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "fraud-mysql-dev-auth-mail-1",
+      "image": "sha256:74d609a42ec279aa63c6b4622a6fa9b5408d1ad5b1d76a1c4be40a265ce0863d",
+      "id": "a8ab14773a66b085784a81bc6a3e4f3c898d5da9110f998c6af9f31b719fb2f5",
+      "started": "2026-11-09T10:11:48.947787797Z",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "new-fraud-system-keycloak-1",
+      "image": "sha256:b0f60d489d51c5d113390bdf5461d4c06e6051be026c05549f2e1e10ec352bcc",
+      "id": "a3b6d3ded026d90cbc4be4504f562fad59e6e6890b682a4dcd5162f390ca89b9",
+      "started": "2026-11-09T09:47:52.062060259Z",
+      "state": "running",
+      "health": "healthy"
+    }
+  ],
+  "temporaryProviderUsersRemoved": 3,
+  "passed": true
+}

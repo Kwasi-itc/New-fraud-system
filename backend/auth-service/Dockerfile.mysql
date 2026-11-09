@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.25.8 AS build
+WORKDIR /backend/auth-service
+COPY mysqlstore ../mysqlstore
+COPY auth-service ./
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-api ./cmd/mysql-api
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/install-auth ./cmd/mysql-dev-install
+FROM gcr.io/distroless/base-debian12
+COPY --from=build /bin/mysql-api /app/mysql-api
+COPY --from=build /bin/install-auth /app/install-auth
+EXPOSE 8087
+CMD ["/app/mysql-api"]

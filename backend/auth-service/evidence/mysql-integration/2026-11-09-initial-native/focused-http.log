@@ -1,0 +1,23 @@
+=== RUN   TestMySQLHTTPAllFourteenOperationsAndDocs
+    http_test.go:169: AUTH_ROUTE_PASS GET /healthz 204
+    http_test.go:170: AUTH_ROUTE_PASS GET /readyz 204
+    http_test.go:171: AUTH_ROUTE_PASS GET /openapi.json 200
+    http_test.go:175: AUTH_ROUTE_PASS GET /docs 200
+    http_test.go:176: AUTH_ROUTE_PASS GET /capabilities 200
+    http_test.go:182: AUTH_ROUTE_PASS POST /internal/login/start 200
+    http_test.go:187: AUTH_ROUTE_PASS POST /internal/login/complete 200
+    http_test.go:189: AUTH_ROUTE_PASS POST /internal/session 200
+    http_test.go:196: AUTH_ROUTE_PASS POST /internal/sessions/list 200
+    http_test.go:208: AUTH_ROUTE_PASS POST /internal/sessions/revoke 200
+    http_test.go:210: AUTH_ROUTE_PASS POST /internal/members/list 200
+    http_test.go:215: AUTH_ROUTE_PASS POST /internal/members/change 204
+    http_test.go:218: AUTH_ROUTE_PASS POST /internal/invitations/change 204
+    http_test.go:220: AUTH_ROUTE_PASS POST /internal/invitations/start 200
+    http_test.go:224: AUTH_ROUTE_PASS POST /internal/login/complete 200
+    http_test.go:226: AUTH_ROUTE_PASS POST /internal/invitations/list 200
+    http_test.go:227: AUTH_ROUTE_PASS POST /internal/audit/list 200
+    http_test.go:228: AUTH_ROUTE_PASS POST /internal/logout 204
+    http_test.go:236: AUTH_ROUTE_PASS GET /healthz 204
+--- PASS: TestMySQLHTTPAllFourteenOperationsAndDocs (3.78s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth	4.886s

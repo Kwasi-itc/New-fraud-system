@@ -1,0 +1,8 @@
+# Resource limits only; the selected existing Keycloak storage is unchanged.
+services:
+  postgres:
+    mem_limit: 512m
+    cpus: 1
+  keycloak:
+    mem_limit: 1g
+    cpus: 1

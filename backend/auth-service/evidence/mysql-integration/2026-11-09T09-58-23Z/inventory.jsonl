@@ -1,0 +1,75 @@
+{"Time":"2026-11-09T09:58:28.312358972Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/admin"}
+{"Time":"2026-11-09T09:58:28.313560212Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/admin","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/admin\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:28.314597048Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/admin","Elapsed":0.002}
+{"Time":"2026-11-09T09:58:30.21196679Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight"}
+{"Time":"2026-11-09T09:58:30.221288501Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight","Output":"TestListSourcesDoesNotReadCredentials\n"}
+{"Time":"2026-11-09T09:58:30.222268213Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight","Output":"TestInvalidInputNoDatabaseLookup\n"}
+{"Time":"2026-11-09T09:58:30.222904629Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight","Output":"TestDatabaseErrorDoesNotExposeSecret\n"}
+{"Time":"2026-11-09T09:58:30.223568799Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight\t0.010s\n"}
+{"Time":"2026-11-09T09:58:30.224325511Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight","Elapsed":0.012}
+{"Time":"2026-11-09T09:58:30.614943589Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-api"}
+{"Time":"2026-11-09T09:58:30.615908607Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-api","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-api\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:30.616500621Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-api","Elapsed":0.002}
+{"Time":"2026-11-09T09:58:30.754355333Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-dev-install"}
+{"Time":"2026-11-09T09:58:30.755057888Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-dev-install","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-dev-install\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:30.755640738Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/mysql-dev-install","Elapsed":0.001}
+{"Time":"2026-11-09T09:58:30.819990343Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/oidc-check"}
+{"Time":"2026-11-09T09:58:30.820987921Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/oidc-check","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/oidc-check\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:30.821768712Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/oidc-check","Elapsed":0.002}
+{"Time":"2026-11-09T09:58:31.560615958Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server"}
+{"Time":"2026-11-09T09:58:31.567674441Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server","Output":"TestParseDefaultTenant\n"}
+{"Time":"2026-11-09T09:58:31.568970606Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server\t0.007s\n"}
+{"Time":"2026-11-09T09:58:31.569580117Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server","Elapsed":0.009}
+{"Time":"2026-11-09T09:58:32.966142021Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth"}
+{"Time":"2026-11-09T09:58:32.977416274Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLRestrictedRolesAndLoginRetention\n"}
+{"Time":"2026-11-09T09:58:32.978816193Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLAuthorityExpiresAfterTargetLockWait\n"}
+{"Time":"2026-11-09T09:58:32.980562214Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLBoundedListsAndExactLongIdentity\n"}
+{"Time":"2026-11-09T09:58:32.981740236Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLHTTPAllFourteenOperationsAndDocs\n"}
+{"Time":"2026-11-09T09:58:32.983885725Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLAPIAndWorkerProcessesRestartAndDeliver\n"}
+{"Time":"2026-11-09T09:58:32.98494375Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLLoginSingleUseAndIdentityBindings\n"}
+{"Time":"2026-11-09T09:58:32.985970595Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLSessionsRevocationAndTenantIsolation\n"}
+{"Time":"2026-11-09T09:58:32.987131698Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLSessionExpiryRenewalAndReadOnly\n"}
+{"Time":"2026-11-09T09:58:32.988052879Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLLastAdministratorConcurrencyAndAuditRollback\n"}
+{"Time":"2026-11-09T09:58:32.989010547Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLInvitationLifecycleAndVerifiedAcceptance\n"}
+{"Time":"2026-11-09T09:58:32.989922925Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"TestMySQLInvitationWorkerRetriesFencesAndRecovery\n"}
+{"Time":"2026-11-09T09:58:32.991459093Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth\t0.024s\n"}
+{"Time":"2026-11-09T09:58:32.992655842Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/mysqlauth","Elapsed":0.027}
+{"Time":"2026-11-09T09:58:33.890351248Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider"}
+{"Time":"2026-11-09T09:58:33.900060676Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider","Output":"TestConfigRejectsUnsafeURLs\n"}
+{"Time":"2026-11-09T09:58:33.901183089Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider","Output":"TestOIDCExchangeAndProviderSwap\n"}
+{"Time":"2026-11-09T09:58:33.902133141Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider","Output":"TestDiscoveryFailsClosed\n"}
+{"Time":"2026-11-09T09:58:33.903240624Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider\t0.012s\n"}
+{"Time":"2026-11-09T09:58:33.90428888Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider","Elapsed":0.014}
+{"Time":"2026-11-09T09:58:34.95474621Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform"}
+{"Time":"2026-11-09T09:58:34.9629605Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestDataModelRoleMigrationAndRevocation\n"}
+{"Time":"2026-11-09T09:58:34.964079375Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestSMTPRequiresTLSExceptExplicitCapture\n"}
+{"Time":"2026-11-09T09:58:34.964834985Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestDeliveryResendFencesOldCompletionAndBoundsFailures\n"}
+{"Time":"2026-11-09T09:58:34.965373506Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationIssuerSessionAndTenantSelection\n"}
+{"Time":"2026-11-09T09:58:34.966084563Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationAcceptAtomicReplayAndIdentity\n"}
+{"Time":"2026-11-09T09:58:34.966866489Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationCancelResendExpiryAndInviterRevocation\n"}
+{"Time":"2026-11-09T09:58:34.967588072Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationExistingMembershipAndAuditRollback\n"}
+{"Time":"2026-11-09T09:58:34.968234466Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationDeliveryRetryAndIsolation\n"}
+{"Time":"2026-11-09T09:58:34.968884376Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestInvitationConfigurationAndEmail\n"}
+{"Time":"2026-11-09T09:58:34.969506363Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestConfiguredLoginTenant\n"}
+{"Time":"2026-11-09T09:58:34.970132938Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestSessionManagementIsolationAndRollback\n"}
+{"Time":"2026-11-09T09:58:34.970828859Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestSessionRevocationWaitsForAuthorizedCaseWrite\n"}
+{"Time":"2026-11-09T09:58:34.971483499Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestSessionsHTTPPaginationAndValidation\n"}
+{"Time":"2026-11-09T09:58:34.972112314Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestPlatformSessionsAndPermissions\n"}
+{"Time":"2026-11-09T09:58:34.972790736Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestRevocationLocksAndRollback\n"}
+{"Time":"2026-11-09T09:58:34.973531105Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestConcurrentLastAdmin\n"}
+{"Time":"2026-11-09T09:58:34.974344589Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestHTTPPermissions\n"}
+{"Time":"2026-11-09T09:58:34.97511186Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"TestMigrationRejectsNewerSchema\n"}
+{"Time":"2026-11-09T09:58:34.975919934Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform\t0.020s\n"}
+{"Time":"2026-11-09T09:58:34.976689421Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform","Elapsed":0.022}
+{"Time":"2026-11-09T09:58:35.704286114Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight"}
+{"Time":"2026-11-09T09:58:35.713368365Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight","Output":"TestClassificationPreservesIdentity\n"}
+{"Time":"2026-11-09T09:58:35.714278349Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight","Output":"TestRejectUnsafeScope\n"}
+{"Time":"2026-11-09T09:58:35.714934693Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight","Output":"TestPostgresInventory\n"}
+{"Time":"2026-11-09T09:58:35.715717726Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight\t0.010s\n"}
+{"Time":"2026-11-09T09:58:35.71637438Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight","Elapsed":0.012}
+{"Time":"2026-11-09T09:58:35.72043342Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"}
+{"Time":"2026-11-09T09:58:35.721326942Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:35.7219552Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity","Elapsed":0.002}
+{"Time":"2026-11-09T09:58:35.722620521Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential"}
+{"Time":"2026-11-09T09:58:35.723262676Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential\t[no test files]\n"}
+{"Time":"2026-11-09T09:58:35.723943188Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential","Elapsed":0.001}

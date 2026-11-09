@@ -19,14 +19,15 @@ import (
 )
 
 type Server struct {
-	Store                   Store
+	Store                   HTTPStore
 	DefaultTenantID         uuid.UUID
 	Provider                *oidcprovider.Provider
 	ProxyToken              string
 	Key                     *rsa.PrivateKey
 	KeyID, Issuer, Audience string
 	Logger                  *slog.Logger
-	Invitations             *InvitationService
+	Invitations             InvitationBackend
+	ConfigureMux            func(*http.ServeMux)
 }
 
 func SigningKey(path string) (*rsa.PrivateKey, error) {
@@ -46,8 +47,7 @@ func (s Server) Handler() http.Handler {
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
-		var version int
-		if s.Store.DB.QueryRow(ctx, "SELECT max(version) FROM identity.schema_migrations").Scan(&version) != nil || version != SchemaVersion {
+		if s.Store.Ready(ctx) != nil {
 			http.Error(w, "not ready", 503)
 			return
 		}
@@ -65,6 +65,9 @@ func (s Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/invitations/list", s.invitations)
 	mux.HandleFunc("POST /internal/invitations/change", s.invitationChange)
 	mux.HandleFunc("POST /internal/audit/list", s.auditList)
+	if s.ConfigureMux != nil {
+		s.ConfigureMux(mux)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

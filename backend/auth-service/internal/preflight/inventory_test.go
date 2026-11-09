@@ -159,7 +159,9 @@ func TestPostgresInventory(t *testing.T) {
 		t.Fatal("canceled read accepted")
 	}
 	// Missing migration/table is an explicit failure, not an empty inventory.
-	if _, err = conn.Exec(ctx, "DROP TABLE screening.investigator_reviews"); err != nil {
+	// This disposable fixture includes cross-owner FK dependencies. Remove the
+	// source and those constraints explicitly to exercise the missing-table fault.
+	if _, err = conn.Exec(ctx, "DROP TABLE screening.investigator_reviews CASCADE"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = ReadPage(ctx, conn, Request{TenantID: tenant, Source: "screening_review_actors", Limit: 2}); err == nil {

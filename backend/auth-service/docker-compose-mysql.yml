@@ -1,0 +1,87 @@
+name: fraud-mysql-dev
+include:
+  - ../../compose.mysql-dev.yaml
+services:
+  migrate-auth:
+    image: fraud-auth-mysql:local
+    build:
+      context: ..
+      dockerfile: auth-service/Dockerfile.mysql
+    command: [/app/install-auth]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      AUTH_LOCAL_MYSQL: "1"
+      APP_ORIGIN: http://localhost:8087
+    secrets: [mysql_root_password, auth_api_password, auth_worker_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+      - ../../.local/mysql-dev/auth-runtime:/runtime:ro
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql: {condition: service_healthy}
+      mysql-reference: {condition: service_healthy}
+  auth-mail:
+    image: axllent/mailpit:v1.31.2
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "500"
+    volumes: [auth_mail_data:/data]
+    ports: ["127.0.0.1:8027:8025"]
+    mem_limit: 128m
+    cpus: 0.5
+    restart: unless-stopped
+  auth-service:
+    image: fraud-auth-mysql:local
+    environment: {AUTH_LOCAL_MYSQL: "1"}
+    secrets: [auth_api_password, auth_proxy_token, auth_invitation_key, auth_signing_key, auth_oidc_client_secret]
+    volumes: [../../.local/mysql-dev/auth-runtime:/runtime:ro]
+    ports: ["127.0.0.1:8087:8087"]
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 1
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-auth: {condition: service_completed_successfully}
+  auth-worker:
+    image: fraud-auth-mysql:local
+    command: [/app/mysql-api, --worker]
+    environment: {AUTH_LOCAL_MYSQL: "1"}
+    secrets: [auth_worker_password, auth_invitation_key]
+    volumes: [../../.local/mysql-dev/auth-runtime:/runtime:ro]
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --worker, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-auth: {condition: service_completed_successfully}
+      auth-mail: {condition: service_started}
+volumes:
+  auth_mail_data:
+secrets:
+  auth_api_password: {file: ../../.local/mysql-dev/auth-api-password.txt}
+  auth_worker_password: {file: ../../.local/mysql-dev/auth-worker-password.txt}
+  auth_proxy_token: {file: ../../.local/mysql-dev/auth-proxy-token.txt}
+  auth_invitation_key: {file: ../../.local/mysql-dev/auth-invitation-key.txt}
+  auth_signing_key: {file: ../../.local/mysql-dev/auth-private.pem}
+  auth_oidc_client_secret: {file: ../../.local/mysql-dev/auth-oidc-client-secret.txt}
