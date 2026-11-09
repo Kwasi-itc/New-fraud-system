@@ -1,0 +1,4 @@
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	PRIMARY	r	NULL	eq_ref	record_unique_c5a3508f5a3345dcbb4638aee8c813e1	record_unique_c5a3508f5a3345dcbb4638aee8c813e1	17	requested.key_id	1	10.00	Using where
+2	DERIVED	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	No tables used
+{"passed":true,"tenant":"6b133a47-fb90-4204-a87b-c31ea34f0e6e","child":"a2b5c415-9458-4d8a-97ca-a4c3b5f853b9","parent":"0fc683b4-eac4-40dd-9395-bbfad8d07309","checks":"version conflicts, historical replay, atomic caption jobs, direct types, enum labels, ordered batches, related exact keys, fallback/null, tenant isolation, closed gate, current records, indexed lookup"}

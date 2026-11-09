@@ -1,0 +1,158 @@
+[
+  {
+    "method": "GET",
+    "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/service-info"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/decisions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/decisions/all"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/ingestion-events/record-ingested"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/status"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/status"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/custom-list-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/internal/screening-status-updates"
+  }
+]

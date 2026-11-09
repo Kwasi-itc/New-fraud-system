@@ -1,0 +1,269 @@
+{
+  "startedAt": "2026-11-07T08:37:17.441Z",
+  "finishedAt": "2026-11-07T08:37:29.083Z",
+  "origin": "http://localhost:8081",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "objectType": "transactions",
+  "fixturePrefix": "audit-41886502-f258-4d37-b11a-381e0249f522",
+  "suites": [
+    {
+      "name": "health-documentation",
+      "passed": true,
+      "elapsedMs": 353
+    },
+    {
+      "name": "single-writes-replay-conflict-and-validation",
+      "passed": true,
+      "elapsedMs": 442
+    },
+    {
+      "name": "batch-writes-atomic-validation-and-replay",
+      "passed": true,
+      "elapsedMs": 372
+    },
+    {
+      "name": "reads-search-and-all-aggregates",
+      "passed": true,
+      "elapsedMs": 363
+    },
+    {
+      "name": "tenant-scope-resource-identities-and-json-limits",
+      "passed": true,
+      "elapsedMs": 340
+    },
+    {
+      "name": "csv-worker-lifecycle-and-invalid-input",
+      "passed": true,
+      "elapsedMs": 2452
+    },
+    {
+      "name": "deferred-overload-polling-and-worker-completion",
+      "passed": true,
+      "elapsedMs": 3211
+    },
+    {
+      "name": "deferred-metrics-contract-and-configured-scope",
+      "passed": true,
+      "elapsedMs": 1973
+    },
+    {
+      "name": "durable-audit-outbox-and-replay-evidence",
+      "passed": true,
+      "elapsedMs": 975
+    }
+  ],
+  "requestCount": 85,
+  "operationsTotal": 15,
+  "operationsCovered": 15,
+  "coverage": [
+    {
+      "operation": "GET /healthz",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200
+      ],
+      "suites": [
+        "health-documentation"
+      ]
+    },
+    {
+      "operation": "GET /readyz",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200
+      ],
+      "suites": [
+        "health-documentation"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}",
+      "covered": true,
+      "successfulRequests": 7,
+      "observedStatuses": [
+        200,
+        409,
+        422,
+        403,
+        400,
+        413
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation",
+        "deferred-overload-polling-and-worker-completion"
+      ]
+    },
+    {
+      "operation": "PATCH /v1/tenants/{tenantId}/ingest/{objectType}",
+      "covered": true,
+      "successfulRequests": 3,
+      "observedStatuses": [
+        200,
+        403,
+        202
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation",
+        "deferred-overload-polling-and-worker-completion"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}/batch",
+      "covered": true,
+      "successfulRequests": 2,
+      "observedStatuses": [
+        200,
+        422,
+        400,
+        403
+      ],
+      "suites": [
+        "batch-writes-atomic-validation-and-replay"
+      ]
+    },
+    {
+      "operation": "PATCH /v1/tenants/{tenantId}/ingest/{objectType}/batch",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        422,
+        403
+      ],
+      "suites": [
+        "batch-writes-atomic-validation-and-replay"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        413,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}/search",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}/{objectId}",
+      "covered": true,
+      "successfulRequests": 5,
+      "observedStatuses": [
+        200,
+        404,
+        400,
+        403
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation",
+        "batch-writes-atomic-validation-and-replay",
+        "reads-search-and-all-aggregates",
+        "csv-worker-lifecycle-and-invalid-input",
+        "deferred-overload-polling-and-worker-completion"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}/csv",
+      "covered": true,
+      "successfulRequests": 2,
+      "observedStatuses": [
+        202,
+        400
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/ingest/{objectType}/upload-logs",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        403,
+        200
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/query/aggregate",
+      "covered": true,
+      "successfulRequests": 6,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/upload-logs/{uploadLogId}",
+      "covered": true,
+      "successfulRequests": 10,
+      "observedStatuses": [
+        400,
+        404,
+        200
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "GET /v1/deferred-ingests/{deferredIngestId}",
+      "covered": true,
+      "successfulRequests": 2,
+      "observedStatuses": [
+        400,
+        404,
+        200
+      ],
+      "suites": [
+        "deferred-overload-polling-and-worker-completion"
+      ]
+    },
+    {
+      "operation": "GET /v1/admin/deferred-ingest-metrics",
+      "covered": true,
+      "successfulRequests": 6,
+      "observedStatuses": [
+        200
+      ],
+      "suites": [
+        "health-documentation",
+        "deferred-overload-polling-and-worker-completion",
+        "deferred-metrics-contract-and-configured-scope"
+      ]
+    }
+  ],
+  "runtimeAcceptancePassed": true,
+  "knownUnsupported": [],
+  "limitations": [
+    "Local login-free runtime, one tenant/table",
+    "Fixtures and audit/queue history retained",
+    "Worker briefly paused and restored for deterministic deferred admission",
+    "Production identity, sustained load and external event consumers are separate acceptance"
+  ],
+  "passed": true
+}

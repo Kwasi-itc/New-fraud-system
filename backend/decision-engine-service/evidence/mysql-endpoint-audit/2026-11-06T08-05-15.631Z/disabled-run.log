@@ -1,0 +1,38 @@
+PASS enabled-local-provider-profile-and-fixture
+PASS legacy-workflow-crud-reorder-and-isolation
+PASS scoring-config-crud-and-validation
+PASS real-case-screening-scoring-and-outbox-delivery
+PASS callback-rejection-redrive-cancellation-and-restart
+PASS formerly-disabled-route-tenant-isolation
+{
+  "output": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-disabled\\2026-11-06T08-06-42.995Z",
+  "verified": 12,
+  "total": 12,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": true
+    },
+    {
+      "name": "callback-rejection-redrive-cancellation-and-restart",
+      "passed": true
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ]
+}
+

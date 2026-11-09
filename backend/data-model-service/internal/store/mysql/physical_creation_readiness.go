@@ -108,7 +108,7 @@ func (e *PhysicalExecutor) verifyCreationReadiness(ctx context.Context, conn *sq
 	if cfg == nil || plan.Creation == nil {
 		return ErrPhysicalPlanningUnsupported
 	}
-	if cfg.installer.NativeChanges != (plan.Version == 3) {
+	if cfg.installer.NativeChanges != (plan.Version == 3) || cfg.installer.TextGuards != plan.InstallsTextGuards() || cfg.installer.BackfillColumn != plan.TextBackfillColumn() {
 		return ErrPhysicalPlanningUnsupported
 	}
 	if cfg.installer.Table != name || plan.Creation.TenantID != e.tenant {

@@ -1,0 +1,142 @@
+{
+  "at": "2026-11-05T21:51:23.909Z",
+  "prefix": "delivery-961c661e-a701-4764-9ea0-ece0463af345",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "runtimeImage": "sha256:2a8e1c0b806d21ea24b801523d8923a1f92ece9bba1bbccd92bb667b7b6f98b6",
+  "runtimeUnchanged": true,
+  "requestCount": 69,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": true
+    },
+    {
+      "name": "callback-rejection-redrive-cancellation-and-restart",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/async-decision-executions/95934460-aeeb-4277-b89b-62281bf5636d/callback/retry: 409: {\"error\":\"execution_conflict\"}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:19:431)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:72:2\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:20:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:65:1"
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ],
+  "workers": [
+    {
+      "check": "workflow case/link/history, event inbox, watchlist matches/projection, scoring result and outbound receipts",
+      "passed": true
+    }
+  ],
+  "matrix": [
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel",
+      "successVerified": false,
+      "suites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry",
+      "successVerified": false,
+      "suites": []
+    }
+  ],
+  "verifiedOperations": 10,
+  "totalOperations": 12,
+  "profilePassed": false
+}

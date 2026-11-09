@@ -1,0 +1,81 @@
+{
+  "recordedAt": "2026-11-06T22:09:05.294Z",
+  "database": "MySQL 8.4.8",
+  "scope": "Disposable native consumer-contract fixture; complete aggregate reader operations, not HTTP, ingestion throughput or production capacity",
+  "rows": 50000,
+  "distribution": "50,000 records over one hour; approximately 10% share a hot account; account/time index; half-open window with raw boundary fragments",
+  "expectedCountSumCount": "[4986 2469400 4986]",
+  "paths": {
+    "batch_read": {
+      "samples": 10,
+      "medianMS": 97.73349999999999,
+      "p95MS": 142.554
+    },
+    "batch_summary": {
+      "samples": 10,
+      "medianMS": 21.283,
+      "p95MS": 34.664
+    },
+    "separate_reads": {
+      "samples": 10,
+      "medianMS": 209.1275,
+      "p95MS": 388.784
+    }
+  },
+  "budgets": [
+    {
+      "aggregate_demands": 96,
+      "control_errors": 0,
+      "control_read_ms": {
+        "samples": 32,
+        "medianMS": 1.2215,
+        "p95MS": 2.572
+      },
+      "data_query_batches": 43,
+      "elapsed_ms": 583.558,
+      "errors": 0,
+      "offered_evaluations": 32,
+      "slots": 2,
+      "allResultsValid": true
+    },
+    {
+      "aggregate_demands": 96,
+      "control_errors": 0,
+      "control_read_ms": {
+        "samples": 32,
+        "medianMS": 1.5585,
+        "p95MS": 4.087
+      },
+      "data_query_batches": 37,
+      "elapsed_ms": 357.021,
+      "errors": 0,
+      "offered_evaluations": 32,
+      "slots": 4,
+      "allResultsValid": true
+    },
+    {
+      "aggregate_demands": 96,
+      "control_errors": 0,
+      "control_read_ms": {
+        "samples": 32,
+        "medianMS": 1.7005,
+        "p95MS": 26.144
+      },
+      "data_query_batches": 36,
+      "elapsed_ms": 359.956,
+      "errors": 0,
+      "offered_evaluations": 32,
+      "slots": 8,
+      "allResultsValid": true
+    }
+  ],
+  "sqlTransport": "Explicit UTF-8 parameter interpolation, matching the local decision runtime",
+  "limits": "Eight native fixture SQL connections; 2/4/8 aggregate admission slots; 2-second admission/query deadline; 150-microsecond collection window",
+  "limitations": [
+    "Ten warm sequential samples per path after three warmups; shared development hardware can vary",
+    "Fixture authorization is a consumer contract; live HTTP authorization, decision persistence and effect delivery are measured separately",
+    "Summary schema/backfill here is a contract fixture; atomic replay/correction/rollback maintenance is independently tested in the actual ingestion owner",
+    "Raw historical SQL remains authoritative for unsupported shapes, floats, distinct counts, stale versions, long groups and windows without an eligible interior",
+    "No 500 TPS or end-to-end p95 <= 50 ms claim follows from these measurements"
+  ]
+}

@@ -1,11 +1,13 @@
 package httpapi
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 )
 
 func TestDocsRoutes(t *testing.T) {
@@ -24,8 +26,14 @@ func TestDocsRoutes(t *testing.T) {
 		if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "application/yaml") {
 			t.Fatalf("content-type = %q, want application/yaml", got)
 		}
-		if body := rec.Body.String(); !strings.Contains(body, "openapi: 3.0.3") {
-			t.Fatalf("body missing OpenAPI marker")
+		// Decode the entire response: a version substring can still be present
+		// in invalid YAML that Swagger cannot render (including duplicate keys).
+		var definition map[string]any
+		if err := yaml.Unmarshal(rec.Body.Bytes(), &definition); err != nil {
+			t.Fatalf("invalid served OpenAPI YAML: %v", err)
+		}
+		if version := definition["openapi"]; version != "3.0.3" {
+			t.Fatalf("OpenAPI version = %v, want 3.0.3", version)
 		}
 	})
 

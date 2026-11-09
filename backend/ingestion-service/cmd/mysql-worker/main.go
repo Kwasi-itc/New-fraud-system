@@ -21,11 +21,19 @@ func main() {
 func run() error {
 	config := flag.String("config", "", "isolated runtime config file")
 	ready := flag.String("ready-file", "", "exclusive process readiness file")
+	local := flag.Bool("local", false, "explicit local Docker runtime")
+	health := flag.Bool("healthcheck", false, "check local worker database prerequisites")
 	flag.Parse()
-	if *config == "" || *ready == "" {
+	if !*local && (*config == "" || *ready == "") {
 		return fmt.Errorf("config and ready-file required")
 	}
-	cfg, err := R.Load(*config)
+	var cfg R.Config
+	var err error
+	if *local {
+		cfg, err = R.LoadLocal(true)
+	} else {
+		cfg, err = R.Load(*config)
+	}
 	if err != nil {
 		return err
 	}
@@ -38,6 +46,14 @@ func run() error {
 		return err
 	}
 	defer service.DB.Close()
+	if *health {
+		return nil
+	}
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-	return service.Worker(ctx, logger, func() error { return R.PublishReady(*ready, "ready") })
+	return service.Worker(ctx, logger, func() error {
+		if *local {
+			return nil
+		}
+		return R.PublishReady(*ready, "ready")
+	})
 }

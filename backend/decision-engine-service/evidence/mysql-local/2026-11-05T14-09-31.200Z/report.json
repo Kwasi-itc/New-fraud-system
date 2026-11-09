@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "objectType": "transactions",
+  "scenarioId": "791d3a06-6c6b-4c9d-8d94-e2822797a04a",
+  "iterationId": "b168a0f2-755c-4b97-954e-d01c8ed0413e",
+  "executionId": "4b9d3d6d-0eba-420b-b66d-1495a0dc443c",
+  "scheduledExecutionId": "052a0dd6-f624-4959-9b74-a7eba3ac7bb6",
+  "decisionId": "86cdf362-0733-4765-86e0-e1066c3746f5",
+  "recordId": "decision-smoke-0469774d-1d0d-49ec-af15-9334351bb530",
+  "requestCount": 25,
+  "checks": "docs, MySQL readiness, authoring/validation/publication, ingestion, async and scheduled worker persistence, stored-record lookup, replay, unsupported providers, tenant/origin rejection"
+}

@@ -224,6 +224,18 @@ That spec mirrors the implemented request and response envelopes for:
 - platform helper APIs
 - outbox inspection
 
+## Migration provider direction (2026-11-03)
+
+The user selected reuse of the PostgreSQL provider model and a design target of
+1,000 evaluations/second. Scoring retains the configured HTTP request provider;
+outbox publication remains optional and uses the configured event publisher.
+This direction does not establish deployed receiver capabilities or measured
+throughput. Existing HTTP 2xx senders have no receipt reconciliation contract and
+must not be presented as implementations of `ports.ReceiptDispatcher`.
+
+See the [performance and provider direction](../../mysql_migration/implementation/evidence/2026-11-03_decision_performance_provider_direction.md)
+for inspected source contracts, benchmark defaults and remaining acceptance gaps.
+
 ## Still-open contract decisions
 
 The highest-value remaining contract decisions are:

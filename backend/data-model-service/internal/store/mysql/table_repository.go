@@ -55,3 +55,11 @@ func (r TableRepository) Update(ctx context.Context, v datamodel.Table) error {
 func (r TableRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.delete(ctx, "data_model_tables", id)
 }
+
+// ListAvailableByTenant excludes retired tables while retaining their durable lineage.
+func (r TableRepository) ListAvailableByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.Table, error) {
+	if err := r.validate(tenantID, tenantID); err != nil {
+		return nil, err
+	}
+	return metadataList(ctx, r.metadataRepository, r.selectSQL()+" AND NOT EXISTS (SELECT 1 FROM "+r.schema+".data_model_physical_tables p WHERE p.tenant_id=data_model_tables.tenant_id AND p.table_id=data_model_tables.id AND p.write_state='retired') ORDER BY created_at DESC,id DESC", []any{mysqlstore.UUID(r.tenant)}, scanTable)
+}

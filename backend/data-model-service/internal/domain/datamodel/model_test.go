@@ -90,3 +90,18 @@ func TestSortFieldOrderAppendsMissingFieldsAlphabetically(t *testing.T) {
 		t.Fatalf("unexpected order: %v", ordered)
 	}
 }
+
+func TestEnumFloatRejectsNonFiniteValues(t *testing.T) {
+	field := Field{DataType: DataTypeFloat, IsEnum: true}
+	for _, value := range []string{"NaN", "Inf", "-Inf", "Infinity", "1e999"} {
+		if ValidateEnumValueCreate(field, value, "Label") == nil {
+			t.Errorf("accepted %s", value)
+		}
+		if ValidateEnumValueUpdate(field, &value, nil) == nil {
+			t.Errorf("updated to %s", value)
+		}
+	}
+	if err := ValidateEnumValueCreate(field, "1.25", "Label"); err != nil {
+		t.Fatal(err)
+	}
+}

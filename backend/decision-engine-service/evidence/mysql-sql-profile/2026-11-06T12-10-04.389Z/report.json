@@ -1,0 +1,346 @@
+{
+  "start": "2026-11-06T12:10:04.389Z",
+  "end": "2026-11-06T12:10:40.299Z",
+  "elapsedSeconds": 35.91,
+  "scope": "Server-wide counters, plus available fraud schema digests; includes every service and excludes client/network time. Digests may omit prepared statements or overflow. Account event counts can include nested protocol/SQL events. Concurrent statement durations can overlap. Window includes Docker snapshot overhead.",
+  "statusBefore": {
+    "Innodb_buffer_pool_read_requests": 83798070,
+    "Innodb_buffer_pool_reads": 2106,
+    "Innodb_row_lock_time": 452050,
+    "Performance_schema_digest_lost": 28007,
+    "Queries": 19948286
+  },
+  "statusAfter": {
+    "Innodb_buffer_pool_read_requests": 83921448,
+    "Innodb_buffer_pool_reads": 2106,
+    "Innodb_row_lock_time": 452050,
+    "Performance_schema_digest_lost": 28040,
+    "Queries": 19971873
+  },
+  "statusDelta": {
+    "Innodb_buffer_pool_read_requests": 123378,
+    "Innodb_buffer_pool_reads": 0,
+    "Innodb_row_lock_time": 0,
+    "Performance_schema_digest_lost": 33,
+    "Queries": 23587
+  },
+  "accounts": [
+    {
+      "account": "local_ingestion_worker",
+      "statementEvents": 414,
+      "totalMs": 108.656718
+    },
+    {
+      "account": "local_ingestion_api",
+      "statementEvents": 257,
+      "totalMs": 91.919138
+    },
+    {
+      "account": "local_decision_worker",
+      "statementEvents": 12271,
+      "totalMs": 2999.592673
+    },
+    {
+      "account": "local_decision_api",
+      "statementEvents": 54,
+      "totalMs": 9.396384
+    },
+    {
+      "account": "local_decision_provider",
+      "statementEvents": 7002,
+      "totalMs": 1184.590358
+    }
+  ],
+  "count": 4895,
+  "totalStatementMs": 2059.1808890000007,
+  "deltas": [
+    {
+      "sql": "COMMIT",
+      "count": 1556,
+      "digest": "f2b9be5f0f32ca7507e4ddf133cd2fad0993a1c26fde9caa6f067b1af2b7603c",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1416.498279
+    },
+    {
+      "sql": "SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
+      "count": 846,
+      "digest": "d80ff239c690a94edb0adf1fee28bfa1db6f96878e066d825fdd7c0921399d44",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 180.697511
+    },
+    {
+      "sql": "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+      "count": 731,
+      "digest": "0f101d98991ef95cefc5ab59b4fa316cb86f91b436412a385108a760f16bbf42",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 155.35434
+    },
+    {
+      "sql": "START TRANSACTION",
+      "count": 839,
+      "digest": "b57cf422fbfb5629759554d7a60a31947a2333a6e1b55d7dce60a94aa1eed044",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 112.065993
+    },
+    {
+      "sql": "START TRANSACTION READ ONLY",
+      "count": 738,
+      "digest": "924a0bf255073b2ae6a63e4df1c4c160efc3bc02d7a346950cbb0e604276b803",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 110.696537
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `decision_engine_schema_migrations`",
+      "count": 12,
+      "digest": "f4157ee91f3c2e3d8c8ef723552b9cb609361e5b478499a5da853c80de097d6e",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 9.559222
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_schema_migrations`",
+      "count": 14,
+      "digest": "8c57c272566d0b11221b950e85d0fd42022552e45404acf0b5caec8ebfa9b10b",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 7.746357
+    },
+    {
+      "sql": "SET `lock_wait_timeout` = ? , `autocommit` = ? , `foreign_key_checks` = ? , `transaction_isolation` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `unique_checks` = ? , `time_zone` = ?",
+      "count": 3,
+      "digest": "879cf429c6c118b78b51869ff9844d5c5effd557b18642327355b8be62c9b5f9",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 6.567529
+    },
+    {
+      "sql": "ROLLBACK",
+      "count": 22,
+      "digest": "3e67fa9d38d82054e7fc01fe3ee8844dc76faaaefbd74d213a2af42e60e95520",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 6.30062
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_physical_tables`",
+      "count": 7,
+      "digest": "e617f8cbcbf04e4c0742f0a1a8d9e55cbc9528670bd0a1449a4b5dff0b17804f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 4.896382
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_schema_migrations`",
+      "count": 10,
+      "digest": "9ad593925f40ed8e8a98d6b061157dcdc5217b842f03029638d1da2c43eef662",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 4.444368
+    },
+    {
+      "sql": "SELECT `VERSION` ( ) , CURRENT_USER ( ) , `CURRENT_ROLE` ( )",
+      "count": 11,
+      "digest": "744bc851a67bf3b19ea80ae5e77554c1f48c2427d57fd0e6e47a2cc37642a635",
+      "rowsAffected": 0,
+      "rowsExamined": 11,
+      "totalMs": 4.055761
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_tables`",
+      "count": 7,
+      "digest": "d415a807ed82f5b3c013bad1b62acc324fd9ffc3697306dde8fe6285db9820ec",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 3.388784
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_tenants`",
+      "count": 7,
+      "digest": "387d41c1644a53409ca8bb59f2535c840c32adc4d5563b9fade38f6c3d4b0ce4",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 3.279339
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_fields`",
+      "count": 7,
+      "digest": "41dac8a59e69b92198c48ec2eabaa87421824af192d8263ed24b55fac8c7252d",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.989825
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_ingestion_contracts`",
+      "count": 7,
+      "digest": "df23398afa47eceb988b65267ca52164033c6d0445ecb47b71372c8bb081e56f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.906291
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_physical_fields`",
+      "count": 7,
+      "digest": "79b2d00c5bc9cafee7170edb8e9889210b3a07675fb609325c5f9c8b6d625ef5",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.671628
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_request_receipts`",
+      "count": 5,
+      "digest": "7dfe3184d62a9836788a5a7554db2d0ac54cff31876a9ef17c32a3a5a0f4c137",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.437888
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_execution_buckets`",
+      "count": 5,
+      "digest": "2ec774028362b2529ab7b1339b523f48b6b8e1291f043b5e26299551f5d4f648",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.053687
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_jobs`",
+      "count": 5,
+      "digest": "36b930ce23159325266418a2161d14ada8e0caffb4eec550aa22389b3c451981",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.029468
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_resources`",
+      "count": 5,
+      "digest": "01aefb771020b3f9c28e3cc8a8ec2c469667e93279c24bd9e687f4feae1131f5",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 2.003867
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_outbox_events`",
+      "count": 5,
+      "digest": "3a0c74c1d2f8f33fdd90be4c8029bfd32eaad3a883c9fd2b7078b2881c774307",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.875044
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_lookup_guards`",
+      "count": 5,
+      "digest": "200f3a1b4f79980968bfd78c057202b6609befaa39e0ad068490134e6b59386e",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.870656
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_execution_receipts`",
+      "count": 5,
+      "digest": "7c804f554d091a9637d355014a92e182de430001a28bfdc931ed3212fe8c5b8a",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.846108
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_receipt_buckets`",
+      "count": 5,
+      "digest": "4131e2ef48bb6fc7b9fea70a87fc91d5500ffd0343783853097c86f33ea92920",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.760671
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_audit`",
+      "count": 5,
+      "digest": "d0fcd081b3900ee941cfbc16195770e59ef84236504d3db7ff65b3d50189c87f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.658706
+    },
+    {
+      "sql": "SELECT @@`version_comment` LIMIT ?",
+      "count": 6,
+      "digest": "44e35cee979ba420eb49a8471f852bbe15b403c89742704817dfbaace0d99dbb",
+      "rowsAffected": 0,
+      "rowsExamined": 6,
+      "totalMs": 1.653248
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_reservations`",
+      "count": 5,
+      "digest": "24d5486c5a11bb46649008c6c82e92851cca7eb38686df886e1b88b5ac872533",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.648266
+    },
+    {
+      "sql": "SELECT ?",
+      "count": 6,
+      "digest": "d1b44b0c19af710b5a679907e284acd2ddc285201794bc69a2389d77baedddae",
+      "rowsAffected": 0,
+      "rowsExamined": 6,
+      "totalMs": 1.360972
+    },
+    {
+      "sql": "SET `autocommit` = ? , `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `time_zone` = ?",
+      "count": 2,
+      "digest": "954abd7790c060defe729f82e2447fc1f6636bff2336467667f3d07ec3978638",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.622123
+    },
+    {
+      "sql": "SET `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `time_zone` = ? , `autocommit` = ? , `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ?",
+      "count": 2,
+      "digest": "1f7ecbfd1b19f75f5653e829953af9d549756671104b217f9f5511d0d7b2c913",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.552533
+    },
+    {
+      "sql": "SET `lock_wait_timeout` = ? , `unique_checks` = ? , `time_zone` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `autocommit` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `transaction_isolation` = ?",
+      "count": 1,
+      "digest": "7025e7f5221f450dc5013611824a882e0bc109361502e82b632600d940461d8d",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.403012
+    },
+    {
+      "sql": "SET `unique_checks` = ? , `lock_wait_timeout` = ? , `time_zone` = ? , `transaction_isolation` = ? , `sql_mode` = ? , `completion_type` = ? , `autocommit` = ? , `foreign_key_checks` = ? , `innodb_lock_wait_timeout` = ?",
+      "count": 1,
+      "digest": "6c4336215dce2a543ef1e116273056e9cd4c588d8764d44a28adb9521d5350df",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.374783
+    },
+    {
+      "sql": "SET `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `time_zone` = ? , `autocommit` = ?",
+      "count": 1,
+      "digest": "7bdf231981e572f6a4b38daf3df5441cefaae1d3ff2fc59d05b0e5a54faa3f43",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.346244
+    },
+    {
+      "sql": "SET `foreign_key_checks` = ? , `time_zone` = ? , `autocommit` = ? , `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ?",
+      "count": 1,
+      "digest": "76b1e20aba07d5b58875d54f6481314f4767ca403d1b3c57c2ea4281cdf8584c",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.296185
+    },
+    {
+      "sql": "SET `completion_type` = ? , `autocommit` = ? , `foreign_key_checks` = ? , `innodb_lock_wait_timeout` = ? , `unique_checks` = ? , `lock_wait_timeout` = ? , `time_zone` = ? , `transaction_isolation` = ? , `sql_mode` = ?",
+      "count": 1,
+      "digest": "a87c619d5ca9aa4843f7fd671ea17551f829d0ebaa2cd8986554851a79aa6b27",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.268662
+    }
+  ]
+}

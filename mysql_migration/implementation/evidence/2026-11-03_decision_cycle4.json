@@ -1,0 +1,86 @@
+﻿{
+    "date":  "2026-11-03",
+    "scope":  "D13.14b leased native-index planning, DDL execution, publication and completion",
+    "completed":  [
+                      "D13.14b"
+                  ],
+    "parent_D13_complete":  false,
+    "checklist":  {
+                      "done":  82,
+                      "total":  152,
+                      "remaining":  70
+                  },
+    "runtime":  "Opt-in single-lease owner composition; configured application remains PostgreSQL.",
+    "versions":  {
+                     "go":  "1.25.8",
+                     "mysql":  "8.4.8"
+                 },
+    "implementation":  [
+                           "backend/data-model-service/internal/store/mysql/native_index_worker.go",
+                           "backend/data-model-service/internal/store/mysql/index_delivery_execution.go",
+                           "backend/data-model-service/internal/store/mysql/metadata/native_index_worker_test.go",
+                           "backend/data-model-service/internal/store/mysql/metadata/physical_record_changes_test.go",
+                           "backend/data-model-service/internal/store/mysql/metadata/physical_creation_publication_test.go"
+                       ],
+    "verification":  [
+                         {
+                             "exit_code":  0,
+                             "subtest_passes":  9,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=300s -json ./internal/store/mysql/metadata -run TestPhysicalCreationAllocated/service_allocated_native_index_worker",
+                             "failures":  0,
+                             "top_level_passes":  1,
+                             "skips":  0,
+                             "log":  "2026-11-03_cycle4-worker-final.jsonl"
+                         },
+                         {
+                             "exit_code":  0,
+                             "subtest_passes":  36,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql/metadata -run TestPublishedNativeIndexCompletion|TestLeasedIndexExecution|TestStagedIndexJobEndpoints|TestMetadataTransactionManager",
+                             "failures":  0,
+                             "top_level_passes":  4,
+                             "skips":  0,
+                             "log":  "2026-11-03_cycle4-worker-regression.jsonl"
+                         }
+                     ],
+    "checks":  [
+                   {
+                       "scope":  "Compile every owner package; not a full test execution.",
+                       "command":  "go test -mod=readonly -race -p 2 -run ^$ ./...",
+                       "log":  "2026-11-03_cycle4-owner-compile.log",
+                       "exit_code":  0
+                   },
+                   {
+                       "command":  "go vet -p 2 ./internal/store/mysql ./internal/worker ./internal/mysqlruntime",
+                       "log":  "2026-11-03_cycle4-owner-vet.log",
+                       "exit_code":  0
+                   }
+               ],
+    "scenarios":  [
+                      "queued owner job creates physical native index, publishes, and atomically completes job/audit/delivery",
+                      "audit insert failure retains running job/delivery; recreated execution adapter reuses published receipt and completes with one DDL step and one audit",
+                      "initial authority denial performs no DDL or intent write",
+                      "initial expired lease performs no DDL or intent write",
+                      "text strategy returns explicit unsupported error without DDL",
+                      "foreign tenant lease rejected without mutation",
+                      "different database pool rejected without mutation",
+                      "authority revoked after publication denies completion and preserves published/open recovery state",
+                      "lease expires after physical execution; publication fails and preserves verifying/closed recovery state"
+                  ],
+    "assertions":  [
+                       "Native planner derives index identity and ordered fields from the persisted job and trusted typed mapping.",
+                       "Same pool/schema/tenant enforced before execution; owner authorization is mandatory and rechecked in start/completion transactions.",
+                       "Model -\u003e registry -\u003e intent -\u003e job -\u003e delivery lock order; no row lock spans DDL.",
+                       "Stable job operation identity and original retained inputs reconcile published intent without repeating DDL.",
+                       "Publication receipt version equals the eligible registry token on success.",
+                       "Fixture runs with a single owner pool connection and actual owner creation/field publication before index execution."
+                   ],
+    "limitations":  [
+                        "NativeIndexWork is supplied by a trusted reference builder; artifact loading and configured runtime wiring remain pending.",
+                        "Caller must supervise lease renewal/cancellation and failure disposition.",
+                        "Fixture authority and privileged execution do not establish real service identity or restricted runtime grants.",
+                        "Text, navigation and repair index strategies are explicitly unsupported by this composition.",
+                        "Fresh adapter recovery is tested; actual process crash and lost network acknowledgement acceptance remain separate.",
+                        "D13.15-D13.20 and other parent gates remain open."
+                    ],
+    "cleanup":  "Complete: decision-cycle4-runner, decision-cycle4-mysql-1 and decision-cycle4_default removed. MySQL used disposable tmpfs; no application database or configured backend was changed."
+}

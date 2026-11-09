@@ -1,0 +1,518 @@
+{
+  "at": "2026-11-06T13:20:50.774Z",
+  "origin": "http://127.0.0.1:8082/",
+  "fixtureSource": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-fraud\\2026-11-06T12-12-00.522Z",
+  "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+  "scenario": "afcc21e6-8f80-4a80-99e1-0b51184aed2f",
+  "datasetSha256": "e2493697f94fc01a8eb67c20c00c71f5e111c5430ff19242fbde2840aa9b76d5",
+  "rules": 5,
+  "scope": "Completed synchronous HTTP decision including model retrieval, SQL persistence and durable outbox production; excludes asynchronous delivery completion",
+  "requestGenerator": {
+    "mode": "open-loop offered rate with a bounded in-flight cap; skips are reported, no retries",
+    "maxInflight": 64,
+    "timeoutMs": 5000,
+    "keepAlive": true
+  },
+  "targetP95Ms": 50,
+  "baselineHealthLatency": {
+    "samples": 100,
+    "minMs": 1.229,
+    "meanMs": 1.699,
+    "p50Ms": 1.632,
+    "p95Ms": 2.155,
+    "p99Ms": 2.379,
+    "maxMs": 3.78,
+    "atOrBelowTargetPercent": 100
+  },
+  "baselineModelReadLatency": {
+    "samples": 20,
+    "minMs": 17.918,
+    "meanMs": 21.893,
+    "p50Ms": 21.823,
+    "p95Ms": 26.772,
+    "p99Ms": 28.908,
+    "maxMs": 28.908,
+    "atOrBelowTargetPercent": 100
+  },
+  "warmupRequests": 28,
+  "warmupErrors": 0,
+  "before": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "ab0c1f552d40d45717714a54d1fbb4f8e272f0d025d7adb982dd42f34c1a39b7",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:55.648121392Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "d2d640511da76830f98a18ed551dedf9462582b532c887222e15b2a298c5ba5d",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:49.814825983Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "6bd7cc5a5af54f0102ae363dbcc37b3c449f86261dc28c9a9c99b164802384d5",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:38.942417599Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "after": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "ab0c1f552d40d45717714a54d1fbb4f8e272f0d025d7adb982dd42f34c1a39b7",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:55.648121392Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "d2d640511da76830f98a18ed551dedf9462582b532c887222e15b2a298c5ba5d",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:49.814825983Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "6bd7cc5a5af54f0102ae363dbcc37b3c449f86261dc28c9a9c99b164802384d5",
+      "image": "sha256:c570701c43db512b1a521072d4088e6596ed7f532a82aa8bb83d30ff0aa9b4ee",
+      "startedAt": "2026-11-06T13:16:38.942417599Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "runtimeUnchanged": true,
+  "resourceSamples": 120,
+  "phases": [
+    {
+      "name": "50rps",
+      "configuredSeconds": 10,
+      "offeredRate": 50,
+      "concurrencyLimit": 64,
+      "offered": 500,
+      "sent": 391,
+      "validated": 391,
+      "errors": 0,
+      "clientSkipped": 109,
+      "elapsedSeconds": 10.6880593,
+      "completedPerSecond": 36.582880860326064,
+      "successfulResponseLatency": {
+        "samples": 391,
+        "minMs": 50.34,
+        "meanMs": 1342.759,
+        "p50Ms": 1368.353,
+        "p95Ms": 2565.29,
+        "p99Ms": 3561.7,
+        "maxMs": 3724.157,
+        "atOrBelowTargetPercent": 0
+      },
+      "firstByteLatency": {
+        "samples": 391,
+        "minMs": 50.154,
+        "meanMs": 1342.464,
+        "p50Ms": 1367.984,
+        "p95Ms": 2565.057,
+        "p99Ms": 3561.434,
+        "maxMs": 3724.021,
+        "atOrBelowTargetPercent": 0
+      },
+      "schedulerDelay": {
+        "samples": 391,
+        "minMs": -1.244,
+        "meanMs": 5.693,
+        "p50Ms": 4.613,
+        "p95Ms": 13.878,
+        "p99Ms": 16.553,
+        "maxMs": 20.434,
+        "atOrBelowTargetPercent": 100
+      },
+      "targetP95Ms": 50,
+      "targetMet": false,
+      "serverStageLatencies": {
+        "direct_total": {
+          "samples": 391,
+          "minMs": 46.614,
+          "meanMs": 1153.622,
+          "p50Ms": 1130.419,
+          "p95Ms": 2306.422,
+          "p99Ms": 2913.515,
+          "maxMs": 3604.964,
+          "atOrBelowTargetPercent": 2.813
+        },
+        "evaluation": {
+          "samples": 391,
+          "minMs": 6.423,
+          "meanMs": 381.488,
+          "p50Ms": 299.929,
+          "p95Ms": 1080.025,
+          "p99Ms": 1370.291,
+          "maxMs": 1589.721,
+          "atOrBelowTargetPercent": 17.391
+        },
+        "metadata": {
+          "samples": 391,
+          "minMs": 2.996,
+          "meanMs": 201.378,
+          "p50Ms": 104.617,
+          "p95Ms": 699.508,
+          "p99Ms": 1087.414,
+          "maxMs": 1678.276,
+          "atOrBelowTargetPercent": 29.412
+        },
+        "model": {
+          "samples": 391,
+          "minMs": 14.286,
+          "meanMs": 81.832,
+          "p50Ms": 88.011,
+          "p95Ms": 185.208,
+          "p99Ms": 384.231,
+          "maxMs": 694.459,
+          "atOrBelowTargetPercent": 34.783
+        },
+        "object_preparation": {
+          "samples": 391,
+          "minMs": 0.095,
+          "meanMs": 0.264,
+          "p50Ms": 0.219,
+          "p95Ms": 0.508,
+          "p99Ms": 1.162,
+          "maxMs": 3.941,
+          "atOrBelowTargetPercent": 100
+        },
+        "persistence": {
+          "samples": 391,
+          "minMs": 18.563,
+          "meanMs": 286.899,
+          "p50Ms": 213.314,
+          "p95Ms": 774.874,
+          "p99Ms": 1292.636,
+          "maxMs": 1718.168,
+          "atOrBelowTargetPercent": 17.903
+        },
+        "prepare_decision_build": {
+          "samples": 391,
+          "minMs": 0.003,
+          "meanMs": 0.011,
+          "p50Ms": 0.009,
+          "p95Ms": 0.018,
+          "p99Ms": 0.081,
+          "maxMs": 0.243,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_iteration_get": {
+          "samples": 391,
+          "minMs": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0.001,
+          "p99Ms": 0.002,
+          "maxMs": 0.005,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_routing_read": {
+          "samples": 391,
+          "minMs": 3.514,
+          "meanMs": 191.297,
+          "p50Ms": 98.637,
+          "p95Ms": 606.391,
+          "p99Ms": 1009.292,
+          "maxMs": 1372.082,
+          "atOrBelowTargetPercent": 31.202
+        },
+        "prepare_rules_eval": {
+          "samples": 391,
+          "minMs": 0.243,
+          "meanMs": 1.116,
+          "p50Ms": 0.855,
+          "p95Ms": 2.491,
+          "p99Ms": 6.381,
+          "maxMs": 12.693,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_rules_list": {
+          "samples": 391,
+          "minMs": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0.001,
+          "p99Ms": 0.003,
+          "maxMs": 0.038,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scenario_get": {
+          "samples": 391,
+          "minMs": 0.001,
+          "meanMs": 0.009,
+          "p50Ms": 0.003,
+          "p95Ms": 0.008,
+          "p99Ms": 0.181,
+          "maxMs": 1.046,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scoring_build": {
+          "samples": 391,
+          "minMs": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0.001,
+          "p99Ms": 0.001,
+          "maxMs": 0.001,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_screening_build": {
+          "samples": 391,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.001,
+          "p99Ms": 0.002,
+          "maxMs": 0.043,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_snoozes_list": {
+          "samples": 391,
+          "minMs": 1.817,
+          "meanMs": 188.185,
+          "p50Ms": 106.984,
+          "p95Ms": 685.99,
+          "p99Ms": 896.782,
+          "maxMs": 1110.482,
+          "atOrBelowTargetPercent": 30.946
+        },
+        "prepare_trigger_eval": {
+          "samples": 391,
+          "minMs": 0.026,
+          "meanMs": 0.116,
+          "p50Ms": 0.085,
+          "p95Ms": 0.259,
+          "p99Ms": 0.912,
+          "maxMs": 2.931,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_workflow_build": {
+          "samples": 391,
+          "minMs": 0,
+          "meanMs": 0.003,
+          "p50Ms": 0.002,
+          "p95Ms": 0.004,
+          "p99Ms": 0.031,
+          "maxMs": 0.087,
+          "atOrBelowTargetPercent": 100
+        },
+        "registry_validation": {
+          "samples": 391,
+          "minMs": 3.029,
+          "meanMs": 201.742,
+          "p50Ms": 106.235,
+          "p95Ms": 700.615,
+          "p99Ms": 1392.525,
+          "maxMs": 2103.264,
+          "atOrBelowTargetPercent": 29.668
+        },
+        "scope": {
+          "samples": 391,
+          "minMs": 0.047,
+          "meanMs": 0.151,
+          "p50Ms": 0.098,
+          "p95Ms": 0.297,
+          "p99Ms": 0.684,
+          "maxMs": 9.606,
+          "atOrBelowTargetPercent": 100
+        },
+        "tenant_auth": {
+          "samples": 391,
+          "minMs": 0.347,
+          "meanMs": 184.136,
+          "p50Ms": 101.171,
+          "p95Ms": 634.691,
+          "p99Ms": 858.916,
+          "maxMs": 1390.983,
+          "atOrBelowTargetPercent": 33.248
+        },
+        "tx_begin": {
+          "samples": 391,
+          "minMs": 0.488,
+          "meanMs": 179.464,
+          "p50Ms": 98.421,
+          "p95Ms": 677.679,
+          "p99Ms": 1189.239,
+          "maxMs": 1597.046,
+          "atOrBelowTargetPercent": 37.084
+        },
+        "tx_body": {
+          "samples": 391,
+          "minMs": 11.701,
+          "meanMs": 84.195,
+          "p50Ms": 86.311,
+          "p95Ms": 198.989,
+          "p99Ms": 288.36,
+          "maxMs": 375.989,
+          "atOrBelowTargetPercent": 37.596
+        },
+        "tx_body_total": {
+          "samples": 391,
+          "minMs": 8.327,
+          "meanMs": 62.967,
+          "p50Ms": 61.343,
+          "p95Ms": 183.709,
+          "p99Ms": 278.727,
+          "maxMs": 297.238,
+          "atOrBelowTargetPercent": 49.105
+        },
+        "tx_commit": {
+          "samples": 391,
+          "minMs": 4.22,
+          "meanMs": 22.954,
+          "p50Ms": 9.551,
+          "p95Ms": 82.577,
+          "p99Ms": 95.869,
+          "maxMs": 100.27,
+          "atOrBelowTargetPercent": 79.795
+        },
+        "tx_decision_insert": {
+          "samples": 391,
+          "minMs": 0.955,
+          "meanMs": 13.944,
+          "p50Ms": 2.761,
+          "p95Ms": 78.059,
+          "p99Ms": 121.336,
+          "maxMs": 204.943,
+          "atOrBelowTargetPercent": 86.445
+        },
+        "tx_outbox_build": {
+          "samples": 391,
+          "minMs": 0.012,
+          "meanMs": 0.041,
+          "p50Ms": 0.034,
+          "p95Ms": 0.074,
+          "p99Ms": 0.135,
+          "maxMs": 0.605,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_outbox_insert": {
+          "samples": 391,
+          "minMs": 3.515,
+          "meanMs": 30.097,
+          "p50Ms": 9.28,
+          "p95Ms": 90.255,
+          "p99Ms": 161.522,
+          "maxMs": 265.607,
+          "atOrBelowTargetPercent": 71.355
+        },
+        "tx_rule_exec_insert": {
+          "samples": 391,
+          "minMs": 2.52,
+          "meanMs": 18.823,
+          "p50Ms": 6.806,
+          "p95Ms": 82.26,
+          "p99Ms": 101.485,
+          "maxMs": 116.772,
+          "atOrBelowTargetPercent": 83.376
+        },
+        "tx_scoring_insert": {
+          "samples": 391,
+          "minMs": 0.002,
+          "meanMs": 0.014,
+          "p50Ms": 0.007,
+          "p95Ms": 0.015,
+          "p99Ms": 0.098,
+          "maxMs": 1.738,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_screening_insert": {
+          "samples": 391,
+          "minMs": 0.003,
+          "meanMs": 0.021,
+          "p50Ms": 0.013,
+          "p95Ms": 0.064,
+          "p99Ms": 0.218,
+          "maxMs": 0.485,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_workflow_insert": {
+          "samples": 391,
+          "minMs": 0.006,
+          "meanMs": 0.021,
+          "p50Ms": 0.016,
+          "p95Ms": 0.045,
+          "p99Ms": 0.314,
+          "maxMs": 0.383,
+          "atOrBelowTargetPercent": 100
+        }
+      },
+      "profileTimings": true
+    }
+  ],
+  "stopReason": "Stopped load ramp after excessive errors or client-capacity skips",
+  "valid": true,
+  "measurementValid": true,
+  "offeredLoadMet": false,
+  "targetMet": false
+}

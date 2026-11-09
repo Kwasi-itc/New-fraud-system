@@ -1,0 +1,10 @@
+﻿{
+    "Project":  "decision-accept-93d9ff4f1e03",
+    "Started":  "2026-11-03T17:28:32.0099270Z",
+    "Status":  "passed",
+    "Cleanup":  "passed",
+    "ApplicationDatabaseTouched":  false,
+    "PassedTopLevelTests":  5,
+    "Scope":  "Real owner migrations; physical publication/recovery/grants; model-change and aggregate evaluation; browser edits/copy/races; revocation; screening mutation/projection drain. Full external effect-provider/release acceptance remains separate.",
+    "Finished":  "2026-11-03T17:32:51.3285853Z"
+}

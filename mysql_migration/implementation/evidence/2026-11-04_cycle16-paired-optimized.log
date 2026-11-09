@@ -1,0 +1,5 @@
+--- FAIL: TestManualEvaluationLoadAcceptance (37.59s)
+    evaluation_load_integration_test.go:94: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)
+    evaluation_load_integration_test.go:94: evaluation smoke=false offered=3000 success=1953 p95=170.067539ms p99=193.102039ms counts=map[decision_engine_decisions:1953 decision_engine_effect_job_deliveries:13671 decision_engine_effect_job_receipts:13671 decision_engine_outbox_events:7812 decision_engine_rule_executions:19530 decision_engine_scoring_requests:1953 decision_engine_screening_executions:1953 decision_engine_workflow_executions:1953]
+    evaluation_load_integration_test.go:94: load targets unmet: offered=3000 success=1953 failed=0 dropped=1047 canceled=0 p95=170.067539ms p99=193.102039ms
+FAIL

@@ -257,6 +257,12 @@ func physicalFaultDB(t *testing.T, database, statement string, observed *atomic.
 }
 
 func physicalFaultDBAs(t *testing.T, database, statement string, observed *atomic.Bool, user, password string) *sql.DB {
+	return physicalFaultDBMatching(t, database, statement, observed, user, password, false)
+}
+
+// Parameterized backfill is interpolated only in this test connection so the
+// socket fault can discard the server OK after the committed UPDATE batch.
+func physicalFaultDBMatching(t *testing.T, database, statement string, observed *atomic.Bool, user, password string, prefix bool) *sql.DB {
 	t.Helper()
 	network := "physical_ddl_fault_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	driver.RegisterDialContext(network, func(ctx context.Context, address string) (net.Conn, error) {
@@ -264,7 +270,7 @@ func physicalFaultDBAs(t *testing.T, database, statement string, observed *atomi
 		if err != nil {
 			return nil, err
 		}
-		return &migrationLostDDL{Conn: conn, statement: statement, observed: observed}, nil
+		return &migrationLostDDL{Conn: conn, statement: statement, observed: observed, prefix: prefix}, nil
 	})
 	t.Cleanup(func() { driver.DeregisterDialContext(network) })
 	cfg := driver.NewConfig()
@@ -274,6 +280,7 @@ func physicalFaultDBAs(t *testing.T, database, statement string, observed *atomi
 	cfg.User = user
 	cfg.Passwd = password
 	cfg.ParseTime = true
+	cfg.InterpolateParams = prefix
 	cfg.Timeout = 5 * time.Second
 	cfg.ReadTimeout = 5 * time.Second
 	cfg.WriteTimeout = 5 * time.Second

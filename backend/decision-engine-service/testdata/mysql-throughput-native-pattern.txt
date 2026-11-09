@@ -1,0 +1,1 @@
+^Test(MySQL(Aggregate(Batch.*|Publication.*)|VelocitySummary.*|Registry.*|RegisteredTextIndex.*|ActualDecision.*|Decision(Persistence.*|Effects.*)|CombinedTransaction.*|Effect.*|RequiredEffect.*|Dispatch.*|ExhaustedDispatch.*)|AggregatePublication.*|DecisionUnit.*|RequiredEffect.*|ActualDecisionServicePostgres.*|EffectsPostgres.*|WalletRule.*)$

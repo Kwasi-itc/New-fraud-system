@@ -36,7 +36,7 @@ paths:
       - {name: caseId, in: path, required: true, schema: {type: string, format: uuid}}
     get:
       summary: Read current linked-resource investigator review eligibility
-      description: Requires the original signed human JWT and current tenant, case, inbox and exact resource access. Service credentials cannot authorize this route.
+      description: Requires a trusted human session and current tenant, case, inbox and exact resource access. The PostgreSQL host verifies a signed JWT. The explicitly enabled local MySQL host uses its seeded development reviewer session and rechecks identity, expiry, revocation, membership and inbox access in SQL; it accepts no caller-supplied actor or role.
       security: [{investigatorJWT: []}]
       parameters:
         - {name: resource_id, in: query, required: true, schema: {type: string}}
@@ -52,7 +52,7 @@ paths:
         '500': {description: Owner state could not be read}
     post:
       summary: Record the first human review with atomic case history
-      description: Open linked case and active inbox required. Findings are trimmed and limited to 10000 UTF-8 bytes. Original actor is verified from JWT; extra fields are rejected. Retry uncertain responses with the identical operation ID and payload. Human review does not change case lifecycle or machine outcome.
+      description: Open linked case and active inbox required. Findings are trimmed and limited to 10000 UTF-8 bytes. The actor comes from the trusted session (the seeded development reviewer in the local MySQL profile); extra fields are rejected. Retry uncertain responses with the identical operation ID and payload. Human review does not change case lifecycle or machine outcome.
       security: [{investigatorJWT: []}]
       requestBody:
         required: true
@@ -269,12 +269,28 @@ paths:
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description:
     post:
       tags: [Scenario Authoring]
-      summary: Describe a scenario expression with AI
-      description: Reserved for future AI-assisted scenario explanations. This endpoint is currently not implemented.
+      summary: Describe a scenario expression
+      description: The local MySQL host uses a deterministic structural expression assistant (uses_ai=false). It validates a boolean formula against the current published tenant model and returns its description without changing rules. No language model is configured. The legacy PostgreSQL host returns 501.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [formula]
+              properties:
+                formula: {$ref: '#/components/schemas/ASTNodeDTO'}
       responses:
+        '200':
+          description: Validated local structural explanation
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LocalExpressionAssistance'}
+        '422': {description: Unknown field, invalid formula or non-boolean expression}
         '501':
           description: Not implemented
           content:
@@ -284,12 +300,28 @@ paths:
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast:
     post:
       tags: [Scenario Authoring]
-      summary: Generate a scenario expression with AI
-      description: Reserved for future AI-assisted rule generation. This endpoint is currently not implemented.
+      summary: Compile a local scenario expression
+      description: 'The local MySQL host compiles an explicit expression into a validated boolean AST (uses_ai=false). Supports payload field names, JSON string/number/boolean/null literals, == != > >= < <=, lowercase and/or/not and parentheses. Use parentheses after not for comparisons. Maximum expression length is 8192 bytes. This is a local compiler, not free-form AI or natural-language generation. The legacy PostgreSQL host returns 501.'
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expression]
+              properties:
+                expression: {type: string, maxLength: 8192, example: 'amount > 100 and currency == "USD"'}
       responses:
+        '200':
+          description: Compiled and model-validated local expression
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LocalExpressionAssistance'}
+        '422': {description: Unsupported syntax, field or operand type}
         '501':
           description: Not implemented
           content:
@@ -643,14 +675,21 @@ paths:
   /v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description:
     get:
       tags: [Scenario Authoring]
-      summary: Describe a rule with AI
-      description: Reserved for future AI-assisted rule explanations. This endpoint is currently not implemented.
+      summary: Describe a stored rule expression
+      description: The local MySQL host reads the exact tenant/scenario/iteration rule and returns a deterministic structural explanation after model validation (uses_ai=false). The legacy PostgreSQL host returns 501.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ScenarioId'
         - $ref: '#/components/parameters/IterationId'
         - $ref: '#/components/parameters/RuleId'
       responses:
+        '200':
+          description: Model-validated explanation of the stored rule
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LocalExpressionAssistance'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {description: Stored rule is invalid against the current tenant model}
         '501':
           description: Not implemented
           content:
@@ -2659,7 +2698,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateCustomListEntryRequest'
+              allOf:
+                - $ref: '#/components/schemas/CreateCustomListEntryRequest'
+                - type: object
+                  required: [list_id]
+                  properties:
+                    list_id: {type: string, format: uuid, description: Owning custom-list UUID required by this tenant-level alias}
       responses:
         '201':
           description: Custom-list entry created
@@ -4786,6 +4830,15 @@ components:
         snooze_group_id: repeat-high-amount
         created_at: '2026-07-14T10:30:00Z'
         expires_at: '2026-07-21T10:30:00Z'
+    LocalExpressionAssistance:
+      type: object
+      required: [backend, uses_ai, formula, description, model_revision]
+      properties:
+        backend: {type: string, enum: [local-expression-assistant]}
+        uses_ai: {type: boolean, enum: [false]}
+        formula: {$ref: '#/components/schemas/ASTNodeDTO'}
+        description: {type: string}
+        model_revision: {type: string}
     CreateCustomListEntryRequest:
       type: object
       description: Payload for adding one value to a custom list.
@@ -5089,7 +5142,6 @@ components:
         match_count:
           type: integer
           description: Number of matches reported by the screening service.
-      required: [tenant_id, screening_id, decision_id, scenario_id, screening_config_id, status, provider, object_type, object_id, provider_reference, last_error, partial, idempotency_key, match_count]
     ScenarioEnvelope:
       type: object
       properties:

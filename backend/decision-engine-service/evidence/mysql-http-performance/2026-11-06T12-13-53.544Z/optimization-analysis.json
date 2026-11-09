@@ -1,0 +1,280 @@
+{
+  "at": "2026-11-06T12:16:42.515Z",
+  "objective": {
+    "completedEvaluationsPerSecond": 500,
+    "p95Ms": 50,
+    "rules": 5,
+    "durableWrites": true
+  },
+  "before": {
+    "source": "evidence/mysql-http-performance/2026-11-06T12-06-30.480Z",
+    "measurementValid": true,
+    "image": "sha256:21c1586154d21efde5c07f3509ddec66653f56320efb6c8c639e10d5e5b01ba0",
+    "phases": [
+      {
+        "name": "5rps",
+        "configuredSeconds": 20,
+        "offeredRate": 5,
+        "concurrencyLimit": 64,
+        "offered": 100,
+        "sent": 100,
+        "validated": 100,
+        "errors": 0,
+        "clientSkipped": 0,
+        "elapsedSeconds": 20.006384999999998,
+        "completedPerSecond": 4.998404259440174,
+        "successfulResponseLatency": {
+          "samples": 100,
+          "minMs": 51.83,
+          "meanMs": 85.426,
+          "p50Ms": 78.581,
+          "p95Ms": 145.583,
+          "p99Ms": 163.92,
+          "maxMs": 176.048,
+          "atOrBelowTargetPercent": 0
+        },
+        "firstByteLatency": {
+          "samples": 100,
+          "minMs": 51.678,
+          "meanMs": 85.241,
+          "p50Ms": 78.429,
+          "p95Ms": 145.366,
+          "p99Ms": 163.511,
+          "maxMs": 175.803,
+          "atOrBelowTargetPercent": 0
+        },
+        "schedulerDelay": {
+          "samples": 100,
+          "minMs": -0.101,
+          "meanMs": 7.424,
+          "p50Ms": 7.297,
+          "p95Ms": 14.562,
+          "p99Ms": 15.114,
+          "maxMs": 15.444,
+          "atOrBelowTargetPercent": 100
+        },
+        "targetP95Ms": 50,
+        "targetMet": false
+      },
+      {
+        "name": "25rps",
+        "configuredSeconds": 20,
+        "offeredRate": 25,
+        "concurrencyLimit": 64,
+        "offered": 500,
+        "sent": 500,
+        "validated": 500,
+        "errors": 0,
+        "clientSkipped": 0,
+        "elapsedSeconds": 20.6938258,
+        "completedPerSecond": 24.16179612375011,
+        "successfulResponseLatency": {
+          "samples": 500,
+          "minMs": 110.022,
+          "meanMs": 659.502,
+          "p50Ms": 626.176,
+          "p95Ms": 1237.226,
+          "p99Ms": 1551.539,
+          "maxMs": 1915.226,
+          "atOrBelowTargetPercent": 0
+        },
+        "firstByteLatency": {
+          "samples": 500,
+          "minMs": 109.873,
+          "meanMs": 659.242,
+          "p50Ms": 625.988,
+          "p95Ms": 1237.061,
+          "p99Ms": 1551.411,
+          "maxMs": 1915.013,
+          "atOrBelowTargetPercent": 0
+        },
+        "schedulerDelay": {
+          "samples": 500,
+          "minMs": -1.269,
+          "meanMs": 6.853,
+          "p50Ms": 6.427,
+          "p95Ms": 14.28,
+          "p99Ms": 15.461,
+          "maxMs": 16.396,
+          "atOrBelowTargetPercent": 100
+        },
+        "targetP95Ms": 50,
+        "targetMet": false
+      }
+    ]
+  },
+  "after": {
+    "source": "evidence/mysql-http-performance/2026-11-06T12-08-37.391Z",
+    "measurementValid": true,
+    "image": "sha256:7cf625f3e9018689b403e239290d1ec9e53c3f06f5bdb779143cd6c480a503a3",
+    "phases": [
+      {
+        "name": "5rps",
+        "configuredSeconds": 20,
+        "offeredRate": 5,
+        "concurrencyLimit": 64,
+        "offered": 100,
+        "sent": 100,
+        "validated": 100,
+        "errors": 0,
+        "clientSkipped": 0,
+        "elapsedSeconds": 20.002402499999995,
+        "completedPerSecond": 4.999399447141413,
+        "successfulResponseLatency": {
+          "samples": 100,
+          "minMs": 58.787,
+          "meanMs": 128.239,
+          "p50Ms": 119.117,
+          "p95Ms": 200.419,
+          "p99Ms": 272.981,
+          "maxMs": 299.12,
+          "atOrBelowTargetPercent": 0
+        },
+        "firstByteLatency": {
+          "samples": 100,
+          "minMs": 58.638,
+          "meanMs": 127.989,
+          "p50Ms": 118.897,
+          "p95Ms": 200.221,
+          "p99Ms": 272.679,
+          "maxMs": 298.859,
+          "atOrBelowTargetPercent": 0
+        },
+        "schedulerDelay": {
+          "samples": 100,
+          "minMs": -0.505,
+          "meanMs": 7.257,
+          "p50Ms": 7.251,
+          "p95Ms": 14.678,
+          "p99Ms": 15.275,
+          "maxMs": 15.377,
+          "atOrBelowTargetPercent": 100
+        },
+        "targetP95Ms": 50,
+        "targetMet": false
+      },
+      {
+        "name": "25rps",
+        "configuredSeconds": 20,
+        "offeredRate": 25,
+        "concurrencyLimit": 64,
+        "offered": 500,
+        "sent": 401,
+        "validated": 383,
+        "errors": 18,
+        "clientSkipped": 99,
+        "elapsedSeconds": 21.538910200000004,
+        "completedPerSecond": 17.78177245012145,
+        "successfulResponseLatency": {
+          "samples": 383,
+          "minMs": 96.809,
+          "meanMs": 2551.033,
+          "p50Ms": 2547.749,
+          "p95Ms": 4524.434,
+          "p99Ms": 4851.583,
+          "maxMs": 4986.7,
+          "atOrBelowTargetPercent": 0
+        },
+        "firstByteLatency": {
+          "samples": 383,
+          "minMs": 96.639,
+          "meanMs": 2550.701,
+          "p50Ms": 2547.51,
+          "p95Ms": 4524.131,
+          "p99Ms": 4851.157,
+          "maxMs": 4985.48,
+          "atOrBelowTargetPercent": 0
+        },
+        "schedulerDelay": {
+          "samples": 401,
+          "minMs": -1.024,
+          "meanMs": 7.383,
+          "p50Ms": 7.053,
+          "p95Ms": 14.672,
+          "p99Ms": 17.804,
+          "maxMs": 35.172,
+          "atOrBelowTargetPercent": 100
+        },
+        "targetP95Ms": 50,
+        "targetMet": false
+      }
+    ]
+  },
+  "targetAttempt": {
+    "source": "evidence/mysql-http-performance/2026-11-06T12-13-53.544Z",
+    "measurementValid": true,
+    "offeredLoadMet": false,
+    "targetMet": false,
+    "phases": [
+      {
+        "name": "500rps",
+        "configuredSeconds": 5,
+        "offeredRate": 500,
+        "concurrencyLimit": 64,
+        "offered": 2500,
+        "sent": 138,
+        "validated": 134,
+        "errors": 4,
+        "clientSkipped": 2362,
+        "elapsedSeconds": 7.1253115000000005,
+        "completedPerSecond": 18.80619535019627,
+        "successfulResponseLatency": {
+          "samples": 134,
+          "minMs": 782.719,
+          "meanMs": 2849.657,
+          "p50Ms": 2606.902,
+          "p95Ms": 4627.833,
+          "p99Ms": 4948.781,
+          "maxMs": 4997.122,
+          "atOrBelowTargetPercent": 0
+        },
+        "firstByteLatency": {
+          "samples": 134,
+          "minMs": 782.498,
+          "meanMs": 2849.337,
+          "p50Ms": 2606.66,
+          "p95Ms": 4627.627,
+          "p99Ms": 4948.436,
+          "maxMs": 4996.95,
+          "atOrBelowTargetPercent": 0
+        },
+        "schedulerDelay": {
+          "samples": 138,
+          "minMs": -1.306,
+          "meanMs": 4.808,
+          "p50Ms": 3.636,
+          "p95Ms": 12.91,
+          "p99Ms": 14.032,
+          "maxMs": 14.936,
+          "atOrBelowTargetPercent": 100
+        },
+        "targetP95Ms": 50,
+        "targetMet": false
+      }
+    ]
+  },
+  "excluded": [
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T12-03-43.813Z",
+      "reason": "44 warm-up timeouts from synchronized 64-request burst; measurementValid=false. Retained without alteration."
+    }
+  ],
+  "verification": {
+    "nativeRegression": "evidence/mysql-integration/2026-11-06T11-49-37Z/report.json",
+    "syntheticFraud": "evidence/mysql-fraud/2026-11-06T12-12-00.522Z/report.json",
+    "endpoints": "evidence/mysql-endpoint-audit/2026-11-06T12-15-15.268Z/report.json"
+  },
+  "changes": [
+    "Indexed discovery before tenant maintenance owner transactions",
+    "Load generator supports 500 offered requests/sec, bounded admission, paced warm-up, explicit client skips and uncertain timeouts",
+    "Read-only SQL counter profiler; no server statistics resets"
+  ],
+  "conclusion": "500 TPS and 50 ms targets are unmet. No end-to-end performance improvement demonstrated. Short before/after runs do not establish a causal regression or maximum capacity.",
+  "limitations": [
+    "Shared development host and background activity vary",
+    "API one CPU, eight SQL connections; MySQL two CPUs",
+    "Latency ends after synchronous persistence/outbox production, excludes asynchronous delivery completion",
+    "Client skips are unsent requests; timeout commit outcomes remain uncertain and are not retried",
+    "SQL digest loss prevents complete query attribution; snapshot windows include Docker overhead"
+  ]
+}

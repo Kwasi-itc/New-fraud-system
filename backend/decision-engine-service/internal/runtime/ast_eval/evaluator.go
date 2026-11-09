@@ -19,6 +19,7 @@ import (
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/google/uuid"
 )
 
 type marbleFilter struct {
@@ -30,7 +31,7 @@ type marbleFilter struct {
 
 func EvaluateNode(ctx context.Context, node domainast.Node, runtime Runtime) (any, error) {
 	if node.Function == "" || strings.EqualFold(node.Function, "constant") {
-		return node.Constant, nil
+		return detachedConstant(node.Constant), nil
 	}
 	return runtime.EvalCache.evaluate(ctx, node, runtime, func() (any, error) {
 		return evaluateNodeUncached(ctx, node, runtime)
@@ -188,7 +189,7 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if !ok {
 			return nil, fmt.Errorf("%s expects string right operand", node.Function)
 		}
-		if strings.ToLower(node.Function) == "starts_with" {
+		if canonicalFunctionName(node.Function) == "starts_with" {
 			return strings.HasPrefix(leftStr, rightStr), nil
 		}
 		return strings.HasSuffix(leftStr, rightStr), nil
@@ -204,7 +205,7 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if !ok {
 			return nil, fmt.Errorf("%s expects a string child", node.Function)
 		}
-		if strings.ToLower(node.Function) == "lower" {
+		if canonicalFunctionName(node.Function) == "lower" {
 			return strings.ToLower(strValue), nil
 		}
 		return strings.ToUpper(strValue), nil
@@ -256,7 +257,7 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if err != nil {
 			return nil, err
 		}
-		return arithmeticValue(strings.ToLower(node.Function), left, right)
+		return arithmeticValue(canonicalFunctionName(node.Function), left, right)
 	case "in_custom_list":
 		listName, err := evalNamedString(ctx, node, "list", runtime)
 		if err != nil {
@@ -531,10 +532,19 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 			return nil, fmt.Errorf("custom list repository is not configured")
 		}
 		var items []platform.CustomListEntry
-		if customList, getErr := runtime.CustomListRepo.GetListByID(ctx, runtime.TenantID, listRef); getErr == nil {
-			items, err = runtime.CustomListRepo.ListEntriesByListID(ctx, runtime.TenantID, customList.ID)
-		} else {
+		if _, parseErr := uuid.Parse(listRef); parseErr != nil {
+			// Legacy names are valid references, not malformed UUID queries.
 			items, err = runtime.CustomListRepo.ListByName(ctx, runtime.TenantID, listRef)
+		} else {
+			customList, getErr := runtime.CustomListRepo.GetListByID(ctx, runtime.TenantID, listRef)
+			switch {
+			case getErr == nil:
+				items, err = runtime.CustomListRepo.ListEntriesByListID(ctx, runtime.TenantID, customList.ID)
+			case errors.Is(getErr, ports.ErrCustomListNotFound):
+				items, err = runtime.CustomListRepo.ListByName(ctx, runtime.TenantID, listRef)
+			default:
+				return nil, getErr
+			}
 		}
 		if err != nil {
 			return nil, err
@@ -918,7 +928,7 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if err != nil {
 			return nil, err
 		}
-		return aggregateNumericList(strings.ToLower(node.Function), items)
+		return aggregateNumericList(canonicalFunctionName(node.Function), items)
 	case "group_count":
 		items, err := evalNamedList(ctx, node, "items", runtime)
 		if err != nil {
@@ -1032,8 +1042,8 @@ func TraverseRelatedPath(ctx context.Context, runtime Runtime, path string) (map
 }
 
 func EvaluateFormula(ctx context.Context, formula json.RawMessage, runtime Runtime) (bool, error) {
-	var node domainast.Node
-	if err := json.Unmarshal(formula, &node); err != nil {
+	node, err := runtime.FormulaPlans.parse(formula, runtime)
+	if err != nil {
 		return false, err
 	}
 	result, err := EvaluateNode(ctx, node, runtime)
@@ -1270,6 +1280,9 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 	queryShape := aggregateQueryShapeKey(compileResult.Query)
 	recordAggregateDemand(ctx, queryShape, compileResult.Query.Aggregate, compileResult.Query.Field)
 	cacheOutcome, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
+		if runtime.AggregateBatcher != nil {
+			return runtime.AggregateBatcher.Evaluate(ctx, compileResult.Query)
+		}
 		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency)
 		if acquireErr != nil {
 			return nil, acquireErr

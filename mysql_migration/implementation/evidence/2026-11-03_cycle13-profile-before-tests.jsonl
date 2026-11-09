@@ -1,0 +1,40 @@
+go: downloading github.com/go-sql-driver/mysql v1.9.3
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/golang-migrate/migrate/v4 v4.18.3
+go: downloading github.com/jackc/pgx/v5 v5.8.0
+go: downloading golang.org/x/sync v0.22.0
+go: downloading filippo.io/edwards25519 v1.1.0
+go: downloading github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
+go: downloading github.com/riverqueue/river v0.31.0
+go: downloading github.com/riverqueue/river/riverdriver v0.31.0
+go: downloading golang.org/x/text v0.34.0
+go: downloading github.com/hashicorp/go-multierror v1.1.1
+go: downloading github.com/lib/pq v1.10.9
+go: downloading go.uber.org/atomic v1.7.0
+go: downloading github.com/jackc/puddle/v2 v2.2.2
+go: downloading github.com/jackc/pgpassfile v1.0.0
+go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+go: downloading github.com/riverqueue/river/rivershared v0.31.0
+go: downloading github.com/riverqueue/river/rivertype v0.31.0
+go: downloading github.com/golang-jwt/jwt/v5 v5.3.0
+go: downloading github.com/hashicorp/errwrap v1.1.0
+go: downloading github.com/tidwall/gjson v1.18.0
+go: downloading github.com/tidwall/sjson v1.2.5
+go: downloading github.com/tidwall/match v1.2.0
+go: downloading github.com/tidwall/pretty v1.2.1
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading go.uber.org/goleak v1.3.0
+go: downloading github.com/davecgh/go-spew v1.1.1
+go: downloading github.com/pmezard/go-difflib v1.0.0
+go: downloading gopkg.in/yaml.v3 v3.0.1
+{"Time":"2026-11-03T20:50:50.914829854Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"}
+{"Time":"2026-11-03T20:50:50.936744954Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance"}
+{"Time":"2026-11-03T20:50:50.936851293Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Output":"=== RUN   TestManualEvaluationLoadAcceptance\n"}
+{"Time":"2026-11-03T20:50:50.964967062Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Output":"    evaluation_load_integration_test.go:94: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T20:51:27.565092751Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Output":"    evaluation_load_integration_test.go:94: evaluation smoke=false offered=3000 success=1601 p95=217.152617ms p99=276.895338ms counts=map[decision_engine_decisions:1601 decision_engine_effect_job_deliveries:11207 decision_engine_effect_job_receipts:11207 decision_engine_outbox_events:6404 decision_engine_rule_executions:16010 decision_engine_scoring_requests:1601 decision_engine_screening_executions:1601 decision_engine_workflow_executions:1601]\n"}
+{"Time":"2026-11-03T20:51:27.56514319Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Output":"    evaluation_load_integration_test.go:94: load targets unmet: offered=3000 success=1601 failed=0 dropped=1399 canceled=0 p95=217.152617ms p99=276.895338ms\n"}
+{"Time":"2026-11-03T20:51:28.230466458Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Output":"--- FAIL: TestManualEvaluationLoadAcceptance (37.30s)\n"}
+{"Time":"2026-11-03T20:51:28.230547638Z","Action":"fail","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestManualEvaluationLoadAcceptance","Elapsed":37.3}
+{"Time":"2026-11-03T20:51:28.230897597Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Output":"FAIL\n"}
+{"Time":"2026-11-03T20:51:28.234480786Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Output":"FAIL\tgithub.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql\t37.320s\n"}
+{"Time":"2026-11-03T20:51:28.234522889Z","Action":"fail","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Elapsed":37.322}

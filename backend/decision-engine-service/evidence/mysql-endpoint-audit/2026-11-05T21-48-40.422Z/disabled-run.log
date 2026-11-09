@@ -1,0 +1,39 @@
+PASS enabled-local-provider-profile-and-fixture
+PASS legacy-workflow-crud-reorder-and-isolation
+PASS scoring-config-crud-and-validation
+PASS real-case-screening-scoring-and-outbox-delivery
+PASS formerly-disabled-route-tenant-isolation
+{
+  "output": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-disabled\\2026-11-05T21-50-31.180Z",
+  "verified": 10,
+  "total": 12,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": true
+    },
+    {
+      "name": "callback-rejection-redrive-cancellation-and-restart",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/async-decision-executions/95934460-aeeb-4277-b89b-62281bf5636d/callback/retry: 409: {\"error\":\"execution_conflict\"}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:19:431)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:72:2\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:20:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:65:1"
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ]
+}
+
+FAIL callback-rejection-redrive-cancellation-and-restart: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/async-decision-executions/95934460-aeeb-4277-b89b-62281bf5636d/callback/retry: 409: {"error":"execution_conflict"}

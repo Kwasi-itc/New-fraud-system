@@ -104,15 +104,19 @@ func creationInstallationDB(t *testing.T, ctx context.Context) (*sql.DB, string,
 }
 
 func TestPhysicalCreationPublication(t *testing.T) {
-	testPhysicalCreationPublication(t, false)
+	testPhysicalCreationPublication(t, false, false)
 }
 
 func TestPhysicalCreationAllocated(t *testing.T) {
-	testPhysicalCreationPublication(t, true)
+	testPhysicalCreationPublication(t, true, false)
 }
 
-func testPhysicalCreationPublication(t *testing.T, allocated bool) {
-	ctx, cancel := context.WithTimeout(context.Background(), 110*time.Second)
+func TestPhysicalTextConstraintRecovery(t *testing.T) {
+	testPhysicalCreationPublication(t, true, true)
+}
+
+func testPhysicalCreationPublication(t *testing.T, allocated, textConstraints bool, selected ...string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 	var db *sql.DB
 	var database string
@@ -146,6 +150,8 @@ func testPhysicalCreationPublication(t *testing.T, allocated bool) {
 	scenarios := []string{"lost_insert_ack", "lost_update_ack", "service_commit", "service_drift", "service_inactive", "service_audit_failure", "service_revision_failure", "publish_replay", "lost_commit", "owner_rollback", "metadata_mismatch", "extra_field", "missing_mapping", "authorization", "trigger_drift", "extra_trigger", "dirty_journal", "resolver_drift", "shared_grant", "record_grant", "record_unlocked", "writer_grant", "private_consumer", "installer_active", "installer_capability", "installer_session", "installer_extra_privilege", "missing_reference_privilege", "missing_definer_privilege", "missing_trigger_privilege"}
 	if allocated {
 		scenarios = []string{"service_allocated", "service_allocated_lost_commit", "service_allocated_native_guard_before", "service_allocated_native_guard_after", "service_allocated_native_owner_rollback", "service_allocated_native_active_installer", "service_allocated_native_missing_alter", "service_allocated_native_lost_ack", "service_allocated_native_lost_commit", "service_allocated_native_metadata_mismatch", "service_allocated_native_extra_field", "service_allocated_native_missing_mapping"}
+
+		scenarios = append(scenarios, "service_allocated_native_text_lost_alter_ack", "service_allocated_native_text_lost_insert_ack", "service_allocated_native_text_lost_update_ack", "service_allocated_native_text_lost_commit")
 		scenarios = append(scenarios, "service_allocated_options_commit", "service_allocated_options_concurrent", "service_allocated_options_revision_failure", "service_allocated_options_closed_gate", "service_allocated_options_restricted", "service_allocated_options_lost_commit")
 	}
 	if allocated {
@@ -165,6 +171,22 @@ func testPhysicalCreationPublication(t *testing.T, allocated bool) {
 	}
 	if allocated {
 		scenarios = append(scenarios, "service_allocated_native_unique_commit", "service_allocated_native_unique_rollback", "service_allocated_native_unique_drift", "service_allocated_native_unique_lost_commit", "service_allocated_native_unique_duplicates", "service_allocated_native_unique_repair_commit", "service_allocated_native_unique_float_commit")
+		scenarios = append(scenarios, "service_allocated_native_index_worker", "service_allocated_native_index_worker_audit_failure", "service_allocated_native_index_worker_denied", "service_allocated_native_index_worker_expired", "service_allocated_native_index_worker_text")
+		scenarios = append(scenarios, "service_allocated_native_index_worker_foreign_tenant", "service_allocated_native_index_worker_other_pool", "service_allocated_native_index_worker_completion_denied", "service_allocated_native_index_worker_publication_expired")
+		scenarios = append(scenarios, "service_allocated_native_index_worker_navigation", "service_allocated_native_index_worker_repair")
+		scenarios = append(scenarios, "service_allocated_native_index_worker_managed_text", "service_allocated_native_index_worker_managed_navigation", "service_allocated_native_index_worker_managed_repair", "service_allocated_native_index_worker_managed_audit_failure")
+		// This journey installs other owners into the shared fixture. Keep it
+		// last so earlier physical readiness checks see their original lineage.
+		scenarios = append(scenarios, "service_allocated_native_index_worker_decision")
+	}
+	if textConstraints {
+		scenarios = nil
+		for _, fault := range []string{"enable_alter", "enable_insert", "enable_update", "enable_backfill", "enable_check", "enable_commit", "enable_canceled", "disable_insert", "disable_update", "disable_column", "disable_commit"} {
+			scenarios = append(scenarios, "service_allocated_native_text_patch_"+fault)
+		}
+	}
+	if len(selected) > 0 {
+		scenarios = selected
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario, func(t *testing.T) {
@@ -514,7 +536,7 @@ func testPhysicalCreationPublication(t *testing.T, allocated bool) {
 							verifyDisplayOwner(t, ctx, db, database, settings, publication, tenantID, tableID, uuid.MustParse(request.ActorID), uuid.New(), initial, input, "service_"+strings.TrimPrefix(scenario, "service_allocated_display_"))
 						}
 					} else if scenario != "service_allocated_lost_commit" {
-						verifyGuardedNativeChange(t, ctx, db, database, tenantID, tableID, name, plan, mapped, shared, installer, policies, scenario)
+						verifyGuardedNativeChange(t, ctx, db, database, tenantID, tableID, name, plan, mapped, shared, installer, policies, scenario, installed)
 					}
 					exec("UPDATE "+schema+".data_model_tables SET alias='later edit' WHERE tenant_id=? AND id=?", mysqlstore.UUID(tenantID), mysqlstore.UUID(tableID))
 					replay, e := allocationManager.Recover(ctx, allocationRequest)

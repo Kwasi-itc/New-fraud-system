@@ -1,0 +1,13 @@
+{
+  "validationDate": "2026-11-05",
+  "origin": "http://localhost:8080",
+  "mysqlVersion": "8.4.8",
+  "apiContainer": "fraud-mysql-dev-data-model-service-1",
+  "authorContainer": "fraud-mysql-dev-data-model-author-1",
+  "runtimeImage": "sha256:3e3ff95b90ee3fb5e8fc74069e0acd058889891603b4b530a5e5bee228c2c88b",
+  "apiContainerCreatedAt": "2026-11-04T19:08:19.783631144Z",
+  "mysqlContainer": "fraud-mysql-dev-mysql-1",
+  "mysqlImage": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+  "isolatedComposeProject": "data-model-endpoint-audit",
+  "isolatedDatabase": "data_model_publication_test"
+}

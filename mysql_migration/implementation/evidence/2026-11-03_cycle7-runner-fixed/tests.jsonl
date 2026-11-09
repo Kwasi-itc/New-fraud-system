@@ -1,0 +1,100 @@
+﻿ Container decision-accept-61db44ee543e-test-run-b610ab95d80e Creating 
+ Container decision-accept-61db44ee543e-test-run-b610ab95d80e Created 
+go version go1.25.8 linux/amd64
+go: downloading github.com/gin-gonic/gin v1.10.1
+go: downloading github.com/google/uuid v1.6.0
+go: downloading golang.org/x/sync v0.22.0
+go: downloading github.com/go-sql-driver/mysql v1.9.3
+go: downloading github.com/golang-migrate/migrate/v4 v4.18.3
+go: downloading github.com/jackc/pgx/v5 v5.8.0
+go: downloading golang.org/x/text v0.34.0
+go: downloading github.com/gin-contrib/sse v0.1.0
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading golang.org/x/net v0.38.0
+go: downloading filippo.io/edwards25519 v1.1.0
+go: downloading github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
+go: downloading github.com/riverqueue/river v0.31.0
+go: downloading github.com/riverqueue/river/riverdriver v0.31.0
+go: downloading github.com/hashicorp/go-multierror v1.1.1
+go: downloading github.com/lib/pq v1.10.9
+go: downloading go.uber.org/atomic v1.7.0
+go: downloading github.com/jackc/puddle/v2 v2.2.2
+go: downloading github.com/golang-jwt/jwt/v5 v5.3.0
+go: downloading github.com/go-playground/validator/v10 v10.20.0
+go: downloading github.com/pelletier/go-toml/v2 v2.2.2
+go: downloading github.com/ugorji/go/codec v1.2.12
+go: downloading google.golang.org/protobuf v1.34.2
+go: downloading gopkg.in/yaml.v3 v3.0.1
+go: downloading golang.org/x/sys v0.47.0
+go: downloading github.com/jackc/pgpassfile v1.0.0
+go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+go: downloading github.com/riverqueue/river/rivershared v0.31.0
+go: downloading github.com/riverqueue/river/rivertype v0.31.0
+go: downloading github.com/hashicorp/errwrap v1.1.0
+go: downloading github.com/gabriel-vasile/mimetype v1.4.3
+go: downloading github.com/go-playground/universal-translator v0.18.1
+go: downloading github.com/leodido/go-urn v1.4.0
+go: downloading golang.org/x/crypto v0.37.0
+go: downloading github.com/go-playground/locales v0.14.1
+go: downloading github.com/tidwall/gjson v1.18.0
+go: downloading github.com/tidwall/sjson v1.2.5
+go: downloading github.com/tidwall/match v1.2.0
+go: downloading github.com/tidwall/pretty v1.2.1
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading go.uber.org/goleak v1.3.0
+go: downloading github.com/davecgh/go-spew v1.1.1
+go: downloading github.com/pmezard/go-difflib v1.0.0
+{"Time":"2026-11-03T16:08:51.298616732Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime"}
+{"Time":"2026-11-03T16:08:51.370818034Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Test":"TestSharedOwnerModelComposition"}
+{"Time":"2026-11-03T16:08:51.370896067Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Test":"TestSharedOwnerModelComposition","Output":"=== RUN   TestSharedOwnerModelComposition\n"}
+{"Time":"2026-11-03T16:09:09.314968361Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Test":"TestSharedOwnerModelComposition","Output":"--- PASS: TestSharedOwnerModelComposition (17.95s)\n"}
+{"Time":"2026-11-03T16:09:09.315120138Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Test":"TestSharedOwnerModelComposition","Elapsed":17.95}
+{"Time":"2026-11-03T16:09:09.315922253Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Output":"PASS\n"}
+{"Time":"2026-11-03T16:09:10.325426678Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime\t19.026s\n"}
+{"Time":"2026-11-03T16:09:10.325850101Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime","Elapsed":19.029}
+{"Time":"2026-11-03T16:09:25.503181022Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"}
+{"Time":"2026-11-03T16:09:25.533445783Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity"}
+{"Time":"2026-11-03T16:09:25.533502844Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"=== RUN   TestBrowserRealOwnerEditParity\n"}
+{"Time":"2026-11-03T16:09:25.54229183Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"    browser_real_owner_differential_test.go:25: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:29.264145288Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"    browser_real_owner_differential_test.go:26: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:29.598015626Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"    browser_real_owner_differential_test.go:27: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:29.698018168Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"    browser_real_owner_differential_test.go:27: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:31.021708963Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/save_replay_and_update"}
+{"Time":"2026-11-03T16:09:31.021773479Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/save_replay_and_update","Output":"=== RUN   TestBrowserRealOwnerEditParity/save_replay_and_update\n"}
+{"Time":"2026-11-03T16:09:31.214288084Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/save_replay_and_update","Output":"--- PASS: TestBrowserRealOwnerEditParity/save_replay_and_update (0.19s)\n"}
+{"Time":"2026-11-03T16:09:31.214396581Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/save_replay_and_update","Elapsed":0.19}
+{"Time":"2026-11-03T16:09:31.214428403Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/visibility"}
+{"Time":"2026-11-03T16:09:31.214433783Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/visibility","Output":"=== RUN   TestBrowserRealOwnerEditParity/visibility\n"}
+{"Time":"2026-11-03T16:09:31.243086529Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/visibility","Output":"--- PASS: TestBrowserRealOwnerEditParity/visibility (0.03s)\n"}
+{"Time":"2026-11-03T16:09:31.243152689Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/visibility","Elapsed":0.03}
+{"Time":"2026-11-03T16:09:31.243182818Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/delete_conflict_and_replay"}
+{"Time":"2026-11-03T16:09:31.243191384Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/delete_conflict_and_replay","Output":"=== RUN   TestBrowserRealOwnerEditParity/delete_conflict_and_replay\n"}
+{"Time":"2026-11-03T16:09:31.31055712Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/delete_conflict_and_replay","Output":"--- PASS: TestBrowserRealOwnerEditParity/delete_conflict_and_replay (0.07s)\n"}
+{"Time":"2026-11-03T16:09:31.310619021Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity/delete_conflict_and_replay","Elapsed":0.07}
+{"Time":"2026-11-03T16:09:31.951241128Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Output":"--- PASS: TestBrowserRealOwnerEditParity (6.42s)\n"}
+{"Time":"2026-11-03T16:09:31.951303951Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestBrowserRealOwnerEditParity","Elapsed":6.42}
+{"Time":"2026-11-03T16:09:31.952102881Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence"}
+{"Time":"2026-11-03T16:09:31.952159542Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence","Output":"=== RUN   TestActualDecisionServiceRevocationBeforePersistence\n"}
+{"Time":"2026-11-03T16:09:31.952187797Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session"}
+{"Time":"2026-11-03T16:09:31.952197546Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session","Output":"=== RUN   TestActualDecisionServiceRevocationBeforePersistence/session\n"}
+{"Time":"2026-11-03T16:09:32.465457382Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session","Output":"    decision_service_differential_test.go:99: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:38.204442011Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session","Output":"    decision_service_differential_test.go:105: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:39.787367839Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session","Output":"--- PASS: TestActualDecisionServiceRevocationBeforePersistence/session (7.83s)\n"}
+{"Time":"2026-11-03T16:09:39.787466512Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/session","Elapsed":7.83}
+{"Time":"2026-11-03T16:09:39.787521059Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership"}
+{"Time":"2026-11-03T16:09:39.78753692Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership","Output":"=== RUN   TestActualDecisionServiceRevocationBeforePersistence/membership\n"}
+{"Time":"2026-11-03T16:09:40.169677387Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership","Output":"    decision_service_differential_test.go:99: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:45.687940034Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership","Output":"    decision_service_differential_test.go:105: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:47.14388367Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership","Output":"--- PASS: TestActualDecisionServiceRevocationBeforePersistence/membership (7.36s)\n"}
+{"Time":"2026-11-03T16:09:47.143999156Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/membership","Elapsed":7.36}
+{"Time":"2026-11-03T16:09:47.144239633Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant"}
+{"Time":"2026-11-03T16:09:47.14426887Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant","Output":"=== RUN   TestActualDecisionServiceRevocationBeforePersistence/tenant\n"}
+{"Time":"2026-11-03T16:09:47.664986454Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant","Output":"    decision_service_differential_test.go:99: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:53.517949252Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant","Output":"    decision_service_differential_test.go:105: MySQL fixture version 8.4.8 (target acceptance requires pinned 8.4.8)\n"}
+{"Time":"2026-11-03T16:09:54.955438341Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant","Output":"--- PASS: TestActualDecisionServiceRevocationBeforePersistence/tenant (7.81s)\n"}
+{"Time":"2026-11-03T16:09:54.955502487Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence/tenant","Elapsed":7.81}
+{"Time":"2026-11-03T16:09:54.955519339Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence","Output":"--- PASS: TestActualDecisionServiceRevocationBeforePersistence (23.00s)\n"}
+{"Time":"2026-11-03T16:09:54.955529119Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Test":"TestActualDecisionServiceRevocationBeforePersistence","Elapsed":23}
+{"Time":"2026-11-03T16:09:54.956389332Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Output":"PASS\n"}
+{"Time":"2026-11-03T16:09:55.962080883Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql\t30.461s\n"}
+{"Time":"2026-11-03T16:09:55.962136913Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql","Elapsed":30.461}

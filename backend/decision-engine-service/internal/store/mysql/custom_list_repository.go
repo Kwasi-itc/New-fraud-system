@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -71,7 +72,11 @@ func (r CustomListRepository) GetListByID(ctx context.Context, t, id string) (pl
 	if err != nil {
 		return platform.CustomList{}, err
 	}
-	return platformOne(r.platformRepository, r.tx.QueryRowContext(ctx, r.listSQL()+" WHERE tenant_id=? AND id=?", args...), r.scanList)
+	out, err := platformOne(r.platformRepository, r.tx.QueryRowContext(ctx, r.listSQL()+" WHERE tenant_id=? AND id=?", args...), r.scanList)
+	if errors.Is(err, sql.ErrNoRows) {
+		return platform.CustomList{}, errors.Join(ports.ErrCustomListNotFound, err)
+	}
+	return out, err
 }
 func (r CustomListRepository) ListLists(ctx context.Context, t string) ([]platform.CustomList, error) {
 	args, err := r.ids(t)
@@ -242,8 +247,11 @@ func (r CustomListRepository) DeleteEntry(ctx context.Context, t, list, id strin
 	return err
 }
 
-const foldedListMatch = "l.name_fold_sha=UNHEX(SHA2(CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY),256)) AND CAST(LOWER(l.name COLLATE utf8mb4_0900_as_cs) AS BINARY)=CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY)"
-const foldedLegacyMatch = "e.list_fold_sha=UNHEX(SHA2(CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY),256)) AND CAST(LOWER(e.list_name COLLATE utf8mb4_0900_as_cs) AS BINARY)=CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY)"
+// The folded hash narrows indexed candidates; source lookup semantics require
+// an exact final comparison. Case-insensitive name uniqueness does not grant
+// case-insensitive evaluator lookup semantics.
+const exactListMatch = "l.name_fold_sha=UNHEX(SHA2(CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY),256)) AND CAST(l.name AS BINARY)=CAST(? AS BINARY)"
+const exactLegacyMatch = "e.list_fold_sha=UNHEX(SHA2(CAST(LOWER(? COLLATE utf8mb4_0900_as_cs) AS BINARY),256)) AND CAST(e.list_name AS BINARY)=CAST(? AS BINARY)"
 
 func (r CustomListRepository) ListByName(ctx context.Context, t, name string) ([]platform.CustomListEntry, error) {
 	args, err := r.ids(t)
@@ -255,7 +263,7 @@ func (r CustomListRepository) ListByName(ctx context.Context, t, name string) ([
 	}
 	where := " WHERE e.tenant_id=?"
 	if name != "" {
-		where += " AND ((e.list_id IS NOT NULL AND " + foldedListMatch + ") OR (e.list_id IS NULL AND " + foldedLegacyMatch + "))"
+		where += " AND ((e.list_id IS NOT NULL AND " + exactListMatch + ") OR (e.list_id IS NULL AND " + exactLegacyMatch + "))"
 		for range 4 {
 			args = append(args, mysqlstore.Text(name))
 		}
@@ -276,14 +284,14 @@ func (r CustomListRepository) Contains(ctx context.Context, t, name, value strin
 	}
 	args = append(args, mysqlstore.Text(name), mysqlstore.Text(name), mysqlstore.Text(value), mysqlstore.Text(value))
 	var found mysqlstore.Bool
-	stmt := "SELECT EXISTS(SELECT 1 FROM " + r.schema + ".decision_engine_custom_lists l JOIN " + r.schema + ".decision_engine_custom_list_entries e ON e.tenant_id=l.tenant_id AND e.list_id=l.id WHERE l.tenant_id=? AND " + foldedListMatch + " AND e.value_sha=UNHEX(SHA2(CAST(? AS BINARY),256)) AND CAST(e.value AS BINARY)=CAST(? AS BINARY))"
+	stmt := "SELECT EXISTS(SELECT 1 FROM " + r.schema + ".decision_engine_custom_lists l JOIN " + r.schema + ".decision_engine_custom_list_entries e ON e.tenant_id=l.tenant_id AND e.list_id=l.id WHERE l.tenant_id=? AND " + exactListMatch + " AND e.value_sha=UNHEX(SHA2(CAST(? AS BINARY),256)) AND CAST(e.value AS BINARY)=CAST(? AS BINARY))"
 	if err := r.tx.QueryRowContext(ctx, stmt, args...).Scan(&found); err != nil {
 		return false, err
 	}
 	if found {
 		return true, nil
 	}
-	stmt = "SELECT EXISTS(SELECT 1 FROM " + r.schema + ".decision_engine_custom_list_entries e WHERE e.tenant_id=? AND e.list_id IS NULL AND " + foldedLegacyMatch + " AND e.value_sha=UNHEX(SHA2(CAST(? AS BINARY),256)) AND CAST(e.value AS BINARY)=CAST(? AS BINARY))"
+	stmt = "SELECT EXISTS(SELECT 1 FROM " + r.schema + ".decision_engine_custom_list_entries e WHERE e.tenant_id=? AND e.list_id IS NULL AND " + exactLegacyMatch + " AND e.value_sha=UNHEX(SHA2(CAST(? AS BINARY),256)) AND CAST(e.value AS BINARY)=CAST(? AS BINARY))"
 	if err := r.tx.QueryRowContext(ctx, stmt, args...).Scan(&found); err != nil {
 		return false, err
 	}

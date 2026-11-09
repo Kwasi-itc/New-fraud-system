@@ -1,0 +1,804 @@
+{
+  "reportedAt": "2026-11-05T18:33:23.204Z",
+  "selection": [
+    "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run . ./...",
+    "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run . ./internal/mysqlexecution ./internal/mysqlruntime",
+    "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run ^(TestWalletRulePostgresMySQLAndHTTPTransportDifferential|TestMySQLRegistryWalletRuleValuesAndGroups|TestMySQLRegistryRejectsStaleClosedAndUnregisteredModels|TestMySQLRegistryReadHoldsSchemaBarrier|TestMySQLRegisteredTextIndexWalletAggregationAndCollisionResidual|TestMySQLStructuredWorkflowSnapshotOrderSoftDeleteAndIsolation|TestEvaluationLoadHarnessSmoke|TestEvaluationSharedHistoryLoadHarnessSmoke|TestEvaluationTimingLoggerRestoresStandardBridge)$ ./internal/store/mysql"
+  ],
+  "toolchain": "go version go1.25.8 linux/amd64",
+  "testsExit": 0,
+  "vetExit": 0,
+  "fullModuleRun": true,
+  "expectedTopLevelTests": 559,
+  "missingTests": [],
+  "attempts": [
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-integration\\2026-11-05T16-51-48Z",
+      "selection": "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run . ./...",
+      "testsExit": 1,
+      "vetExit": 0,
+      "failed": [
+        {
+          "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+          "test": null
+        }
+      ]
+    },
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-integration\\2026-11-05T18-13-58Z",
+      "selection": "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run . ./internal/mysqlexecution ./internal/mysqlruntime",
+      "testsExit": 0,
+      "vetExit": 0,
+      "failed": []
+    },
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-integration\\2026-11-05T18-28-34Z",
+      "selection": "go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run ^(TestWalletRulePostgresMySQLAndHTTPTransportDifferential|TestMySQLRegistryWalletRuleValuesAndGroups|TestMySQLRegistryRejectsStaleClosedAndUnregisteredModels|TestMySQLRegistryReadHoldsSchemaBarrier|TestMySQLRegisteredTextIndexWalletAggregationAndCollisionResidual|TestMySQLStructuredWorkflowSnapshotOrderSoftDeleteAndIsolation|TestEvaluationLoadHarnessSmoke|TestEvaluationSharedHistoryLoadHarnessSmoke|TestEvaluationTimingLoggerRestoresStandardBridge)$ ./internal/store/mysql",
+      "testsExit": 0,
+      "vetExit": 0,
+      "failed": []
+    }
+  ],
+  "unexplainedRunFailures": [],
+  "topLevelPassed": 554,
+  "testAndSubtestPasses": 1516,
+  "packagesPassed": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/migrate",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/mysql-release",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/worker",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/screeningcapabilities",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/workflowreceipt",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/evalerrors",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/expressionassist",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/geoip",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/loadacceptance",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/migrationaudit",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlapi",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqljobs",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlrelease",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql/metadata",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime",
+    "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"
+  ],
+  "failed": [],
+  "skipped": [
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/geoip",
+      "test": "TestConfiguredMMDBCanResolvePublicIP",
+      "optional": true,
+      "output": "=== RUN   TestConfiguredMMDBCanResolvePublicIP\n    mmdb_test.go:25: GEOIP_TEST_MMDB_PATH is not set\n--- SKIP: TestConfiguredMMDBCanResolvePublicIP (0.00s)"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestCaseWorkflowCrashSubprocess",
+      "optional": true,
+      "output": "=== RUN   TestCaseWorkflowCrashSubprocess\n    case_workflow_receipt_integration_test.go:765: subprocess helper\n--- SKIP: TestCaseWorkflowCrashSubprocess (0.00s)"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestManualEvaluationLoadAcceptance",
+      "optional": true,
+      "output": "=== RUN   TestManualEvaluationLoadAcceptance\n    evaluation_load_integration_test.go:73: explicit evaluation profile required\n--- SKIP: TestManualEvaluationLoadAcceptance (0.00s)"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestManualHistoryLoadAcceptance",
+      "optional": true,
+      "output": "=== RUN   TestManualHistoryLoadAcceptance\n    history_load_integration_test.go:54: explicit agreed history profile required\n--- SKIP: TestManualHistoryLoadAcceptance (0.00s)"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLLogicalRestoreRetainsDecisionsJobsAndCaseReceipts",
+      "optional": true,
+      "output": "=== RUN   TestMySQLLogicalRestoreRetainsDecisionsJobsAndCaseReceipts\n    restore_rehearsal_integration_test.go:27: explicit disposable restore rehearsal required\n--- SKIP: TestMySQLLogicalRestoreRetainsDecisionsJobsAndCaseReceipts (0.00s)"
+    }
+  ],
+  "unexpectedSkips": [],
+  "raceWarnings": 0,
+  "workerTests": [
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/worker",
+      "test": "TestOutboxQueuePausedWithoutPublisherOtherQueuesPreserved"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/worker",
+      "test": "TestWorkerRunnerEnabled"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestOutboxPublicationRequiresValidNonblankURL"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestLoadConfigUsesAllWorkerTasksByDefault"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestLoadConfigRejectsUnsupportedWorkerTasks"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestLoadConfigDeduplicatesWorkerTasks"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestLoadConfigRejectsNonPositiveExecutionRetrySettings"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestLoadConfigParsesWorkerTaskPriorities"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestSortedWorkerTasksUsesPriorityOrder"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestScreeningOperatorCredentialConfiguration"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+      "test": "TestScreeningIntegrationCredentialConfiguration"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel",
+      "test": "TestScopedIndexJobClientRejectsIncompleteForeignAndOverflow"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+      "test": "TestCaseWorkflowUsesDedicatedAuthenticatedRoute"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+      "test": "TestScreeningDispatchDoesNotFallbackToGeneralCredential"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+      "test": "TestScreeningDispatchErrorsAreSafeForRiver"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+      "test": "TestHTTPClientDispatchesJSONRequests"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/workflowreceipt",
+      "test": "TestWorkflowReceiptHTTPContract"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/workflowreceipt",
+      "test": "TestWorkflowReceiptDestinationPolicy"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/workflowreceipt",
+      "test": "TestWorkflowReceiptActualOwner"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening",
+      "test": "TestScreeningConditionRoundtrip"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestScreeningConfigurationRejectsLegacyCredential"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestScreeningOperatorBoundaryRequiresSeparateCredential"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestInternalScreeningRejectsGeneralAndDisabledAuth"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestInternalScreeningDedicatedCredential"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestScreeningReadPrivateBoundary"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+      "test": "TestWorkflowConfigurationRequiresPrivateCredential"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers",
+      "test": "TestScreeningAuthoringRejectsInvalidInputBeforePersistence"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/loadacceptance",
+      "test": "TestCancellationJoinsWorkersAndKeepsDenominator"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlapi",
+      "test": "TestMySQLExecutionReadCancellationAdapterAuthorizationAndRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlapi",
+      "test": "TestCancellationRequiresExplicitBoundedPrecondition"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlapi",
+      "test": "TestTargetResponsesRetainGenerationCancellationAndReplay"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarMonthClampNeverSkipsOrDriftsMonth"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarDSTGapSkippedAndOverlapRunsOnceAtEarlierInstant"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarHourlyOverlapAndLocalWeekday"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarExplicitValidationAndWideCivilRange"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarPlanGapCatchUpAndOverlapCoalesce"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarPlanMonthBacklogSkipLateAndFuture"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/recurrence",
+      "test": "TestCalendarInitialGapAndCalendarPoliciesAgreeWithEnumeration"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs",
+      "test": "TestOutboxEnqueuerRejectsMissingClientAndTransaction"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval",
+      "test": "TestNormalizedOperationDispatch"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestExecutionServiceGetScheduledExecutionStatusSummary"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestExecutionServiceHandleScheduledExecutionFailureRequeuesBeforeMaxAttempts"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestIntegrationDecisionOutboxPublicationAtomicity"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestOutboxPublicationPolicyDoesNotSkipDecisions"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestEnabledOutboxPropagatesWriteAndQueueErrors"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestIntegrationDecisionQueueCancellationAndPanicRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScreeningAddressMapping"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestAuthoredConfigurationDispatchesMappedName"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScreeningBirthDateMapping"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScreeningCountryMappings"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScenarioMatchingDispatch"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScreeningRegistrationMapping"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestConfiguredCaseRuleExecutionAndDispatch"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNestedWorkflowAndNoOpExecution"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestWorkflowCopyRuleHitValidation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestWorkflowServiceCreateAssignsNextDisplayOrder"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestWorkflowServiceReorderRejectsIncompleteList"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestWorkflowServiceReorderPersistsRequestedOrder"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestWorkflowCaseTitleSnapshot"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigClampsCandidateLimit"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestScreeningServiceUpdateExecutionStatusFromScreeningCallback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestBuildScreeningDispatchRequestUsesQueryFieldAndConfig"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestDueRecurringScheduleTimesSkipsExistingRecurringOccurrences"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestDueRecurringScheduleTimesHourlyBoundedCatchup"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestHydrateRecurringScheduleSetsLastRunFromNonPendingExecution"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestHydrateRecurringScheduleSetsNextRun"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNextFutureScheduledTimeMonthlyClampsDay"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNextScheduledTimeMonthly"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigMonthlyDefaults"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNextScheduledTimeWeekly"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigRejectsInvalidHourlyMinute"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNextFutureScheduledTimeUsesTimezone"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigWeeklyDefaults"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNextScheduledTimeHourly"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigHourlyDefaults"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestEncodeDecodeRecurringScheduleConfigRoundTrip"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigDefaults"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestRunScheduledExecutionClampsCandidateLimit"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestRunScheduledExecutionUsesDefaultCandidateLimit"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestNormalizeRecurringScheduleConfigAllowsIanaTimezone"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestDispatchServiceMarksSentAndFailedStatuses"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestDecisionServiceEvaluateScenarioReturnsScoringWorkCreationFailure"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "test": "TestShouldSuppressRuleCancellation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLAdministrationStaleWorkflowWriteRejected"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLAdministrationWorkflowConcurrencyOrderingAndRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLAdministrationCaseDestinationAndWorkflowAuthority"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLBrowserWorkflowCopyAuditAuthorizationAndRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLBrowserWorkflowVersioningAuthorizationAuditAndRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLWorkflowAuthoringGuardScopesAndLegacyParticipation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCaseWorkflowReceiptActualOwner"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningIgnoreWordsBoundsAndScope"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCombinedScheduledCompletionBindsOwnerAndRechecksExpiry"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestDecisionUnitOfWorkRequiresSharedScopeAndCapabilities"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCleanupLockedReceiptAdvancesAndDeleteErrorRollsBack"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLOwnedEffectMaintenanceAndSharedScheduler"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestDeliveryMaintenanceCleanupCyclesAndScope"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestExpiredDeliveryRejectsForgedScopeAndUninitializedAdapters"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestExecutionRescueOwnerEligibilityRequiresExactDomainGenerationAndOwnership"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLDispatchRestrictedWorkerCannotBypassIntentOwnership"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLDispatchAllEffectsIntentReceiptAtomicityAndRetention"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLDispatchCancellationRaceAndRevocation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLReceiptAwareMaintenanceDoesNotExhaustUnreconciledSend"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectCancellationAllKindsPreservesResultsAndReceipts"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectCancellationRollbackScopeAndFinishRace"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectRescueAllKindsRequireAtomicOwnerExhaustion"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningProjectionMonotonicAuthority"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLRequiredEffectJobsAtomicOwnerBindingAndReceipts"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectProviderSentRequiresExplicitRedrive"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectDomainRetryRedriveAndRetention"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectRetryRollbackAuthorityAndConcurrency"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLEffectRetryReceiptFenceAndPlan"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestEffectRetryIdentityAndEligibility"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionCalendarAtomicityCivilTimesAndTenantIsolation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionCancellationRequiredCallbackAndStaleWorkers"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCallbackCancellationPreservesCompletedEvaluation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestCancellationAttemptNeverCancelsTerminalOrInventsAttempt"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionTransportClaimHeartbeatAndOwnerAck"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionRescueRetryExhaustionAndCallbackAtomicity"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionConcurrentRescueAndLateWorkerAreFenced"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionTransportRetryExhaustionAndRequiredCallbackRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCallbackOnlyRedrivePreservesCompletedResult"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionLeaseRetryCallbackAndRedrive"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLExecutionScheduleAtomicWatermarkAndPolicies"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLHistoryReadOnlySnapshotBudgetsAndScope"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningSourceConsumerContractBindings"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestPublicationPageScopeBoundsAndCursor"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLReleaseRuntimeGrantBoundaryAndWorkerDispatch"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScenarioCopyRemapsWorkflowRuleHits"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLAdditionalScoringDeferral"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningOwnerMutationsAndProjectionDrain"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningOwnerPublicationBindingsAndView"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningReceiptOwner"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningReceiptDispatchHandoff"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql/metadata",
+      "test": "TestDispatchMigrationPreservesCancellationPrefix"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql/metadata",
+      "test": "TestEffectCancellationLineageAndGrants"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "test": "TestDecisionQueueReadinessSeparatesProducerAndWorkerAccess"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "test": "TestScreeningAuthoringPersistenceAuthorizationAndRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "test": "TestScreeningReviewInboxPersistenceAndMigration"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "test": "TestScreeningReadAuthorizationAndProjection"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "test": "TestCaseWorkflowAuthoringAtomicityAndAuthorization"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLAsyncWorkerAllOutputsAndRequiredCallbackAtomic"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLAsyncWorkerLiveScenarioBatchAndEmptySelection"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLAsyncWorkerRequiredCallbackFailureRollsBackAllOutputs"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLEvaluationWorkerScopeAndCancellation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLCallbackDispatchLostCommitAcknowledgementReconcilesWithoutResend"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLCallbackDispatchCrashRescueReconcilesOriginalIntent"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLCallbackDispatchCancellationDuringIOPreservesResult"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLComparisonDraftPersistenceAnalyticsAndCancellationFence"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLActualEvaluationReadersScopeAbsenceAndRevocation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLTargetPreparerRequiresRealSameScopeReadersAndExplicitPolicy"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestDirectSynchronousEvaluationPersistenceAndScope"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestDispatchReconciliationNeverBlindlyRepeats"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledPreparationPinsOldVersionAndAtomicPreparedRollback"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledCandidatePreparationBoundsAndEmptyBatch"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLInvestigatorReviewLateHistoryFailureRollsBackReceipt"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduleAdministrationPreparationAtomicReplaceAndRevocation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduleAdministrationFencesPublicationChange"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduleReplacementAndTickUseCompatibleLockOrder"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledWorkerActualClaimWholeBatchAndReconciliation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledWorkerCancellationDuringPreparationWritesNothing"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledWorkerPersistenceRollbackAndTransportRetry"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledWorkerInvalidInputIsTerminalAndRevocationFailsClosed"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLScheduledWorkerSharedPollerCompletesAndJoinsOnShutdown"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLSchedulerBoundedPagesAtomicityAndConcurrentTicks"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestDeferredScoringRejectsConfigurationAndPropagatesFailures"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestScoringAuthoringConcurrentReplacementSnapshotAndBounds"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime",
+      "test": "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime",
+      "test": "TestApplicationWorkerFailureCancelsAndJoinsSiblings"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime",
+      "test": "TestApplicationShutdownIsBoundedAndRejectsAdmissionFirst"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime",
+      "test": "TestUnexpectedSuccessfulWorkerExitIsFailure"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLStructuredWorkflowSnapshotOrderSoftDeleteAndIsolation"
+    }
+  ],
+  "regressionPassed": true,
+  "allTestsExecuted": false
+}

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"embed"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,17 +12,27 @@ import (
 var openAPISpec []byte
 
 func registerDocsRoutes(router *gin.Engine) {
+	registerDocsHTML(router, docsHTML)
+}
+
+func registerDocsHTML(router *gin.Engine, swagger string) {
 	router.GET("/openapi.yaml", func(c *gin.Context) {
 		c.Data(http.StatusOK, "application/yaml; charset=utf-8", openAPISpec)
 	})
 
 	router.GET("/docs", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(docsHTML))
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(swagger))
 	})
 
 	router.GET("/redoc", func(c *gin.Context) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(redocHTML))
 	})
+}
+
+// RegisterLocalDocs labels the shared API reference with the active local scope.
+func RegisterLocalDocs(router *gin.Engine) {
+	local := strings.Replace(docsHTML, "This service supports scenario authoring, decision evaluation, test runs, workflows, screening,\n        scoring, and execution tracking.", "Local MySQL development profile: all documented routes, durable workflows, exact-name watchlist screening,\n        deterministic additional scoring, callback and event inboxes. Delivery uses private local receivers.\n        Expression assistance is deterministic and uses no AI provider. Check <a href=\"/capabilities\">/capabilities</a> for local destination URLs and supported scoring ruleset.", 1)
+	registerDocsHTML(router, local)
 }
 
 var _ embed.FS

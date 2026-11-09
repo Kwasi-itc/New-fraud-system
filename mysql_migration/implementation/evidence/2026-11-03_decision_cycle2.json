@@ -1,0 +1,54 @@
+{
+    "date":  "2026-11-03",
+    "scope":  "D13.14a native-index completion fence",
+    "completed":  [
+                      "D13.14a"
+                  ],
+    "parent_D13_complete":  false,
+    "checklist":  {
+                      "total":  152,
+                      "done":  80,
+                      "remaining":  72
+                  },
+    "split":  "D13.14 split into completion fence (a) and actual physical worker composition (b); other task IDs preserved.",
+    "runtime":  "Inactive opt-in adapter; configured application remains PostgreSQL.",
+    "verification":  {
+                         "exit_code":  0,
+                         "skips":  0,
+                         "subtest_passes":  36,
+                         "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql/metadata -run TestPublishedNativeIndexCompletion|TestLeasedIndexExecution|TestStagedIndexJobEndpoints|TestMetadataTransactionManager",
+                         "failures":  0,
+                         "top_level_passes":  4,
+                         "log":  "2026-11-03_cycle2-index-fence-final.jsonl"
+                     },
+    "checks":  [
+                   {
+                       "command":  "go test -mod=readonly -p 2 -run ^$ ./...",
+                       "log":  "2026-11-03_cycle2-index-fence-compile.log",
+                       "exit_code":  0
+                   },
+                   {
+                       "command":  "go vet -p 2 ./internal/store/mysql ./internal/worker ./internal/mysqlruntime",
+                       "log":  "2026-11-03_cycle2-index-fence-vet.log",
+                       "exit_code":  0
+                   }
+               ],
+    "versions":  {
+                     "go":  "1.25.8",
+                     "mysql":  "8.4.8"
+                 },
+    "assertions":  [
+                       "Registry version/gate locks precede job and delivery locks.",
+                       "Actual native index must have expected full ordered columns, BTREE type, visibility and nonunique shape.",
+                       "Persisted job and tenant/table mappings determine the expectation; caller columns cannot replace them.",
+                       "Job/audit/delivery changes commit together; missing/stale/foreign/expired/audit-failing cases roll back.",
+                       "Observed registry lock wait followed by publication version change rejects stale completion."
+                   ],
+    "limitations":  [
+                        "Fixture uses privileged physical table/index creation and registry token setup; real DDL intent execution and publication composition remain D13.14b.",
+                        "Native search indexes only; text, navigation and repair strategies are not claimed by this adapter.",
+                        "Guard is opt-in and not selected by configured runtime.",
+                        "Other D13-D20 provider, policy, performance and acceptance gates remain open."
+                    ],
+    "cleanup":  "Complete: decision-cycle2-runner, decision-cycle2-mysql-1 and decision-cycle2_default removed. MySQL data was disposable tmpfs; no application database was changed."
+}

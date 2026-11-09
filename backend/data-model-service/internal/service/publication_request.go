@@ -59,6 +59,23 @@ func encodePublicationRequest(scope PublicationRequestContext, input any) ([]byt
 		}
 	}
 	switch in := input.(type) {
+	case DeleteFieldInput:
+		if in.FieldID == uuid.Nil {
+			return nil, errors.New("field identity required")
+		}
+		kind = "field.delete"
+		body = struct {
+			FieldID uuid.UUID `json:"field_id"`
+		}{in.FieldID}
+	case DeleteEnumValueInput:
+		if in.EnumValueID == uuid.Nil {
+			return nil, errors.New("enum identity required")
+		}
+		kind = "enum.delete"
+		body = struct {
+			EnumValueID uuid.UUID `json:"enum_value_id"`
+		}{in.EnumValueID}
+
 	case ReplaceTableOptionsInput:
 		if in.TableID != scope.TableID {
 			return nil, errors.New("options table scope mismatch")

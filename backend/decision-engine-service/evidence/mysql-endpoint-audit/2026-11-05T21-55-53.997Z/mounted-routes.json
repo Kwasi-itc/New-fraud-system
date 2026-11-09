@@ -1,0 +1,522 @@
+[
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/status-summary"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/metadata"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-groups"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rules/latest"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule/{scheduleId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/decisions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/custom-list-entries"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/record-tags"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/platform/ip-flags"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/count"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/{decisionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/scoring-requests"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/workflow-executions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/status-summary"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/outbox-events"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/service-info"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/rule-functions"
+  },
+  {
+    "method": "GET",
+    "path": "/readyz"
+  },
+  {
+    "method": "GET",
+    "path": "/redoc"
+  },
+  {
+    "method": "GET",
+    "path": "/healthz"
+  },
+  {
+    "method": "GET",
+    "path": "/openapi.yaml"
+  },
+  {
+    "method": "GET",
+    "path": "/docs"
+  },
+  {
+    "method": "GET",
+    "path": "/capabilities"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/draft"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/deactivate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/commit"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/validate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/copy"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/status"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/status"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/import"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/custom-list-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/record-tags"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/risk-snapshots"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/platform/ip-flags"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/decisions"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/decisions/all"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/ingestion-events/record-ingested"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review"
+  },
+  {
+    "method": "POST",
+    "path": "/internal/screening-status-updates"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}"
+  }
+]

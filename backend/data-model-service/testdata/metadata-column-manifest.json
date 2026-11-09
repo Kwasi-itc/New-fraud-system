@@ -1,8 +1,11 @@
 {
     "format":  "data-model-schema-mapping/v1",
     "status":  "needs_review",
-    "scope":  "All source metadata columns through 000008; v001 structural definitions plus v002/v003/v004 upgrade source bindings. Dynamic tenant records and production data acceptance are separate gates.",
+    "scope":  "All source metadata columns through 000009; frozen structural definitions plus append-only upgrade bindings, including v007 worker lookup indexes. Dynamic tenant records and production data acceptance are separate gates.",
     "files":  [
+                  {"path": "internal/migrations/metadata/000009_index_job_table_scope.up.sql", "sha256_lf": "e7401fef4ab69d3548b095165c311cc4d183ddb6178acf9e10e90ff6485c18da"},
+                  {"path": "internal/migrations/metadata/000009_index_job_table_scope.down.sql", "sha256_lf": "b887cd460c02c151a1c2e7d94fcffeb1a730392a2f89b135ad885b95dc810075"},
+                  {"path": "internal/store/mysql/installation/worker_index_upgrade.go", "sha256_lf": "e2ea17ca581f120943f9e0126c60d8ef42c9cb45adc408a3d7643c62e210767c"},
                   {"path": "internal/store/mysql/installation/owner_result_upgrade.go", "sha256_lf": "26ed111837a0ed7074833461d883b278ab4e1062afd0d1c3f71a75facef5a85f"},
                   {
                       "path":  "internal/migrations/metadata/000001_init.down.sql",
@@ -1420,6 +1423,13 @@
                     }
                 ],
     "source_objects":  [
+                           {
+                               "source_file": "internal/migrations/metadata/000009_index_job_table_scope.up.sql",
+                               "kind": "INDEX",
+                               "name": "index_jobs_tenant_table_requested_idx",
+                               "target": "internal/store/mysql/installation/worker_index_upgrade.go#data_model_jobs_table_scope",
+                               "status": "staged_structural"
+                           },
                            {
                                "source_file":  "internal/migrations/metadata/000001_init.up.sql",
                                "kind":  "INDEX",

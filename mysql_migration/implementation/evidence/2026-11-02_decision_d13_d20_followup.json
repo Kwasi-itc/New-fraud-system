@@ -1,0 +1,66 @@
+{
+    "date":  "2026-11-02",
+    "task":  "D13-D20 continuation",
+    "complete":  false,
+    "configured_database":  "PostgreSQL unchanged",
+    "results":  {
+                    "top_level_passed":  140,
+                    "subtests_passed":  208,
+                    "failures":  0,
+                    "skips":  0,
+                    "decision_module_compile":  "passed",
+                    "data_model_module_compile":  "passed",
+                    "affected_package_vet":  "passed",
+                    "query_plan_tests":  "included in full decision-store suite"
+                },
+    "environment":  [
+                        "Private MySQL 8.4.8 tmpfs fixture",
+                        "Private PostgreSQL 16 tmpfs fixture",
+                        "Go 1.25.8 GOMAXPROCS=2 race enabled"
+                    ],
+    "implemented":  [
+                        "D13 publication-aware owner snapshot with table versions and shared row budget",
+                        "D13 optional owner DTO/OpenAPI and consumer mapping",
+                        "D13 fresh model preparation and 64 MiB HTTP response bound",
+                        "D17 trusted browser copy HTTP with destination model and registry fencing",
+                        "D17 mutation-time authority recheck and atomic attributed graph/audit writes"
+                    ],
+    "verification":  [
+                         "Concurrent publication token/metadata consistency; closed gates, tenant mismatch and exact row budgets",
+                         "Fresh requests bypass TTL cache; refresh error does not use cache",
+                         "Actual HTTP copy success, denial, malformed destination, unpublished destination, audit attribution and rollback",
+                         "Destination condition field/operator/literal compatibility",
+                         "Full store race suite including PostgreSQL/MySQL corpora and query plans",
+                         "Runtime race suite and final focused browser store regression"
+                     ],
+    "commands":  [
+                     "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=25m -json ./internal/store/mysql",
+                     "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/mysqlruntime",
+                     "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=8m -json ./internal/store/mysql -run Browser",
+                     "decision: go test -mod=readonly -race -p 2 -count=1 -json ./internal/clients/datamodel",
+                     "data-model: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql/metadata -run TestAssembled",
+                     "data-model: go test -mod=readonly -race -p 2 -count=1 -json ./internal/httpapi/dto",
+                     "both modules: go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 on affected packages"
+                 ],
+    "limitations":  [
+                        "Parent D16 remains complete; D13-D15 and D17-D20 are not complete",
+                        "Published owner reader is opt-in, not configured runtime delivery",
+                        "Scenario graph-copy HTTP and index-job composition remain",
+                        "Real auth/case/screening/dispatch provider implementations and grants remain; integration tests use explicit contracts",
+                        "Full business/provider failure acceptance remains",
+                        "Performance targets requested; no throughput/SLO or production-capacity pass claimed",
+                        "Browser copy is non-idempotent and not automatically retried",
+                        "Initial browser HTTP assertion expected 503 for unpublished model; corrected to established 409 contract before accepted run"
+                    ],
+    "logs":  [
+                 "2026-11-02_followup-d13-d20-full-store.jsonl",
+                 "2026-11-02_followup-d13-model-client.jsonl",
+                 "2026-11-02_followup-d13-model-dto.jsonl",
+                 "2026-11-02_followup-d13-model-fresh.jsonl",
+                 "2026-11-02_followup-d13-model-owner.jsonl",
+                 "2026-11-02_followup-d17-browser-copy-http.jsonl",
+                 "2026-11-02_followup-d17-browser-copy-model.jsonl",
+                 "2026-11-02_followup-d17-final-browser-store.jsonl"
+             ]
+}

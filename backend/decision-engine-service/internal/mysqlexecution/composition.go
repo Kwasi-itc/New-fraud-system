@@ -1,16 +1,25 @@
 package mysqlexecution
 
 import (
+	"context"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"
+	"time"
 )
 
 type EvaluationPolicy struct {
 	Limits                                                     service.ExecutionPreparationLimits
 	PublishOutboxEvents                                        bool
+	DeferAdditionalScoring                                     bool
+	DeferExternalEffects                                       bool
 	Aggregates                                                 []string
 	RuleConcurrency, ScenarioConcurrency, AggregateConcurrency int
+	AggregateTimeout, AggregateBatchWindow                     time.Duration
+	AggregateExecutor                                          *asteval.AggregateExecutor
+	FormulaPlans                                               *asteval.FormulaPlans
 }
 
 // NewTargetPreparer connects actual same-scope SQL read adapters to the shared
@@ -39,7 +48,56 @@ func NewTargetPreparer(owner *mysql.ExecutionStore, reader mysql.TenantDataReade
 			return nil, service.ErrExecutionPreparationLimit
 		}
 	}
-	evaluator := service.NewDecisionService(nil, ids, clock, nil, nil, nil, nil, reader, nil, nil, reads.Workflows(), reads.WorkflowRules(), nil, nil, nil, reads.Snoozes(), nil, reads.CustomLists(), reads.RecordTags(), reads.RiskSnapshots(), reads.IPFlags(), reads.ScreeningConfigs(), nil, reads.ScoringConfigs(), nil, policy.PublishOutboxEvents, "enabled", policy.Aggregates, policy.RuleConcurrency, policy.ScenarioConcurrency, policy.AggregateConcurrency, nil)
+	if policy.AggregateTimeout != 0 && policy.AggregateExecutor == nil {
+		executor, err := asteval.NewAggregateExecutor(policy.AggregateConcurrency, policy.AggregateTimeout, policy.AggregateBatchWindow)
+		if err != nil {
+			return nil, err
+		}
+		policy.AggregateExecutor = executor
+	} else if policy.AggregateBatchWindow != 0 && policy.AggregateTimeout == 0 {
+		return nil, service.ErrExecutionPreparation
+	}
+	if policy.FormulaPlans == nil {
+		plans, err := asteval.NewFormulaPlans(256, 8<<20)
+		if err != nil {
+			return nil, err
+		}
+		policy.FormulaPlans = plans
+	}
+	scoringConfigs := reads.ScoringConfigs()
+	if policy.DeferAdditionalScoring {
+		scoringConfigs = deferredScoringConfigs{scoringConfigs}
+	}
+	workflows, screeningConfigs := reads.Workflows(), reads.ScreeningConfigs()
+	workflowRules := reads.WorkflowRules()
+	if policy.DeferExternalEffects {
+		if !policy.DeferAdditionalScoring || policy.PublishOutboxEvents {
+			return nil, mysql.ErrOwnerContractUnavailable
+		}
+		workflows = deferredWorkflows{workflows}
+		workflowRules = deferredWorkflowRules{workflowRules}
+		screeningConfigs = deferredScreening{screeningConfigs}
+	}
+	evaluator := service.NewDecisionService(nil, ids, clock, nil, nil, nil, nil, reader, nil, nil, workflows, workflowRules, nil, nil, nil, reads.Snoozes(), nil, reads.CustomLists(), reads.RecordTags(), reads.RiskSnapshots(), reads.IPFlags(), screeningConfigs, nil, scoringConfigs, nil, policy.PublishOutboxEvents, "enabled", policy.Aggregates, policy.RuleConcurrency, policy.ScenarioConcurrency, policy.AggregateConcurrency, nil)
 	evaluator.SetGeoIPLookup(geo)
+	evaluator = evaluator.WithEvaluationOptimizations(policy.AggregateExecutor, policy.FormulaPlans)
+	if !policy.DeferAdditionalScoring && !policy.DeferExternalEffects {
+		evaluator = evaluator.WithEvaluationRoutingReader(reads)
+	}
 	return NewPreparer(owner, reader, evaluator, policy.Limits)
+}
+
+// Recheck on every preparation so a late configuration change fails explicitly
+// rather than silently omitting an effect selected by the scenario.
+type deferredScoringConfigs struct{ ports.EvaluationScoringConfigs }
+
+func (r deferredScoringConfigs) ListActiveByScenario(ctx context.Context, tenant, scenario string) ([]scoring.Config, error) {
+	items, err := r.EvaluationScoringConfigs.ListActiveByScenario(ctx, tenant, scenario)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) > 0 {
+		return nil, mysql.ErrAdditionalScoringDeferred
+	}
+	return items, nil
 }

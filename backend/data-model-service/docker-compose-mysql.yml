@@ -1,0 +1,151 @@
+# Shared local MySQL and data-model owner migrations. See MYSQL_DOCKER.md.
+# Local MySQL API exposes the supported operations at localhost:8080/docs.
+name: fraud-mysql-dev
+services:
+  mysql:
+    image: mysql:8.4.8
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_bin
+      - --max-connections=100
+      # Local restricted trigger installers use SET_ANY_DEFINER, never SUPER.
+      - --log-bin-trust-function-creators=ON
+      - --socket=/var/run/mysqld/mysqld.sock
+    environment:
+      MYSQL_DATABASE: fraud
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_root_password
+    ports:
+      - "127.0.0.1:${MYSQL_DEV_PORT:-3307}:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - mysql_dev_socket:/var/run/mysqld
+      - ../../docker/mysql-dev/verify.sh:/opt/mysql-dev/verify.sh:ro
+    cpus: 2
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/mysql_root_password) mysql --protocol=socket -uroot --database=fraud --batch --skip-column-names -e 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  mysql-reference:
+    image: mysql:8.4.8
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--socket=/var/run/mysqld/mysqld.sock"]
+    environment:
+      MYSQL_DATABASE: fraud
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets: [mysql_root_password]
+    tmpfs: [/var/lib/mysql]
+    volumes:
+      - mysql_dev_reference_socket:/var/run/mysqld
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/mysql_root_password) mysql --protocol=socket -uroot --database=fraud -Nse 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  migrate-data-model:
+    image: fraud-data-model-mysql-installer:local
+    build:
+      context: ..
+      dockerfile: data-model-service/Dockerfile.mysql-install
+    command: [/app/install-data-model]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      LOCAL_DATA_MODEL_API: "1"
+      APP_ORIGIN: http://localhost:3001
+    secrets: [mysql_root_password, data_model_mysql_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-reference:
+        condition: service_healthy
+
+  data-model-author:
+    image: fraud-data-model-mysql-installer:local
+    command: [/app/mysql-local-author]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:8080
+      GIN_MODE: release
+    secrets: [mysql_root_password, data_model_mysql_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans:ro
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    depends_on:
+      migrate-data-model:
+        condition: service_completed_successfully
+
+  data-model-worker:
+    image: fraud-data-model-mysql-installer:local
+    command: [/app/mysql-worker]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:8080
+      GIN_MODE: release
+    secrets: [mysql_root_password, data_model_mysql_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans:ro
+    read_only: true
+    tmpfs: [/tmp]
+    stop_grace_period: 70s
+    cpus: 1
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "/app/mysql-worker", "--healthcheck"]
+      interval: 10s
+      timeout: 4s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      data-model-author:
+        condition: service_started
+
+  data-model-service:
+    image: fraud-data-model-mysql-installer:local
+    command: [/app/mysql-api]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:8080
+      GIN_MODE: release
+    secrets: [data_model_mysql_password]
+    ports: ["127.0.0.1:8080:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+    user: "65532:65532"
+    restart: unless-stopped
+    depends_on:
+      data-model-author:
+        condition: service_started
+      migrate-data-model:
+        condition: service_completed_successfully
+
+secrets:
+  data_model_mysql_password:
+    file: ../../.local/mysql-dev/data-model-password.txt
+  mysql_root_password:
+    file: ../../.local/mysql-dev/root-password.txt
+
+volumes:
+  mysql_dev_data:
+  mysql_dev_socket:
+  mysql_dev_reference_socket:

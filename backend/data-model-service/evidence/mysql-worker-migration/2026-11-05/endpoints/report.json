@@ -1,0 +1,705 @@
+{
+  "startedAt": "2026-11-05T11:04:12.210Z",
+  "finishedAt": "2026-11-05T11:08:52.606Z",
+  "origin": "http://localhost:8080",
+  "passed": true,
+  "suitesPassed": 10,
+  "suitesTotal": 10,
+  "operationsCovered": 43,
+  "operationsTotal": 43,
+  "requestCount": 428,
+  "suites": [
+    {
+      "name": "baseline",
+      "script": "mysql-endpoint-baseline.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 2151,
+      "requestCount": 22
+    },
+    {
+      "name": "mutations",
+      "script": "mysql-mutation-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 11368,
+      "requestCount": 64
+    },
+    {
+      "name": "partial-physical",
+      "script": "mysql-partial-endpoints-smoke.mjs",
+      "args": [
+        "--physical"
+      ],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 23070,
+      "requestCount": 49
+    },
+    {
+      "name": "unique-text",
+      "script": "mysql-unique-text-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 22760,
+      "requestCount": 16
+    },
+    {
+      "name": "text-constraints",
+      "script": "mysql-text-constraints-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 44041,
+      "requestCount": 26
+    },
+    {
+      "name": "field-delete-enum",
+      "script": "mysql-field-delete-enum-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 93857,
+      "requestCount": 86
+    },
+    {
+      "name": "display",
+      "script": "mysql-display-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 28901,
+      "requestCount": 45
+    },
+    {
+      "name": "portable",
+      "script": "mysql-portable-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 28902,
+      "requestCount": 36
+    },
+    {
+      "name": "table-delete-enum-create",
+      "script": "mysql-table-delete-enum-create-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 14443,
+      "requestCount": 32
+    },
+    {
+      "name": "remaining",
+      "script": "mysql-remaining-endpoints-smoke.mjs",
+      "args": [],
+      "passed": true,
+      "exitCode": 0,
+      "elapsedMs": 10850,
+      "requestCount": 52
+    }
+  ],
+  "coverage": [
+    {
+      "operation": "GET /v1/tables/{tableId}/display-settings",
+      "covered": true,
+      "successfulRequests": 5,
+      "suites": [
+        "display",
+        "portable"
+      ],
+      "observedStatuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "operation": "PUT /v1/tables/{tableId}/display-settings",
+      "covered": true,
+      "successfulRequests": 6,
+      "suites": [
+        "display"
+      ],
+      "observedStatuses": [
+        400,
+        200,
+        409
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/record-displays",
+      "covered": true,
+      "successfulRequests": 7,
+      "suites": [
+        "display"
+      ],
+      "observedStatuses": [
+        200,
+        400,
+        503
+      ]
+    },
+    {
+      "operation": "GET /healthz",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /readyz",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants",
+      "covered": true,
+      "successfulRequests": 17,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum",
+        "display",
+        "portable",
+        "table-delete-enum-create",
+        "remaining"
+      ],
+      "observedStatuses": [
+        201
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200,
+        403
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200,
+        404,
+        400
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/provision",
+      "covered": true,
+      "successfulRequests": 16,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum",
+        "display",
+        "portable",
+        "table-delete-enum-create",
+        "remaining"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/data-model",
+      "covered": true,
+      "successfulRequests": 5,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "portable"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/data-model/export",
+      "covered": true,
+      "successfulRequests": 7,
+      "suites": [
+        "portable",
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/data-model/import",
+      "covered": true,
+      "successfulRequests": 8,
+      "suites": [
+        "portable",
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        400,
+        200,
+        409,
+        404,
+        503,
+        "AbortError"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/tables",
+      "covered": true,
+      "successfulRequests": 10,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "portable",
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/tables",
+      "covered": true,
+      "successfulRequests": 14,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum",
+        "display",
+        "portable",
+        "table-delete-enum-create",
+        "remaining"
+      ],
+      "observedStatuses": [
+        201
+      ]
+    },
+    {
+      "operation": "PATCH /v1/tables/{tableId}",
+      "covered": true,
+      "successfulRequests": 10,
+      "suites": [
+        "mutations",
+        "partial-physical"
+      ],
+      "observedStatuses": [
+        200,
+        409,
+        404,
+        400
+      ]
+    },
+    {
+      "operation": "DELETE /v1/tables/{tableId}",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        200,
+        404,
+        409
+      ]
+    },
+    {
+      "operation": "GET /v1/tables/{tableId}/fields",
+      "covered": true,
+      "successfulRequests": 27,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum",
+        "remaining"
+      ],
+      "observedStatuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "operation": "POST /v1/tables/{tableId}/fields",
+      "covered": true,
+      "successfulRequests": 56,
+      "suites": [
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum",
+        "display",
+        "table-delete-enum-create",
+        "remaining"
+      ],
+      "observedStatuses": [
+        201,
+        409,
+        503,
+        400
+      ]
+    },
+    {
+      "operation": "GET /v1/fields/{fieldId}/enum-values",
+      "covered": true,
+      "successfulRequests": 9,
+      "suites": [
+        "mutations",
+        "partial-physical",
+        "field-delete-enum",
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/fields/{fieldId}/enum-values",
+      "covered": true,
+      "successfulRequests": 5,
+      "suites": [
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        201,
+        409,
+        400,
+        404
+      ]
+    },
+    {
+      "operation": "PATCH /v1/fields/{fieldId}",
+      "covered": true,
+      "successfulRequests": 41,
+      "suites": [
+        "mutations",
+        "partial-physical",
+        "unique-text",
+        "text-constraints",
+        "field-delete-enum"
+      ],
+      "observedStatuses": [
+        200,
+        409,
+        400
+      ]
+    },
+    {
+      "operation": "DELETE /v1/fields/{fieldId}",
+      "covered": true,
+      "successfulRequests": 16,
+      "suites": [
+        "field-delete-enum"
+      ],
+      "observedStatuses": [
+        409,
+        400,
+        200,
+        404
+      ]
+    },
+    {
+      "operation": "PATCH /v1/enum-values/{enumValueId}",
+      "covered": true,
+      "successfulRequests": 10,
+      "suites": [
+        "field-delete-enum",
+        "table-delete-enum-create"
+      ],
+      "observedStatuses": [
+        200,
+        409,
+        400,
+        404
+      ]
+    },
+    {
+      "operation": "DELETE /v1/enum-values/{enumValueId}",
+      "covered": true,
+      "successfulRequests": 1,
+      "suites": [
+        "field-delete-enum"
+      ],
+      "observedStatuses": [
+        204,
+        404
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/links",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "mutations",
+        "remaining"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/links",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        201,
+        409,
+        400,
+        404
+      ]
+    },
+    {
+      "operation": "DELETE /v1/links/{linkId}",
+      "covered": true,
+      "successfulRequests": 4,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        409,
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/pivots",
+      "covered": true,
+      "successfulRequests": 1,
+      "suites": [
+        "mutations"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/pivots",
+      "covered": true,
+      "successfulRequests": 1,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        201,
+        400
+      ]
+    },
+    {
+      "operation": "DELETE /v1/pivots/{pivotId}",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tables/{tableId}/options",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "mutations",
+        "remaining"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "PUT /v1/tables/{tableId}/options",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        200,
+        400
+      ]
+    },
+    {
+      "operation": "GET /v1/tables/{tableId}/navigation-options",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "mutations",
+        "remaining"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tables/{tableId}/navigation-options",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        400,
+        201
+      ]
+    },
+    {
+      "operation": "DELETE /v1/navigation-options/{navigationOptionId}",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        204
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/schema-change-log",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/index-jobs",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "baseline",
+        "mutations",
+        "partial-physical"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/index-jobs",
+      "covered": true,
+      "successfulRequests": 3,
+      "suites": [
+        "baseline",
+        "remaining"
+      ],
+      "observedStatuses": [
+        201,
+        400,
+        404
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/index-jobs/scoped",
+      "covered": true,
+      "successfulRequests": 1,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        200,
+        400
+      ]
+    },
+    {
+      "operation": "GET /v1/index-jobs/{jobId}",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "partial-physical"
+      ],
+      "observedStatuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "operation": "POST /v1/index-jobs/{jobId}/retry",
+      "covered": true,
+      "successfulRequests": 1,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        409,
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/schema-migrations",
+      "covered": true,
+      "successfulRequests": 2,
+      "suites": [
+        "baseline",
+        "mutations"
+      ],
+      "observedStatuses": [
+        200
+      ]
+    },
+    {
+      "operation": "GET /v1/admin/reconcile",
+      "covered": true,
+      "successfulRequests": 5,
+      "suites": [
+        "remaining"
+      ],
+      "observedStatuses": [
+        200,
+        400
+      ]
+    }
+  ],
+  "limitations": [
+    "Local administrator runtime only",
+    "Queue-state assertions require the MySQL worker paused; worker execution has separate live acceptance",
+    "No production authorization or representative load acceptance"
+  ]
+}

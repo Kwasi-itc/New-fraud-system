@@ -1,0 +1,194 @@
+{
+  "smoke_only": true,
+  "profile": {
+    "approval_reference": "",
+    "seed": "history-harness-smoke-v1",
+    "rows": 240,
+    "tenants": 3,
+    "hot_percent": 60,
+    "scenarios_per_tenant": 2,
+    "load": {
+      "duration_ns": 600000000,
+      "requests_per_second": 20,
+      "workers": 2,
+      "request_timeout_ns": 5000000000,
+      "p95_target_ns": 5000000000,
+      "p99_target_ns": 5000000000,
+      "max_error_rate": 0
+    }
+  },
+  "tenant_rows": [
+    144,
+    48,
+    48
+  ],
+  "unhinted_plans": {
+    "cursor": "-\u003e Limit: 26 row(s)  (cost=8.87 rows=26) (actual time=0.0192..0.0674 rows=26 loops=1)\n    -\u003e Index lookup on d using de_decision_history (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~'), with index condition: ((d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~') and ((d.created_at \u003c TIMESTAMP'2026-01-01 00:00:00.00012') or ((d.created_at = TIMESTAMP'2026-01-01 00:00:00.00012') and (d.id \u003c '\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0'))))  (cost=8.87 rows=144) (actual time=0.0189..0.0651 rows=26 loops=1)\n",
+    "filter_0_count_false": "-\u003e Limit: 26 row(s)  (cost=18.1 rows=26) (actual time=0.0234..0.0839 rows=26 loops=1)\n    -\u003e Index lookup on d using de_decision_history (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~'), with index condition: (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=18.1 rows=144) (actual time=0.0224..0.0811 rows=26 loops=1)\n",
+    "filter_0_count_true": "-\u003e Aggregate: count(0)  (cost=29.3 rows=1) (actual time=0.072..0.072 rows=1 loops=1)\n    -\u003e Filter: (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=14.9 rows=144) (actual time=0.0285..0.062 rows=144 loops=1)\n        -\u003e Covering index lookup on d using de_decision_tenant (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=14.9 rows=144) (actual time=0.0275..0.0467 rows=144 loops=1)\n",
+    "filter_1_count_false": "-\u003e Limit: 26 row(s)  (cost=10.9 rows=26) (actual time=0.0154..0.0719 rows=26 loops=1)\n    -\u003e Index lookup on d using de_decision_scenario (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~', scenario_id='?R\\?w?pS??*?9\u001bA\u000f?'), with index condition: ((d.scenario_id = '?R\\?w?pS??*?9\u001bA\u000f?') and (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~'))  (cost=10.9 rows=72) (actual time=0.015..0.0696 rows=26 loops=1)\n",
+    "filter_1_count_true": "-\u003e Aggregate: count(0)  (cost=14.8 rows=1) (actual time=0.0471..0.0472 rows=1 loops=1)\n    -\u003e Filter: ((d.scenario_id = '?R\\?w?pS??*?9\u001bA\u000f?') and (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~'))  (cost=7.59 rows=72) (actual time=0.0234..0.0416 rows=72 loops=1)\n        -\u003e Covering index lookup on d using de_decision_parent (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~', scenario_id='?R\\?w?pS??*?9\u001bA\u000f?')  (cost=7.59 rows=72) (actual time=0.0221..0.0308 rows=72 loops=1)\n",
+    "filter_2_count_false": "-\u003e Limit: 26 row(s)  (cost=5.25 rows=15) (actual time=0.067..0.113 rows=15 loops=1)\n    -\u003e Filter: ((cast(d.object_type as char charset binary) = \u003ccache\u003e(cast('wallets' as char charset binary))) and (cast(d.object_id as char charset binary) = \u003ccache\u003e(cast('HOT' as char charset binary))))  (cost=5.25 rows=15) (actual time=0.0665..0.111 rows=15 loops=1)\n        -\u003e Index lookup on d using de_decision_object (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~', object_type_sha=unhex(sha2(cast('wallets' as char charset binary),256)), object_id_sha=unhex(sha2(cast('HOT' as char charset binary),256))), with index condition: ((d.object_id_sha = \u003ccache\u003e(unhex(sha2(cast('HOT' as char charset binary),256)))) and (d.object_type_sha = \u003ccache\u003e(unhex(sha2(cast('wallets' as char charset binary),256)))) and (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~'))  (cost=5.25 rows=15) (actual time=0.0625..0.103 rows=15 loops=1)\n",
+    "filter_2_count_true": "-\u003e Aggregate: count(0)  (cost=6.75 rows=1) (actual time=0.0625..0.0626 rows=1 loops=1)\n    -\u003e Filter: ((cast(d.object_type as char charset binary) = \u003ccache\u003e(cast('wallets' as char charset binary))) and (cast(d.object_id as char charset binary) = \u003ccache\u003e(cast('HOT' as char charset binary))))  (cost=5.25 rows=15) (actual time=0.0221..0.0566 rows=15 loops=1)\n        -\u003e Index lookup on d using de_decision_object (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~', object_type_sha=unhex(sha2(cast('wallets' as char charset binary),256)), object_id_sha=unhex(sha2(cast('HOT' as char charset binary),256))), with index condition: ((d.object_id_sha = \u003ccache\u003e(unhex(sha2(cast('HOT' as char charset binary),256)))) and (d.object_type_sha = \u003ccache\u003e(unhex(sha2(cast('wallets' as char charset binary),256)))) and (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~'))  (cost=5.25 rows=15) (actual time=0.0204..0.0515 rows=15 loops=1)\n",
+    "filter_3_count_false": "-\u003e Limit: 26 row(s)  (cost=68.5 rows=26) (actual time=0.1..0.278 rows=26 loops=1)\n    -\u003e Filter: (((bin_to_uuid(d.id) collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((d.object_id collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((d.object_type collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((coalesce(s.`name`,'') collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))))  (cost=68.5 rows=144) (actual time=0.0994..0.275 rows=26 loops=1)\n        -\u003e Nested loop left join  (cost=68.5 rows=144) (actual time=0.092..0.241 rows=29 loops=1)\n            -\u003e Index lookup on d using de_decision_history (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~'), with index condition: (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=18.1 rows=144) (actual time=0.0166..0.104 rows=29 loops=1)\n            -\u003e Filter: (s.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=0.251 rows=1) (actual time=0.0043..0.00444 rows=1 loops=29)\n                -\u003e Single-row index lookup on s using PRIMARY (id=d.scenario_id)  (cost=0.251 rows=1) (actual time=0.00399..0.00404 rows=1 loops=29)\n",
+    "filter_3_count_true": "-\u003e Aggregate: count(0)  (cost=83 rows=1) (actual time=0.579..0.579 rows=1 loops=1)\n    -\u003e Filter: (((bin_to_uuid(d.id) collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((d.object_id collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((d.object_type collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))) or ((coalesce(s.`name`,'') collate utf8mb4_0900_as_ci) like \u003ccache\u003e(('%OBJECT%' collate utf8mb4_0900_as_ci))))  (cost=68.5 rows=144) (actual time=0.0212..0.563 rows=129 loops=1)\n        -\u003e Nested loop left join  (cost=68.5 rows=144) (actual time=0.0182..0.474 rows=144 loops=1)\n            -\u003e Index lookup on d using de_decision_tenant (tenant_id='d\\?@\\?\u001b\u0011Yc?Z?3k\\??~'), with index condition: (d.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=18.1 rows=144) (actual time=0.0121..0.286 rows=144 loops=1)\n            -\u003e Filter: (s.tenant_id = 'd\\?@\\?\u001b\u0011Yc?Z?3k\\??~')  (cost=0.251 rows=1) (actual time=768e-6..0.00112 rows=1 loops=144)\n                -\u003e Single-row index lookup on s using PRIMARY (id=d.scenario_id)  (cost=0.251 rows=1) (actual time=602e-6..636e-6 rows=1 loops=144)\n"
+  },
+  "resource_snapshots": [
+    {
+      "at": "2026-11-03T18:13:06.419525529Z",
+      "pool": {
+        "MaxOpenConnections": 8,
+        "OpenConnections": 1,
+        "InUse": 1,
+        "Idle": 0,
+        "WaitCount": 0,
+        "WaitDuration": 0,
+        "MaxIdleClosed": 0,
+        "MaxIdleTimeClosed": 0,
+        "MaxLifetimeClosed": 0
+      },
+      "mysql_status": {
+        "Bytes_received": "821329",
+        "Bytes_sent": "1534273",
+        "Created_tmp_disk_tables": "0",
+        "Innodb_buffer_pool_read_requests": "510076",
+        "Innodb_buffer_pool_reads": "1072",
+        "Innodb_row_lock_time": "0",
+        "Innodb_row_lock_waits": "0",
+        "Threads_connected": "6",
+        "Threads_running": "2"
+      }
+    },
+    {
+      "at": "2026-11-03T18:13:06.975988399Z",
+      "pool": {
+        "MaxOpenConnections": 8,
+        "OpenConnections": 1,
+        "InUse": 1,
+        "Idle": 0,
+        "WaitCount": 0,
+        "WaitDuration": 0,
+        "MaxIdleClosed": 0,
+        "MaxIdleTimeClosed": 0,
+        "MaxLifetimeClosed": 0
+      },
+      "mysql_status": {
+        "Bytes_received": "835266",
+        "Bytes_sent": "1599183",
+        "Created_tmp_disk_tables": "0",
+        "Innodb_buffer_pool_read_requests": "511030",
+        "Innodb_buffer_pool_reads": "1072",
+        "Innodb_row_lock_time": "0",
+        "Innodb_row_lock_waits": "0",
+        "Threads_connected": "6",
+        "Threads_running": "2"
+      }
+    }
+  ],
+  "load": {
+    "profile": {
+      "duration_ns": 600000000,
+      "requests_per_second": 20,
+      "workers": 2,
+      "request_timeout_ns": 5000000000,
+      "p95_target_ns": 5000000000,
+      "p99_target_ns": 5000000000,
+      "max_error_rate": 0
+    },
+    "offered": 12,
+    "succeeded": 12,
+    "failed": 0,
+    "dropped": 0,
+    "canceled": 0,
+    "p95_ns": 5190616,
+    "p99_ns": 5190616,
+    "elapsed_ns": 555232340,
+    "meets_targets": true,
+    "samples": [
+      {
+        "index": 0,
+        "scheduled_ns": 0,
+        "queue_delay_ns": 136454,
+        "latency_ns": 4369582,
+        "outcome": "success"
+      },
+      {
+        "index": 1,
+        "scheduled_ns": 50000000,
+        "queue_delay_ns": 813853,
+        "latency_ns": 4569056,
+        "outcome": "success"
+      },
+      {
+        "index": 2,
+        "scheduled_ns": 100000000,
+        "queue_delay_ns": 971765,
+        "latency_ns": 4743542,
+        "outcome": "success"
+      },
+      {
+        "index": 3,
+        "scheduled_ns": 150000000,
+        "queue_delay_ns": 1108224,
+        "latency_ns": 5185403,
+        "outcome": "success"
+      },
+      {
+        "index": 4,
+        "scheduled_ns": 200000000,
+        "queue_delay_ns": 561671,
+        "latency_ns": 3783414,
+        "outcome": "success"
+      },
+      {
+        "index": 5,
+        "scheduled_ns": 250000000,
+        "queue_delay_ns": 1153624,
+        "latency_ns": 4609090,
+        "outcome": "success"
+      },
+      {
+        "index": 6,
+        "scheduled_ns": 300000000,
+        "queue_delay_ns": 901829,
+        "latency_ns": 4715289,
+        "outcome": "success"
+      },
+      {
+        "index": 7,
+        "scheduled_ns": 350000000,
+        "queue_delay_ns": 1058914,
+        "latency_ns": 5019213,
+        "outcome": "success"
+      },
+      {
+        "index": 8,
+        "scheduled_ns": 400000000,
+        "queue_delay_ns": 313512,
+        "latency_ns": 4112143,
+        "outcome": "success"
+      },
+      {
+        "index": 9,
+        "scheduled_ns": 450000000,
+        "queue_delay_ns": 497205,
+        "latency_ns": 4691354,
+        "outcome": "success"
+      },
+      {
+        "index": 10,
+        "scheduled_ns": 500000000,
+        "queue_delay_ns": 372078,
+        "latency_ns": 3539022,
+        "outcome": "success"
+      },
+      {
+        "index": 11,
+        "scheduled_ns": 550000000,
+        "queue_delay_ns": 865119,
+        "latency_ns": 5190616,
+        "outcome": "success"
+      }
+    ]
+  }
+}

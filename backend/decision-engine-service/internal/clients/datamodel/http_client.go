@@ -17,6 +17,7 @@ import (
 )
 
 const tenantModelCacheTTL = 30 * time.Second
+const maxTenantModelResponseBytes = 64 << 20
 const requestIDHeader = "X-Request-ID"
 
 type HTTPClient struct {
@@ -80,6 +81,12 @@ func (c *HTTPClient) GetTenantModel(ctx context.Context, tenantID string) (ports
 	return value.(ports.TenantModel), nil
 }
 
+// GetFreshTenantModel does not join a cached/in-flight advisory read. Every
+// preparation receives its own current owner response and detached model maps.
+func (c *HTTPClient) GetFreshTenantModel(ctx context.Context, tenantID string) (ports.TenantModel, error) {
+	return c.fetchTenantModel(ctx, tenantID)
+}
+
 func (c *HTTPClient) cachedTenantModel(tenantID string) (ports.TenantModel, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -119,8 +126,20 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 		return ports.TenantModel{}, fmt.Errorf("unexpected status from data-model-service: %d", resp.StatusCode)
 	}
 
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxTenantModelResponseBytes+1))
+	if err != nil {
+		return ports.TenantModel{}, fmt.Errorf("read model response: %w", err)
+	}
+	if len(raw) > maxTenantModelResponseBytes {
+		return ports.TenantModel{}, fmt.Errorf("data-model-service response exceeds byte limit")
+	}
+	return DecodeTenantModel(raw)
+}
+
+// DecodeTenantModel shares the owner DTO validation across HTTP and local owner composition.
+func DecodeTenantModel(raw []byte) (ports.TenantModel, error) {
 	var payload getDataModelResponse
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := json.Unmarshal(raw, &payload); err != nil {
 		return ports.TenantModel{}, fmt.Errorf("decode response: %w", err)
 	}
 	if strings.TrimSpace(payload.DataModel.RevisionID) == "" {
@@ -160,11 +179,12 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 			}
 		}
 		model.Tables[key] = ports.TenantModelTable{
-			ID:            table.ID,
-			Name:          table.Name,
-			Archived:      table.Archived,
-			Fields:        fields,
-			LinksToSingle: links,
+			ID:               table.ID,
+			PublishedVersion: table.PublishedVersion,
+			Name:             table.Name,
+			Archived:         table.Archived,
+			Fields:           fields,
+			LinksToSingle:    links,
 		}
 	}
 
@@ -212,6 +232,8 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 	}
 	return ports.ManagedIndexJob{
 		ID:        payload.IndexJob.ID,
+		TenantID:  payload.IndexJob.TenantID,
+		TableID:   payload.IndexJob.TableID,
 		TableName: payload.IndexJob.TableName,
 		IndexType: payload.IndexJob.IndexType,
 		Status:    payload.IndexJob.Status,
@@ -245,6 +267,8 @@ func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]port
 	for i, item := range payload.IndexJobs {
 		items[i] = ports.ManagedIndexJob{
 			ID:        item.ID,
+			TenantID:  item.TenantID,
+			TableID:   item.TableID,
 			TableName: item.TableName,
 			IndexType: item.IndexType,
 			Status:    item.Status,
@@ -284,11 +308,12 @@ type publishedDataModelResponse struct {
 }
 
 type assembledTableResponse struct {
-	Archived      bool                              `json:"archived"`
-	ID            string                            `json:"id"`
-	Name          string                            `json:"name"`
-	Fields        map[string]assembledFieldResponse `json:"fields"`
-	LinksToSingle map[string]assembledLinkResponse  `json:"links_to_single"`
+	PublishedVersion string                            `json:"published_version"`
+	Archived         bool                              `json:"archived"`
+	ID               string                            `json:"id"`
+	Name             string                            `json:"name"`
+	Fields           map[string]assembledFieldResponse `json:"fields"`
+	LinksToSingle    map[string]assembledLinkResponse  `json:"links_to_single"`
 }
 
 type assembledFieldResponse struct {
@@ -321,6 +346,8 @@ type listIndexJobsResponse struct {
 
 type indexJobResponse struct {
 	ID        string   `json:"id"`
+	TenantID  string   `json:"tenant_id"`
+	TableID   string   `json:"table_id"`
 	TableName string   `json:"table_name"`
 	IndexType string   `json:"index_type"`
 	Status    string   `json:"status"`

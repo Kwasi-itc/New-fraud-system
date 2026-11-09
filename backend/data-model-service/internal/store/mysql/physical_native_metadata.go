@@ -14,6 +14,21 @@ import (
 // A valid SQL plan alone must not publish an unrelated metadata shape. Queries
 // remain bounded (1,000 fields, at most three IP components) and indexed by table.
 func (e *PhysicalExecutor) verifyNativeMetadataTx(ctx context.Context, tx *sql.Tx, table uuid.UUID, plan PhysicalDDLPlan) error {
+	// Recheck retirement dependencies in the final owner transaction as well
+	// as preparation. A concurrent relationship cannot publish an invalid model.
+	for _, change := range plan.Native.Changes {
+		if change.Kind != "disable_text_unique" {
+			continue
+		}
+		var id mysqlstore.UUID
+		err := tx.QueryRowContext(ctx, "SELECT id FROM "+e.schema+".data_model_links WHERE tenant_id=? AND parent_table_id=? AND parent_field_id=? LIMIT 1 FOR SHARE", mysqlstore.UUID(e.tenant), mysqlstore.UUID(table), mysqlstore.UUID(change.FieldID)).Scan(&id)
+		if err == nil {
+			return ErrPhysicalConflict
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+	}
 	fields := map[uuid.UUID]datamodel.Field{}
 	for _, mapped := range plan.Native.Fields {
 		fields[mapped.Field.ID] = mapped.Field
@@ -21,19 +36,28 @@ func (e *PhysicalExecutor) verifyNativeMetadataTx(ctx context.Context, tx *sql.T
 	for _, change := range plan.Native.Changes {
 		f := fields[change.FieldID]
 		switch change.Kind {
-		case "field_nullability":
+		case "delete_field":
+			delete(fields, change.FieldID)
+		case "field_enum":
+			f.IsEnum = change.Enum
 			f.Nullable = change.Nullable
 			fields[f.ID] = f
-		case "create_field_unique":
+		case "field_nullability", "field_nullability_checked", "text_nullability":
+			f.Nullable = change.Nullable
+			fields[f.ID] = f
+		case "create_field_unique", "enable_text_unique":
 			f.IsUnique = true
 			fields[f.ID] = f
-		case "drop_field_unique":
+		case "drop_field_unique", "disable_text_unique":
 			f.IsUnique = false
 			fields[f.ID] = f
 		}
 	}
 	columns := map[string]string{}
 	for _, mapped := range plan.Native.Fields {
+		if _, exists := fields[mapped.Field.ID]; !exists {
+			continue
+		}
 		for _, column := range mapped.Components {
 			columns[column.FieldID.String()+"/"+column.Component] = column.Name
 		}

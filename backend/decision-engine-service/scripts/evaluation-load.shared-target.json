@@ -1,0 +1,25 @@
+{
+    "direction_reference":  "Local 1000/sec offered-rate diagnostic with concurrent history; not sustained production acceptance",
+    "seed":  "mixed-evaluation-v1",
+    "tenants":  10,
+    "hot_percent":  60,
+    "defer_additional_scoring":  true,
+    "load":  {
+                 "duration_ns":  30000000000,
+                 "requests_per_second":  1000,
+                 "workers":  16,
+                 "request_timeout_ns":  5000000000,
+                 "p95_target_ns":  250000000,
+                 "p99_target_ns":  750000000,
+                 "max_error_rate":  0
+             },
+    "history":  {
+                    "duration_ns":  30000000000,
+                    "requests_per_second":  20,
+                    "workers":  2,
+                    "request_timeout_ns":  5000000000,
+                    "p95_target_ns":  250000000,
+                    "p99_target_ns":  750000000,
+                    "max_error_rate":  0
+                }
+}

@@ -30,4 +30,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["sh", "-ec", "go mod download && go vet ./... && go test -mod=readonly -race -count=1 -timeout=240s -v ./cmd/build-mysql-reference ./cmd/migrate-mysql ./cmd/reconcile-physical-mysql ./internal/contract ./internal/ports ./internal/worker ./internal/store/mysql/..."]
+    # Package suites share one DDL server. Bound package concurrency and allow
+    # the entire metadata recovery suite to finish under the race detector.
+    command: ["sh", "-ec", "go mod download && go vet ./... && go test -mod=readonly -p=1 -race -count=1 -timeout=900s -v ./cmd/build-mysql-reference ./cmd/migrate-mysql ./cmd/reconcile-physical-mysql ./cmd/inspect-deliveries-mysql ./cmd/redrive-delivery-mysql ./cmd/mysql-worker ./internal/contract ./internal/ports ./internal/worker ./internal/mysqlruntime ./internal/store/mysql/..."]

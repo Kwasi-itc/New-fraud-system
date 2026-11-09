@@ -20,3 +20,11 @@ type DecisionMutationStore interface {
 type DecisionTransactionManager interface {
 	RunDecisionMutation(context.Context, func(DecisionMutationStore) error) error
 }
+
+// DecisionJobBatchEnqueuer is an optional bounded producer capability. All jobs
+// still belong to the caller's decision transaction and require owner-state and
+// tenant checks. An error must abort that transaction; callers must not retry
+// individual jobs after a failed batch. Legacy adapters can retain Enqueue.
+type DecisionJobBatchEnqueuer interface {
+	EnqueueBatch(context.Context, []JobRequest) error
+}

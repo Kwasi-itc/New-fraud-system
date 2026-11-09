@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/google/uuid"
 )
 
 // DecisionUnitOfWorkStore composes the implemented decision/effect/list and
@@ -146,17 +148,57 @@ func (s decisionMutation) ScoringRequests() ports.ScoringRequestRepository {
 func (s decisionMutation) OutboxEvents() ports.OutboxEventRepository { return s.effects.OutboxEvents }
 
 func (s decisionMutation) Enqueue(ctx context.Context, job ports.JobRequest) (err error) {
+	return s.EnqueueBatch(ctx, []ports.JobRequest{job})
+}
+
+var _ ports.DecisionJobBatchEnqueuer = decisionMutation{}
+
+func (s decisionMutation) EnqueueBatch(ctx context.Context, jobs []ports.JobRequest) (err error) {
 	r := s.effects.Decisions.authoringRepository
 	defer func() {
 		if err != nil && r.effectJobError != nil {
 			*r.effectJobError = errors.Join(*r.effectJobError, err)
 		}
 	}()
-	if job.ScheduledAt != nil || job.TenantID != r.tenant.String() || effectOwnerTable(job.Kind) == "" {
-		return errors.New("decision persistence requires same-tenant four-effect initial jobs; execution jobs require their fenced lifecycle")
+	if len(jobs) > r.maxRows {
+		return ErrProjectionLimit
+	}
+	groups := map[ports.JobKind][]string{}
+	seen := map[ports.JobKind]map[uuid.UUID]bool{}
+	for _, job := range jobs {
+		if r.deferScoring && job.Kind == ports.JobScoring {
+			return ErrAdditionalScoringDeferred
+		}
+		if job.ScheduledAt != nil || job.TenantID != r.tenant.String() || effectOwnerTable(job.Kind) == "" {
+			return errors.New("decision persistence requires same-tenant four-effect initial jobs; execution jobs require their fenced lifecycle")
+		}
+		id, parseErr := uuid.Parse(job.ResourceID)
+		if parseErr != nil || id == uuid.Nil {
+			return ErrTenantScope
+		}
+		if seen[job.Kind] == nil {
+			seen[job.Kind] = map[uuid.UUID]bool{}
+		}
+		if !seen[job.Kind][id] {
+			groups[job.Kind] = append(groups[job.Kind], id.String())
+			seen[job.Kind][id] = true
+		}
 	}
 	// CreateMany already schedules its required jobs in bounded batches. This
 	// source-compatible call rechecks owner state and the exact permanent receipt;
 	// it never bypasses scheduling or invents an unbound arbitrary job payload.
-	return r.enqueueCreated(ctx, effectOwnerTable(job.Kind), []string{job.ResourceID})
+	// Validate the whole request before acquiring locks; then use stable kind
+	// ordering and the producer's sorted, bounded resource chunks. Duplicate
+	// requests retain the single-call idempotency semantics.
+	kinds := make([]string, 0, len(groups))
+	for kind := range groups {
+		kinds = append(kinds, string(kind))
+	}
+	sort.Strings(kinds)
+	for _, kind := range kinds {
+		if err := r.enqueueCreated(ctx, effectOwnerTable(ports.JobKind(kind)), groups[ports.JobKind(kind)]); err != nil {
+			return err
+		}
+	}
+	return nil
 }

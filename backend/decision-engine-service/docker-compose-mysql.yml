@@ -1,0 +1,111 @@
+# Multi-tenant development profile; shared database with data-model/ingestion.
+name: fraud-mysql-dev
+include:
+  - ../ingestion-service/docker-compose-mysql.yml
+services:
+  migrate-decisions:
+    image: fraud-decision-mysql:local
+    build:
+      context: ..
+      dockerfile: decision-engine-service/Dockerfile.mysql
+    command: [/app/install-decisions]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      LOCAL_DECISION_API: "1"
+      APP_ORIGIN: http://localhost:8082
+      DECISION_TENANT_ID: ${DECISION_TENANT_ID:-}
+      DECISION_MYSQL_SUBNET: ${DECISION_MYSQL_SUBNET:-}
+    secrets: [mysql_root_password, decision_api_password, decision_worker_password, decision_runtime_token, decision_review_session, decision_provider_password, decision_provider_token]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+      - ../../.local/mysql-dev/decision-runtime:/runtime
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      migrate-ingestion:
+        condition: service_completed_successfully
+
+  decision-engine-worker:
+    image: fraud-decision-mysql:local
+    command: [/app/mysql-api, --worker]
+    environment: &local-env
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:8082
+      GIN_MODE: release
+    secrets: [decision_worker_password, decision_runtime_token, decision_provider_token]
+    volumes: &runtime
+      - ../../.local/mysql-dev/decision-runtime:/runtime:ro
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 512m
+    stop_grace_period: 30s
+    healthcheck: &health
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 9s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      decision-local-providers:
+        condition: service_healthy
+      migrate-decisions:
+        condition: service_completed_successfully
+
+  decision-engine-service:
+    image: fraud-decision-mysql:local
+    environment: *local-env
+    secrets: [decision_api_password, decision_runtime_token, decision_review_session, decision_provider_token]
+    volumes: *runtime
+    ports: ["127.0.0.1:8082:8082"]
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 512m
+    stop_grace_period: 30s
+    healthcheck: *health
+    restart: unless-stopped
+    depends_on:
+      decision-engine-worker:
+        condition: service_healthy
+
+  decision-local-providers:
+    image: fraud-decision-mysql:local
+    command: [/app/mysql-provider]
+    environment: *local-env
+    secrets: [decision_provider_password, decision_provider_token]
+    volumes: *runtime
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 256m
+    stop_grace_period: 20s
+    healthcheck:
+      test: [CMD, /app/mysql-provider, --healthcheck]
+      interval: 10s
+      timeout: 7s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-decisions:
+        condition: service_completed_successfully
+
+secrets:
+  decision_api_password:
+    file: ../../.local/mysql-dev/decision-api-password.txt
+  decision_worker_password:
+    file: ../../.local/mysql-dev/decision-worker-password.txt
+  decision_runtime_token:
+    file: ../../.local/mysql-dev/decision-runtime-token.txt
+  decision_review_session:
+    file: ../../.local/mysql-dev/decision-review-session.txt
+  decision_provider_password:
+    file: ../../.local/mysql-dev/decision-provider-password.txt
+  decision_provider_token:
+    file: ../../.local/mysql-dev/decision-provider-token.txt

@@ -11,6 +11,8 @@ type TenantModel struct {
 
 type ManagedIndexJob struct {
 	ID        string
+	TenantID  string
+	TableID   string
 	TableName string
 	IndexType string
 	Status    string
@@ -52,9 +54,23 @@ type TenantModelReader interface {
 	GetTenantModel(ctx context.Context, tenantID string) (TenantModel, error)
 }
 
+// FreshTenantModelReader bypasses advisory caches for execution/publication
+// preparation. The consumer still validates registry versions on its SQL tx.
+type FreshTenantModelReader interface {
+	GetFreshTenantModel(ctx context.Context, tenantID string) (TenantModel, error)
+}
+
 type DataModelReader interface {
 	TenantModelReader
 	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
 	RetryIndexJob(ctx context.Context, jobID string) error
+}
+
+// IndexPreparationProvider is the bounded owner API contract, separately
+// configured from model reads. Results must be complete or return an error.
+type IndexPreparationProvider interface {
+	ListIndexJobsForTables(context.Context, string, []string, int) ([]ManagedIndexJob, error)
+	CreateIndexJob(context.Context, string, string, string, []string, string) (ManagedIndexJob, error)
+	RetryIndexJob(context.Context, string) error
 }

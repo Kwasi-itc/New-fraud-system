@@ -7,6 +7,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlreview"
 	"net/http"
 	"reflect"
 	"time"
@@ -14,6 +16,8 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlapi"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
+	decisionservice "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/workers"
@@ -25,15 +29,21 @@ import (
 // tenant IDs. These mandatory callbacks recheck current permissions/revocation
 // through local SQL on every caller transaction, before owner locks.
 type Authorities struct {
-	TenantID   uuid.UUID
-	Authoring  mysql.AuthoringAuthorizer
-	Reads      mysql.PlatformAuthorizer
-	Persist    mysql.PlatformAuthorizer
-	Executions mysql.ExecutionAuthorizer
-	Worker     mysql.EffectWorkerAuthorizer
+	TenantID  uuid.UUID
+	Authoring mysql.AuthoringAuthorizer
+	Reads     mysql.PlatformAuthorizer
+	Persist   mysql.PlatformAuthorizer
+	// PlatformMutations explicitly grants tag/risk/IP administration. Missing
+	// authority disables these mutations; Persist is never used as a fallback.
+	PlatformMutations mysql.PlatformAuthorizer
+	EffectMutations   mysql.PlatformAuthorizer
+	EffectRecovery    mysql.EffectRetryAuthorizer
+	Executions        mysql.ExecutionAuthorizer
+	Worker            mysql.EffectWorkerAuthorizer
 	// Optional only for service scope. Browser access requires a trusted user
 	// session supplied by the real auth owner, not decoded from route JSON.
-	Session *mysql.TrustedDecisionSession
+	Session       *mysql.TrustedDecisionSession
+	ReviewSession *mysqlidentity.Session
 }
 type AuthorityProvider func(context.Context, uuid.UUID) (Authorities, error)
 
@@ -41,6 +51,7 @@ type Policy struct {
 	MaxRows, MaxBytes, HTTPMaxBytes, MaxWorkerTenants int
 	MaxWorkerSlots                                    int
 	Evaluation                                        mysqlexecution.EvaluationPolicy
+	VelocitySummaries                                 bool
 	Admission                                         mysqlexecution.AdmissionPolicy
 	Execution                                         mysql.ExecutionPolicy
 	Effects                                           map[ports.JobKind]mysql.EffectQueuePolicy
@@ -61,6 +72,7 @@ type Dependencies struct {
 	DB               *sql.DB
 	Database         string
 	Models           ports.TenantModelReader
+	IndexPreparation ports.IndexPreparationProvider
 	RequestAuthority AuthorityProvider
 	Authenticate     func(*http.Request) (context.Context, error)
 	ServiceAuthority AuthorityProvider
@@ -98,6 +110,16 @@ func absent(v any) bool {
 
 var allKinds = []ports.JobKind{ports.JobScheduled, ports.JobAsync, ports.JobCallback, ports.JobWorkflow, ports.JobScreening, ports.JobScoring, ports.JobOutbox}
 var dispatchKinds = []ports.JobKind{ports.JobCallback, ports.JobWorkflow, ports.JobScreening, ports.JobScoring, ports.JobOutbox}
+
+func enabledKinds(kinds []ports.JobKind, deferScoring bool) []ports.JobKind {
+	out := make([]ports.JobKind, 0, len(kinds))
+	for _, kind := range kinds {
+		if !deferScoring || kind != ports.JobScoring {
+			out = append(out, kind)
+		}
+	}
+	return out
+}
 
 type Runtime struct {
 	deps   Dependencies
@@ -141,6 +163,8 @@ func New(deps Dependencies, policy Policy) (*Runtime, error) {
 	if _, err := workers.NewMaintenanceScheduler[mysql.DeliveryMaintenanceCursor](policy.MaintenancePageSize, policy.MaintenancePagesPerTick, policy.MaintenanceInterval, policy.MaintenanceTimeout); err != nil {
 		return nil, err
 	}
+	dispatchKinds := enabledKinds(dispatchKinds, policy.Evaluation.DeferAdditionalScoring)
+	allKinds := enabledKinds(allKinds, policy.Evaluation.DeferAdditionalScoring)
 	if len(deps.Dispatch) != len(dispatchKinds) || len(policy.Workers) != len(allKinds) {
 		return nil, mysql.ErrOwnerContractUnavailable
 	}
@@ -161,6 +185,22 @@ func New(deps Dependencies, policy Policy) (*Runtime, error) {
 		if worker, ok := policy.Workers[kind]; !ok || worker.Concurrency < 1 || worker.Concurrency > policy.MaxWorkerSlots {
 			return nil, mysql.ErrOwnerContractUnavailable
 		}
+	}
+	if policy.Evaluation.AggregateTimeout != 0 {
+		executor, err := asteval.NewAggregateExecutor(policy.Evaluation.AggregateConcurrency, policy.Evaluation.AggregateTimeout, policy.Evaluation.AggregateBatchWindow)
+		if err != nil {
+			return nil, err
+		}
+		policy.Evaluation.AggregateExecutor = executor
+	} else if policy.Evaluation.AggregateBatchWindow != 0 {
+		return nil, errors.New("aggregate batching requires a query deadline")
+	}
+	if policy.Evaluation.FormulaPlans == nil {
+		plans, err := asteval.NewFormulaPlans(256, 8<<20)
+		if err != nil {
+			return nil, err
+		}
+		policy.Evaluation.FormulaPlans = plans
 	}
 	return &Runtime{copyDeps, policy}, nil
 }
@@ -207,6 +247,7 @@ func (r *Runtime) Scope(ctx context.Context, tenant uuid.UUID, service bool) (*S
 	if err != nil {
 		return nil, err
 	}
+	reader = reader.WithVelocitySummaries(p.VelocitySummaries)
 	configuration, err := mysql.NewConfigurationStore(db, database, tenant, p.MaxRows, p.MaxBytes, a.Authoring)
 	if err != nil {
 		return nil, err
@@ -245,6 +286,12 @@ func (r *Runtime) Scope(ctx context.Context, tenant uuid.UUID, service bool) (*S
 	if err != nil {
 		return nil, err
 	}
+	if p.Evaluation.DeferAdditionalScoring {
+		effects, err = effects.WithoutAdditionalScoring()
+		if err != nil {
+			return nil, err
+		}
+	}
 	unit, err := mysql.NewDecisionUnitOfWorkStore(effects, executions)
 	if err != nil {
 		return nil, err
@@ -261,6 +308,10 @@ func (r *Runtime) Scope(ctx context.Context, tenant uuid.UUID, service bool) (*S
 	if err != nil {
 		return nil, err
 	}
+	direct, err := mysqlexecution.NewDirect(preparer, unit)
+	if err != nil {
+		return nil, err
+	}
 	schedules, err := mysqlexecution.NewScheduleAdmin(preparer, p.Admission.ScheduledMaxAttempts)
 	if err != nil {
 		return nil, err
@@ -273,7 +324,55 @@ func (r *Runtime) Scope(ctx context.Context, tenant uuid.UUID, service bool) (*S
 	if err != nil {
 		return nil, err
 	}
+	if !absent(r.deps.IndexPreparation) {
+		publication = publication.WithIndexPreparation(r.deps.IndexPreparation)
+	}
+	authoringAPI, err := mysqlexecution.NewAuthoring(authoring, reader, r.deps.IDs, r.deps.Clock, decisionservice.ExecutionPreparationLimits{MaxItems: min(p.MaxRows, 1000), MaxBytes: p.MaxBytes})
+	if err != nil {
+		return nil, err
+	}
+	authoringAPI, err = authoringAPI.WithCopySession(a.Session)
+	if err != nil {
+		return nil, err
+	}
+	var scoringAPI *mysqlexecution.ScoringAuthoring
+	if !p.Evaluation.DeferAdditionalScoring {
+		scoringAPI, err = mysqlexecution.NewScoringAuthoring(configuration, r.deps.IDs, r.deps.Clock)
+		if err != nil {
+			return nil, err
+		}
+	}
+	administration, err := mysql.NewAdministrationStore(db, database, tenant, p.MaxRows, p.MaxBytes, a.Authoring, a.Session, r.deps.IDs, r.deps.Clock)
+	if err != nil {
+		return nil, err
+	}
 	var browser *mysql.BrowserWorkflowStore
+	var review *mysqlreview.Store
+	if !service && a.ReviewSession != nil {
+		review, err = mysqlreview.New(db, database, *a.ReviewSession)
+		if err != nil {
+			return nil, err
+		}
+		if !review.Matches(db, database, tenant) {
+			return nil, mysql.ErrTenantScope
+		}
+	}
+	var effectAdmin *mysql.EffectAdministration
+	if a.EffectMutations != nil && a.EffectRecovery != nil {
+		effectAdmin, err = mysql.NewEffectAdministration(db, database, tenant, p.MaxRows, p.MaxBytes, a.EffectMutations, a.EffectRecovery, &source, p.Effects, r.deps.Clock)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var browserAdmin *mysql.BrowserWorkflowAdmin
+	platformAdmin, err := mysql.NewPlatformAdmin(platform, a.PlatformMutations, r.deps.IDs, r.deps.Clock)
+	if err != nil {
+		return nil, err
+	}
+	listAdmin, err := mysql.NewCustomListAdmin(lists, r.deps.IDs, r.deps.Clock)
+	if err != nil {
+		return nil, err
+	}
 	if !service && a.Session != nil {
 		if a.Session.TenantID != tenant {
 			return nil, mysql.ErrTenantScope
@@ -282,8 +381,16 @@ func (r *Runtime) Scope(ctx context.Context, tenant uuid.UUID, service bool) (*S
 		if err != nil {
 			return nil, err
 		}
+		browserAdmin, err = mysql.NewBrowserWorkflowAdmin(browser)
+		if err != nil {
+			return nil, err
+		}
+		browserAdmin, err = browserAdmin.WithCopyReader(reader)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return &Scope{Executions: executions, Effects: effects, Unit: unit, Preparer: preparer, Publication: publication, browser: browser, Endpoint: &mysqlapi.ExecutionEndpointScope{Read: read, Submission: submission, Schedules: schedules}, worker: a.Worker}, nil
+	return &Scope{Executions: executions, Effects: effects, Unit: unit, Preparer: preparer, Publication: publication, browser: browser, Endpoint: &mysqlapi.ExecutionEndpointScope{Read: read, Review: review, Submission: submission, Direct: direct, Effects: effectAdmin, Schedules: schedules, Publication: publication, Authoring: authoringAPI, Scoring: scoringAPI, History: history, Clock: r.deps.Clock, Administration: administration, CustomLists: listAdmin, Platform: platformAdmin, Browser: browserAdmin}, worker: a.Worker}, nil
 }
 
 func (s *Scope) BrowserWorkflows() (*mysql.BrowserWorkflowStore, error) {

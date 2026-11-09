@@ -87,3 +87,17 @@ func TestAdaptAssembledDataModelPublishesIngestionContract(t *testing.T) {
 		t.Fatalf("expected enum values to be preserved, got %+v", field.EnumValues)
 	}
 }
+
+func TestAssembledPublicationVersion(t *testing.T) {
+	version := uuid.New()
+	model := datamodel.AssembledDataModel{Tables: map[string]datamodel.AssembledTable{
+		"published": {PublishedVersion: &version}, "metadata": {},
+	}}
+	response := AdaptAssembledDataModel(model, "unrelated-revision", tenant.StatusActive)
+	if response.Tables["published"].PublishedVersion == nil || *response.Tables["published"].PublishedVersion != version {
+		t.Fatal("owner version lost")
+	}
+	if response.Tables["metadata"].PublishedVersion != nil {
+		t.Fatal("publication version synthesized")
+	}
+}

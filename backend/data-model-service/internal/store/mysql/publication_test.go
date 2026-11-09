@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -36,6 +37,16 @@ func publicationDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
+	var created []string
+	t.Cleanup(func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 10*time.Second)
+		defer stop()
+		for i := len(created) - 1; i >= 0; i-- {
+			if _, err := db.ExecContext(cleanup, "DROP TABLE "+created[i]); err != nil {
+				t.Error(err)
+			}
+		}
+	})
 	for _, ddl := range []string{
 		// Candidate worker columns only; not a production metadata lineage.
 		`CREATE TABLE data_model_index_jobs (id BINARY(16) PRIMARY KEY, tenant_id BINARY(16) NOT NULL, table_id BINARY(16) NULL, table_name TEXT NOT NULL, index_type VARCHAR(20) NOT NULL, columns_json JSON NOT NULL, status VARCHAR(20) NOT NULL, requested_by_operation TEXT NOT NULL, error_message TEXT NULL, attempt_count INT NOT NULL DEFAULT 0, requested_at DATETIME(6) NOT NULL, started_at DATETIME(6) NULL, completed_at DATETIME(6) NULL, scheduled_at DATETIME(6) NULL, dedupe_key TEXT NOT NULL) ENGINE=InnoDB`,
@@ -51,6 +62,7 @@ func publicationDB(t *testing.T) *sql.DB {
 		if _, err := db.ExecContext(ctx, ddl); err != nil {
 			t.Fatal(err)
 		}
+		created = append(created, strings.Fields(ddl)[2])
 	}
 	return db
 }

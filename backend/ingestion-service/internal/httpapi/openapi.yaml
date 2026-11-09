@@ -490,6 +490,13 @@ paths:
 
         These metrics are intended to show whether overflowed single-record ingests are piling up
         or draining successfully after the API falls back to asynchronous worker processing.
+
+        In the MySQL runtime this snapshot covers the configured tenant and table only;
+        query parameters cannot select another scope. Each resource's current job is counted
+        once, including after redrive. Cancelled jobs use the existing failed resource status.
+        Retry metrics count executions, matching the existing PostgreSQL response contract.
+        More than 10,000 retained deferred resources in that scope returns 413 rather than
+        partial totals. Snapshot time is read from the database and recent counts use five minutes.
       responses:
         '200':
           description: Deferred ingest metrics snapshot
@@ -500,6 +507,16 @@ paths:
                 properties:
                   deferred_ingest_metrics:
                     $ref: '#/components/schemas/DeferredIngestMetrics'
+        '401':
+          description: Missing or invalid service credential in authenticated mode
+        '403':
+          description: Current tenant or table authority is unavailable
+        '413':
+          description: Exact snapshot exceeds the configured retained-resource bound
+        '503':
+          description: Storage, grants or current-job lineage is unavailable
+        '504':
+          description: Metrics snapshot exceeded its five-second deadline
 components:
   parameters:
     TenantId:

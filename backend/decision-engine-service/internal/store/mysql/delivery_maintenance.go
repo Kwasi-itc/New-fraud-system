@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/workers"
@@ -128,6 +129,10 @@ func (s *DeliveryMaintenanceStore) MaintainPage(ctx context.Context, limit int, 
 		// rollback/commit/authorization failure must not be swallowed merely
 		// because errors.Is also happens to find a stale-lease sentinel.
 		if err == ErrStaleEffectLease || err == ErrExecutionLease {
+			continue
+		}
+		if err == ErrDispatchReconciliationRequired {
+			slog.Warn("dispatch awaits receipt reconciliation", "kind", candidate.Identity.Kind, "resource_id", candidate.Identity.ResourceID)
 			continue
 		}
 		if err != nil {

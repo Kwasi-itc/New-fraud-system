@@ -1,0 +1,63 @@
+{
+    "date":  "2026-11-02",
+    "scope":  "T41-T50: six platform endpoints and four integration tasks",
+    "status":  "implemented, verified and checked",
+    "environment":  {
+                        "go":  "1.25.8",
+                        "postgres":  "16",
+                        "fixtures":  "Private disposable Docker network, tmpfs databases, no application database setup",
+                        "mysql":  "8.4.8"
+                    },
+    "verification":  {
+                         "race":  true,
+                         "affected_package_vet":  "passed",
+                         "top_level_passed":  63,
+                         "failures":  0,
+                         "module_compile":  "passed",
+                         "skips":  0,
+                         "subtests_passed":  91
+                     },
+    "task_tests":  [
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T41_legacy_list_name_lookup",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T42_record_tag_lookup",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T43_record_tag_creation",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T44_risk_snapshot_creation",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T45_IP_flag_lookup",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T46_IP_flag_creation",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T47_separate_mutation_authority",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T48_strict_requests_and_exact_empty_identity",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T49_bounded_platform_projections",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_platform_tasks/T50_atomic_failure_and_evaluator_records"
+                   ],
+    "commands":  [
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/store/mysql -run \u0027TestMySQLPlatform(Admin|RoundTrip|ExactText|Budgets|Transactions|Restricted)\u0027",
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlruntime ./internal/mysqlexecution ./internal/migrationaudit",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 ./internal/store/mysql ./internal/mysqlapi ./internal/mysqlruntime"
+                 ],
+    "evidence":  [
+                     "2026-11-02_decision-platform-store.jsonl",
+                     "2026-11-02_decision-platform-runtime.jsonl",
+                     "2026-11-02_decision-platform-compile.log",
+                     "2026-11-02_decision-platform-vet.log"
+                 ],
+    "coverage":  [
+                     "Six actual HTTP endpoints and four cross-cutting integration tasks",
+                     "Authentication, foreign tenant, revoked and missing/denied mutation authority",
+                     "Read permission retained when write provider is absent",
+                     "Exact case/accent/whitespace and explicit empty identity semantics",
+                     "Strict body/query contracts and row/text/body limits",
+                     "All three post-insert readback failures roll back with zero provisional outputs",
+                     "Concurrent writes, stable read snapshot and evaluator visibility",
+                     "Existing restricted-account repository regressions"
+                 ],
+    "limitations":  [
+                        "PostgreSQL remains configured; MySQL remains staged and opt-in",
+                        "PlatformMutations is an explicit provider contract; no real auth adapter is supplied",
+                        "Empty list_name intentionally retains bounded all-tenant-entry behavior",
+                        "Collections have no cursors and overflow returns 413",
+                        "Repeated creates are not idempotent; uncertain commits not retried",
+                        "No schema/index/migration changes or production performance claim",
+                        "Comparison, screening/provider and remaining API integration, full parity, production acceptance, release and activation remain open"
+                    ]
+}

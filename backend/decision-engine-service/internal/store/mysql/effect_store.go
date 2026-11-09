@@ -19,6 +19,7 @@ type EffectStore struct {
 	screening     *ScreeningSourceContract
 	queues        effectQueueConfig
 	lists         *effectListAccess
+	deferScoring  bool
 }
 type EffectRepositories struct {
 	Decisions           DecisionRepository
@@ -100,6 +101,6 @@ func (s *EffectStore) run(ctx context.Context, write bool, fn func(EffectReposit
 func (s *EffectStore) repositories(tx *sql.Tx, write bool, lists *CustomListRepository, failed *error) EffectRepositories {
 	c := s.configuration
 	p := platformRepository{tx, c.schema, c.tenant, c.maxRows, c.maxBytes, write}
-	r := authoringRepository{platformRepository: p, effectQueues: s.queues, effectJobError: failed}
+	r := authoringRepository{platformRepository: p, effectQueues: s.queues, effectJobError: failed, deferScoring: s.deferScoring, newDecisionBindings: newDecisionBindingCache()}
 	return EffectRepositories{Decisions: DecisionRepository{r}, RuleExecutions: RuleExecutionRepository{r}, WorkflowExecutions: WorkflowExecutionRepository{r}, ScreeningExecutions: ScreeningExecutionRepository{providerExecutionRepository{r, true}, s.screening}, ScoringRequests: ScoringRequestRepository{providerExecutionRepository{r, false}}, OutboxEvents: OutboxEventRepository{r}, RecordTags: RecordTagRepository{p}, RiskSnapshots: RiskSnapshotRepository{p}, IPFlags: IPFlagRepository{p}, customLists: lists}
 }

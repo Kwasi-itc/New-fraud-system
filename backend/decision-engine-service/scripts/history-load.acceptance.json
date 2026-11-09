@@ -1,0 +1,17 @@
+{
+  "approval_reference": "2026-11-03 user-directed performance work; engineering defaults retained as stated before the instruction to finish. See mysql_migration/implementation/evidence/2026-11-03_decision_performance_provider_direction.md",
+  "seed": "decision-history-acceptance-v1",
+  "rows": 100000,
+  "tenants": 10,
+  "hot_percent": 60,
+  "scenarios_per_tenant": 20,
+  "load": {
+    "duration_ns": 300000000000,
+    "requests_per_second": 20,
+    "workers": 4,
+    "request_timeout_ns": 5000000000,
+    "p95_target_ns": 250000000,
+    "p99_target_ns": 750000000,
+    "max_error_rate": 0
+  }
+}

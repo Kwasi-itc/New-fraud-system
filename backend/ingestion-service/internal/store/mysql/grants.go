@@ -32,6 +32,8 @@ func RuntimeGrants(database, role string, worker bool) ([]string, error) {
 	add("SELECT, INSERT", "ingestion_request_receipts")
 	add("INSERT", "ingestion_audit")
 	add("INSERT", "ingestion_outbox_events")
+	add("SELECT", "ingestion_velocity_definitions")
+	add("SELECT,INSERT,UPDATE", "ingestion_velocity_buckets")
 	grants = append(grants, "GRANT EXECUTE ON FUNCTION "+s+".data_model_find_record_object_key_v1 TO '"+role+"'@'%'")
 	add("SELECT, INSERT", "ingestion_work_resources")
 	add("SELECT, INSERT", "ingestion_work_jobs")

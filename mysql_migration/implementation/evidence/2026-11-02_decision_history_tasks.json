@@ -1,0 +1,107 @@
+{
+    "date":  "2026-11-02",
+    "scope":  "Ten NEW decision-engine historical-read API subtasks T11-T20; parent gates remain open",
+    "status":  "implemented and scoped verification passed",
+    "environment":  {
+                        "mysql":  "8.4.8",
+                        "go":  "1.25.8",
+                        "postgres":  "16 disposable fixture",
+                        "configured_application_runtime":  "PostgreSQL",
+                        "fixture":  "Private Docker network; tmpfs databases; no host database ports"
+                    },
+    "verification":  {
+                         "top_level_tests":  58,
+                         "subtests":  32,
+                         "failures":  0,
+                         "skips":  0,
+                         "race_detection":  true,
+                         "full_module_compile":  "passed",
+                         "affected_package_vet":  "passed"
+                     },
+    "tasks":  [
+                  {
+                      "task":  "T11_decision_list",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T11_decision_list",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T12_scenario_decisions",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T12_scenario_decisions",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T13_decision_count",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T13_decision_count",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T14_decision_evidence",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T14_decision_evidence",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T15_test_run_list",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T15_test_run_list",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T16_test_run_detail",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T16_test_run_detail",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T17_active_snoozes",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T17_active_snoozes",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T18_workflow_history",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T18_workflow_history",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T19_scoring_history",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T19_scoring_history",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T20_scoring_detail",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_history_APIs/T20_scoring_detail",
+                      "status":  "passed"
+                  }
+              ],
+    "commands":  [
+                     "GIN_MODE=release go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlruntime ./internal/mysqlexecution ./internal/migrationaudit",
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/store/mysql -run TestMySQL(History|DecisionPersistence|Snooze|DecisionFiltering|DecisionPagination)",
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/store/mysql ./internal/mysqlapi -run Test(MySQL(History|DecisionPagingSearchAndProjection)|HistoryQuery)",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 ./internal/mysqlapi ./internal/mysqlruntime ./internal/store/mysql"
+                 ],
+    "evidence":  [
+                     "2026-11-02_decision-history-runtime.jsonl",
+                     "2026-11-02_decision-history-store.jsonl",
+                     "2026-11-02_decision-history-plans.jsonl",
+                     "2026-11-02_decision-history-http.jsonl",
+                     "2026-11-02_decision-history-compile.log",
+                     "2026-11-02_decision-history-vet.log"
+                 ],
+    "query_plans":  {
+                        "fixture_rows":  512,
+                        "varied_fixture":  "Tenant/scenario: range access using de_decision_history; exact object: ref using de_decision_object",
+                        "initial_uniform_fixture":  "All 512 rows matching one object selected a scan. This finding is not an application failure or a production optimization claim."
+                    },
+    "limitations":  [
+                        "MySQL API remains opt-in; PostgreSQL remains configured.",
+                        "Decision lists use keyset pagination only; offset explicitly rejected. Default 50; maximum min(500, configured row cap).",
+                        "Other collections reject row/byte overflow; no silent truncation or continuation supplied.",
+                        "Snapshots are per request, not across page traversal.",
+                        "Counts and contains search cost depend on matching data; no production load acceptance.",
+                        "Historical reads do not implement test-run mutations/statistics, remaining configuration/browser APIs, real foreign providers, release or activation.",
+                        "No production migration, deployment, commit or push."
+                    ],
+    "corrected_fixture_failures":  [
+                                       "Rule IterationID field and UpdatedAt timestamp",
+                                       "Workflow fixture requires explicit HTTP(S) event URL",
+                                       "Test authorization error constant corrected before accepted store run"
+                                   ]
+}

@@ -1,0 +1,23 @@
+{
+  "fraud-mysql-dev-decision-engine-service-1": {
+    "id": "36a092c5e25007ed713e294d544f9eceaa41e63527de4028b1ec3da4e0669e9c",
+    "image": "sha256:f3509496c8b45e8eff1f0cdced413a9919ea6d83a56df768535dbab2bb6e1248",
+    "imageName": "fraud-decision-mysql:local",
+    "state": "running",
+    "health": "healthy"
+  },
+  "fraud-mysql-dev-decision-engine-worker-1": {
+    "id": "36a922e2cd45a9aea4076fb0d1cad39bc3d75845162340cdc1b7261ccad17750",
+    "image": "sha256:f3509496c8b45e8eff1f0cdced413a9919ea6d83a56df768535dbab2bb6e1248",
+    "imageName": "fraud-decision-mysql:local",
+    "state": "running",
+    "health": "healthy"
+  },
+  "fraud-mysql-dev-mysql-1": {
+    "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+    "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "imageName": "mysql:8.4.8",
+    "state": "running",
+    "health": "healthy"
+  }
+}

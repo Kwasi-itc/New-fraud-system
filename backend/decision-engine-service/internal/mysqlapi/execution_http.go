@@ -6,13 +6,20 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlreview"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
@@ -28,9 +35,21 @@ type ExecutionScopeFactory func(context.Context, uuid.UUID) (*ExecutionEndpointS
 // Read-only/admin endpoints need no evaluation/model provider. Submission is
 // mandatory for creation, and must share the exact authorized read store.
 type ExecutionEndpointScope struct {
-	Read       *ExecutionAdapter
-	Submission *ExecutionSubmission
-	Schedules  *mysqlexecution.ScheduleAdmin
+	Read           *ExecutionAdapter
+	Review         *mysqlreview.Store
+	Submission     *ExecutionSubmission
+	Direct         *mysqlexecution.Direct
+	Effects        *mysql.EffectAdministration
+	Schedules      *mysqlexecution.ScheduleAdmin
+	Publication    *mysqlexecution.Publication
+	Authoring      *mysqlexecution.Authoring
+	Scoring        *mysqlexecution.ScoringAuthoring
+	History        *mysql.DecisionStore
+	Administration *mysql.AdministrationStore
+	CustomLists    *mysql.CustomListAdmin
+	Platform       *mysql.PlatformAdmin
+	Browser        *mysql.BrowserWorkflowAdmin
+	Clock          ports.Clock
 }
 
 type ExecutionHTTP struct {
@@ -48,6 +67,28 @@ func NewExecutionHTTP(scope ExecutionScopeFactory, maxBytes int64) (*ExecutionHT
 // Register is explicitly opt-in. It must replace, not duplicate, the source
 // execution routes only after backend/auth/provider readiness is approved.
 func (h *ExecutionHTTP) Register(v1 *gin.RouterGroup) {
+	h.registerHistory(v1)
+	h.registerAdministration(v1)
+	h.registerCustomLists(v1)
+	h.registerPlatform(v1)
+	h.registerAuthoring(v1)
+	h.registerScoring(v1)
+	h.registerDirect(v1)
+	h.registerWorkflowRules(v1)
+	h.registerScreeningConfigs(v1)
+	h.registerEffectAdministration(v1)
+	h.registerReview(v1)
+	h.registerExpressionAssistance(v1)
+	// The containing application group authenticates this tenant-independent
+	// evaluator catalog. It requires no fabricated tenant or database authority.
+	v1.GET("/rule-functions", func(c *gin.Context) {
+		if c.Request.URL.RawQuery != "" {
+			executionHTTPError(c, mysql.ErrExecutionPage)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"rule_functions": dto.AdaptRuleFunctionCatalog(ast_eval.SupportedFunctionCatalog())})
+	})
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate", h.handle("publication.deactivate"))
 	scheduled := "/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions"
 	async := "/tenants/:tenantId/async-decision-executions"
 	v1.POST(scheduled, h.handle("scheduled.create"))
@@ -69,6 +110,11 @@ func (h *ExecutionHTTP) Register(v1 *gin.RouterGroup) {
 	v1.GET(schedule+"/:scheduleId", h.handle("schedule.get"))
 	v1.PUT(schedule, h.handle("schedule.replace"))
 	v1.DELETE(schedule, h.handle("schedule.disable"))
+	publication := "/tenants/:tenantId/scenarios/:scenarioId/publications"
+	v1.GET(publication, h.handle("publication.list"))
+	v1.POST(publication, h.handle("publication.action"))
+	v1.GET(publication+"/preparation", h.handle("publication.preparation.get"))
+	v1.POST(publication+"/preparation", h.handle("publication.preparation.start"))
 }
 
 var errExecutionHTTPBody = errors.New("invalid execution request JSON")
@@ -164,7 +210,7 @@ func (h *ExecutionHTTP) handle(op string) gin.HandlerFunc {
 			executionHTTPError(c, mysql.ErrTenantScope)
 			return
 		}
-		for _, name := range []string{"scenarioId", "executionId", "scheduleId"} {
+		for _, name := range []string{"scenarioId", "executionId", "scheduleId", "iterationId", "ruleId", "configId", "decisionId", "testRunId", "requestId", "workflowId", "listId", "entryId", "conditionId", "actionId", "caseId"} {
 			if value := c.Param(name); value != "" {
 				id, err := uuid.Parse(value)
 				if err != nil || id == uuid.Nil {
@@ -173,7 +219,9 @@ func (h *ExecutionHTTP) handle(op string) gin.HandlerFunc {
 				}
 			}
 		}
+		scopeStarted := time.Now()
 		api, err := h.scope(ctx, tenant)
+		ports.RecordEvaluationDuration(ctx, "scope", time.Since(scopeStarted))
 		if err != nil {
 			executionHTTPError(c, err)
 			return
@@ -184,27 +232,203 @@ func (h *ExecutionHTTP) handle(op string) gin.HandlerFunc {
 		}
 		// Enforce the path scope even if a faulty factory returns another tenant.
 		bound, rowBudget, _, err := api.Read.store.ExecutionPreparationScope()
-		if err != nil || bound != tenant || api.Schedules != nil && !api.Schedules.MatchesExecutionStore(api.Read.store) {
+		if err != nil || bound != tenant || api.Schedules != nil && !api.Schedules.MatchesExecutionStore(api.Read.store) || api.Publication != nil && !api.Publication.MatchesExecutionStore(api.Read.store) || api.Authoring != nil && !api.Authoring.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
+		if api.Scoring != nil && !api.Scoring.MatchesExecutionStore(api.Read.store) {
 			executionHTTPError(c, mysql.ErrTenantScope)
 			return
 		}
 		var out any
+		if strings.HasPrefix(op, "assist.") {
+			value, err := h.expressionAssistance(c, api, op)
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(200, value)
+			return
+		}
+		if strings.HasPrefix(op, "review.") {
+			h.review(c, api, op)
+			return
+		}
+		if api.Browser != nil && !api.Browser.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
+		if api.Platform != nil && !api.Platform.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
+		if api.CustomLists != nil && !api.CustomLists.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
+		if api.Administration != nil && !api.Administration.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
+		if api.History != nil && !api.History.MatchesExecutionStore(api.Read.store) {
+			executionHTTPError(c, mysql.ErrTenantScope)
+			return
+		}
 		if len(c.Request.URL.RawQuery) > 4096 {
 			executionHTTPError(c, errExecutionHTTPSize)
 			return
 		}
 		query, queryErr := url.ParseQuery(c.Request.URL.RawQuery)
-		if queryErr != nil || len(query) > 0 && op != "scheduled.list" && op != "async.list" {
+		if queryErr != nil || len(query) > 0 && op != "scheduled.list" && op != "async.list" && op != "publication.list" && op != "publication.preparation.get" && !strings.HasPrefix(op, "history.") && !strings.HasPrefix(op, "platform.") {
 			executionHTTPError(c, mysql.ErrExecutionPage)
 			return
 		}
 		status := http.StatusOK
+		if strings.HasPrefix(op, "effect.") {
+			if api.Effects == nil || !api.Effects.MatchesExecutionStore(api.Read.store) {
+				executionHTTPError(c, mysql.ErrOwnerContractUnavailable)
+				return
+			}
+			out, err = h.effectAdministration(c, api.Effects, strings.TrimPrefix(op, "effect."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(200, out)
+			return
+		}
+		if strings.HasPrefix(op, "screening-config.") {
+			out, status, err = h.screeningConfig(c, api.Administration, strings.TrimPrefix(op, "screening-config."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == 204 {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
+		if strings.HasPrefix(op, "workflow-rules.") {
+			out, status, err = h.workflowRules(c, api, strings.TrimPrefix(op, "workflow-rules."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == 204 {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
+		if strings.HasPrefix(op, "direct.") {
+			out, status, err = h.direct(c, api, strings.TrimPrefix(op, "direct."))
+			if timing := evaluationServerTiming(ctx); timing != "" {
+				c.Header("Server-Timing", timing)
+			}
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(status, out)
+			return
+		}
+		if strings.HasPrefix(op, "browser.") {
+			out, err = h.browserWorkflow(c, api.Browser, strings.TrimPrefix(op, "browser."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(status, out)
+			return
+		}
+		if strings.HasPrefix(op, "platform.") {
+			out, status, err = h.platform(c, api, strings.TrimPrefix(op, "platform."), query)
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(status, out)
+			return
+		}
+		if strings.HasPrefix(op, "lists.") {
+			out, status, err = h.customLists(c, api.CustomLists, strings.TrimPrefix(op, "lists."), rowBudget)
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == http.StatusNoContent {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
+		if strings.HasPrefix(op, "admin.") {
+			out, status, err = h.administration(c, api.Administration, strings.TrimPrefix(op, "admin."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == http.StatusNoContent {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
+		if strings.HasPrefix(op, "history.") {
+			out, err = h.history(c, api, strings.TrimPrefix(op, "history."), query, rowBudget)
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			c.JSON(status, out)
+			return
+		}
+		if strings.HasPrefix(op, "scoring.") {
+			out, status, err = h.scoring(c, api.Scoring, op)
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == http.StatusNoContent {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
+		if strings.HasPrefix(op, "authoring.") {
+			out, status, err = h.authoring(c, api.Authoring, strings.TrimPrefix(op, "authoring."))
+			if err != nil {
+				executionHTTPError(c, err)
+				return
+			}
+			if status == http.StatusNoContent {
+				c.Status(status)
+			} else {
+				c.JSON(status, out)
+			}
+			return
+		}
 		scenario, id := c.Param("scenarioId"), c.Param("executionId")
 		if (op == "scheduled.create" || op == "async.create") && api.Submission == nil {
 			executionHTTPError(c, mysql.ErrOwnerContractUnavailable)
 			return
 		}
 		switch op {
+		case "publication.preparation.get", "publication.preparation.start":
+			out, err = h.publicationPreparation(c, api, uuid.MustParse(scenario), op == "publication.preparation.start")
+			if op == "publication.preparation.start" {
+				status = http.StatusAccepted
+			}
+		case "publication.deactivate":
+			out, err = h.deactivate(c, api)
+		case "publication.list", "publication.action":
+			out, err = h.publication(c, api, tenant, uuid.MustParse(scenario), op == "publication.list")
 		case "schedule.get":
 			if len(c.Request.URL.Query()) != 0 {
 				err = mysql.ErrExecutionPage
@@ -336,19 +560,19 @@ func executionHTTPError(c *gin.Context, err error) {
 		status, code, executionID = 503, "execution_admitted_wait_failed", wait.ExecutionID
 	case errors.As(err, &commit), errors.As(err, &rollback):
 		status, code = 503, "mutation_outcome_unknown"
-	case errors.Is(err, mysql.ErrDecisionAuthorizationDenied):
+	case errors.Is(err, mysql.ErrDecisionAuthorizationDenied), errors.Is(err, workflow.ErrAuthoringDenied):
 		status, code = 403, "forbidden"
-	case errors.Is(err, mysql.ErrDecisionAuthorizationUnavailable), errors.Is(err, mysql.ErrOwnerContractUnavailable):
+	case errors.Is(err, mysql.ErrDecisionAuthorizationUnavailable), errors.Is(err, mysql.ErrOwnerContractUnavailable), errors.Is(err, mysql.ErrAdditionalScoringDeferred):
 		status, code = 503, "required_provider_unavailable"
 	case errors.Is(err, sql.ErrNoRows):
 		status, code = 404, "execution_not_found"
-	case errors.Is(err, mysql.ErrExecutionState), errors.Is(err, mysql.ErrExecutionReplayConflict), errors.Is(err, mysql.ErrExecutionBindingChanged), errors.Is(err, mysql.ErrOwnerRelationshipConflict):
+	case errors.Is(err, mysql.ErrExecutionState), errors.Is(err, mysql.ErrEffectRetryState), errors.Is(err, mysql.ErrEffectSourceOwned), errors.Is(err, mysql.ErrExecutionReplayConflict), errors.Is(err, mysql.ErrExecutionBindingChanged), errors.Is(err, mysql.ErrOwnerRelationshipConflict), errors.Is(err, mysql.ErrPublicationState), errors.Is(err, mysql.ErrCommittedIteration), errors.Is(err, workflow.ErrAuthoringConflict):
 		status, code = 409, "execution_conflict"
 	case errors.Is(err, errExecutionHTTPSize), errors.Is(err, mysql.ErrProjectionLimit), errors.Is(err, service.ErrExecutionPreparationLimit):
 		status, code = 413, "execution_budget_exceeded"
 	case errors.Is(err, errExecutionHTTPBody), errors.Is(err, mysql.ErrExecutionPage), errors.Is(err, ErrCancellationRequest), errors.Is(err, ErrRedriveRequest), errors.Is(err, mysql.ErrTenantScope):
 		status, code = 400, "invalid_execution_request"
-	case errors.Is(err, service.ErrExecutionPreparation), errors.Is(err, mysql.ErrAggregateCapability):
+	case errors.Is(err, service.ErrExecutionPreparation), errors.Is(err, mysql.ErrAggregateCapability), errors.Is(err, mysql.ErrAdministrationInput):
 		status, code = 422, "invalid_execution_input"
 	case errors.As(err, &modelContract):
 		status, code = 503, "published_model_invalid"
@@ -365,6 +589,13 @@ func executionHTTPError(c *gin.Context, err error) {
 		status, code = 408, "execution_request_cancelled"
 	}
 	body := gin.H{"error": code}
+	if status >= 500 {
+		method := ""
+		if c.Request != nil {
+			method = c.Request.Method
+		}
+		slog.Error("decision API operation failed", "method", method, "route", c.FullPath(), "error", err)
+	}
 	if id, parseErr := uuid.Parse(executionID); parseErr == nil && id != uuid.Nil {
 		body["execution_id"] = id.String()
 	}

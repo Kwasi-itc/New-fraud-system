@@ -14,7 +14,11 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 )
 
-type AdmissionPolicy struct{ ScheduledMaxAttempts, AsyncMaxAttempts int }
+type AdmissionPolicy struct {
+	ScheduledMaxAttempts, AsyncMaxAttempts int
+	DisableCallbacks                       bool
+	CallbackAllowedURL                     string
+}
 
 // AdmissionOutcomeUnknown retains the server-generated operation identity even
 // when the caller omitted an idempotency key. Adapters must expose/log this
@@ -123,6 +127,12 @@ func (a *Admission) CreateAsync(ctx context.Context, tenant string, req service.
 	}
 	if len(req.IdempotencyKey)+len(req.CallbackURL)+len(req.ObjectType) > p.limits.MaxBytes {
 		return mysql.AsyncCreation{}, service.ErrExecutionPreparationLimit
+	}
+	if a.policy.DisableCallbacks && req.CallbackURL != "" {
+		return mysql.AsyncCreation{}, mysql.ErrOwnerContractUnavailable
+	}
+	if req.CallbackURL != "" && a.policy.CallbackAllowedURL != "" && req.CallbackURL != a.policy.CallbackAllowedURL {
+		return mysql.AsyncCreation{}, service.ErrExecutionPreparation
 	}
 	if err := service.ValidateAsyncCallbackURL(req.CallbackURL); err != nil {
 		return mysql.AsyncCreation{}, errors.Join(service.ErrExecutionPreparation, err)

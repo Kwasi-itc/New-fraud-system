@@ -1,0 +1,29 @@
+{
+  "at": "2026-11-06T09:17:37.506Z",
+  "tenants": [
+    {
+      "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+      "table": "f9ff9bc5-3127-4ba9-8c58-fcfddb5cb5a6",
+      "scenario": "2a825d2f-54ff-46ae-8b6c-a4fc3c3b52da",
+      "parent": "/v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scenarios/2a825d2f-54ff-46ae-8b6c-a4fc3c3b52da",
+      "iteration": "f36d036a-688a-4c11-91fb-49a9123a3d33"
+    },
+    {
+      "tenant": "00e8b384-ae35-4c80-ad4f-f6dbbfae029e",
+      "table": "d82a1c4c-d275-4464-81ea-02d5a2aa64f8",
+      "scenario": "806e0a20-78e2-462b-a954-f8e60ae941be",
+      "parent": "/v1/tenants/00e8b384-ae35-4c80-ad4f-f6dbbfae029e/scenarios/806e0a20-78e2-462b-a954-f8e60ae941be",
+      "iteration": "0e874bfd-116d-402e-8140-3db0b62ad2e8"
+    }
+  ],
+  "inactive": {
+    "tenant": "c01d1f48-4b0f-456f-9854-e93e7d86d722"
+  },
+  "late": {
+    "tenant": "9d32e73b-7c1f-479f-830b-7cbd8c3ef5e5",
+    "table": "19af536e-831c-4d46-b994-31e0eb1ecdd8",
+    "scenario": "6cee5468-566e-44a4-b451-67437394e9b6",
+    "parent": "/v1/tenants/9d32e73b-7c1f-479f-830b-7cbd8c3ef5e5/scenarios/6cee5468-566e-44a4-b451-67437394e9b6",
+    "iteration": "7a71c328-0b3d-4342-87b7-6e490691ac21"
+  }
+}

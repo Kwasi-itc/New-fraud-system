@@ -48,6 +48,9 @@ func OwnerGrants(database, user, host, role string) ([]string, error) {
 	if role == "api" {
 		add("SELECT,INSERT,UPDATE,DELETE", "scenarios", "scenario_iterations", "rules", "workflows", "workflow_outcomes", "screening_configs", "screening_outcomes", "scoring_configs", "scoring_outcomes", "workflow_conditions", "workflow_actions", "custom_lists", "custom_list_entries")
 		add("SELECT,INSERT,UPDATE", "scenario_live_iterations", "scenario_versions", "workflow_rules", "workflow_authoring_guards", "execution_schedules")
+		// Publishing/unpublishing replaces the current-live mapping with DELETE
+		// plus INSERT. This mutable pointer is distinct from retained publications.
+		add("SELECT,INSERT,UPDATE,DELETE", "scenario_live_iterations")
 		add("SELECT,INSERT", "scenario_publications", "iteration_creations", "workflow_authoring_events", "async_scenario_links", "effect_cancellations")
 		add("SELECT", "schedule_occurrences")
 		add("SELECT,UPDATE(receipt_id)", "dispatch_intents")

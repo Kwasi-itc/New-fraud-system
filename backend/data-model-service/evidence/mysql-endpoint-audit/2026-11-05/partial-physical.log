@@ -1,0 +1,2 @@
+PASS: physical uniqueness, multiple NULLs, duplicate rejection, rollback leaves writer gate open, caption delivery deduplication
+{"tenantId":"abcc3563-da74-4ee1-a1ce-d1d88a89371f","tableId":"f160b4e0-6d51-4d3f-8877-e194376bdd01","memoId":"d72083b0-21d4-5ae2-9f69-a81a78c3f059","scoreId":"9d96d64c-8ade-5317-8a4a-844999cb0d96","checks":"caption set/clear, atomic invalid-caption rollback, combined constraints, enum seeds, invalid input, dependency rejection, original-result replay and conflicts"}

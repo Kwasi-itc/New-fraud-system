@@ -33,6 +33,9 @@ type Runtime struct {
 	AggregateResultCache        *AggregateResultCache
 	RelatedPathCache            *RelatedPathCache
 	GeoIPResultCache            *GeoIPResultCache
+	AggregateBatcher            *AggregateBatcher
+	FormulaPlans                *FormulaPlans
+	PlanScope                   string
 }
 
 const (

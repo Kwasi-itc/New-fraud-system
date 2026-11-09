@@ -35,12 +35,13 @@ func PreparedFieldCreationRequestHash(scope PublicationRequestContext, fieldID u
 	return sha256.Sum256(raw), nil
 }
 
-// PublishPreparedCreation finalizes a previously allocated native field whose
+// PublishPreparedCreation finalizes a previously allocated physical field whose
 // physical operation has executed. The table-bound manager must verify the full
 // plan and metadata postcondition under its execution lock, and commit these
 // owner effects with the contract, receipt and readiness. This returns the
 // original publication on replay, not an original Field result. Stable field
-// allocation/result recovery and enum/text-key protocols are separate contracts.
+// allocation/result recovery and text-key protocols are separate contracts.
+// Enum seeds are retained atomically and verified against the original command.
 func (s FieldService) PublishPreparedCreation(ctx context.Context, tenantID, fieldID uuid.UUID, input CreateFieldInput, request ports.PhysicalPublicationRequest, manager ports.PhysicalPublicationManager) (contract.Publication, error) {
 	if manager == nil || s.idGenerator == nil || s.clock == nil || tenantID == uuid.Nil || fieldID == uuid.Nil || request.OperationID == uuid.Nil || request.TableID != input.TableID || request.ActorKind != "api" || request.Condition.Mode != contract.PublicationExactVersion {
 		return contract.Publication{}, errors.New("prepared field requires publisher, owner dependencies and exact original API command identity")
@@ -52,8 +53,8 @@ func (s FieldService) PublishPreparedCreation(ctx context.Context, tenantID, fie
 	if err := datamodel.ValidateFieldCreate(input.Name, input.DataType, input.IsEnum, input.IsUnique); err != nil {
 		return contract.Publication{}, err
 	}
-	if input.IsEnum || len(input.EnumValues) != 0 || (input.DataType == datamodel.DataTypeString && input.IsUnique) {
-		return contract.Publication{}, errors.New("prepared native field cannot publish enum or unique-text enforcement")
+	if err := ValidateFieldSeeds(input); err != nil {
+		return contract.Publication{}, err
 	}
 	switch input.DataType {
 	case datamodel.DataTypeBool, datamodel.DataTypeInt, datamodel.DataTypeFloat, datamodel.DataTypeString, datamodel.DataTypeTimestamp, datamodel.DataTypeIPAddress:
@@ -88,6 +89,23 @@ func (s FieldService) PublishPreparedCreation(ctx context.Context, tenantID, fie
 		}
 		if field.TenantID != tenantID || field.TableID != table.ID || field.Archived || field.Name != datamodel.NormalizeName(input.Name) || field.Description != input.Description || field.Alias != strings.TrimSpace(input.Alias) || field.DataType != input.DataType || field.Nullable != input.Nullable || field.IsUnique != input.IsUnique || field.IsEnum != input.IsEnum {
 			return errors.New("prepared field differs from original creation command")
+		}
+		values, err := store.FieldEnumValues().ListByField(ctx, fieldID)
+		if err != nil {
+			return err
+		}
+		if len(values) != len(input.EnumValues) {
+			return errors.New("prepared enum values differ from original command")
+		}
+		byValue := make(map[string]datamodel.FieldEnumValue, len(values))
+		for _, value := range values {
+			byValue[value.Value] = value
+		}
+		for _, seed := range input.EnumValues {
+			value, ok := byValue[seed.Value]
+			if !ok || value.Label != seed.Label || value.SortOrder != seed.SortOrder {
+				return errors.New("prepared enum value differs from original command")
+			}
 		}
 		now := s.clock.Now()
 		if err := recordSchemaChange(ctx, store.SchemaChanges(), s.idGenerator.New(), tenantID, "create_field", "field", field.ID, now, map[string]any{"table_id": field.TableID, "name": field.Name, "data_type": field.DataType, "nullable": field.Nullable, "is_enum": field.IsEnum, "is_unique": field.IsUnique, "description": field.Description}); err != nil {

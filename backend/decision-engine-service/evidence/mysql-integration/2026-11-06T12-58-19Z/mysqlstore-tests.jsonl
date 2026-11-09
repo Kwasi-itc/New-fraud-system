@@ -1,0 +1,12 @@
+{"Time":"2026-11-06T13:02:29.149704926Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"}
+{"Time":"2026-11-06T13:02:29.180760452Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestConfiguration"}
+{"Time":"2026-11-06T13:02:29.181995614Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestConfiguration","Output":"=== RUN   TestConfiguration\n"}
+{"Time":"2026-11-06T13:02:29.183231217Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestConfiguration","Output":"--- PASS: TestConfiguration (0.00s)\n"}
+{"Time":"2026-11-06T13:02:29.184231134Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestConfiguration","Elapsed":0}
+{"Time":"2026-11-06T13:02:29.185043498Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestInterpolationIsExplicitAndPinsSafeCharset"}
+{"Time":"2026-11-06T13:02:29.18585186Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestInterpolationIsExplicitAndPinsSafeCharset","Output":"=== RUN   TestInterpolationIsExplicitAndPinsSafeCharset\n"}
+{"Time":"2026-11-06T13:02:29.186686083Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestInterpolationIsExplicitAndPinsSafeCharset","Output":"--- PASS: TestInterpolationIsExplicitAndPinsSafeCharset (0.00s)\n"}
+{"Time":"2026-11-06T13:02:29.187524544Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Test":"TestInterpolationIsExplicitAndPinsSafeCharset","Elapsed":0}
+{"Time":"2026-11-06T13:02:29.188273127Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Output":"PASS\n"}
+{"Time":"2026-11-06T13:02:30.186422739Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/mysqlstore\t1.035s\n"}
+{"Time":"2026-11-06T13:02:30.187584366Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore","Elapsed":1.038}

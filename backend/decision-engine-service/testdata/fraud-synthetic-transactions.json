@@ -1,0 +1,4990 @@
+{
+  "version": 1,
+  "seed": "0x5eed0001",
+  "synthetic": true,
+  "description": "Functional rule acceptance data; supplied risk_score is an input feature, not a trained fraud model.",
+  "rules": [
+    {
+      "name": "High transaction amount",
+      "expression": "amount >= 10000",
+      "score": 35
+    },
+    {
+      "name": "High supplied risk score",
+      "expression": "risk_score >= 80",
+      "score": 40
+    },
+    {
+      "name": "New account making a large payment",
+      "expression": "customer_age_days < 7 and amount >= 1000",
+      "score": 25
+    },
+    {
+      "name": "Foreign currency and merchant country",
+      "expression": "currency != \"USD\" and merchant_country != \"US\"",
+      "score": 10
+    },
+    {
+      "name": "Large card-not-present payment",
+      "expression": "not card_present and amount >= 5000",
+      "score": 20
+    }
+  ],
+  "thresholds": {
+    "review": 20,
+    "block_and_review": 50,
+    "decline": 80
+  },
+  "rows": [
+    {
+      "object_id": "boundary-001",
+      "name": "ordinary payment",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-002",
+      "name": "amount below threshold",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-003",
+      "name": "amount exactly at threshold",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-004",
+      "name": "amount above threshold",
+      "fields": {
+        "amount": 10000.01,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-005",
+      "name": "risk below threshold",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-006",
+      "name": "risk exactly at threshold",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-007",
+      "name": "new account amount below threshold",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-008",
+      "name": "new account amount at threshold",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-009",
+      "name": "account exactly seven days old",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-010",
+      "name": "minor foreign payment",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-011",
+      "name": "review exactly at threshold",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-012",
+      "name": "block exactly at threshold",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-013",
+      "name": "decline exactly at threshold",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-014",
+      "name": "maximum combined risk",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 130,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "boundary-015",
+      "name": "zero amount",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "boundary-016",
+      "name": "domestic merchant with foreign currency",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-001",
+      "name": "Deterministic synthetic combination 1",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-002",
+      "name": "Deterministic synthetic combination 2",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-003",
+      "name": "Deterministic synthetic combination 3",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-004",
+      "name": "Deterministic synthetic combination 4",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-005",
+      "name": "Deterministic synthetic combination 5",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-006",
+      "name": "Deterministic synthetic combination 6",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-007",
+      "name": "Deterministic synthetic combination 7",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-008",
+      "name": "Deterministic synthetic combination 8",
+      "fields": {
+        "amount": 100,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-009",
+      "name": "Deterministic synthetic combination 9",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-010",
+      "name": "Deterministic synthetic combination 10",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-011",
+      "name": "Deterministic synthetic combination 11",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 100,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-012",
+      "name": "Deterministic synthetic combination 12",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-013",
+      "name": "Deterministic synthetic combination 13",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-014",
+      "name": "Deterministic synthetic combination 14",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-015",
+      "name": "Deterministic synthetic combination 15",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-016",
+      "name": "Deterministic synthetic combination 16",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-017",
+      "name": "Deterministic synthetic combination 17",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-018",
+      "name": "Deterministic synthetic combination 18",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-019",
+      "name": "Deterministic synthetic combination 19",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-020",
+      "name": "Deterministic synthetic combination 20",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 110,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-021",
+      "name": "Deterministic synthetic combination 21",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-022",
+      "name": "Deterministic synthetic combination 22",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-023",
+      "name": "Deterministic synthetic combination 23",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-024",
+      "name": "Deterministic synthetic combination 24",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-025",
+      "name": "Deterministic synthetic combination 25",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-026",
+      "name": "Deterministic synthetic combination 26",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 30,
+        "outcome": "review",
+        "hit_rules": [
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-027",
+      "name": "Deterministic synthetic combination 27",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-028",
+      "name": "Deterministic synthetic combination 28",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-029",
+      "name": "Deterministic synthetic combination 29",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-030",
+      "name": "Deterministic synthetic combination 30",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-031",
+      "name": "Deterministic synthetic combination 31",
+      "fields": {
+        "amount": 999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-032",
+      "name": "Deterministic synthetic combination 32",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-033",
+      "name": "Deterministic synthetic combination 33",
+      "fields": {
+        "amount": 100,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-034",
+      "name": "Deterministic synthetic combination 34",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-035",
+      "name": "Deterministic synthetic combination 35",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 90,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-036",
+      "name": "Deterministic synthetic combination 36",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-037",
+      "name": "Deterministic synthetic combination 37",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-038",
+      "name": "Deterministic synthetic combination 38",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 120,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-039",
+      "name": "Deterministic synthetic combination 39",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 90,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-040",
+      "name": "Deterministic synthetic combination 40",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-041",
+      "name": "Deterministic synthetic combination 41",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 30,
+        "outcome": "review",
+        "hit_rules": [
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-042",
+      "name": "Deterministic synthetic combination 42",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-043",
+      "name": "Deterministic synthetic combination 43",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-044",
+      "name": "Deterministic synthetic combination 44",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-045",
+      "name": "Deterministic synthetic combination 45",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-046",
+      "name": "Deterministic synthetic combination 46",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-047",
+      "name": "Deterministic synthetic combination 47",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-048",
+      "name": "Deterministic synthetic combination 48",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-049",
+      "name": "Deterministic synthetic combination 49",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-050",
+      "name": "Deterministic synthetic combination 50",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-051",
+      "name": "Deterministic synthetic combination 51",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-052",
+      "name": "Deterministic synthetic combination 52",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-053",
+      "name": "Deterministic synthetic combination 53",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-054",
+      "name": "Deterministic synthetic combination 54",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 120,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-055",
+      "name": "Deterministic synthetic combination 55",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-056",
+      "name": "Deterministic synthetic combination 56",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-057",
+      "name": "Deterministic synthetic combination 57",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-058",
+      "name": "Deterministic synthetic combination 58",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-059",
+      "name": "Deterministic synthetic combination 59",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-060",
+      "name": "Deterministic synthetic combination 60",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 30,
+        "outcome": "review",
+        "hit_rules": [
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-061",
+      "name": "Deterministic synthetic combination 61",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-062",
+      "name": "Deterministic synthetic combination 62",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-063",
+      "name": "Deterministic synthetic combination 63",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-064",
+      "name": "Deterministic synthetic combination 64",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-065",
+      "name": "Deterministic synthetic combination 65",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-066",
+      "name": "Deterministic synthetic combination 66",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-067",
+      "name": "Deterministic synthetic combination 67",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-068",
+      "name": "Deterministic synthetic combination 68",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-069",
+      "name": "Deterministic synthetic combination 69",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-070",
+      "name": "Deterministic synthetic combination 70",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-071",
+      "name": "Deterministic synthetic combination 71",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-072",
+      "name": "Deterministic synthetic combination 72",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-073",
+      "name": "Deterministic synthetic combination 73",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-074",
+      "name": "Deterministic synthetic combination 74",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 100,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-075",
+      "name": "Deterministic synthetic combination 75",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-076",
+      "name": "Deterministic synthetic combination 76",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-077",
+      "name": "Deterministic synthetic combination 77",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-078",
+      "name": "Deterministic synthetic combination 78",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-079",
+      "name": "Deterministic synthetic combination 79",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-080",
+      "name": "Deterministic synthetic combination 80",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-081",
+      "name": "Deterministic synthetic combination 81",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-082",
+      "name": "Deterministic synthetic combination 82",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-083",
+      "name": "Deterministic synthetic combination 83",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-084",
+      "name": "Deterministic synthetic combination 84",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-085",
+      "name": "Deterministic synthetic combination 85",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-086",
+      "name": "Deterministic synthetic combination 86",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-087",
+      "name": "Deterministic synthetic combination 87",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-088",
+      "name": "Deterministic synthetic combination 88",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-089",
+      "name": "Deterministic synthetic combination 89",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 95,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-090",
+      "name": "Deterministic synthetic combination 90",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-091",
+      "name": "Deterministic synthetic combination 91",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-092",
+      "name": "Deterministic synthetic combination 92",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-093",
+      "name": "Deterministic synthetic combination 93",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-094",
+      "name": "Deterministic synthetic combination 94",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 95,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-095",
+      "name": "Deterministic synthetic combination 95",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-096",
+      "name": "Deterministic synthetic combination 96",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-097",
+      "name": "Deterministic synthetic combination 97",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-098",
+      "name": "Deterministic synthetic combination 98",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-099",
+      "name": "Deterministic synthetic combination 99",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-100",
+      "name": "Deterministic synthetic combination 100",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-101",
+      "name": "Deterministic synthetic combination 101",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-102",
+      "name": "Deterministic synthetic combination 102",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-103",
+      "name": "Deterministic synthetic combination 103",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-104",
+      "name": "Deterministic synthetic combination 104",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-105",
+      "name": "Deterministic synthetic combination 105",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-106",
+      "name": "Deterministic synthetic combination 106",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-107",
+      "name": "Deterministic synthetic combination 107",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-108",
+      "name": "Deterministic synthetic combination 108",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-109",
+      "name": "Deterministic synthetic combination 109",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-110",
+      "name": "Deterministic synthetic combination 110",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-111",
+      "name": "Deterministic synthetic combination 111",
+      "fields": {
+        "amount": 100,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-112",
+      "name": "Deterministic synthetic combination 112",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-113",
+      "name": "Deterministic synthetic combination 113",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-114",
+      "name": "Deterministic synthetic combination 114",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-115",
+      "name": "Deterministic synthetic combination 115",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-116",
+      "name": "Deterministic synthetic combination 116",
+      "fields": {
+        "amount": 999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-117",
+      "name": "Deterministic synthetic combination 117",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-118",
+      "name": "Deterministic synthetic combination 118",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-119",
+      "name": "Deterministic synthetic combination 119",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-120",
+      "name": "Deterministic synthetic combination 120",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-121",
+      "name": "Deterministic synthetic combination 121",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-122",
+      "name": "Deterministic synthetic combination 122",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-123",
+      "name": "Deterministic synthetic combination 123",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-124",
+      "name": "Deterministic synthetic combination 124",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-125",
+      "name": "Deterministic synthetic combination 125",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-126",
+      "name": "Deterministic synthetic combination 126",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-127",
+      "name": "Deterministic synthetic combination 127",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-128",
+      "name": "Deterministic synthetic combination 128",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-129",
+      "name": "Deterministic synthetic combination 129",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-130",
+      "name": "Deterministic synthetic combination 130",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-131",
+      "name": "Deterministic synthetic combination 131",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-132",
+      "name": "Deterministic synthetic combination 132",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-133",
+      "name": "Deterministic synthetic combination 133",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-134",
+      "name": "Deterministic synthetic combination 134",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-135",
+      "name": "Deterministic synthetic combination 135",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-136",
+      "name": "Deterministic synthetic combination 136",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-137",
+      "name": "Deterministic synthetic combination 137",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 100,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-138",
+      "name": "Deterministic synthetic combination 138",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-139",
+      "name": "Deterministic synthetic combination 139",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-140",
+      "name": "Deterministic synthetic combination 140",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-141",
+      "name": "Deterministic synthetic combination 141",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-142",
+      "name": "Deterministic synthetic combination 142",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-143",
+      "name": "Deterministic synthetic combination 143",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-144",
+      "name": "Deterministic synthetic combination 144",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-145",
+      "name": "Deterministic synthetic combination 145",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-146",
+      "name": "Deterministic synthetic combination 146",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-147",
+      "name": "Deterministic synthetic combination 147",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-148",
+      "name": "Deterministic synthetic combination 148",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-149",
+      "name": "Deterministic synthetic combination 149",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 120,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-150",
+      "name": "Deterministic synthetic combination 150",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-151",
+      "name": "Deterministic synthetic combination 151",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-152",
+      "name": "Deterministic synthetic combination 152",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-153",
+      "name": "Deterministic synthetic combination 153",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-154",
+      "name": "Deterministic synthetic combination 154",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-155",
+      "name": "Deterministic synthetic combination 155",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-156",
+      "name": "Deterministic synthetic combination 156",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-157",
+      "name": "Deterministic synthetic combination 157",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-158",
+      "name": "Deterministic synthetic combination 158",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 60,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-159",
+      "name": "Deterministic synthetic combination 159",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-160",
+      "name": "Deterministic synthetic combination 160",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-161",
+      "name": "Deterministic synthetic combination 161",
+      "fields": {
+        "amount": 5000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-162",
+      "name": "Deterministic synthetic combination 162",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 30,
+        "outcome": "review",
+        "hit_rules": [
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-163",
+      "name": "Deterministic synthetic combination 163",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 105,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-164",
+      "name": "Deterministic synthetic combination 164",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-165",
+      "name": "Deterministic synthetic combination 165",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-166",
+      "name": "Deterministic synthetic combination 166",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-167",
+      "name": "Deterministic synthetic combination 167",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-168",
+      "name": "Deterministic synthetic combination 168",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-169",
+      "name": "Deterministic synthetic combination 169",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-170",
+      "name": "Deterministic synthetic combination 170",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-171",
+      "name": "Deterministic synthetic combination 171",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-172",
+      "name": "Deterministic synthetic combination 172",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-173",
+      "name": "Deterministic synthetic combination 173",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-174",
+      "name": "Deterministic synthetic combination 174",
+      "fields": {
+        "amount": 5000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-175",
+      "name": "Deterministic synthetic combination 175",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-176",
+      "name": "Deterministic synthetic combination 176",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-177",
+      "name": "Deterministic synthetic combination 177",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-178",
+      "name": "Deterministic synthetic combination 178",
+      "fields": {
+        "amount": 0,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-179",
+      "name": "Deterministic synthetic combination 179",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-180",
+      "name": "Deterministic synthetic combination 180",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-181",
+      "name": "Deterministic synthetic combination 181",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": true
+      },
+      "expected": {
+        "score": 100,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-182",
+      "name": "Deterministic synthetic combination 182",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-183",
+      "name": "Deterministic synthetic combination 183",
+      "fields": {
+        "amount": 1000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-184",
+      "name": "Deterministic synthetic combination 184",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-185",
+      "name": "Deterministic synthetic combination 185",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-186",
+      "name": "Deterministic synthetic combination 186",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-187",
+      "name": "Deterministic synthetic combination 187",
+      "fields": {
+        "amount": 999.99,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-188",
+      "name": "Deterministic synthetic combination 188",
+      "fields": {
+        "amount": 100,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-189",
+      "name": "Deterministic synthetic combination 189",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-190",
+      "name": "Deterministic synthetic combination 190",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-191",
+      "name": "Deterministic synthetic combination 191",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-192",
+      "name": "Deterministic synthetic combination 192",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 75,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-193",
+      "name": "Deterministic synthetic combination 193",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-194",
+      "name": "Deterministic synthetic combination 194",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 95,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-195",
+      "name": "Deterministic synthetic combination 195",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-196",
+      "name": "Deterministic synthetic combination 196",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-197",
+      "name": "Deterministic synthetic combination 197",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-198",
+      "name": "Deterministic synthetic combination 198",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 100,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-199",
+      "name": "Deterministic synthetic combination 199",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 20,
+        "outcome": "review",
+        "hit_rules": [
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-200",
+      "name": "Deterministic synthetic combination 200",
+      "fields": {
+        "amount": 5000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-201",
+      "name": "Deterministic synthetic combination 201",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-202",
+      "name": "Deterministic synthetic combination 202",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-203",
+      "name": "Deterministic synthetic combination 203",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-204",
+      "name": "Deterministic synthetic combination 204",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-205",
+      "name": "Deterministic synthetic combination 205",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 45,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-206",
+      "name": "Deterministic synthetic combination 206",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-207",
+      "name": "Deterministic synthetic combination 207",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-208",
+      "name": "Deterministic synthetic combination 208",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-209",
+      "name": "Deterministic synthetic combination 209",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-210",
+      "name": "Deterministic synthetic combination 210",
+      "fields": {
+        "amount": 25000,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "High transaction amount"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-211",
+      "name": "Deterministic synthetic combination 211",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-212",
+      "name": "Deterministic synthetic combination 212",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-213",
+      "name": "Deterministic synthetic combination 213",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-214",
+      "name": "Deterministic synthetic combination 214",
+      "fields": {
+        "amount": 10000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 70,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-215",
+      "name": "Deterministic synthetic combination 215",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-216",
+      "name": "Deterministic synthetic combination 216",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-217",
+      "name": "Deterministic synthetic combination 217",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-218",
+      "name": "Deterministic synthetic combination 218",
+      "fields": {
+        "amount": 1000,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 25,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-219",
+      "name": "Deterministic synthetic combination 219",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 365,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-220",
+      "name": "Deterministic synthetic combination 220",
+      "fields": {
+        "amount": 1000,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 35,
+        "outcome": "review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-221",
+      "name": "Deterministic synthetic combination 221",
+      "fields": {
+        "amount": 25000,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 105,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-222",
+      "name": "Deterministic synthetic combination 222",
+      "fields": {
+        "amount": 999.99,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 0,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-223",
+      "name": "Deterministic synthetic combination 223",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-224",
+      "name": "Deterministic synthetic combination 224",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-225",
+      "name": "Deterministic synthetic combination 225",
+      "fields": {
+        "amount": 10000,
+        "currency": "USD",
+        "merchant_country": "US",
+        "risk_score": 79.99,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 80,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "New account making a large payment",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-226",
+      "name": "Deterministic synthetic combination 226",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-227",
+      "name": "Deterministic synthetic combination 227",
+      "fields": {
+        "amount": 100,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-228",
+      "name": "Deterministic synthetic combination 228",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "NG",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-229",
+      "name": "Deterministic synthetic combination 229",
+      "fields": {
+        "amount": 10000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 0,
+        "customer_age_days": 365,
+        "card_present": false
+      },
+      "expected": {
+        "score": 65,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High transaction amount",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-230",
+      "name": "Deterministic synthetic combination 230",
+      "fields": {
+        "amount": 0,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 0,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-231",
+      "name": "Deterministic synthetic combination 231",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": false
+      },
+      "expected": {
+        "score": 105,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-232",
+      "name": "Deterministic synthetic combination 232",
+      "fields": {
+        "amount": 100,
+        "currency": "USD",
+        "merchant_country": "NG",
+        "risk_score": 80,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-233",
+      "name": "Deterministic synthetic combination 233",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": false
+      },
+      "expected": {
+        "score": 55,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "New account making a large payment",
+          "Foreign currency and merchant country",
+          "Large card-not-present payment"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-234",
+      "name": "Deterministic synthetic combination 234",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "USD",
+        "merchant_country": "GB",
+        "risk_score": 79.99,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    },
+    {
+      "object_id": "synthetic-235",
+      "name": "Deterministic synthetic combination 235",
+      "fields": {
+        "amount": 0,
+        "currency": "GBP",
+        "merchant_country": "US",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 40,
+        "outcome": "review",
+        "hit_rules": [
+          "High supplied risk score"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-236",
+      "name": "Deterministic synthetic combination 236",
+      "fields": {
+        "amount": 9999.99,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 80,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 50,
+        "outcome": "block_and_review",
+        "hit_rules": [
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-237",
+      "name": "Deterministic synthetic combination 237",
+      "fields": {
+        "amount": 100,
+        "currency": "GBP",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 6,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-238",
+      "name": "Deterministic synthetic combination 238",
+      "fields": {
+        "amount": 25000,
+        "currency": "GBP",
+        "merchant_country": "NG",
+        "risk_score": 100,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 85,
+        "outcome": "decline",
+        "hit_rules": [
+          "High transaction amount",
+          "High supplied risk score",
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-239",
+      "name": "Deterministic synthetic combination 239",
+      "fields": {
+        "amount": 4999.99,
+        "currency": "EUR",
+        "merchant_country": "GB",
+        "risk_score": 20,
+        "customer_age_days": 7,
+        "card_present": true
+      },
+      "expected": {
+        "score": 10,
+        "outcome": "approve",
+        "hit_rules": [
+          "Foreign currency and merchant country"
+        ]
+      }
+    },
+    {
+      "object_id": "synthetic-240",
+      "name": "Deterministic synthetic combination 240",
+      "fields": {
+        "amount": 999.99,
+        "currency": "EUR",
+        "merchant_country": "US",
+        "risk_score": 0,
+        "customer_age_days": 30,
+        "card_present": false
+      },
+      "expected": {
+        "score": 0,
+        "outcome": "approve",
+        "hit_rules": []
+      }
+    }
+  ]
+}

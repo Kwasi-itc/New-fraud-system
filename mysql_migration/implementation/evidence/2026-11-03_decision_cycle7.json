@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-03",
+  "cycle": 7,
+  "completed_this_cycle": ["D13.15", "D13.16", "D13.17", "D13.18", "D13.19", "D13.20", "D15.12", "D15.15", "D15.16", "D17.23", "D17.24", "D17.25", "D17.26", "D18.16", "D19.14", "D19.15", "D19.16", "D20.08", "D20.09", "D20.13"],
+  "requested_batch_completed": 20,
+  "checklist": {"checked": 122, "remaining": 30, "total": 152, "newly_closed_parents": ["D13", "D17", "D18"], "parent_scope": "Recorded granular implementation/verification scope; no runtime activation or full migration acceptance"},
+  "implementation": {
+    "D13.15-D13.19": "data-model decisionaccess owner plus decision mysqlruntime.BindModelOwner share exact pool/schema/tenant; actual HTTP preparation, durable deduped job, native worker publication, failed-job retry, restart/lost response, audit recovery, and separate restricted metadata API/worker grants",
+    "D15.12": "19 rules compare supported aggregates, empty/null/grouped predicates and navigation on real physically published MySQL owner tables versus the mirrored PostgreSQL logical model; read back and compare committed rule evidence. STDDEV/PCTILE/MEDIAN and disabled broad helpers reject explicitly",
+    "D15.15-D15.16": "Actual DecisionService rejects revoked session/membership/tenant before persistence with unchanged output/effect/job tables; already evaluated pinned output may persist after model gate closes, while new preparation rejects the closed gate",
+    "D17.23-D17.25": "Actual PostgreSQL/MySQL browser save/list/update/delete parity, stale versions and visibility; browser and scenario copy parity, rule-hit remapping, trusted audit attribution, destination validation, audit rollback, concurrent priorities, and target membership/inbox lock-wait races",
+    "D19.14-D19.16": "Screening-owned Start/Fail/Retry/Complete/Review/Archive versioned mutation API; source/matches/version/triggered queue atomicity; bounded same-database projector and decision-owned sink, stale writers, review races, enqueue rollback, retries and stale/repeated/foreign publication checks",
+    "D20.08-D20.09": "Actual independently tracked owner migrations in one generated logical database per engine; fresh-project acceptance runner checks required environment, exact required tests, versions and cleanup",
+    "D20.13": "2026-11-03_shared-resource-budget.md: explicit single-replica plan totals 73 server connections including Keycloak against 100, reserving 27; current defaults are not asserted to enforce it"
+  },
+  "review_closures": {
+    "D13.20": ["2026-11-03_decision_cycle1.json", "2026-11-03_decision_cycle2.json", "2026-11-03_decision_cycle4.json", "2026-11-03_cycle7-acceptance-final/result.json"],
+    "D17.26": ["2026-11-03_decision_cycle6.json", "../modules/03_decision_engine_integration_matrix.md", "2026-11-03_cycle7-acceptance-final/tests.jsonl"],
+    "D18.16": ["2026-11-03_decision_cycle6.json", "2026-11-03_cycle6-list-parity-final.jsonl", "2026-11-03_cycle6-access-final.jsonl", "2026-11-03_cycle7-acceptance-final/tests.jsonl"]
+  },
+  "verification": [
+    {"log": "2026-11-03_cycle7-acceptance-final/tests.jsonl", "top_level_passed": 5, "subtests_passed": 11, "failed": 0, "skipped": 0, "race_detector": true, "cleanup": "passed", "versions": "Go 1.25.8, MySQL 8.4.8, PostgreSQL 16.15", "commands": "2026-11-03_cycle7-acceptance-final/command.sh"},
+    {"log": "2026-11-03_cycle7-regression-final.jsonl", "top_level_passed": 192, "subtests_passed": 141, "failed": 0, "skipped": 4, "race_detector": true, "skip_reason": "Four existing PostgreSQL screening/browser tests require DECISION_TEST_DATABASE_URL; not forwarded because they use their own setup. Required real-owner acceptance tests above all ran without skips."},
+    {"log": "2026-11-03_cycle7-storage-regression.jsonl", "top_level_passed": 17, "subtests_passed": 27, "failed": 0, "skipped": 0, "race_detector": true},
+    {"result": "passed", "compile_logs": ["2026-11-03_cycle7-decision-compile.log", "2026-11-03_cycle7-model-compile-final.log", "2026-11-03_cycle7-screening-compile.log"], "vet_logs": ["2026-11-03_cycle7-decision-vet.log", "2026-11-03_cycle7-model-vet.log", "2026-11-03_cycle7-screening-vet.log"]},
+    {"result": "reviewed and refreshed", "logs": ["2026-11-03_cycle7-manifest-refresh.log", "2026-11-03_cycle7-inventory-refresh.log"], "reason": "Source SQL/contracts changed for grouped filters, numeric normalization, exact native record lookup and audited PostgreSQL browser copying"}
+  ],
+  "corrective_findings": [
+    "Physical fixture originally forced one connection; explicit eight-connection fixture now proves actual overlapping starts and lock-wait revocation rather than serialized goroutines",
+    "Aggregate group validation and evidence tracing now distinguish SQL predicates from ordinary boolean payload expressions",
+    "PostgreSQL numeric aggregate results normalize finite scalars; MySQL AVG casts to DOUBLE and preserves float64 rather than a decimal string, avoiding changed exact comparisons",
+    "Native published record reads explicitly use the real owner's v005 exact-key lookup contract; its actual upgrade plan and definer grants run in the disposable fixture",
+    "PostgreSQL scenario copy now remaps rule-hit references to copied rules and rejects missing mappings atomically"
+  ],
+  "limitations": [
+    "PostgreSQL remains the configured shared application database. No application database was reset; no deployment or MySQL activation occurred.",
+    "Physical worker tests use explicit fixture service authority; deployment worker supervision and identity remain configuration/release work. Metadata restricted roles are verified separately from physical installer authority.",
+    "PostgreSQL aggregate physical tables mirror the published logical model; this is not a PostgreSQL data-model DDL upgrade rehearsal.",
+    "PostgreSQL browser copy is implemented as an owner API; existing deployment HTTP routing is unchanged.",
+    "Screening publication mutations cover the projection contract, not the full comments/whitelist/case-event or external-provider lifecycle.",
+    "External receipt providers, complete effect journeys, all-path restricted accounts, crash/uncertain-commit acceptance, agreed load targets and sustained shared workload, migration/release/fencing and runtime activation remain open.",
+    "Connection arithmetic is a capacity plan, not a measured throughput or production topology certification."
+  ]
+}

@@ -61,6 +61,10 @@ func (r DecisionRepository) Create(ctx context.Context, v decision.Decision) (de
 	if _, err = r.tx.ExecContext(ctx, "INSERT INTO "+r.schema+".decision_engine_decisions(id,tenant_id,scenario_id,scenario_iteration_id,object_id,object_type,request_body,outcome,score,triggered,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", values...); err != nil {
 		return decision.Decision{}, err
 	}
+	// This transaction just inserted and exclusively owns the parent row.
+	// Rule evidence can reuse that immutable iteration binding without taking
+	// another SELECT FOR SHARE. Existing decisions still require a current read.
+	r.newDecisionBindings.set(v.ID, args[2].(mysqlstore.UUID))
 	return r.GetByID(ctx, v.TenantID, v.ID)
 }
 func (r DecisionRepository) GetByID(ctx context.Context, tenant, id string) (decision.Decision, error) {

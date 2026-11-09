@@ -384,11 +384,8 @@ func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName
 		_, aggregatorErrs := validateRequiredNamedChildType(node, model, currentTableName, "aggregator", domainast.ValueTypeString)
 		errs = append(errs, aggregatorErrs...)
 		if filtersNode, ok := node.NamedChildren["filters"]; ok {
-			filtersType, filterErrs := ValidateNode(filtersNode, model, currentTableName)
-			errs = append(errs, filterErrs...)
-			if filtersType != domainast.ValueTypeList {
-				errs = append(errs, "aggregator named child \"filters\" must resolve to list")
-			}
+			nodes := 0
+			errs = append(errs, validateAggregateFilterTree(filtersNode,model,currentTableName,1,&nodes)...)
 		}
 		if tableNameValue, ok := constantStringNode(node.NamedChildren["tableName"]); ok {
 			targetTable, exists := model.Tables[tableNameValue]

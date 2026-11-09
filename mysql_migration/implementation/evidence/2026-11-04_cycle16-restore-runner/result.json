@@ -1,0 +1,9 @@
+﻿{
+    "Project":  "decision-restore-6de3def72c8c",
+    "Started":  "2026-11-04T08:20:32.7771379Z",
+    "Status":  "passed",
+    "Cleanup":  "passed",
+    "ApplicationDatabaseTouched":  false,
+    "Scope":  "MySQL 8.4.8 logical dump onto a distinct private server; exact schema inventory and full table checksums; retained receipt reconciliation/replay with restricted case grants. No production PITR/failover or full service activation claim.",
+    "Finished":  "2026-11-04T08:24:16.5493877Z"
+}

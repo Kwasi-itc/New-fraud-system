@@ -115,8 +115,8 @@ func (r *Release) Plan() migrations.Plan {
 
 // CheckTarget is a diagnostic preflight, NOT a reusable write/activation permit.
 // Callers must open the inspection pool with verified TLS. Verify repeats this
-// check on its actual pinned inspection session; production apply is excluded
-// until the shared installer accepts a same-session pre-write target guard.
+// check on its actual pinned inspection session. Apply checks every write on
+// the locked DDL connection; a successful preflight is never reused as a permit.
 func (r *Release) CheckTarget(ctx context.Context, db *sql.DB, expectedServerUUID string) error {
 	if db == nil {
 		return errors.New("inspection pool required")
@@ -162,4 +162,24 @@ func (r *Release) Verify(ctx context.Context, db *sql.DB, serverUUID string) err
 		return err
 	}
 	return runner.Verify(ctx, func(conn *sql.Conn) error { return r.checkTarget(ctx, conn, serverUUID) })
+}
+
+// Apply installs only the exact decoded owner artifact, checking writer identity,
+// engine version and locked definer on the actual DDL session before every write.
+// The caller owns deployment authorization, verified TLS, backup/fencing and
+// shared-owner ordering. The command does not expose this operation yet.
+func (r *Release) Apply(ctx context.Context, db *sql.DB, serverUUID string) error {
+	if r == nil || db == nil {
+		return errors.New("verified release and installer pool required")
+	}
+	runner, err := migrations.NewForOwner(db, "decision_engine", r.Plan())
+	if err != nil {
+		return err
+	}
+	if err := runner.ApplyGuarded(ctx, func(ctx context.Context, conn *sql.Conn) error {
+		return r.checkTarget(ctx, conn, serverUUID)
+	}); err != nil {
+		return err
+	}
+	return r.Verify(ctx, db, serverUUID)
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { localMySQLSession } from "./local-mysql-session";
 export type PlatformSession = { id: string; user_id: string; tenant_id: string; name: string; roles: string[]; version: number; expires_at: string };
 export const sessionCookie = () => process.env.CASE_SESSION_COOKIE ?? "__Host-fraud_session";
 export const loginCookie = "__Host-fraud_login";
@@ -12,6 +13,8 @@ export async function authCall(path: string, body: unknown) {
 }
 export async function rawSession() { return (await cookies()).get(sessionCookie())?.value; }
 export async function platformSession(): Promise<{ session: PlatformSession; access_token: string } | null> {
+  const local = localMySQLSession();
+  if (local) return local;
   const raw = await rawSession(); if (!raw) return null;
   const response = await authCall("session", { session: raw });
   if (response.status === 401 || response.status === 403) return null;

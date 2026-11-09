@@ -4383,7 +4383,11 @@
     },
     {
       "Path": "internal/clients/datamodel/http_client.go",
-      "SHA256": "ea0ca3e99e1e5edc3306651cbb10f5e088c6bcf864ea0055d0249a6787143994"
+      "SHA256": "a4ea4c5d0b14765ce88907df50ea4a41011ecdf5c4a844abed5de19a73556fd8"
+    },
+    {
+      "Path": "internal/clients/datamodel/index_preparation.go",
+      "SHA256": "e999bcf1ffc16666b7a805621c5ea2429c3f5ecda6b0f5759aba3da6a6aba864"
     },
     {
       "Path": "internal/clients/ingestion/http_client.go",
@@ -4583,11 +4587,11 @@
     },
     {
       "Path": "internal/ports/data_model_reader.go",
-      "SHA256": "0959ce25d47723a555bacfff9008dc96a66aedc939427049361188a8d6c671e1"
+      "SHA256": "0613ffa691902f580c01f152bcd1827f91fc23f56f5df19ab232d6479cf9b1b0"
     },
     {
       "Path": "internal/ports/decision_transactions.go",
-      "SHA256": "65890ba4ab1516b75fad4096824449f31e36514f0dd84a3d1861568b29b7a24e"
+      "SHA256": "22e7b0c44aa34921aa97b250337fc9062ffe119d9cb155ea2ae415b22ac8e2d0"
     },
     {
       "Path": "internal/ports/dispatch.go",
@@ -4595,15 +4599,19 @@
     },
     {
       "Path": "internal/ports/dispatch_receipt.go",
-      "SHA256": "6380c169b801796ba0ccb54c0fcd74e8a6d852b4a4044145bd30290332c1206b"
+      "SHA256": "df1c1448239af5078967f536a0e9778a42e58b1baed09c0e671f822863fe5f01"
     },
     {
       "Path": "internal/ports/errors.go",
-      "SHA256": "acb3643e81f13c17c0341bd74106ef2865b010aa9ee8e0343837a5bdae05136f"
+      "SHA256": "4cd18666816cd1a9f73768111417ce63d30bbfba3c30d084d18d9a731835b5a0"
     },
     {
       "Path": "internal/ports/evaluation_reads.go",
-      "SHA256": "7500768b43262ec41b69c6fa70b13317c588714d0b1e1c6a87d46e1eedc7b193"
+      "SHA256": "c4dcc699694586cc32c89711d1fb1317160a8bc8ebb8bf4af94096f8eaf7ebb5"
+    },
+    {
+      "Path": "internal/ports/evaluation_trace.go",
+      "SHA256": "51dafb5bbbe32f54e7a6f43d54f716fb695c2452bcfb8477a4e2dbc0af7d1ffa"
     },
     {
       "Path": "internal/ports/geoip_lookup.go",
@@ -4623,7 +4631,7 @@
     },
     {
       "Path": "internal/ports/tenant_data_reader.go",
-      "SHA256": "f4bbd73fe1a4737571ea3df9a78b684d55eca420f840ed9dd172b44d7908bc9f"
+      "SHA256": "69aa56984e00529fad4db9633e39120718cf7fcab0ac1cd694d1d645b1cc92fa"
     },
     {
       "Path": "internal/ports/transactions.go",
@@ -4698,6 +4706,18 @@
       "SHA256": "3594d02ebed89e7f4faa2a2e64a3440c6597eb986424ae8b6f3838cd71b603a4"
     },
     {
+      "Path": "internal/runtime/ast_eval/aggregate_executor.go",
+      "SHA256": "c01c35f20a2931f8ac44a64164e763bf6312eb97a6f0467e08c555197a58b421"
+    },
+    {
+      "Path": "internal/runtime/ast_eval/aggregate_filter_evidence.go",
+      "SHA256": "b5debff3bcab95d9f07309d2070fc447f3fdb9b7bb5c91f819a68a96a21cc0ca"
+    },
+    {
+      "Path": "internal/runtime/ast_eval/aggregate_filter_validation.go",
+      "SHA256": "1bac096dcc76abfc0eb1dfeb96bc5d9231768c36292a485b4390aef42ab9d2a9"
+    },
+    {
       "Path": "internal/runtime/ast_eval/aggregate_pushdown_metrics.go",
       "SHA256": "f750cb37401a971e8118b6844a9e9bac92ed03e877966e886236822236e86f9f"
     },
@@ -4711,7 +4731,7 @@
     },
     {
       "Path": "internal/runtime/ast_eval/aggregate_result_cache.go",
-      "SHA256": "44e9b443d75acefa701e4f7f4b7baa6825e4cdbe84a893b9282680cd6ffa8c2b"
+      "SHA256": "e9865cf96cdf993be2c5b6c04a088746114a90e9a877a274ef8d637ffd988fd0"
     },
     {
       "Path": "internal/runtime/ast_eval/aggregate_template.go",
@@ -4731,23 +4751,31 @@
     },
     {
       "Path": "internal/runtime/ast_eval/evaluator.go",
-      "SHA256": "21bdc49a7215c469fd05f72de50c5d5cb8f14a1bc432b1eef4228c71f7447b69"
+      "SHA256": "a2affecf3c71c8f76e3362c7bd12964e4f29cd3362270a9e34414f5aa2930717"
     },
     {
       "Path": "internal/runtime/ast_eval/evidence.go",
-      "SHA256": "fafabd69d5ab64a4e612328353713dd8ec1369ed84048c30e83f39e4edfb216c"
+      "SHA256": "bde2e7f5e83bdb00ca625ebc7988b2d7e444753aeaff895f46fcfbdb2e840700"
+    },
+    {
+      "Path": "internal/runtime/ast_eval/formula_plans.go",
+      "SHA256": "2c9dd681ff0a18f6d1c07d6e24ee5dfab218f4a95c0cd4517ce89b37110542f3"
     },
     {
       "Path": "internal/runtime/ast_eval/runtime.go",
-      "SHA256": "dff85e00cc225707e9807101947d6efa49185b956e8f01b3f9dc7469bf721a1f"
+      "SHA256": "7e6122ae24643da737c86a2529ce7e0cd66db1fce43de2f9a65a92ed0aa18ef3"
     },
     {
       "Path": "internal/runtime/ast_eval/validation.go",
-      "SHA256": "a50a7360c59bf76dcda70d428d4454dc68438b27c811eb819cbf8e27ad71fe26"
+      "SHA256": "c29d2dffa14bcad1c6a0ac2a95f5cba97d9a88435188be39028e600d7a2ee95f"
     },
     {
       "Path": "internal/service/accessor_service.go",
-      "SHA256": "8e57b39ef12c6ad5bc708b99b3e7e6c88e1aa84d0aea98f6e4bb25144442c1fd"
+      "SHA256": "463062a3f3f93ffabff47ff4004bfe20f23f91398330fee5eb8c2b0c9e22ffc9"
+    },
+    {
+      "Path": "internal/service/aggregate_index_requirements.go",
+      "SHA256": "41d74302721fda89b8af22e2371bdc1f5d1da2a36ebc0589eade007e2aa73e08"
     },
     {
       "Path": "internal/service/async_validation.go",
@@ -4758,16 +4786,20 @@
       "SHA256": "5bb7c93a27972dcc5e154bef8b42df6bfdd05b5febe15d5b7483ec51a6e2066e"
     },
     {
+      "Path": "internal/service/comparison_preparation.go",
+      "SHA256": "2fe52b45c37ec25839d1a4216d2b9c2ac8973b0591d34353b2658aaefdc102de"
+    },
+    {
       "Path": "internal/service/decision_cursor.go",
       "SHA256": "52edad1141189e65ae53855459b41bd328e6dbbe3ae32cd39e3aa8f4fe7facf8"
     },
     {
       "Path": "internal/service/decision_service.go",
-      "SHA256": "2b15317d91cdcab3a51500bf39cdc8108948f16d35c7bf9648becc5976da41eb"
+      "SHA256": "c225c3ab44d3874ff07716dc5f33706cefb501832844ee257652dd9a982b4b61"
     },
     {
       "Path": "internal/service/decision_transactions.go",
-      "SHA256": "bef0ccfc4aa17ab81570f9d9d7c5ecacadda2cf1c73f98d8dd2897657e98b338"
+      "SHA256": "dc7e9dc227d5bba6471c8d302ac2203fc8d7dcced6a83e40d2710d8bacf61271"
     },
     {
       "Path": "internal/service/dispatch_service.go",
@@ -4794,6 +4826,10 @@
       "SHA256": "cebe7f83ed250dae8402fd70e2d1d5515d9021a5b9f06edfe679fbfe8c6bc81b"
     },
     {
+      "Path": "internal/service/index_preparation.go",
+      "SHA256": "ed8309e9f938287db09a30fdf5c1aaf3952c05a32ceec20da0e2f12a531d856c"
+    },
+    {
       "Path": "internal/service/investigator.go",
       "SHA256": "77b1c0db8cb71169a10e860a7b2498d92eafc87d5dd6f8393b87e84052f0731d"
     },
@@ -4811,7 +4847,7 @@
     },
     {
       "Path": "internal/service/pinned_preparation.go",
-      "SHA256": "926ef5ce0e5f4ca8a9744881e1dddd1d4b455df3e3a4cb07df77633a274352d6"
+      "SHA256": "43752a4fd022f36542a8b9011ff6426458251a21df58f3d7dedb7fc3da5be535"
     },
     {
       "Path": "internal/service/platform_service.go",
@@ -4819,7 +4855,7 @@
     },
     {
       "Path": "internal/service/publication_service.go",
-      "SHA256": "e8b04e3c1beb2706ea236ab712a170d693c4da3e544c1d7aafb9388346d48ac8"
+      "SHA256": "e761770d123f02f295c2cbb1af29a8b030cf6742a1bc8135033a0a21257d02be"
     },
     {
       "Path": "internal/service/recurring_schedule.go",
@@ -4835,7 +4871,7 @@
     },
     {
       "Path": "internal/service/scenario_service.go",
-      "SHA256": "1b6aafa69bdb637aaf41783a7dc4a7433bfccfbef9a5c07b23341d4ae184373a"
+      "SHA256": "68967ce69a4cecc315f4e2d5e63d023c5b54deb65b94399177a555e82a8a8967"
     },
     {
       "Path": "internal/service/scoring_service.go",
@@ -4867,15 +4903,19 @@
     },
     {
       "Path": "internal/service/validation_service.go",
-      "SHA256": "7da38e47710125c9e6d1f66c6be62baf906a83c86754a97a13e25bd405b7882c"
+      "SHA256": "ddfd89027eb9ce12a6d37720e5b2f412bbd2696b462c4a947e1a3eec0277bc37"
     },
     {
       "Path": "internal/service/workflow_authoring.go",
       "SHA256": "a2499381d1887627bfbec8804188c0128695aeefefcb2c5dcef5dad5a220847b"
     },
     {
+      "Path": "internal/service/workflow_copy_validation.go",
+      "SHA256": "c5fe69f2f8a4805ab22845779062a55c931a7872a925a70e15c8c2070c33a97c"
+    },
+    {
       "Path": "internal/service/workflow_rule_service.go",
-      "SHA256": "e93ad31a6083b4845bee14716a45abd6157fb0b55363756886c5c24a439b4873"
+      "SHA256": "f2ecabc49ef275964c65f87df39aed17e14627b06375446843156a709f44dbd1"
     },
     {
       "Path": "internal/service/workflow_service.go",
@@ -4927,7 +4967,7 @@
     },
     {
       "Path": "internal/store/postgres/platform_repository.go",
-      "SHA256": "9a47c193a28a46bf850efd657d5a045703a6f5ff6dcb7d3179e1a4a5e5e9867e"
+      "SHA256": "71a38a94418842b69bf6451ef5ac3a41a0a1cc6670c0b0d0b82d57fc5ce12a4a"
     },
     {
       "Path": "internal/store/postgres/publication_repository.go",
@@ -4979,7 +5019,7 @@
     },
     {
       "Path": "internal/store/postgres/tenant_data_reader.go",
-      "SHA256": "fdb6bd478df31b7d227da9af7d3abf861bd91be693c414a66555b0cf29633b62"
+      "SHA256": "041daba65dc571fdbb5a51c65e05a235109ab8fb1de4c41c8904c4d3a4de5ec0"
     },
     {
       "Path": "internal/store/postgres/testrun_repository.go",
@@ -4996,6 +5036,10 @@
     {
       "Path": "internal/store/postgres/workflow_authoring.go",
       "SHA256": "36e7fae49776d5ead38d58f82636791b029a1d9649ac0a06198eb34bb032f878"
+    },
+    {
+      "Path": "internal/store/postgres/workflow_authoring_copy.go",
+      "SHA256": "e0e906d91ea6d21b21eb96658e4a0b3b6e2d3b4b69d2d187a1228b5fc5bad73a"
     },
     {
       "Path": "internal/store/postgres/workflow_condition_repository.go",
@@ -5074,9 +5118,37 @@
       "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage; dynamic owner.investigator_reviews resolves to core for decision review and screening for the other supported shared-library branch"
     },
     {
+      "ID": "internal/clients/datamodel/http_client.go::DecodeTenantModel",
+      "File": "internal/clients/datamodel/http_client.go",
+      "Line": 140,
+      "Access": [
+        "HTTP_CONTRACT"
+      ],
+      "References": [
+        "data_model.HTTP_contract"
+      ],
+      "SQLFragments": [],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    },
+    {
       "ID": "internal/clients/datamodel/http_client.go::HTTPClient.CreateIndexJob",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 174,
+      "Line": 194,
+      "Access": [
+        "HTTP_CONTRACT"
+      ],
+      "References": [
+        "data_model.HTTP_contract"
+      ],
+      "SQLFragments": [],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    },
+    {
+      "ID": "internal/clients/datamodel/http_client.go::HTTPClient.GetFreshTenantModel",
+      "File": "internal/clients/datamodel/http_client.go",
+      "Line": 86,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5090,7 +5162,7 @@
     {
       "ID": "internal/clients/datamodel/http_client.go::HTTPClient.GetTenantModel",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 60,
+      "Line": 61,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5104,7 +5176,7 @@
     {
       "ID": "internal/clients/datamodel/http_client.go::HTTPClient.ListIndexJobs",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 222,
+      "Line": 244,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5118,7 +5190,7 @@
     {
       "ID": "internal/clients/datamodel/http_client.go::HTTPClient.RetryIndexJob",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 257,
+      "Line": 281,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5132,7 +5204,7 @@
     {
       "ID": "internal/clients/datamodel/http_client.go::HTTPClient.WithAuthToken",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 34,
+      "Line": 35,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5146,7 +5218,21 @@
     {
       "ID": "internal/clients/datamodel/http_client.go::NewHTTPClient",
       "File": "internal/clients/datamodel/http_client.go",
-      "Line": 48,
+      "Line": 49,
+      "Access": [
+        "HTTP_CONTRACT"
+      ],
+      "References": [
+        "data_model.HTTP_contract"
+      ],
+      "SQLFragments": [],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    },
+    {
+      "ID": "internal/clients/datamodel/index_preparation.go::HTTPClient.ListIndexJobsForTables",
+      "File": "internal/clients/datamodel/index_preparation.go",
+      "Line": 15,
       "Access": [
         "HTTP_CONTRACT"
       ],
@@ -5298,9 +5384,22 @@
       "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
     },
     {
+      "ID": "internal/runtime/ast_eval/aggregate_executor.go::AggregateBatcher.Evaluate",
+      "File": "internal/runtime/ast_eval/aggregate_executor.go",
+      "Line": 85,
+      "Access": [],
+      "References": [],
+      "SQLFragments": [
+        "aggregate demand limit exceeded",
+        "aggregate pending group limit exceeded"
+      ],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    },
+    {
       "ID": "internal/service/decision_service.go::DecisionService.buildOutboxEvents",
       "File": "internal/service/decision_service.go",
-      "Line": 2476,
+      "Line": 2555,
       "Access": [],
       "References": [
         "screening.execution"
@@ -5961,7 +6060,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.Contains",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 141,
+      "Line": 144,
       "Access": [
         "SELECT"
       ],
@@ -5977,7 +6076,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.Create",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 74,
+      "Line": 77,
       "Access": [
         "INSERT"
       ],
@@ -6009,7 +6108,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.DeleteEntry",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 135,
+      "Line": 138,
       "Access": [
         "DELETE"
       ],
@@ -6025,7 +6124,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.DeleteList",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 64,
+      "Line": 67,
       "Access": [
         "DELETE"
       ],
@@ -6059,7 +6158,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.ListByName",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 81,
+      "Line": 84,
       "Access": [
         "SELECT"
       ],
@@ -6076,7 +6175,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.ListEntriesByListID",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 104,
+      "Line": 107,
       "Access": [
         "SELECT"
       ],
@@ -6108,7 +6207,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.RenameEntriesByListID",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 129,
+      "Line": 132,
       "Access": [
         "UPDATE"
       ],
@@ -6124,7 +6223,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.ScreeningIgnoreWords",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 234,
+      "Line": 237,
       "Access": [
         "SELECT"
       ],
@@ -6141,7 +6240,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.UpdateEntry",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 122,
+      "Line": 125,
       "Access": [
         "UPDATE"
       ],
@@ -6157,7 +6256,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::CustomListRepository.UpdateList",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 57,
+      "Line": 60,
       "Access": [
         "UPDATE"
       ],
@@ -6173,7 +6272,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::IPFlagRepository.Create",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 200,
+      "Line": 203,
       "Access": [
         "INSERT"
       ],
@@ -6189,7 +6288,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::IPFlagRepository.HasFlag",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 207,
+      "Line": 210,
       "Access": [
         "SELECT"
       ],
@@ -6205,7 +6304,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::IPFlagRepository.ListByIP",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 214,
+      "Line": 217,
       "Access": [
         "SELECT"
       ],
@@ -6221,7 +6320,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::RecordTagRepository.Create",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 148,
+      "Line": 151,
       "Access": [
         "INSERT"
       ],
@@ -6237,7 +6336,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::RecordTagRepository.HasTag",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 173,
+      "Line": 176,
       "Access": [
         "SELECT"
       ],
@@ -6253,7 +6352,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::RecordTagRepository.ListByObject",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 155,
+      "Line": 158,
       "Access": [
         "SELECT"
       ],
@@ -6269,7 +6368,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::RiskSnapshotRepository.Create",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 180,
+      "Line": 183,
       "Access": [
         "INSERT"
       ],
@@ -6285,7 +6384,7 @@
     {
       "ID": "internal/store/postgres/platform_repository.go::RiskSnapshotRepository.GetByObject",
       "File": "internal/store/postgres/platform_repository.go",
-      "Line": 187,
+      "Line": 190,
       "Access": [
         "SELECT"
       ],
@@ -7410,7 +7509,7 @@
     {
       "ID": "internal/store/postgres/tenant_data_reader.go::TenantDataReader.AggregateRecords",
       "File": "internal/store/postgres/tenant_data_reader.go",
-      "Line": 119,
+      "Line": 121,
       "Access": [
         "SELECT"
       ],
@@ -7425,7 +7524,7 @@
     {
       "ID": "internal/store/postgres/tenant_data_reader.go::TenantDataReader.GetRecord",
       "File": "internal/store/postgres/tenant_data_reader.go",
-      "Line": 38,
+      "Line": 40,
       "Access": [
         "SELECT"
       ],
@@ -7439,7 +7538,7 @@
     {
       "ID": "internal/store/postgres/tenant_data_reader.go::TenantDataReader.ListRecords",
       "File": "internal/store/postgres/tenant_data_reader.go",
-      "Line": 69,
+      "Line": 71,
       "Access": [
         "SELECT"
       ],
@@ -7453,7 +7552,7 @@
     {
       "ID": "internal/store/postgres/tenant_data_reader.go::TenantDataReader.QueryRecords",
       "File": "internal/store/postgres/tenant_data_reader.go",
-      "Line": 92,
+      "Line": 94,
       "Access": [
         "SELECT"
       ],
@@ -7718,6 +7817,42 @@
         "SELECT user_id FROM case_manager.inbox_users WHERE tenant_id=$1 AND inbox_id=$2 AND user_id=$3"
       ],
       "Contract": "Current trusted identity authorization precedes resource locks; owner currently locks scenario parent then rule/inbox. Preserve optimistic timestamps, soft delete and authoring audit; review narrower lock scope, never copy broad serialization blindly. No network under locks.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    },
+    {
+      "ID": "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
+      "File": "internal/store/postgres/workflow_authoring_copy.go",
+      "Line": 19,
+      "Access": [
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "References": [
+        "case_manager.inbox_users",
+        "case_manager.inboxes",
+        "case_manager.tags",
+        "core.model_fields",
+        "core.model_tables",
+        "core.scenarios",
+        "core.workflow_authoring_events",
+        "core.workflow_rules",
+        "core.workflows",
+        "identity.authorize_case_v1"
+      ],
+      "SQLFragments": [
+        "INSERT INTO core.workflow_authoring_events(id,tenant_id,scenario_id,rule_id,actor_id,snapshot,created_at) VALUES($1,$2,$3,$4,$5,$6,$7)",
+        "SELECT EXISTS(SELECT 1 FROM core.workflows WHERE tenant_id=$1 AND scenario_id=$2 AND active)",
+        "SELECT count(*) FROM (SELECT id FROM case_manager.inboxes WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND status='active' ORDER BY id FOR SHARE) allowed",
+        "SELECT count(*) FROM (SELECT id FROM case_manager.tags WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND deleted_at IS NULL ORDER BY id FOR SHARE) allowed",
+        "SELECT count(*) FROM (SELECT inbox_id FROM case_manager.inbox_users WHERE tenant_id=$1 AND inbox_id=ANY($2::uuid[]) AND user_id=$3 ORDER BY inbox_id FOR SHARE) allowed",
+        "SELECT count(*),max(priority) FROM (SELECT priority FROM core.workflow_rules WHERE tenant_id=$1 AND scenario_id=$2 AND deleted_at IS NULL LIMIT 501) bounded",
+        "SELECT id FROM core.model_tables WHERE tenant_id=$1 AND name=$2 AND NOT archived FOR SHARE",
+        "SELECT id,trigger_object_type FROM core.scenarios WHERE tenant_id=$1 AND id=ANY($2::uuid[]) ORDER BY id FOR UPDATE",
+        "SELECT identity.authorize_case_v1($1,$2,$3,$4,true,false)",
+        "SELECT name,data_type,archived FROM core.model_fields WHERE tenant_id=$1 AND table_id=$2 ORDER BY id LIMIT 501 FOR SHARE"
+      ],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
       "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
     },
     {
@@ -13991,7 +14126,8 @@
             "internal/store/postgres/screening_authoring.go::screeningNameFields",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -14029,7 +14165,8 @@
             "internal/store/postgres/screening_authoring.go::screeningNameFields",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -14062,7 +14199,8 @@
             "internal/store/postgres/screening_authoring.go::ScreeningAuthoringRepository.Save",
             "internal/store/postgres/screening_authoring.go::screeningNameFields",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile lengths, server packet/resource budgets and source deployment collation",
@@ -14093,7 +14231,8 @@
             "internal/store/postgres/scenario_repository.go::ScenarioRepository.ListLiveByTriggerObject",
             "internal/store/postgres/scenario_repository.go::ScenarioRepository.Update",
             "internal/store/postgres/screening_authoring.go::ScreeningAuthoringRepository.Save",
-            "internal/store/postgres/screening_authoring.go::screeningNameFields"
+            "internal/store/postgres/screening_authoring.go::screeningNameFields",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile lengths, server packet/resource budgets and source deployment collation",
@@ -14157,7 +14296,8 @@
             "internal/store/postgres/screening_authoring.go::ScreeningAuthoringRepository.List",
             "internal/store/postgres/screening_authoring.go::ScreeningAuthoringRepository.Save",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile infinities and years outside 1000..9999; quarantine, do not coerce zero dates"
@@ -14277,7 +14417,8 @@
             "internal/store/postgres/screening_authoring.go::screeningNameFields",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Verification": [
             "EXPLAIN ANALYZE on selective/hot keys and actual filter/order/page predicates; table-reference association alone proves no index use"
@@ -14304,7 +14445,8 @@
             "internal/store/postgres/screening_authoring.go::screeningNameFields",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Verification": [
             "EXPLAIN ANALYZE on selective/hot keys and actual filter/order/page predicates; table-reference association alone proves no index use"
@@ -14326,7 +14468,8 @@
         "internal/store/postgres/screening_authoring.go::screeningNameFields",
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
-        "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+        "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+        "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
       ],
       "SourceOwnerDML": [
         "SELECT",
@@ -17856,7 +17999,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -17881,7 +18025,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -17906,7 +18051,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -17931,7 +18077,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -17956,7 +18103,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile zero/noncanonical textual API identities; do not change stored UUID identity"
@@ -17981,7 +18129,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile numeric precision/range, depth, Unicode escape compatibility and scalar JSON null"
@@ -18006,7 +18155,8 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Preflight": [
             "Profile infinities and years outside 1000..9999; quarantine, do not coerce zero dates"
@@ -18040,7 +18190,8 @@
           "KeyBudget": "Final native key must fit 3072-byte InnoDB budget at 16KiB pages, including utf8mb4 bytes and all parts; full LONGTEXT is not indexable",
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Verification": [
             "EXPLAIN ANALYZE on selective/hot keys and actual filter/order/page predicates; table-reference association alone proves no index use"
@@ -18054,7 +18205,8 @@
           "KeyBudget": "Final native key must fit 3072-byte InnoDB budget at 16KiB pages, including utf8mb4 bytes and all parts; full LONGTEXT is not indexable",
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+            "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
           ],
           "Verification": [
             "EXPLAIN ANALYZE on selective/hot keys and actual filter/order/page predicates; table-reference association alone proves no index use"
@@ -18063,7 +18215,8 @@
       ],
       "QueryCandidates": [
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
-        "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save"
+        "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+        "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy"
       ],
       "SourceOwnerDML": [
         "SELECT",
@@ -18840,6 +18993,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -18872,6 +19026,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -18904,6 +19059,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -18935,6 +19091,7 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.ListByScenario",
@@ -18965,6 +19122,7 @@
           "TargetValueNullable": false,
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.ListByScenario",
@@ -19021,6 +19179,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.ListByScenario",
@@ -19081,6 +19240,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.ListByScenario",
@@ -19132,6 +19292,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -19153,6 +19314,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -19174,6 +19336,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
             "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -19190,6 +19353,7 @@
       "QueryCandidates": [
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+        "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
         "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Create",
         "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.Delete",
         "internal/store/postgres/workflow_rule_repository.go::WorkflowRuleRepository.GetByID",
@@ -19238,6 +19402,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19271,6 +19436,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19304,6 +19470,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19336,6 +19503,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.ListActiveByScenario",
@@ -19483,6 +19651,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.ListActiveByScenario",
@@ -19511,6 +19680,7 @@
           "QueryCandidates": [
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.ListActiveByScenario",
@@ -19619,6 +19789,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19641,6 +19812,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19663,6 +19835,7 @@
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
             "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+            "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
             "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",
@@ -19680,6 +19853,7 @@
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Delete",
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.List",
         "internal/store/postgres/workflow_authoring.go::WorkflowAuthoringRepository.Save",
+        "internal/store/postgres/workflow_authoring_copy.go::WorkflowAuthoringRepository.Copy",
         "internal/store/postgres/workflow_repository.go::WorkflowRepository.Create",
         "internal/store/postgres/workflow_repository.go::WorkflowRepository.Delete",
         "internal/store/postgres/workflow_repository.go::WorkflowRepository.GetByID",

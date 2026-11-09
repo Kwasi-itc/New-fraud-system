@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "startedAt": "2026-11-05T10:55:56.864Z",
+  "finishedAt": "2026-11-05T10:57:32.558Z",
+  "tenant": "f4522b9f-ae44-40c2-8451-863e1ce06aeb",
+  "table": "862e7b0c-2c26-4b4b-bcaa-a6e77a4710b9",
+  "parent": "4bdba9ba-eb50-491b-a2b9-160002cd7b83",
+  "jobs": {
+    "numeric": "c1a0d8f6-f3e2-4cf9-b861-e3a42a22047e",
+    "stringJob": "f893b0e9-e613-4aa1-8bfe-31e2fe6073b1",
+    "navigation": "6e295fb3-582e-449e-9aad-9670246ad624",
+    "repair": "4011ef18-ed66-4bb9-b8e5-170fca28bbc0",
+    "failedJob": "b81f635d-af07-4110-a8e1-95f654095357",
+    "restartJob": "7be949bb-9442-4595-87ec-de8dd5819bc4"
+  },
+  "checks": [
+    "API enqueue -> native physical index -> atomic job/delivery completion",
+    "text prefix index preserves full 40KB values and residual equality; indexed lookup on 1002 rows",
+    "automatic caption and navigation jobs execute, including text filter + timestamp order",
+    "reconciliation restores missing retained index, publishes repair, and returns healthy",
+    "terminal enqueue deduplication preserves one physical effect and one apply audit",
+    "failed atomic apply/audit retries from committed publication without duplicate DDL",
+    "hard process kill during DDL, lease expiry rescue, retained-plan resume and single completion"
+  ],
+  "lookupPlan": "1\tSIMPLE\ttenant_worker_mig_worker_recor_862e7b0c2c264b4bbcaaa6e77a4710b9\tNULL\tref\trecord_index_f893b0e9e6134aa18bfe31e2fe6073b1\trecord_index_f893b0e9e6134aa18bfe31e2fe6073b1\t767\tconst\t501\t100.00\tUsing where"
+}

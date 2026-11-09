@@ -1,0 +1,48 @@
+PASS fixture-and-new-direct-routes
+PASS test-run-draft-comparison-and-analytics
+PASS workflow-rule-condition-action-lifecycle
+PASS screening-config-lifecycle-and-list-entry-alias
+PASS investigator-review-replay-version-and-case-access
+PASS screening-scoring-status-retry-and-authoritative-callback
+PASS local-expression-assistance-and-model-validation
+PASS all-tenant-route-isolation-and-mounted-inventory
+{
+  "output": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-unrouted\\2026-11-05T18-36-04.704Z",
+  "verified": 39,
+  "total": 39,
+  "suites": [
+    {
+      "name": "fixture-and-new-direct-routes",
+      "passed": true
+    },
+    {
+      "name": "test-run-draft-comparison-and-analytics",
+      "passed": true
+    },
+    {
+      "name": "workflow-rule-condition-action-lifecycle",
+      "passed": true
+    },
+    {
+      "name": "screening-config-lifecycle-and-list-entry-alias",
+      "passed": true
+    },
+    {
+      "name": "investigator-review-replay-version-and-case-access",
+      "passed": true
+    },
+    {
+      "name": "screening-scoring-status-retry-and-authoritative-callback",
+      "passed": true
+    },
+    {
+      "name": "local-expression-assistance-and-model-validation",
+      "passed": true
+    },
+    {
+      "name": "all-tenant-route-isolation-and-mounted-inventory",
+      "passed": true
+    }
+  ]
+}
+

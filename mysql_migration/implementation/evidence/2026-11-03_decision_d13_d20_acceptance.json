@@ -1,0 +1,38 @@
+{
+  "checkpoint": "D13-D20 custom-list failure handling and history snapshot parity",
+  "date": "2026-11-03",
+  "status": "verified subtasks only; D16 remains complete; D13-D15 and D17-D20 remain open",
+  "static_checks": {"compile":"go test -mod=readonly -p 2 -run ^$ ./... passed","vet":"go vet -mod=readonly -p 2 ./internal/ports ./internal/runtime/ast_eval ./internal/store/mysql ./internal/store/postgres passed","logs":["2026-11-03_d13-d20-acceptance-compile.log","2026-11-03_d13-d20-acceptance-vet.log"]},
+  "tests": {"distinct_top_level_passed":233,"distinct_subtests_passed":244,"failed_in_accepted_package_runs":0,"skipped_in_accepted_package_runs":0,"race_enabled":true},
+  "environment": {"mysql":"8.4.8 disposable tmpfs","postgresql":"postgres:16 disposable tmpfs","go":"1.25.8","application_database_changed":false},
+  "commands": [
+    "go test -mod=readonly -race -p 2 -count=1 -json ./internal/runtime/ast_eval",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run TestCustomListPostgresMySQLLookupParity",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run TestHistoryPostgresMySQLGoldenFiltersPaginationAndSnoozes",
+    "go test -mod=readonly -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -args -update-decision-schema-manifest",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/service ./internal/migrationaudit ./internal/mysqlruntime ./internal/mysqlexecution ./internal/store/postgres",
+    "go test -mod=readonly -p 2 ./internal/store/postgres -run TestDecisionPostgresSourceInventory -args -update-postgres-inventory",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/postgres",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run Parity"
+  ],
+  "accepted_logs": [
+    "2026-11-03_d13-d20-acceptance-list-evaluation.jsonl",
+    "2026-11-03_d13-d20-acceptance-history-snapshot.jsonl",
+    "2026-11-03_d13-d20-acceptance-regression.jsonl (exclude initial internal/store/postgres package; replaced by final run)",
+    "2026-11-03_d13-d20-acceptance-postgres-final.jsonl",
+    "2026-11-03_d13-d20-acceptance-parity.jsonl"
+  ],
+  "additional_logs": ["2026-11-03_d13-d20-acceptance-list-parity.jsonl","2026-11-03_d13-d20-acceptance-manifest.log","2026-11-03_d13-d20-acceptance-inventory-update.log"],
+  "corrections": [
+    "Initial PostgreSQL package failed the source inventory after reviewed ports/repository changes. Regenerated four source hashes (including prior data-model port changes); no SQL references or scan counts changed.",
+    "Four PostgreSQL provider tests initially skipped because they require DECISION_TEST_DATABASE_URL separately from DECISION_ENGINE_TEST_DATABASE_URL. Reran the full PostgreSQL package with both URLs set to the disposable PostgreSQL administrator database. Final run passed without skips.",
+    "Counts use the final PostgreSQL package and the successful other packages from the initial regression log. The separately repeated custom-list focused run is not double-counted."
+  ],
+  "limitations": [
+    "No new parent D-task is marked complete. Target auth, case and screening owner implementations are still absent; consumers and fixtures do not replace them.",
+    "Decision role-to-action policy and numeric performance acceptance targets remain unspecified; questions were sent to the user.",
+    "History snapshot verification uses caller-owned read transactions and does not promise a snapshot shared across HTTP requests.",
+    "Custom-list fallback intentionally propagates operational errors that the former evaluator could mask; confirmed absence and legacy names remain compatible.",
+    "Provider/worker/grant integration, full business/crash/uncertain-commit acceptance and representative load/soak work remain. No production migration or activation occurred."
+  ]
+}

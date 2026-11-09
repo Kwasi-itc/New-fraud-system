@@ -135,7 +135,7 @@ func platformTestDB(t *testing.T) platformFixture {
 }
 
 func platformConfig(database, user, password string) mysqlstore.Config {
-	return mysqlstore.Config{Address: "mysql:3306", Database: database, User: user, Password: password, AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute}
+	return mysqlstore.Config{Address: "mysql:3306", Database: database, User: user, Password: password, AllowInsecureTransport: true, InterpolateParameters: os.Getenv("DECISION_MYSQL_TEST_INTERPOLATE") == "1", MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute}
 }
 
 func allowPlatformFixture(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ bool) error { return nil }

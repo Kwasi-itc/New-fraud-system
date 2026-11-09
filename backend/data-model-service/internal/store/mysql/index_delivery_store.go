@@ -177,6 +177,13 @@ func (s *IndexDeliveryStore) lockJob(ctx context.Context, tx *sql.Tx, tenant, jo
 // short local SQL on tx; no DDL, network calls, commit or lock-order inversion.
 // The lease is rechecked after fn, so expiry rolls back ALL local effects.
 func (s *IndexDeliveryStore) Finish(ctx context.Context, v DeliveryLease, retry bool, delay time.Duration, errorCode string, fn func(*sql.Tx) error) error {
+	return s.finish(ctx, v, retry, delay, errorCode, nil, fn)
+}
+
+// beforeJob is reserved for owner registry locks that must precede job locks.
+// Both callbacks share the completion transaction; neither may perform DDL or
+// external calls. Ordinary delivery users cannot supply this private hook.
+func (s *IndexDeliveryStore) finish(ctx context.Context, v DeliveryLease, retry bool, delay time.Duration, errorCode string, beforeJob, fn func(*sql.Tx) error) error {
 	if s.retryPolicy != nil && delay != 0 {
 		return errors.New("policy-controlled delivery cannot specify a fixed retry delay")
 	}
@@ -184,6 +191,11 @@ func (s *IndexDeliveryStore) Finish(ctx context.Context, v DeliveryLease, retry 
 		return errors.New("valid lease, retry delay and redacted error code required")
 	}
 	return mysqlstore.Mutation(ctx, s.db, func(tx *sql.Tx) error {
+		if beforeJob != nil {
+			if err := beforeJob(tx); err != nil {
+				return err
+			}
+		}
 		if err := s.lockJob(ctx, tx, v.TenantID, v.JobID, false); err != nil {
 			return err
 		}

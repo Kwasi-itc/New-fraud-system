@@ -6,6 +6,10 @@ import "errors"
 // failure or invalid storage. Evaluators may treat only this outcome as no risk.
 var ErrRiskSnapshotNotFound = errors.New("risk snapshot not found")
 
+// ErrCustomListNotFound reports confirmed absence in the requested tenant.
+// Only this error permits an evaluator's legacy UUID-shaped name fallback.
+var ErrCustomListNotFound = errors.New("custom list not found")
+
 var ErrAggregateCapability = errors.New("aggregate operation or value is not supported by the published model")
 var ErrPublishedModelUnavailable = errors.New("published tenant model is unavailable, stale or inconsistent")
 

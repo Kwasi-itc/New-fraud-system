@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
@@ -166,6 +167,10 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 	if err != nil {
 		return scenario.PublicationPreparationStatus{}, err
 	}
+	return publicationPreparationStatus(scenarioID, iterationID, required, relatedJobs), nil
+}
+
+func publicationPreparationStatus(scenarioID, iterationID string, required []indexRequirement, relatedJobs []ports.ManagedIndexJob) scenario.PublicationPreparationStatus {
 	status := scenario.PublicationPreparationStatus{
 		ScenarioID:          scenarioID,
 		IterationID:         iterationID,
@@ -173,7 +178,7 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 	}
 	applied := map[string]struct{}{}
 	for _, job := range relatedJobs {
-		if job.Status == "applied" || job.Status == "cancelled" {
+		if job.IndexType == "search" && (job.Status == "applied" || job.Status == "cancelled") {
 			applied[indexRequirementKey(job.TableName, job.Columns)] = struct{}{}
 		}
 		switch job.Status {
@@ -204,7 +209,7 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 			status.PendingItems++
 		}
 	}
-	return status, nil
+	return status
 }
 
 func (s PublicationService) StartPreparation(ctx context.Context, tenantID, scenarioID, iterationID string) (scenario.PublicationPreparationStatus, error) {
@@ -249,7 +254,7 @@ func indexRequirementKey(tableName string, columns []string) string {
 func hasIndexJobForRequirement(jobs []ports.ManagedIndexJob, requirement indexRequirement) bool {
 	requirementKey := requirement.key()
 	for _, job := range jobs {
-		if indexRequirementKey(job.TableName, job.Columns) == requirementKey {
+		if job.IndexType == "search" && indexRequirementKey(job.TableName, job.Columns) == requirementKey {
 			return true
 		}
 	}
@@ -281,7 +286,26 @@ func (s PublicationService) indexPreparationState(ctx context.Context, tenantID,
 	if err != nil {
 		return nil, nil, err
 	}
-	allJobs, err := s.dataModelReader.ListIndexJobs(ctx, tenantID)
+	var allJobs []ports.ManagedIndexJob
+	if scoped, ok := s.dataModelReader.(ports.IndexPreparationProvider); ok {
+		ids := make([]string, 0, len(tableNames))
+		for name := range tableNames {
+			table, ok := model.Tables[name]
+			if !ok || table.ID == "" {
+				return nil, nil, ErrExecutionPreparation
+			}
+			ids = append(ids, table.ID)
+		}
+		if len(ids) > 100 {
+			return nil, nil, ErrExecutionPreparationLimit
+		}
+		sort.Strings(ids)
+		allJobs, err = scoped.ListIndexJobsForTables(ctx, tenantID, ids, 1000)
+	} else {
+		// Legacy source adapters retain their old interface. The staged target
+		// requires IndexPreparationProvider and never takes this compatibility path.
+		allJobs, err = s.dataModelReader.ListIndexJobs(ctx, tenantID)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -354,69 +378,40 @@ func collectFormulaIndexRequirements(model ports.TenantModel, baseTable string, 
 	if err := json.Unmarshal(raw, &node); err != nil {
 		return err
 	}
-	visitNodeIndexRequirements(model, baseTable, node, add)
-	return nil
+	return visitNodeIndexRequirements(model, baseTable, node, add)
 }
 
-func visitNodeIndexRequirements(model ports.TenantModel, currentTable string, node domainast.Node, add func(indexRequirement)) {
-	if node.Function == "Aggregator" {
-		if requirement, ok := aggregatorIndexRequirement(model, currentTable, node); ok {
+func visitNodeIndexRequirements(model ports.TenantModel, currentTable string, node domainast.Node, add func(indexRequirement)) error {
+	if strings.EqualFold(strings.TrimSpace(node.Function), "Aggregator") {
+		requirements, err := aggregatorIndexRequirements(model, currentTable, node)
+		if err != nil {
+			return err
+		}
+		for _, requirement := range requirements {
 			add(requirement)
 		}
 	}
 	for _, child := range node.Children {
-		visitNodeIndexRequirements(model, currentTable, child, add)
-	}
-	for _, child := range node.NamedChildren {
-		visitNodeIndexRequirements(model, currentTable, child, add)
-	}
-}
-
-func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, node domainast.Node) (indexRequirement, bool) {
-	tableName, ok := constantString(node.NamedChildren["tableName"])
-	if !ok || strings.TrimSpace(tableName) == "" {
-		tableName = currentTable
-	}
-	table, ok := model.Tables[tableName]
-	if !ok || strings.TrimSpace(table.ID) == "" {
-		return indexRequirement{}, false
-	}
-	filtersNode, ok := node.NamedChildren["filters"]
-	if !ok {
-		return indexRequirement{}, false
-	}
-	columns := make([]string, 0, len(filtersNode.Children))
-	seen := map[string]struct{}{}
-	for _, filterNode := range filtersNode.Children {
-		if filterNode.Function != "Filter" {
-			continue
+		if err := visitNodeIndexRequirements(model, currentTable, child, add); err != nil {
+			return err
 		}
-		filterTableName, ok := constantString(filterNode.NamedChildren["tableName"])
-		if ok && strings.TrimSpace(filterTableName) != "" && filterTableName != tableName {
-			continue
-		}
-		fieldName, ok := constantString(filterNode.NamedChildren["fieldName"])
-		if !ok || strings.TrimSpace(fieldName) == "" {
-			continue
-		}
-		if _, exists := table.Fields[fieldName]; !exists {
-			continue
-		}
-		if _, exists := seen[fieldName]; exists {
-			continue
-		}
-		seen[fieldName] = struct{}{}
-		columns = append(columns, fieldName)
 	}
-	if len(columns) == 0 {
-		return indexRequirement{}, false
+	keys := make([]string, 0, len(node.NamedChildren))
+	for key := range node.NamedChildren {
+		keys = append(keys, key)
 	}
-	return indexRequirement{TableID: table.ID, TableName: table.Name, Columns: columns}, true
+	sort.Strings(keys)
+	for _, key := range keys {
+		if err := visitNodeIndexRequirements(model, currentTable, node.NamedChildren[key], add); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func visitNodeTables(model ports.TenantModel, currentTable string, node domainast.Node, out map[string]struct{}) {
-	switch node.Function {
-	case "Aggregator", "Filter":
+	switch strings.ToLower(strings.TrimSpace(node.Function)) {
+	case "aggregator", "filter":
 		if tableName, ok := constantString(node.NamedChildren["tableName"]); ok && strings.TrimSpace(tableName) != "" {
 			out[tableName] = struct{}{}
 		}

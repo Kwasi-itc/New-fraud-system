@@ -14,11 +14,13 @@ import (
 // complete installation artifact. It is immutable and does not cache successful
 // inspections. It neither grants privileges nor opens physical readiness.
 type ExactKeyReadiness struct {
-	database       string
-	definer        Definer
-	runner         *migrations.Runner
-	receiptDefiner *Definer
-	resultDefiner  *Definer
+	database              string
+	definer               Definer
+	runner                *migrations.Runner
+	receiptDefiner        *Definer
+	resultDefiner         *Definer
+	recordLookupDefiner   *Definer
+	contractLookupDefiner *Definer
 }
 
 // NewExactKeyReadiness accepts only the shipped v001 lineage and optional v002
@@ -100,6 +102,9 @@ func (r *ExactKeyReadiness) VerifyOnConn(ctx context.Context, conn *sql.Conn, da
 		return errors.New("record trigger definer must be distinct from shared resolver definer")
 	}
 	return r.runner.VerifyOnConn(ctx, conn, func(conn *sql.Conn) error {
+		if err := r.verifyLookupDependencies(ctx, conn, triggerDefiner); err != nil {
+			return err
+		}
 		if r.resultDefiner != nil {
 			if err := r.verifyOwnerResults(ctx, conn, triggerDefiner); err != nil {
 				return err

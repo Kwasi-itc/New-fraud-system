@@ -21,6 +21,10 @@ import (
 // Unsupported/hidden graphs are rejected, never silently omitted. This staged
 // consumer remains inactive until real auth/case providers are supplied.
 func (s *BrowserWorkflowStore) Copy(ctx context.Context, tenant, source, destination string, actor workflow.AuthoringActor, dependencies WorkflowCopyGuard) ([]workflow.CaseRule, error) {
+	return s.copy(ctx, tenant, source, destination, actor, dependencies, nil)
+}
+
+func (s *BrowserWorkflowStore) copy(ctx context.Context, tenant, source, destination string, actor workflow.AuthoringActor, dependencies WorkflowCopyGuard, beforePermissions func(context.Context, *sql.Tx) error) ([]workflow.CaseRule, error) {
 	if s == nil || s.configuration == nil || s.authorize == nil || dependencies == nil {
 		return nil, ErrDecisionAuthorizationUnavailable
 	}
@@ -45,6 +49,11 @@ func (s *BrowserWorkflowStore) Copy(ctx context.Context, tenant, source, destina
 		return nil, err
 	}
 	guard := func(ctx context.Context, tx *sql.Tx, snapshot ScenarioCopySnapshot, target scenario.Scenario) error {
+		if beforePermissions != nil {
+			if err := beforePermissions(ctx, tx); err != nil {
+				return err
+			}
+		}
 		inboxes, tags := map[uuid.UUID]bool{}, map[uuid.UUID]bool{}
 		for _, graph := range snapshot.Workflows {
 			rule, ok := workflow.DecodeCaseRule(graph)

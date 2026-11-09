@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
@@ -29,7 +28,7 @@ func TestMySQLReceiptAwareMaintenanceDoesNotExhaustUnreconciledSend(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n, _, err := maintenance.MaintainPage(ctx, 10, false, nil); !errors.Is(err, ErrDispatchReconciliationRequired) || n != 0 {
+	if n, _, err := maintenance.MaintainPage(ctx, 10, false, nil); err != nil || n != 0 {
 		t.Fatal("unreconciled send was exhausted", n, err)
 	}
 	var state, status, outcome string

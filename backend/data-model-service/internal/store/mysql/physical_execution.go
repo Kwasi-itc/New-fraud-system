@@ -19,7 +19,8 @@ import (
 // PhysicalDDLPlan is trusted internal planner output stored in an immutable
 // intent. SQL/definitions must never be accepted from API clients. V1 changes
 // only the registered table; v2 creates that table and its two typed exact-key
-// triggers; v3 applies source-bound native changes while retaining both guards.
+// triggers; v3 applies source-bound field changes while retaining all published
+// guards and, for unique text creation, installing two additional typed guards.
 // Definitions include complete SHOW CREATE results; unsupported
 // mutable definitions require a separate contract.
 type PhysicalDDLPlan struct {
@@ -29,6 +30,8 @@ type PhysicalDDLPlan struct {
 	Creation         *PhysicalCreationIdentity `json:"creation,omitempty"`
 	RetainedGuards   []migrations.Step         `json:"retained_guards,omitempty"`
 	Native           *PhysicalNativeSource     `json:"native,omitempty"`
+	RepairSource     string                    `json:"repair_source,omitempty"`
+	RepairMissing    []uuid.UUID               `json:"repair_missing,omitempty"`
 }
 
 var ErrPhysicalPrecondition = errors.New("physical change requires an empty table or an explicit backfill protocol")
@@ -67,6 +70,9 @@ func decodePhysicalPlan(data []byte, database, name string) (PhysicalDDLPlan, er
 	if (plan.Version != 1 && plan.Version != 2 && plan.Version != 3) || len(plan.Steps) == 0 || len(plan.Steps) > 1000 {
 		return plan, errors.New("physical plan version and 1..1000 steps required")
 	}
+	if plan.Version != 3 && (plan.RepairSource != "" || len(plan.RepairMissing) != 0) {
+		return plan, ErrPhysicalConflict
+	}
 	if plan.Version == 2 {
 		if len(plan.RetainedGuards) != 0 || plan.Native != nil {
 			return plan, errors.New("creation cannot retain preexisting guards")
@@ -77,6 +83,9 @@ func decodePhysicalPlan(data []byte, database, name string) (PhysicalDDLPlan, er
 		return plan, (migrations.Plan{Database: database, Steps: plan.Steps}).Validate()
 	}
 	if plan.Version == 3 {
+		if err := validateManagedRepair(plan, database, name); err != nil {
+			return plan, err
+		}
 		if err := validateRetainedRecordGuards(plan, database, name); err != nil {
 			return plan, err
 		}
@@ -89,6 +98,25 @@ func decodePhysicalPlan(data []byte, database, name string) (PhysicalDDLPlan, er
 		return plan, err
 	}
 	for _, step := range plan.Steps {
+		if plan.Version == 3 && step.Kind == "TRIGGER" {
+			if strings.HasPrefix(step.SQL, "DROP TRIGGER ") {
+				if step.Before == "" || step.After != "" {
+					return plan, errors.New("guard retirement requires before-only definition")
+				}
+				found := false
+				for _, g := range plan.RetainedGuards {
+					if g.Name == step.Name && g.After == step.Before {
+						found = true
+					}
+				}
+				if !found {
+					return plan, errors.New("retired guard must match published lineage")
+				}
+			} else if step.Before != "" {
+				return plan, errors.New("new guard must not replace an existing trigger")
+			}
+			continue // validateNativeSource regenerated its complete SQL and identity.
+		}
 		if plan.Version == 3 && (step.Before == "" || !strings.HasPrefix(step.SQL, "ALTER TABLE ")) {
 			return plan, errors.New("guarded native changes require existing table ALTER steps")
 		}
@@ -115,7 +143,7 @@ func decodePhysicalPlan(data []byte, database, name string) (PhysicalDDLPlan, er
 		}
 		preconditions[id] = true
 	}
-	err = (migrations.Plan{Database: database, Steps: plan.Steps}).Validate()
+	err = (migrations.Plan{Database: database, Steps: plan.Steps}).ValidateWithTriggerRetirement()
 	return plan, err
 }
 
@@ -231,7 +259,7 @@ func (e *PhysicalExecutor) ExecuteSteps(ctx context.Context, table, operation uu
 		}
 		blocked := func(cause error) error {
 			code := "physical_schema_drift"
-			if errors.Is(cause, ErrPhysicalPrecondition) {
+			if errors.Is(cause, ErrPhysicalPrecondition) || errors.Is(cause, ErrPhysicalNullValues) {
 				code = "physical_data_precondition"
 			}
 			saveErr := mutate(func(tx *sql.Tx) error {
@@ -252,17 +280,23 @@ func (e *PhysicalExecutor) ExecuteSteps(ctx context.Context, table, operation uu
 			if err != nil {
 				return err
 			}
-			if actual != plan.Steps[start-1].After {
+			if actual != plan.FinalTableDefinition() {
 				return blocked(migrations.ErrDrift)
 			}
 		}
 		if plan.Version == 3 {
-			if err := verifyRetainedRecordGuards(ctx, conn, e.database, name, plan); err != nil {
+			if err := verifyRecordGuardProgress(ctx, conn, e.database, name, plan, states); err != nil {
 				if errors.Is(err, migrations.ErrDrift) {
 					return blocked(err)
 				}
 				return err
 			}
+		}
+		if err := CheckNativeNullability(ctx, conn, e.database, name, plan); err != nil {
+			if errors.Is(err, ErrPhysicalNullValues) {
+				return blocked(err)
+			}
+			return err
 		}
 		for i := start; i < len(plan.Steps); i++ {
 			step := plan.Steps[i]
@@ -303,6 +337,9 @@ func (e *PhysicalExecutor) ExecuteSteps(ctx context.Context, table, operation uu
 				}
 			}
 			if actual != step.After {
+				if err := backfillTextKeys(ctx, conn, e.database, name, plan, i); err != nil {
+					return err
+				}
 				if _, err := conn.ExecContext(ctx, step.SQL); err != nil {
 					return err
 				}

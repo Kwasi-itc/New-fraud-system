@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
+	"math"
 	"regexp"
 	"slices"
 	"strconv"
@@ -149,7 +150,10 @@ type AssembledDataModel struct {
 }
 
 type AssembledTable struct {
-	ID                uuid.UUID
+	ID uuid.UUID
+	// PublishedVersion is supplied only by a publication-aware owner snapshot.
+	// It is not the tenant revision and does not replace registry checks at use.
+	PublishedVersion  *uuid.UUID
 	Name              string
 	Description       string
 	Alias             string
@@ -497,7 +501,7 @@ func validateEnumValueForDataType(dataType DataType, value string) error {
 		}
 		return nil
 	case DataTypeFloat:
-		if _, err := strconv.ParseFloat(trimmed, 64); err != nil {
+		if number, err := strconv.ParseFloat(trimmed, 64); err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
 			return fmt.Errorf("enum value must be a valid float")
 		}
 		return nil

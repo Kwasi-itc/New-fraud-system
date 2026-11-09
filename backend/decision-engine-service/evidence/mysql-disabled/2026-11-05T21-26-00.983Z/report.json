@@ -1,0 +1,134 @@
+{
+  "at": "2026-11-05T21:28:12.969Z",
+  "prefix": "delivery-141ce230-d4e0-48db-b86f-3d20128f1552",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "runtimeImage": "sha256:3e38e709e3506b828c3f2d9e2a302058e3708e258e3afb9b8ee4967883bf5f09",
+  "runtimeUnchanged": true,
+  "requestCount": 284,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": false,
+      "error": "Error: Timed out: workflow dispatch\n    at until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:19:141)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:54:13\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:18:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:46:1"
+    },
+    {
+      "name": "callback-delivery-failure-redrive-cancellation-and-restart",
+      "passed": false,
+      "error": "Error: Timed out: callback retries exhausted\n    at until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:19:141)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:67:194\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:18:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:63:1"
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ],
+  "workers": [],
+  "matrix": [
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel",
+      "successVerified": false,
+      "suites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry",
+      "successVerified": false,
+      "suites": []
+    }
+  ],
+  "verifiedOperations": 10,
+  "totalOperations": 12,
+  "profilePassed": false
+}

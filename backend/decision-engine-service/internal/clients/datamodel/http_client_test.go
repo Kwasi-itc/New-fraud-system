@@ -12,6 +12,47 @@ import (
 	"time"
 )
 
+func TestGetTenantModelPreservesOwnerPublicationVersion(t *testing.T) {
+	for _, token := range []string{"", "11111111-1111-4111-8111-111111111111"} {
+		t.Run(token, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, `{"data_model":{"revision_id":"tenant-revision","tables":{"records":{"id":"table-id","published_version":%q}}}}`, token)
+			}))
+			defer server.Close()
+			model, err := NewHTTPClient(server.URL, time.Second).GetTenantModel(context.Background(), "tenant")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if model.Tables["records"].PublishedVersion != token {
+				t.Fatal("publication version lost or synthesized from tenant revision")
+			}
+		})
+	}
+}
+
+func TestFreshModelBypassesAdvisoryCache(t *testing.T) {
+	var calls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		fmt.Fprintf(w, `{"data_model":{"revision_id":"rev-%d","tables":{}}}`, calls)
+	}))
+	defer server.Close()
+	client := NewHTTPClient(server.URL, time.Second)
+	if _, err := client.GetTenantModel(context.Background(), "tenant"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"rev-2", "rev-3"} {
+		got, err := client.GetFreshTenantModel(context.Background(), "tenant")
+		if err != nil || got.RevisionID != want {
+			t.Fatalf("fresh=%s want=%s err=%v", got.RevisionID, want, err)
+		}
+	}
+	cached, err := client.GetTenantModel(context.Background(), "tenant")
+	if err != nil || cached.RevisionID != "rev-1" || calls != 3 {
+		t.Fatalf("advisory cache changed: %+v %v calls=%d", cached, err, calls)
+	}
+}
+
 func TestGetTenantModelUsesCacheWithinTTL(t *testing.T) {
 	t.Parallel()
 

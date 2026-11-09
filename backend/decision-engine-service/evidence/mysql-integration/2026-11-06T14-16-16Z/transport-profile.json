@@ -1,0 +1,50 @@
+{
+  "environment": {
+    "DECISION_MYSQL_TEST_INTERPOLATE": "1"
+  },
+  "fixture": "Private MySQL 8.4.8; no application DSN accepted",
+  "topLevelPassed": [
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLCaseWorkflowReceiptActualOwner"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningIgnoreWordsBoundsAndScope"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningProjectionMonotonicAuthority"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningSourceConsumerContractBindings"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningOwnerMutationsAndProjectionDrain"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestMySQLScreeningOwnerPublicationBindingsAndView"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningReceiptOwner"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql",
+      "test": "TestScreeningReceiptDispatchHandoff"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLInvestigatorReviewConcurrentReplayAndRevocation"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution",
+      "test": "TestMySQLInvestigatorReviewLateHistoryFailureRollsBackReceipt"
+    }
+  ],
+  "testsExit": 0,
+  "vetExit": 0
+}

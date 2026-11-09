@@ -210,7 +210,34 @@ func (r *Runner) Status(ctx context.Context) ([]History, error) {
 // After. An existing object without a journal is never silently adopted. Errors
 // leave dirty state visible; there is no force-clean or destructive down command.
 func (r *Runner) Apply(ctx context.Context) error {
+	return r.apply(ctx, nil)
+}
+
+// ApplyGuarded checks deployment identity/policy on the locked DDL connection
+// before ledger creation and every subsequent write. The guard must perform
+// bounded local reads only and must not retain/close conn or acquire another
+// pool connection. Rejection preserves earlier dirty intent for recovery.
+func (r *Runner) ApplyGuarded(ctx context.Context, guard func(context.Context, *sql.Conn) error) error {
+	if guard == nil {
+		return errors.New("same-session pre-write migration guard required")
+	}
+	return r.apply(ctx, guard)
+}
+
+func (r *Runner) apply(ctx context.Context, guard func(context.Context, *sql.Conn) error) error {
 	return r.locked(ctx, func(conn *sql.Conn, schema string) error {
+		check := func() error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if guard != nil {
+				return guard(ctx, conn)
+			}
+			return nil
+		}
+		if err := check(); err != nil {
+			return err
+		}
 		if err := r.bootstrap(ctx, conn, schema); err != nil {
 			return err
 		}
@@ -252,11 +279,17 @@ func (r *Runner) Apply(ctx context.Context) error {
 			}
 			sum := Checksum(r.plan.Database, s)
 			if !dirty {
+				if err := check(); err != nil {
+					return err
+				}
 				if _, err := conn.ExecContext(ctx, "INSERT INTO "+schema+"."+r.plan.ledgerName()+"(step_no,step_id,checksum,state,started_at) VALUES (?,?,?,'dirty',UTC_TIMESTAMP(6))", i+1, s.ID, sum[:]); err != nil {
 					return fmt.Errorf("record intent %s (outcome uncertain): %w", s.ID, err)
 				}
 			}
 			if actual == s.Before {
+				if err := check(); err != nil {
+					return err
+				}
 				if _, err := conn.ExecContext(ctx, s.SQL); err != nil {
 					return fmt.Errorf("DDL step %s remains dirty: %w", s.ID, err)
 				}
@@ -267,6 +300,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 			}
 			if actual != s.After {
 				return fmt.Errorf("verify step %s: %w", s.ID, ErrDrift)
+			}
+			if err := check(); err != nil {
+				return err
 			}
 			result, err := conn.ExecContext(ctx, "UPDATE "+schema+"."+r.plan.ledgerName()+" SET state='applied',applied_at=UTC_TIMESTAMP(6) WHERE step_no=? AND checksum=? AND state='dirty'", i+1, sum[:])
 			if err != nil {

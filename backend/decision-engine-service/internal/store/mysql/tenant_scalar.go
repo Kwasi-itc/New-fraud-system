@@ -270,6 +270,13 @@ func (f registryField) predicate(op string, value any) (string, []any, error) {
 			expression, args := f.textEqualityPredicate(typed.(mysqlstore.Text))
 			return expression, args, nil
 		}
+		if op == "eq" {
+			// Published text columns use utf8mb4_0900_bin. Keep the column
+			// unwrapped in an additional predicate so owner-managed prefix and
+			// composite indexes are usable. The complete binary comparison is
+			// still authoritative, including values beyond the indexed prefix.
+			return "(" + column + "=? COLLATE utf8mb4_0900_bin AND CAST(" + column + " AS BINARY)=CAST(? AS BINARY))", []any{typed, typed}, nil
+		}
 		column = "CAST(" + column + " AS BINARY)"
 		return column + sqlOp + "CAST(? AS BINARY)", []any{typed}, nil
 	}

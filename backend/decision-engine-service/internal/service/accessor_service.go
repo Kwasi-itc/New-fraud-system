@@ -42,15 +42,21 @@ func (s AccessorService) ListByScenario(ctx context.Context, tenantID, scenarioI
 		return AccessorSet{}, err
 	}
 
-	payloadAccessors, err := buildPayloadAccessors(scn.TriggerObjectType, model)
+	return BuildAccessorSet(scn.TriggerObjectType, model)
+}
+
+// BuildAccessorSet shares the editor catalog with database-specific hosts after
+// they resolve and authorize the scenario and its current tenant model.
+func BuildAccessorSet(objectType string, model ports.TenantModel) (AccessorSet, error) {
+	payloadAccessors, err := buildPayloadAccessors(objectType, model)
 	if err != nil {
 		return AccessorSet{}, err
 	}
-	databaseAccessors, err := buildDatabaseAccessors(scn.TriggerObjectType, model)
+	databaseAccessors, err := buildDatabaseAccessors(objectType, model)
 	if err != nil {
 		return AccessorSet{}, err
 	}
-	derivedAccessors, err := buildGeoIPDerivedAccessors(scn.TriggerObjectType, model)
+	derivedAccessors, err := buildGeoIPDerivedAccessors(objectType, model)
 	if err != nil {
 		return AccessorSet{}, err
 	}

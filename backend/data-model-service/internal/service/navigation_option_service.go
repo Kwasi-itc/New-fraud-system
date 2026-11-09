@@ -66,7 +66,7 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		return datamodel.NavigationOption{}, err
 	}
 	if sourceTable.TenantID != input.TenantID || targetTable.TenantID != input.TenantID {
-		return datamodel.NavigationOption{}, fmt.Errorf("tables do not belong to tenant")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: tables do not belong to tenant", ErrRelationshipInvalid)
 	}
 
 	sourceFields, err := s.fieldRepository.ListByTable(ctx, sourceTable.ID)
@@ -80,24 +80,24 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 
 	sourceField, ok := findFieldByID(sourceFields, input.SourceFieldID)
 	if !ok {
-		return datamodel.NavigationOption{}, fmt.Errorf("source field does not belong to source table")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: source field does not belong to source table", ErrRelationshipInvalid)
 	}
 	filterField, ok := findFieldByID(targetFields, input.FilterFieldID)
 	if !ok {
-		return datamodel.NavigationOption{}, fmt.Errorf("filter field does not belong to target table")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: filter field does not belong to target table", ErrRelationshipInvalid)
 	}
 	orderingField, ok := findFieldByID(targetFields, input.OrderingFieldID)
 	if !ok {
-		return datamodel.NavigationOption{}, fmt.Errorf("ordering field does not belong to target table")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: ordering field does not belong to target table", ErrRelationshipInvalid)
 	}
 	if sourceField.DataType != datamodel.DataTypeString {
-		return datamodel.NavigationOption{}, fmt.Errorf("source field must be a string field")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: source field must be a string field", ErrRelationshipInvalid)
 	}
 	if input.FilterFieldID == input.OrderingFieldID {
-		return datamodel.NavigationOption{}, fmt.Errorf("filter and ordering fields must be different")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: filter and ordering fields must be different", ErrRelationshipInvalid)
 	}
 	if sourceTable.ID == targetTable.ID && sourceField.ID != filterField.ID {
-		return datamodel.NavigationOption{}, fmt.Errorf("if source and target tables are the same, source and filter fields must match")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: if source and target tables are the same, source and filter fields must match", ErrRelationshipInvalid)
 	}
 
 	links, err := s.linkRepository.ListByTenant(ctx, input.TenantID)
@@ -128,7 +128,7 @@ func (s NavigationOptionService) Create(ctx context.Context, input CreateNavigat
 		}
 	}
 	if !canCreate {
-		return datamodel.NavigationOption{}, fmt.Errorf("navigation option must be backed by a reverse link or self-table pivot")
+		return datamodel.NavigationOption{}, fmt.Errorf("%w: navigation option must be backed by a reverse link or self-table pivot", ErrRelationshipInvalid)
 	}
 
 	now := s.clock.Now()

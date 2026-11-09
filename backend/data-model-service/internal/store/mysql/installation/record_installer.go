@@ -12,7 +12,8 @@ import (
 // RecordInstallerPolicy is the explicit, temporary capability to install one
 // initial record table and its dedicated-definer triggers, or to alter that
 // guarded table using NativeChanges. It is not a runtime role. Initial creation
-// needs SET_ANY_DEFINER, which cannot be restricted to one named definer, so
+// and explicit TextGuards installation need SET_ANY_DEFINER, which cannot be
+// restricted to one named definer, so
 // deployment must keep these credentials isolated and deactivate the account
 // before publication. No automatic account provisioning or global setting change
 // is performed by these helpers.
@@ -20,8 +21,12 @@ type RecordInstallerPolicy struct {
 	Principal Definer
 	Table     string
 	// NativeChanges enables table ALTER/INDEX with inspection of existing
-	// triggers, but grants no global authority to install another definer.
+	// triggers; global definer authority requires the separate TextGuards flag.
 	NativeChanges bool
+	// TextGuards explicitly authorizes transient definer installation for field creation.
+	TextGuards bool
+	// BackfillColumn grants temporary UPDATE on exactly one existing text column.
+	BackfillColumn string
 }
 
 func (p RecordInstallerPolicy) Account(locked bool) (AccountPolicy, error) {
@@ -31,12 +36,21 @@ func (p RecordInstallerPolicy) Account(locked bool) (AccountPolicy, error) {
 	if _, err := mysqlstore.Identifier(p.Table); err != nil || !strings.HasPrefix(p.Table, "tenant_") {
 		return AccountPolicy{}, errors.New("registered physical record table required")
 	}
+	var columns map[string][]string
+	if p.BackfillColumn != "" {
+		if _, err := mysqlstore.Identifier(p.BackfillColumn); err != nil || !strings.HasPrefix(p.BackfillColumn, "field_") || !p.NativeChanges || !p.TextGuards {
+			return AccountPolicy{}, errors.New("scoped text backfill capability required")
+		}
+		if !locked {
+			columns = map[string][]string{"UPDATE": {p.BackfillColumn}}
+		}
+	}
 	privileges := []string{"SELECT", "CREATE", "TRIGGER"}
 	if p.NativeChanges {
 		privileges = append(privileges, "ALTER", "INDEX")
 	}
 	return AccountPolicy{User: p.Principal.User, Host: p.Principal.Host, Locked: locked, Objects: []ObjectGrant{
-		{Kind: "TABLE", Name: p.Table, Privileges: privileges},
+		{Kind: "TABLE", Name: p.Table, Privileges: privileges, Columns: columns},
 		{Kind: "TABLE", Name: "data_model_exact_keys", Privileges: []string{"REFERENCES"}},
 		{Kind: "TABLE", Name: "data_model_physical_tables", Privileges: []string{"SELECT"}, Columns: map[string][]string{"UPDATE": {"table_id"}}},
 		{Kind: "TABLE", Name: "data_model_schema_change_intents", Privileges: []string{"SELECT"}, Columns: map[string][]string{"UPDATE": {"state", "last_error_code", "updated_at"}}},
@@ -57,7 +71,7 @@ func (p RecordInstallerPolicy) ActiveGrants(database string) ([]string, error) {
 		return nil, err
 	}
 	account, _ := p.Principal.SQLAccount()
-	if p.NativeChanges {
+	if p.NativeChanges && !p.TextGuards {
 		return grants, nil
 	}
 	return append(grants, "GRANT SET_ANY_DEFINER ON *.* TO "+account), nil
@@ -103,7 +117,7 @@ func VerifyRecordInstallationSettings(ctx context.Context, conn *sql.Conn) error
 
 // VerifyInactive is a publication precondition: credentials remain locked, no
 // old session survives, and no global capability remains (initial creation must
-// revoke SET_ANY_DEFINER; native changes never grant it). The exact object
+// revoke SET_ANY_DEFINER; ordinary native changes never grant it). The exact object
 // grants remain for auditable recovery; unlocking/regranting is an explicit
 // deployment action and never a publisher repair.
 func (p RecordInstallerPolicy) VerifyInactive(ctx context.Context, conn *sql.Conn, database string) error {

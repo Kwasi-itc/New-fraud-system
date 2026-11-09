@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work"
 	"github.com/google/uuid"
@@ -14,9 +15,9 @@ import (
 	"time"
 )
 
-// This configuration deliberately permits only disposable Compose databases.
-// A production enablement requires independent deployment review and read-path
-// adoption. No PostgreSQL connection or River client is constructed here.
+// Configuration permits isolated fixtures, or the explicit local development
+// database with its separate opt-in. Neither mode enables production cutover.
+// No PostgreSQL connection or River client is constructed here.
 type Config struct {
 	Authority, Address, Database, User                                      string
 	Token                                                                   string `json:"-"`
@@ -30,6 +31,15 @@ type Config struct {
 }
 
 func Load(path string) (Config, error) {
+	c, err := readConfig(path)
+	if err != nil {
+		return c, err
+	}
+	c.Token = os.Getenv("INGESTION_RUNTIME_TOKEN")
+	return c, c.Validate()
+}
+
+func readConfig(path string) (Config, error) {
 	var c Config
 	f, e := os.Open(path)
 	if e != nil {
@@ -45,13 +55,26 @@ func Load(path string) (Config, error) {
 	if d.Decode(&extra) != io.EOF {
 		return c, errors.New("single bounded configuration required")
 	}
-	c.Token = os.Getenv("INGESTION_RUNTIME_TOKEN")
-	return c, c.Validate()
+	return c, nil
 }
-func (c Config) Validate() error {
+func (c Config) validateScope() error {
 	host, _, e := net.SplitHostPort(c.Address)
-	if c.Authority != "isolated-mysql" || e != nil || (host != "mysql" && host != "127.0.0.1") || !regexp.MustCompile(`^ingestion_full_test_[a-f0-9]{32}$`).MatchString(c.Database) || c.User == "root" || !regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`).MatchString(c.User) || len(c.Token) < 16 || c.TenantID == uuid.Nil || c.ObjectType == "" {
-		return errors.New("explicit isolated MySQL scope and credentials required")
+	isolated := c.Authority == "isolated-mysql" && regexp.MustCompile(`^ingestion_full_test_[a-f0-9]{32}$`).MatchString(c.Database)
+	local := c.Authority == "local-mysql-development" && c.Database == "fraud"
+	if local {
+		if _, err := localdev.Origin(os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN")); err != nil {
+			return err
+		}
+	}
+	if (!isolated && !local) || e != nil || (host != "mysql" && host != "127.0.0.1") || c.User == "root" || !regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`).MatchString(c.User) || len(c.Token) < 16 || c.TenantID == uuid.Nil || c.ObjectType == "" {
+		return errors.New("explicit isolated or local development MySQL scope and credentials required")
+	}
+	return nil
+}
+
+func (c Config) Validate() error {
+	if err := c.validateScope(); err != nil {
+		return err
 	}
 	if c.Pool < 4 || c.Pool > 64 || c.Concurrency < 1 || c.Concurrency > 16 || 4*c.Concurrency > c.Pool || c.WriteConcurrency < 1 || c.WriteConcurrency > 128 || c.Attempts < 1 || c.Attempts > 100 || c.BodyBytes < 1 || c.BodyBytes > 1<<20 || c.ContractBytes < 1 || c.ContractBytes > 16<<20 {
 		return errors.New("bounded shared pool/request/worker policy required")
@@ -71,8 +94,35 @@ func (c Config) Validate() error {
 	if e := c.DataModelPlan.Validate(); e != nil {
 		return e
 	}
-	if len(c.DataModelPlan.Steps) == 0 || c.DataModelPlan.Steps[len(c.DataModelPlan.Steps)-1].ID != "data_model_v006_contract_lookup" {
-		return errors.New("data-model v006 lineage required")
+	return validateDataModelLineage(c.DataModelPlan)
+}
+
+// Accept the original v006 contract and the owner's exact append-only v007
+// worker-index upgrade. The readiness check still verifies every ledger checksum.
+func validateDataModelLineage(plan migrations.Plan) error {
+	for i, step := range plan.Steps {
+		if step.ID != "data_model_v006_contract_lookup" {
+			continue
+		}
+		tail := plan.Steps[i+1:]
+		if len(tail) == 0 {
+			return nil
+		}
+		schema := "`" + plan.Database + "`"
+		want := []migrations.Step{
+			{ID: "data_model_v007_jobs_table_scope", Kind: "TABLE", Name: "data_model_index_jobs", SQL: "ALTER TABLE " + schema + ".data_model_index_jobs ADD INDEX data_model_jobs_table_scope (tenant_id,table_id,requested_at DESC,id DESC)"},
+			{ID: "data_model_v007_intent_epoch", Kind: "TABLE", Name: "data_model_schema_change_intents", SQL: "ALTER TABLE " + schema + ".data_model_schema_change_intents ADD INDEX data_model_intent_epoch (tenant_id,table_id,expected_epoch,state)"},
+		}
+		if len(tail) == len(want) {
+			valid := true
+			for j, got := range tail {
+				valid = valid && got.ID == want[j].ID && got.Kind == want[j].Kind && got.Name == want[j].Name && got.SQL == want[j].SQL && got.Before != ""
+			}
+			if valid {
+				return nil
+			}
+		}
+		break
 	}
-	return nil
+	return errors.New("data-model v006 contract lineage with optional complete v007 worker indexes required")
 }

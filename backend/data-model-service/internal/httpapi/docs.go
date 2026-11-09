@@ -10,6 +10,10 @@ import (
 //go:embed openapi.yaml
 var openAPISpec []byte
 
+// OpenAPISpec returns the complete shared API contract for alternate runtimes.
+// A copy prevents a runtime from changing documentation used by another one.
+func OpenAPISpec() []byte { return append([]byte(nil), openAPISpec...) }
+
 func registerDocsRoutes(router *gin.Engine) {
 	router.GET("/openapi.yaml", func(c *gin.Context) {
 		c.Data(http.StatusOK, "application/yaml; charset=utf-8", openAPISpec)

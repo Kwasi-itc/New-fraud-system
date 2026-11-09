@@ -10,7 +10,7 @@ import (
 
 // All table/column lists are private constants. Parameter count and readback
 // size are bounded; returned rows follow input identity order, not query order.
-func insertEffectBatch[T any](ctx context.Context, r authoringRepository, table, columns, selectSQL string, values [][]any, ids []string, scan func(rowScanner) (T, int64, error), identity func(T) string) (result []T, resultErr error) {
+func insertEffectBatch[T any](ctx context.Context, r authoringRepository, table, columns, selectSQL string, values [][]any, ids []string, scan func(rowScanner) (T, int64, error), identity func(T) string, status func(T) string) (result []T, resultErr error) {
 	defer func() {
 		// Any failure after an earlier chunk inserted rows must poison the
 		// queued unit of work, not only failures inside the final enqueue call.
@@ -53,6 +53,12 @@ func insertEffectBatch[T any](ctx context.Context, r authoringRepository, table,
 		}
 		byID := make(map[string]T, len(stored))
 		for _, v := range stored {
+			if r.effectQueues != nil {
+				_, _, pending, ok := effectJobKind(table)
+				if !ok || status(v) != pending {
+					return nil, ErrEffectJobOwnerState
+				}
+			}
 			byID[identity(v)] = v
 		}
 		for _, id := range ids[start:end] {
@@ -64,7 +70,10 @@ func insertEffectBatch[T any](ctx context.Context, r authoringRepository, table,
 		}
 	}
 	if r.effectQueues != nil {
-		if err := r.enqueueCreated(ctx, table, ids); err != nil {
+		// INSERT already holds exclusive locks on these new identities, and
+		// bounded readback above verified their persisted pending states. Keep
+		// receipt reconciliation, but avoid selecting/locking each owner twice.
+		if err := r.enqueueCreatedLocked(ctx, table, ids, true); err != nil {
 			return nil, err
 		}
 	}

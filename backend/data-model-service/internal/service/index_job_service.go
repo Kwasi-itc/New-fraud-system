@@ -33,6 +33,21 @@ type CreateIndexJobInput struct {
 	ScheduledAt          *time.Time
 }
 
+// ListForTables uses an explicit bounded repository capability. Never emulate
+// it by loading the tenant's entire job history and filtering in memory.
+func (s IndexJobService) ListForTables(ctx context.Context, tenant uuid.UUID, tables []uuid.UUID, limit int) ([]datamodel.IndexJob, error) {
+	if err := datamodel.ValidateIndexJobScope(tenant, tables, limit); err != nil {
+		return nil, err
+	}
+	r, ok := s.indexJobs.(interface {
+		ListByTables(context.Context, uuid.UUID, []uuid.UUID, int) ([]datamodel.IndexJob, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("bounded index job reader unavailable")
+	}
+	return r.ListByTables(ctx, tenant, tables, limit)
+}
+
 func NewIndexJobService(
 	tenantRepository ports.TenantRepository,
 	tableRepository ports.TableRepository,

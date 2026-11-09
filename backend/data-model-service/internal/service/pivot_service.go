@@ -52,7 +52,7 @@ func NewPivotService(
 
 func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datamodel.Pivot, error) {
 	if err := datamodel.ValidatePivot(input.FieldID, input.PathLinkIDs); err != nil {
-		return datamodel.Pivot{}, err
+		return datamodel.Pivot{}, fmt.Errorf("%w: %v", ErrRelationshipInvalid, err)
 	}
 
 	baseTable, err := s.tableRepository.GetByID(ctx, input.BaseTableID)
@@ -60,7 +60,7 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 		return datamodel.Pivot{}, err
 	}
 	if baseTable.TenantID != input.TenantID {
-		return datamodel.Pivot{}, fmt.Errorf("base table does not belong to tenant")
+		return datamodel.Pivot{}, fmt.Errorf("%w: base table does not belong to tenant", ErrRelationshipInvalid)
 	}
 
 	if input.FieldID != nil {
@@ -69,10 +69,10 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 			return datamodel.Pivot{}, err
 		}
 		if field.TenantID != input.TenantID || field.TableID != input.BaseTableID {
-			return datamodel.Pivot{}, fmt.Errorf("pivot field does not belong to the selected tenant and base table")
+			return datamodel.Pivot{}, fmt.Errorf("%w: pivot field does not belong to the selected tenant and base table", ErrRelationshipInvalid)
 		}
 		if field.DataType != datamodel.DataTypeString {
-			return datamodel.Pivot{}, fmt.Errorf("pivot field must be a string field")
+			return datamodel.Pivot{}, fmt.Errorf("%w: pivot field must be a string field", ErrRelationshipInvalid)
 		}
 	}
 
@@ -87,16 +87,16 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 		}
 		first, ok := linkMap[input.PathLinkIDs[0]]
 		if !ok || first.ChildTable != input.BaseTableID {
-			return datamodel.Pivot{}, fmt.Errorf("first pivot path link must start from the base table")
+			return datamodel.Pivot{}, fmt.Errorf("%w: first pivot path link must start from the base table", ErrRelationshipInvalid)
 		}
 		for i := 1; i < len(input.PathLinkIDs); i++ {
 			prev := linkMap[input.PathLinkIDs[i-1]]
 			cur, ok := linkMap[input.PathLinkIDs[i]]
 			if !ok {
-				return datamodel.Pivot{}, fmt.Errorf("pivot path contains unknown link")
+				return datamodel.Pivot{}, fmt.Errorf("%w: pivot path contains unknown link", ErrRelationshipInvalid)
 			}
 			if prev.ParentTable != cur.ChildTable {
-				return datamodel.Pivot{}, fmt.Errorf("pivot path links are not chained consistently")
+				return datamodel.Pivot{}, fmt.Errorf("%w: pivot path links are not chained consistently", ErrRelationshipInvalid)
 			}
 		}
 		last := linkMap[input.PathLinkIDs[len(input.PathLinkIDs)-1]]
@@ -105,7 +105,7 @@ func (s PivotService) Create(ctx context.Context, input CreatePivotInput) (datam
 			return datamodel.Pivot{}, err
 		}
 		if field.DataType != datamodel.DataTypeString {
-			return datamodel.Pivot{}, fmt.Errorf("pivot field must be a string field")
+			return datamodel.Pivot{}, fmt.Errorf("%w: pivot field must be a string field", ErrRelationshipInvalid)
 		}
 	}
 

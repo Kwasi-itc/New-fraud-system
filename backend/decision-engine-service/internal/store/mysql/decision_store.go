@@ -49,7 +49,7 @@ func (s *DecisionStore) run(ctx context.Context, write bool, fn func(DecisionRep
 		if err := c.authorize(ctx, tx, c.tenant, write); err != nil {
 			return err
 		}
-		r := authoringRepository{platformRepository: platformRepository{tx, c.schema, c.tenant, c.maxRows, c.maxBytes, write}}
+		r := authoringRepository{platformRepository: platformRepository{tx, c.schema, c.tenant, c.maxRows, c.maxBytes, write}, newDecisionBindings: newDecisionBindingCache()}
 		return fn(DecisionRepositories{Decisions: DecisionRepository{r}, RuleExecutions: RuleExecutionRepository{r}, TestRuns: TestRunRepository{r}, PhantomDecisions: PhantomDecisionRepository{r}, PhantomRuleExecutions: PhantomRuleExecutionRepository{r}, RuleSnoozes: RuleSnoozeRepository{r}})
 	})
 }

@@ -28,6 +28,7 @@ var platformRoutePolicies = map[string]routePolicy{
 	"GET /v1/tenants/:tenantId/schema-migrations":       {param: "tenantId", write: false},
 	"POST /v1/tenants/:tenantId/index-jobs":             {param: "tenantId", write: true},
 	"GET /v1/tenants/:tenantId/index-jobs":              {param: "tenantId", write: false},
+	"GET /v1/tenants/:tenantId/index-jobs/scoped":       {param: "tenantId", write: false},
 	"GET /v1/index-jobs/:jobId":                         {param: "jobId", write: false},
 	"POST /v1/index-jobs/:jobId/retry":                  {param: "jobId", write: true},
 	"PATCH /v1/tables/:tableId":                         {param: "tableId", write: true},

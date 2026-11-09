@@ -120,8 +120,12 @@ func TestMySQLCustomListFoldExactValuesAndRenameAtomicity(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if !yes {
-			t.Fatal("folded lookup")
+		if yes {
+			t.Fatal("lookup changed the source's exact list-name semantics")
+		}
+		yes, err = r.Contains(ctx, tenant.String(), list.Name, entry.Value)
+		if err != nil || !yes {
+			t.Fatal("exact list lookup", yes, err)
 		}
 		yes, err = r.Contains(ctx, tenant.String(), list.Name, "owner ")
 		if err != nil {

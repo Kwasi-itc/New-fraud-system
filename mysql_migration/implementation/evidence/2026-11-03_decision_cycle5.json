@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-03",
+  "scope": "Screening owner publication storage and lock-preserving source view",
+  "requested_subtasks": 20,
+  "selected_batch": ["D17.11", "D17.12", "D17.13", "D17.14", "D17.15", "D17.16", "D17.17", "D17.18", "D17.19", "D17.20", "D17.21", "D17.22", "D18.10", "D18.11", "D18.12", "D18.13", "D18.14", "D18.15", "D19.12", "D19.13"],
+  "completed": ["D19.12", "D19.13"],
+  "requested_batch_complete": false,
+  "pending_input": "D17.11 explicitly requires user-approved role/action mappings. The proposed policy was presented for approval; no approval has been received. The other 18 selected leaves depend directly or transitively on it.",
+  "checklist": {"done": 84, "remaining": 68, "total": 152},
+  "parent_D19_complete": false,
+  "versions": {"mysql": "8.4.8", "go": "1.25.8"},
+  "runtime": "PostgreSQL remains configured. MySQL schema is staged and independently tracked in screening_schema_migrations in the shared logical database.",
+  "implementation": [
+    "backend/screening-service/mysqlschema/schema.go",
+    "backend/screening-service/mysqlschema/README.md",
+    "backend/decision-engine-service/internal/store/mysql/screening_owner_integration_test.go"
+  ],
+  "verification": [
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql -run 'TestMySQL(ScreeningOwnerPublicationBindingsAndView|ScreeningSourceConsumerContractBindings|ScreeningProjectionMonotonicAuthority|EffectsBatchRelationshipsAndAtomicRollback)$'",
+      "exit_code": 0,
+      "top_level_passes": 4,
+      "subtest_passes": 18,
+      "failures": 0,
+      "skips": 0,
+      "log": "2026-11-03_cycle5-screening-final.jsonl"
+    },
+    {"command": "go vet -p 2 ./internal/store/mysql/... (decision module)", "exit_code": 0, "log": "2026-11-03_cycle5-screening-decision-vet.log"},
+    {"command": "go test -mod=mod -p 2 ./mysqlschema (screening module)", "exit_code": 0, "log": "2026-11-03_cycle5-screening-owner-compile.log"},
+    {"command": "go vet -mod=readonly -p 2 ./mysqlschema (screening module)", "exit_code": 0, "log": "2026-11-03_cycle5-screening-owner-vet.log"},
+    {"command": "go test -mod=readonly -p 2 -run '^$' ./... (screening module; compile only)", "exit_code": 0, "log": "2026-11-03_cycle5-screening-service-compile.log"}
+  ],
+  "verified_behavior": [
+    "Real independently tracked screening migration application, replay and definition verification after actual decision parent migrations",
+    "Foreign tenant, unknown and mismatched existing decision, wrong scenario/configuration/execution, duplicate execution and nonpositive version rejection",
+    "Immutable source relationships; manual sources excluded from view and delivery",
+    "Bounded owner-generated summary excludes raw provider response",
+    "MERGE view is updatable; FOR UPDATE through the actual consumer blocks an underlying source update until a server-side lock timeout",
+    "Foreign readers and mismatched expected decision/configuration fail",
+    "Unversioned updates fail; injected enqueue failure rolls back source version/status and leaves delivery version unchanged",
+    "Repeated decision reconciliation from the real source view preserves the expected sent state"
+  ],
+  "limitations": [
+    "D19.14 remains open: complete status/result/match mutation repository, indexed match-count maintenance and stale-writer APIs are not implemented",
+    "D19.15 remains open despite tested enqueue triggers because complete producer mutation integration depends on D19.14",
+    "D19.16 remains open: delivery drain/acknowledgement, out-of-order delivery and full real-source reconciliation matrix are outstanding",
+    "Fixture installs and writes use privileged disposable accounts; real auth and restricted provider grants are not established",
+    "No full PostgreSQL/MySQL screening parity, provider receipt integration, process-crash recovery, production activation or migration cutover is claimed",
+    "An initial lock test used client cancellation on an autocommit statement, which allowed uncertain completion. It was replaced with an explicit transaction and server-side lock timeout; final evidence is the corrected run"
+  ],
+  "cleanup": {"runner_removed": true, "mysql_container_removed": true, "network_removed": true, "application_database_touched": false}
+}

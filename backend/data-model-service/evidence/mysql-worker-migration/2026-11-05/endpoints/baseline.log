@@ -1,0 +1,1 @@
+{"passed":true,"tenant":"6d8dab8c-0d3e-46a4-8866-b5b75c298d21","table":"8661592c-f8a6-46ed-a833-04807937305a","job":"c32170ce-3a0e-4799-a87b-b65f3e764f84","checks":"MySQL readiness; registration/catalog persistence; provisioning; assembled model; required fields; nonempty audit/revisions; successful job lookup; missing/invalid resources; origin rejection"}

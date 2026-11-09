@@ -30,6 +30,7 @@ type displayPublication struct {
 	previous     uuid.UUID
 	retainResult bool
 	settings     display.Settings
+	tableResult  *metadataResult
 }
 
 func (s *DisplayStore) save(ctx context.Context, table uuid.UUID, in display.SaveRequest, effects func(context.Context, *sql.Tx) error, publication *displayPublication) (display.Settings, error) {
@@ -131,6 +132,9 @@ func (s *DisplayStore) save(ctx context.Context, table uuid.UUID, in display.Sav
 			prior, err := publication.store.readOperation(ctx, tx, s.tenant, table, publication.operation)
 			if err == nil {
 				publication.result = prior
+				if publication.tableResult != nil {
+					return s.recoverCaptionResult(ctx, tx, table, publication)
+				}
 				if publication.retainResult {
 					publication.settings, err = s.readDisplayResult(ctx, tx, table, publication.operation.ID)
 					return err
@@ -254,6 +258,16 @@ func (s *DisplayStore) save(ctx context.Context, table uuid.UUID, in display.Sav
 			publication.result, err = publication.store.MutateAndPublishOperationTx(ctx, tx, s.tenant, table, publication.operation, func(*sql.Tx) error { return nil })
 			if err == nil && publication.result.Version != publication.previous {
 				return ErrPhysicalConflict
+			}
+			if err == nil && publication.tableResult != nil {
+				repos, err := NewMetadataRepositories(tx, s.database, s.tenant, s.maxRows, s.maxBytes)
+				if err != nil {
+					return err
+				}
+				if err := publication.tableResult.capture(ctx, repos, table); err != nil {
+					return err
+				}
+				return (ownerResults{s.schema, s.tenant, s.maxBytes}).write(ctx, tx, table, publication.operation.ID, tableResultKind, publication.tableResult.raw)
 			}
 			if err == nil && publication.retainResult {
 				publication.settings, _, err = loadDisplay(ctx, r, table)

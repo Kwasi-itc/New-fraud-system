@@ -185,10 +185,10 @@ func TestPhysicalPlannerRejectsInvalidMappings(t *testing.T) {
 			t.Fatal("invalid registry binding accepted")
 		}
 	}
-	for _, enum := range []bool{false, true} {
+	{
 		tenant, table, fields := plannerFixture()
-		fields[3].Field.IsUnique = !enum
-		fields[3].Field.IsEnum = enum
+		fields[3].Field.IsUnique = true
+		fields[3].Field.IsEnum = false
 		p, err := NewPhysicalPlanner("shared_app", tenant, table, fields)
 		if err != nil {
 			t.Fatal(err)

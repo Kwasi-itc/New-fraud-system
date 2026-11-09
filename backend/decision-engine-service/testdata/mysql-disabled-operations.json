@@ -1,0 +1,50 @@
+[
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry"
+  }
+]

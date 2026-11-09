@@ -47,6 +47,36 @@ func (s *AuthoringStore) PublicationPreparation(ctx context.Context, parent, ite
 	return out, nil
 }
 
+// IndexPreparationSnapshot also accepts drafts. Permission checks finish before
+// a coherent read snapshot; neither transaction is retained across provider IO.
+// A later edit may make this preparation obsolete, so publish still revalidates.
+func (s *AuthoringStore) IndexPreparationSnapshot(ctx context.Context, parent, iteration uuid.UUID) (out PublicationSnapshot, err error) {
+	if s == nil || s.configuration == nil || parent == uuid.Nil || iteration == uuid.Nil {
+		return out, ErrTenantScope
+	}
+	c := s.configuration
+	if err = mysqlstore.Mutation(ctx, c.db, func(tx *sql.Tx) error { return s.authorize(ctx, tx, c.tenant, AuthoringPublish) }); err != nil {
+		return out, err
+	}
+	err = s.ReadSnapshot(ctx, func(r AuthoringRepositories) error {
+		var err error
+		out.Scenario, err = r.Scenarios.GetByID(ctx, c.tenant.String(), parent.String())
+		if err != nil {
+			return err
+		}
+		out.Iteration, err = r.Iterations.GetByID(ctx, c.tenant.String(), parent.String(), iteration.String())
+		if err != nil {
+			return err
+		}
+		out.Rules, err = r.Rules.ListByIteration(ctx, c.tenant.String(), parent.String(), iteration.String())
+		return err
+	})
+	if err != nil {
+		return PublicationSnapshot{}, err
+	}
+	return out, nil
+}
+
 // PreparedPublicationBinding cannot be supplied by JSON. Full portable AST/type
 // validation must precede construction by the target publication coordinator.
 // The private digest rejects any parent/selected-version/rule change between

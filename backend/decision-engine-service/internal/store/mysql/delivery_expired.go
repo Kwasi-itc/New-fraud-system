@@ -81,8 +81,15 @@ func (s *EffectDeliveryStore) Expired(ctx context.Context, after *ExpiredDeliver
 // Shared with scoped EXPLAIN fixtures so plans cover the real production query,
 // not a simplified surrogate. Callers validate limits/cursors before execution.
 func (s *EffectDeliveryStore) expiredSelect(after *ExpiredDeliveryCursor, limit int) (string, []any) {
+	return s.expiredSelectFiltered(after, limit, false)
+}
+
+func (s *EffectDeliveryStore) expiredSelectFiltered(after *ExpiredDeliveryCursor, limit int, reconcile bool) (string, []any) {
 	query := "SELECT d.id,d.lease_token,d.attempt,d.lease_until,r.resource_id,r.domain_attempt,r.redrive_generation FROM " + s.schema + "." + s.deliveryTable() + " d JOIN " + s.schema + "." + s.receiptTable() + " r ON r.tenant_id=d.tenant_id AND r.kind=d.kind AND r.id=d.id WHERE d.tenant_id=? AND d.kind=? AND d.queue_name=? AND d.state='running' AND d.lease_until<=UTC_TIMESTAMP(6)"
 	args := []any{mysqlstore.UUID(s.tenant), string(s.kind), s.queue}
+	if reconcile {
+		query += " AND d.attempt>=d.max_attempts AND EXISTS(SELECT 1 FROM " + s.schema + ".decision_engine_dispatch_intents i WHERE i.tenant_id=d.tenant_id AND i.receipt_id=d.id)"
+	}
 	if after != nil {
 		query += " AND(d.lease_until>? OR(d.lease_until=? AND d.id>?))"
 		at := mysqlstore.DateTime{Time: after.LeaseUntil}

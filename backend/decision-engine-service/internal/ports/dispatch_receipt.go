@@ -39,7 +39,9 @@ type DispatchReceipt struct {
 	Reference     string          `json:"reference"`
 }
 
-// ReceiptDispatcher performs network IO outside SQL transactions. It must
+// ReceiptDispatcher calls a provider outside decision SQL transactions. A local
+// same-database adapter may enter that provider's owner transaction; a remote
+// adapter performs network IO without holding decision database locks. It must
 // return echoed key/hash, a nonempty bounded opaque receipt for terminal
 // outcomes, obey context, enforce destination/credential policy and disable
 // unsafe redirects. Timeouts/non-2xx alone are NOT proof of rejection/absence.

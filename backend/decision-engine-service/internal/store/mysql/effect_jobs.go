@@ -62,6 +62,12 @@ func copyEffectQueues(policies map[ports.JobKind]EffectQueuePolicy) (effectQueue
 // here; retries/redrives require a separate locked lifecycle operation.
 // Fixed table/column identifiers come exclusively from effectJobKind.
 func (r authoringRepository) enqueueCreated(ctx context.Context, table string, ids []string) error {
+	return r.enqueueCreatedLocked(ctx, table, ids, false)
+}
+
+// ownerLocked is private to the insert-and-readback path in this transaction.
+// Reconciliation/redrive callers must still take current owner locks.
+func (r authoringRepository) enqueueCreatedLocked(ctx context.Context, table string, ids []string, ownerLocked bool) error {
 	if err := r.mutating(); err != nil {
 		return err
 	}
@@ -95,7 +101,16 @@ func (r authoringRepository) enqueueCreated(ctx context.Context, table string, i
 			args = append(args, mysqlstore.UUID(parsed))
 		}
 		marks := strings.TrimSuffix(strings.Repeat("?,", len(batch)), ",")
-		rows, err := r.tx.QueryContext(ctx, "SELECT id,status FROM "+r.schema+"."+table+" WHERE tenant_id=? AND id IN ("+marks+") ORDER BY id FOR UPDATE", args...)
+		if ownerLocked {
+			if err := r.enqueueInitialBatch(ctx, kind, column, policy, batch); err != nil {
+				return err
+			}
+			continue
+		}
+		// Lock only these owner IDs. On small/hot tenant populations MySQL can
+		// otherwise choose a tenant/status index and lock unrelated pending rows
+		// before applying the ID residual, deadlocking concurrent producers.
+		rows, err := r.tx.QueryContext(ctx, "SELECT id,status FROM "+r.schema+"."+table+" FORCE INDEX (PRIMARY) WHERE tenant_id=? AND id IN ("+marks+") ORDER BY id FOR UPDATE", args...)
 		if err != nil {
 			return err
 		}

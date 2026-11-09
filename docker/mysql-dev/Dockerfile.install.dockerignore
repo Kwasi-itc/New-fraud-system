@@ -1,0 +1,16 @@
+**
+!backend/
+!backend/mysqlstore/**
+!backend/data-model-service/**
+!backend/ingestion-service/**
+!backend/decision-engine-service/**
+!backend/auth-service/**
+!backend/case-manager-service/**
+!backend/screening-service/**
+**/.git
+**/node_modules
+**/.env*
+**/*.log
+**/*.exe
+**/*.test
+**/coverage*

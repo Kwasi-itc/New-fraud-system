@@ -116,6 +116,11 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 		return PortableDataModelDocument{}, err
 	}
 
+	return ExportPublishedDataModel(published), nil
+}
+
+// ExportPublishedDataModel converts a consistent owner snapshot to the portable v1 contract.
+func ExportPublishedDataModel(published PublishedAssembledDataModel) PortableDataModelDocument {
 	tableNames := make([]string, 0, len(published.Model.Tables))
 	for name := range published.Model.Tables {
 		tableNames = append(tableNames, name)
@@ -263,11 +268,11 @@ func (s PortableDataModelService) Export(ctx context.Context, tenantID uuid.UUID
 		return strings.Compare(lhs.BaseTable, rhs.BaseTable)
 	})
 
-	return document, nil
+	return document
 }
 
 func (s PortableDataModelService) Import(ctx context.Context, tenantID uuid.UUID, document PortableDataModelDocument) (PortableImportResult, error) {
-	if err := validatePortableDocument(document); err != nil {
+	if err := ValidatePortableDocument(document); err != nil {
 		return PortableImportResult{}, err
 	}
 
@@ -451,7 +456,7 @@ func (s PortableDataModelService) refreshFieldMap(ctx context.Context, tableID u
 	return nil
 }
 
-func validatePortableDocument(document PortableDataModelDocument) error {
+func ValidatePortableDocument(document PortableDataModelDocument) error {
 	if version := strings.TrimSpace(document.Version); version != "" && version != portableDataModelVersion {
 		return fmt.Errorf("unsupported portable data model version: %s", document.Version)
 	}

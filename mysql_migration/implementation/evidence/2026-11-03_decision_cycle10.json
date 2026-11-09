@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-03",
+  "cycle": 10,
+  "requested_outcome": "152/152",
+  "status": "incomplete",
+  "completed_this_cycle": ["D19.18"],
+  "checklist": {"checked": 125, "remaining": 27, "total": 152},
+  "implementation": {
+    "D19.18": "Screening-owned durable intake and decision ReceiptDispatcher binding on the same logical database. Full scalar attempt identity, canonical v1 key and payload hash are checked. The pending screening, required projection delivery and retained receipt commit atomically. Accepted delivery reconciles by its original identity without resending. Configured provider-name allowlist and local owner binding prevent arbitrary destinations. Changed bodies conflict, including across new domain attempts; accepted executions retain one source and never restart completed searches.",
+    "handoff_ordering": "Source publication may precede the decision dispatch acknowledgement. Prepare now resumes only an existing send intent for a source-owned screening. Complete accepts only an accepted receipt referencing that same source, records the receipt and acknowledges the fenced delivery without changing the newer projection. No source lock is acquired while holding the decision projection lock.",
+    "migration": "Append-only screening owner steps add immutable per-execution intake keys, permanent per-attempt receipts with tenant/source relationships and a bounded pending-source index. Existing source migration definitions remain unchanged; definer grants include the new owner tables. Fresh/repeated owner plan installation passed. Full shared release upgrade rehearsal remains D20.17/D25."
+  },
+  "verification": [
+    {"log": "2026-11-03_cycle10-receipt-final.jsonl", "top_level_passed": 2, "subtests_passed": 9, "scope": "Eight simultaneous duplicate intakes, lost-response reconciliation, hash/key/kind/tenant conflicts, new attempts without duplicate work, terminal-result preservation, projection/receipt insertion rollback, authority denial, retention, provider/binding validation, cancellation before intake and both publication/acknowledgement orderings."},
+    {"log": "2026-11-03_cycle10-dispatch-regression.jsonl", "top_level_passed": 3, "subtests_passed": 4, "scope": "Existing dispatch intent/receipt/owner atomicity, restricted worker and cancellation regressions."},
+    {"log": "2026-11-03_cycle10-owner-regression.jsonl", "top_level_passed": 1, "subtests_passed": 4, "scope": "Screening source mutation, match/result publication and projection drain."},
+    {"log": "2026-11-03_cycle10-schema-regression.jsonl", "top_level_passed": 1, "subtests_passed": 18, "scope": "Actual screening owner migration, tenant/binding/view/version and source/queue rollback guards."},
+    {"log": "2026-11-03_cycle10-worker-regression.jsonl", "top_level_passed": 1, "subtests_passed": 6, "scope": "Dispatch-worker receipt protocol regressions."}
+  ],
+  "test_totals": {"top_level_passed": 8, "subtests_passed": 41, "failures": 0, "skips": 0, "race_detector": true},
+  "vet": {"result": "passed", "logs": ["2026-11-03_cycle10-vet.log", "2026-11-03_cycle10-screening-vet.log"]},
+  "limitations": [
+    "Acceptance means durable screening intake, not completion of an external provider search. Result-publication tests supply explicit synthetic search results to the actual owner.",
+    "New intake tests use an explicit tenant-scoped service-authority fixture. Real trusted worker identity composition and restricted intake runtime grants remain D19.21/D19.22; existing restricted decision dispatch regressions do not establish full intake grant acceptance.",
+    "The handoff tests exercise both controlled publication/acknowledgement orderings, not the entire D19.24 concurrent lock-order matrix or process-crash certification.",
+    "Workflow receipt binding remains implementation work. Scoring/outbox providers and agreed numeric workload targets remain unresolved inputs. Full runtime composition, all-provider lifecycle/crash/uncertain-commit acceptance, shared migration rehearsal and sustained load remain open.",
+    "Only generated disposable decision-cycle10 databases were used. Configured PostgreSQL services and application data were not changed or deployed."
+  ]
+}

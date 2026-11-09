@@ -7,6 +7,21 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
+func enqueueDecisionJobs(ctx context.Context, store ports.DecisionMutationStore, jobs []ports.JobRequest) error {
+	if len(jobs) == 0 {
+		return nil
+	}
+	if batch, ok := store.(ports.DecisionJobBatchEnqueuer); ok {
+		return batch.EnqueueBatch(ctx, jobs)
+	}
+	for _, job := range jobs {
+		if err := store.Enqueue(ctx, job); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // WithDecisionTransactions configures only the narrow evaluation persistence
 // path, without pretending a target implements legacy unfenced worker methods.
 // It returns a copy for composition before serving requests. No runtime selector

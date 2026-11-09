@@ -317,3 +317,21 @@ Repository compose wiring is supplied for both service APIs and workers, never
 the frontend. Deploy sender/receiver configuration together; queued failures
 require the existing owner-specific recovery process after configuration repair.
 This change does not deploy or rotate secrets, nor certify production ingress.
+
+## Staged shared-database publication contract
+
+`mysqlschema` owns independently tracked source, match, projection-view and delivery
+objects. `mysqlpublication.Store` provides version-checked Start, Fail, Retry,
+Complete, Review and Archive operations. Match changes, status/summary versions
+and projection deliveries commit atomically. Result payloads and match counts are
+bounded. Callers supply trusted local authority; network provider calls must
+finish before entering these transactions.
+
+`mysqlpublication.Projector` locks source, queue and decision projection in that
+order, reconciles through the decision-owned local sink, and retains bounded
+retry state on failure. The sink must match the same pool, database and tenant.
+This API does not replace the existing PostgreSQL review comments, whitelist,
+case-event or external-provider lifecycle. Those integrations remain separate;
+no running service backend or worker is switched by this change. See decision
+cycle 7 acceptance for stale writers, enqueue rollback, concurrent reviews,
+foreign relationships and repeated/out-of-order delivery coverage.

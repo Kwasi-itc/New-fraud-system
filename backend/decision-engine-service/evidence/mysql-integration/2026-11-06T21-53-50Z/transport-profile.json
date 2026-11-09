@@ -1,0 +1,5 @@
+{
+  "parameterInterpolation": true,
+  "provenance": "Recorded from the executed Compose command: run -e DECISION_MYSQL_TEST_INTERPOLATE=1 test sh scripts/test-mysql.sh --run-file testdata/mysql-throughput-profile-pattern.txt ./internal/store/mysql",
+  "role": "isolated native fixture owner; not the application account"
+}

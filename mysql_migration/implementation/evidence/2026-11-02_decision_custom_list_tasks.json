@@ -1,0 +1,62 @@
+{
+    "date":  "2026-11-02",
+    "scope":  "T31-T40 custom-list APIs",
+    "status":  "implemented and checked",
+    "environment":  {
+                        "go":  "1.25.8",
+                        "postgres":  "16",
+                        "fixtures":  "Disposable private Docker network and tmpfs databases; no application database setup",
+                        "mysql":  "8.4.8"
+                    },
+    "verification":  {
+                         "race":  true,
+                         "affected_package_vet":  "passed",
+                         "top_level_passed":  58,
+                         "failures":  0,
+                         "module_compile":  "passed",
+                         "skips":  0,
+                         "subtests_passed":  61
+                     },
+    "task_tests":  [
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T31_custom_list_list",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T32_custom_list_detail",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T33_custom_list_create",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T34_custom_list_update",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T35_custom_list_delete",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T36_custom_list_entry_list",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T37_custom_list_entry_create",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T38_custom_list_CSV_import",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T39_custom_list_entry_update",
+                       "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_custom_list_APIs/T40_custom_list_entry_delete"
+                   ],
+    "commands":  [
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/store/mysql -run TestMySQL(CustomList|ScreeningIgnoreWords)",
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlruntime ./internal/mysqlexecution ./internal/migrationaudit",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 ./internal/store/mysql ./internal/mysqlapi ./internal/mysqlruntime"
+                 ],
+    "evidence":  [
+                     "2026-11-02_decision-lists-store.jsonl",
+                     "2026-11-02_decision-lists-runtime.jsonl",
+                     "2026-11-02_decision-lists-compile.log",
+                     "2026-11-02_decision-lists-vet.log"
+                 ],
+    "coverage":  [
+                     "All ten actual HTTP operations with unauthenticated, foreign tenant and revoked authority checks",
+                     "Second insert-batch and parent/entry rename rollback",
+                     "CSV BOM/header/quoted values and malformed/oversized requests",
+                     "Empty import requires mutation permission",
+                     "Rename waits for import; unrelated lists progress",
+                     "Tenant isolation and evaluator visibility after rename",
+                     "256-entry scoped query-plan fixture"
+                 ],
+    "limitations":  [
+                        "PostgreSQL remains configured; MySQL is staged and opt-in",
+                        "Collections bounded without cursors; overflow returns 413",
+                        "Repeated imports are not idempotent; existing equal entries allowed",
+                        "Uncertain transaction commits are not automatically retried",
+                        "Query plan is fixture evidence, not production load acceptance",
+                        "Legacy by-name and remaining APIs, real authority/providers, full parity, release and activation remain open",
+                        "No schema migration or parent acceptance gate closed"
+                    ]
+}

@@ -1,0 +1,149 @@
+{
+  "at": "2026-11-06T12:17:45.409Z",
+  "prefix": "delivery-d1f5128f-575b-457e-9ebb-3e1eff29c8ef",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "runtimeImage": "sha256:7cf625f3e9018689b403e239290d1ec9e53c3f06f5bdb779143cd6c480a503a3",
+  "runtimeUnchanged": true,
+  "requestCount": 98,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": true
+    },
+    {
+      "name": "callback-rejection-redrive-cancellation-and-restart",
+      "passed": true
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ],
+  "workers": [
+    {
+      "check": "workflow case/link/history, event inbox, watchlist matches/projection, scoring result and outbound receipts",
+      "passed": true
+    },
+    {
+      "check": "callback failure exhaustion, generation-fenced redrive, cancellation, receiver/worker restart and unchanged evaluation results",
+      "passed": true
+    }
+  ],
+  "matrix": [
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "successVerified": true,
+      "suites": [
+        "legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation",
+        "real-case-screening-scoring-and-outbox-delivery"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel",
+      "successVerified": true,
+      "suites": [
+        "callback-rejection-redrive-cancellation-and-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry",
+      "successVerified": true,
+      "suites": [
+        "callback-rejection-redrive-cancellation-and-restart"
+      ]
+    }
+  ],
+  "verifiedOperations": 12,
+  "totalOperations": 12,
+  "profilePassed": true
+}

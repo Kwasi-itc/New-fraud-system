@@ -13,6 +13,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/velocity"
 	"github.com/google/uuid"
 )
 
@@ -35,6 +36,8 @@ type RecordWriter struct {
 	database, qualified, objectColumn, updatedColumn string
 	tenant, table                                    uuid.UUID
 	fields                                           map[string]mappedWriteField
+	version                                          uuid.UUID
+	velocity                                         *velocity.Definition
 }
 
 func NewRecordWriter(ctx context.Context, tx *sql.Tx, database string, tenant uuid.UUID, model ingestion.PublishedDataModel, objectType string, expected uuid.UUID) (*RecordWriter, error) {
@@ -62,7 +65,7 @@ func NewRecordWriter(ctx context.Context, tx *sql.Tx, database string, tenant uu
 	if err != nil {
 		return nil, err
 	}
-	w := &RecordWriter{tx: tx, database: database, qualified: schema + "." + name, tenant: tenant, table: table.ID, fields: make(map[string]mappedWriteField)}
+	w := &RecordWriter{tx: tx, database: database, qualified: schema + "." + name, tenant: tenant, table: table.ID, fields: make(map[string]mappedWriteField), version: expected}
 	used := make(map[uuid.UUID]bool)
 	for logical, field := range table.Fields {
 		physical, ok := byID[field.ID]
@@ -156,6 +159,7 @@ func (w *RecordWriter) WriteBatch(ctx context.Context, records []map[string]any,
 		return nil, err
 	}
 	results := make([]RecordWriteResult, 0, len(batch))
+	changes := velocity.NewChanges()
 	for _, p := range batch {
 		keyID, found, err := FindRecordKey(ctx, w.tx, w.database, w.tenant, w.table, p.key)
 		if err != nil {
@@ -171,6 +175,15 @@ func (w *RecordWriter) WriteBatch(ctx context.Context, records []map[string]any,
 			exists = err == nil
 		}
 		action := "updated"
+		if exists && w.velocity != nil {
+			old, err := w.velocityContribution(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			if err := changes.Add(old, -1); err != nil {
+				return nil, err
+			}
+		}
 		if exists {
 			assignments := make([]string, len(p.columns))
 			for i, column := range p.columns {
@@ -204,6 +217,20 @@ func (w *RecordWriter) WriteBatch(ctx context.Context, records []map[string]any,
 			return nil, errors.New("record key readback differs from exact lookup")
 		}
 		results = append(results, RecordWriteResult{ID: uuid.UUID(id), Action: action})
+		if w.velocity != nil {
+			current, err := w.velocityContribution(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			if err := changes.Add(current, 1); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if w.velocity != nil {
+		if err := changes.Apply(ctx, w.tx, w.database, *w.velocity); err != nil {
+			return nil, err
+		}
 	}
 	return results, nil
 }

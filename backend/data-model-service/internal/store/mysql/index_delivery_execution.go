@@ -16,10 +16,21 @@ import (
 // committed delivery lease. It does not implement a polling loop or physical DDL
 // fencing. DDL still requires the pinned execution lock and readiness protocol.
 type LeasedIndexJobExecutionStore struct {
-	delivery   *IndexDeliveryStore
-	lease      DeliveryLease
-	maxBytes   int
-	retryDelay time.Duration
+	delivery    *IndexDeliveryStore
+	lease       DeliveryLease
+	maxBytes    int
+	retryDelay  time.Duration
+	publication *publishedIndexFence
+	authorize   MutationAuthorizer
+}
+
+func (s *LeasedIndexJobExecutionStore) WithAuthorizer(authorize MutationAuthorizer) (*LeasedIndexJobExecutionStore, error) {
+	if s == nil || authorize == nil {
+		return nil, errors.New("leased execution and authorizer required")
+	}
+	copy := *s
+	copy.authorize = authorize
+	return &copy, nil
 }
 
 func NewLeasedIndexJobExecutionStore(delivery *IndexDeliveryStore, lease DeliveryLease, maxBytes int, retryDelay time.Duration) (*LeasedIndexJobExecutionStore, error) {
@@ -29,7 +40,7 @@ func NewLeasedIndexJobExecutionStore(delivery *IndexDeliveryStore, lease Deliver
 	if delivery.retryPolicy != nil && retryDelay != 0 {
 		return nil, errors.New("policy-controlled delivery requires zero fixed retry delay")
 	}
-	return &LeasedIndexJobExecutionStore{delivery, lease, maxBytes, retryDelay}, nil
+	return &LeasedIndexJobExecutionStore{delivery: delivery, lease: lease, maxBytes: maxBytes, retryDelay: retryDelay}, nil
 }
 
 func (s *LeasedIndexJobExecutionStore) checkLease(ctx context.Context, tx *sql.Tx) error {
@@ -55,6 +66,11 @@ func (s *LeasedIndexJobExecutionStore) StartAttempt(ctx context.Context, id uuid
 	}
 	var job datamodel.IndexJob
 	err := mysqlstore.Mutation(ctx, s.delivery.db, func(tx *sql.Tx) error {
+		if s.authorize != nil {
+			if err := s.authorize(ctx, tx, s.lease.TenantID); err != nil {
+				return err
+			}
+		}
 		if err := s.delivery.lockJob(ctx, tx, s.lease.TenantID, id, false); err != nil {
 			return err
 		}
@@ -115,7 +131,47 @@ func (s *LeasedIndexJobExecutionStore) CompleteAttempt(ctx context.Context, o po
 	if retry {
 		code = "index_attempt_retry"
 	}
-	return s.delivery.Finish(ctx, s.lease, retry, s.retryDelay, code, func(tx *sql.Tx) error {
+	var beforeJob func(*sql.Tx) error
+	var physical PhysicalTable
+	if s.authorize != nil {
+		beforeJob = func(tx *sql.Tx) error { return s.authorize(ctx, tx, s.lease.TenantID) }
+	}
+	if s.publication != nil && o.Change.Status == string(datamodel.IndexJobStatusApplied) {
+		beforeJob = func(tx *sql.Tx) error {
+			if s.authorize != nil {
+				if err := s.authorize(ctx, tx, s.lease.TenantID); err != nil {
+					return err
+				}
+			}
+			registry := PhysicalRegistry{metadataRepository{tx, s.delivery.schema, s.lease.TenantID, 1000, s.maxBytes}}
+			var err error
+			version := s.publication.version
+			if s.publication.managed {
+				// A later caption/presentation publication may advance the version
+				// after this job's DDL committed. Bind to the retained receipt, then
+				// lock current readiness and verify the actual complete index below.
+				var current, receipt mysqlstore.UUID
+				if err := tx.QueryRowContext(ctx, "SELECT published_version FROM "+s.delivery.schema+".data_model_physical_tables WHERE tenant_id=? AND table_id=? FOR SHARE", mysqlstore.UUID(s.lease.TenantID), mysqlstore.UUID(s.publication.table)).Scan(&current); err != nil {
+					return err
+				}
+				if err := tx.QueryRowContext(ctx, "SELECT version FROM "+s.delivery.schema+".data_model_publication_operations WHERE tenant_id=? AND table_id=? AND operation_id=?", mysqlstore.UUID(s.lease.TenantID), mysqlstore.UUID(s.publication.table), mysqlstore.UUID(s.lease.JobID)).Scan(&receipt); err != nil {
+					return err
+				}
+				if uuid.UUID(receipt) != s.publication.version {
+					return ErrPhysicalConflict
+				}
+				version = uuid.UUID(current)
+			}
+			physical, err = registry.LockPublished(ctx, s.publication.table, version)
+			return err
+		}
+	}
+	return s.delivery.finish(ctx, s.lease, retry, s.retryDelay, code, beforeJob, func(tx *sql.Tx) error {
+		if s.publication != nil && o.Change.Status == string(datamodel.IndexJobStatusApplied) {
+			if err := s.verifyPublishedIndex(ctx, tx, physical); err != nil {
+				return err
+			}
+		}
 		return completeIndexAttemptTx(ctx, tx, s.delivery.schema, o)
 	})
 }

@@ -61,7 +61,7 @@ func (h DataModelHandler) ExportDataModel(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, dto.PortableDataModelExportResponse{
-		DataModel: adaptPortableDocument(document),
+		DataModel: AdaptPortableDocument(document),
 	})
 }
 
@@ -75,7 +75,7 @@ func (h DataModelHandler) ImportDataModel(c *gin.Context) {
 		writeBadRequest(c, err.Error())
 		return
 	}
-	result, err := h.portableService.Import(c.Request.Context(), tenantID, adaptPortableDocumentRequest(request.DataModel))
+	result, err := h.portableService.Import(c.Request.Context(), tenantID, AdaptPortableDocumentRequest(request.DataModel))
 	if err != nil {
 		writeError(c, err)
 		return
@@ -617,7 +617,7 @@ func writeDeleteConflictAware(c *gin.Context, err error, report datamodel.Delete
 	writeError(c, err)
 }
 
-func adaptPortableDocument(document service.PortableDataModelDocument) dto.PortableDataModelDocument {
+func AdaptPortableDocument(document service.PortableDataModelDocument) dto.PortableDataModelDocument {
 	response := dto.PortableDataModelDocument{
 		Version:    document.Version,
 		RevisionID: document.RevisionID,
@@ -693,7 +693,7 @@ func adaptPortableDocument(document service.PortableDataModelDocument) dto.Porta
 	return response
 }
 
-func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) service.PortableDataModelDocument {
+func AdaptPortableDocumentRequest(document dto.PortableDataModelDocument) service.PortableDataModelDocument {
 	request := service.PortableDataModelDocument{
 		Version:    document.Version,
 		RevisionID: document.RevisionID,
@@ -715,6 +715,7 @@ func adaptPortableDocumentRequest(document dto.PortableDataModelDocument) servic
 			fields[j] = service.PortableField{
 				Name:        field.Name,
 				Description: field.Description,
+				Alias:       field.Alias,
 				DataType:    field.DataType,
 				Nullable:    field.Nullable,
 				IsEnum:      field.IsEnum,

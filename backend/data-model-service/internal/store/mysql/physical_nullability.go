@@ -9,15 +9,15 @@ import (
 
 // SetFieldNullable preserves the native type and existing indexes/checks. The
 // complete before/after reference must still be bound and executed under P-01.
-// Tightening is intentionally restricted to empty tables until populated-table
-// validation/backfill has a durable protocol. No default value is synthesized.
+// This original protocol restricts tightening to empty tables. The separate
+// SetFieldNullableChecked protocol validates populated columns. Neither invents defaults.
 func (p *PhysicalPlanner) SetFieldNullable(fieldID uuid.UUID, nullable bool) (PhysicalStatement, error) {
 	fields, err := p.selectFields([]uuid.UUID{fieldID})
 	if err != nil {
 		return PhysicalStatement{}, err
 	}
 	f := fields[0]
-	if f.field.IsEnum || (f.field.DataType == datamodel.DataTypeString && f.field.IsUnique) {
+	if f.field.DataType == datamodel.DataTypeString && f.field.IsUnique {
 		return PhysicalStatement{}, ErrPhysicalPlanningUnsupported
 	}
 	type componentType struct{ component, sqlType string }
@@ -49,5 +49,17 @@ func (p *PhysicalPlanner) SetFieldNullable(fieldID uuid.UUID, nullable bool) (Ph
 	statement := p.statement("field_nullability", "ALTER TABLE "+p.qualified+" "+strings.Join(clauses, ", "))
 	statement.native = PhysicalNativeChange{Kind: "field_nullability", FieldID: fieldID, Nullable: nullable}
 	statement.requireEmpty = !nullable
+	return statement, nil
+}
+
+// SetFieldEnum changes the published ingestion catalog flag. PostgreSQL also
+// uses a base-type column and ingestion membership validation. Reasserting the
+// type provides a journaled schema boundary for the new contract.
+func (p *PhysicalPlanner) SetFieldEnum(id uuid.UUID, enum, nullable bool) (PhysicalStatement, error) {
+	statement, err := p.SetFieldNullable(id, nullable)
+	if err != nil {
+		return statement, err
+	}
+	statement.native = PhysicalNativeChange{Kind: "field_enum", FieldID: id, Enum: enum, Nullable: nullable}
 	return statement, nil
 }

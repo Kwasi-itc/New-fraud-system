@@ -1,0 +1,10 @@
+﻿{
+    "Project":  "decision-accept-61db44ee543e",
+    "Started":  "2026-11-03T16:06:32.2416292Z",
+    "Status":  "passed",
+    "Cleanup":  "passed",
+    "ApplicationDatabaseTouched":  false,
+    "PassedTopLevelTests":  3,
+    "Scope":  "Real owner migration/model binding, browser edit parity, and evaluation revocation. Full effect-provider/release acceptance remains separate.",
+    "Finished":  "2026-11-03T16:10:01.9938170Z"
+}

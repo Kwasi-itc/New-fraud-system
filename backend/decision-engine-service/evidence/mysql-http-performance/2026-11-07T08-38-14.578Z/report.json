@@ -1,0 +1,875 @@
+{
+  "at": "2026-11-07T08:39:15.148Z",
+  "origin": "http://127.0.0.1:8082/",
+  "fixtureSource": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-fraud\\2026-11-06T12-12-00.522Z",
+  "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+  "scenario": "afcc21e6-8f80-4a80-99e1-0b51184aed2f",
+  "datasetSha256": "e2493697f94fc01a8eb67c20c00c71f5e111c5430ff19242fbde2840aa9b76d5",
+  "rules": 5,
+  "scope": "Completed synchronous HTTP decision including model retrieval, SQL persistence and durable outbox production; excludes asynchronous delivery completion",
+  "requestGenerator": {
+    "mode": "open-loop offered rate with a bounded in-flight cap; skips are reported, no retries",
+    "maxInflight": 64,
+    "timeoutMs": 5000,
+    "keepAlive": true
+  },
+  "targetP95Ms": 50,
+  "baselineHealthLatency": {
+    "samples": 100,
+    "minMs": 2.495,
+    "meanMs": 3.356,
+    "p50Ms": 3.282,
+    "p95Ms": 4.108,
+    "p99Ms": 4.89,
+    "maxMs": 4.988,
+    "atOrBelowTargetPercent": 100
+  },
+  "baselineModelReadLatency": {
+    "samples": 20,
+    "minMs": 21.87,
+    "meanMs": 24.498,
+    "p50Ms": 23.429,
+    "p95Ms": 29.834,
+    "p99Ms": 33.417,
+    "maxMs": 33.417,
+    "atOrBelowTargetPercent": 100
+  },
+  "warmupRequests": 36,
+  "warmupErrors": 0,
+  "before": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "f35512126a1fd5c7fc72ad2efc59ec33b8536f0c7eb4eb1b1df32b2419836d93",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:31:39.705401856Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "7afd5280f1d3fdda174e636068b566624beeeeb0900f58712b7e6ca8006b588a",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:36:17.172857851Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "6453191afd16ac43f7e1315f9ebd32b6471499e721d7d19becf47d15fab9afd4",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:36:05.757956693Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "after": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "f35512126a1fd5c7fc72ad2efc59ec33b8536f0c7eb4eb1b1df32b2419836d93",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:31:39.705401856Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "7afd5280f1d3fdda174e636068b566624beeeeb0900f58712b7e6ca8006b588a",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:36:17.172857851Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "6453191afd16ac43f7e1315f9ebd32b6471499e721d7d19becf47d15fab9afd4",
+      "image": "sha256:cf5ed84bdaf9e39f7ca7cec479560911981492e9134c62b79efb061dc312dec3",
+      "startedAt": "2026-11-07T08:36:05.757956693Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "runtimeUnchanged": true,
+  "resourceSamples": 540,
+  "phases": [
+    {
+      "name": "5rps",
+      "configuredSeconds": 20,
+      "offeredRate": 5,
+      "concurrencyLimit": 64,
+      "offered": 100,
+      "sent": 100,
+      "validated": 100,
+      "errors": 0,
+      "clientSkipped": 0,
+      "elapsedSeconds": 20.0039568,
+      "completedPerSecond": 4.999010995664618,
+      "successfulResponseLatency": {
+        "samples": 100,
+        "minMs": 50.41,
+        "meanMs": 121.597,
+        "p50Ms": 110.768,
+        "p95Ms": 184.353,
+        "p99Ms": 255.508,
+        "maxMs": 267.612,
+        "atOrBelowTargetPercent": 0
+      },
+      "firstByteLatency": {
+        "samples": 100,
+        "minMs": 50.183,
+        "meanMs": 121.224,
+        "p50Ms": 110.547,
+        "p95Ms": 183.921,
+        "p99Ms": 255.041,
+        "maxMs": 267.251,
+        "atOrBelowTargetPercent": 0
+      },
+      "schedulerDelay": {
+        "samples": 100,
+        "minMs": -1.497,
+        "meanMs": 6.962,
+        "p50Ms": 6.522,
+        "p95Ms": 13.794,
+        "p99Ms": 14.797,
+        "maxMs": 15.497,
+        "atOrBelowTargetPercent": 100
+      },
+      "targetP95Ms": 50,
+      "targetMet": false,
+      "serverStageLatencies": {
+        "direct_total": {
+          "samples": 100,
+          "minMs": 46.926,
+          "meanMs": 114.361,
+          "p50Ms": 104.881,
+          "p95Ms": 173.247,
+          "p99Ms": 244.11,
+          "maxMs": 247.439,
+          "atOrBelowTargetPercent": 1
+        },
+        "evaluation": {
+          "samples": 100,
+          "minMs": 6.393,
+          "meanMs": 15.887,
+          "p50Ms": 14.178,
+          "p95Ms": 26.171,
+          "p99Ms": 51.57,
+          "maxMs": 56.99,
+          "atOrBelowTargetPercent": 98
+        },
+        "metadata": {
+          "samples": 100,
+          "minMs": 2.889,
+          "meanMs": 7.476,
+          "p50Ms": 6.69,
+          "p95Ms": 11.89,
+          "p99Ms": 18.158,
+          "maxMs": 26.145,
+          "atOrBelowTargetPercent": 100
+        },
+        "model": {
+          "samples": 100,
+          "minMs": 12.512,
+          "meanMs": 31.643,
+          "p50Ms": 28.955,
+          "p95Ms": 49.002,
+          "p99Ms": 71.087,
+          "maxMs": 78.513,
+          "atOrBelowTargetPercent": 96
+        },
+        "object_preparation": {
+          "samples": 100,
+          "minMs": 0.106,
+          "meanMs": 0.369,
+          "p50Ms": 0.292,
+          "p95Ms": 0.499,
+          "p99Ms": 3.02,
+          "maxMs": 4.324,
+          "atOrBelowTargetPercent": 100
+        },
+        "persistence": {
+          "samples": 100,
+          "minMs": 21.875,
+          "meanMs": 50.666,
+          "p50Ms": 46.146,
+          "p95Ms": 77.925,
+          "p99Ms": 134.075,
+          "maxMs": 147.098,
+          "atOrBelowTargetPercent": 64
+        },
+        "prepare_decision_build": {
+          "samples": 100,
+          "minMs": 0.004,
+          "meanMs": 0.014,
+          "p50Ms": 0.012,
+          "p95Ms": 0.02,
+          "p99Ms": 0.069,
+          "maxMs": 0.152,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_iteration_get": {
+          "samples": 100,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.003,
+          "maxMs": 0.004,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_routing_read": {
+          "samples": 100,
+          "minMs": 2.978,
+          "meanMs": 8.702,
+          "p50Ms": 7.92,
+          "p95Ms": 14.356,
+          "p99Ms": 19.816,
+          "maxMs": 51.236,
+          "atOrBelowTargetPercent": 99
+        },
+        "prepare_rules_eval": {
+          "samples": 100,
+          "minMs": 0.317,
+          "meanMs": 0.966,
+          "p50Ms": 0.904,
+          "p95Ms": 1.801,
+          "p99Ms": 2.717,
+          "maxMs": 2.732,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_rules_list": {
+          "samples": 100,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.003,
+          "maxMs": 0.005,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scenario_get": {
+          "samples": 100,
+          "minMs": 0.001,
+          "meanMs": 0.005,
+          "p50Ms": 0.004,
+          "p95Ms": 0.009,
+          "p99Ms": 0.017,
+          "maxMs": 0.054,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scoring_build": {
+          "samples": 100,
+          "minMs": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0.001,
+          "p99Ms": 0.001,
+          "maxMs": 0.002,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_screening_build": {
+          "samples": 100,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.002,
+          "maxMs": 0.042,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_snoozes_list": {
+          "samples": 100,
+          "minMs": 2.186,
+          "meanMs": 4.922,
+          "p50Ms": 4.021,
+          "p95Ms": 9.195,
+          "p99Ms": 12.481,
+          "maxMs": 42.66,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_trigger_eval": {
+          "samples": 100,
+          "minMs": 0.095,
+          "meanMs": 0.333,
+          "p50Ms": 0.268,
+          "p95Ms": 0.472,
+          "p99Ms": 0.665,
+          "maxMs": 5.531,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_workflow_build": {
+          "samples": 100,
+          "minMs": 0.001,
+          "meanMs": 0.004,
+          "p50Ms": 0.004,
+          "p95Ms": 0.006,
+          "p99Ms": 0.013,
+          "maxMs": 0.013,
+          "atOrBelowTargetPercent": 100
+        },
+        "registry_validation": {
+          "samples": 100,
+          "minMs": 3.131,
+          "meanMs": 8.291,
+          "p50Ms": 6.439,
+          "p95Ms": 14.486,
+          "p99Ms": 47.836,
+          "maxMs": 49.417,
+          "atOrBelowTargetPercent": 100
+        },
+        "scope": {
+          "samples": 100,
+          "minMs": 0.062,
+          "meanMs": 0.168,
+          "p50Ms": 0.127,
+          "p95Ms": 0.367,
+          "p99Ms": 0.924,
+          "maxMs": 1.021,
+          "atOrBelowTargetPercent": 100
+        },
+        "tenant_auth": {
+          "samples": 100,
+          "minMs": 0.548,
+          "meanMs": 1.26,
+          "p50Ms": 1.112,
+          "p95Ms": 1.651,
+          "p99Ms": 6.429,
+          "maxMs": 6.772,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_begin": {
+          "samples": 100,
+          "minMs": 0.548,
+          "meanMs": 1.313,
+          "p50Ms": 1.187,
+          "p95Ms": 2.287,
+          "p99Ms": 2.781,
+          "maxMs": 6.969,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_body": {
+          "samples": 100,
+          "minMs": 14.175,
+          "meanMs": 37.948,
+          "p50Ms": 33.669,
+          "p95Ms": 61.357,
+          "p99Ms": 91.122,
+          "maxMs": 133.983,
+          "atOrBelowTargetPercent": 87
+        },
+        "tx_body_total": {
+          "samples": 100,
+          "minMs": 10.4,
+          "meanMs": 28.747,
+          "p50Ms": 25.479,
+          "p95Ms": 50.279,
+          "p99Ms": 74.735,
+          "maxMs": 107.367,
+          "atOrBelowTargetPercent": 94
+        },
+        "tx_commit": {
+          "samples": 100,
+          "minMs": 5.862,
+          "meanMs": 11.053,
+          "p50Ms": 9.373,
+          "p95Ms": 22.433,
+          "p99Ms": 32.167,
+          "maxMs": 41.244,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_decision_insert": {
+          "samples": 100,
+          "minMs": 1.536,
+          "meanMs": 4.439,
+          "p50Ms": 3.692,
+          "p95Ms": 8.585,
+          "p99Ms": 14.01,
+          "maxMs": 27.939,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_outbox_build": {
+          "samples": 100,
+          "minMs": 0.027,
+          "meanMs": 0.063,
+          "p50Ms": 0.056,
+          "p95Ms": 0.109,
+          "p99Ms": 0.244,
+          "maxMs": 0.296,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_outbox_insert": {
+          "samples": 100,
+          "minMs": 3.455,
+          "meanMs": 10.799,
+          "p50Ms": 9.445,
+          "p95Ms": 20.031,
+          "p99Ms": 28.119,
+          "maxMs": 40.653,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_rule_exec_insert": {
+          "samples": 100,
+          "minMs": 4.3,
+          "meanMs": 13.372,
+          "p50Ms": 11.707,
+          "p95Ms": 21.826,
+          "p99Ms": 50.067,
+          "maxMs": 75.238,
+          "atOrBelowTargetPercent": 98
+        },
+        "tx_scoring_insert": {
+          "samples": 100,
+          "minMs": 0.004,
+          "meanMs": 0.018,
+          "p50Ms": 0.01,
+          "p95Ms": 0.021,
+          "p99Ms": 0.073,
+          "maxMs": 0.674,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_screening_insert": {
+          "samples": 100,
+          "minMs": 0.007,
+          "meanMs": 0.02,
+          "p50Ms": 0.017,
+          "p95Ms": 0.033,
+          "p99Ms": 0.059,
+          "maxMs": 0.152,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_workflow_insert": {
+          "samples": 100,
+          "minMs": 0.009,
+          "meanMs": 0.029,
+          "p50Ms": 0.025,
+          "p95Ms": 0.051,
+          "p99Ms": 0.124,
+          "maxMs": 0.171,
+          "atOrBelowTargetPercent": 100
+        }
+      },
+      "profileTimings": true
+    },
+    {
+      "name": "25rps",
+      "configuredSeconds": 20,
+      "offeredRate": 25,
+      "concurrencyLimit": 64,
+      "offered": 500,
+      "sent": 419,
+      "validated": 401,
+      "errors": 18,
+      "clientSkipped": 81,
+      "elapsedSeconds": 21.770559199999997,
+      "completedPerSecond": 18.419370688466287,
+      "successfulResponseLatency": {
+        "samples": 401,
+        "minMs": 323.352,
+        "meanMs": 2739.826,
+        "p50Ms": 2678.419,
+        "p95Ms": 4267.147,
+        "p99Ms": 4783.446,
+        "maxMs": 4927.553,
+        "atOrBelowTargetPercent": 0
+      },
+      "firstByteLatency": {
+        "samples": 401,
+        "minMs": 322.82,
+        "meanMs": 2739.245,
+        "p50Ms": 2678.091,
+        "p95Ms": 4266.685,
+        "p99Ms": 4782.753,
+        "maxMs": 4927.146,
+        "atOrBelowTargetPercent": 0
+      },
+      "schedulerDelay": {
+        "samples": 419,
+        "minMs": -1.555,
+        "meanMs": 7.247,
+        "p50Ms": 6.585,
+        "p95Ms": 15.855,
+        "p99Ms": 21.562,
+        "maxMs": 25.982,
+        "atOrBelowTargetPercent": 100
+      },
+      "targetP95Ms": 50,
+      "targetMet": false,
+      "serverStageLatencies": {
+        "direct_total": {
+          "samples": 401,
+          "minMs": 301.15,
+          "meanMs": 2349.121,
+          "p50Ms": 2274.901,
+          "p95Ms": 3984.962,
+          "p99Ms": 4616.676,
+          "maxMs": 4821.456,
+          "atOrBelowTargetPercent": 0
+        },
+        "evaluation": {
+          "samples": 401,
+          "minMs": 23.176,
+          "meanMs": 787.151,
+          "p50Ms": 627.29,
+          "p95Ms": 1993.299,
+          "p99Ms": 2502.908,
+          "maxMs": 3090.2,
+          "atOrBelowTargetPercent": 0.748
+        },
+        "metadata": {
+          "samples": 401,
+          "minMs": 7.941,
+          "meanMs": 376.209,
+          "p50Ms": 214.615,
+          "p95Ms": 1192.008,
+          "p99Ms": 1896.251,
+          "maxMs": 2501.767,
+          "atOrBelowTargetPercent": 8.229
+        },
+        "model": {
+          "samples": 401,
+          "minMs": 14.594,
+          "meanMs": 154.554,
+          "p50Ms": 105.786,
+          "p95Ms": 373.143,
+          "p99Ms": 1000.829,
+          "maxMs": 1603.153,
+          "atOrBelowTargetPercent": 9.476
+        },
+        "object_preparation": {
+          "samples": 401,
+          "minMs": 0.126,
+          "meanMs": 0.393,
+          "p50Ms": 0.292,
+          "p95Ms": 0.919,
+          "p99Ms": 2.922,
+          "maxMs": 4.715,
+          "atOrBelowTargetPercent": 100
+        },
+        "persistence": {
+          "samples": 401,
+          "minMs": 96.984,
+          "meanMs": 642.663,
+          "p50Ms": 512.971,
+          "p95Ms": 1569.845,
+          "p99Ms": 2001.374,
+          "maxMs": 2885.152,
+          "atOrBelowTargetPercent": 0
+        },
+        "prepare_decision_build": {
+          "samples": 401,
+          "minMs": 0.005,
+          "meanMs": 0.015,
+          "p50Ms": 0.011,
+          "p95Ms": 0.021,
+          "p99Ms": 0.091,
+          "maxMs": 0.321,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_iteration_get": {
+          "samples": 401,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.003,
+          "maxMs": 0.041,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_routing_read": {
+          "samples": 401,
+          "minMs": 9.145,
+          "meanMs": 352.361,
+          "p50Ms": 209.691,
+          "p95Ms": 1118.086,
+          "p99Ms": 1679.651,
+          "maxMs": 2485.546,
+          "atOrBelowTargetPercent": 8.728
+        },
+        "prepare_rules_eval": {
+          "samples": 401,
+          "minMs": 0.331,
+          "meanMs": 1.588,
+          "p50Ms": 1.178,
+          "p95Ms": 4.135,
+          "p99Ms": 7.367,
+          "maxMs": 9.6,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_rules_list": {
+          "samples": 401,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.003,
+          "maxMs": 0.051,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scenario_get": {
+          "samples": 401,
+          "minMs": 0.002,
+          "meanMs": 0.008,
+          "p50Ms": 0.005,
+          "p95Ms": 0.01,
+          "p99Ms": 0.066,
+          "maxMs": 0.225,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_scoring_build": {
+          "samples": 401,
+          "minMs": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0.001,
+          "p99Ms": 0.001,
+          "maxMs": 0.002,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_screening_build": {
+          "samples": 401,
+          "minMs": 0,
+          "meanMs": 0.001,
+          "p50Ms": 0.001,
+          "p95Ms": 0.002,
+          "p99Ms": 0.002,
+          "maxMs": 0.005,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_snoozes_list": {
+          "samples": 401,
+          "minMs": 2.954,
+          "meanMs": 431.332,
+          "p50Ms": 287.92,
+          "p95Ms": 1381.273,
+          "p99Ms": 2086.11,
+          "maxMs": 2476.685,
+          "atOrBelowTargetPercent": 9.476
+        },
+        "prepare_trigger_eval": {
+          "samples": 401,
+          "minMs": 0.087,
+          "meanMs": 0.362,
+          "p50Ms": 0.276,
+          "p95Ms": 0.752,
+          "p99Ms": 1.852,
+          "maxMs": 6.007,
+          "atOrBelowTargetPercent": 100
+        },
+        "prepare_workflow_build": {
+          "samples": 401,
+          "minMs": 0.001,
+          "meanMs": 0.004,
+          "p50Ms": 0.003,
+          "p95Ms": 0.005,
+          "p99Ms": 0.035,
+          "maxMs": 0.058,
+          "atOrBelowTargetPercent": 100
+        },
+        "registry_validation": {
+          "samples": 401,
+          "minMs": 5.807,
+          "meanMs": 388.12,
+          "p50Ms": 291.837,
+          "p95Ms": 1116.04,
+          "p99Ms": 1705.897,
+          "maxMs": 2500.743,
+          "atOrBelowTargetPercent": 7.481
+        },
+        "scope": {
+          "samples": 401,
+          "minMs": 0.056,
+          "meanMs": 0.175,
+          "p50Ms": 0.121,
+          "p95Ms": 0.411,
+          "p99Ms": 0.978,
+          "maxMs": 3.178,
+          "atOrBelowTargetPercent": 100
+        },
+        "tenant_auth": {
+          "samples": 401,
+          "minMs": 0.744,
+          "meanMs": 380.392,
+          "p50Ms": 255.225,
+          "p95Ms": 1165.573,
+          "p99Ms": 1837.119,
+          "maxMs": 2755.748,
+          "atOrBelowTargetPercent": 14.963
+        },
+        "tx_begin": {
+          "samples": 401,
+          "minMs": 1.329,
+          "meanMs": 376.719,
+          "p50Ms": 211.514,
+          "p95Ms": 1221.901,
+          "p99Ms": 1721.158,
+          "maxMs": 2603.34,
+          "atOrBelowTargetPercent": 17.456
+        },
+        "tx_body": {
+          "samples": 401,
+          "minMs": 20.192,
+          "meanMs": 203.881,
+          "p50Ms": 185.465,
+          "p95Ms": 465.493,
+          "p99Ms": 628.386,
+          "maxMs": 795.302,
+          "atOrBelowTargetPercent": 5.237
+        },
+        "tx_body_total": {
+          "samples": 401,
+          "minMs": 15.965,
+          "meanMs": 167.857,
+          "p50Ms": 115.021,
+          "p95Ms": 392.873,
+          "p99Ms": 532.085,
+          "maxMs": 690.41,
+          "atOrBelowTargetPercent": 9.975
+        },
+        "tx_commit": {
+          "samples": 401,
+          "minMs": 7.903,
+          "meanMs": 61.45,
+          "p50Ms": 67.198,
+          "p95Ms": 157.521,
+          "p99Ms": 190.012,
+          "maxMs": 280.429,
+          "atOrBelowTargetPercent": 48.13
+        },
+        "tx_decision_insert": {
+          "samples": 401,
+          "minMs": 1.537,
+          "meanMs": 29.828,
+          "p50Ms": 8.062,
+          "p95Ms": 95.294,
+          "p99Ms": 186.471,
+          "maxMs": 289.504,
+          "atOrBelowTargetPercent": 73.067
+        },
+        "tx_outbox_build": {
+          "samples": 401,
+          "minMs": 0.022,
+          "meanMs": 0.053,
+          "p50Ms": 0.046,
+          "p95Ms": 0.1,
+          "p99Ms": 0.154,
+          "maxMs": 0.402,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_outbox_insert": {
+          "samples": 401,
+          "minMs": 4.919,
+          "meanMs": 65.47,
+          "p50Ms": 75.612,
+          "p95Ms": 181.081,
+          "p99Ms": 221.606,
+          "maxMs": 400.628,
+          "atOrBelowTargetPercent": 39.651
+        },
+        "tx_rule_exec_insert": {
+          "samples": 401,
+          "minMs": 4.468,
+          "meanMs": 72.418,
+          "p50Ms": 69.995,
+          "p95Ms": 204.84,
+          "p99Ms": 303.217,
+          "maxMs": 491.407,
+          "atOrBelowTargetPercent": 47.382
+        },
+        "tx_scoring_insert": {
+          "samples": 401,
+          "minMs": 0.004,
+          "meanMs": 0.028,
+          "p50Ms": 0.01,
+          "p95Ms": 0.025,
+          "p99Ms": 0.13,
+          "maxMs": 5.272,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_screening_insert": {
+          "samples": 401,
+          "minMs": 0.007,
+          "meanMs": 0.023,
+          "p50Ms": 0.017,
+          "p95Ms": 0.034,
+          "p99Ms": 0.069,
+          "maxMs": 1.028,
+          "atOrBelowTargetPercent": 100
+        },
+        "tx_workflow_insert": {
+          "samples": 401,
+          "minMs": 0.009,
+          "meanMs": 0.03,
+          "p50Ms": 0.02,
+          "p95Ms": 0.069,
+          "p99Ms": 0.246,
+          "maxMs": 0.772,
+          "atOrBelowTargetPercent": 100
+        }
+      },
+      "profileTimings": true
+    }
+  ],
+  "valid": true,
+  "measurementValid": true,
+  "offeredLoadMet": false,
+  "targetMet": false
+}

@@ -1058,6 +1058,55 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/tenants/{tenantId}/index-jobs/scoped:
+    get:
+      tags: [index-jobs]
+      operationId: listScopedIndexJobs
+      summary: List a bounded complete set of jobs for specified tables
+      description: Returns an error on overflow; never returns a truncated set as complete. PostgreSQL projections are capped at 64 KiB per job and 8 MiB in total.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: table_id
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 100
+            uniqueItems: true
+            items:
+              type: string
+              format: uuid
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Complete scoped index job set
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [index_jobs]
+                properties:
+                  index_jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IndexJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: Provider failure or result/projection budget exceeded
   /v1/index-jobs/{jobId}:
     get:
       tags: [index-jobs]
@@ -1144,6 +1193,14 @@ paths:
       description: Compares metadata state against physical tenant schemas, reports drift, and schedules repair index jobs when managed secondary indexes are missing.
       security:
         - bearerAuth: []
+      parameters:
+        - name: tenant_id
+          in: query
+          required: false
+          description: Optional tenant UUID filter in the local MySQL runtime; omit for the bounded global report.
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Reconciliation report
@@ -1959,6 +2016,10 @@ components:
         id:
           type: string
           format: uuid
+        published_version:
+          type: string
+          format: uuid
+          description: Optional table-scoped owner publication token. Only publication-aware readers emit it for open, inactive gates; consumers must recheck the registry before data access.
         name:
           type: string
         description:

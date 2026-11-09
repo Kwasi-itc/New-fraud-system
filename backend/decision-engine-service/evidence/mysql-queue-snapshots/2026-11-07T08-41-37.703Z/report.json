@@ -1,0 +1,55 @@
+{
+  "at": "2026-11-07T08:41:37.703Z",
+  "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+  "scope": "Point-in-time bounded transport counts; capped results are lower bounds, running includes retained expired leases",
+  "queues": [
+    {
+      "kind": "outbox_event",
+      "state": "available",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "outbox_event",
+      "state": "running",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "workflow_execution",
+      "state": "available",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "workflow_execution",
+      "state": "running",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "screening_execution",
+      "state": "available",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "screening_execution",
+      "state": "running",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "scoring_request",
+      "state": "available",
+      "capped": false,
+      "countUpTo500": 0
+    },
+    {
+      "kind": "scoring_request",
+      "state": "running",
+      "capped": false,
+      "countUpTo500": 0
+    }
+  ]
+}

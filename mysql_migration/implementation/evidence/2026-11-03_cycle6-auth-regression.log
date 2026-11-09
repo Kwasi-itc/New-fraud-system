@@ -1,0 +1,9 @@
+go: downloading github.com/jackc/pgx/v5 v5.7.6
+go: downloading github.com/coreos/go-oidc/v3 v3.16.0
+go: downloading golang.org/x/oauth2 v0.28.0
+go: downloading github.com/go-jose/go-jose/v4 v4.1.3
+go: downloading golang.org/x/text v0.24.0
+go: downloading golang.org/x/sync v0.13.0
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform	0.114s
+?   	github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity	[no test files]

@@ -254,6 +254,9 @@ func (r TenantDataReader) ResolveExecutionModel(ctx context.Context) (ports.Tena
 	if r.configuration == nil || r.models == nil {
 		return ports.TenantModel{}, ErrPublishedModelUnavailable
 	}
+	if fresh, ok := r.models.(ports.FreshTenantModelReader); ok {
+		return fresh.GetFreshTenantModel(ctx, r.configuration.tenant.String())
+	}
 	return r.models.GetTenantModel(ctx, r.configuration.tenant.String())
 }
 

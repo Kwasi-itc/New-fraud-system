@@ -74,9 +74,9 @@ func (r DeferredIngestRepository) MetricsSnapshot(ctx context.Context, now time.
 			COUNT(*) FILTER (WHERE status = 'queued' AND attempt_count > 0) AS retry_pending_count,
 			COUNT(*) FILTER (WHERE attempt_count > 1) AS retried_execution_count,
 			MIN(requested_at) FILTER (WHERE status = 'queued') AS oldest_queued_requested_at,
-			COUNT(*) FILTER (WHERE status = 'completed' AND completed_at >= $1 - INTERVAL '5 minutes') AS recent_success_count,
-			COUNT(*) FILTER (WHERE status = 'failed' AND completed_at >= $1 - INTERVAL '5 minutes') AS recent_failure_count,
-			COUNT(*) FILTER (WHERE attempt_count > 1 AND started_at >= $1 - INTERVAL '5 minutes') AS recent_retry_count
+			COUNT(*) FILTER (WHERE status = 'completed' AND completed_at >= $1::timestamptz - INTERVAL '5 minutes') AS recent_success_count,
+			COUNT(*) FILTER (WHERE status = 'failed' AND completed_at >= $1::timestamptz - INTERVAL '5 minutes') AS recent_failure_count,
+			COUNT(*) FILTER (WHERE attempt_count > 1 AND started_at >= $1::timestamptz - INTERVAL '5 minutes') AS recent_retry_count
 		FROM core_ingestion.deferred_ingests
 	`, now).Scan(
 		&metrics.QueuedCount,

@@ -1,6 +1,10 @@
 module github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service
 
-go 1.24.2
+go 1.25.0
+
+require github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore => ../mysqlstore
 
 require (
 	github.com/gin-gonic/gin v1.10.1
@@ -15,6 +19,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
@@ -25,6 +30,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

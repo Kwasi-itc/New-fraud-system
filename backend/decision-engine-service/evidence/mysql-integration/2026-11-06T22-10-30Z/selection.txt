@@ -1,0 +1,1 @@
+go test -mod=readonly -race -p 1 -count=1 -timeout=45m -json -run . ./internal/service ./internal/runtime/ast_eval ./internal/mysqlexecution ./internal/mysqlruntime ./internal/migrationaudit

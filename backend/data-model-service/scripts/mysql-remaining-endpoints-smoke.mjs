@@ -1,0 +1,74 @@
+﻿import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+const origin=process.env.DATA_MODEL_LOCAL_ORIGIN??'http://localhost:8080';
+async function call(method,path,body,status=200,key=randomUUID()){
+ const r=await fetch(origin+path,{method,headers:{'Content-Type':'application/json','Idempotency-Key':key},body:body===undefined?undefined:JSON.stringify(body)});
+ const raw=await r.text();assert.equal(r.status,status,`${method} ${path}: ${raw}`);return raw?JSON.parse(raw):null;
+}
+function sql(query){const r=spawnSync('docker',['exec','-i','fraud-mysql-dev-mysql-1','sh','-c','MYSQL_PWD="$(cat /run/secrets/mysql_root_password)" exec mysql --protocol=socket -uroot --database=fraud --batch --skip-column-names'],{input:query,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim()}
+const hex=id=>{assert.match(id,/^[a-f0-9-]{36}$/);return `UNHEX('${id.replaceAll('-','')}')`};
+const tenant=(await call('POST','/v1/tenants',{name:'Remaining endpoints acceptance',external_key:'remaining-'+randomUUID()},201)).tenant.id;
+console.log(JSON.stringify({fixture:tenant}));
+await call('POST',`/v1/tenants/${tenant}/provision`);
+const createTable=async name=>(await call('POST',`/v1/tenants/${tenant}/tables`,{name},201)).table;
+const parent=await createTable('parents'),child=await createTable('children');
+const fields=async id=>(await call('GET',`/v1/tables/${id}/fields`)).fields;
+const parentID=(await fields(parent.id)).find(f=>f.name==='object_id').id;
+const childOrder=(await fields(child.id)).find(f=>f.name==='updated_at').id;
+const reference=(await call('POST',`/v1/tables/${child.id}/fields`,{name:'reference',data_type:'string',nullable:true},201)).field.id;
+const links=`/v1/tenants/${tenant}/links`,pivots=`/v1/tenants/${tenant}/pivots`;
+const linkBody={name:'parent_child',parent_table_id:parent.id,parent_field_id:parentID,child_table_id:child.id,child_field_id:reference};
+const key=randomUUID();
+const [link,duplicate]=await Promise.all([call('POST',links,linkBody,201,key),call('POST',links,linkBody,201,key)]);
+assert.deepEqual(duplicate,link);assert.equal((await call('GET',links)).links.length,1);
+await call('POST',links,{...linkBody,name:'different'},409,key);
+await call('POST',links,{...linkBody,name:'invalid',parent_field_id:childOrder},400);
+const pivot=(await call('POST',pivots,{base_table_id:child.id,path_link_ids:[link.link.id]},201)).pivot;
+await call('DELETE',`/v1/links/${link.link.id}`,undefined,409);
+assert.equal((await call('DELETE',`/v1/pivots/${pivot.id}?dry_run=true`)).performed,false);
+const deleteKey=randomUUID();await call('DELETE',`/v1/pivots/${pivot.id}`,undefined,200,deleteKey);await call('DELETE',`/v1/pivots/${pivot.id}`,undefined,200,deleteKey);
+await call('POST',pivots,{base_table_id:parent.id,path_link_ids:[link.link.id]},400);
+const options=`/v1/tables/${parent.id}/options`,optionKey=randomUUID(),optionBody={displayed_fields:[parentID],field_order:[parentID]};
+const saved=await call('PUT',options,optionBody,200,optionKey);assert.equal(saved.displayed_field_details[0].id,parentID);
+await call('PUT',options,{displayed_fields:[reference]},400);
+assert.deepEqual((await call('GET',options)).displayed_fields,[parentID]);
+assert.deepEqual(await call('PUT',options,optionBody,200,optionKey),saved);
+const navRoute=`/v1/tables/${parent.id}/navigation-options`,navBody={source_field_id:parentID,target_table_id:child.id,filter_field_id:reference,ordering_field_id:childOrder};
+await call('POST',navRoute,{...navBody,ordering_field_id:reference},400);
+assert.equal((await call('GET',navRoute)).navigation_options.length,0);
+const navKey=randomUUID();const nav=await call('POST',navRoute,navBody,201,navKey);assert.deepEqual(await call('POST',navRoute,navBody,201,navKey),nav);
+await call('DELETE',`/v1/links/${link.link.id}`,undefined,409);
+const jobs=`/v1/tenants/${tenant}/index-jobs`;
+const jobBody={table_id:child.id,index_type:'search',columns:['reference']};
+await call('POST',jobs,{...jobBody,columns:['missing_field']},400);
+const [job,job2]=await Promise.all([call('POST',jobs,jobBody,201),call('POST',jobs,jobBody,201)]);assert.equal(job.index_job.id,job2.index_job.id);
+const scoped=(await call('GET',jobs+`/scoped?table_id=${child.id}&limit=10`)).index_jobs;assert(scoped.some(j=>j.id===job.index_job.id));assert(scoped.every(j=>j.table_id===child.id));
+await call('GET',jobs+'/scoped?limit=10',undefined,400);
+await call('POST',`/v1/index-jobs/${job.index_job.id}/retry`,undefined,409);
+// Simulate a terminal delivery only for the new test job, then verify atomic retry.
+sql(`UPDATE fraud.data_model_index_jobs SET status='failed',error_message='acceptance fixture',completed_at=UTC_TIMESTAMP(6) WHERE id=${hex(job.index_job.id)} AND tenant_id=${hex(tenant)}; UPDATE fraud.data_model_index_deliveries SET state='completed',finalized_at=UTC_TIMESTAMP(6),retain_until=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 1 DAY) WHERE job_id=${hex(job.index_job.id)} AND tenant_id=${hex(tenant)};`);
+assert.equal((await call('POST',`/v1/index-jobs/${job.index_job.id}/retry`)).index_job.status,'pending');
+assert.equal(sql(`SELECT COUNT(*) FROM fraud.data_model_index_delivery_reservations WHERE tenant_id=${hex(tenant)} AND job_id=${hex(job.index_job.id)};`),'1');
+await call('POST',`/v1/index-jobs/${job.index_job.id}/retry`,undefined,409);
+const reconcilePath=`/v1/admin/reconcile?tenant_id=${tenant}`;
+const first=(await call('GET',reconcilePath)).report;assert.equal(first.tenants.length,1);assert.equal(first.healthy,false);assert(first.tenants[0].table_reports.some(t=>t.missing_managed_indexes.length>0));assert(first.repair_jobs_scheduled>0);
+const second=(await call('GET',reconcilePath)).report;assert.equal(second.repair_jobs_scheduled,0);
+const repair=first.tenants[0].table_reports.flatMap(t=>t.repair_job_ids)[0];assert(repair);
+sql(`UPDATE fraud.data_model_index_jobs SET status='applied',completed_at=UTC_TIMESTAMP(6) WHERE id=${hex(repair)} AND tenant_id=${hex(tenant)}; UPDATE fraud.data_model_index_deliveries SET state='completed',finalized_at=UTC_TIMESTAMP(6),retain_until=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 1 DAY) WHERE job_id=${hex(repair)} AND tenant_id=${hex(tenant)};`);
+assert.equal((await call('GET',reconcilePath)).report.repair_jobs_scheduled,1);
+assert.equal((await call('GET',reconcilePath)).report.repair_jobs_scheduled,0);
+assert.equal(sql(`SELECT COUNT(*) FROM fraud.data_model_index_delivery_reservations WHERE tenant_id=${hex(tenant)} AND job_id=${hex(repair)};`),'1');
+const physical=sql(`SELECT physical_name FROM fraud.data_model_physical_tables WHERE table_id=${hex(parent.id)};`);assert.match(physical,/^[a-z0-9_]+$/);
+sql(`ALTER TABLE fraud.${physical} ADD COLUMN acceptance_drift INT NULL;`);
+try{const report=(await call('GET',reconcilePath)).report;assert(report.tenants[0].table_reports.find(t=>t.table_name==='parents').unexpected_columns.includes('acceptance_drift'));}finally{sql(`ALTER TABLE fraud.${physical} DROP COLUMN acceptance_drift;`)}
+const navDelete=randomUUID();await call('DELETE',`/v1/navigation-options/${nav.navigation_option.id}`,undefined,204,navDelete);await call('DELETE',`/v1/navigation-options/${nav.navigation_option.id}`,undefined,204,navDelete);
+assert.equal((await call('DELETE',`/v1/links/${link.link.id}?dry_run=true`)).performed,false);
+const linkDelete=randomUUID();const deletes=await Promise.all([call('DELETE',`/v1/links/${link.link.id}`,undefined,200,linkDelete),call('DELETE',`/v1/links/${link.link.id}`,undefined,200,linkDelete)]);assert.deepEqual(deletes[0],deletes[1]);await call('DELETE',`/v1/links/${link.link.id}`,undefined,200,linkDelete);
+assert.equal((await call('GET',links)).links.length,0);
+// A foreign path is rejected by scoped repositories rather than exposed.
+const foreign=(await call('POST','/v1/tenants',{name:'Foreign acceptance',external_key:'foreign-'+randomUUID()},201)).tenant.id;await call('POST',`/v1/tenants/${foreign}/provision`);
+await call('POST',`/v1/tenants/${foreign}/links`,linkBody,404);
+await call('POST',`/v1/tenants/${foreign}/index-jobs`,jobBody,404);
+await call('GET','/v1/admin/reconcile?tenant_id=bad',undefined,400);
+console.log(JSON.stringify({passed:true,tenant,foreign,parent:parent.id,child:child.id,checks:'all 11 routes; concurrent create replay; rollback; dependencies; scoped jobs; failed delivery retry; physical drift; repair dedupe; tenant isolation'}));

@@ -38,7 +38,7 @@ func TestAggregatePublicationWalletCompilerParity(t *testing.T) {
 		t.Fatal(queries, err)
 	}
 	sql, args, err := table.compileAggregate(queries[0], 1<<20)
-	if err != nil || !strings.Contains(sql, "COUNT(") || !strings.Contains(sql, "<>") || len(args) != 2 {
+	if err != nil || !strings.Contains(sql, "COUNT(") || !strings.Contains(sql, "<>") || !strings.Contains(sql, "`wallet_number_hash`=? COLLATE utf8mb4_0900_bin AND CAST(`wallet_number_hash` AS BINARY)=CAST(? AS BINARY)") || len(args) != 3 {
 		t.Fatal(sql, args, err)
 	}
 	// Invalid runtime values still fail actual compilation; static witnesses

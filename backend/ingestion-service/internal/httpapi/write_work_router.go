@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/service"
 	"github.com/gin-gonic/gin"
@@ -13,14 +14,20 @@ import (
 	"time"
 )
 
-// NewWriteWorkRouter composes isolated write/work and bounded read capabilities.
-// Administrative routes and production activation remain separate.
-func NewWriteWorkRouter(logger *slog.Logger, cfg RouterConfig, writer handlers.IngestWriter, reader handlers.IngestReader, uploads handlers.UploadService, deferred handlers.DeferredService, bodyBytes int, bind func(context.Context, string) context.Context, ready func(context.Context) error) (*gin.Engine, error) {
+// DeferredWorkService includes the bounded metrics contract alongside work.
+type DeferredWorkService interface {
+	handlers.DeferredService
+	MetricsSnapshot(context.Context) (ingestion.DeferredIngestMetrics, error)
+}
+
+// NewWriteWorkRouter composes write/work, bounded reads and configured-scope metrics.
+func NewWriteWorkRouter(logger *slog.Logger, cfg RouterConfig, writer handlers.IngestWriter, reader handlers.IngestReader, uploads handlers.UploadService, deferred DeferredWorkService, bodyBytes int, bind func(context.Context, string) context.Context, ready func(context.Context) error) (*gin.Engine, error) {
 	if cfg.AuthMode != "token" || cfg.AuthToken == "" || cfg.WritePathConcurrencyLimit < 1 || writer == nil || reader == nil || uploads == nil || deferred == nil || bind == nil || ready == nil || bodyBytes < 1 || bodyBytes > 1<<20 {
 		return nil, errors.New("complete authenticated bounded write/work capabilities required")
 	}
 	r := gin.New()
 	r.Use(requestContextMiddleware(logger), gin.Recovery(), corsMiddleware(cfg.AllowedOrigins))
+	registerDocsRoutes(r)
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
 	r.GET("/readyz", func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
@@ -63,6 +70,11 @@ func NewWriteWorkRouter(logger *slog.Logger, cfg RouterConfig, writer handlers.I
 	h := handlers.NewIngestHandler(service.IngestService{}, handlers.IngestHandlerConfig{WriteBackend: writer, ReadBackend: reader, ReadQueryConcurrencyLimit: 4, AggregateQueryConcurrencyLimit: 2, AggregateQueryTimeout: 5 * time.Second, WritePathLimiter: limiter, WritePathOverloadMode: cfg.WritePathOverloadMode, DeferredIngestService: deferred})
 	u := handlers.NewUploadLogHandler(uploads, handlers.UploadLogHandlerConfig{WritePathLimiter: limiter})
 	d := handlers.NewDeferredIngestHandler(deferred)
+	m := handlers.NewDeferredIngestMetricsHandler(func(c *gin.Context) (any, error) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
+		return deferred.MetricsSnapshot(ctx)
+	})
 	v.GET("/tenants/:tenantId/records/:objectType/:objectId", h.GetRecord)
 	v.GET("/tenants/:tenantId/records/:objectType", h.ListRecords)
 	v.GET("/tenants/:tenantId/records/:objectType/search", h.QueryRecords)
@@ -75,5 +87,6 @@ func NewWriteWorkRouter(logger *slog.Logger, cfg RouterConfig, writer handlers.I
 	v.GET("/tenants/:tenantId/ingest/:objectType/upload-logs", u.List)
 	v.GET("/upload-logs/:uploadLogId", u.Get)
 	v.GET("/deferred-ingests/:deferredIngestId", d.Get)
+	v.GET("/admin/deferred-ingest-metrics", m.Get)
 	return r, nil
 }

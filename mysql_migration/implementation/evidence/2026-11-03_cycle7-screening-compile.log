@@ -1,0 +1,29 @@
+go: downloading github.com/riverqueue/river v0.26.0
+go: downloading github.com/riverqueue/river/riverdriver/riverpgxv5 v0.26.0
+go: downloading github.com/riverqueue/river/riverdriver v0.26.0
+go: downloading github.com/jackc/pgx/v5 v5.7.6
+go: downloading golang.org/x/text v0.29.0
+go: downloading github.com/riverqueue/river/rivershared v0.26.0
+go: downloading github.com/riverqueue/river/rivertype v0.26.0
+go: downloading golang.org/x/sync v0.17.0
+go: downloading github.com/tidwall/match v1.1.1
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/cmd/case-delivery-worker	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/cmd/migrate	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/cmd/server	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/cmd/worker	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/app	0.028s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/blob	0.015s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/case	0.011s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/decisionengine	0.012s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/inbox	0.012s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion	0.015s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider	0.012s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi	0.018s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers	0.018s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service	0.017s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres	0.014s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlpublication	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlschema	[no test files]

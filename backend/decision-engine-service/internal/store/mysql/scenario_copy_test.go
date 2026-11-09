@@ -112,3 +112,25 @@ func TestScenarioCopyRejectsBrokenOwnershipAndBounds(t *testing.T) {
 		t.Fatal("missing workflow copy guard accepted")
 	}
 }
+
+func TestScenarioCopyRemapsWorkflowRuleHits(t *testing.T) {
+	source := copySourceFixture(t)
+	c := &source.Workflows[0].Conditions[0]
+	c.Function = workflow.ConditionRuleHit
+	c.Params, _ = json.Marshal(map[string]any{"rule_ids": []string{source.Rules[0].ID}, "retained": "metadata"})
+	copy, err := reidentifyCopy(source, ScenarioCopyInput{SourceID: uuid.MustParse(source.Scenario.ID), DestinationID: uuid.New()}, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var params struct {
+		IDs      []string `json:"rule_ids"`
+		Retained string   `json:"retained"`
+	}
+	if err := json.Unmarshal(copy.Workflows[0].Conditions[0].Params, &params); err != nil || len(params.IDs) != 1 || params.IDs[0] != copy.Rules[0].ID || params.Retained != "metadata" {
+		t.Fatalf("copied condition lost graph binding: %+v %v", params, err)
+	}
+	c.Params, _ = json.Marshal(map[string]any{"rule_ids": []string{uuid.NewString()}})
+	if _, err := reidentifyCopy(source, ScenarioCopyInput{SourceID: uuid.MustParse(source.Scenario.ID), DestinationID: uuid.New()}, time.Now().UTC()); err == nil {
+		t.Fatal("foreign rule-hit reference copied")
+	}
+}

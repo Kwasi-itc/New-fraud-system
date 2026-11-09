@@ -1,0 +1,360 @@
+{
+  "at": "2026-11-05T18:02:53.950Z",
+  "prefix": "unrouted-64fdfe0e-79da-4c67-a5ff-60ef2a6b7c9a",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "runtimeImage": "sha256:5ff6cae6b01dd0c69ad4ab55f9de38e64b00538ecda1f65508391bf298359d0a",
+  "runtimeUnchanged": true,
+  "scenarioId": "379abe2d-6335-419c-8ac7-283f9e5e7f5f",
+  "requestCount": 121,
+  "suites": [
+    {
+      "name": "fixture-and-new-direct-routes",
+      "passed": true
+    },
+    {
+      "name": "test-run-draft-comparison-and-analytics",
+      "passed": true
+    },
+    {
+      "name": "workflow-rule-condition-action-lifecycle",
+      "passed": true
+    },
+    {
+      "name": "screening-config-lifecycle-and-list-entry-alias",
+      "passed": true
+    },
+    {
+      "name": "investigator-review-replay-version-and-case-access",
+      "passed": true
+    },
+    {
+      "name": "screening-scoring-status-retry-and-authoritative-callback",
+      "passed": true
+    },
+    {
+      "name": "local-expression-assistance-and-model-validation",
+      "passed": true
+    },
+    {
+      "name": "all-tenant-route-isolation-and-mounted-inventory",
+      "passed": true
+    }
+  ],
+  "verifiedOperations": 39,
+  "totalOperations": 39,
+  "all39Passed": true,
+  "matrix": [
+    {
+      "method": "GET",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "successVerified": true,
+      "suites": [
+        "investigator-review-replay-version-and-case-access"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "successVerified": true,
+      "suites": [
+        "investigator-review-replay-version-and-case-access"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-info",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description",
+      "successVerified": true,
+      "suites": [
+        "local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast",
+      "successVerified": true,
+      "suites": [
+        "local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description",
+      "successVerified": true,
+      "suites": [
+        "local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions/all",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/ingestion-events/record-ingested",
+      "successVerified": true,
+      "suites": [
+        "fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score",
+      "successVerified": true,
+      "suites": [
+        "test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution",
+      "successVerified": true,
+      "suites": [
+        "test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate",
+      "successVerified": true,
+      "suites": [
+        "test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "successVerified": true,
+      "suites": [
+        "workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/status",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/retry",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/status",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/retry",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-list-entries",
+      "successVerified": true,
+      "suites": [
+        "screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/internal/screening-status-updates",
+      "successVerified": true,
+      "suites": [
+        "screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    }
+  ]
+}

@@ -61,6 +61,27 @@ func TestMySQLScenarioCopyAtomicPublicationAndTenantIsolation(t *testing.T) {
 	dependencies := func(context.Context, *sql.Tx, ScenarioCopySnapshot) error { return nil } // no case references in this fixture
 	denied := errors.New("copy dependency denied")
 	input := ScenarioCopyInput{SourceID: source, DestinationID: uuid.New(), Name: "Copied fixture"}
+	t.Run("preparation releases snapshot and fails without writes", func(t *testing.T) {
+		f.db.SetMaxOpenConns(1)
+		defer f.db.SetMaxOpenConns(10)
+		bounded, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		_, err := s.CopyScenarioWithPreparation(bounded, input, func(ctx context.Context, snapshot ScenarioCopySnapshot) (ScenarioCopyGuard, PublicationGuard, error) {
+			var one int
+			// With one pooled connection this would time out if preparation
+			// retained the source transaction across external provider work.
+			if err := f.db.QueryRowContext(ctx, "SELECT 1").Scan(&one); err != nil {
+				return nil, nil, err
+			}
+			if len(snapshot.Rules) != 120 {
+				t.Fatal("incomplete preparation snapshot")
+			}
+			return nil, nil, denied
+		})
+		if !errors.Is(err, denied) {
+			t.Fatal("preparation held a connection or swallowed failure", err)
+		}
+	})
 	if _, err := s.CopyScenario(ctx, input, func(context.Context, *sql.Tx, ScenarioCopySnapshot) error { return denied }, publicationGuard); !errors.Is(err, denied) {
 		t.Fatal(err)
 	}

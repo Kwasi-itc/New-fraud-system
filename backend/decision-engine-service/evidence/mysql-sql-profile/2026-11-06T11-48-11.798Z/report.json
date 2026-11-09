@@ -1,0 +1,1637 @@
+{
+  "start": "2026-11-06T11:48:11.798Z",
+  "end": "2026-11-06T11:48:34.201Z",
+  "elapsedSeconds": 22.403,
+  "scope": "Server-wide counters, plus available fraud schema digests; includes every service and excludes client/network time. Digests may omit prepared statements or overflow. Account event counts can include nested protocol/SQL events. Concurrent statement durations can overlap. Window includes Docker snapshot overhead.",
+  "statusBefore": {
+    "Innodb_buffer_pool_read_requests": 76556298,
+    "Innodb_buffer_pool_reads": 2103,
+    "Innodb_row_lock_time": 452050,
+    "Performance_schema_digest_lost": 27172,
+    "Queries": 18401167
+  },
+  "statusAfter": {
+    "Innodb_buffer_pool_read_requests": 76684197,
+    "Innodb_buffer_pool_reads": 2103,
+    "Innodb_row_lock_time": 452050,
+    "Performance_schema_digest_lost": 27197,
+    "Queries": 18428145
+  },
+  "statusDelta": {
+    "Innodb_buffer_pool_read_requests": 127899,
+    "Innodb_buffer_pool_reads": 0,
+    "Innodb_row_lock_time": 0,
+    "Performance_schema_digest_lost": 25,
+    "Queries": 26978
+  },
+  "accounts": [
+    {
+      "account": "event_scheduler",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "local_dm_api",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d127765f96204f138295beb9",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b8fc5324fe534828bf68e806",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b8fc5324fe534828bf68e806",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_119ed31173614fb388af5ca6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_119ed31173614fb388af5ca6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_946d9f11d7784167ba2f173f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_946d9f11d7784167ba2f173f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d127765f96204f138295beb9",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b100cf5c6cc44e40af784446",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b100cf5c6cc44e40af784446",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e3a2a1ec6b66401fb7a7efb7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e3a2a1ec6b66401fb7a7efb7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d2109adc361c48b481c63d1c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_5537a0df77074918a4ce29f2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d2109adc361c48b481c63d1c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_5537a0df77074918a4ce29f2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d1de0d6883a8462fa280618d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a66d6be8018046c6a5344ed5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a66d6be8018046c6a5344ed5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d1de0d6883a8462fa280618d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_2fa268a26aca48d48a077b5a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_2fa268a26aca48d48a077b5a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_30de7f8e586b4bc78da485bd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_30de7f8e586b4bc78da485bd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3ab7e74875af41358db3dce0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3ab7e74875af41358db3dce0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_62648af0cfda449bb970797b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_62648af0cfda449bb970797b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b68fbdbef07f44fdb6b39b23",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b68fbdbef07f44fdb6b39b23",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3089c60de6fe4cdc863a93b0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3089c60de6fe4cdc863a93b0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_fe9131d04b984177bcbc16cc",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3418e1c1b9724d1d9937ae6a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_fe9131d04b984177bcbc16cc",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3418e1c1b9724d1d9937ae6a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ae90352609c74e4990eab2d0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ae90352609c74e4990eab2d0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_6ada9867ed5d43f9b65fd4e6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_6ada9867ed5d43f9b65fd4e6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_0d1177e076724f768aaa8569",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_0de7e3ea9e464b1aa73e68d6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ee62024e128b41c5ad632141",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_0d1177e076724f768aaa8569",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_0de7e3ea9e464b1aa73e68d6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ee62024e128b41c5ad632141",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b4c22ca1798644efbf50a119",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b4c22ca1798644efbf50a119",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_6e929198f8e44e399e216ed0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_6e929198f8e44e399e216ed0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ee06989650ae496eaca0aa56",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ee06989650ae496eaca0aa56",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_dd3a62439dd94c0eb139616e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_dd3a62439dd94c0eb139616e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_229dcc9af61e42db99a58e85",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_229dcc9af61e42db99a58e85",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_932b846dd2e940d89562006b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_932b846dd2e940d89562006b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_55ed952ef37a4972ac9a3d7b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_9c260883ba44411a97eaaa44",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_55ed952ef37a4972ac9a3d7b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_9c260883ba44411a97eaaa44",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ae4101725661464abb658bc1",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_43fe94c3500546718156226a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ae4101725661464abb658bc1",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_43fe94c3500546718156226a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_03c678b393ec4590b44dbb60",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3ebcd712cb8442ed82ff934f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_03c678b393ec4590b44dbb60",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3ebcd712cb8442ed82ff934f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_97ac89c6b87d4d9c80a4c484",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_97ac89c6b87d4d9c80a4c484",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8690b271ec664db295fd7d9f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8690b271ec664db295fd7d9f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_5e8ccff7c2e041a48294dc7a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_5e8ccff7c2e041a48294dc7a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b0076cc52d5f40f693a34ba5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b0076cc52d5f40f693a34ba5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_c50011d988fc481abb8ecc85",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3b447c6aa169431792468248",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3b447c6aa169431792468248",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_c31ce9cbb9164b19bbe360e6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_c31ce9cbb9164b19bbe360e6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_13eeef0dd7c74d598e93336f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_13eeef0dd7c74d598e93336f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_98ff6201b2a0485c8a106208",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_98ff6201b2a0485c8a106208",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_267d9df1bb974e1f9a8b63cd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_267d9df1bb974e1f9a8b63cd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_1f48551e64ed4e1788460417",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b75162a1e73f4047803555a9",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b75162a1e73f4047803555a9",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3f70dac31f4b49b49f58e96d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3f70dac31f4b49b49f58e96d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_bd3e19b8e9c84de4bd43d82c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_bd3e19b8e9c84de4bd43d82c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8bab43bfdb2e46f98dba3129",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8bab43bfdb2e46f98dba3129",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_376065f6358446839db15a7a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_376065f6358446839db15a7a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_dced891a810f4c6082b1c3b9",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_2db6d420de4a4325a6c1c5b4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d35debd107b04e53a2fad914",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e2be1009bec24df9a04dca05",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e2be1009bec24df9a04dca05",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_cb589f19732b455299c51263",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_5e11fd51d0cf41939215d070",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_5e11fd51d0cf41939215d070",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_5da04196c5334969b84b9869",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e77482f0255746108ba81183",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e77482f0255746108ba81183",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_c62d11db80af4080ad2aa06e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_93c27e74f2ea4fcdba40bdc5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_93c27e74f2ea4fcdba40bdc5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_9bbeba9e84da41979172c319",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ab26eb18da6941efa414bf26",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ab26eb18da6941efa414bf26",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_56859a7904e14ad8bfda42eb",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_52571f404a0c439fbfe42e96",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_52571f404a0c439fbfe42e96",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e7da7b0d595a41ff95ee207f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_64337265cc57460494debcf4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_82a8ab541a4e48ad95e2b2b8",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_82a8ab541a4e48ad95e2b2b8",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_da9989ecba314c0fa9eec939",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_da9989ecba314c0fa9eec939",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ab74d33f7f7f47ffa6aed4ae",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ab74d33f7f7f47ffa6aed4ae",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a245f53017f24bbd9b7452f2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a245f53017f24bbd9b7452f2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_1bb3613bdbfd430d8e24dcf4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_1bb3613bdbfd430d8e24dcf4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e04109dc871f4849b3ec02c7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e04109dc871f4849b3ec02c7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_add1aacd08ad4b1093171656",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a796422ad18c4334b07428f6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_add1aacd08ad4b1093171656",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a796422ad18c4334b07428f6",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a22fdf471724422788516066",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a22fdf471724422788516066",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_cd3cb7b8c73f4ca1bc665dd5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_cd3cb7b8c73f4ca1bc665dd5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_0c3f798c4ec14cb1bb398b20",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_0c3f798c4ec14cb1bb398b20",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_1238bd93a7d848abbe1b5965",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_1238bd93a7d848abbe1b5965",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_9e836d38eb0d4f0bbc0c012e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_ec57e57c462046a5bf7eedb2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_ec57e57c462046a5bf7eedb2",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e2331fefd35749478271f1c1",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e2331fefd35749478271f1c1",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_43baae915e214f1092500049",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_43baae915e214f1092500049",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_9ded0c5c13a7483f9563f659",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_174978454cff422fbc2d9431",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3b1287b139cc49d991a75ffe",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_857053807f6744f1be887f50",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_857053807f6744f1be887f50",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_2e2c1c7a607d40c7bd5a6904",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_3f4bdcac53dc4fb8acc65102",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_3f4bdcac53dc4fb8acc65102",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_f160b4e06d514d3f8877e194",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_f160b4e06d514d3f8877e194",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8d3751e2478b45f5bf953730",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8d3751e2478b45f5bf953730",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b78e8eae75424aed8609eb0d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b78e8eae75424aed8609eb0d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8e642e6749df403bae9cd3cf",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8e642e6749df403bae9cd3cf",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_734b2054024e4546aca64483",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_734b2054024e4546aca64483",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_634fc8fdb9424453abd6479b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b5946169bac44db090bc2afc",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_634fc8fdb9424453abd6479b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b5946169bac44db090bc2afc",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_2512b5ed5c65486989a14f11",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_2512b5ed5c65486989a14f11",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_6499610b4a3147e6844873e4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_6499610b4a3147e6844873e4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e354b7ed91654f2fa76a9407",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e354b7ed91654f2fa76a9407",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d6f6aea255e749be9f89571e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d6f6aea255e749be9f89571e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a8e054d7d47e4784afafbf7b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_54d1ea026efe496390d0615b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_54d1ea026efe496390d0615b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_0f8b8f9622514521b0c695a0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_0f8b8f9622514521b0c695a0",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_258b7e8839e145fc80ae819b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_258b7e8839e145fc80ae819b",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_1d800575e3ef410e86e871e7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d4bda3e1dedc4323958bba80",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_9d4797c0190c475fafc4f151",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_5eac61f3c5e54851af9bc86a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_5eac61f3c5e54851af9bc86a",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_7622fd57244c485f8e9ebc10",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_7622fd57244c485f8e9ebc10",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e7da7b0d595a41ff95ee207f",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_64337265cc57460494debcf4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_2e2c1c7a607d40c7bd5a6904",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_589d76b760934cb98ab13028",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_589d76b760934cb98ab13028",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_84edb5804b344d0aaa8065fb",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_961175d8ac4248f6aa38b823",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_961175d8ac4248f6aa38b823",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_1cb58cfd52c94843917fc084",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_862e7b0c2c264b4bbcaaa6e7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_862e7b0c2c264b4bbcaaa6e7",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_4bdba9baeb50491ba2b91600",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8661592cf8a646eda8330480",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_808b37e3b5ab446f9ad7bc29",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_808b37e3b5ab446f9ad7bc29",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_7014fc73c7984cda956daf94",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_7014fc73c7984cda956daf94",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_f0eb15cf562a4ea284634d13",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_f0eb15cf562a4ea284634d13",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_429e674001f841e2ad60c1e8",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_429e674001f841e2ad60c1e8",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_e798d061c94843539315e93c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_e798d061c94843539315e93c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a65cd5a9c8484e4286340cab",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a65cd5a9c8484e4286340cab",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_0fc683b4eac440dd9395bbfa",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a2b5c41594584d8a97caa4c3",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_0fc683b4eac440dd9395bbfa",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a2b5c41594584d8a97caa4c3",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_855a6ec9c81240c0b125903d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_855a6ec9c81240c0b125903d",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8dae6c35a83d4beba31d0b4e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8dae6c35a83d4beba31d0b4e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_6b0cc3b6b28743758d026d40",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_6b0cc3b6b28743758d026d40",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_95fbfc914d3d41b8a2d0a44c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_95fbfc914d3d41b8a2d0a44c",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_71b2c3458f9f444db1a6b571",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_8a15e5627c8440579e9bd133",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8a15e5627c8440579e9bd133",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_92ca1bc7c9114d4689cad2ea",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_92ca1bc7c9114d4689cad2ea",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_04b08a8e844649c097996f74",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_04b08a8e844649c097996f74",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_89150149ffae4062b79e0a9e",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d4de15736c484f94a4b475a8",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_895dcf95bb9b4a14b31c99b4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d45019c6b54a4d828b43ef42",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d45019c6b54a4d828b43ef42",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_8661592cf8a646eda8330480",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_f4519660a97d4b90b519b430",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_f4519660a97d4b90b519b430",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "local_ingestion_worker",
+      "statementEvents": 400,
+      "totalMs": 88.518951
+    },
+    {
+      "account": "local_ingestion_api",
+      "statementEvents": 172,
+      "totalMs": 44.194343
+    },
+    {
+      "account": "local_decision_worker",
+      "statementEvents": 17667,
+      "totalMs": 3014.4421
+    },
+    {
+      "account": "local_decision_api",
+      "statementEvents": 54,
+      "totalMs": 19.969112
+    },
+    {
+      "account": "local_decision_provider",
+      "statementEvents": 6740,
+      "totalMs": 943.158662
+    },
+    {
+      "account": "lci_f9ff9bc531274ba98c58fcfd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_f9ff9bc531274ba98c58fcfd",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d82a1c4cd275446481ea02d5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d82a1c4cd275446481ea02d5",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_b80d4414aaf94554ad83feef",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_b80d4414aaf94554ad83feef",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_a429eb52dd0947138a7cde06",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_a429eb52dd0947138a7cde06",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_84be35902c534a16af21b2b4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_84be35902c534a16af21b2b4",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lci_d98741815ad3442db3698e84",
+      "statementEvents": 0,
+      "totalMs": 0
+    },
+    {
+      "account": "lcn_d98741815ad3442db3698e84",
+      "statementEvents": 0,
+      "totalMs": 0
+    }
+  ],
+  "count": 6490,
+  "totalStatementMs": 906.5590650000001,
+  "deltas": [
+    {
+      "sql": "COMMIT",
+      "count": 2126,
+      "digest": "f2b9be5f0f32ca7507e4ddf133cd2fad0993a1c26fde9caa6f067b1af2b7603c",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 319.452478
+    },
+    {
+      "sql": "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+      "count": 1049,
+      "digest": "0f101d98991ef95cefc5ab59b4fa316cb86f91b436412a385108a760f16bbf42",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 161.201427
+    },
+    {
+      "sql": "SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
+      "count": 1077,
+      "digest": "d80ff239c690a94edb0adf1fee28bfa1db6f96878e066d825fdd7c0921399d44",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 152.085409
+    },
+    {
+      "sql": "START TRANSACTION READ ONLY",
+      "count": 1053,
+      "digest": "924a0bf255073b2ae6a63e4df1c4c160efc3bc02d7a346950cbb0e604276b803",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 117.855963
+    },
+    {
+      "sql": "START TRANSACTION",
+      "count": 1073,
+      "digest": "b57cf422fbfb5629759554d7a60a31947a2333a6e1b55d7dce60a94aa1eed044",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 116.65836
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `decision_engine_schema_migrations`",
+      "count": 8,
+      "digest": "f4157ee91f3c2e3d8c8ef723552b9cb609361e5b478499a5da853c80de097d6e",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 4.181814
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_schema_migrations`",
+      "count": 8,
+      "digest": "9ad593925f40ed8e8a98d6b061157dcdc5217b842f03029638d1da2c43eef662",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 3.637956
+    },
+    {
+      "sql": "SET `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `unique_checks` = ? , `time_zone` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `autocommit` = ? , `sql_mode` = ?",
+      "count": 1,
+      "digest": "368e5c771d32e1fa24462af9b22f77ec95cbbf99e655a8bbec6a856e8d9baaad",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 3.63591
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_schema_migrations`",
+      "count": 8,
+      "digest": "8c57c272566d0b11221b950e85d0fd42022552e45404acf0b5caec8ebfa9b10b",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 3.28252
+    },
+    {
+      "sql": "SELECT `VERSION` ( ) , CURRENT_USER ( ) , `CURRENT_ROLE` ( )",
+      "count": 8,
+      "digest": "744bc851a67bf3b19ea80ae5e77554c1f48c2427d57fd0e6e47a2cc37642a635",
+      "rowsAffected": 0,
+      "rowsExamined": 8,
+      "totalMs": 2.054725
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_resources`",
+      "count": 4,
+      "digest": "01aefb771020b3f9c28e3cc8a8ec2c469667e93279c24bd9e687f4feae1131f5",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.665876
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_execution_receipts`",
+      "count": 4,
+      "digest": "7c804f554d091a9637d355014a92e182de430001a28bfdc931ed3212fe8c5b8a",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.630892
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_ingestion_contracts`",
+      "count": 4,
+      "digest": "df23398afa47eceb988b65267ca52164033c6d0445ecb47b71372c8bb081e56f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.424995
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_fields`",
+      "count": 4,
+      "digest": "41dac8a59e69b92198c48ec2eabaa87421824af192d8263ed24b55fac8c7252d",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.343033
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_audit`",
+      "count": 4,
+      "digest": "d0fcd081b3900ee941cfbc16195770e59ef84236504d3db7ff65b3d50189c87f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.297232
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_reservations`",
+      "count": 4,
+      "digest": "24d5486c5a11bb46649008c6c82e92851cca7eb38686df886e1b88b5ac872533",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.266493
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_execution_buckets`",
+      "count": 4,
+      "digest": "2ec774028362b2529ab7b1339b523f48b6b8e1291f043b5e26299551f5d4f648",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.26111
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_request_receipts`",
+      "count": 4,
+      "digest": "7dfe3184d62a9836788a5a7554db2d0ac54cff31876a9ef17c32a3a5a0f4c137",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.216938
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_outbox_events`",
+      "count": 4,
+      "digest": "3a0c74c1d2f8f33fdd90be4c8029bfd32eaad3a883c9fd2b7078b2881c774307",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.12029
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_work_jobs`",
+      "count": 4,
+      "digest": "36b930ce23159325266418a2161d14ada8e0caffb4eec550aa22389b3c451981",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.106071
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_physical_tables`",
+      "count": 4,
+      "digest": "e617f8cbcbf04e4c0742f0a1a8d9e55cbc9528670bd0a1449a4b5dff0b17804f",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.058968
+    },
+    {
+      "sql": "SELECT @@`version_comment` LIMIT ?",
+      "count": 4,
+      "digest": "44e35cee979ba420eb49a8471f852bbe15b403c89742704817dfbaace0d99dbb",
+      "rowsAffected": 0,
+      "rowsExamined": 4,
+      "totalMs": 1.056408
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_tables`",
+      "count": 4,
+      "digest": "d415a807ed82f5b3c013bad1b62acc324fd9ffc3697306dde8fe6285db9820ec",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.055871
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_tenants`",
+      "count": 4,
+      "digest": "387d41c1644a53409ca8bb59f2535c840c32adc4d5563b9fade38f6c3d4b0ce4",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 1.026023
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_lookup_guards`",
+      "count": 4,
+      "digest": "200f3a1b4f79980968bfd78c057202b6609befaa39e0ad068490134e6b59386e",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.969669
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `data_model_physical_fields`",
+      "count": 4,
+      "digest": "79b2d00c5bc9cafee7170edb8e9889210b3a07675fb609325c5f9c8b6d625ef5",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.956482
+    },
+    {
+      "sql": "SHOW CREATE TABLE `fraud` . `ingestion_receipt_buckets`",
+      "count": 4,
+      "digest": "4131e2ef48bb6fc7b9fea70a87fc91d5500ffd0343783853097c86f33ea92920",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.892486
+    },
+    {
+      "sql": "SET `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ? , `foreign_key_checks` = ? , `time_zone` = ? , `autocommit` = ? , `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ?",
+      "count": 3,
+      "digest": "1f7ecbfd1b19f75f5653e829953af9d549756671104b217f9f5511d0d7b2c913",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.6834
+    },
+    {
+      "sql": "SELECT ?",
+      "count": 4,
+      "digest": "d1b44b0c19af710b5a679907e284acd2ddc285201794bc69a2389d77baedddae",
+      "rowsAffected": 0,
+      "rowsExamined": 4,
+      "totalMs": 0.449725
+    },
+    {
+      "sql": "SET `completion_type` = ? , `foreign_key_checks` = ? , `unique_checks` = ? , `time_zone` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `autocommit` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ?",
+      "count": 1,
+      "digest": "d4e1413e467ec1079464b111600cf27b72eb110c1c97047ec216d103801b9abd",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.330798
+    },
+    {
+      "sql": "SET `foreign_key_checks` = ? , `unique_checks` = ? , `time_zone` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `autocommit` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ?",
+      "count": 1,
+      "digest": "c2454fb0150000ea46f792db1c6c6d3be2d132236936558cb41f57264fd506c1",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.302843
+    },
+    {
+      "sql": "SET `foreign_key_checks` = ? , `time_zone` = ? , `autocommit` = ? , `unique_checks` = ? , `transaction_isolation` = ? , `lock_wait_timeout` = ? , `sql_mode` = ? , `innodb_lock_wait_timeout` = ? , `completion_type` = ?",
+      "count": 1,
+      "digest": "76b1e20aba07d5b58875d54f6481314f4767ca403d1b3c57c2ea4281cdf8584c",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.205399
+    },
+    {
+      "sql": "SET `unique_checks` = ? , `lock_wait_timeout` = ? , `time_zone` = ? , `transaction_isolation` = ? , `sql_mode` = ? , `completion_type` = ? , `autocommit` = ? , `foreign_key_checks` = ? , `innodb_lock_wait_timeout` = ?",
+      "count": 1,
+      "digest": "6c4336215dce2a543ef1e116273056e9cd4c588d8764d44a28adb9521d5350df",
+      "rowsAffected": 0,
+      "rowsExamined": 0,
+      "totalMs": 0.191501
+    }
+  ]
+}

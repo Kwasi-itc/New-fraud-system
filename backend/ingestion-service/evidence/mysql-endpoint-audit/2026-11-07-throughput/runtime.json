@@ -1,0 +1,29 @@
+{
+  "databaseVersion": "8.4.8",
+  "containers": {
+    "fraud-mysql-dev-ingestion-service-1": {
+      "id": "e19e302e94ca59dd6a02e8f447ff71f058285ed0a04a60fc6371a9e6f9d3f6e7",
+      "image": "sha256:64462df971a242558ecb1d8d6fc045f14725a4a3b9c83f8f67aef259a21b8e24",
+      "imageName": "fraud-ingestion-mysql:local",
+      "state": "running",
+      "health": "healthy",
+      "paused": false
+    },
+    "fraud-mysql-dev-ingestion-worker-1": {
+      "id": "4a445f9e7b7a929e979a801b04bee931d20c94b93000119883f84576eb2ebc5e",
+      "image": "sha256:64462df971a242558ecb1d8d6fc045f14725a4a3b9c83f8f67aef259a21b8e24",
+      "imageName": "fraud-ingestion-mysql:local",
+      "state": "running",
+      "health": "healthy",
+      "paused": false
+    },
+    "fraud-mysql-dev-mysql-1": {
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "imageName": "mysql:8.4.8",
+      "state": "running",
+      "health": "healthy",
+      "paused": false
+    }
+  }
+}

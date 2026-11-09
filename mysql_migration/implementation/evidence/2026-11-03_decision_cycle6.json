@@ -1,0 +1,159 @@
+﻿{
+    "date":  "2026-11-03",
+    "cycle":  6,
+    "approval":  {
+                     "policy":  "D17.10 matrix including stricter admin-plus-case browser reads and separate service-principal bindings",
+                     "user_message":  "i approve"
+                 },
+    "completed_this_cycle":  [
+                                 "D17.11",
+                                 "D17.12",
+                                 "D17.13",
+                                 "D17.14",
+                                 "D17.15",
+                                 "D17.16",
+                                 "D17.17",
+                                 "D17.18",
+                                 "D17.19",
+                                 "D17.20",
+                                 "D17.21",
+                                 "D17.22",
+                                 "D18.10",
+                                 "D18.11",
+                                 "D18.12",
+                                 "D18.13",
+                                 "D18.14",
+                                 "D18.15"
+                             ],
+    "completed_previous_cycle":  [
+                                     "D19.12",
+                                     "D19.13"
+                                 ],
+    "requested_batch_completed":  20,
+    "checklist":  {
+                      "checked":  102,
+                      "newly_closed_parents":  0,
+                      "total":  152,
+                      "remaining":  50
+                  },
+    "implementation":  [
+                           "Auth-owned independently tracked identity migrations, strict membership/session relationships and current action authorization",
+                           "Case-owned migrations and bounded inbox/tag authorization/visibility contracts",
+                           "Existing opaque credential format shared with staged same-pool session composition",
+                           "Restricted auth/case/list grants with explicit denied cross-owner mutations",
+                           "Real-authority list snapshots, revocation races and late required-job rollback",
+                           "Exact list-name lookup matches PostgreSQL; folded hash remains candidate index and folded uniqueness remains"
+                       ],
+    "verification":  [
+                         {
+                             "skips":  0,
+                             "failures":  0,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql -run \u0027TestMySQL(IdentityOwner|CaseOwner|IdentityAndListRestrictedGrants)\u0027",
+                             "passed_subtests":  95,
+                             "log":  "2026-11-03_cycle6-access-final.jsonl",
+                             "passed_top_level":  4,
+                             "exit_code":  0
+                         },
+                         {
+                             "skips":  0,
+                             "failures":  0,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/mysqlruntime -run TestMySQLVerifiedSessionComposition",
+                             "passed_subtests":  0,
+                             "log":  "2026-11-03_cycle6-session-runtime-final.jsonl",
+                             "passed_top_level":  1,
+                             "exit_code":  0
+                         },
+                         {
+                             "skips":  0,
+                             "failures":  0,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql -run \u0027TestMySQL(CustomListAdmin|ListRealIdentity|EffectCustomListsShare)\u0027",
+                             "passed_subtests":  5,
+                             "log":  "2026-11-03_cycle6-list-identity.jsonl",
+                             "passed_top_level":  5,
+                             "exit_code":  0
+                         },
+                         {
+                             "skips":  0,
+                             "failures":  0,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=300s -json ./internal/store/mysql -run \u0027Test(ActualDecisionServiceRealIdentityListParity|CustomListPostgresMySQLLookupParity|MySQLRealIdentityRepresentativeListPlans|MySQLCustomList)\u0027",
+                             "passed_subtests":  13,
+                             "log":  "2026-11-03_cycle6-list-parity-final.jsonl",
+                             "passed_top_level":  7,
+                             "exit_code":  0
+                         }
+                     ],
+    "supplementary_checks":  [
+                                 {
+                                     "module":  "auth-service",
+                                     "command":  "go test -mod=mod -p 2 ./internal/platform ./sessioncredential ./mysqlidentity",
+                                     "log":  "2026-11-03_cycle6-auth-regression.log",
+                                     "exit_code":  0
+                                 },
+                                 {
+                                     "module":  "auth-service",
+                                     "command":  "go vet -mod=readonly -p 2 ./mysqlidentity ./sessioncredential ./internal/platform",
+                                     "log":  "2026-11-03_cycle6-auth-vet.log",
+                                     "exit_code":  0
+                                 },
+                                 {
+                                     "module":  "case-manager-service",
+                                     "command":  "go test -mod=mod -p 2 -run \u0027^$\u0027 ./...",
+                                     "log":  "2026-11-03_cycle6-case-compile.log",
+                                     "exit_code":  0
+                                 },
+                                 {
+                                     "module":  "case-manager-service",
+                                     "command":  "go vet -mod=readonly -p 2 ./mysqlaccess",
+                                     "log":  "2026-11-03_cycle6-case-vet.log",
+                                     "exit_code":  0
+                                 },
+                                 {
+                                     "module":  "decision-engine-service",
+                                     "command":  "go test -mod=readonly -p 2 -run \u0027^$\u0027 ./...",
+                                     "log":  "2026-11-03_cycle6-decision-compile.log",
+                                     "exit_code":  0
+                                 },
+                                 {
+                                     "module":  "decision-engine-service",
+                                     "command":  "go vet -mod=readonly -p 2 ./...",
+                                     "log":  "2026-11-03_cycle6-decision-vet.log",
+                                     "exit_code":  0
+                                 }
+                             ],
+    "fixture":  {
+                    "postgres":  "16",
+                    "list_count":  40,
+                    "unhinted_plans":  [
+                                           "hot-name membership",
+                                           "ID lookup",
+                                           "entry pagination"
+                                       ],
+                    "project":  "decision-cycle6",
+                    "list_entries":  14080,
+                    "mysql_address":  "mysql:3306",
+                    "maximum_inbox_batch_tested":  500,
+                    "required_integration":  true,
+                    "hot_list_entries":  4096,
+                    "pg_database":  "decision_test_admin",
+                    "application_database_touched":  false,
+                    "list_tenants":  5,
+                    "mysql":  "8.4.8",
+                    "go":  "1.25.8"
+                },
+    "findings":  [
+                     "Nine actual-service list golden cases compare outcomes, complete rule evidence, persisted readback and foreign-tenant isolation",
+                     "Initial differential failure exposed folded versus exact name semantics; corrected MySQL lookup and retained initial failure log",
+                     "Authorization tests include expiry after actual lock waits, revocation, stale membership and narrow case row locks"
+                 ],
+    "initial_failure_log":  "2026-11-03_cycle6-list-parity-initial.jsonl",
+    "limitations":  [
+                        "MySQL remains staged; PostgreSQL remains configured",
+                        "List parity retains explicit model and unused execution fixtures; source authority adapter invokes the actual existing identity contract in the same read transaction",
+                        "Source auth package checks do not establish full PostgreSQL identity integration because that suite was not configured",
+                        "No production latency/SLA claim; representative plans and explicit row/byte limits only",
+                        "Owner provisioning and activation synchronization, full browser edit/copy parity, worker/provider composition and D20/D25 release gates remain open",
+                        "D18.16 parent evidence review remains a separate unselected leaf",
+                        "Test-run counts overlap: do not sum them as distinct tests"
+                    ],
+    "cleanup":  "Confirmed exit 0: removed decision-cycle6-runner, MySQL/PostgreSQL test containers and decision-cycle6_default network using compose down --volumes --remove-orphans. Application database untouched."
+}

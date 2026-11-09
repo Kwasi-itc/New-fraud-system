@@ -66,7 +66,7 @@ func (r OutboxEventRepository) CreateMany(ctx context.Context, items []integrati
 		ids[i] = v.ID
 		values[i] = []any{id, mysqlstore.UUID(r.tenant), mysqlstore.Text(v.AggregateType), mysqlstore.Text(v.AggregateID), mysqlstore.Text(v.EventType), payload, string(v.Status), mysqlstore.DateTime{Time: v.CreatedAt}}
 	}
-	return insertEffectBatch(ctx, r.authoringRepository, "decision_engine_outbox_events", "id,tenant_id,aggregate_type,aggregate_id,event_type,payload,status,created_at", r.selectSQL(), values, ids, r.scan, func(v integration.OutboxEvent) string { return v.ID })
+	return insertEffectBatch(ctx, r.authoringRepository, "decision_engine_outbox_events", "id,tenant_id,aggregate_type,aggregate_id,event_type,payload,status,created_at", r.selectSQL(), values, ids, r.scan, func(v integration.OutboxEvent) string { return v.ID }, func(v integration.OutboxEvent) string { return string(v.Status) })
 }
 func (r OutboxEventRepository) GetByID(ctx context.Context, tenant, id string) (integration.OutboxEvent, error) {
 	args, err := r.ids(tenant, id)

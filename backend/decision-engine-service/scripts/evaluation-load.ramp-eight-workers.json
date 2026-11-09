@@ -1,0 +1,15 @@
+{
+  "direction_reference": "Diagnostic admission-concurrency experiment toward 1000/sec; eight live workers share the unchanged eight-connection fixture pool; no runtime configuration changed",
+  "seed": "evaluation-load-v1",
+  "tenants": 10,
+  "hot_percent": 60,
+  "load": {
+    "duration_ns": 30000000000,
+    "requests_per_second": 100,
+    "workers": 8,
+    "request_timeout_ns": 5000000000,
+    "p95_target_ns": 250000000,
+    "p99_target_ns": 750000000,
+    "max_error_rate": 0
+  }
+}

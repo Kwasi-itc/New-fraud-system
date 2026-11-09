@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/scenarios/363d874b-891d-49f9-be38-ec72d4670001/publications: 500: {\"error\":\"execution_failed\"}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-local-smoke.mjs:18:9)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-local-smoke.mjs:37:2",
+  "requestCount": 10
+}

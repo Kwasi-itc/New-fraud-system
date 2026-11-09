@@ -33,7 +33,14 @@ type Plan struct {
 	Steps    []Step `json:"steps"`
 }
 
-func (p Plan) Validate() error {
+func (p Plan) Validate() error { return p.validate(false) }
+
+// ValidateWithTriggerRetirement is for owner-bound physical workflows that
+// separately verify typed DROP TRIGGER SQL against published guard lineage.
+// Ordinary deployment plans and the shared migration runner remain CREATE/ALTER.
+func (p Plan) ValidateWithTriggerRetirement() error { return p.validate(true) }
+
+func (p Plan) validate(retireTriggers bool) error {
 	if _, err := mysqlstore.Identifier(p.owner()); err != nil || len(p.owner()) > 46 {
 		return errors.New("invalid migration owner")
 	}
@@ -61,7 +68,8 @@ func (p Plan) Validate() error {
 		default:
 			return errors.New("unsupported migration object kind")
 		}
-		if len(s.SQL) == 0 || len(s.SQL) > 1<<20 || len(s.Before) > 1<<20 || len(s.After) == 0 || len(s.After) > 1<<20 || s.Before == s.After {
+		retiring := retireTriggers && s.Kind == "TRIGGER" && s.Before != "" && s.After == "" && s.SQL == "DROP TRIGGER `"+p.Database+"`.`"+s.Name+"`"
+		if len(s.SQL) == 0 || len(s.SQL) > 1<<20 || len(s.Before) > 1<<20 || (len(s.After) == 0 && !retiring) || len(s.After) > 1<<20 || s.Before == s.After {
 			return errors.New("bounded nonempty SQL and distinct before/after definitions required")
 		}
 		for _, definition := range []string{s.Before, s.After} {
@@ -79,7 +87,7 @@ func (p Plan) Validate() error {
 		}
 		// This is validation of a reviewed artifact, not an arbitrary SQL sandbox.
 		prefix := strings.ToUpper(strings.TrimSpace(s.SQL))
-		if !strings.HasPrefix(prefix, "CREATE ") && !strings.HasPrefix(prefix, "ALTER ") {
+		if !retiring && !strings.HasPrefix(prefix, "CREATE ") && !strings.HasPrefix(prefix, "ALTER ") {
 			return errors.New("only CREATE/ALTER migration statements supported")
 		}
 		key := s.Kind + ":" + s.Name

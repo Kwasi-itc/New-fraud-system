@@ -10,12 +10,28 @@ import (
 
 type ConfigurationStore struct{ authoring *AuthoringStore }
 type ConfigurationRepositories struct {
+	Scenarios          ScenarioRepository
 	Workflows          WorkflowRepository
 	ScreeningConfigs   ScreeningConfigRepository
 	ScoringConfigs     ScoringConfigRepository
 	WorkflowRules      WorkflowRuleRepository
 	WorkflowConditions WorkflowConditionRepository
 	WorkflowActions    WorkflowActionRepository
+}
+
+func (s *ConfigurationStore) Scope() (uuid.UUID, int, int, error) {
+	if s == nil {
+		return uuid.Nil, 0, 0, ErrDecisionAuthorizationUnavailable
+	}
+	return s.authoring.Scope()
+}
+
+func (s *ConfigurationStore) MatchesExecutionStore(executions *ExecutionStore) bool {
+	if s == nil || s.authoring == nil || s.authoring.configuration == nil || executions == nil || executions.configuration == nil {
+		return false
+	}
+	a, b := s.authoring.configuration, executions.configuration
+	return a.db == b.db && a.schema == b.schema && a.tenant == b.tenant && a.maxRows == b.maxRows && a.maxBytes == b.maxBytes
 }
 
 func NewConfigurationStore(db *sql.DB, database string, tenant uuid.UUID, maxRows, maxBytes int, authorize AuthoringAuthorizer) (*ConfigurationStore, error) {
@@ -45,6 +61,6 @@ func (s *ConfigurationStore) run(ctx context.Context, write bool, fn func(Config
 			return err
 		}
 		r := authoringRepository{platformRepository: platformRepository{tx, c.schema, c.tenant, c.maxRows, c.maxBytes, write}, workflowGuards: make(map[uuid.UUID]bool)}
-		return fn(ConfigurationRepositories{Workflows: WorkflowRepository{configurationRepository{r, workflowConfiguration}}, ScreeningConfigs: ScreeningConfigRepository{configurationRepository{r, screeningConfiguration}}, ScoringConfigs: ScoringConfigRepository{configurationRepository{r, scoringConfiguration}}, WorkflowRules: WorkflowRuleRepository{r}, WorkflowConditions: WorkflowConditionRepository{workflowChildRepository{r, false}}, WorkflowActions: WorkflowActionRepository{workflowChildRepository{r, true}}})
+		return fn(ConfigurationRepositories{Scenarios: ScenarioRepository{r}, Workflows: WorkflowRepository{configurationRepository{r, workflowConfiguration}}, ScreeningConfigs: ScreeningConfigRepository{configurationRepository{r, screeningConfiguration}}, ScoringConfigs: ScoringConfigRepository{configurationRepository{r, scoringConfiguration}}, WorkflowRules: WorkflowRuleRepository{r}, WorkflowConditions: WorkflowConditionRepository{workflowChildRepository{r, false}}, WorkflowActions: WorkflowActionRepository{workflowChildRepository{r, true}}})
 	})
 }

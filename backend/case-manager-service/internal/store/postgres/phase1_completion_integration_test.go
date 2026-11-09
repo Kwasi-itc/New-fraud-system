@@ -136,7 +136,7 @@ func TestPostgresAccessMigrationPreflightPreservesHistory(t *testing.T) {
 
 func TestPostgresWorkflowMetadataValidatedBeforeWrites(t *testing.T) {
 	db := testDatabase(t, true)
-	s, tenant, inbox, _ := fixture(t, db)
+	s, tenant, inbox, _ := workflowReceiptFixture(t, db)
 	decision := seedDecision(t, db, tenant)
 	// Any attempted case write would raise a database error instead of the
 	// validation error. Rollback alone is not enough for this assertion.

@@ -1,0 +1,2392 @@
+[
+  {
+    "object_id": "boundary-001",
+    "decision_id": "f78e18ad-a8d8-4a1e-a709-127962bbf491",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-002",
+    "decision_id": "1792de43-9a28-4616-b699-d178db4676a6",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-003",
+    "decision_id": "0ce212cb-8bff-4643-8e3c-2611bb36b8b2",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "boundary-004",
+    "decision_id": "362a70d0-1c70-4e93-8927-5a45779d824c",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "boundary-005",
+    "decision_id": "192e5c71-e7b6-485f-b6de-6d69498e9cc6",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-006",
+    "decision_id": "3a9e88a9-b8fd-4bed-acd8-bbd8b22dc733",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "boundary-007",
+    "decision_id": "61a6b5e8-8bd4-4cab-908f-d44a033f01b1",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-008",
+    "decision_id": "568d51d2-4954-4fa0-b171-192882bf327c",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "boundary-009",
+    "decision_id": "2165acb4-7244-4164-b41a-d9aeb48ab4df",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-010",
+    "decision_id": "f0a445dd-a56b-4edc-9e48-02dceed3c651",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "boundary-011",
+    "decision_id": "c7f61b85-d9a6-41eb-80d1-729d1acebe89",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "boundary-012",
+    "decision_id": "ee218872-cfc9-4c5c-9908-5ebf0ae2ed26",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "boundary-013",
+    "decision_id": "75404cf2-41ae-4cb2-96ce-60c36e13bb15",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "boundary-014",
+    "decision_id": "9e9ddebd-bfcc-457c-b229-2a90acd7d0a4",
+    "score": 130,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "boundary-015",
+    "decision_id": "8e8c11ff-7715-42f8-b7f4-fd2848e808d0",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "boundary-016",
+    "decision_id": "46748409-483a-40c2-8c6a-3da048dc2765",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-001",
+    "decision_id": "c807948c-fac9-412c-96d3-3d5790143779",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-002",
+    "decision_id": "0ffa502b-9d24-42cc-9adf-b8dcf51c3c9d",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-003",
+    "decision_id": "07bda054-faa0-4f51-ade9-a051f8ae058e",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-004",
+    "decision_id": "7e3f92aa-bcee-42df-9fc6-7f7edac8cf4d",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-005",
+    "decision_id": "ef6540f7-894f-40a6-ba32-ac2b9856f5a6",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-006",
+    "decision_id": "c6f34de4-1404-496d-992f-1aab25299792",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-007",
+    "decision_id": "a0a9a832-0c8e-4a03-b640-2192ee1c3802",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-008",
+    "decision_id": "91a1e2ef-c07f-4cb5-a74c-f54d78b1c8c1",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-009",
+    "decision_id": "fc5b84a5-cbf8-49b8-89f5-075e9dd7f5f5",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-010",
+    "decision_id": "073c41d8-f581-43a7-b684-99136f293030",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-011",
+    "decision_id": "3423419f-35f6-4bf2-94b3-76d94f06ad67",
+    "score": 100,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-012",
+    "decision_id": "4b6c161a-cf54-49f4-bc45-1fd636d42301",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-013",
+    "decision_id": "76d837d4-2e2f-423e-b5f3-7c8c2d4069ea",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-014",
+    "decision_id": "0d0340ae-8e7b-4690-9812-4ff647ad1e0d",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-015",
+    "decision_id": "fe9d3432-113a-4b0e-b1b1-11b9e505065c",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-016",
+    "decision_id": "8e7e44ed-8f33-4a9b-aafd-89d916cce9fa",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-017",
+    "decision_id": "ca6e5f5a-2774-4255-94d6-71286e5db19f",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-018",
+    "decision_id": "627dcb00-7125-440e-8ca6-1e9f21ec0bac",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-019",
+    "decision_id": "8e1f67be-fbe4-449b-be59-7dac427a5418",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-020",
+    "decision_id": "306b2dc0-2001-4e92-8934-983c836956c6",
+    "score": 110,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-021",
+    "decision_id": "2f5aa296-617d-4e46-bfd2-086b0d047558",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-022",
+    "decision_id": "2399bedc-75f6-4455-b37d-a85870261627",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-023",
+    "decision_id": "c6a36293-a95f-46a5-861b-2b05ee8ba944",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-024",
+    "decision_id": "157b7f4e-453d-4c97-8fe9-13f58e398c7b",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-025",
+    "decision_id": "ca4c0461-b7f3-4099-991f-b484114e0ce0",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-026",
+    "decision_id": "2120ec68-a5f2-4907-8fb0-ec77137374ec",
+    "score": 30,
+    "outcome": "review",
+    "hit_rules": [
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-027",
+    "decision_id": "d17762b9-ba14-4a8c-9f0b-0d06017a1510",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-028",
+    "decision_id": "d925f9f3-6fac-413f-9214-b9d0525bb98c",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-029",
+    "decision_id": "5bc34da3-7e7c-4d9f-b34a-35f50314f055",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-030",
+    "decision_id": "019baccc-7e12-4fb2-9693-e4caffa4d38e",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-031",
+    "decision_id": "b2580033-a6f9-4c51-807d-da8159e6d8b6",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-032",
+    "decision_id": "fca535e8-026d-48f9-aa58-70974024f110",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-033",
+    "decision_id": "fa12d41b-b4d2-47ad-a5d6-ac7be890a898",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-034",
+    "decision_id": "ea092841-ea1c-40e9-a749-722e44b211e5",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-035",
+    "decision_id": "b5b372f8-357b-4fe5-8197-c6bc0d424dac",
+    "score": 90,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-036",
+    "decision_id": "caa3baf4-1566-4ab3-9402-e810f68cf853",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-037",
+    "decision_id": "67535433-9c5a-4ffd-a865-16aafe1140c8",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-038",
+    "decision_id": "6f3a55bb-f72d-4e9d-b939-c47fdd70fb11",
+    "score": 120,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-039",
+    "decision_id": "9c921d45-8eaa-4b80-9c89-ff233012dddc",
+    "score": 90,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-040",
+    "decision_id": "bce953ce-2d2f-4f28-a376-645a07474e8b",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-041",
+    "decision_id": "75af4e2b-3e72-4078-85d3-c988c9937d64",
+    "score": 30,
+    "outcome": "review",
+    "hit_rules": [
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-042",
+    "decision_id": "08fe5b8a-6cd0-4687-bb66-2d8ba8f5ba41",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-043",
+    "decision_id": "d693f895-b716-4603-94a4-35d83979ac96",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-044",
+    "decision_id": "c424b59e-a4b6-49ae-b050-0257878e1f82",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-045",
+    "decision_id": "87e7c444-a49c-4522-8a64-2b4f1933a192",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-046",
+    "decision_id": "93000d26-9904-4b0c-8ee7-ffe50823ef19",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-047",
+    "decision_id": "fd00fbfd-d756-4148-a89f-a492b692958a",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-048",
+    "decision_id": "54b41c88-f57d-49a4-a6e8-166588b4b55e",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-049",
+    "decision_id": "ce0caf94-f935-4698-a7cd-bbb6f56fb4c5",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-050",
+    "decision_id": "e2e70dba-a9dc-458f-9b38-bf14a3a5c9b4",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-051",
+    "decision_id": "832ca290-3132-4e6b-9690-fbcaa7e96bc3",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-052",
+    "decision_id": "0fd93d6f-d44e-45ab-b0f7-0e84872b857c",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-053",
+    "decision_id": "866b0105-e3f0-4c28-b12a-270d99f0719a",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-054",
+    "decision_id": "0276a771-ac67-4a4b-850d-a00b28b9d4ca",
+    "score": 120,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-055",
+    "decision_id": "41be12e0-ea4c-439b-a8bb-6c741cf5a2e8",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-056",
+    "decision_id": "ebd4ca1d-5099-4495-b4f7-bf24877ae75f",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-057",
+    "decision_id": "f1e584ed-6382-4c03-92d0-3d7271745823",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-058",
+    "decision_id": "f3fa7b86-e3a7-49a7-ade5-d7f029dc2ed1",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-059",
+    "decision_id": "6090948b-9c42-45fb-b706-afd20bdac4f8",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-060",
+    "decision_id": "c1c65da7-71bb-43ef-aa69-ced71aab9b9c",
+    "score": 30,
+    "outcome": "review",
+    "hit_rules": [
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-061",
+    "decision_id": "18a697ad-710f-4af8-971b-fef8fc8ea109",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-062",
+    "decision_id": "d983c169-8c96-4d10-885b-5db5ecd03e69",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-063",
+    "decision_id": "8e53ff28-1698-45e2-8bf2-0929eb21ed4f",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-064",
+    "decision_id": "479e270c-c46b-4a55-8209-8536235ef2e0",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-065",
+    "decision_id": "9d385a54-85b1-49c6-bfb4-25ebb7c14bcf",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-066",
+    "decision_id": "60856dcb-27a2-4a6e-9886-639c4739b961",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-067",
+    "decision_id": "187416f7-e004-4b5f-9459-baf284a021fd",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-068",
+    "decision_id": "35c10231-50be-4a1e-8da2-5f03e8445b7d",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-069",
+    "decision_id": "92e5351f-1c37-4396-a2b1-5b87d5cb54f4",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-070",
+    "decision_id": "6bf2df95-cc0f-4088-aace-88a58486384e",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-071",
+    "decision_id": "ca1033bb-eabd-4933-83a2-e90aeb12eb11",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-072",
+    "decision_id": "f53be435-0061-41af-84c3-46de9fc45482",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-073",
+    "decision_id": "99625534-ad0b-4714-8666-0bab0d4b7516",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-074",
+    "decision_id": "5f6d745c-d09b-42ec-9a01-8031722939cb",
+    "score": 100,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-075",
+    "decision_id": "39fbed76-4934-483c-8957-27644766f9ab",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-076",
+    "decision_id": "7dd2ff5a-8bb0-454f-b39d-49259aa82232",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-077",
+    "decision_id": "597f5e79-42d2-4a3d-8f81-1a0c1ed8ea66",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-078",
+    "decision_id": "e8059760-4528-453d-8c43-6ac40dcc1b35",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-079",
+    "decision_id": "5185982c-d8ca-4098-83ec-905ff7516a8d",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-080",
+    "decision_id": "bda59190-0e12-40a5-9009-488b015b17eb",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-081",
+    "decision_id": "93ea5f53-b5dd-4485-a271-919cb6c7e24b",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-082",
+    "decision_id": "dff7ca56-7b0a-45ca-9e09-5c2b09b57f78",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-083",
+    "decision_id": "d3701125-2088-4033-ae84-8a4d5543a908",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-084",
+    "decision_id": "5e3804b3-269d-420b-bc7d-a659661bc7a0",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-085",
+    "decision_id": "110b1a20-9695-4cf5-977b-0e722709f56e",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-086",
+    "decision_id": "35a5c577-409c-49d3-9aad-e38651dc23d2",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-087",
+    "decision_id": "2e2dcdaa-aad6-426a-aee5-d2c5b9144317",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-088",
+    "decision_id": "7e8ea6c6-791d-4a29-88c5-1d154d305dae",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-089",
+    "decision_id": "7e6ccc7a-9d84-4214-ad18-71ed26d90744",
+    "score": 95,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-090",
+    "decision_id": "b49584f1-2f01-4a77-9df8-2746b2912716",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-091",
+    "decision_id": "84409e8c-9da1-462e-bab2-a62062f88b89",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-092",
+    "decision_id": "e1f3694a-6a4c-465b-ab23-777158f9ed92",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-093",
+    "decision_id": "c76a98b3-45c7-43fb-8b3f-024f69a1c4b5",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-094",
+    "decision_id": "be17976f-d893-435b-9e88-7fcaf9e45ea2",
+    "score": 95,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-095",
+    "decision_id": "14fd27df-3af1-4b0d-84ab-2182ee8440d7",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-096",
+    "decision_id": "c5674388-e21f-43ca-abcb-4d20aaebd46c",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-097",
+    "decision_id": "90d41ef4-7aa9-4efb-b1a0-f42f178a7ed5",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-098",
+    "decision_id": "186c2683-fb51-45bd-a7df-6a003a6c7e66",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-099",
+    "decision_id": "8639d1ad-e989-46b6-affd-4ab902f3022a",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-100",
+    "decision_id": "f97bd735-fcd4-4cd8-9627-856442726e55",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-101",
+    "decision_id": "127378be-12ab-45a2-9d01-dfb2647f0c63",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-102",
+    "decision_id": "9ad7a736-93f1-4387-9576-88fc53191c2e",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-103",
+    "decision_id": "f1db92e7-6c47-41eb-8eb3-45f8995924bd",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-104",
+    "decision_id": "594375d7-b1d1-44ee-afd0-79c6cefa5dc4",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-105",
+    "decision_id": "2c632535-8d98-40e8-8148-5af480fa8a17",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-106",
+    "decision_id": "5a28541f-6b7f-4710-b101-accc0074a718",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-107",
+    "decision_id": "9fab85fa-e92e-463a-81b6-aa828e7d0f9d",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-108",
+    "decision_id": "419fb064-05b0-4526-8473-0e13d865527e",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-109",
+    "decision_id": "94134718-bf0b-4f66-8c9d-6f55fb90cacf",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-110",
+    "decision_id": "31d6f6cd-8f62-43df-aef8-58a3c86922a3",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-111",
+    "decision_id": "4d79d712-1498-4ab3-8f9d-cc6c40aaca5b",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-112",
+    "decision_id": "b34d1d58-1d3d-4bbb-b424-448bab482f99",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-113",
+    "decision_id": "e0e143fc-9698-490b-9407-e056ae738b76",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-114",
+    "decision_id": "517eaef7-3ea5-4e87-8b93-79cde0be0bcb",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-115",
+    "decision_id": "f9a0b58e-2cee-49e8-9429-f194d1285576",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-116",
+    "decision_id": "9ae2a058-e738-4c39-be84-80d1cf9327bc",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-117",
+    "decision_id": "f05a4bc0-0c6e-428a-90c9-47bc0829d27f",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-118",
+    "decision_id": "2911f6a4-4cfb-46ec-8367-28c16d0aebc4",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-119",
+    "decision_id": "7681943d-55c3-4db7-80c6-793f39f5ff7c",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-120",
+    "decision_id": "2dd05883-d7c7-41a7-bb52-308bea7b20d4",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-121",
+    "decision_id": "19cad47b-9c3f-4453-8ad8-3f4099f71446",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-122",
+    "decision_id": "363e06d7-879d-427f-bc70-e524aa926759",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-123",
+    "decision_id": "396de89c-8325-4243-85a5-6dd6e900b74e",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-124",
+    "decision_id": "b658bb84-1502-4996-85ea-6dad7b61cbd6",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-125",
+    "decision_id": "fbf32248-4acc-47c7-8469-719119e925d0",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-126",
+    "decision_id": "1e15aa84-545b-4209-9d0d-39883429d5e8",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-127",
+    "decision_id": "acde2e33-0348-4a4e-9e13-943e0c538035",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-128",
+    "decision_id": "d04070c8-26e0-4529-a414-3d58549f20b6",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-129",
+    "decision_id": "374921ea-2a67-49ce-840f-baf61e70959e",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-130",
+    "decision_id": "0fe6d03a-bc28-40f0-8667-92b67f9b1696",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-131",
+    "decision_id": "3494e4be-5f15-4756-aa49-3159b394311d",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-132",
+    "decision_id": "75c18bad-e9e4-454d-bfe0-8e9727177d90",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-133",
+    "decision_id": "e43311b5-d9e0-4b5b-957e-938f5d47e66f",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-134",
+    "decision_id": "819b2cb8-ce23-4f0d-ae38-cea844b74ae5",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-135",
+    "decision_id": "c7de3aac-56ca-45ae-8513-d0e8e34d8869",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-136",
+    "decision_id": "9f34bed6-b1c8-4697-853d-483c3cbd7bf7",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-137",
+    "decision_id": "b9a73fa4-2605-4101-8dd6-a7862cc5c84b",
+    "score": 100,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-138",
+    "decision_id": "e31e7581-2e4a-4961-8256-8f092259e141",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-139",
+    "decision_id": "d2e3f0b9-f65c-4837-9cc4-ea46deef5c41",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-140",
+    "decision_id": "f2d9adeb-7dde-46ae-b57a-7a5df6ab02a2",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-141",
+    "decision_id": "fdc7a1ab-e8ed-4944-831a-67fa41c890ea",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-142",
+    "decision_id": "d15836b9-a198-49f0-9f20-3a6137cb1186",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-143",
+    "decision_id": "4d78e51f-4a79-4a30-9cc9-79ef0b103c0f",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-144",
+    "decision_id": "52a385d5-49e4-458b-9fd4-6f4361f21b3f",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-145",
+    "decision_id": "9f94a63f-2343-4d5a-86cb-e9ecaefe3701",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-146",
+    "decision_id": "95c6a4d3-0b9f-4d7a-94b9-e092f1190cde",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-147",
+    "decision_id": "b8a7df22-de34-4734-a803-b30d979bbe9a",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-148",
+    "decision_id": "f4764ac3-5e07-4b16-9d76-fa9e0cbb0d78",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-149",
+    "decision_id": "9b4b1e98-6705-4e3d-bc06-b9f3ba4cc25f",
+    "score": 120,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-150",
+    "decision_id": "1ddb85de-48fa-40a7-92da-19505d46543e",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-151",
+    "decision_id": "29e3d611-99a3-411f-971f-dab4052df06b",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-152",
+    "decision_id": "ac681c44-60cf-4dda-9e67-251c90a41442",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-153",
+    "decision_id": "5c010248-c366-4f88-942d-9e952c5257f0",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-154",
+    "decision_id": "805d2b10-0bed-4af1-8d47-841af7248f6d",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-155",
+    "decision_id": "5e574922-80eb-4f27-b1e9-9b702c2cc43f",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-156",
+    "decision_id": "47a1a9dc-fed3-458e-8edb-50b54066ef0b",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-157",
+    "decision_id": "0abdc947-6342-404e-a794-6d56d87e84a9",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-158",
+    "decision_id": "91e731fc-dd79-479f-a03d-cbe0e65f3018",
+    "score": 60,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-159",
+    "decision_id": "c62e2076-9da7-436e-98cb-9285cee75391",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-160",
+    "decision_id": "42f04f76-fc97-4415-bd35-ab51d2b3eeec",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-161",
+    "decision_id": "3348c3b6-67c8-4eea-ac5c-6488b6319768",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-162",
+    "decision_id": "f472d3aa-3c8e-4163-b25c-208aa165449d",
+    "score": 30,
+    "outcome": "review",
+    "hit_rules": [
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-163",
+    "decision_id": "155a5afb-0349-4c39-abcf-c838c429c9a7",
+    "score": 105,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-164",
+    "decision_id": "918f38e4-d2c3-45a3-960a-b6a0cbaccac5",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-165",
+    "decision_id": "553b71e4-0adb-4e17-9cf4-0c283c5132fe",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-166",
+    "decision_id": "70538916-73cf-4ba9-8966-30629ce6bb52",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-167",
+    "decision_id": "28f03b00-fb1b-4344-bca6-2bf9d7bea969",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-168",
+    "decision_id": "6c39b6c1-82e5-4def-9ddb-06fc4a2c4692",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-169",
+    "decision_id": "5e4928e6-d4e0-4592-90b0-d57b4b5fbf51",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-170",
+    "decision_id": "755a8a37-475a-42ba-8e7d-1b6c5c196a0c",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-171",
+    "decision_id": "471b1a2a-9533-4f67-8361-45c2cceb3a6f",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-172",
+    "decision_id": "ab153f26-d716-4cdd-b88d-b801424763fb",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-173",
+    "decision_id": "31134547-cea7-45a5-b1b8-42a3b43797c6",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-174",
+    "decision_id": "4328c837-0925-4b2e-a1f2-ecd31e8db355",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-175",
+    "decision_id": "b855c4d6-f4fc-48bc-a5fc-5205a3d1f323",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-176",
+    "decision_id": "029f2155-1297-41d4-a34a-13787ef8e7a0",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-177",
+    "decision_id": "6bcab1d0-05ee-4693-a4af-a94af23138ed",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-178",
+    "decision_id": "0c799b42-004f-4d15-84c6-f5a13c32ae94",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-179",
+    "decision_id": "a6545dc6-992d-4faf-bd3d-1ee1983fa9d0",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-180",
+    "decision_id": "8bb59003-52a3-4232-9321-374dda52910e",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-181",
+    "decision_id": "afb13776-bcb0-427f-a1ac-cea4655fbe6d",
+    "score": 100,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-182",
+    "decision_id": "6fb61180-e155-45d0-a294-fd970bee377f",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-183",
+    "decision_id": "caad799d-7f37-4a74-963d-2c2f62374efc",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-184",
+    "decision_id": "fac27bb5-a5a0-49f6-92c6-97a661586b73",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-185",
+    "decision_id": "cc38e76b-b4f3-4930-a1bf-f8c82c075fa2",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-186",
+    "decision_id": "a520ce50-e160-4e74-aebd-ab3877a4f104",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-187",
+    "decision_id": "2e3daaad-da43-4854-8358-b41c94a7e00d",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-188",
+    "decision_id": "1960e0d6-efbe-420e-9e23-ebbee2a7f10a",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-189",
+    "decision_id": "1000d6e2-1c72-4713-8d4e-8c940e15b404",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-190",
+    "decision_id": "bc77a73e-bb73-43e7-8f75-4ae0e28c45ac",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-191",
+    "decision_id": "06edb00c-31dc-4d24-ac41-ebcba7265cb8",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-192",
+    "decision_id": "6368e2cd-25ba-48af-85b6-50b91ccb7467",
+    "score": 75,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-193",
+    "decision_id": "dc7198d3-b628-4297-8d00-c6f26d05ce27",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-194",
+    "decision_id": "a8101b31-d324-4307-a5f2-baa6a8b931ef",
+    "score": 95,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-195",
+    "decision_id": "f5f2ad9f-c297-4a65-87c7-f3281c843ea0",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-196",
+    "decision_id": "0db89baa-0803-451a-a851-ebf7e4ea49da",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-197",
+    "decision_id": "52b7f6b3-51af-476f-a9a3-9487b0bb0379",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-198",
+    "decision_id": "586cdefa-33b7-48a8-ae61-1bd7ef76a478",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-199",
+    "decision_id": "9363e79c-09a0-479b-b615-63918830a960",
+    "score": 20,
+    "outcome": "review",
+    "hit_rules": [
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-200",
+    "decision_id": "7dbda39d-2875-45ba-8fa6-43d90bcf2a86",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-201",
+    "decision_id": "07cd56ab-16d3-4d9f-83ad-5cd1d6655d8c",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-202",
+    "decision_id": "cbf847ee-dee4-4d68-9d18-cdc0fb33f646",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-203",
+    "decision_id": "669c4403-bd1a-4c8f-bead-034a6ec122f0",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-204",
+    "decision_id": "baf1f9b1-fa34-4d60-af25-9d628b558b7f",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-205",
+    "decision_id": "4435007e-f7b3-4ea9-a165-2fc7131632a9",
+    "score": 45,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-206",
+    "decision_id": "c474cac1-e7c3-4357-b11b-2b069eef037d",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-207",
+    "decision_id": "f63a2d00-1aa7-4adf-8978-fdd65d913b7f",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-208",
+    "decision_id": "c6c03dd4-44b0-47e9-8842-3d7ca1ceece5",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-209",
+    "decision_id": "1f44aaa5-c578-42e2-8687-a79938d8dc4d",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-210",
+    "decision_id": "caf31450-c65f-46a7-90e0-3c757a220067",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "High transaction amount"
+    ]
+  },
+  {
+    "object_id": "synthetic-211",
+    "decision_id": "53abb1f7-14a8-448a-abf4-8f2a5dc4cc33",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-212",
+    "decision_id": "41a44b32-aebc-4c44-ba40-6a19618ba366",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-213",
+    "decision_id": "f43ec965-eeff-47f7-ac05-a5d97ee8ec8c",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-214",
+    "decision_id": "d9c0a2ca-f4d7-4ed8-876f-0553ef5a7389",
+    "score": 70,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-215",
+    "decision_id": "4b2f88e2-7e2e-4945-902d-792809cdf4c7",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-216",
+    "decision_id": "767a27c3-5021-48f4-8258-ed7016d83917",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-217",
+    "decision_id": "f7ee992e-9069-4db4-90e9-96f08a0e6e93",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-218",
+    "decision_id": "32e8427e-ae00-4f8b-ac28-e4cf646d1901",
+    "score": 25,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-219",
+    "decision_id": "286120d4-5b90-40fa-b796-bca21a140b06",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-220",
+    "decision_id": "dfacdfd4-3fd7-4a85-bb08-db8ccfc334c5",
+    "score": 35,
+    "outcome": "review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-221",
+    "decision_id": "777c4841-8968-4160-9435-a22f6bb98630",
+    "score": 105,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-222",
+    "decision_id": "f4048da5-fdd8-45a3-95c2-fc145283630a",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-223",
+    "decision_id": "cec58f5b-9461-44be-a543-b06a96a64e9e",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-224",
+    "decision_id": "d677f4ce-d162-4051-a3b9-a67bb8c5c359",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-225",
+    "decision_id": "b963e2c0-9054-4e2c-9f73-6e3f6ffa8ecd",
+    "score": 80,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "New account making a large payment",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-226",
+    "decision_id": "2b326ced-f34c-4506-811d-b23ddc1888a7",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-227",
+    "decision_id": "2e13a47a-84af-4891-a2c6-f8f512f014fc",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-228",
+    "decision_id": "b2810172-fceb-4070-b57c-a315d4608b6b",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-229",
+    "decision_id": "7f22f4bf-34e9-40b1-94c1-ee03a6067b1f",
+    "score": 65,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High transaction amount",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-230",
+    "decision_id": "89a0b700-9a75-4b0d-96c9-094ec80772f8",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-231",
+    "decision_id": "579c6b6f-0b01-42af-9001-9c39049ccd43",
+    "score": 105,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-232",
+    "decision_id": "02093eb6-6a34-4ca0-986e-2135cdb815fd",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-233",
+    "decision_id": "50cbf266-2118-4f68-b9e3-c18267aeed0d",
+    "score": 55,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "New account making a large payment",
+      "Foreign currency and merchant country",
+      "Large card-not-present payment"
+    ]
+  },
+  {
+    "object_id": "synthetic-234",
+    "decision_id": "4ace4570-ab3a-4ccb-bbd5-8457c3d1473f",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  },
+  {
+    "object_id": "synthetic-235",
+    "decision_id": "2d087089-7892-4274-91b6-acaf88b95ef4",
+    "score": 40,
+    "outcome": "review",
+    "hit_rules": [
+      "High supplied risk score"
+    ]
+  },
+  {
+    "object_id": "synthetic-236",
+    "decision_id": "76e4bf1a-aac8-45fd-9f62-6bf2936eab90",
+    "score": 50,
+    "outcome": "block_and_review",
+    "hit_rules": [
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-237",
+    "decision_id": "43a13462-0d71-4331-b1fd-c2c9e7054809",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-238",
+    "decision_id": "f60389d3-bac0-46d7-b9b6-63e17e9047a6",
+    "score": 85,
+    "outcome": "decline",
+    "hit_rules": [
+      "High transaction amount",
+      "High supplied risk score",
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-239",
+    "decision_id": "6b7fab20-80c8-4023-96f9-c8cc6a8cb719",
+    "score": 10,
+    "outcome": "approve",
+    "hit_rules": [
+      "Foreign currency and merchant country"
+    ]
+  },
+  {
+    "object_id": "synthetic-240",
+    "decision_id": "9c8fb2ec-1e53-4f65-b520-c48824e0db7c",
+    "score": 0,
+    "outcome": "approve",
+    "hit_rules": []
+  }
+]

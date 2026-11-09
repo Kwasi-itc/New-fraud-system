@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-03",
+  "cycle": 11,
+  "requested_outcome": "152/152",
+  "status": "incomplete; partial D19.17 implementation verified",
+  "completed_this_cycle": [],
+  "checklist": {"checked": 125, "remaining": 27, "total": 152},
+  "implementation": [
+    "Actual case service now implements decision-v1 DeliverWorkflowReceipt and ReconcileWorkflowReceipt. Existing case mutation rules, execution-wide body binding and full attempt/redrive receipts share one owner transaction and the existing receipt table. Duplicate attempts retain the original case; different bodies conflict.",
+    "Added opt-in integration-token HTTP receipt routes, bounded strict decoding and tenant authorization. RouterConfig.EnableWorkflowReceipts defaults to false and no command/deployment configuration enables it.",
+    "Added decision workflowreceipt HTTP adapter with a fixed case-service destination, explicit credential/timeout, HTTPS by default, no redirects, bounded strict response validation and echoed receipt identity. Legacy HTTP success and HTTP errors never establish receipt acceptance.",
+    "Added a public integration-test fixture that installs the real participating PostgreSQL owner definitions in generated disposable databases. The actual decision client was exercised against the actual case router/service/repositories with a committed action followed by an intentionally lost HTTP response; reconciliation recovered its case without resending.",
+    "Repaired selected existing workflow test fixtures to install the real identity owner schema needed by case contributor reads. No production behavior was bypassed to obtain passing tests."
+  ],
+  "verification": [
+    {"log": "2026-11-03_cycle11-case-final.jsonl", "top_level_passed": 6, "subtests_passed": 4, "failures": 0, "skips": 0, "race_detector": true, "scope": "New owner/HTTP receipt cases plus existing workflow grouping, idempotency, metadata validation and rollback regressions. New cases cover eight concurrent duplicates, lost-response lookup, new attempts, conflicting bodies, authority and identity rejection, and final receipt insertion failure rolling back case/link/audit writes."},
+    {"log": "2026-11-03_cycle11-client-final.jsonl", "top_level_passed": 3, "subtests_passed": 9, "failures": 0, "skips": 0, "race_detector": true, "scope": "Strict client wire protocol, destination/redirect policy and actual PostgreSQL case-owner lost-response reconciliation."}
+  ],
+  "vet": {"result": "passed", "logs": ["2026-11-03_cycle11-case-vet.log", "2026-11-03_cycle11-client-vet.log"]},
+  "remaining_requirements": [
+    "D19.17 remains open: this implements the real PostgreSQL case-action provider. It does not implement the staged MySQL case mutation owner or external add_tag/emit_event receipt receivers.",
+    "D19.19 and D19.20 still need intended scoring/outbox provider contracts and destination/receipt semantics. Repository searches found these explicitly unresolved, not existing complete receiver APIs.",
+    "D14.12 and D15.17 still require user-agreed numeric targets. Existing repository throughput measurements are historical observations explicitly disclaimed as approved SLOs.",
+    "Shared MySQL all-provider composition, trusted runtime worker identities, restricted grants, crash/uncertain-commit lifecycle acceptance and sustained load remain open."
+  ],
+  "limitations": [
+    "No checklist leaves were newly ticked; 152/152 has not been achieved.",
+    "The source-owner fixtures seed authoritative decisions and use explicit setup authority. The actual HTTP receiver verifies its configured service token and tenant allowlist; this is not D19.21 trusted-worker or D20 full runtime certification.",
+    "Lost HTTP response is covered; injected process death and uncertain database commit acknowledgement remain separate gates.",
+    "Only generated disposable databases in decision-cycle11 were used. No application reset, deployment, runtime activation or separate per-service application database was introduced."
+  ]
+}

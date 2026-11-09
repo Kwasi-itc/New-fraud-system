@@ -1,0 +1,24 @@
+go: downloading github.com/riverqueue/river v0.26.0
+go: downloading github.com/riverqueue/river/riverdriver/riverpgxv5 v0.26.0
+go: downloading github.com/riverqueue/river/riverdriver v0.26.0
+go: downloading github.com/riverqueue/river/rivertype v0.26.0
+go: downloading golang.org/x/text v0.29.0
+go: downloading github.com/riverqueue/river/rivershared v0.26.0
+go: downloading golang.org/x/sync v0.17.0
+go: downloading golang.org/x/sys v0.32.0
+go: downloading github.com/tidwall/match v1.1.1
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/cmd/migrate	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/cmd/outbox	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/cmd/server	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/cmd/worker	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access	0.018s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/app	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case	0.012s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/httpapi	0.020s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/httpapi/handlers	0.017s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability	0.008s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/ports	[no test files]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/service	0.011s [no tests to run]
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/store/postgres	0.019s [no tests to run]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/worker	[no test files]
+?   	github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlaccess	[no test files]

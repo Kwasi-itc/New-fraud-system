@@ -16,7 +16,7 @@ var ErrDispatchRejected = errors.New("provider definitively rejected dispatch")
 // DispatchWorker handles workflow, screening, scoring, outbox or callback using
 // an explicitly constructed scoped store. Its provider must implement the new
 // receipt contract; existing legacy send-only clients are deliberately not
-// adapted. Real provider registration and runtime activation remain blocked.
+// adapted. Provider registration and runtime activation must be explicit.
 type DispatchWorker struct {
 	store         *mysql.DispatchStore
 	provider      ports.ReceiptDispatcher
@@ -48,7 +48,10 @@ func (w *DispatchWorker) Claim(ctx context.Context) (*workers.DeliveryTask, erro
 	if w == nil || w.store == nil || w.provider == nil {
 		return nil, mysql.ErrOwnerContractUnavailable
 	}
-	lease, err := w.store.Claim(ctx)
+	lease, err := w.store.ClaimReconciliation(ctx)
+	if err == nil && lease == nil {
+		lease, err = w.store.Claim(ctx)
+	}
 	if err != nil || lease == nil {
 		return nil, err
 	}

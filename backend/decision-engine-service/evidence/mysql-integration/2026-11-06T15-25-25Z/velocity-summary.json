@@ -1,0 +1,108 @@
+{
+  "recordedAt": "2026-11-06T15:31:24.427Z",
+  "scope": "Disposable MySQL consumer-contract fixture; SQL and reader timings, not HTTP or ingestion throughput",
+  "rows": 50008,
+  "comparison": "Same rows, composite prefix index, parameters and half-open windows; legacy cast predicate versus indexable equality plus complete binary residual",
+  "queries": [
+    {
+      "name": "count_5m",
+      "before": {
+        "access": "ALL",
+        "key": null,
+        "estimatedRows": 49896,
+        "keyParts": [],
+        "samples": 10,
+        "medianMS": 82.587,
+        "p95MS": 180.208
+      },
+      "after": {
+        "access": "range",
+        "key": "velocity_account_time",
+        "estimatedRows": 31,
+        "keyParts": [
+          "field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value",
+          "field_x_23bf8c136ab441358a0962c48edc1974_value"
+        ],
+        "samples": 10,
+        "medianMS": 1.4135,
+        "p95MS": 4.479
+      },
+      "reader": {
+        "samples": 10,
+        "medianMS": 13.7995,
+        "p95MS": 16.698
+      },
+      "beforeAnalyze": "-> Aggregate: count(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_0e31902095f64b0488390f220bb221c1_value)  (cost=5632 rows=1) (actual time=44.4..44.4 rows=1 loops=1)\n    -> Filter: ((cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-06 11:55:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=5078 rows=5543) (actual time=0.0772..44.2 rows=31 loops=1)\n        -> Table scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875  (cost=5078 rows=49896) (actual time=0.0673..35.3 rows=50008 loops=1)\n",
+      "afterAnalyze": "-> Aggregate: count(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_0e31902095f64b0488390f220bb221c1_value)  (cost=17.3 rows=1) (actual time=2.9..2.9 rows=1 loops=1)\n    -> Filter: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = <cache>(('HOT' collate utf8mb4_0900_bin))) and (cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT'))  (cost=14.2 rows=31) (actual time=2.37..2.88 rows=31 loops=1)\n        -> Index range scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875 using velocity_account_time over (field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = unprintable_blob_value AND '2026-11-06 11:55:00.000000' <= field_x_23bf8c136ab441358a0962c48edc1974_value < '2026-11-06 12:00:00.000000'), with index condition: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-06 11:55:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=14.2 rows=31) (actual time=1.6..2.07 rows=31 loops=1)\n"
+    },
+    {
+      "name": "sum_1h",
+      "before": {
+        "access": "ALL",
+        "key": null,
+        "estimatedRows": 49896,
+        "keyParts": [],
+        "samples": 10,
+        "medianMS": 93.473,
+        "p95MS": 125.494
+      },
+      "after": {
+        "access": "range",
+        "key": "velocity_account_time",
+        "estimatedRows": 361,
+        "keyParts": [
+          "field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value",
+          "field_x_23bf8c136ab441358a0962c48edc1974_value"
+        ],
+        "samples": 10,
+        "medianMS": 4.6575,
+        "p95MS": 7.77
+      },
+      "reader": {
+        "samples": 10,
+        "medianMS": 12.158000000000001,
+        "p95MS": 16.491
+      },
+      "beforeAnalyze": "-> Aggregate: sum(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_f572515244fc4a42a7df7185f72a3678_value)  (cost=5632 rows=1) (actual time=168..168 rows=1 loops=1)\n    -> Filter: ((cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-06 11:00:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=5078 rows=5543) (actual time=0.0524..167 rows=361 loops=1)\n        -> Table scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875  (cost=5078 rows=49896) (actual time=0.0461..132 rows=50008 loops=1)\n",
+      "afterAnalyze": "-> Aggregate: sum(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_f572515244fc4a42a7df7185f72a3678_value)  (cost=199 rows=1) (actual time=3.24..3.24 rows=1 loops=1)\n    -> Filter: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = <cache>(('HOT' collate utf8mb4_0900_bin))) and (cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT'))  (cost=163 rows=361) (actual time=0.0766..3.12 rows=361 loops=1)\n        -> Index range scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875 using velocity_account_time over (field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = unprintable_blob_value AND '2026-11-06 11:00:00.000000' <= field_x_23bf8c136ab441358a0962c48edc1974_value < '2026-11-06 12:00:00.000000'), with index condition: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-06 11:00:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=163 rows=361) (actual time=0.0685..2.91 rows=361 loops=1)\n"
+    },
+    {
+      "name": "distinct_recipients_24h",
+      "before": {
+        "access": "ALL",
+        "key": null,
+        "estimatedRows": 49896,
+        "keyParts": [],
+        "samples": 10,
+        "medianMS": 143.14,
+        "p95MS": 160.286
+      },
+      "after": {
+        "access": "range",
+        "key": "velocity_account_time",
+        "estimatedRows": 10220,
+        "keyParts": [
+          "field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value",
+          "field_x_23bf8c136ab441358a0962c48edc1974_value"
+        ],
+        "samples": 10,
+        "medianMS": 28.904,
+        "p95MS": 38.301
+      },
+      "reader": {
+        "samples": 10,
+        "medianMS": 30.317500000000003,
+        "p95MS": 50.527
+      },
+      "beforeAnalyze": "-> Aggregate: count(distinct cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_1bbae16eac3c4e5fbe1bc3750db4ae66_value as char charset binary))  (cost=5632 rows=1) (actual time=160..160 rows=1 loops=1)\n    -> Filter: ((cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-05 12:00:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=5078 rows=5543) (actual time=0.12..152 rows=5001 loops=1)\n        -> Table scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875  (cost=5078 rows=49896) (actual time=0.0284..127 rows=50008 loops=1)\n",
+      "afterAnalyze": "-> Aggregate: count(distinct cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_1bbae16eac3c4e5fbe1bc3750db4ae66_value as char charset binary))  (cost=5621 rows=1) (actual time=42..42 rows=1 loops=1)\n    -> Filter: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = <cache>(('HOT' collate utf8mb4_0900_bin))) and (cast(tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value as char charset binary) = 'HOT'))  (cost=4599 rows=10220) (actual time=0.039..37.9 rows=5001 loops=1)\n        -> Index range scan on tenant_test_wallets_3971a1153c064c8fae27894a9260f875 using velocity_account_time over (field_x_ddf0b5b452e24919b5d491e6ec2b4f2f_value = unprintable_blob_value AND '2026-11-05 12:00:00.000000' <= field_x_23bf8c136ab441358a0962c48edc1974_value < '2026-11-06 12:00:00.000000'), with index condition: ((tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value >= TIMESTAMP'2026-11-05 12:00:00') and (tenant_test_wallets_3971a1153c064c8fae27894a9260f875.field_x_23bf8c136ab441358a0962c48edc1974_value < TIMESTAMP'2026-11-06 12:00:00'))  (cost=4599 rows=10220) (actual time=0.0351..35.4 rows=5001 loops=1)\n"
+    }
+  ],
+  "limitations": [
+    "Ten warm sequential samples after three warmups per SQL variant; no concurrency or sustained capacity claim",
+    "Independent deterministic oracle checks counts, sums, distinct values and actual AST fraud-rule hits",
+    "Physical table and index are consumer-contract fixtures, not evidence of owner publication or live ingestion performance",
+    "A hot account with a broad 24-hour window still reads thousands of matching historical records",
+    "500 TPS and end-to-end p95 <= 50 ms are not established by this workload"
+  ]
+}

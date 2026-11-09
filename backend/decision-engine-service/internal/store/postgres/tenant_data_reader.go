@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
@@ -152,6 +154,21 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, tenantID string,
 	if err := r.db.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
 		return nil, err
 	}
+	// SUM(bigint) and AVG(integer) are PostgreSQL numeric values. The portable
+	// evaluator consumes finite numeric scalars, not driver-specific structs.
+	if numeric, ok := value.(pgtype.Numeric); ok {
+		decoded, err := numeric.Float64Value()
+		if err != nil {
+			return nil, fmt.Errorf("decode aggregate numeric: %w", err)
+		}
+		if !decoded.Valid {
+			return nil, nil
+		}
+		if math.IsNaN(decoded.Float64) || math.IsInf(decoded.Float64, 0) {
+			return nil, fmt.Errorf("aggregate numeric is not finite")
+		}
+		return decoded.Float64, nil
+	}
 	return value, nil
 }
 
@@ -238,6 +255,15 @@ func buildAggregateExpression(name, fieldName string) (string, error) {
 }
 
 func buildAggregateFilterSQL(model ports.TenantModel, table ports.TenantModelTable, filter ports.AggregateFilter, args *[]any) (string, error) {
+	nodes := 0
+	return buildBoundedAggregateFilterSQL(model, table, filter, args, 1, &nodes)
+}
+
+func buildBoundedAggregateFilterSQL(model ports.TenantModel, table ports.TenantModelTable, filter ports.AggregateFilter, args *[]any, depth int, nodes *int) (string, error) {
+	*nodes++
+	if depth > 5 || *nodes > 50 || len(filter.Children) > 20 {
+		return "", fmt.Errorf("aggregate filter exceeds depth/node/child limit")
+	}
 	switch strings.ToLower(strings.TrimSpace(filter.Kind)) {
 	case "", "group":
 		op := strings.ToLower(strings.TrimSpace(filter.Operator))
@@ -245,15 +271,33 @@ func buildAggregateFilterSQL(model ports.TenantModel, table ports.TenantModelTab
 			op = "and"
 		}
 		switch op {
-		case "and":
+		case "not":
+			if len(filter.Children) != 1 {
+				return "", fmt.Errorf("not filter requires exactly one child")
+			}
+			part, err := buildBoundedAggregateFilterSQL(model, table, filter.Children[0], args, depth+1, nodes)
+			if err != nil {
+				return "", err
+			}
+			if part == "" {
+				part = "TRUE"
+			}
+			return "NOT (" + part + ")", nil
+		case "and", "or":
 			if len(filter.Children) == 0 {
+				if op == "or" {
+					return "FALSE", nil
+				}
 				return "", nil
 			}
 			parts := make([]string, 0, len(filter.Children))
 			for _, child := range filter.Children {
-				part, err := buildAggregateFilterSQL(model, table, child, args)
+				part, err := buildBoundedAggregateFilterSQL(model, table, child, args, depth+1, nodes)
 				if err != nil {
 					return "", err
+				}
+				if part == "" && op == "or" {
+					part = "TRUE"
 				}
 				if part != "" {
 					parts = append(parts, "("+part+")")

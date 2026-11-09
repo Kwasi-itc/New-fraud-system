@@ -99,7 +99,7 @@ func (r WorkflowExecutionRepository) CreateMany(ctx context.Context, items []wor
 	for i, v := range items {
 		values[i][7] = bindings[v.DecisionID]
 	}
-	return insertEffectBatch(ctx, r.authoringRepository, "decision_engine_workflow_executions", "id,tenant_id,workflow_id,workflow_rule_id,workflow_action_id,decision_id,scenario_id,decision_iteration_id,action_type,status,action_config,created_at", r.selectSQL(), values, ids, r.scan, func(v workflow.Execution) string { return v.ID })
+	return insertEffectBatch(ctx, r.authoringRepository, "decision_engine_workflow_executions", "id,tenant_id,workflow_id,workflow_rule_id,workflow_action_id,decision_id,scenario_id,decision_iteration_id,action_type,status,action_config,created_at", r.selectSQL(), values, ids, r.scan, func(v workflow.Execution) string { return v.ID }, func(v workflow.Execution) string { return string(v.Status) })
 }
 func (r WorkflowExecutionRepository) GetByID(ctx context.Context, tenant, id string) (workflow.Execution, error) {
 	args, err := r.ids(tenant, id)

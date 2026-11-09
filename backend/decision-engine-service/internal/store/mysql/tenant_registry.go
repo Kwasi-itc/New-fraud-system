@@ -24,10 +24,17 @@ var ErrAggregateCapability = ports.ErrAggregateCapability
 // a global evaluation snapshot. Model acquisition is outside that transaction;
 // closed/stale gates fail without falling back to HTTP or another model.
 type TenantDataReader struct {
-	configuration  *PlatformStore
-	models         ports.TenantModelReader
-	snapshot       *ports.TenantModel
-	snapshotTenant string
+	configuration   *PlatformStore
+	models          ports.TenantModelReader
+	snapshot        *ports.TenantModel
+	snapshotTenant  string
+	ownerRecordKeys bool
+	velocityReads   bool
+}
+
+func (r TenantDataReader) WithVelocitySummaries(enabled bool) TenantDataReader {
+	r.velocityReads = enabled
+	return r
 }
 
 var _ ports.TenantDataReader = TenantDataReader{}
@@ -41,7 +48,14 @@ func NewTenantDataReader(db *sql.DB, database string, tenant uuid.UUID, maxRows,
 	if models == nil {
 		return TenantDataReader{}, errors.New("published model reader required")
 	}
-	return TenantDataReader{configuration: c, models: models}, nil
+	reader := TenantDataReader{configuration: c, models: models}
+	if contract, ok := models.(interface{ PublishedRecordKeyContract() string }); ok {
+		if contract.PublishedRecordKeyContract() != "data_model_v005" {
+			return TenantDataReader{}, ErrOwnerContractUnavailable
+		}
+		reader.ownerRecordKeys = true
+	}
+	return reader, nil
 }
 func (r TenantDataReader) WithModel(tenant string, model ports.TenantModel) ports.TenantDataReader {
 	// Deep copy the supplied snapshot: callers cannot change authority or field
@@ -84,11 +98,12 @@ type registryField struct {
 	textEqualityHash string
 }
 type registryTable struct {
-	id, version uuid.UUID
-	qualified   string
-	fields      map[string]registryField
-	ordered     []string
-	lookup      string
+	id, version     uuid.UUID
+	qualified       string
+	fields          map[string]registryField
+	ordered         []string
+	lookup          string
+	ownerRecordKeys bool
 }
 
 func (r TenantDataReader) read(ctx context.Context, tenant, object string, fn func(authoringRepository, registryTable) error) error {
@@ -132,6 +147,7 @@ func (r TenantDataReader) read(ctx context.Context, tenant, object string, fn fu
 		if err != nil {
 			return err
 		}
+		resolved.ownerRecordKeys = r.ownerRecordKeys
 		return fn(repository, resolved)
 	})
 	if err != nil {

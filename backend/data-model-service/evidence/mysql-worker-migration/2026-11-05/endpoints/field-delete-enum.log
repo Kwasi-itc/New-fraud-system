@@ -1,0 +1,1 @@
+{"passed":true,"tenant":"6d59d37e-3f85-46cb-9d47-c9cd90b80f43","table":"a65cd5a9-c848-4e42-8634-0cab14900bae","checks":"enum validation, conflicts, receipts, catalog versions, dry-run, all field types, unique-text guards, metadata cleanup, row preservation"}

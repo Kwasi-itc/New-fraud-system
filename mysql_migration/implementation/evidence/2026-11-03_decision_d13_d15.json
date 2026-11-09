@@ -1,0 +1,49 @@
+{
+  "checkpoint": "2026-11-03 D13-D15 bounded index preparation and parity",
+  "status": "scoped implementation verified; parent acceptance remains open",
+  "tests": { "distinct_top_level_passed": 187, "distinct_subtests_passed": 227, "failed_in_accepted_runs": 0, "skipped_in_accepted_runs": 0, "race_enabled": true },
+  "environment": {
+    "mysql": "8.4.8, disposable tmpfs container, no published ports",
+    "postgresql": "postgres:16, disposable tmpfs container, no published ports",
+    "go": "golang:1.25.8",
+    "application_database_changed": false,
+    "application_backend": "PostgreSQL remains configured"
+  },
+  "commands": [
+    "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run Parity",
+    "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run TestHistoryPostgresMySQLGoldenFiltersPaginationAndSnoozes",
+    "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/mysqlruntime ./internal/mysqlapi ./internal/mysqlexecution ./internal/clients/datamodel",
+    "decision: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/service ./internal/migrationaudit",
+    "decision: go test -mod=readonly -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -args -update-decision-schema-manifest",
+    "owner: go test -mod=readonly -race -p 2 -count=1 -json ./internal/httpapi/handlers ./internal/store/mysql/metadata -run ScopedIndex",
+    "owner: go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/postgres -run TestScopedIndexJobsPostgres",
+    "both modules: go test -mod=readonly -p 2 -run ^$ ./...",
+    "affected packages: go vet -mod=readonly -p 2"
+  ],
+  "logs": [
+    "2026-11-03_d13-d15-parity.jsonl",
+    "2026-11-03_d13-d15-history.jsonl",
+    "2026-11-03_d13-d15-runtime.jsonl",
+    "2026-11-03_d13-preparation-unit.jsonl",
+    "2026-11-03_d13-d15-service.jsonl",
+    "2026-11-03_d13-owner-api-mysql.jsonl",
+    "2026-11-03_d13-owner-postgres.jsonl",
+    "2026-11-03_d13-decision-compile.log",
+    "2026-11-03_d13-decision-vet.log",
+    "2026-11-03_d13-owner-compile.log",
+    "2026-11-03_d13-owner-vet.log",
+    "2026-11-03_d13-manifest-update.log"
+  ],
+  "corrections_before_acceptance": [
+    "Initial snooze test expected the source evaluation API to preserve trailing whitespace. The source intentionally normalizes it; corrected the expectation and retained separate exact history-ID checks.",
+    "An owner compilation overlapped an import edit and failed. The subsequent full owner compilation and affected-package vet completed successfully."
+  ],
+  "limitations": [
+    "Target owner/worker/grant activation remains unconfigured; identity/model/provider fixtures are not production implementations.",
+    "Preparation start is a series of owner calls, not an atomic multi-job operation; reconcile accepted jobs after partial failures or unknown outcomes.",
+    "Source cancelled-job readiness semantics are retained. Registry/version validation at publish remains authoritative for physical usability.",
+    "Owner PostgreSQL migration 000009 adds a normal index build; production lock duration and deployment scheduling have not been accepted.",
+    "The indexed plan with 5000 unrelated jobs establishes only the scoped query behavior, not application throughput or shared-database capacity.",
+    "D14/D15 full provider/failure acceptance and numeric SLO/load/soak gates remain open. No deployment, cutover, commit or push was performed."
+  ]
+}

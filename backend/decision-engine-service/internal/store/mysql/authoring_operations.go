@@ -24,6 +24,8 @@ type PublicationSnapshot struct {
 type PublicationGuard func(context.Context, *sql.Tx, PublicationSnapshot) error
 type PublicationInput struct{ ScenarioID, IterationID, EventID, ReplacedEventID uuid.UUID }
 
+var ErrPublicationState = errors.New("iteration is not eligible for the requested publication transition")
+
 func (s *AuthoringStore) publication(ctx context.Context, input PublicationInput, unpublish bool, guard PublicationGuard, beforeLocks func(context.Context, *sql.Tx) error) ([]scenario.Publication, error) {
 	if s == nil || s.configuration == nil || s.authorize == nil {
 		return nil, errors.New("initialized authoring store required")
@@ -58,7 +60,7 @@ func (s *AuthoringStore) publication(ctx context.Context, input PublicationInput
 			return err
 		}
 		if unpublish && (current.LiveIterationID == nil || *current.LiveIterationID != iteration) {
-			return errors.New("iteration is not currently live")
+			return ErrPublicationState
 		}
 		if !unpublish {
 			bindings, _ := base.ids(tenant, parent, iteration)
@@ -70,7 +72,7 @@ func (s *AuthoringStore) publication(ctx context.Context, input PublicationInput
 				return err
 			}
 			if it.Status != scenario.IterationStatusCommitted {
-				return errors.New("iteration must be committed before publish")
+				return ErrPublicationState
 			}
 			rules, err := (RuleRepository{base}).ListByIteration(ctx, tenant, parent, iteration)
 			if err != nil {

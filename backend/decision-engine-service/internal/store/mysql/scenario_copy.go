@@ -146,12 +146,14 @@ func reidentifyCopy(source ScenarioCopySnapshot, input ScenarioCopyInput, at tim
 		return ScenarioCopySnapshot{}, errors.New("source live iteration missing from bounded copy snapshot")
 	}
 	ruleIDs := orderedCopyIDs(len(out.Rules))
+	ruleMapping := make(map[string]string, len(out.Rules))
 	for i := range out.Rules {
 		v := &out.Rules[i]
 		parent, ok := iterations[v.IterationID]
 		if !ok || v.TenantID != tenant {
 			return ScenarioCopySnapshot{}, ErrTenantScope
 		}
+		ruleMapping[v.ID] = ruleIDs[i]
 		v.ID, v.IterationID, v.StableRuleID = ruleIDs[i], parent, uuid.NewString()
 		v.CreatedAt, v.UpdatedAt = at, at
 	}
@@ -171,6 +173,35 @@ func reidentifyCopy(source ScenarioCopySnapshot, input ScenarioCopyInput, at tim
 				return ScenarioCopySnapshot{}, ErrTenantScope
 			}
 			child.ID, child.RuleID, child.CreatedAt, child.UpdatedAt = conditionIDs[j], v.Rule.ID, at, at
+			if child.Function == workflow.ConditionRuleHit && len(source.Iterations) > 0 {
+				var params map[string]json.RawMessage
+				if err := json.Unmarshal(child.Params, &params); err != nil {
+					return ScenarioCopySnapshot{}, err
+				}
+				for _, key := range []string{"rule_id", "rule_ids"} {
+					if raw, exists := params[key]; exists {
+						var ids []string
+						if err := json.Unmarshal(raw, &ids); err != nil {
+							return ScenarioCopySnapshot{}, err
+						}
+						for k, id := range ids {
+							mapped, ok := ruleMapping[id]
+							if !ok {
+								return ScenarioCopySnapshot{}, ErrOwnerRelationshipConflict
+							}
+							ids[k] = mapped
+						}
+						params[key], err = json.Marshal(ids)
+						if err != nil {
+							return ScenarioCopySnapshot{}, err
+						}
+					}
+				}
+				child.Params, err = json.Marshal(params)
+				if err != nil {
+					return ScenarioCopySnapshot{}, err
+				}
+			}
 		}
 		for j := range v.Actions {
 			child := &v.Actions[j]
@@ -191,12 +222,31 @@ func (s *AuthoringStore) CopyScenario(ctx context.Context, input ScenarioCopyInp
 	if dependencies == nil || publish == nil {
 		return scenario.Scenario{}, errors.New("dependency and publication preparation guards required")
 	}
+	return s.CopyScenarioWithPreparation(ctx, input, func(context.Context, ScenarioCopySnapshot) (ScenarioCopyGuard, PublicationGuard, error) {
+		return dependencies, publish, nil
+	})
+}
+
+// CopyScenarioWithPreparation resolves external dependencies and validates the
+// bounded source snapshot before opening the destination write transaction.
+// Returned guards must perform only local checks on that transaction.
+func (s *AuthoringStore) CopyScenarioWithPreparation(ctx context.Context, input ScenarioCopyInput, prepare func(context.Context, ScenarioCopySnapshot) (ScenarioCopyGuard, PublicationGuard, error)) (scenario.Scenario, error) {
+	if prepare == nil {
+		return scenario.Scenario{}, ErrOwnerContractUnavailable
+	}
 	if input.SourceID == uuid.Nil || input.DestinationID == uuid.Nil || input.SourceID == input.DestinationID {
 		return scenario.Scenario{}, ErrTenantScope
 	}
 	snapshot, err := s.copySnapshot(ctx, input.SourceID)
 	if err != nil {
 		return scenario.Scenario{}, err
+	}
+	dependencies, publish, err := prepare(ctx, snapshot)
+	if err != nil {
+		return scenario.Scenario{}, err
+	}
+	if dependencies == nil || publish == nil {
+		return scenario.Scenario{}, ErrOwnerContractUnavailable
 	}
 	c := s.configuration
 	var result scenario.Scenario

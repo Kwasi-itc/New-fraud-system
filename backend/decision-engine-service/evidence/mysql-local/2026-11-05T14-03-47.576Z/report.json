@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "error": "AssertionError [ERR_ASSERTION]: PATCH /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/scenarios/2e846d52-66f9-414a-ab7b-97bd5ba6cbe8/iterations/bc29681e-6037-463d-a607-5bccfbded71f: 404: 404 page not found\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-local-smoke.mjs:18:9)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-local-smoke.mjs:34:2",
+  "requestCount": 7
+}

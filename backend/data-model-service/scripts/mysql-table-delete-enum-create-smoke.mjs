@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+const origin=process.env.DATA_MODEL_LOCAL_ORIGIN??'http://localhost:8080';
+async function call(method,path,body,status=200,key=randomUUID()){
+ const r=await fetch(origin+path,{method,headers:{'Content-Type':'application/json','Idempotency-Key':key},body:body===undefined?undefined:JSON.stringify(body)});
+ const raw=await r.text();assert.equal(r.status,status,`${method} ${path}: ${raw}`);return raw?JSON.parse(raw):null;
+}
+function sql(query){const r=spawnSync('docker',['exec','-i','fraud-mysql-dev-mysql-1','sh','-c','MYSQL_PWD="$(cat /run/secrets/mysql_root_password)" exec mysql --protocol=socket -uroot --database=fraud --batch --skip-column-names'],{input:query,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim()}
+const hex=id=>{assert.match(id,/^[a-f0-9-]{36}$/);return `UNHEX('${id.replaceAll('-','')}')`};
+const tenant=(await call('POST','/v1/tenants',{name:'Delete/create acceptance',external_key:'delete-create-'+randomUUID()},201)).tenant.id;
+await call('POST',`/v1/tenants/${tenant}/provision`);
+const table=(await call('POST',`/v1/tenants/${tenant}/tables`,{name:'disposable_records'},201)).table;
+const createField=async(name,type,isEnum=true)=>(await call('POST',`/v1/tables/${table.id}/fields`,{name,data_type:type,is_enum:isEnum,nullable:true},201)).field;
+const string=await createField('state','string'),integer=await createField('code','int'),float=await createField('ratio','float'),plain=await createField('plain','string',false);
+const route=id=>`/v1/fields/${id}/enum-values`;
+const key=randomUUID(),body={value:'open',label:'Open',sort_order:2};
+const before=sql(`SELECT HEX(published_version) FROM fraud.data_model_physical_tables WHERE table_id=${hex(table.id)};`);
+const added=await call('POST',route(string.id),body,201,key);
+assert.equal(added.enum_value.value,'open');assert.equal(added.enum_value.field_id,string.id);
+assert.notEqual(sql(`SELECT HEX(published_version) FROM fraud.data_model_physical_tables WHERE table_id=${hex(table.id)};`),before);
+assert.deepEqual(await call('POST',route(string.id),body,201,key),added);
+await call('POST',route(string.id),{...body,label:'Changed'},409,key);
+await call('POST',route(string.id),body,409);
+await call('POST',route(plain.id),body,400);
+await call('POST',route(integer.id),{value:'1.5',label:'Invalid'},400);
+await call('POST',route(float.id),{value:'NaN',label:'Invalid'},400);
+await call('POST',route(integer.id),{value:'2',label:'Two'},201);
+await call('POST',route(float.id),{value:'2.5',label:'Two point five'},201);
+await call('POST',route(randomUUID()),body,404);
+await call('POST',route(string.id),{...body,sort_order:2147483648},400);
+const values=(await call('GET',route(string.id))).enum_values;assert.equal(values.length,1);
+await call('PATCH',`/v1/enum-values/${added.enum_value.id}`,{label:'Later label'});
+assert.deepEqual(await call('POST',route(string.id),body,201,key),added);
+const physical=sql(`SELECT physical_name FROM fraud.data_model_physical_tables WHERE table_id=${hex(table.id)};`);assert.match(physical,/^[a-z0-9_]+$/);
+const columns=Object.fromEntries(sql(`SELECT f.name,p.physical_name FROM fraud.data_model_fields f JOIN fraud.data_model_physical_fields p ON p.tenant_id=f.tenant_id AND p.table_id=f.table_id AND p.field_id=f.id WHERE f.table_id=${hex(table.id)} AND p.component='value';`).split('\n').map(s=>s.split('\t')));
+sql(`INSERT INTO fraud.${physical}(id,${columns.object_id},${columns.updated_at}) VALUES(${hex(randomUUID())},'delete-me','2026-11-04 00:00:00');`);
+const deletionKey=randomUUID();
+assert.equal((await call('DELETE',`/v1/tables/${table.id}?dry_run=true`,undefined,200,deletionKey)).performed,false);
+assert.equal(sql(`SELECT COUNT(*) FROM fraud.${physical};`),'1');
+assert.equal((await call('DELETE',`/v1/tables/${table.id}`,undefined,200,deletionKey)).performed,true);
+assert.equal((await call('DELETE',`/v1/tables/${table.id}`,undefined,200,deletionKey)).performed,true);
+assert.equal(sql(`SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='fraud' AND table_name='${physical}';`),'0');
+assert.equal(sql(`SELECT COUNT(*) FROM information_schema.triggers WHERE event_object_schema='fraud' AND event_object_table='${physical}';`),'0');
+assert.equal((await call('GET',`/v1/tenants/${tenant}/tables`)).tables.length,0);
+assert.equal((await call('GET',`/v1/tenants/${tenant}/data-model/export`)).data_model.tables.length,0);
+await call('GET',`/v1/tables/${table.id}/fields`,undefined,404);
+await call('DELETE',`/v1/tables/${table.id}`,undefined,404);
+const replacement=(await call('POST',`/v1/tenants/${tenant}/tables`,{name:table.name},201)).table;assert.notEqual(replacement.id,table.id);
+// The dependency fixture is also created through the owner API.
+await call('POST',`/v1/tenants/${tenant}/data-model/import`,{data_model:{version:'v1',tables:[{name:'blocked_records',fields:[]}],pivots:[{base_table:'blocked_records',field:'object_id'}]}});
+const blocked=(await call('GET',`/v1/tenants/${tenant}/tables`)).tables.find(t=>t.name==='blocked_records');
+const conflict=await call('DELETE',`/v1/tables/${blocked.id}`,undefined,409);assert.equal(conflict.performed,false);assert.equal(conflict.conflicts.pivots.length,1);
+console.log(JSON.stringify({passed:true,tenant,deleted:table.id,replacement:replacement.id,blocked:blocked.id,checks:'enum type validation, duplicates, publication version, original replay; dry run; populated table/trigger removal; model/list visibility; name reuse; pivot rejection'}));

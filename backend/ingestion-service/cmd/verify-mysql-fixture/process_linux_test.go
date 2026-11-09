@@ -5,10 +5,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -35,7 +37,9 @@ func TestVerifierCancelsChildProcessGroup(t *testing.T) {
 	}
 	// A minimal container PID 1 may retain a terminated zombie; it is not running.
 	data, e := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
-	if os.IsNotExist(e) {
+	// /proc can return ESRCH when the child is reaped between opening and
+	// reading stat. Both disappearance errors prove it is no longer running.
+	if os.IsNotExist(e) || errors.Is(e, syscall.ESRCH) {
 		return
 	}
 	if e != nil {

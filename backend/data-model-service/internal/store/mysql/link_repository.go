@@ -2,7 +2,9 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/datamodel"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
@@ -50,4 +52,34 @@ func (r LinkRepository) ListByTenant(ctx context.Context, id uuid.UUID) ([]datam
 // display definitions and pivot paths in the same transaction.
 func (r LinkRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.delete(ctx, "data_model_links", id)
+}
+
+// ListByIDs resolves an explicit bounded path in one query. Missing scoped
+// identities fail closed; it never searches an arbitrary tenant page.
+func (r LinkRepository) ListByIDs(ctx context.Context, ids []uuid.UUID) ([]datamodel.Link, error) {
+	if len(ids) > 100 {
+		return nil, ErrSnapshotLimit
+	}
+	unique := map[uuid.UUID]bool{}
+	args := []any{mysqlstore.UUID(r.tenant)}
+	for _, id := range ids {
+		if id == uuid.Nil {
+			return nil, sql.ErrNoRows
+		}
+		if !unique[id] {
+			unique[id] = true
+			args = append(args, mysqlstore.UUID(id))
+		}
+	}
+	if len(unique) == 0 {
+		return []datamodel.Link{}, nil
+	}
+	values, err := metadataList(ctx, r.metadataRepository, r.selectSQL()+" AND id IN ("+strings.TrimSuffix(strings.Repeat("?,", len(unique)), ",")+") ORDER BY id", args, scanLink)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) != len(unique) {
+		return nil, sql.ErrNoRows
+	}
+	return values, nil
 }

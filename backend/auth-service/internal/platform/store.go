@@ -3,7 +3,6 @@ package platform
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -11,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -60,10 +61,9 @@ func secret() string {
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
 }
-func digest(v string) []byte { h := sha256.Sum256([]byte(v)); return h[:] }
+func digest(v string) []byte { return sessioncredential.Digest(v) }
 func validSecret(v string) bool {
-	b, e := base64.RawURLEncoding.DecodeString(v)
-	return e == nil && len(b) == 32
+	return sessioncredential.Valid(v)
 }
 func validRoles(roles []string) bool {
 	if len(roles) == 0 || len(roles) > 7 {

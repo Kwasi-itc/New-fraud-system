@@ -20,7 +20,7 @@ import (
 
 func TestPostgresWorkflowHTTPIntake(t *testing.T) {
 	db := testDatabase(t, true)
-	_, tenant, inbox, _ := fixture(t, db)
+	_, tenant, inbox, _ := workflowReceiptFixture(t, db)
 	decision := seedDecision(t, db, tenant)
 	const token = "test-case-integration-token-at-least-32-characters"
 	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{
@@ -84,7 +84,7 @@ func TestPostgresWorkflowHTTPIntake(t *testing.T) {
 
 func TestPostgresWorkflowIntakeRetryAndGrouping(t *testing.T) {
 	db := testDatabase(t, true)
-	s, tenant, inbox, _ := fixture(t, db)
+	s, tenant, inbox, _ := workflowReceiptFixture(t, db)
 	decision := seedDecision(t, db, tenant)
 	ctx := serviceContext(tenant)
 	in := service.WorkflowActionInput{WorkflowExecutionID: uuid.New(), TenantID: tenant, DecisionID: decision, ActionType: "add_to_case_if_possible", ActionConfig: service.WorkflowActionConfig{InboxID: inbox.ID, Name: "Alert"}}
@@ -172,7 +172,7 @@ func TestPostgresWorkflowIntakeRetryAndGrouping(t *testing.T) {
 
 func TestPostgresWorkflowReceiptFailureRollsBack(t *testing.T) {
 	db := testDatabase(t, true)
-	s, tenant, inbox, _ := fixture(t, db)
+	s, tenant, inbox, _ := workflowReceiptFixture(t, db)
 	decision := seedDecision(t, db, tenant)
 	failInserts(t, db, "intake_receipts")
 	in := service.WorkflowActionInput{WorkflowExecutionID: uuid.New(), TenantID: tenant, DecisionID: decision, ActionType: "create_case", ActionConfig: service.WorkflowActionConfig{InboxID: inbox.ID}}

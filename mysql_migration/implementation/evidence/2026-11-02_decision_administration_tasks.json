@@ -1,0 +1,111 @@
+{
+    "date":  "2026-11-02",
+    "scope":  "Ten new decision administration API subtasks T21-T30",
+    "status":  "implemented and scoped verification passed",
+    "environment":  {
+                        "mysql":  "8.4.8",
+                        "go":  "1.25.8",
+                        "postgres":  "16 disposable fixture",
+                        "configured_application_runtime":  "PostgreSQL",
+                        "fixture":  "Private Docker network; tmpfs databases; no published database ports"
+                    },
+    "verification":  {
+                         "top_level_tests":  57,
+                         "subtests":  43,
+                         "failures":  0,
+                         "skips":  0,
+                         "race_detection":  true,
+                         "full_module_compile":  "passed",
+                         "affected_package_vet":  "passed"
+                     },
+    "tasks":  [
+                  {
+                      "task":  "T21_workflow_list",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T21_workflow_list",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T22_workflow_detail",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T22_workflow_detail",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T23_workflow_create",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T23_workflow_create",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T24_workflow_update",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T24_workflow_update",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T25_workflow_delete",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T25_workflow_delete",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T26_workflow_reorder",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T26_workflow_reorder",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T27_test_run_create",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T27_test_run_create",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T28_test_run_cancel",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T28_test_run_cancel",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T29_rule_snooze_create",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T29_rule_snooze_create",
+                      "status":  "passed"
+                  },
+                  {
+                      "task":  "T30_outbox_history",
+                      "test":  "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_administration_APIs/T30_outbox_history",
+                      "status":  "passed"
+                  }
+              ],
+    "commands":  [
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/store/mysql -run TestMySQLAdministration",
+                     "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlruntime ./internal/mysqlexecution ./internal/migrationaudit",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 ./internal/store/mysql ./internal/mysqlapi ./internal/mysqlruntime"
+                 ],
+    "evidence":  [
+                     "2026-11-02_decision-admin-runtime.jsonl",
+                     "2026-11-02_decision-admin-store.jsonl",
+                     "2026-11-02_decision-admin-compile.log",
+                     "2026-11-02_decision-admin-vet.log"
+                 ],
+    "coverage":  [
+                     "All ten named HTTP tests include authentication, foreign tenant and revocation rejection.",
+                     "Concurrent workflow creation allocates distinct positions; unrelated scenarios progress independently.",
+                     "Whole configuration/outcome replacement and reorder rollback.",
+                     "Stale workflow update waits on a measured SQL lock, then rejects changed owner state.",
+                     "Creation/cancellation/snooze faults return no provisional result and preserve prior rows.",
+                     "Inactive inbox enable denied; disable permitted with authority; denied inbox deletion rejected; missing tag provider fails closed.",
+                     "Workflow-only authority cannot perform ordinary scenario mutations.",
+                     "Allocation beyond configured collection cap and explicit list overflow."
+                 ],
+    "query_plan":  {
+                       "rows":  33,
+                       "purpose":  "Allocation correctness beyond list cap of 2; not performance acceptance",
+                       "query":  "SELECT MAX(display_order) FROM decision_engine_workflows WHERE tenant_id=? AND scenario_id=?",
+                       "mysql_explain_message":  "Select tables optimized away"
+                   },
+    "limitations":  [
+                        "PostgreSQL remains configured; MySQL application is opt-in and inactive.",
+                        "Real identity/case/tag provider integration remains pending; SQL contract fixtures are not production providers.",
+                        "Case configuration reads fail closed when a destination is unauthorized or its required provider is unavailable.",
+                        "Test-run metadata creation/cancellation does not implement comparison evaluation or statistics.",
+                        "Workflow collection/reorder obey configured row/byte caps; outbox history is a latest-N window without cursor pagination.",
+                        "No automatic retry after uncertain commits; operation reconciliation remains required.",
+                        "Remaining API/browser gaps, complete parity, production load, release and activation gates remain open.",
+                        "No production migration, deployment, commit or push."
+                    ]
+}

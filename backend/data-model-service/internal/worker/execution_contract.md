@@ -1,5 +1,11 @@
 # Index worker execution boundary
 
+Current local MySQL composition: `cmd/mysql-worker` wires these contracts to
+durable deliveries, managed physical DDL, publication, retry and bounded
+maintenance. See [MySQL worker status](../../MYSQL_WORKER_STATUS.md) for tested
+behavior and deployment scope. The staging notes below describe the original
+interface/component changes; production River cutover remains separate.
+
 `ports.IndexJobExecutionStore` separates attempt/outcome metadata transactions
 from physical DDL. The runner receives a committed claim, reads the owner tenant
 and table, checks both identities and the recorded table name, performs inspection

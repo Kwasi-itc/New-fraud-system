@@ -87,6 +87,9 @@ func TestMySQLReleaseRuntimeGrantBoundaryAndWorkerDispatch(t *testing.T) {
 				t.Fatal("key-column privilege expanded to receipt body")
 			}
 			if role == "api" {
+				if _, err := db.ExecContext(ctx, "DELETE FROM "+schema+".decision_engine_scenario_live_iterations WHERE scenario_id=UUID_TO_BIN(UUID())"); err != nil {
+					t.Fatal("API cannot replace the current publication pointer", err)
+				}
 				if _, err := db.ExecContext(ctx, "DELETE FROM "+schema+".decision_engine_effect_job_deliveries WHERE id=UUID_TO_BIN(UUID())"); err == nil {
 					t.Fatal("API can clean deliveries")
 				}
@@ -94,6 +97,9 @@ func TestMySQLReleaseRuntimeGrantBoundaryAndWorkerDispatch(t *testing.T) {
 					t.Fatal("API can forge send intent")
 				}
 				return
+			}
+			if _, err := db.ExecContext(ctx, "DELETE FROM "+schema+".decision_engine_scenario_live_iterations WHERE scenario_id=UUID_TO_BIN(UUID())"); err == nil {
+				t.Fatal("worker can erase the current publication pointer")
 			}
 			owner, err := NewQueuedEffectStore(db, f.database, f.tenant, 500, 2<<20, allowPlatformFixture, nil, effectQueuePolicies())
 			if err != nil {

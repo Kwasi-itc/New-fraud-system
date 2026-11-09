@@ -1,0 +1,22 @@
+{
+  "startedAt": "2026-11-05T09:30:31.540Z",
+  "finishedAt": "2026-11-05T09:31:02.581Z",
+  "origin": "http://localhost:8080",
+  "container": "fraud-mysql-dev-mysql-1",
+  "tenant": "42c758b0-59fb-4791-8f22-d857973eb5d0",
+  "table": "7622fd57-244c-485f-8e9e-bc10c752f254",
+  "job": "07831dec-e4ad-422c-bd16-9d3e64069d6e",
+  "requested": {
+    "index_type": "search",
+    "columns": [
+      "score"
+    ]
+  },
+  "observationWindowMs": 15000,
+  "before": "pending\t0\tavailable\t0",
+  "after": "pending\t0\tavailable\t0",
+  "jobStatus": "pending",
+  "physicalIndexRows": 0,
+  "passed": false,
+  "meaning": "Pass requires actual worker completion and a physical native index. Pending/available rows alone prove queueing, not execution."
+}

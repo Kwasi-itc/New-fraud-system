@@ -13,6 +13,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/work"
 )
 
@@ -21,6 +22,17 @@ func Open(ctx context.Context, c Config, worker bool) (*Service, error) {
 		return nil, err
 	}
 	password := os.Getenv("INGESTION_RUNTIME_PASSWORD")
+	if c.Authority == "local-mysql-development" {
+		secret := "ingestion_api_password"
+		if worker {
+			secret = "ingestion_worker_password"
+		}
+		var err error
+		password, err = LocalSecret(secret)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if password == "" {
 		return nil, errors.New("runtime password required")
 	}
@@ -42,11 +54,30 @@ func Open(ctx context.Context, c Config, worker bool) (*Service, error) {
 
 // Serve joins graceful shutdown before returning and closes no caller-owned pool.
 func (s *Service) Serve(ctx context.Context, listener net.Listener, logger *slog.Logger, started func() error) error {
-	router, err := httpapi.NewWriteWorkRouter(logger, httpapi.RouterConfig{AuthMode: "token", AuthToken: s.Config.Token, WritePathConcurrencyLimit: s.Config.WriteConcurrency, WritePathOverloadMode: "defer_async"}, s, s, Uploads{s}, Deferred{s}, s.Config.BodyBytes, store.WithServiceCredential, func(ctx context.Context) error { return s.Check(ctx, false) })
+	if err := s.Config.Validate(); err != nil {
+		return err
+	}
+	var origins []string
+	if s.Config.Authority == "local-mysql-development" {
+		origin, err := localdev.Origin(os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN"))
+		if err != nil {
+			return err
+		}
+		origins = []string{origin}
+	}
+	router, err := httpapi.NewWriteWorkRouter(logger, httpapi.RouterConfig{AuthMode: "token", AuthToken: s.Config.Token, AllowedOrigins: origins, WritePathConcurrencyLimit: s.Config.WriteConcurrency, WritePathOverloadMode: "defer_async"}, s, s, Uploads{s}, Deferred{s}, s.Config.BodyBytes, store.WithServiceCredential, func(ctx context.Context) error { return s.Check(ctx, false) })
 	if err != nil {
 		return err
 	}
-	server := &http.Server{Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 30 * time.Second}
+	var handler http.Handler = router
+	if s.Config.Authority == "local-mysql-development" {
+		handler, err = localdev.WithoutLogin(router, os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN"), s.Config.Token)
+		if err != nil {
+			return err
+		}
+		logger.Warn("local MySQL development: HTTP authentication disabled; tenant scope retained")
+	}
+	server := &http.Server{Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 30 * time.Second}
 	if err = started(); err != nil {
 		return err
 	}

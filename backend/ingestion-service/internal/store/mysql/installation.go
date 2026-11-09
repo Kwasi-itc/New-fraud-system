@@ -6,6 +6,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/velocity"
 )
 
 // InstallationStatements is the ordered source manifest. Cross-owner data-model
@@ -84,6 +85,13 @@ func InstallationStatements(database string) ([]migrations.Step, error) {
 		return nil, err
 	}
 	add("ingestion_v005_work_redrives", "ingestion_work_redrives", redrive)
+	velocitySQL, err := velocity.Schema(database)
+	if err != nil {
+		return nil, err
+	}
+	for i, name := range []string{"ingestion_velocity_definitions", "ingestion_velocity_buckets"} {
+		add(fmt.Sprintf("ingestion_v006_velocity_%d", i+1), name, velocitySQL[i])
+	}
 	return steps, nil
 }
 

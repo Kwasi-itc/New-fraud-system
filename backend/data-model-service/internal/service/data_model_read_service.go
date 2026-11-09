@@ -113,3 +113,8 @@ func buildRevisionID(record tenant.Tenant, migrations []datamodel.TenantSchemaMi
 
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+// PublishedRevisionID computes the public revision from one consistent tenant snapshot.
+func PublishedRevisionID(record tenant.Tenant, migrations []datamodel.TenantSchemaMigration) string {
+	return buildRevisionID(record, migrations)
+}

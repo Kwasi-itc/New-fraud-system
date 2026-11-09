@@ -1,5 +1,13 @@
 module github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service
 
+require github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service => ../case-manager-service
+
+require github.com/Kwasi-itc/New-fraud-system/backend/auth-service v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/auth-service => ../auth-service
+
 go 1.25.0
 
 require (
@@ -26,7 +34,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -59,7 +66,6 @@ require (
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -71,3 +77,15 @@ require github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore v0.0.0
 replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator
 
 replace github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore => ../mysqlstore
+
+require (
+	github.com/Kwasi-itc/New-fraud-system/backend/screening-service v0.0.0
+	github.com/go-sql-driver/mysql v1.9.3
+	golang.org/x/text v0.34.0
+)
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/screening-service => ../screening-service
+
+require github.com/Kwasi-itc/New-fraud-system/backend/data-model-service v0.0.0
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/data-model-service => ../data-model-service

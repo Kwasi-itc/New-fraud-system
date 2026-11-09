@@ -1,0 +1,1861 @@
+﻿=== RUN   TestFrozenCreationReceiptUpgrade
+--- PASS: TestFrozenCreationReceiptUpgrade (2.98s)
+=== RUN   TestFrozenReferenceArtifact
+--- PASS: TestFrozenReferenceArtifact (0.71s)
+=== RUN   TestReferenceCommandBoundary
+--- PASS: TestReferenceCommandBoundary (0.13s)
+=== RUN   TestFrozenDeliveryRetryUpgrade
+--- PASS: TestFrozenDeliveryRetryUpgrade (1.23s)
+=== RUN   TestReferenceArtifactRoundTrip
+    main_test.go:198: context deadline exceeded
+        DDL lock cleanup failed; reconcile operation outcome
+--- FAIL: TestReferenceArtifactRoundTrip (63.92s)
+=== RUN   TestFrozenOwnerResultUpgrade
+--- PASS: TestFrozenOwnerResultUpgrade (4.16s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/build-mysql-reference	73.789s
+=== RUN   TestVerifyReviewedAccountsMySQL
+    account_policies_integration_test.go:185: context deadline exceeded
+--- FAIL: TestVerifyReviewedAccountsMySQL (94.53s)
+=== RUN   TestAccountPoliciesDocument
+=== RUN   TestAccountPoliciesDocument/oversize
+=== RUN   TestAccountPoliciesDocument/deep
+=== RUN   TestAccountPoliciesDocument/null
+=== RUN   TestAccountPoliciesDocument/wrong_database
+=== RUN   TestAccountPoliciesDocument/unknown
+=== RUN   TestAccountPoliciesDocument/duplicate
+=== RUN   TestAccountPoliciesDocument/duplicate_privilege
+=== RUN   TestAccountPoliciesDocument/trailing
+--- PASS: TestAccountPoliciesDocument (0.06s)
+    --- PASS: TestAccountPoliciesDocument/oversize (0.00s)
+    --- PASS: TestAccountPoliciesDocument/deep (0.00s)
+    --- PASS: TestAccountPoliciesDocument/null (0.00s)
+    --- PASS: TestAccountPoliciesDocument/wrong_database (0.00s)
+    --- PASS: TestAccountPoliciesDocument/unknown (0.00s)
+    --- PASS: TestAccountPoliciesDocument/duplicate (0.00s)
+    --- PASS: TestAccountPoliciesDocument/duplicate_privilege (0.00s)
+    --- PASS: TestAccountPoliciesDocument/trailing (0.00s)
+=== RUN   TestValidatePlanWithoutDatabase
+--- PASS: TestValidatePlanWithoutDatabase (0.02s)
+FAIL
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/migrate-mysql	95.051s
+=== RUN   TestRecoveryCommandMySQL
+--- PASS: TestRecoveryCommandMySQL (10.57s)
+=== RUN   TestRecoveryCommandValidation
+--- PASS: TestRecoveryCommandValidation (0.06s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/reconcile-physical-mysql	12.755s
+=== RUN   TestInspectionCommandMySQL
+--- PASS: TestInspectionCommandMySQL (10.36s)
+=== RUN   TestInspectionCommandValidation
+--- PASS: TestInspectionCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/inspect-deliveries-mysql	11.805s
+=== RUN   TestRedriveCommandMySQL
+--- PASS: TestRedriveCommandMySQL (10.71s)
+=== RUN   TestRedriveCommandValidation
+--- PASS: TestRedriveCommandValidation (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/redrive-delivery-mysql	12.133s
+=== RUN   TestBuildIngestion
+--- PASS: TestBuildIngestion (0.10s)
+=== RUN   TestBuildIngestionRejectsInconsistentOwnership
+--- PASS: TestBuildIngestionRejectsInconsistentOwnership (0.05s)
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/table
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/field
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/type
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/value
+=== RUN   TestBuildIngestionRejectsLossyUTF8Encoding/label
+--- PASS: TestBuildIngestionRejectsLossyUTF8Encoding (0.09s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/table (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/field (0.01s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/type (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/value (0.00s)
+    --- PASS: TestBuildIngestionRejectsLossyUTF8Encoding/label (0.00s)
+=== RUN   TestPrepareIngestionVersionLifecycle
+--- PASS: TestPrepareIngestionVersionLifecycle (0.05s)
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/table
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/version
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/json
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8
+=== RUN   TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing
+--- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator (0.19s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/tenant (0.04s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/table (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/version (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/json (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/utf8 (0.00s)
+    --- PASS: TestPrepareIngestionRejectsInvalidPriorAndGenerator/trailing (0.00s)
+=== RUN   TestIngestionPayloadSemanticComparison
+=== RUN   TestIngestionPayloadSemanticComparison/object_order
+=== RUN   TestIngestionPayloadSemanticComparison/escape
+=== RUN   TestIngestionPayloadSemanticComparison/array_order
+=== RUN   TestIngestionPayloadSemanticComparison/null_array
+=== RUN   TestIngestionPayloadSemanticComparison/null_object
+=== RUN   TestIngestionPayloadSemanticComparison/missing
+=== RUN   TestIngestionPayloadSemanticComparison/extra
+=== RUN   TestIngestionPayloadSemanticComparison/numeric_string
+=== RUN   TestIngestionPayloadSemanticComparison/large_number
+--- PASS: TestIngestionPayloadSemanticComparison (0.01s)
+    --- PASS: TestIngestionPayloadSemanticComparison/object_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/escape (0.01s)
+    --- PASS: TestIngestionPayloadSemanticComparison/array_order (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_array (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/null_object (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/missing (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/extra (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/numeric_string (0.00s)
+    --- PASS: TestIngestionPayloadSemanticComparison/large_number (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/contract	2.721s
+=== RUN   TestIndexJobOutcomeValidation
+=== RUN   TestIndexJobOutcomeValidation/not_running
+=== RUN   TestIndexJobOutcomeValidation/history_identity
+=== RUN   TestIndexJobOutcomeValidation/wrong_job
+=== RUN   TestIndexJobOutcomeValidation/wrong_resource
+=== RUN   TestIndexJobOutcomeValidation/zero_timestamp
+=== RUN   TestIndexJobOutcomeValidation/wrong_operation
+=== RUN   TestIndexJobOutcomeValidation/success_with_error
+=== RUN   TestIndexJobOutcomeValidation/success_with_retry
+=== RUN   TestIndexJobOutcomeValidation/zero_job
+=== RUN   TestIndexJobOutcomeValidation/zero_tenant
+=== RUN   TestIndexJobOutcomeValidation/zero_attempt
+=== RUN   TestIndexJobOutcomeValidation/wrong_tenant
+=== RUN   TestIndexJobOutcomeValidation/invalid_json
+=== RUN   TestIndexJobOutcomeValidation/invalid_status
+--- PASS: TestIndexJobOutcomeValidation (0.02s)
+    --- PASS: TestIndexJobOutcomeValidation/not_running (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/history_identity (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_resource (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_timestamp (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_operation (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/success_with_error (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/success_with_retry (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_job (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/zero_attempt (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/wrong_tenant (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_json (0.00s)
+    --- PASS: TestIndexJobOutcomeValidation/invalid_status (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports	1.473s
+=== RUN   TestDeliveryMaintenance
+=== RUN   TestDeliveryMaintenance/locked_pages_advance_independent_cursors_across_paced_cycles
+=== RUN   TestDeliveryMaintenance/exhausted_stream_waits_until_next_cycle_while_other_advances
+=== RUN   TestDeliveryMaintenance/partial_failure_is_fatal_and_retains_evidence
+=== RUN   TestDeliveryMaintenance/timeout_cannot_be_swallowed_and_callback_is_joined
+=== RUN   TestDeliveryMaintenance/cancellation_during_wait_makes_no_extra_call
+=== RUN   TestDeliveryMaintenance/invalid_configuration_and_cancelled_start
+--- PASS: TestDeliveryMaintenance (0.09s)
+    --- PASS: TestDeliveryMaintenance/locked_pages_advance_independent_cursors_across_paced_cycles (0.01s)
+    --- PASS: TestDeliveryMaintenance/exhausted_stream_waits_until_next_cycle_while_other_advances (0.04s)
+    --- PASS: TestDeliveryMaintenance/partial_failure_is_fatal_and_retains_evidence (0.00s)
+    --- PASS: TestDeliveryMaintenance/timeout_cannot_be_swallowed_and_callback_is_joined (0.00s)
+    --- PASS: TestDeliveryMaintenance/cancellation_during_wait_makes_no_extra_call (0.01s)
+    --- PASS: TestDeliveryMaintenance/invalid_configuration_and_cancelled_start (0.00s)
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed
+=== RUN   TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled
+--- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery (0.05s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/existing_at_limit (0.04s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/missing_at_limit (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/applied (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/failed (0.00s)
+    --- PASS: TestRunnerRecoveryAtAttemptLimitAndTerminalRedelivery/cancelled (0.00s)
+=== RUN   TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== PAUSE TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+=== RUN   TestRunnerRunJobReschedulesBeforeFinalFailure
+=== PAUSE TestRunnerRunJobReschedulesBeforeFinalFailure
+=== RUN   TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== PAUSE TestRunnerRunJobMarksFailedAfterMaxAttempts
+=== RUN   TestRunnerRunJobReturnsStartError
+=== PAUSE TestRunnerRunJobReturnsStartError
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/applied
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/retry
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant
+=== RUN   TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup
+--- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure (0.14s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/applied (0.03s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/retry (0.03s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/terminal (0.01s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/missing_table (0.00s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/wrong_tenant (0.01s)
+    --- PASS: TestRunnerDoesNotAcknowledgeOutcomeFailure/lookup (0.00s)
+=== RUN   TestRunnerTransportOutcome
+=== RUN   TestRunnerTransportOutcome/applied
+=== RUN   TestRunnerTransportOutcome/retry
+=== RUN   TestRunnerTransportOutcome/exhausted
+=== RUN   TestRunnerTransportOutcome/validation
+--- PASS: TestRunnerTransportOutcome (0.03s)
+    --- PASS: TestRunnerTransportOutcome/applied (0.00s)
+    --- PASS: TestRunnerTransportOutcome/retry (0.00s)
+    --- PASS: TestRunnerTransportOutcome/exhausted (0.00s)
+    --- PASS: TestRunnerTransportOutcome/validation (0.00s)
+=== RUN   TestRunnerRequiresIndexPostcondition
+=== RUN   TestRunnerRequiresIndexPostcondition/created
+=== RUN   TestRunnerRequiresIndexPostcondition/still_missing
+=== RUN   TestRunnerRequiresIndexPostcondition/changed_identity
+=== RUN   TestRunnerRequiresIndexPostcondition/empty_identity
+=== RUN   TestRunnerRequiresIndexPostcondition/inspection_error
+=== RUN   TestRunnerRequiresIndexPostcondition/exhausted
+=== RUN   TestRunnerRequiresIndexPostcondition/outcome_error
+=== RUN   TestRunnerRequiresIndexPostcondition/existing_empty_identity
+--- PASS: TestRunnerRequiresIndexPostcondition (0.03s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/created (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/still_missing (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/changed_identity (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/empty_identity (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/inspection_error (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/exhausted (0.00s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/outcome_error (0.01s)
+    --- PASS: TestRunnerRequiresIndexPostcondition/existing_empty_identity (0.00s)
+=== CONT  TestRunnerRunJobReschedulesBeforeFinalFailure
+--- PASS: TestRunnerRunJobReschedulesBeforeFinalFailure (0.00s)
+=== CONT  TestRunnerRunJobMarksFailedAfterMaxAttempts
+--- PASS: TestRunnerRunJobMarksFailedAfterMaxAttempts (0.00s)
+=== CONT  TestRunnerRunJobReturnsStartError
+--- PASS: TestRunnerRunJobReturnsStartError (0.00s)
+=== CONT  TestRunnerRunJobMarksAppliedAndLogsSchemaChange
+--- PASS: TestRunnerRunJobMarksAppliedAndLogsSchemaChange (0.02s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker	2.097s
+=== RUN   TestLocalAuthorForwardingContract
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+--- PASS: TestLocalAuthorForwardingContract (0.30s)
+=== RUN   TestLocalAuthorTransportFailures
+=== RUN   TestLocalAuthorTransportFailures/missing_secret
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+=== RUN   TestLocalAuthorTransportFailures/redirect
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+=== RUN   TestLocalAuthorTransportFailures/oversize
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+=== RUN   TestLocalAuthorTransportFailures/cancelled
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+--- PASS: TestLocalAuthorTransportFailures (0.75s)
+    --- PASS: TestLocalAuthorTransportFailures/missing_secret (0.01s)
+    --- PASS: TestLocalAuthorTransportFailures/redirect (0.01s)
+    --- PASS: TestLocalAuthorTransportFailures/oversize (0.72s)
+    --- PASS: TestLocalAuthorTransportFailures/cancelled (0.00s)
+=== RUN   TestLocalAuthorNewResourceRoutes
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (1 handlers)
+--- PASS: TestLocalAuthorNewResourceRoutes (0.02s)
+=== RUN   TestRemainingRoutesRequirePrivateAuthority
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func4 (3 handlers)
+[GIN-debug] DELETE /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func5 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func6 (3 handlers)
+[GIN-debug] DELETE /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func7 (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func8 (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func9 (3 handlers)
+[GIN-debug] DELETE /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func10 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func11 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func12 (3 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func13 (3 handlers)
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.func3 (3 handlers)
+--- PASS: TestRemainingRoutesRequirePrivateAuthority (0.00s)
+=== RUN   TestLocalAuthorBoundary
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func4 (3 handlers)
+[GIN-debug] DELETE /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func5 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func6 (3 handlers)
+[GIN-debug] DELETE /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func7 (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func8 (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func9 (3 handlers)
+[GIN-debug] DELETE /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func10 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func11 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func12 (3 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func13 (3 handlers)
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.func3 (3 handlers)
+=== RUN   TestLocalAuthorBoundary/no_token
+=== RUN   TestLocalAuthorBoundary/wrong_token
+=== RUN   TestLocalAuthorBoundary/invalid_tenant
+=== RUN   TestLocalAuthorBoundary/zero_tenant
+=== RUN   TestLocalAuthorBoundary/invalid_body
+=== RUN   TestLocalAuthorBoundary/invalid_operation
+--- PASS: TestLocalAuthorBoundary (0.01s)
+    --- PASS: TestLocalAuthorBoundary/no_token (0.00s)
+    --- PASS: TestLocalAuthorBoundary/wrong_token (0.00s)
+    --- PASS: TestLocalAuthorBoundary/invalid_tenant (0.01s)
+    --- PASS: TestLocalAuthorBoundary/zero_tenant (0.00s)
+    --- PASS: TestLocalAuthorBoundary/invalid_body (0.00s)
+    --- PASS: TestLocalAuthorBoundary/invalid_operation (0.00s)
+=== RUN   TestCatalogMutationHandlers
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+--- PASS: TestCatalogMutationHandlers (0.01s)
+=== RUN   TestLocalDisplayRoutes
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+2026/11/05 08:32:35 ERROR local presentation update failed error="provide 1 to 100 records"
+--- PASS: TestLocalDisplayRoutes (0.01s)
+=== RUN   TestLocalHTTPBoundary
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /docs                     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func1 (3 handlers)
+[GIN-debug] GET    /openapi.json             --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func2 (3 handlers)
+[GIN-debug] GET    /openapi.yaml             --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func3 (3 handlers)
+[GIN-debug] GET    /healthz                  --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalHealth.func1 (3 handlers)
+[GIN-debug] GET    /readyz                   --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalHealth.localReadyHandler.func2 (3 handlers)
+[GIN-debug] GET    /v1/tenants               --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).List-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants               --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Create-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Get-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/provision --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Provision-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.newLocalRouter.localModelHandler.func2 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/schema-change-log --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/schema-migrations --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/index-jobs/:jobId     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+=== RUN   TestLocalHTTPBoundary//docs
+=== RUN   TestLocalHTTPBoundary//openapi.json
+=== RUN   TestLocalHTTPBoundary//openapi.yaml
+=== RUN   TestLocalHTTPBoundary//healthz
+=== RUN   TestLocalHTTPBoundary//v1/tenants/not-a-uuid
+=== RUN   TestLocalHTTPBoundary//v1/tenants/00000000-0000-0000-0000-000000000000
+=== RUN   TestLocalHTTPBoundary//v1/tenants/984df53a-6868-4ef1-877d-dc4f5577a678http://evil.example
+=== RUN   TestLocalHTTPBoundary//v1/tenants/not-a-uuid/data-model
+=== RUN   TestLocalHTTPBoundary//v1/tenants/00000000-0000-0000-0000-000000000000/data-model
+=== RUN   TestLocalHTTPBoundary//docshttp://evil.example
+=== RUN   TestLocalHTTPBoundary//docscross-site
+--- PASS: TestLocalHTTPBoundary (1.11s)
+    --- PASS: TestLocalHTTPBoundary//docs (0.00s)
+    --- PASS: TestLocalHTTPBoundary//openapi.json (0.68s)
+    --- PASS: TestLocalHTTPBoundary//openapi.yaml (0.01s)
+    --- PASS: TestLocalHTTPBoundary//healthz (0.00s)
+    --- PASS: TestLocalHTTPBoundary//v1/tenants/not-a-uuid (0.00s)
+    --- PASS: TestLocalHTTPBoundary//v1/tenants/00000000-0000-0000-0000-000000000000 (0.00s)
+    --- PASS: TestLocalHTTPBoundary//v1/tenants/984df53a-6868-4ef1-877d-dc4f5577a678http://evil.example (0.00s)
+    --- PASS: TestLocalHTTPBoundary//v1/tenants/not-a-uuid/data-model (0.00s)
+    --- PASS: TestLocalHTTPBoundary//v1/tenants/00000000-0000-0000-0000-000000000000/data-model (0.00s)
+    --- PASS: TestLocalHTTPBoundary//docshttp://evil.example (0.00s)
+    --- PASS: TestLocalHTTPBoundary//docscross-site (0.00s)
+=== RUN   TestPortableMetadataCommitAndRollback
+=== RUN   TestPortableMetadataCommitAndRollback/authority
+=== RUN   TestPortableMetadataCommitAndRollback/cancellation
+=== RUN   TestPortableMetadataCommitAndRollback/completion_audit_failure_rolls_back_all
+--- PASS: TestPortableMetadataCommitAndRollback (8.11s)
+    --- PASS: TestPortableMetadataCommitAndRollback/authority (0.20s)
+    --- PASS: TestPortableMetadataCommitAndRollback/cancellation (0.13s)
+    --- PASS: TestPortableMetadataCommitAndRollback/completion_audit_failure_rolls_back_all (0.63s)
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/unsupported_type
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/missing_caption
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/duplicate_names
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/bad_enum
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/invalid_pivot
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/unbacked_navigation
+=== RUN   TestPortablePreflightRejectsWholeInvalidGraph/duplicate_options
+--- PASS: TestPortablePreflightRejectsWholeInvalidGraph (0.01s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/unsupported_type (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/missing_caption (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/duplicate_names (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/bad_enum (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/invalid_pivot (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/unbacked_navigation (0.00s)
+    --- PASS: TestPortablePreflightRejectsWholeInvalidGraph/duplicate_options (0.00s)
+=== RUN   TestLocalPortableHTTP
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+--- PASS: TestLocalPortableHTTP (0.04s)
+=== RUN   TestRemainingRelationshipTransactions
+--- PASS: TestRemainingRelationshipTransactions (4.32s)
+=== RUN   TestLocalRouteInventory
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /docs                     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func1 (3 handlers)
+[GIN-debug] GET    /openapi.json             --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func2 (3 handlers)
+[GIN-debug] GET    /openapi.yaml             --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalDocs.func3 (3 handlers)
+[GIN-debug] GET    /healthz                  --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalHealth.func1 (3 handlers)
+[GIN-debug] GET    /readyz                   --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalHealth.localReadyHandler.func2 (3 handlers)
+[GIN-debug] GET    /v1/tenants               --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).List-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants               --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Create-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Get-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/provision --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localTenantHandler).Provision-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.newLocalRouter.localModelHandler.func2 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/schema-change-log --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/schema-migrations --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] GET    /v1/index-jobs/:jobId     --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.mountLocalRead.func1 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] DELETE /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorClient).Forward-fm (3 handlers)
+--- PASS: TestLocalRouteInventory (0.35s)
+=== RUN   TestLocalAuthorHandlersInvokeScopedWorkflow
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+--- PASS: TestLocalAuthorHandlersInvokeScopedWorkflow (0.00s)
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /v1/tenants/:tenantId/tables --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateTable-fm (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/fields --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateTable-fm (3 handlers)
+[GIN-debug] PATCH  /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateField-fm (3 handlers)
+[GIN-debug] DELETE /v1/fields/:fieldId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteField-fm (3 handlers)
+[GIN-debug] PATCH  /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).UpdateEnum-fm (3 handlers)
+[GIN-debug] DELETE /v1/enum-values/:enumValueId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteEnum-fm (3 handlers)
+[GIN-debug] GET    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).GetDisplay-fm (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/display-settings --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).SaveDisplay-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/record-displays --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ReadDisplays-fm (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model/export --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ExportModel-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/data-model/import --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).ImportModel-fm (3 handlers)
+[GIN-debug] DELETE /v1/tables/:tableId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).DeleteTable-fm (3 handlers)
+[GIN-debug] POST   /v1/fields/:fieldId/enum-values --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.(*localAuthorHandler).CreateEnum-fm (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/links --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func4 (3 handlers)
+[GIN-debug] DELETE /v1/links/:linkId         --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func5 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/pivots --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func6 (3 handlers)
+[GIN-debug] DELETE /v1/pivots/:pivotId       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func7 (3 handlers)
+[GIN-debug] PUT    /v1/tables/:tableId/options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func8 (3 handlers)
+[GIN-debug] POST   /v1/tables/:tableId/navigation-options --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func9 (3 handlers)
+[GIN-debug] DELETE /v1/navigation-options/:navigationOptionId --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func1.func10 (3 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func11 (3 handlers)
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func12 (3 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.registerLocalRemaining.func2.func13 (3 handlers)
+[GIN-debug] GET    /v1/admin/reconcile       --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.registerLocalRemaining.func3 (3 handlers)
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/invalid{"alias":"x"}
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x","name":"ignored"}
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x"}_{}
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{}
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111null
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x"}
+=== RUN   TestLocalMutationValidationBeforeDatabaseAccess/POST/v1/tables/11111111-1111-4111-8111-111111111111/fields{"name":"score","data_type":"int"}
+--- PASS: TestLocalMutationValidationBeforeDatabaseAccess (0.01s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/invalid{"alias":"x"} (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x","name":"ignored"} (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x"}_{} (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{} (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111null (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/PATCH/v1/tables/11111111-1111-4111-8111-111111111111{"alias":"x"} (0.00s)
+    --- PASS: TestLocalMutationValidationBeforeDatabaseAccess/POST/v1/tables/11111111-1111-4111-8111-111111111111/fields{"name":"score","data_type":"int"} (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime	16.360s
+=== RUN   TestDeliveryInspectionBounds
+--- PASS: TestDeliveryInspectionBounds (0.00s)
+=== RUN   TestDeliveryRedriveValidation
+--- PASS: TestDeliveryRedriveValidation (0.00s)
+=== RUN   TestDisplayPublicationManagerScope
+--- PASS: TestDisplayPublicationManagerScope (0.00s)
+=== RUN   TestDisplayRecordQueryUsesExactKeysAndBoundedProjection
+--- PASS: TestDisplayRecordQueryUsesExactKeysAndBoundedProjection (0.00s)
+=== RUN   TestMetadataPublicationManagerBoundaries
+=== RUN   TestMetadataPublicationManagerBoundaries/no_operation
+=== RUN   TestMetadataPublicationManagerBoundaries/no_hash
+=== RUN   TestMetadataPublicationManagerBoundaries/any_condition
+=== RUN   TestMetadataPublicationManagerBoundaries/absent_condition
+=== RUN   TestMetadataPublicationManagerBoundaries/no_version
+=== RUN   TestMetadataPublicationManagerBoundaries/foreign_tenant
+=== RUN   TestMetadataPublicationManagerBoundaries/no_actor
+=== RUN   TestMetadataPublicationManagerBoundaries/no_table
+--- PASS: TestMetadataPublicationManagerBoundaries (0.01s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/no_operation (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/no_hash (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/any_condition (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/absent_condition (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/no_version (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/foreign_tenant (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/no_actor (0.00s)
+    --- PASS: TestMetadataPublicationManagerBoundaries/no_table (0.00s)
+=== RUN   TestMetadataResultWireContract
+--- PASS: TestMetadataResultWireContract (0.00s)
+=== RUN   TestCheckedNullabilityRetainsLegacyPlanPrecondition
+--- PASS: TestCheckedNullabilityRetainsLegacyPlanPrecondition (0.00s)
+=== RUN   TestEnumFieldsUseNativeBaseColumns
+--- PASS: TestEnumFieldsUseNativeBaseColumns (0.00s)
+=== RUN   TestPhysicalCreationPlan
+=== RUN   TestPhysicalCreationPlan/missing_identity
+=== RUN   TestPhysicalCreationPlan/version
+=== RUN   TestPhysicalCreationPlan/tenant
+=== RUN   TestPhysicalCreationPlan/table
+=== RUN   TestPhysicalCreationPlan/column
+=== RUN   TestPhysicalCreationPlan/definer
+=== RUN   TestPhysicalCreationPlan/sql
+=== RUN   TestPhysicalCreationPlan/kind
+=== RUN   TestPhysicalCreationPlan/name
+=== RUN   TestPhysicalCreationPlan/id
+=== RUN   TestPhysicalCreationPlan/before
+=== RUN   TestPhysicalCreationPlan/missing_trigger
+=== RUN   TestPhysicalCreationPlan/reordered
+=== RUN   TestPhysicalCreationPlan/precondition
+=== RUN   TestPhysicalCreationPlan/definition
+--- PASS: TestPhysicalCreationPlan (0.14s)
+    --- PASS: TestPhysicalCreationPlan/missing_identity (0.01s)
+    --- PASS: TestPhysicalCreationPlan/version (0.00s)
+    --- PASS: TestPhysicalCreationPlan/tenant (0.00s)
+    --- PASS: TestPhysicalCreationPlan/table (0.00s)
+    --- PASS: TestPhysicalCreationPlan/column (0.01s)
+    --- PASS: TestPhysicalCreationPlan/definer (0.01s)
+    --- PASS: TestPhysicalCreationPlan/sql (0.01s)
+    --- PASS: TestPhysicalCreationPlan/kind (0.01s)
+    --- PASS: TestPhysicalCreationPlan/name (0.01s)
+    --- PASS: TestPhysicalCreationPlan/id (0.00s)
+    --- PASS: TestPhysicalCreationPlan/before (0.00s)
+    --- PASS: TestPhysicalCreationPlan/missing_trigger (0.00s)
+    --- PASS: TestPhysicalCreationPlan/reordered (0.01s)
+    --- PASS: TestPhysicalCreationPlan/precondition (0.00s)
+    --- PASS: TestPhysicalCreationPlan/definition (0.01s)
+=== RUN   TestPhysicalCreationBoundary
+=== RUN   TestPhysicalCreationBoundary/nullable_object
+=== RUN   TestPhysicalCreationBoundary/nonunique_object
+=== RUN   TestPhysicalCreationBoundary/object_type
+=== RUN   TestPhysicalCreationBoundary/object_enum
+=== RUN   TestPhysicalCreationBoundary/object_name
+=== RUN   TestPhysicalCreationBoundary/nullable_updated
+=== RUN   TestPhysicalCreationBoundary/unique_updated
+=== RUN   TestPhysicalCreationBoundary/updated_type
+=== RUN   TestPhysicalCreationBoundary/updated_enum
+=== RUN   TestPhysicalCreationBoundary/updated_name
+=== RUN   TestPhysicalCreationBoundary/archived
+=== RUN   TestPhysicalCreationBoundary/extra
+=== RUN   TestPhysicalCreationBoundary/foreign
+=== RUN   TestPhysicalCreationBoundary/same_id
+=== RUN   TestPhysicalCreationBoundary/root
+--- PASS: TestPhysicalCreationBoundary (0.02s)
+    --- PASS: TestPhysicalCreationBoundary/nullable_object (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/nonunique_object (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_type (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_enum (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/object_name (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/nullable_updated (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/unique_updated (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_type (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_enum (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/updated_name (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/archived (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/extra (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/foreign (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/same_id (0.00s)
+    --- PASS: TestPhysicalCreationBoundary/root (0.00s)
+=== RUN   TestPhysicalPlanBoundary
+--- PASS: TestPhysicalPlanBoundary (0.01s)
+=== RUN   TestPhysicalLabelSafety
+--- PASS: TestPhysicalLabelSafety (0.00s)
+=== RUN   TestPhysicalNullabilityPlanning
+=== RUN   TestPhysicalNullabilityPlanning/bool
+=== RUN   TestPhysicalNullabilityPlanning/int
+=== RUN   TestPhysicalNullabilityPlanning/float
+=== RUN   TestPhysicalNullabilityPlanning/string
+=== RUN   TestPhysicalNullabilityPlanning/timestamp
+=== RUN   TestPhysicalNullabilityPlanning/ip_address
+--- PASS: TestPhysicalNullabilityPlanning (0.01s)
+    --- PASS: TestPhysicalNullabilityPlanning/bool (0.00s)
+    --- PASS: TestPhysicalNullabilityPlanning/int (0.00s)
+    --- PASS: TestPhysicalNullabilityPlanning/float (0.00s)
+    --- PASS: TestPhysicalNullabilityPlanning/string (0.00s)
+    --- PASS: TestPhysicalNullabilityPlanning/timestamp (0.00s)
+    --- PASS: TestPhysicalNullabilityPlanning/ip_address (0.00s)
+=== RUN   TestTypedPhysicalPlanning
+--- PASS: TestTypedPhysicalPlanning (0.00s)
+=== RUN   TestPhysicalPlannerArchivedSnapshot
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/drop_unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/nullable
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/mixed_add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/index
+=== RUN   TestPhysicalPlannerArchivedSnapshot/bool/unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/mixed_add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/index
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/drop_unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/float/nullable
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/mixed_add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/index
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/drop_unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/string/nullable
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/mixed_add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/index
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/drop_unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/nullable
+=== RUN   TestPhysicalPlannerArchivedSnapshot/timestamp/add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/index
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/drop_unique
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/nullable
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/add
+=== RUN   TestPhysicalPlannerArchivedSnapshot/ip_address/mixed_add
+--- PASS: TestPhysicalPlannerArchivedSnapshot (0.04s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/drop_unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/nullable (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/mixed_add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/index (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/bool/unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/mixed_add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/index (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/drop_unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/float/nullable (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/mixed_add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/index (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/drop_unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/string/nullable (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/mixed_add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/index (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/drop_unique (0.01s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/nullable (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/timestamp/add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/index (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/drop_unique (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/nullable (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/add (0.00s)
+    --- PASS: TestPhysicalPlannerArchivedSnapshot/ip_address/mixed_add (0.00s)
+=== RUN   TestPhysicalPlannerRejectsInvalidMappings
+--- PASS: TestPhysicalPlannerRejectsInvalidMappings (0.00s)
+=== RUN   TestPhysicalPublicationManagerConfiguration
+--- PASS: TestPhysicalPublicationManagerConfiguration (0.00s)
+=== RUN   TestPhysicalPublicationValidation
+--- PASS: TestPhysicalPublicationValidation (0.00s)
+=== RUN   TestPhysicalRecoveryContinuesIndependentWork
+--- PASS: TestPhysicalRecoveryContinuesIndependentWork (0.00s)
+=== RUN   TestPhysicalRecoveryCancellationPreservesCursor
+--- PASS: TestPhysicalRecoveryCancellationPreservesCursor (0.00s)
+=== RUN   TestPhysicalRecoveryTimeoutAllowsNextOperation
+--- PASS: TestPhysicalRecoveryTimeoutAllowsNextOperation (0.00s)
+=== RUN   TestPhysicalRecoveryErrorClassification
+--- PASS: TestPhysicalRecoveryErrorClassification (0.00s)
+=== RUN   TestPhysicalRecoveryRejectsInvalidBounds
+--- PASS: TestPhysicalRecoveryRejectsInvalidBounds (0.00s)
+=== RUN   TestRecordChangePlan
+--- PASS: TestRecordChangePlan (0.51s)
+=== RUN   TestTextConstraintPromotionRetirementAndReenable
+--- PASS: TestTextConstraintPromotionRetirementAndReenable (0.56s)
+=== RUN   TestBackfillGrantIsColumnScopedAndTemporary
+--- PASS: TestBackfillGrantIsColumnScopedAndTemporary (0.00s)
+=== RUN   TestUniqueTextPlanAndSubsequentNativeChange
+--- PASS: TestUniqueTextPlanAndSubsequentNativeChange (0.27s)
+=== RUN   TestTextGuardInstallerCapability
+--- PASS: TestTextGuardInstallerCapability (0.00s)
+=== RUN   TestPhysicalAccountSeparation
+--- PASS: TestPhysicalAccountSeparation (0.01s)
+=== RUN   TestPublicationOwnerTransactionValidation
+--- PASS: TestPublicationOwnerTransactionValidation (0.00s)
+=== RUN   TestPublicationByteLimitConfiguration
+--- PASS: TestPublicationByteLimitConfiguration (0.00s)
+=== RUN   TestPublicationConditionValidation
+--- PASS: TestPublicationConditionValidation (0.00s)
+=== RUN   TestMySQLPublication
+=== RUN   TestMySQLPublication/metadata_transaction_metrics
+=== RUN   TestMySQLPublication/worker_execution
+=== RUN   TestMySQLPublication/worker_execution/applied_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/pending_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/failed_atomic_history
+=== RUN   TestMySQLPublication/worker_execution/stale_wrong_tenant_and_concurrent_completion
+=== RUN   TestMySQLPublication/worker_execution/concurrent_claims_and_cancellation
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/claim
+[mysql] 2026/11/05 08:32:46 connection.go:189 closing connection:close tcp 172.26.0.3:50814->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:32:46 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/outcome
+[mysql] 2026/11/05 08:32:46 connection.go:189 closing connection:close tcp 172.26.0.3:50824->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:32:46 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/worker_execution/runner_uses_mysql_outcomes_and_terminal_redelivery
+=== RUN   TestMySQLPublication/worker_execution/invalid_payload_precision_and_limits
+=== RUN   TestMySQLPublication/byte_limits
+=== RUN   TestMySQLPublication/byte_limits/table_bytes_not_characters
+=== RUN   TestMySQLPublication/byte_limits/table_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/field_row
+=== RUN   TestMySQLPublication/byte_limits/fields_cumulative
+=== RUN   TestMySQLPublication/byte_limits/fields_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/enum_row
+=== RUN   TestMySQLPublication/byte_limits/enums_cumulative
+=== RUN   TestMySQLPublication/byte_limits/enums_exact_boundary
+=== RUN   TestMySQLPublication/byte_limits/encoded_expansion_rolls_back_every_write
+=== RUN   TestMySQLPublication/byte_limits/stored_json_boundary_and_recovery
+=== RUN   TestMySQLPublication/operation_recovery
+=== RUN   TestMySQLPublication/operation_recovery/version_conditions_and_replay
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_exact_version_has_one_winner
+=== RUN   TestMySQLPublication/operation_recovery/replay_original_result_conflict_and_tenant
+=== RUN   TestMySQLPublication/operation_recovery/rollback_and_receipt_failure
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_duplicate_operation
+=== RUN   TestMySQLPublication/operation_recovery/concurrent_enum_edits
+=== RUN   TestMySQLPublication/operation_recovery/lost_commit_acknowledgement
+[mysql] 2026/11/05 08:32:47 connection.go:189 closing connection:close tcp 172.26.0.3:50834->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:32:47 packets.go:58 unexpected EOF
+=== RUN   TestMySQLPublication/publish_and_retain_token
+=== RUN   TestMySQLPublication/rollback_and_wrong_tenant
+=== RUN   TestMySQLPublication/snapshot_limit_rolls_back
+=== RUN   TestMySQLPublication/concurrent_edits_and_independent_tables
+=== RUN   TestMySQLPublication/publication_write_failure_rolls_back_metadata
+=== RUN   TestMySQLPublication/lock_wait_cancellation_and_recovery
+=== RUN   TestMySQLPublication/enum_limit_and_tenant_fk
+--- PASS: TestMySQLPublication (3.45s)
+    --- PASS: TestMySQLPublication/metadata_transaction_metrics (0.06s)
+    --- PASS: TestMySQLPublication/worker_execution (0.82s)
+        --- PASS: TestMySQLPublication/worker_execution/applied_atomic_history (0.13s)
+        --- PASS: TestMySQLPublication/worker_execution/pending_atomic_history (0.13s)
+        --- PASS: TestMySQLPublication/worker_execution/failed_atomic_history (0.09s)
+        --- PASS: TestMySQLPublication/worker_execution/stale_wrong_tenant_and_concurrent_completion (0.14s)
+        --- PASS: TestMySQLPublication/worker_execution/concurrent_claims_and_cancellation (0.06s)
+        --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements (0.17s)
+            --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/claim (0.08s)
+            --- PASS: TestMySQLPublication/worker_execution/lost_claim_and_outcome_commit_acknowledgements/outcome (0.10s)
+        --- PASS: TestMySQLPublication/worker_execution/runner_uses_mysql_outcomes_and_terminal_redelivery (0.04s)
+        --- PASS: TestMySQLPublication/worker_execution/invalid_payload_precision_and_limits (0.05s)
+    --- PASS: TestMySQLPublication/byte_limits (0.48s)
+        --- PASS: TestMySQLPublication/byte_limits/table_bytes_not_characters (0.03s)
+        --- PASS: TestMySQLPublication/byte_limits/table_exact_boundary (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/field_row (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/fields_cumulative (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/fields_exact_boundary (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/enum_row (0.02s)
+        --- PASS: TestMySQLPublication/byte_limits/enums_cumulative (0.04s)
+        --- PASS: TestMySQLPublication/byte_limits/enums_exact_boundary (0.03s)
+        --- PASS: TestMySQLPublication/byte_limits/encoded_expansion_rolls_back_every_write (0.04s)
+        --- PASS: TestMySQLPublication/byte_limits/stored_json_boundary_and_recovery (0.23s)
+    --- PASS: TestMySQLPublication/operation_recovery (0.71s)
+        --- PASS: TestMySQLPublication/operation_recovery/version_conditions_and_replay (0.16s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_exact_version_has_one_winner (0.10s)
+        --- PASS: TestMySQLPublication/operation_recovery/replay_original_result_conflict_and_tenant (0.14s)
+        --- PASS: TestMySQLPublication/operation_recovery/rollback_and_receipt_failure (0.07s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_duplicate_operation (0.05s)
+        --- PASS: TestMySQLPublication/operation_recovery/concurrent_enum_edits (0.10s)
+        --- PASS: TestMySQLPublication/operation_recovery/lost_commit_acknowledgement (0.09s)
+    --- PASS: TestMySQLPublication/publish_and_retain_token (0.07s)
+    --- PASS: TestMySQLPublication/rollback_and_wrong_tenant (0.06s)
+    --- PASS: TestMySQLPublication/snapshot_limit_rolls_back (0.05s)
+    --- PASS: TestMySQLPublication/concurrent_edits_and_independent_tables (0.16s)
+    --- PASS: TestMySQLPublication/publication_write_failure_rolls_back_metadata (0.07s)
+    --- PASS: TestMySQLPublication/lock_wait_cancellation_and_recovery (0.23s)
+    --- PASS: TestMySQLPublication/enum_limit_and_tenant_fk (0.07s)
+=== RUN   TestRegistrationTransactionBoundary
+--- PASS: TestRegistrationTransactionBoundary (0.00s)
+=== RUN   TestTenantCatalogReaderConfiguration
+=== RUN   TestTenantCatalogReaderConfiguration/nil_db
+=== RUN   TestTenantCatalogReaderConfiguration/bad_database
+=== RUN   TestTenantCatalogReaderConfiguration/no_authorizer
+=== RUN   TestTenantCatalogReaderConfiguration/zero_rows
+=== RUN   TestTenantCatalogReaderConfiguration/large_rows
+=== RUN   TestTenantCatalogReaderConfiguration/zero_bytes
+=== RUN   TestTenantCatalogReaderConfiguration/large_bytes
+--- PASS: TestTenantCatalogReaderConfiguration (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/nil_db (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/bad_database (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/no_authorizer (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/zero_rows (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/large_rows (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/zero_bytes (0.00s)
+    --- PASS: TestTenantCatalogReaderConfiguration/large_bytes (0.00s)
+=== RUN   TestMetadataTransactionBoundaries
+=== RUN   TestMetadataTransactionBoundaries/nil_db
+=== RUN   TestMetadataTransactionBoundaries/zero_tenant
+=== RUN   TestMetadataTransactionBoundaries/bad_database
+=== RUN   TestMetadataTransactionBoundaries/no_authorizer
+=== RUN   TestMetadataTransactionBoundaries/row_limit
+=== RUN   TestMetadataTransactionBoundaries/byte_limit
+=== RUN   TestMetadataTransactionBoundaries/other_pool
+=== RUN   TestMetadataTransactionBoundaries/other_database
+--- PASS: TestMetadataTransactionBoundaries (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/nil_db (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/zero_tenant (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/bad_database (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/no_authorizer (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/row_limit (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/byte_limit (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/other_pool (0.00s)
+    --- PASS: TestMetadataTransactionBoundaries/other_database (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql	6.371s
+=== RUN   TestExactKeyDefinitionsRejectIdentifiers
+--- PASS: TestExactKeyDefinitionsRejectIdentifiers (0.00s)
+=== RUN   TestExactKeys
+=== RUN   TestExactKeys/full_bytes_and_scopes
+=== RUN   TestExactKeys/update_and_forged_key
+=== RUN   TestExactKeys/rollback_and_failed_owner_insert
+=== RUN   TestExactKeys/concurrent_duplicate
+=== RUN   TestExactKeys/independent_scopes
+=== RUN   TestExactKeys/runtime_cannot_bypass
+=== RUN   TestExactKeys/older_repeatable_read_snapshot
+=== RUN   TestExactKeys/disabled_unique_checks
+=== RUN   TestExactKeys/disabled_foreign_key_checks
+--- PASS: TestExactKeys (1.73s)
+    --- PASS: TestExactKeys/full_bytes_and_scopes (0.34s)
+    --- PASS: TestExactKeys/update_and_forged_key (0.04s)
+    --- PASS: TestExactKeys/rollback_and_failed_owner_insert (0.02s)
+    --- PASS: TestExactKeys/concurrent_duplicate (0.09s)
+    --- PASS: TestExactKeys/independent_scopes (0.04s)
+    --- PASS: TestExactKeys/runtime_cannot_bypass (0.04s)
+    --- PASS: TestExactKeys/older_repeatable_read_snapshot (0.06s)
+    --- PASS: TestExactKeys/disabled_unique_checks (0.02s)
+    --- PASS: TestExactKeys/disabled_foreign_key_checks (0.02s)
+=== RUN   TestExactKeysForcedDigestCollision
+--- PASS: TestExactKeysForcedDigestCollision (0.81s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/exactkeys	4.025s
+=== RUN   TestExplicitAccountPolicy
+--- PASS: TestExplicitAccountPolicy (0.00s)
+=== RUN   TestColumnPolicyBounds
+--- PASS: TestColumnPolicyBounds (2.52s)
+=== RUN   TestColumnAccountPolicy
+=== RUN   TestColumnAccountPolicy/wildcard
+=== RUN   TestColumnAccountPolicy/overlap
+=== RUN   TestColumnAccountPolicy/delete
+=== RUN   TestColumnAccountPolicy/empty
+=== RUN   TestColumnAccountPolicy/duplicate
+=== RUN   TestColumnAccountPolicy/injection
+=== RUN   TestColumnAccountPolicy/routine
+--- PASS: TestColumnAccountPolicy (0.01s)
+    --- PASS: TestColumnAccountPolicy/wildcard (0.00s)
+    --- PASS: TestColumnAccountPolicy/overlap (0.00s)
+    --- PASS: TestColumnAccountPolicy/delete (0.00s)
+    --- PASS: TestColumnAccountPolicy/empty (0.00s)
+    --- PASS: TestColumnAccountPolicy/duplicate (0.00s)
+    --- PASS: TestColumnAccountPolicy/injection (0.00s)
+    --- PASS: TestColumnAccountPolicy/routine (0.00s)
+=== RUN   TestContractLookupUpgrade
+--- PASS: TestContractLookupUpgrade (0.02s)
+=== RUN   TestExactKeyReadinessBinding
+=== RUN   TestExactKeyReadinessBinding/nil_pool
+=== RUN   TestExactKeyReadinessBinding/partial
+=== RUN   TestExactKeyReadinessBinding/extra
+=== RUN   TestExactKeyReadinessBinding/sql
+=== RUN   TestExactKeyReadinessBinding/id
+=== RUN   TestExactKeyReadinessBinding/order
+=== RUN   TestExactKeyReadinessBinding/definer
+=== RUN   TestExactKeyReadinessBinding/upgrade
+--- PASS: TestExactKeyReadinessBinding (1.72s)
+    --- PASS: TestExactKeyReadinessBinding/nil_pool (0.45s)
+    --- PASS: TestExactKeyReadinessBinding/partial (0.06s)
+    --- PASS: TestExactKeyReadinessBinding/extra (0.03s)
+    --- PASS: TestExactKeyReadinessBinding/sql (0.05s)
+    --- PASS: TestExactKeyReadinessBinding/id (0.05s)
+    --- PASS: TestExactKeyReadinessBinding/order (0.05s)
+    --- PASS: TestExactKeyReadinessBinding/definer (0.05s)
+    --- PASS: TestExactKeyReadinessBinding/upgrade (0.16s)
+=== RUN   TestCompleteLookupReadinessBindsAllSourceAndDefiners
+--- PASS: TestCompleteLookupReadinessBindsAllSourceAndDefiners (1.53s)
+=== RUN   TestManifestInputs
+--- PASS: TestManifestInputs (0.09s)
+=== RUN   TestCompleteInstallationLineage
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/wrong_database
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/same_definer
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/dirty
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/checksum
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/missing_history
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/dictionary_shape
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/extra_trigger
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/digest
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/resolver
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/missing_grant
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/excess_grant
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/unlocked
+=== RUN   TestCompleteInstallationLineage/exact_key_dependencies/existing_session
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/wrong_database
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/same_definer
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/dirty
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/checksum
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/missing_history
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/dictionary_shape
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/extra_trigger
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/digest
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/resolver
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/missing_grant
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/excess_grant
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/unlocked
+=== RUN   TestCompleteInstallationLineage/upgraded_exact_key_dependencies/existing_session
+--- PASS: TestCompleteInstallationLineage (28.33s)
+    --- PASS: TestCompleteInstallationLineage/exact_key_dependencies (9.05s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/wrong_database (0.00s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/same_definer (0.00s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/dirty (0.06s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/checksum (0.01s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/missing_history (0.03s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/dictionary_shape (0.31s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/extra_trigger (0.79s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/digest (0.12s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/resolver (0.23s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/missing_grant (0.62s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/excess_grant (0.48s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/unlocked (0.58s)
+        --- PASS: TestCompleteInstallationLineage/exact_key_dependencies/existing_session (0.63s)
+    --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies (8.22s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/wrong_database (0.00s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/same_definer (0.00s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/dirty (0.05s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/checksum (0.01s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/missing_history (0.03s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/dictionary_shape (0.17s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/extra_trigger (0.76s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/digest (0.10s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/resolver (0.18s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/missing_grant (0.65s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/excess_grant (0.60s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/unlocked (0.46s)
+        --- PASS: TestCompleteInstallationLineage/upgraded_exact_key_dependencies/existing_session (0.53s)
+=== RUN   TestRecordInstallerPolicy
+--- PASS: TestRecordInstallerPolicy (0.00s)
+=== RUN   TestRecordLookupUpgrade
+--- PASS: TestRecordLookupUpgrade (0.01s)
+=== RUN   TestUpgradePreservesInstalledHistory
+--- PASS: TestUpgradePreservesInstalledHistory (0.00s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation	35.584s
+=== RUN   TestAssembledRepository
+=== RUN   TestAssembledRepository/published_versions_are_owner_scoped_and_gated
+=== RUN   TestAssembledRepository/all_relations_and_empty_shapes
+=== RUN   TestAssembledRepository/scope_and_invalid_construction
+=== RUN   TestAssembledRepository/aggregate_row_and_text_boundaries
+=== RUN   TestAssembledRepository/archived_metadata_retained
+=== RUN   TestAssembledRepository/concurrent_writer_never_tears_snapshot
+=== RUN   TestAssembledRepository/constant_query_count_with_many_tables
+=== RUN   TestAssembledRepository/published_snapshot_owner_and_revision_consistency
+=== RUN   TestAssembledRepository/publication_token_and_metadata_share_one_snapshot
+=== RUN   TestAssembledRepository/corrupt_order_returns_no_model
+--- PASS: TestAssembledRepository (8.63s)
+    --- PASS: TestAssembledRepository/published_versions_are_owner_scoped_and_gated (0.29s)
+    --- PASS: TestAssembledRepository/all_relations_and_empty_shapes (0.03s)
+    --- PASS: TestAssembledRepository/scope_and_invalid_construction (0.03s)
+    --- PASS: TestAssembledRepository/aggregate_row_and_text_boundaries (0.07s)
+    --- PASS: TestAssembledRepository/archived_metadata_retained (0.04s)
+    --- PASS: TestAssembledRepository/concurrent_writer_never_tears_snapshot (1.47s)
+    --- PASS: TestAssembledRepository/constant_query_count_with_many_tables (0.60s)
+    --- PASS: TestAssembledRepository/published_snapshot_owner_and_revision_consistency (1.50s)
+    --- PASS: TestAssembledRepository/publication_token_and_metadata_share_one_snapshot (2.47s)
+    --- PASS: TestAssembledRepository/corrupt_order_returns_no_model (0.02s)
+=== RUN   TestCatalogRetirementRecovery
+=== RUN   TestCatalogRetirementRecovery/service_allocated_native_field_delete_rollback
+[mysql] 2026/11/05 08:33:34 connection.go:189 closing connection:close tcp 172.26.0.3:34648->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:34 packets.go:58 unexpected EOF
+=== RUN   TestCatalogRetirementRecovery/service_allocated_native_field_delete_lost_ack
+[mysql] 2026/11/05 08:33:36 connection.go:189 closing connection:close tcp 172.26.0.3:34790->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:36 packets.go:58 unexpected EOF
+=== RUN   TestCatalogRetirementRecovery/service_allocated_native_field_delete_lost_commit
+[mysql] 2026/11/05 08:33:38 connection.go:189 closing connection:close tcp 172.26.0.3:34920->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:38 packets.go:58 unexpected EOF
+[mysql] 2026/11/05 08:33:38 connection.go:189 closing connection:close tcp 172.26.0.3:34936->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:38 packets.go:58 unexpected EOF
+=== RUN   TestCatalogRetirementRecovery/service_allocated_native_field_enum_rollback
+=== RUN   TestCatalogRetirementRecovery/service_allocated_native_field_enum_lost_commit
+[mysql] 2026/11/05 08:33:42 connection.go:189 closing connection:close tcp 172.26.0.3:35112->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:42 packets.go:58 unexpected EOF
+--- PASS: TestCatalogRetirementRecovery (20.69s)
+    --- PASS: TestCatalogRetirementRecovery/service_allocated_native_field_delete_rollback (2.64s)
+    --- PASS: TestCatalogRetirementRecovery/service_allocated_native_field_delete_lost_ack (1.75s)
+    --- PASS: TestCatalogRetirementRecovery/service_allocated_native_field_delete_lost_commit (2.09s)
+    --- PASS: TestCatalogRetirementRecovery/service_allocated_native_field_enum_rollback (2.25s)
+    --- PASS: TestCatalogRetirementRecovery/service_allocated_native_field_enum_lost_commit (1.69s)
+=== RUN   TestColumnAccountPolicyMySQL
+=== RUN   TestColumnAccountPolicyMySQL/extra_column
+=== RUN   TestColumnAccountPolicyMySQL/table_wide
+=== RUN   TestColumnAccountPolicyMySQL/other_object
+=== RUN   TestColumnAccountPolicyMySQL/grant_option
+=== RUN   TestColumnAccountPolicyMySQL/missing_column
+--- PASS: TestColumnAccountPolicyMySQL (1.31s)
+    --- PASS: TestColumnAccountPolicyMySQL/extra_column (0.02s)
+    --- PASS: TestColumnAccountPolicyMySQL/table_wide (0.01s)
+    --- PASS: TestColumnAccountPolicyMySQL/other_object (0.02s)
+    --- PASS: TestColumnAccountPolicyMySQL/grant_option (0.01s)
+    --- PASS: TestColumnAccountPolicyMySQL/missing_column (0.01s)
+=== RUN   TestMetadataColumnManifest
+    column_manifest_test.go:102: unbound schema file: ../../../../internal/migrations/metadata/000009_index_job_table_scope.down.sql
+    column_manifest_test.go:102: unbound schema file: ../../../../internal/migrations/metadata/000009_index_job_table_scope.up.sql
+--- FAIL: TestMetadataColumnManifest (0.48s)
+=== RUN   TestMetadataIndexByteBudgets
+    column_manifest_test.go:306: 88 indexes / 205 components; maximum conservative key bytes=221, secondary key plus primary bytes=237 (excludes record/page overhead)
+--- PASS: TestMetadataIndexByteBudgets (0.96s)
+=== RUN   TestMetadataColumnManifestInstalled
+--- PASS: TestMetadataColumnManifestInstalled (0.82s)
+=== RUN   TestCreationOwnerAllocation
+=== RUN   TestCreationOwnerAllocation/concurrent
+=== RUN   TestCreationOwnerAllocation/lost_commit
+[mysql] 2026/11/05 08:33:53 connection.go:189 closing connection:close tcp 172.26.0.3:34976->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:33:53 packets.go:58 unexpected EOF
+=== RUN   TestCreationOwnerAllocation/owner_rollback
+=== RUN   TestCreationOwnerAllocation/denied
+=== RUN   TestCreationOwnerAllocation/local_denied
+=== RUN   TestCreationOwnerAllocation/changed_request
+--- PASS: TestCreationOwnerAllocation (7.16s)
+    --- PASS: TestCreationOwnerAllocation/concurrent (0.06s)
+    --- PASS: TestCreationOwnerAllocation/lost_commit (0.06s)
+    --- PASS: TestCreationOwnerAllocation/owner_rollback (0.01s)
+    --- PASS: TestCreationOwnerAllocation/denied (0.00s)
+    --- PASS: TestCreationOwnerAllocation/local_denied (0.00s)
+    --- PASS: TestCreationOwnerAllocation/changed_request (0.03s)
+=== RUN   TestCreationPreparationTransaction
+=== RUN   TestCreationPreparationTransaction/commit_replay
+=== RUN   TestCreationPreparationTransaction/owner_rollback
+=== RUN   TestCreationPreparationTransaction/invalid_intent
+=== RUN   TestCreationPreparationTransaction/foreign_scope
+=== RUN   TestCreationPreparationTransaction/finished_transaction
+--- PASS: TestCreationPreparationTransaction (1.35s)
+    --- PASS: TestCreationPreparationTransaction/commit_replay (0.05s)
+    --- PASS: TestCreationPreparationTransaction/owner_rollback (0.05s)
+    --- PASS: TestCreationPreparationTransaction/invalid_intent (0.03s)
+    --- PASS: TestCreationPreparationTransaction/foreign_scope (0.03s)
+    --- PASS: TestCreationPreparationTransaction/finished_transaction (0.05s)
+=== RUN   TestCreationReceipts
+=== RUN   TestCreationReceipts/reserve_replay_preserves_allocation
+=== RUN   TestCreationReceipts/owner_rollback
+=== RUN   TestCreationReceipts/invalid_original_snapshot
+=== RUN   TestCreationReceipts/actor
+=== RUN   TestCreationReceipts/hash
+=== RUN   TestCreationReceipts/table_collision
+=== RUN   TestCreationReceipts/foreign_tenant
+=== RUN   TestCreationReceipts/immutable_retained_evidence
+=== RUN   TestCreationReceipts/restricted_receipt_writer
+=== RUN   TestCreationReceipts/complete_upgraded_dependency_lineage
+--- PASS: TestCreationReceipts (7.86s)
+    --- PASS: TestCreationReceipts/reserve_replay_preserves_allocation (0.02s)
+    --- PASS: TestCreationReceipts/owner_rollback (0.01s)
+    --- PASS: TestCreationReceipts/invalid_original_snapshot (0.05s)
+    --- PASS: TestCreationReceipts/actor (0.01s)
+    --- PASS: TestCreationReceipts/hash (0.01s)
+    --- PASS: TestCreationReceipts/table_collision (0.01s)
+    --- PASS: TestCreationReceipts/foreign_tenant (0.00s)
+    --- PASS: TestCreationReceipts/immutable_retained_evidence (0.00s)
+    --- PASS: TestCreationReceipts/restricted_receipt_writer (0.05s)
+    --- PASS: TestCreationReceipts/complete_upgraded_dependency_lineage (0.92s)
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/enqueue
+[mysql] 2026/11/05 08:34:04 connection.go:189 closing connection:close tcp 172.26.0.3:33552->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:04 packets.go:58 unexpected EOF
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/claim
+[mysql] 2026/11/05 08:34:04 connection.go:189 closing connection:close tcp 172.26.0.3:33566->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:04 packets.go:58 unexpected EOF
+=== RUN   TestIndexDeliveryLostCommitAcknowledgement/finish
+[mysql] 2026/11/05 08:34:04 connection.go:189 closing connection:close tcp 172.26.0.3:33568->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:04 packets.go:58 unexpected EOF
+--- PASS: TestIndexDeliveryLostCommitAcknowledgement (1.24s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/enqueue (0.03s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/claim (0.05s)
+    --- PASS: TestIndexDeliveryLostCommitAcknowledgement/finish (0.05s)
+=== RUN   TestLeasedIndexExecution
+=== RUN   TestLeasedIndexExecution/applied
+=== RUN   TestLeasedIndexExecution/applied_last_attempt
+=== RUN   TestLeasedIndexExecution/pending
+=== RUN   TestLeasedIndexExecution/failed
+=== RUN   TestLeasedIndexExecution/failed_retry
+=== RUN   TestLeasedIndexExecution/audit_failure
+=== RUN   TestLeasedIndexExecution/expired
+=== RUN   TestLeasedIndexExecution/stale_attempt
+=== RUN   TestLeasedIndexExecution/terminal_redelivery
+=== RUN   TestLeasedIndexExecution/exhausted
+=== RUN   TestLeasedIndexExecution/exhausted_failed_retry
+=== RUN   TestLeasedIndexExecution/exhausted_audit_failure
+=== RUN   TestLeasedIndexExecution/exhausted_commit
+[mysql] 2026/11/05 08:34:06 connection.go:189 closing connection:close tcp 172.26.0.3:33606->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:06 packets.go:58 unexpected EOF
+--- PASS: TestLeasedIndexExecution (2.12s)
+    --- PASS: TestLeasedIndexExecution/applied (0.05s)
+    --- PASS: TestLeasedIndexExecution/applied_last_attempt (0.05s)
+    --- PASS: TestLeasedIndexExecution/pending (0.05s)
+    --- PASS: TestLeasedIndexExecution/failed (0.04s)
+    --- PASS: TestLeasedIndexExecution/failed_retry (0.07s)
+    --- PASS: TestLeasedIndexExecution/audit_failure (0.05s)
+    --- PASS: TestLeasedIndexExecution/expired (0.02s)
+    --- PASS: TestLeasedIndexExecution/stale_attempt (0.04s)
+    --- PASS: TestLeasedIndexExecution/terminal_redelivery (0.03s)
+    --- PASS: TestLeasedIndexExecution/exhausted (0.07s)
+    --- PASS: TestLeasedIndexExecution/exhausted_failed_retry (0.07s)
+    --- PASS: TestLeasedIndexExecution/exhausted_audit_failure (0.05s)
+    --- PASS: TestLeasedIndexExecution/exhausted_commit (0.07s)
+=== RUN   TestDeliveryInspection
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=101 rows=128)
+            -> Filter: ((data_model_index_deliveries.created_at = TIMESTAMP'2026-11-05 08:34:07.705452') and (data_model_index_deliveries.tenant_id = 'g\?A\?\?\?AD??\?!????') and (data_model_index_deliveries.id < '{??\?[)D??<]՝???'))  (cost=101 rows=499)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0x67e641cfe7f541448394d521fa9ea78a AND created_at = '2026-11-05 08:34:07.705452' AND 0x7bb8fec25b2944b6b23c5dd59d3fbafe < id)  (cost=101 rows=499)
+        
+    delivery_inspection_test.go:195: -> Limit: 128 row(s)  (cost=0.863 rows=3)
+            -> Filter: ((data_model_index_deliveries.tenant_id = 'g\?A\?\?\?AD??\?!????') and (data_model_index_deliveries.created_at < TIMESTAMP'2026-11-05 08:34:07.705452'))  (cost=0.863 rows=3)
+                -> Covering index range scan on data_model_index_deliveries using data_model_delivery_tenant over (tenant_id = 0x67e641cfe7f541448394d521fa9ea78a AND '2026-11-05 08:34:07.705452' < created_at)  (cost=0.863 rows=3)
+        
+--- PASS: TestDeliveryInspection (12.67s)
+=== RUN   TestMySQLDeliveryMaintenance
+=== RUN   TestMySQLDeliveryMaintenance/expired_commit_acknowledgement_lost
+[mysql] 2026/11/05 08:34:20 connection.go:189 closing connection:close tcp 172.26.0.3:51538->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:20 packets.go:58 unexpected EOF
+=== RUN   TestMySQLDeliveryMaintenance/retention_commit_acknowledgement_lost
+[mysql] 2026/11/05 08:34:20 connection.go:189 closing connection:close tcp 172.26.0.3:51546->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:20 packets.go:58 unexpected EOF
+--- PASS: TestMySQLDeliveryMaintenance (1.64s)
+    --- PASS: TestMySQLDeliveryMaintenance/expired_commit_acknowledgement_lost (0.04s)
+    --- PASS: TestMySQLDeliveryMaintenance/retention_commit_acknowledgement_lost (0.05s)
+=== RUN   TestMySQLDeliveryPolling
+--- PASS: TestMySQLDeliveryPolling (3.49s)
+=== RUN   TestDeliveryRedrive
+=== RUN   TestDeliveryRedrive/atomic_audit_schedule_attempts_replay_and_cleanup
+=== RUN   TestDeliveryRedrive/concurrent_same_request
+=== RUN   TestDeliveryRedrive/uncertain_commit_replay
+[mysql] 2026/11/05 08:34:26 connection.go:189 closing connection:close tcp 172.26.0.3:44900->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:26 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRedrive/reject_domain_running
+=== RUN   TestDeliveryRedrive/reject_domain_failed
+=== RUN   TestDeliveryRedrive/reject_domain_applied
+=== RUN   TestDeliveryRedrive/reject_domain_cancelled
+=== RUN   TestDeliveryRedrive/foreign_tenant_and_source
+=== RUN   TestDeliveryRedrive/reservation_on_another_queue
+=== RUN   TestDeliveryRedrive/audit_failure_rolls_back_enqueue
+--- PASS: TestDeliveryRedrive (3.48s)
+    --- PASS: TestDeliveryRedrive/atomic_audit_schedule_attempts_replay_and_cleanup (0.12s)
+    --- PASS: TestDeliveryRedrive/concurrent_same_request (0.11s)
+    --- PASS: TestDeliveryRedrive/uncertain_commit_replay (0.09s)
+    --- PASS: TestDeliveryRedrive/reject_domain_running (0.07s)
+    --- PASS: TestDeliveryRedrive/reject_domain_failed (0.06s)
+    --- PASS: TestDeliveryRedrive/reject_domain_applied (0.07s)
+    --- PASS: TestDeliveryRedrive/reject_domain_cancelled (0.06s)
+    --- PASS: TestDeliveryRedrive/foreign_tenant_and_source (0.10s)
+    --- PASS: TestDeliveryRedrive/reservation_on_another_queue (0.09s)
+    --- PASS: TestDeliveryRedrive/audit_failure_rolls_back_enqueue (0.13s)
+=== RUN   TestDeliveryRetryErrorHistory
+=== RUN   TestDeliveryRetryErrorHistory/translated_attempts
+=== RUN   TestDeliveryRetryErrorHistory/long_backoff
+=== RUN   TestDeliveryRetryErrorHistory/retry_after_rescue
+=== RUN   TestDeliveryRetryErrorHistory/rescue_unknown
+=== RUN   TestDeliveryRetryErrorHistory/rescue_exhausted
+=== RUN   TestDeliveryRetryErrorHistory/rescue_lost_commit
+[mysql] 2026/11/05 08:34:31 connection.go:189 closing connection:close tcp 172.26.0.3:44918->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:31 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRetryErrorHistory/owner_rollback
+=== RUN   TestDeliveryRetryErrorHistory/unknown_history
+=== RUN   TestDeliveryRetryErrorHistory/exhausted
+=== RUN   TestDeliveryRetryErrorHistory/lost_commit
+[mysql] 2026/11/05 08:34:31 connection.go:189 closing connection:close tcp 172.26.0.3:44926->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:31 packets.go:58 unexpected EOF
+=== RUN   TestDeliveryRetryErrorHistory/success
+--- PASS: TestDeliveryRetryErrorHistory (4.56s)
+    --- PASS: TestDeliveryRetryErrorHistory/translated_attempts (0.14s)
+    --- PASS: TestDeliveryRetryErrorHistory/long_backoff (0.06s)
+    --- PASS: TestDeliveryRetryErrorHistory/retry_after_rescue (0.18s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_unknown (0.08s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_exhausted (0.06s)
+    --- PASS: TestDeliveryRetryErrorHistory/rescue_lost_commit (0.11s)
+    --- PASS: TestDeliveryRetryErrorHistory/owner_rollback (0.13s)
+    --- PASS: TestDeliveryRetryErrorHistory/unknown_history (0.07s)
+    --- PASS: TestDeliveryRetryErrorHistory/exhausted (0.17s)
+    --- PASS: TestDeliveryRetryErrorHistory/lost_commit (0.16s)
+    --- PASS: TestDeliveryRetryErrorHistory/success (0.05s)
+=== RUN   TestIndexDeliveryStore
+=== RUN   TestIndexDeliveryStore/enqueue_atomic_schedule_and_cross_queue_dedupe
+=== RUN   TestIndexDeliveryStore/concurrent_enqueue_and_claim
+=== RUN   TestIndexDeliveryStore/finish_fences_tenant_token_attempt_and_rolls_back_effects
+=== RUN   TestIndexDeliveryStore/expiry_during_effects_rolls_back_all_writes
+=== RUN   TestIndexDeliveryStore/reaper_fences_old_token_and_discards_at_limit
+=== RUN   TestIndexDeliveryStore/retry_cancel_and_retention
+=== RUN   TestIndexDeliveryStore/locked_prefix_does_not_starve_claim_or_maintenance
+=== RUN   TestIndexDeliveryStore/retry_exhaustion_and_cancel_failure_are_atomic
+=== RUN   TestIndexDeliveryStore/invalid_inputs_and_read_only_enqueue
+--- PASS: TestIndexDeliveryStore (3.89s)
+    --- PASS: TestIndexDeliveryStore/enqueue_atomic_schedule_and_cross_queue_dedupe (0.07s)
+    --- PASS: TestIndexDeliveryStore/concurrent_enqueue_and_claim (0.04s)
+    --- PASS: TestIndexDeliveryStore/finish_fences_tenant_token_attempt_and_rolls_back_effects (0.13s)
+    --- PASS: TestIndexDeliveryStore/expiry_during_effects_rolls_back_all_writes (0.05s)
+    --- PASS: TestIndexDeliveryStore/reaper_fences_old_token_and_discards_at_limit (0.13s)
+    --- PASS: TestIndexDeliveryStore/retry_cancel_and_retention (0.18s)
+    --- PASS: TestIndexDeliveryStore/locked_prefix_does_not_starve_claim_or_maintenance (0.11s)
+    --- PASS: TestIndexDeliveryStore/retry_exhaustion_and_cancel_failure_are_atomic (0.11s)
+    --- PASS: TestIndexDeliveryStore/invalid_inputs_and_read_only_enqueue (0.02s)
+=== RUN   TestDisplayPublication
+=== RUN   TestDisplayPublication/replay
+=== RUN   TestDisplayPublication/concurrent
+=== RUN   TestDisplayPublication/owner_rollback
+=== RUN   TestDisplayPublication/receipt_rollback
+=== RUN   TestDisplayPublication/closed_gate
+=== RUN   TestDisplayPublication/semantic_change
+=== RUN   TestDisplayPublication/lost_commit
+[mysql] 2026/11/05 08:34:39 connection.go:189 closing connection:close tcp 172.26.0.3:41942->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:39 packets.go:58 unexpected EOF
+=== RUN   TestDisplayPublication/service_commit
+=== RUN   TestDisplayPublication/service_concurrent
+=== RUN   TestDisplayPublication/service_missing_queue
+=== RUN   TestDisplayPublication/service_revision_failure
+=== RUN   TestDisplayPublication/service_local_denial
+=== RUN   TestDisplayPublication/service_lost_commit
+[mysql] 2026/11/05 08:34:41 connection.go:189 closing connection:close tcp 172.26.0.3:41960->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:41 packets.go:58 unexpected EOF
+=== RUN   TestDisplayPublication/service_closed_gate
+--- PASS: TestDisplayPublication (6.11s)
+    --- PASS: TestDisplayPublication/replay (0.33s)
+    --- PASS: TestDisplayPublication/concurrent (0.35s)
+    --- PASS: TestDisplayPublication/owner_rollback (0.16s)
+    --- PASS: TestDisplayPublication/receipt_rollback (0.16s)
+    --- PASS: TestDisplayPublication/closed_gate (0.11s)
+    --- PASS: TestDisplayPublication/semantic_change (0.18s)
+    --- PASS: TestDisplayPublication/lost_commit (0.37s)
+    --- PASS: TestDisplayPublication/service_commit (0.51s)
+    --- PASS: TestDisplayPublication/service_concurrent (0.76s)
+    --- PASS: TestDisplayPublication/service_missing_queue (0.22s)
+    --- PASS: TestDisplayPublication/service_revision_failure (0.25s)
+    --- PASS: TestDisplayPublication/service_local_denial (0.16s)
+    --- PASS: TestDisplayPublication/service_lost_commit (0.59s)
+    --- PASS: TestDisplayPublication/service_closed_gate (0.08s)
+=== RUN   TestDisplayRuntimePublicationAcceptance
+=== RUN   TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_commit
+=== RUN   TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_concurrent
+=== RUN   TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_lost_commit
+[mysql] 2026/11/05 08:34:57 connection.go:189 closing connection:close tcp 172.26.0.3:39070->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:34:57 packets.go:58 unexpected EOF
+=== RUN   TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_revision_failure
+=== RUN   TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_restricted
+--- PASS: TestDisplayRuntimePublicationAcceptance (20.70s)
+    --- PASS: TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_commit (1.62s)
+    --- PASS: TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_concurrent (1.91s)
+    --- PASS: TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_lost_commit (2.04s)
+    --- PASS: TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_revision_failure (1.31s)
+    --- PASS: TestDisplayRuntimePublicationAcceptance/service_allocated_display_result_owner_restricted (2.80s)
+=== RUN   TestMySQLDisplayStore
+=== RUN   TestMySQLDisplayStore/atomic_save_read_and_dependencies
+=== RUN   TestMySQLDisplayStore/reject_wrong_target_despite_parent_caption
+=== RUN   TestMySQLDisplayStore/validate_legacy_json_even_with_columns
+=== RUN   TestMySQLDisplayStore/owner_failure_rolls_back_everything
+=== RUN   TestMySQLDisplayStore/concurrent_optimistic_write_one_winner
+=== RUN   TestMySQLDisplayStore/tenant_bounds_and_missing_effects
+=== RUN   TestMySQLDisplayStore/parent_caption_invalidates_child_version
+=== RUN   TestMySQLDisplayStore/lost_commit_acknowledgement_returns_no_success
+[mysql] 2026/11/05 08:35:06 connection.go:189 closing connection:close tcp 172.26.0.3:60644->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:35:06 packets.go:58 unexpected EOF
+=== RUN   TestMySQLDisplayStore/bounded_batched_reads_no_per_link_field_loading
+=== RUN   TestMySQLDisplayStore/clearing_parent_caption_removes_legacy_link_only
+=== RUN   TestMySQLDisplayStore/audit_insert_failure_rolls_back_owner_effects
+=== RUN   TestMySQLDisplayStore/cleanup_rejects_unfinished_owner_mutation
+=== RUN   TestMySQLDisplayStore/cleanup_owner_failure_rolls_back_all_tables
+=== RUN   TestMySQLDisplayStore/cleanup_lock_cancels_competing_save_without_leaks
+=== RUN   TestMySQLDisplayStore/dependent_version_exhaustion_rolls_back_parent
+=== RUN   TestMySQLDisplayStore/archive_target_removes_relation_preserves_direct
+=== RUN   TestMySQLDisplayStore/delete_link_removes_legacy_link_and_reverse_dependencies
+=== RUN   TestMySQLDisplayStore/archive_direct_caption_cleans_order_and_version
+--- PASS: TestMySQLDisplayStore (5.61s)
+    --- PASS: TestMySQLDisplayStore/atomic_save_read_and_dependencies (0.12s)
+    --- PASS: TestMySQLDisplayStore/reject_wrong_target_despite_parent_caption (0.05s)
+    --- PASS: TestMySQLDisplayStore/validate_legacy_json_even_with_columns (0.12s)
+    --- PASS: TestMySQLDisplayStore/owner_failure_rolls_back_everything (0.12s)
+    --- PASS: TestMySQLDisplayStore/concurrent_optimistic_write_one_winner (0.14s)
+    --- PASS: TestMySQLDisplayStore/tenant_bounds_and_missing_effects (0.03s)
+    --- PASS: TestMySQLDisplayStore/parent_caption_invalidates_child_version (0.15s)
+    --- PASS: TestMySQLDisplayStore/lost_commit_acknowledgement_returns_no_success (0.17s)
+    --- PASS: TestMySQLDisplayStore/bounded_batched_reads_no_per_link_field_loading (0.68s)
+    --- PASS: TestMySQLDisplayStore/clearing_parent_caption_removes_legacy_link_only (0.33s)
+    --- PASS: TestMySQLDisplayStore/audit_insert_failure_rolls_back_owner_effects (0.14s)
+    --- PASS: TestMySQLDisplayStore/cleanup_rejects_unfinished_owner_mutation (0.09s)
+    --- PASS: TestMySQLDisplayStore/cleanup_owner_failure_rolls_back_all_tables (0.08s)
+    --- PASS: TestMySQLDisplayStore/cleanup_lock_cancels_competing_save_without_leaks (0.20s)
+    --- PASS: TestMySQLDisplayStore/dependent_version_exhaustion_rolls_back_parent (0.08s)
+    --- PASS: TestMySQLDisplayStore/archive_target_removes_relation_preserves_direct (0.07s)
+    --- PASS: TestMySQLDisplayStore/delete_link_removes_legacy_link_and_reverse_dependencies (0.06s)
+    --- PASS: TestMySQLDisplayStore/archive_direct_caption_cleans_order_and_version (0.08s)
+=== RUN   TestEnumCreationPublicationRecovery
+=== RUN   TestEnumCreationPublicationRecovery/rollback
+=== RUN   TestEnumCreationPublicationRecovery/lost_commit
+[mysql] 2026/11/05 08:35:10 connection.go:189 closing connection:close tcp 172.26.0.3:60686->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:35:10 packets.go:58 unexpected EOF
+--- PASS: TestEnumCreationPublicationRecovery (2.35s)
+    --- PASS: TestEnumCreationPublicationRecovery/rollback (0.13s)
+    --- PASS: TestEnumCreationPublicationRecovery/lost_commit (0.12s)
+=== RUN   TestEventRepositories
+=== RUN   TestEventRepositories/round_trip_json_and_immutable_events
+=== RUN   TestEventRepositories/keyset_pages_handle_equal_timestamps
+=== RUN   TestEventRepositories/tenant_and_cursor_scope
+=== RUN   TestEventRepositories/limits_and_invalid_json
+=== RUN   TestEventRepositories/event_byte_boundaries
+=== RUN   TestEventRepositories/audit_failure_rolls_back_owner_and_revision
+=== RUN   TestEventRepositories/revision_failure_rolls_back_owner_and_audit
+--- PASS: TestEventRepositories (2.15s)
+    --- PASS: TestEventRepositories/round_trip_json_and_immutable_events (0.03s)
+    --- PASS: TestEventRepositories/keyset_pages_handle_equal_timestamps (0.04s)
+    --- PASS: TestEventRepositories/tenant_and_cursor_scope (0.01s)
+    --- PASS: TestEventRepositories/limits_and_invalid_json (0.02s)
+    --- PASS: TestEventRepositories/event_byte_boundaries (0.02s)
+    --- PASS: TestEventRepositories/audit_failure_rolls_back_owner_and_revision (0.02s)
+    --- PASS: TestEventRepositories/revision_failure_rolls_back_owner_and_audit (0.02s)
+=== RUN   TestNativeFieldUniqueLifecycle
+=== RUN   TestNativeFieldUniqueLifecycle/bool
+=== RUN   TestNativeFieldUniqueLifecycle/int
+=== RUN   TestNativeFieldUniqueLifecycle/float
+=== RUN   TestNativeFieldUniqueLifecycle/timestamp
+=== RUN   TestNativeFieldUniqueLifecycle/ip_address
+--- PASS: TestNativeFieldUniqueLifecycle (1.99s)
+    --- PASS: TestNativeFieldUniqueLifecycle/bool (0.09s)
+    --- PASS: TestNativeFieldUniqueLifecycle/int (0.07s)
+    --- PASS: TestNativeFieldUniqueLifecycle/float (0.09s)
+    --- PASS: TestNativeFieldUniqueLifecycle/timestamp (0.08s)
+    --- PASS: TestNativeFieldUniqueLifecycle/ip_address (0.08s)
+=== RUN   TestStagedIndexJobEndpoints
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/tenants/:tenantId/index-jobs/scoped --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.NewIndexJobEndpoints.NewIndexJobEndpoints.func1.func2 (1 handlers)
+[GIN-debug] POST   /v1/tenants/:tenantId/index-jobs --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.NewIndexJobEndpoints.NewIndexJobEndpoints.func1.func3 (1 handlers)
+[GIN-debug] POST   /v1/index-jobs/:jobId/retry --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.NewIndexJobEndpoints.NewIndexJobEndpoints.func1.func4 (1 handlers)
+--- PASS: TestStagedIndexJobEndpoints (1.61s)
+=== RUN   TestScopedIndexJobs
+--- PASS: TestScopedIndexJobs (1.38s)
+=== RUN   TestPublishedNativeIndexCompletion
+=== RUN   TestPublishedNativeIndexCompletion/valid
+=== RUN   TestPublishedNativeIndexCompletion/closed
+=== RUN   TestPublishedNativeIndexCompletion/wrong_version
+=== RUN   TestPublishedNativeIndexCompletion/missing_index
+=== RUN   TestPublishedNativeIndexCompletion/wrong_column
+=== RUN   TestPublishedNativeIndexCompletion/invisible
+=== RUN   TestPublishedNativeIndexCompletion/unique
+=== RUN   TestPublishedNativeIndexCompletion/audit_failure
+=== RUN   TestPublishedNativeIndexCompletion/foreign_table
+=== RUN   TestPublishedNativeIndexCompletion/caller_cannot_replace_columns
+=== RUN   TestPublishedNativeIndexCompletion/expired
+=== RUN   TestPublishedNativeIndexCompletion/publication_changes_while_waiting
+--- PASS: TestPublishedNativeIndexCompletion (4.29s)
+    --- PASS: TestPublishedNativeIndexCompletion/valid (0.18s)
+    --- PASS: TestPublishedNativeIndexCompletion/closed (0.12s)
+    --- PASS: TestPublishedNativeIndexCompletion/wrong_version (0.11s)
+    --- PASS: TestPublishedNativeIndexCompletion/missing_index (0.20s)
+    --- PASS: TestPublishedNativeIndexCompletion/wrong_column (0.17s)
+    --- PASS: TestPublishedNativeIndexCompletion/invisible (0.18s)
+    --- PASS: TestPublishedNativeIndexCompletion/unique (0.18s)
+    --- PASS: TestPublishedNativeIndexCompletion/audit_failure (0.22s)
+    --- PASS: TestPublishedNativeIndexCompletion/foreign_table (0.15s)
+    --- PASS: TestPublishedNativeIndexCompletion/caller_cannot_replace_columns (0.11s)
+    --- PASS: TestPublishedNativeIndexCompletion/expired (0.10s)
+    --- PASS: TestPublishedNativeIndexCompletion/publication_changes_while_waiting (0.24s)
+=== RUN   TestInstallLockedAccountPoliciesMySQL
+=== RUN   TestInstallLockedAccountPoliciesMySQL/installation_and_replay_remain_locked
+=== RUN   TestInstallLockedAccountPoliciesMySQL/lost_grant_acknowledgement_replays_prefix
+[mysql] 2026/11/05 08:35:23 connection.go:189 closing connection:close tcp 172.26.0.3:49830->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:35:23 packets.go:58 unexpected EOF
+=== RUN   TestInstallLockedAccountPoliciesMySQL/unlocked
+=== RUN   TestInstallLockedAccountPoliciesMySQL/extra_privilege
+=== RUN   TestInstallLockedAccountPoliciesMySQL/partial_object
+=== RUN   TestInstallLockedAccountPoliciesMySQL/unknown_account
+=== RUN   TestInstallLockedAccountPoliciesMySQL/invalid_later_policy
+=== RUN   TestInstallLockedAccountPoliciesMySQL/cancelled
+=== RUN   TestInstallLockedAccountPoliciesMySQL/locked_account_with_existing_session
+--- PASS: TestInstallLockedAccountPoliciesMySQL (1.74s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/installation_and_replay_remain_locked (0.05s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/lost_grant_acknowledgement_replays_prefix (0.04s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/unlocked (0.03s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/extra_privilege (0.03s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/partial_object (0.03s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/unknown_account (0.02s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/invalid_later_policy (0.01s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/cancelled (0.02s)
+    --- PASS: TestInstallLockedAccountPoliciesMySQL/locked_account_with_existing_session (0.03s)
+=== RUN   TestJobRepository
+=== RUN   TestJobRepository/round_trip_and_state_transitions
+=== RUN   TestJobRepository/scope_and_missing_rows
+=== RUN   TestJobRepository/exact_keys_empty_and_rollback
+=== RUN   TestJobRepository/bounds_order_corrupt_json_and_exhaustion
+=== RUN   TestJobRepository/concurrent_duplicate_creation
+=== RUN   TestJobRepository/exact_row_lock_and_cancelled_wait
+=== RUN   TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot
+=== RUN   TestJobRepository/byte_boundaries_and_audit_rollback
+--- PASS: TestJobRepository (1.91s)
+    --- PASS: TestJobRepository/round_trip_and_state_transitions (0.05s)
+    --- PASS: TestJobRepository/scope_and_missing_rows (0.02s)
+    --- PASS: TestJobRepository/exact_keys_empty_and_rollback (0.04s)
+    --- PASS: TestJobRepository/bounds_order_corrupt_json_and_exhaustion (0.02s)
+    --- PASS: TestJobRepository/concurrent_duplicate_creation (0.01s)
+    --- PASS: TestJobRepository/exact_row_lock_and_cancelled_wait (0.16s)
+    --- PASS: TestJobRepository/locked_lookup_sees_new_key_after_old_snapshot (0.01s)
+    --- PASS: TestJobRepository/byte_boundaries_and_audit_rollback (0.02s)
+=== RUN   TestJobLookupDigestCollision
+--- PASS: TestJobLookupDigestCollision (1.19s)
+=== RUN   TestMigrationLostDDLAcknowledgement
+[mysql] 2026/11/05 08:35:28 connection.go:189 closing connection:close tcp 172.26.0.3:58384->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:35:28 packets.go:58 unexpected EOF
+--- PASS: TestMigrationLostDDLAcknowledgement (1.60s)
+=== RUN   TestMigrationRunner
+=== RUN   TestMigrationRunner/fresh_upgrade_replay
+=== RUN   TestMigrationRunner/checksum_change
+=== RUN   TestMigrationRunner/preexisting_object
+=== RUN   TestMigrationRunner/applied_drift
+=== RUN   TestMigrationRunner/dirty_absent
+=== RUN   TestMigrationRunner/dirty_applied
+=== RUN   TestMigrationRunner/dirty_conflict
+=== RUN   TestMigrationRunner/short_plan
+=== RUN   TestMigrationRunner/cancelled
+=== RUN   TestMigrationRunner/competing_installer
+=== RUN   TestMigrationRunner/ledger_drift
+--- PASS: TestMigrationRunner (25.68s)
+    --- PASS: TestMigrationRunner/fresh_upgrade_replay (3.08s)
+    --- PASS: TestMigrationRunner/checksum_change (2.31s)
+    --- PASS: TestMigrationRunner/preexisting_object (1.95s)
+    --- PASS: TestMigrationRunner/applied_drift (1.99s)
+    --- PASS: TestMigrationRunner/dirty_absent (2.00s)
+    --- PASS: TestMigrationRunner/dirty_applied (3.47s)
+    --- PASS: TestMigrationRunner/dirty_conflict (2.17s)
+    --- PASS: TestMigrationRunner/short_plan (2.17s)
+    --- PASS: TestMigrationRunner/cancelled (1.45s)
+    --- PASS: TestMigrationRunner/competing_installer (2.95s)
+    --- PASS: TestMigrationRunner/ledger_drift (2.13s)
+=== RUN   TestMigrationExecutableDefinitions
+=== RUN   TestMigrationExecutableDefinitions/VIEW
+=== RUN   TestMigrationExecutableDefinitions/PROCEDURE
+=== RUN   TestMigrationExecutableDefinitions/FUNCTION
+=== RUN   TestMigrationExecutableDefinitions/TRIGGER
+--- PASS: TestMigrationExecutableDefinitions (7.87s)
+    --- PASS: TestMigrationExecutableDefinitions/VIEW (1.71s)
+    --- PASS: TestMigrationExecutableDefinitions/PROCEDURE (1.46s)
+    --- PASS: TestMigrationExecutableDefinitions/FUNCTION (1.76s)
+    --- PASS: TestMigrationExecutableDefinitions/TRIGGER (2.94s)
+=== RUN   TestStagedPublishedModelEndpoint
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.NewModelEndpoint.func1 (1 handlers)
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/tenants/:tenantId/data-model --> github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime.NewModelEndpoint.func1 (1 handlers)
+--- PASS: TestStagedPublishedModelEndpoint (2.48s)
+=== RUN   TestNullabilityPreservesNativeValues
+=== RUN   TestNullabilityPreservesNativeValues/bool
+=== RUN   TestNullabilityPreservesNativeValues/int
+=== RUN   TestNullabilityPreservesNativeValues/float
+=== RUN   TestNullabilityPreservesNativeValues/string
+=== RUN   TestNullabilityPreservesNativeValues/timestamp
+=== RUN   TestNullabilityPreservesNativeValues/ip_address
+--- PASS: TestNullabilityPreservesNativeValues (2.28s)
+    --- PASS: TestNullabilityPreservesNativeValues/bool (0.08s)
+    --- PASS: TestNullabilityPreservesNativeValues/int (0.14s)
+    --- PASS: TestNullabilityPreservesNativeValues/float (0.07s)
+    --- PASS: TestNullabilityPreservesNativeValues/string (0.05s)
+    --- PASS: TestNullabilityPreservesNativeValues/timestamp (0.08s)
+    --- PASS: TestNullabilityPreservesNativeValues/ip_address (0.07s)
+=== RUN   TestOptionsRepository
+=== RUN   TestOptionsRepository/round_trip_replace_identity_json_and_version
+=== RUN   TestOptionsRepository/tenant_parent_active_and_distinct_validation
+=== RUN   TestOptionsRepository/rollback_covers_children_and_version
+=== RUN   TestOptionsRepository/limits_gaps_and_overflow
+=== RUN   TestOptionsRepository/large_order_uses_bounded_batches
+=== RUN   TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists
+--- PASS: TestOptionsRepository (4.04s)
+    --- PASS: TestOptionsRepository/round_trip_replace_identity_json_and_version (0.10s)
+    --- PASS: TestOptionsRepository/tenant_parent_active_and_distinct_validation (0.05s)
+    --- PASS: TestOptionsRepository/rollback_covers_children_and_version (0.04s)
+    --- PASS: TestOptionsRepository/limits_gaps_and_overflow (0.03s)
+    --- PASS: TestOptionsRepository/large_order_uses_bounded_batches (1.58s)
+    --- PASS: TestOptionsRepository/concurrent_first_upserts_do_not_mix_lists (0.06s)
+=== RUN   TestPhysicalCreationPublication
+=== RUN   TestPhysicalCreationPublication/lost_insert_ack
+[mysql] 2026/11/05 08:36:19 connection.go:189 closing connection:close tcp 172.26.0.3:34142->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:36:19 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/lost_update_ack
+[mysql] 2026/11/05 08:36:20 connection.go:189 closing connection:close tcp 172.26.0.3:34202->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:36:20 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/service_commit
+=== RUN   TestPhysicalCreationPublication/service_drift
+=== RUN   TestPhysicalCreationPublication/service_inactive
+=== RUN   TestPhysicalCreationPublication/service_audit_failure
+=== RUN   TestPhysicalCreationPublication/service_revision_failure
+=== RUN   TestPhysicalCreationPublication/publish_replay
+=== RUN   TestPhysicalCreationPublication/lost_commit
+[mysql] 2026/11/05 08:36:28 connection.go:189 closing connection:close tcp 172.26.0.3:52704->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:36:28 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationPublication/owner_rollback
+=== RUN   TestPhysicalCreationPublication/metadata_mismatch
+=== RUN   TestPhysicalCreationPublication/extra_field
+=== RUN   TestPhysicalCreationPublication/missing_mapping
+=== RUN   TestPhysicalCreationPublication/authorization
+=== RUN   TestPhysicalCreationPublication/trigger_drift
+=== RUN   TestPhysicalCreationPublication/extra_trigger
+=== RUN   TestPhysicalCreationPublication/dirty_journal
+=== RUN   TestPhysicalCreationPublication/resolver_drift
+=== RUN   TestPhysicalCreationPublication/shared_grant
+=== RUN   TestPhysicalCreationPublication/record_grant
+=== RUN   TestPhysicalCreationPublication/record_unlocked
+=== RUN   TestPhysicalCreationPublication/writer_grant
+=== RUN   TestPhysicalCreationPublication/private_consumer
+=== RUN   TestPhysicalCreationPublication/installer_active
+=== RUN   TestPhysicalCreationPublication/installer_capability
+=== RUN   TestPhysicalCreationPublication/installer_session
+=== RUN   TestPhysicalCreationPublication/installer_extra_privilege
+=== RUN   TestPhysicalCreationPublication/missing_reference_privilege
+=== RUN   TestPhysicalCreationPublication/missing_definer_privilege
+=== RUN   TestPhysicalCreationPublication/missing_trigger_privilege
+--- PASS: TestPhysicalCreationPublication (37.07s)
+    --- PASS: TestPhysicalCreationPublication/lost_insert_ack (0.79s)
+    --- PASS: TestPhysicalCreationPublication/lost_update_ack (1.49s)
+    --- PASS: TestPhysicalCreationPublication/service_commit (1.17s)
+    --- PASS: TestPhysicalCreationPublication/service_drift (1.04s)
+    --- PASS: TestPhysicalCreationPublication/service_inactive (0.97s)
+    --- PASS: TestPhysicalCreationPublication/service_audit_failure (0.93s)
+    --- PASS: TestPhysicalCreationPublication/service_revision_failure (1.02s)
+    --- PASS: TestPhysicalCreationPublication/publish_replay (0.86s)
+    --- PASS: TestPhysicalCreationPublication/lost_commit (0.92s)
+    --- PASS: TestPhysicalCreationPublication/owner_rollback (0.74s)
+    --- PASS: TestPhysicalCreationPublication/metadata_mismatch (0.68s)
+    --- PASS: TestPhysicalCreationPublication/extra_field (1.05s)
+    --- PASS: TestPhysicalCreationPublication/missing_mapping (1.11s)
+    --- PASS: TestPhysicalCreationPublication/authorization (0.60s)
+    --- PASS: TestPhysicalCreationPublication/trigger_drift (0.56s)
+    --- PASS: TestPhysicalCreationPublication/extra_trigger (0.61s)
+    --- PASS: TestPhysicalCreationPublication/dirty_journal (0.72s)
+    --- PASS: TestPhysicalCreationPublication/resolver_drift (1.02s)
+    --- PASS: TestPhysicalCreationPublication/shared_grant (0.91s)
+    --- PASS: TestPhysicalCreationPublication/record_grant (0.94s)
+    --- PASS: TestPhysicalCreationPublication/record_unlocked (0.86s)
+    --- PASS: TestPhysicalCreationPublication/writer_grant (0.65s)
+    --- PASS: TestPhysicalCreationPublication/private_consumer (0.35s)
+    --- PASS: TestPhysicalCreationPublication/installer_active (0.84s)
+    --- PASS: TestPhysicalCreationPublication/installer_capability (1.16s)
+    --- PASS: TestPhysicalCreationPublication/installer_session (1.44s)
+    --- PASS: TestPhysicalCreationPublication/installer_extra_privilege (1.58s)
+    --- PASS: TestPhysicalCreationPublication/missing_reference_privilege (1.34s)
+    --- PASS: TestPhysicalCreationPublication/missing_definer_privilege (1.20s)
+    --- PASS: TestPhysicalCreationPublication/missing_trigger_privilege (0.96s)
+=== RUN   TestPhysicalCreationAllocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated
+=== RUN   TestPhysicalCreationAllocated/service_allocated_lost_commit
+[mysql] 2026/11/05 08:37:07 connection.go:189 closing connection:close tcp 172.26.0.3:58250->172.26.0.2:3306: use of closed network connection
+[mysql] 2026/11/05 08:37:07 packets.go:58 unexpected EOF
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_before
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_guard_after
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_owner_rollback
+=== RUN   TestPhysicalCreationAllocated/service_allocated_native_active_installer
+panic: test timed out after 4m0s
+	running tests:
+		TestPhysicalCreationAllocated (26s)
+		TestPhysicalCreationAllocated/service_allocated_native_active_installer (1s)
+
+goroutine 27881 [running]:
+testing.(*M).startAlarm.func1()
+	/usr/local/go/src/testing/testing.go:2682 +0x605
+created by time.goFunc
+	/usr/local/go/src/time/sleep.go:215 +0x45
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc000102700, {0x16d5455, 0x1d}, 0x179b6f8)
+	/usr/local/go/src/testing/testing.go:2005 +0x9fe
+testing.runTests.func1(0xc000102700)
+	/usr/local/go/src/testing/testing.go:2477 +0x86
+testing.tRunner(0xc000102700, 0xc00059fae0)
+	/usr/local/go/src/testing/testing.go:1934 +0x21d
+testing.runTests(0xc0000128b8, {0x2048260, 0x37, 0x37}, {0x0?, 0x4b6445?, 0x2051dc0?})
+	/usr/local/go/src/testing/testing.go:2475 +0x96d
+testing.(*M).Run(0xc0002d7cc0)
+	/usr/local/go/src/testing/testing.go:2337 +0xed5
+main.main()
+	_testmain.go:155 +0x165
+
+goroutine 27880 [runnable]:
+sync/atomic.(*Value).Load(0xc0003d86a8)
+	/usr/local/go/src/sync/atomic/value.go:36 +0x93
+context.(*cancelCtx).Done(0xc0003d8690)
+	/usr/local/go/src/context/context.go:449 +0x4d
+github.com/go-sql-driver/mysql.(*mysqlConn).startWatcher.func1()
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:665 +0x131
+created by github.com/go-sql-driver/mysql.(*mysqlConn).startWatcher in goroutine 27552
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:655 +0x1c5
+
+goroutine 24161 [select]:
+database/sql.(*DB).connectionCleaner(0xc0000cf520, 0xdf8475800)
+	/usr/local/go/src/database/sql/sql.go:1104 +0x129
+created by database/sql.(*DB).startCleanerLocked in goroutine 24199
+	/usr/local/go/src/database/sql/sql.go:1091 +0x248
+
+goroutine 24204 [select]:
+database/sql.(*DB).connectionCleaner(0xc0007af2b0, 0xdf8475800)
+	/usr/local/go/src/database/sql/sql.go:1104 +0x129
+created by database/sql.(*DB).startCleanerLocked in goroutine 24199
+	/usr/local/go/src/database/sql/sql.go:1091 +0x248
+
+goroutine 24200 [select]:
+database/sql.(*DB).connectionOpener(0xc0000cf520, {0x19b8148, 0xc000788b40})
+	/usr/local/go/src/database/sql/sql.go:1261 +0xeb
+created by database/sql.OpenDB in goroutine 24199
+	/usr/local/go/src/database/sql/sql.go:841 +0x287
+
+goroutine 24199 [chan receive]:
+testing.(*T).Run(0xc00099c540, {0x16e7432, 0x29}, 0xc0003d8380)
+	/usr/local/go/src/testing/testing.go:2005 +0x9fe
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata_test.testPhysicalCreationPublication(0xc00099c540, 0x1, 0x0, {0x0, 0x0, 0xc00099c618?})
+	/backend/data-model-service/internal/store/mysql/metadata/physical_creation_publication_test.go:188 +0x3e07
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata_test.TestPhysicalCreationAllocated(0xc00099c540)
+	/backend/data-model-service/internal/store/mysql/metadata/physical_creation_publication_test.go:111 +0x35
+testing.tRunner(0xc00099c540, 0x179b6f8)
+	/usr/local/go/src/testing/testing.go:1934 +0x21d
+created by testing.(*T).Run in goroutine 1
+	/usr/local/go/src/testing/testing.go:1997 +0x9d3
+
+goroutine 27552 [runnable]:
+time.Time.Add({0xc2b32dee830b2738, 0x37eadbca04, 0x2051dc0}, 0x2540be400)
+	/usr/local/go/src/time/time.go:1166 +0x22d
+github.com/go-sql-driver/mysql.(*mysqlConn).readWithTimeout(0xc0007b25a0, {0xc000727000, 0x1000, 0x1000})
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:70 +0x99
+github.com/go-sql-driver/mysql.(*buffer).fill(0xc0007b25a0, 0x4, 0xc00091f2b0)
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/buffer.go:72 +0x1bf
+github.com/go-sql-driver/mysql.(*mysqlConn).readNext(0xc0007b25a0, 0x4)
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/packets.go:32 +0x85
+github.com/go-sql-driver/mysql.(*mysqlConn).readPacket(0xc0007b25a0)
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/packets.go:52 +0x1bb
+github.com/go-sql-driver/mysql.(*mysqlStmt).readPrepareResultPacket(0xc00028e000)
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/packets.go:910 +0x4e
+github.com/go-sql-driver/mysql.(*mysqlConn).Prepare(0xc0007b25a0, {0xc0008642a0, 0xd4})
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:223 +0x1ca
+github.com/go-sql-driver/mysql.(*mysqlConn).PrepareContext(0xc0007b25a0, {0x19b81b8, 0xc0003d8690}, {0xc0008642a0, 0xd4})
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:577 +0x92
+database/sql.ctxDriverPrepare({0x19b81b8, 0xc0003d8690}, {0x19b6a68, 0xc0007b25a0}, {0xc0008642a0, 0xd4})
+	/usr/local/go/src/database/sql/ctxutil.go:15 +0x164
+database/sql.(*DB).queryDC.func2()
+	/usr/local/go/src/database/sql/sql.go:1808 +0xa5
+database/sql.withLock({0x19b3df8, 0xc00004e400}, 0xc00091f8b8)
+	/usr/local/go/src/database/sql/sql.go:3572 +0xa3
+database/sql.(*DB).queryDC(0x49d97e?, {0x19b81b8, 0xc0003d8690}, {0x0, 0x0}, 0xc00004e400, 0xc0004fe4a0, {0xc0008642a0, 0xd4}, {0xc0005a86f0, ...})
+	/usr/local/go/src/database/sql/sql.go:1807 +0x4b3
+database/sql.(*Conn).QueryContext(0xc000888780, {0x19b81b8, 0xc0003d8690}, {0xc0008642a0, 0xd4}, {0xc0005a86f0, 0x3, 0x3})
+	/usr/local/go/src/database/sql/sql.go:2037 +0x131
+database/sql.(*Conn).QueryRowContext(0xc000888780, {0x19b81b8, 0xc0003d8690}, {0xc0008642a0, 0xd4}, {0xc0005a86f0, 0x3, 0x3})
+	/usr/local/go/src/database/sql/sql.go:2047 +0x95
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql.(*PhysicalExecutor).physicalPublicationIdentity(0xc000a0f780, {0x19b81b8, 0xc0003d8690}, {0x19afba0, 0xc000888780}, {{0xba, 0x20, 0x26, 0xbc, 0xe6, ...}, ...}, ...)
+	/backend/data-model-service/internal/store/mysql/physical_publication.go:181 +0x3f7
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql.(*PhysicalExecutor).publishVerifiedOperation.func1(0xc000888780)
+	/backend/data-model-service/internal/store/mysql/physical_publication.go:77 +0x145
+github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore.WithDDLLock({0x19b81b8, 0xc0003d8690}, 0xc0007af2b0, {0xc0005c4200, 0x3f}, 0xc0009203f0)
+	/backend/mysqlstore/ddl_lock.go:79 +0x670
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql.(*PhysicalExecutor).publishVerifiedOperation(0xc000a0f780, {0x19b81b8, 0xc0003d8690}, 0xc00087de00, {{0xba, 0x20, 0x26, 0xbc, 0xe6, 0x6e, ...}, ...}, ...)
+	/backend/data-model-service/internal/store/mysql/physical_publication.go:76 +0x6bd
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql.(*PhysicalPublicationManager).publish(0xc0000feb40, {0x19b81b8, 0xc0003d8690}, {{0xba, 0x20, 0x26, 0xbc, 0xe6, 0x6e, 0x44, ...}, ...}, ...)
+	/backend/data-model-service/internal/store/mysql/physical_publication_manager.go:89 +0x927
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql.(*PhysicalPublicationManager).Publish(0xc0000feb40, {0x19b81b8, 0xc0003d8690}, {{0xba, 0x20, 0x26, 0xbc, 0xe6, 0x6e, 0x44, ...}, ...}, ...)
+	/backend/data-model-service/internal/store/mysql/physical_publication_manager.go:62 +0xfa
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/service.TableService.PublishPreparedCreation({{0x0, 0x0}, {0x0, 0x0}, {0x0, 0x0}, {0x0, 0x0}, {0x0, 0x0}, ...}, ...)
+	/backend/data-model-service/internal/service/table_creation_publication.go:42 +0xcb9
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata_test.verifyPreparedCreationOwner(_, {_, _}, _, {_, _}, {0x6, 0x8f, 0x9c, 0x8, ...}, ...)
+	/backend/data-model-service/internal/store/mysql/metadata/table_creation_owner_test.go:138 +0x28a5
+github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata_test.testPhysicalCreationPublication.func1(0xc0004b8700)
+	/backend/data-model-service/internal/store/mysql/metadata/physical_creation_publication_test.go:503 +0x6dd8
+testing.tRunner(0xc0004b8700, 0xc0003d8380)
+	/usr/local/go/src/testing/testing.go:1934 +0x21d
+created by testing.(*T).Run in goroutine 24199
+	/usr/local/go/src/testing/testing.go:1997 +0x9d3
+
+goroutine 24226 [select]:
+database/sql.(*DB).connectionOpener(0xc0007af2b0, {0x19b8148, 0xc0006d0780})
+	/usr/local/go/src/database/sql/sql.go:1261 +0xeb
+created by database/sql.OpenDB in goroutine 24199
+	/usr/local/go/src/database/sql/sql.go:841 +0x287
+
+goroutine 24171 [select]:
+github.com/go-sql-driver/mysql.(*mysqlConn).startWatcher.func1()
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:658 +0x105
+created by github.com/go-sql-driver/mysql.(*mysqlConn).startWatcher in goroutine 24199
+	/go/pkg/mod/github.com/go-sql-driver/mysql@v1.9.3/connection.go:655 +0x1c5
+FAIL	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata	240.405s
+?   	github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/migrations	[no test files]
+FAIL

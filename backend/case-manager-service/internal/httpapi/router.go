@@ -15,18 +15,20 @@ import (
 )
 
 type RouterConfig struct {
-	UserVerifier        *access.Verifier
-	ServiceTenantIDs    []uuid.UUID
-	RequestTimeout      time.Duration
-	AuthMode            string
-	AuthToken           string
-	DecisionEngineURL   string
-	ScreeningServiceURL string
-	IngestionServiceURL string
-	DataModelServiceURL string
-	BlobServiceURL      string
-	OutboxPublisherURL  string
-	HTTPClientTimeout   time.Duration
+	// Opt-in contract extension; command/runtime activation is separate.
+	EnableWorkflowReceipts bool
+	UserVerifier           *access.Verifier
+	ServiceTenantIDs       []uuid.UUID
+	RequestTimeout         time.Duration
+	AuthMode               string
+	AuthToken              string
+	DecisionEngineURL      string
+	ScreeningServiceURL    string
+	IngestionServiceURL    string
+	DataModelServiceURL    string
+	BlobServiceURL         string
+	OutboxPublisherURL     string
+	HTTPClientTimeout      time.Duration
 }
 
 type uuidGenerator struct{}
@@ -129,6 +131,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
 	internal.GET("/v1/tenants/:tenantId/inboxes/:inboxId", inboxHandler.Get)
 	internal.POST("/v1/workflow-actions", integrationHandler.WorkflowAction)
+	if cfg.EnableWorkflowReceipts {
+		internal.POST("/v1/workflow-receipts/deliver", integrationHandler.DeliverWorkflowReceipt)
+		internal.POST("/v1/workflow-receipts/reconcile", integrationHandler.ReconcileWorkflowReceipt)
+	}
 	internal.POST("/v1/ai-case-reviews/:reviewId/run", integrationHandler.NotImplemented)
 	internal.POST("/v1/auto-assignment/run", integrationHandler.NotImplemented)
 

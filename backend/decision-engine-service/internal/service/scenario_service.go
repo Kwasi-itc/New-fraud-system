@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
@@ -162,6 +163,7 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 		}
 
 		var liveIterationID *string
+		ruleMapping := make(map[string]string)
 		for _, item := range iterations {
 			newIterationID := s.idGen.New().String()
 			cloned := item
@@ -188,6 +190,7 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 			for _, rule := range rules {
 				clonedRule := rule
 				clonedRule.ID = s.idGen.New().String()
+				ruleMapping[rule.ID] = clonedRule.ID
 				clonedRule.IterationID = createdIteration.ID
 				clonedRule.TenantID = tenantID
 				clonedRule.StableRuleID = s.idGen.New().String()
@@ -221,6 +224,12 @@ func (s ScenarioService) Copy(ctx context.Context, tenantID, scenarioID, name st
 				clonedCondition.RuleID = createdWorkflowRule.ID
 				clonedCondition.CreatedAt = now
 				clonedCondition.UpdatedAt = now
+				if condition.Function == workflow.ConditionRuleHit {
+					clonedCondition.Params, runErr = workflow.RemapRuleHit(condition.Params, ruleMapping)
+					if runErr != nil {
+						return runErr
+					}
+				}
 				if _, createErr := store.WorkflowConditions().Create(ctx, clonedCondition); createErr != nil {
 					return createErr
 				}

@@ -1,0 +1,136 @@
+{
+  "componentPassed": true,
+  "testContainerExitCode": 0,
+  "topLevelTestsPassed": 80,
+  "testsAndSubtestsPassed": 327,
+  "packageRunsPassed": 8,
+  "failed": [],
+  "skipped": [],
+  "criticalResults": [
+    {
+      "test": "TestIndexDeliveryStore",
+      "passed": true
+    },
+    {
+      "test": "TestIndexDeliveryLostCommitAcknowledgement",
+      "passed": true
+    },
+    {
+      "test": "TestLeasedIndexExecution",
+      "passed": true
+    },
+    {
+      "test": "TestMySQLDeliveryPolling",
+      "passed": true
+    },
+    {
+      "test": "TestMySQLDeliveryMaintenance",
+      "passed": true
+    },
+    {
+      "test": "TestDeliveryRetryErrorHistory",
+      "passed": true
+    },
+    {
+      "test": "TestDeliveryInspection",
+      "passed": true
+    },
+    {
+      "test": "TestDeliveryRedrive",
+      "passed": true
+    },
+    {
+      "test": "TestPublishedNativeIndexCompletion",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalReconciliationPages",
+      "passed": true
+    },
+    {
+      "test": "TestRecoveryCommandMySQL",
+      "passed": true
+    },
+    {
+      "test": "TestInspectionCommandMySQL",
+      "passed": true
+    },
+    {
+      "test": "TestRedriveCommandMySQL",
+      "passed": true
+    },
+    {
+      "test": "TestLeaseSupervisor",
+      "passed": true
+    },
+    {
+      "test": "TestDeliveryPoller",
+      "passed": true
+    },
+    {
+      "test": "TestMaintenanceScheduler",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_audit_failure",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_denied",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_expired",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_text",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_foreign_tenant",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_other_pool",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_completion_denied",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_publication_expired",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_navigation",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_repair",
+      "passed": true
+    },
+    {
+      "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_decision",
+      "passed": true
+    }
+  ],
+  "raceWarnings": false,
+  "liveRuntimePassed": false,
+  "liveJob": "07831dec-e4ad-422c-bd16-9d3e64069d6e",
+  "liveJobStatus": "pending",
+  "physicalIndexRows": 0,
+  "workersComplete": false,
+  "openWork": [
+    "MySQL queue execution host, lease supervision and maintenance are not deployed",
+    "String search, navigation and repair execution strategies are unsupported",
+    "Trusted work/reference loading, runtime identity, reviewed grants and host resource settings need composition",
+    "Real process interruption/restart and full host acceptance remain unverified"
+  ],
+  "scope": "Focused worker component acceptance. The decision journey uses disposable MySQL target objects and PostgreSQL reference objects. This does not include the full schema-manifest regression."
+}

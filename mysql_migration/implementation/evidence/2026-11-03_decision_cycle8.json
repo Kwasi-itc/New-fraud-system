@@ -1,0 +1,71 @@
+﻿{
+    "date":  "2026-11-03",
+    "cycle":  8,
+    "requested_batch_size":  20,
+    "batch_status":  "incomplete",
+    "completed_this_cycle":  [
+                                 "D15.13",
+                                 "D20.11"
+                             ],
+    "checklist":  {
+                      "checked":  124,
+                      "remaining":  28,
+                      "total":  152
+                  },
+    "implementation":  {
+                           "D15.13":  "Actual DecisionService on PostgreSQL and MySQL now exercises 12 tag/risk/IP cases in addition to the nine list cases, comparing returned and committed evidence. Covers present/absent values, exact case, latest risk snapshot and foreign-tenant rows. Four actual target SQL failures abort evaluation without exposing or persisting provisional decision/effect output.",
+                           "D20.11":  "The real-owner browser copy journey now creates and publishes a destination iteration through decision HTTP, evaluates the saved copied browser graph through the actual preparer and unit of work, and reads back the decision, rule evidence and workflow execution. Checks pinned iteration, review outcome, copied inbox/action/name/rule identity and exactly one trusted-actor copy audit. External provider delivery remains D20.10."
+                       },
+    "verification":  [
+                         {
+                             "log":  "2026-11-03_cycle8-platform-final.jsonl",
+                             "top_level_passed":  4,
+                             "subtests_passed":  49,
+                             "failures":  0,
+                             "skips":  0,
+                             "race_detector":  true,
+                             "scope":  "New platform parity/SQL failure tests plus existing real-identity list and pre-persistence revocation regressions"
+                         },
+                         {
+                             "log":  "2026-11-03_cycle8-browser-final.jsonl",
+                             "top_level_passed":  1,
+                             "subtests_passed":  1,
+                             "failures":  0,
+                             "skips":  0,
+                             "race_detector":  true,
+                             "scope":  "Actual data-model physical owner journey, including browser copy-to-decision extension"
+                         },
+                         {
+                             "result":  "passed",
+                             "command":  "go vet -mod=readonly -p 2 ./internal/store/mysql ./integrationtest",
+                             "log":  "2026-11-03_cycle8-vet.log"
+                         }
+                     ],
+    "outstanding_inputs":  [
+                               {
+                                   "tasks":  [
+                                                 "D14.12",
+                                                 "D15.17"
+                                             ],
+                                   "required":  "User-agreed retained row count, tenant/skew profile, history request rate, decisions/second, p95/p99 latency, error rate, rule/aggregate mix and sustained test duration. These DECISION leaves explicitly require user agreement; no targets were invented or approved by timeout."
+                               },
+                               {
+                                   "tasks":  [
+                                                 "D19.19",
+                                                 "D19.20"
+                                             ],
+                                   "required":  "Intended scoring and outbox providers, destination policy, durable idempotency/body-hash contract, retained acceptance receipt and reconciliation APIs. Existing dispatch HTTP clients implement send-only behavior and cannot prove acceptance after an unknown response."
+                               }
+                           ],
+    "remaining_implementation":  [
+                                     "Workflow and screening real receipt-provider bindings D19.17-D19.18 remain unimplemented; local permission/publication objects alone do not satisfy their business intake contracts.",
+                                     "D19.21 composition depends on all four real providers. Their grant/lifecycle/lock acceptance, effect-combination corpus and complete external-result journeys remain open.",
+                                     "Load fixtures and acceptance require the explicit target decisions. Full D20 reconciliation cannot close with missing providers, targets or required results."
+                                 ],
+    "limitations":  [
+                        "Only two checklist leaves are newly complete; this does not claim the requested 20-item batch is complete.",
+                        "The platform model and privileged foreign-row seeding are isolated test fixtures; actual session authorization is used for target evaluation reads. SQL-failure injection runs on the target; source/target successful and absence cases compare committed evidence.",
+                        "The browser journey proves local decision/workflow persistence and audit continuity, not receipt-aware case delivery or production routing.",
+                        "All database work used generated disposable fixtures in decision-cycle8. PostgreSQL remains configured and no application deployment or database reset occurred."
+                    ]
+}

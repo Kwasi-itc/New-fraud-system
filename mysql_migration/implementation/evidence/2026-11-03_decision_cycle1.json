@@ -1,0 +1,135 @@
+{
+    "date":  "2026-11-03",
+    "scope":  "D13-D20 cycle 1",
+    "status":  "Scoped leaves verified; seven parent gates still open",
+    "completed_plan_items":  [
+                                 "D13.11",
+                                 "D14.09",
+                                 "D15.10",
+                                 "D17.10",
+                                 "D18.09",
+                                 "D19.11",
+                                 "D20.07"
+                             ],
+    "completed_code_or_verification_items":  [
+                                                 "D13.12",
+                                                 "D13.13",
+                                                 "D14.10",
+                                                 "D14.11"
+                                             ],
+    "checklist":  {
+                      "total":  151,
+                      "done":  79,
+                      "remaining":  72,
+                      "parents_completed":  [
+                                                "D16"
+                                            ]
+                  },
+    "matrix":  "../modules/03_decision_engine_integration_matrix.md",
+    "runtime":  "PostgreSQL remains configured. MySQL endpoints are explicit inactive constructors. Tests used isolated tmpfs databases with no published ports.",
+    "versions":  {
+                     "go":  "1.25.8",
+                     "mysql":  "8.4.8",
+                     "postgres":  "16 image"
+                 },
+    "tests":  [
+                  {
+                      "log":  "2026-11-03_cycle1-owner-cycle-final.jsonl",
+                      "exit_code":  0,
+                      "top_level_passes":  7,
+                      "subtest_passes":  34,
+                      "failed":  0,
+                      "skipped":  0,
+                      "race":  true,
+                      "tests":  [
+                                    "TestScopedIndexJobHandler",
+                                    "TestAssembledRepository",
+                                    "TestLeasedIndexExecution",
+                                    "TestStagedIndexJobEndpoints",
+                                    "TestScopedIndexJobs",
+                                    "TestStagedPublishedModelEndpoint",
+                                    "TestMetadataTransactionManager"
+                                ]
+                  },
+                  {
+                      "log":  "2026-11-03_cycle1-history-cycle.jsonl",
+                      "exit_code":  0,
+                      "top_level_passes":  2,
+                      "subtest_passes":  35,
+                      "failed":  0,
+                      "skipped":  0,
+                      "race":  true,
+                      "tests":  [
+                                    "TestHistoryPostgresMySQLGoldenFiltersPaginationAndSnoozes",
+                                    "TestHistoryQueryRejectsAmbiguityAndCursorReplay"
+                                ]
+                  },
+                  {
+                      "log":  "2026-11-03_cycle1-history-api-regression-final.jsonl",
+                      "exit_code":  0,
+                      "top_level_passes":  13,
+                      "subtest_passes":  28,
+                      "failed":  0,
+                      "skipped":  0,
+                      "race":  true,
+                      "tests":  [
+                                    "TestCustomListCSVContractAndBounds",
+                                    "TestExecutionHTTPStrictDecoding",
+                                    "TestExecutionHTTPFailClosedAndRedaction",
+                                    "TestExecutionHTTPErrorClassification",
+                                    "TestExecutionPageStrictQueryAndCursor",
+                                    "TestExecutionWaitCommittedStatesTimeoutAndErrors",
+                                    "TestExecutionWaitInputAndDeadlineAreNotSuccess",
+                                    "TestMySQLExecutionReadCancellationAdapterAuthorizationAndRollback",
+                                    "TestCancellationRequiresExplicitBoundedPrecondition",
+                                    "TestTargetResponsesRetainGenerationCancellationAndReplay",
+                                    "TestHistoryQueryRejectsAmbiguityAndCursorReplay",
+                                    "TestPlatformQueryExactContract",
+                                    "TestPublicationCursorStrictDecoding"
+                                ]
+                  }
+              ],
+    "checks":  [
+                   {
+                       "command":  "data-model-service: go test -mod=readonly -p 2 -run ^$ ./...",
+                       "exit_code":  0,
+                       "log":  "2026-11-03_cycle1-owner-cycle-compile.log"
+                   },
+                   {
+                       "command":  "data-model-service: go vet -p 2 ./internal/mysqlruntime ./internal/httpapi/handlers ./internal/store/mysql",
+                       "exit_code":  0,
+                       "log":  "2026-11-03_cycle1-owner-cycle-vet.log"
+                   },
+                   {
+                       "command":  "decision-engine-service: go vet -p 2 ./internal/mysqlapi ./internal/store/mysql",
+                       "exit_code":  0,
+                       "log":  "2026-11-03_cycle1-history-vet.log"
+                   }
+               ],
+    "corrected_attempts":  [
+                               {
+                                   "log":  "2026-11-03_cycle1-owner-index.jsonl",
+                                   "reason":  "Initial new test had an unused net/http import. Removed; final affected owner run passed."
+                               },
+                               {
+                                   "log":  "2026-11-03_cycle1-history-api-regression.jsonl",
+                                   "reason":  "Initial API regression skipped one integration test without fixture environment. Final run supplies fixture and has no skipped tests."
+                               }
+                           ],
+    "assertions":  [
+                       "Model: mandatory authority, eligible registry token, denied conditional request, foreign path, closed gate invalidates ETag, SQL error hidden",
+                       "Index jobs: scoped reads and create/retry in owner SQL transactions with durable producer; enqueue failure rolls back job/history/delivery/reservation",
+                       "Index retry: failed enqueue restores failed status and reservation; two simultaneous retries create one replacement; available delivery is reused; completed evidence retained",
+                       "History: eight additional golden filters, 1/5/48-row pages, exhausted cursor and offset past end; complete normalized rows/counts on both engines",
+                       "Cursor replay: all nine filter fields; existing concurrent insert/absent-anchor/snapshot cases rerun"
+                   ],
+    "limitations":  [
+                        "Model token set by privileged disposable registry setup, not actual physical publication.",
+                        "Authority callbacks are fixture-injected; actual auth/case providers and restricted grants remain open.",
+                        "Manual retry preserves source domain attempt counts; worker composition must retain/review domain attempt budget and DDL recovery behavior.",
+                        "Physical worker/publication, full evaluator/provider parity and sustained load remain open.",
+                        "D17.11 role policy and D14.12/D15.17 numeric targets await user input.",
+                        "No production activation or application database migration."
+                    ],
+    "cleanup":  "Complete: decision-cycle1-runner and decision-cycle1-postgres removed; Compose MySQL container and private network removed. Disposable databases were tmpfs; no application database was modified."
+}

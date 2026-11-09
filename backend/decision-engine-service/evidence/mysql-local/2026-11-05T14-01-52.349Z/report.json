@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'block_and_review'\n- 'review'\n\n    at file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-local-smoke.mjs:54:53\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+  "requestCount": 15
+}

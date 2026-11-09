@@ -18,24 +18,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// Fixture-only application of the existing shared runner. Production tooling
-// intentionally does not expose Apply: a pooled preflight is not a same-session
-// write guard. Only generated private databases below reach this helper.
+// Only generated private databases reach the guarded release installer here.
+// The command remains read-only until deployment gates are separately met.
 func applyPrivateFixture(ctx context.Context, r *Release, db *sql.DB, server string) error {
 	if !strings.HasPrefix(r.Identity().Database, "decision_release_fixture_") {
 		return errors.New("private generated release fixture required")
 	}
-	if err := r.CheckTarget(ctx, db, server); err != nil {
-		return err
-	}
-	runner, err := migrations.NewForOwner(db, "decision_engine", r.Plan())
-	if err != nil {
-		return err
-	}
-	if err := runner.Apply(ctx); err != nil {
-		return err
-	}
-	return r.Verify(ctx, db, server)
+	return r.Apply(ctx, db, server)
 }
 
 func TestReleaseRehearsalFreshUpgradeInterruptedDDLDriftAndForeignOwnership(t *testing.T) {
@@ -97,7 +86,7 @@ func TestReleaseRehearsalFreshUpgradeInterruptedDDLDriftAndForeignOwnership(t *t
 				t.Fatal("missing schema ready")
 			}
 			if kind == "upgrade" {
-				for _, length := range []int{140, 145} {
+				for _, length := range []int{115, 140, 145} {
 					runner, err := migrations.NewForOwner(db, "decision_engine", migrations.Plan{Database: name, Steps: steps[:length]})
 					if err != nil {
 						t.Fatal(err)

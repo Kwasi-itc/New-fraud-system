@@ -1,5 +1,16 @@
 # Data Model Service
 
+For the service-local MySQL database and migration setup, see
+[MYSQL_DOCKER.md](MYSQL_DOCKER.md) and `docker-compose-mysql.yml`.
+The local MySQL API serves Swagger at http://localhost:8080/docs with tenant
+registration/provisioning, physical table/native-field creation, presentation
+updates and metadata reads. Remaining
+mutation and worker gaps are tracked in [MYSQL_ENDPOINT_STATUS.md](MYSQL_ENDPOINT_STATUS.md).
+The current queue, execution and deployment audit is in
+[MYSQL_WORKER_STATUS.md](MYSQL_WORKER_STATUS.md).
+The modular HTTP layout and endpoint extension workflow are documented in
+[MYSQL_RUNTIME.md](MYSQL_RUNTIME.md).
+
 Standalone Go service for tenant-aware data model management, extracted from Marble and rebuilt as an independent module.
 
 Current location in the workspace:
@@ -499,3 +510,114 @@ Service `migrate down` preserves the shared River schema: it rolls back only
 data-model metadata and logs that distinction. Stop/drain the owner's consumers
 before metadata rollback; shared queue rollback requires a separately reviewed
 whole-stack operation. No migration-down command should be used as queue repair.
+
+### Publication-aware assembled reads for decision preparation
+
+NewPublishedDataModelReadRepository explicitly opts into the physical registry
+read contract. Use it with NewSnapshotDataModelReadService so the tenant revision,
+assembled metadata and publication versions share one read-only snapshot. Existing
+NewDataModelReadRepository callers keep their metadata-only behavior. The new
+projection adds one bounded tenant-indexed query and consumes the same aggregate
+row budget; it does not perform a query per table. It requires SELECT on the
+owner's data_model_physical_tables registry in addition to existing read grants.
+
+An optional published_version is exposed only for non-archived tables with an open
+gate, no active schema operation and a nonzero published version. Consumers must
+still acquire their registry binding and check that version in the data transaction;
+the HTTP token is not a readiness lease. No version is synthesized from a tenant
+revision. Closed/unpublished tables remain visible as metadata without a token.
+Configured PostgreSQL routing is unchanged; selecting this staged reader requires
+explicit composition with trusted tenant authorization and the owner read role.
+### Scoped index-job preparation reads
+
+GET /v1/tenants/:tenantId/index-jobs/scoped requires repeated table_id UUIDs
+(1-100 unique values) and limit (1-1000). It returns the complete scoped set or an
+error on overflow; it never reports a partial set as complete. Both PostgreSQL and
+staged MySQL repositories implement tenant/table filtering. The PostgreSQL reader
+bounds variable projections to 64 KiB per row and encoded results to 8 MiB; the
+MySQL reader additionally obeys its configured row/byte budgets.
+
+Metadata migration 000009 adds the PostgreSQL tenant/table/request-time index.
+MySQL append-only v007 now adds its equivalent and the predecessor-intent lookup
+index; the local installer preserves the retained migration prefix and backup.
+An unhinted fixture plan selected it with 5,000 unrelated jobs. This is not a
+production throughput result. The ordinary index build requires a lock-duration
+review before deployment. No application migration or backend switch was run.
+
+### MySQL index worker
+
+`PhysicalPublicationManager.RunNativeIndexJob` composes one committed delivery
+lease with the typed planner, immutable DDL intent, pinned physical executor,
+publication receipt and native-index completion fence. Publication and completion
+recheck the lease; local mutation authority is also checked in completion. The
+job ID is the stable physical index and operation identity. A retry after a
+committed publication reads its original receipt rather than repeating DDL.
+
+The caller must supply retained `NativeIndexWork` from the trusted reference
+builder, including original epoch/version, complete field mappings and prior
+guard lineage. Never build expected definitions from application drift or accept
+these inputs from HTTP clients. The caller owns lease renewal, cancellation and
+failure disposition. Errors retain recovery state and never report an applied
+job. Native search indexes are supported; text, navigation and repair strategies
+fail explicitly until their separate protocols are composed.
+
+The local Compose stack now runs `cmd/mysql-worker`, using
+`RunManagedIndexJobWithExecutor` for numeric/text search, caption, navigation and
+repair work. The native-only API above retains its restricted contract. The host
+loads retained owner intents, captures references separately, supervises leases,
+executes with temporary scoped credentials, retries errors and runs bounded
+maintenance. Text keys use nonunique bounded prefixes; full-value constraints
+remain separate. Live acceptance covers audit-failure retry and hard process
+interruption during DDL. See [MySQL worker status](MYSQL_WORKER_STATUS.md) for
+evidence, resource budgets and production deployment limits. The PostgreSQL
+entrypoint and production configuration remain available.
+
+### Local MySQL portable model endpoints
+
+The local compose API exposes GET `/v1/tenants/{tenantId}/data-model/export`
+and POST `/v1/tenants/{tenantId}/data-model/import` at
+`http://localhost:8080/docs`. The export response can be posted unchanged to a
+provisioned target tenant: both use the `{ "data_model": { ... } }` envelope.
+Only schema definitions are copied; records and managed identifiers are not.
+
+Use a UUID `Idempotency-Key` for import and keep it with the exact request body.
+After cancellation or a 503, retry with that same key and body. Imports create
+new tables; existing names return 409. MySQL physical DDL commits separately,
+so interrupted imports may leave published progress which the retry resumes.
+The final relationships/options and completion receipt commit atomically.
+
+Local limits: 1 MiB request, 200 combined tables/fields/enum values/relationships,
+and a 60-second owner attempt. The endpoint status checklist documents remaining
+runtime limits. Run `node scripts/mysql-portable-smoke.mjs` for the live round-trip
+and cancellation/retry checks; it creates new test tenants without resetting data.
+
+### Local MySQL table deletion and enum creation
+
+DELETE `/v1/tables/{tableId}?dry_run=true` previews dependencies. Omitting dry_run
+removes the physical table and all its records, triggers and indexes. Dependencies
+return 409. Use a stable UUID `Idempotency-Key` for retries after an interruption.
+Recovery receipts and hidden metadata remain; the retired table disappears from
+model/export/list results. Recreate the same name using a new explicit creation key.
+
+POST `/v1/fields/{fieldId}/enum-values` creates a value in an existing enum field
+and publishes the ingestion catalog atomically. Use a UUID `Idempotency-Key` to
+retain the original response on retry. String/int/float validation and duplicate
+checks apply. Run `node scripts/mysql-table-delete-enum-create-smoke.mjs` from
+this service directory for acceptance using newly allocated local test fixtures.
+
+### Remaining local MySQL API routes
+
+All 43 checklist routes are now wired. Relationships, pivots, table options and
+navigation use transactional owner rules and stable Idempotency-Key receipts.
+Index-job requests create durable pending work; failed jobs can be retried, and
+GET /v1/tenants/{tenantId}/index-jobs/scoped requires table_id and limit parameters.
+
+GET /v1/admin/reconcile?tenant_id=<uuid> checks one tenant and queues missing-index
+repairs. Omit tenant_id for a bounded global report. This endpoint reports observed
+schema drift; it queues repairs for the separate local MySQL worker and does not
+prove full schema equivalence. See
+MYSQL_ENDPOINT_STATUS.md for limits and verification scope.
+
+Run node scripts/mysql-remaining-endpoints-smoke.mjs for acceptance of these routes.
+The script creates new fixtures and temporarily adds/removes a drift column only
+on its own table; it does not reset the application database.

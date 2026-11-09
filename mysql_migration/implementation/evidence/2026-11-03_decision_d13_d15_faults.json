@@ -1,0 +1,21 @@
+{
+  "checkpoint": "D13-D15 owner identity and fault recovery, 2026-11-03",
+  "status": "scoped subtasks verified; parent gates remain open",
+  "static_checks": {"compile":"go test -mod=readonly -p 2 -run ^$ ./... passed","vet":"go vet -mod=readonly -p 2 ./internal/service ./internal/store/mysql ./internal/clients/datamodel ./internal/mysqlruntime ./internal/mysqlexecution ./internal/mysqlapi passed","logs":["2026-11-03_d13-d15-fault-compile.log","2026-11-03_d13-d15-fault-vet.log"]},
+  "tests": {"distinct_top_level_passed":184,"distinct_subtests_passed":238,"failures_in_accepted_runs":0,"skips_in_accepted_runs":0,"race_enabled":true},
+  "environment": {"mysql":"8.4.8 disposable tmpfs","postgresql":"postgres:16 disposable tmpfs","go":"1.25.8","application_database_changed":false},
+  "commands": [
+    "go test -mod=readonly -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -args -update-decision-schema-manifest",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/clients/datamodel ./internal/service ./internal/migrationaudit ./internal/mysqlruntime ./internal/mysqlapi ./internal/mysqlexecution",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run Parity",
+    "go test -mod=readonly -race -p 2 -count=1 -timeout=5m -json ./internal/store/mysql -run TestHistoryPostgresMySQLGoldenFiltersPaginationAndSnoozes"
+  ],
+  "accepted_logs": ["2026-11-03_d13-d15-fault-regression.jsonl","2026-11-03_d13-d15-fault-parity.jsonl","2026-11-03_d13-d15-fault-history-final.jsonl","2026-11-03_d13-d15-fault-manifest.log"],
+  "correction": "The initial deleted-anchor fixture failed because the target intentionally forbids deleting immutable decisions. No production guard was weakened. Replaced that unsupported setup with an absent ordering-boundary cursor test; retained initial failure in 2026-11-03_d13-d15-fault-history.jsonl. No retention/deletion behavior is certified.",
+  "limitations": [
+    "Owner recovery test simulates an accepted job plus lost response; it does not prove concurrent-create idempotency or real-provider recovery.",
+    "Persistence faults use actual services and SQL databases with explicit provider fixtures; real provider and crash/uncertain-commit acceptance remain open.",
+    "No application-scale throughput, latency, shared-resource budget or soak acceptance is claimed.",
+    "D13-D15 parent tasks remain unchecked. PostgreSQL remains configured; no production migrations, deployment or cutover."
+  ]
+}

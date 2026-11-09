@@ -31,6 +31,13 @@ type TenantDataReader interface {
 	AggregateRecords(ctx context.Context, tenantID string, query AggregateQuery) (any, error)
 }
 
+// AggregateBatchReader evaluates a bounded set of aggregates over the exact
+// same table and predicate in one fresh authorized read. Results preserve order;
+// errors return no provisional values. Implementations must reject mixed scope.
+type AggregateBatchReader interface {
+	AggregateRecordsBatch(context.Context, string, []AggregateQuery) ([]any, error)
+}
+
 // ModelScopedReader binds direct reads to the same tenant model used for object preparation.
 // HTTP readers retain their owning service's independent model contract.
 type ModelScopedReader interface {

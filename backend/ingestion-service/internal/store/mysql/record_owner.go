@@ -44,6 +44,7 @@ type KeyedRecordOwner struct {
 	load                 RecordModelLoader
 	limits               RecordOwnerLimits
 	now                  func() time.Time
+	velocity             bool
 }
 
 func NewKeyedRecordOwner(db *sql.DB, database string, tenant, table uuid.UUID, objectType string,
@@ -61,7 +62,7 @@ func NewKeyedRecordOwner(db *sql.DB, database string, tenant, table uuid.UUID, o
 	if err != nil {
 		return nil, err
 	}
-	return &KeyedRecordOwner{m, database, objectType, table, load, limits, now}, nil
+	return &KeyedRecordOwner{receipts: m, database: database, objectType: objectType, table: table, load: load, limits: limits, now: now}, nil
 }
 
 // Execute hashes raw content, then detaches it from caller-owned maps before
@@ -113,6 +114,11 @@ func (o *KeyedRecordOwner) execute(ctx context.Context, command ingestion.Receip
 		writer, err := NewRecordWriter(ctx, tx, o.database, request.TenantID, model, o.objectType, version)
 		if err != nil {
 			return nil, err
+		}
+		if o.velocity {
+			if err := writer.withVelocity(ctx); err != nil {
+				return nil, err
+			}
 		}
 		records, violations := o.validate(model, command)
 		if len(violations) > 0 {

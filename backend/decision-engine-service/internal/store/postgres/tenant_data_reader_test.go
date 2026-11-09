@@ -3,11 +3,13 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
@@ -15,6 +17,55 @@ import (
 type fakeTenantModelReader struct {
 	model ports.TenantModel
 	err   error
+}
+
+func TestAggregateNumericScalarContract(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value pgtype.Numeric
+		want  any
+		bad   bool
+	}{
+		{"decimal", pgtype.Numeric{Int: big.NewInt(125), Exp: -2, Valid: true}, float64(1.25), false},
+		{"null", pgtype.Numeric{}, nil, false},
+		{"nan", pgtype.Numeric{NaN: true, Valid: true}, nil, true},
+		{"overflow", pgtype.Numeric{Int: big.NewInt(1), Exp: 10000, Valid: true}, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := NewTenantDataReader(&fakeAggregateExecutor{value: tc.value}, fakeTenantModelReader{model: directReadModel()})
+			v, e := r.AggregateRecords(context.Background(), "11111111-1111-1111-1111-111111111111", ports.AggregateQuery{ObjectType: "transactions", Field: "amount", Aggregate: "sum"})
+			if (e != nil) != tc.bad || !tc.bad && v != tc.want {
+				t.Fatal(v, e)
+			}
+		})
+	}
+}
+
+func TestAggregateBooleanGroupNullAndBounds(t *testing.T) {
+	model := directReadModel()
+	table := model.Tables["transactions"]
+	leaf := ports.AggregateFilter{Kind: "predicate", Field: "amount", Op: "eq", Value: 20}
+	args := []any{}
+	q, e := buildAggregateFilterSQL(model, table, ports.AggregateFilter{Kind: "group", Operator: "not", Children: []ports.AggregateFilter{leaf}}, &args)
+	if e != nil || q != `NOT ("amount" = $1)` || len(args) != 1 {
+		t.Fatal(q, args, e)
+	}
+	args = nil
+	q, e = buildAggregateFilterSQL(model, table, ports.AggregateFilter{Kind: "group", Operator: "or", Children: []ports.AggregateFilter{{Kind: "group", Operator: "and"}, leaf}}, &args)
+	if e != nil || !strings.Contains(q, "(TRUE) OR") {
+		t.Fatal(q, e)
+	}
+	q, e = buildAggregateFilterSQL(model, table, ports.AggregateFilter{Kind: "group", Operator: "or"}, &args)
+	if e != nil || q != "FALSE" {
+		t.Fatal(q, e)
+	}
+	deep := leaf
+	for range 6 {
+		deep = ports.AggregateFilter{Kind: "group", Children: []ports.AggregateFilter{deep}}
+	}
+	if _, e = buildAggregateFilterSQL(model, table, deep, &args); e == nil {
+		t.Fatal("unbounded depth")
+	}
 }
 
 func (f fakeTenantModelReader) GetTenantModel(context.Context, string) (ports.TenantModel, error) {

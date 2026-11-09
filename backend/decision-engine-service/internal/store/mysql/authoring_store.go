@@ -89,10 +89,12 @@ func (s *AuthoringStore) run(ctx context.Context, write bool, fn func(AuthoringR
 
 type authoringRepository struct {
 	platformRepository
-	publication    bool
-	workflowGuards map[uuid.UUID]bool
-	effectQueues   effectQueueConfig
-	effectJobError *error
+	publication         bool
+	workflowGuards      map[uuid.UUID]bool
+	effectQueues        effectQueueConfig
+	effectJobError      *error
+	deferScoring        bool
+	newDecisionBindings *decisionBindingCache
 }
 
 func (r authoringRepository) ids(tenant string, ids ...string) ([]any, error) {

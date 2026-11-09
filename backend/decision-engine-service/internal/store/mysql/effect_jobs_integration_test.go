@@ -186,6 +186,25 @@ func TestMySQLRequiredEffectJobsAtomicOwnerBindingAndReceipts(t *testing.T) {
 			t.Fatal("cross-tenant receipt escaped FK")
 		}
 	})
+	t.Run("stored status is checked and ignored rejection rolls back", func(t *testing.T) {
+		beforeEvents, beforeJobs := count("decision_engine_outbox_events"), count("decision_engine_effect_job_receipts")
+		if _, err := f.db.ExecContext(ctx, "CREATE TRIGGER "+schema+".fixture_change_initial_status BEFORE INSERT ON "+schema+".decision_engine_outbox_events FOR EACH ROW SET NEW.status='sent'"); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if _, err := f.db.ExecContext(ctx, "DROP TRIGGER "+schema+".fixture_change_initial_status"); err != nil {
+				t.Error(err)
+			}
+		})
+		v := jobOutboxInput(f, decisionInput(f.tenant, f.parent, f.iteration.ID))
+		err := queued.Mutate(ctx, func(r EffectRepositories) error {
+			_, _ = r.OutboxEvents.CreateMany(ctx, []integration.OutboxEvent{v})
+			return nil
+		})
+		if !errors.Is(err, ErrEffectJobOwnerState) || count("decision_engine_outbox_events") != beforeEvents || count("decision_engine_effect_job_receipts") != beforeJobs {
+			t.Fatal("stored status bypassed or partial effects committed", err)
+		}
+	})
 	t.Run("authorization and read-only failure", func(t *testing.T) {
 		deny := errors.New("fixture denied")
 		store, err := NewQueuedEffectStore(f.db, f.database, f.tenant, 500, 2<<20, func(context.Context, *sql.Tx, uuid.UUID, bool) error { return deny }, nil, effectQueuePolicies())

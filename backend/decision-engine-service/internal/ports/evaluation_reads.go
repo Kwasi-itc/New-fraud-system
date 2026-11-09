@@ -28,11 +28,26 @@ type EvaluationScreeningConfigs interface {
 type EvaluationScoringConfigs interface {
 	ListActiveByScenario(context.Context, string, string) ([]scoring.Config, error)
 }
+
+// EvaluationRoutingSnapshot is fresh owner-authorized routing data for one
+// evaluation. It retains no transaction and is never cached across requests.
+type EvaluationRoutingSnapshot struct {
+	TenantID, ScenarioID string
+	WorkflowRules        []workflow.StructuredRule
+	Workflows            []workflow.Definition
+	ScreeningConfigs     []screening.Config
+	ScoringConfigs       []scoring.Config
+}
+type EvaluationRoutingReader interface {
+	ReadEvaluationRouting(context.Context, string, string) (EvaluationRoutingSnapshot, error)
+}
 type EvaluationSnoozes interface {
 	ListActive(context.Context, string, string, string, string, time.Time) ([]snooze.RuleSnooze, error)
 }
 type EvaluationCustomLists interface {
 	ScreeningIgnoreWords(context.Context, string, string) ([]string, error)
+	// Confirmed ID absence must wrap ErrCustomListNotFound. Authorization,
+	// cancellation and storage failures must remain distinct from absence.
 	GetListByID(context.Context, string, string) (platform.CustomList, error)
 	ListEntriesByListID(context.Context, string, string) ([]platform.CustomListEntry, error)
 	ListByName(context.Context, string, string) ([]platform.CustomListEntry, error)

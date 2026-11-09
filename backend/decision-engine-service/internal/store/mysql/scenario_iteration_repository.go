@@ -60,6 +60,16 @@ func (r ScenarioIterationRepository) ListByScenario(ctx context.Context, tenant,
 	return platformList(ctx, r.platformRepository, r.selectSQL()+" WHERE tenant_id=? AND scenario_id=? ORDER BY version DESC,created_at DESC,id DESC", args, r.scan)
 }
 
+// LatestByScenario uses the tenant/scenario/version unique index and reads one
+// bounded row. A latest-rule request must not load the iteration history.
+func (r ScenarioIterationRepository) LatestByScenario(ctx context.Context, tenant, parent string) (scenario.Iteration, error) {
+	args, err := r.ids(tenant, parent)
+	if err != nil {
+		return scenario.Iteration{}, err
+	}
+	return platformOne(r.platformRepository, r.tx.QueryRowContext(ctx, r.selectSQL()+" WHERE tenant_id=? AND scenario_id=? ORDER BY version DESC LIMIT 1", args...), r.scan)
+}
+
 // Global schedule enumeration must use a separately authorized worker adapter;
 // silently returning this tenant's subset would lose other tenants' work.
 func (r ScenarioIterationRepository) ListLiveScheduled(context.Context, int) ([]scenario.Iteration, error) {

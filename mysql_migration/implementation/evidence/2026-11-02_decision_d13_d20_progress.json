@@ -1,0 +1,58 @@
+{
+    "date":  "2026-11-02",
+    "scope":  "D13-D20 decision-owned implementation and acceptance audit",
+    "complete":  false,
+    "engines":  [
+                    "MySQL 8.4.8 disposable fixture",
+                    "PostgreSQL 16 disposable fixture"
+                ],
+    "configured_application_database":  "PostgreSQL unchanged",
+    "results":  {
+                    "top_level_passed":  171,
+                    "subtests_passed":  214,
+                    "failures":  0,
+                    "skips":  0,
+                    "whole_module_compile":  "passed",
+                    "affected_package_vet":  "passed"
+                },
+    "commands":  [
+                     "go test -mod=readonly -race -p 2 -count=1 -timeout=20m -json ./internal/store/mysql -skip \u0027QueryPlan|Plans|Explain\u0027",
+                     "go test -mod=readonly -race -p 2 -count=1 -timeout=15m -json ./internal/mysqlapi ./internal/mysqlruntime ./internal/mysqlexecution ./internal/migrationaudit",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -mod=readonly -p 2 ./internal/store/mysql ./internal/mysqlapi ./internal/mysqlruntime"
+                 ],
+    "completed_subtasks":  [
+                               "D17 staged browser list/save/delete HTTP with trusted actors and atomic audit",
+                               "D14 48-record 14-filter history/count/pagination/exact-ID/snooze differential corpus",
+                               "D15/D19 actual-service configured effects and outbox differential",
+                               "D15/D20 required-job rollback on both engines",
+                               "D16/D20 scoped store/runtime regression"
+                           ],
+    "completed_parents":  [
+                              "D16"
+                          ],
+    "open_parents":  [
+                         "D13",
+                         "D14",
+                         "D15",
+                         "D17",
+                         "D18",
+                         "D19",
+                         "D20"
+                     ],
+    "limitations":  [
+                        "Model, authority, foreign-owner SQL and job adapters are explicit fixtures, not production-provider conformance",
+                        "Query-plan tests explicitly excluded; performance acceptance previously deferred",
+                        "Real published-model/version delivery and index-job integration remain",
+                        "Scenario graph-copy HTTP and browser destination-model composition remain",
+                        "Actual identity/case/list/platform/screening/scoring/receipt/dispatch provider acceptance and grants remain",
+                        "Broader business/fault/runtime acceptance remains",
+                        "Cross-service expansion and reopening performance acceptance await scope answer"
+                    ],
+    "logs":  [
+                 "2026-11-02_decision-d13-d20-store.jsonl",
+                 "2026-11-02_decision-d13-d20-runtime.jsonl",
+                 "2026-11-02_decision-d13-d20-compile.log",
+                 "2026-11-02_decision-d13-d20-vet.log"
+             ]
+}

@@ -110,7 +110,7 @@ func (p *Preparer) prepareRequest(ctx context.Context, tenant, parent, objectTyp
 		return PreparedRequest{}, err
 	}
 	if pin != nil {
-		if err := service.ValidatePinnedModel(*pin, model); err != nil {
+		if err := p.evaluator.ValidatePinnedModel(*pin, model); err != nil {
 			return PreparedRequest{}, err
 		}
 		if err := p.reader.ValidateExecutionPreparation(ctx, snapshot, model); err != nil {
@@ -205,7 +205,7 @@ func (p *Preparer) PrepareScheduled(ctx context.Context, identity mysqljobs.Iden
 	if err != nil {
 		return PreparedScheduled{}, err
 	}
-	if err := service.ValidatePinnedModel(pin, model); err != nil {
+	if err := p.evaluator.ValidatePinnedModel(pin, model); err != nil {
 		return PreparedScheduled{}, err
 	}
 	if err := p.reader.ValidateExecutionPreparation(ctx, snapshot, model); err != nil {

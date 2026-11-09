@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.25.0 AS build
+WORKDIR /backend/ingestion-service
+COPY mysqlstore ../mysqlstore
+COPY ingestion-service ./
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/install-ingestion ./cmd/mysql-dev-install
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-api ./cmd/mysql-api
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-worker ./cmd/mysql-worker
+
+FROM gcr.io/distroless/base-debian12
+COPY --from=build /bin/install-ingestion /app/install-ingestion
+COPY --from=build /bin/mysql-api /app/mysql-api
+COPY --from=build /bin/mysql-worker /app/mysql-worker
+EXPOSE 8081
+CMD ["/app/mysql-api", "--local", "--listen", "0.0.0.0:8081"]

@@ -1,0 +1,2 @@
+{"fixture":"a307273f-05b5-4b80-a5b2-c509490adf8a"}
+{"passed":true,"tenant":"a307273f-05b5-4b80-a5b2-c509490adf8a","foreign":"469ccb99-a6b5-41e4-99c9-98cd421a9535","parent":"895dcf95-bb9b-4a14-b31c-99b4c1d1a20b","child":"d45019c6-b54a-4d82-8b43-ef428579d285","checks":"all 11 routes; concurrent create replay; rollback; dependencies; scoped jobs; failed delivery retry; physical drift; repair dedupe; tenant isolation"}

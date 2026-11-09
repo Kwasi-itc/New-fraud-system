@@ -1,0 +1,8 @@
+{
+  "catalogUnchanged": true,
+  "queryContractsUnchanged": true,
+  "changedSources": [
+    "internal/service/aggregate_index_requirements.go",
+    "internal/service/publication_service.go"
+  ]
+}

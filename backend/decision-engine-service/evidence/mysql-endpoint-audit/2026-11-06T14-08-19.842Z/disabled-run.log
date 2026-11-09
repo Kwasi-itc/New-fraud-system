@@ -1,0 +1,39 @@
+PASS enabled-local-provider-profile-and-fixture
+PASS legacy-workflow-crud-reorder-and-isolation
+PASS scoring-config-crud-and-validation
+PASS callback-rejection-redrive-cancellation-and-restart
+PASS formerly-disabled-route-tenant-isolation
+{
+  "output": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-disabled\\2026-11-06T14-09-47.604Z",
+  "verified": 12,
+  "total": 12,
+  "suites": [
+    {
+      "name": "enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "real-case-screening-scoring-and-outbox-delivery",
+      "passed": false,
+      "error": "Error: Timed out: screening result projection\n    at until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:21:141)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:58:19\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:20:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:48:1"
+    },
+    {
+      "name": "callback-rejection-redrive-cancellation-and-restart",
+      "passed": true
+    },
+    {
+      "name": "formerly-disabled-route-tenant-isolation",
+      "passed": true
+    }
+  ]
+}
+
+FAIL real-case-screening-scoring-and-outbox-delivery: Timed out: screening result projection

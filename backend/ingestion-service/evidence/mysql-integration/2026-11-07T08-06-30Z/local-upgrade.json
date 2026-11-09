@@ -1,0 +1,12 @@
+{
+    "at":  "2026-11-07T08:31:38.0127825Z",
+    "priorSteps":  23,
+    "currentSteps":  25,
+    "retainedPrefixUnchanged":  true,
+    "appended":  [
+                     "ingestion_v006_velocity_1",
+                     "ingestion_v006_velocity_2"
+                 ],
+    "installerIdempotence":  "two successful runs",
+    "installerVetExit":  0
+}

@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-02",
+  "scope": "Decision-owned MySQL scenario/iteration/rule HTTP composition and validated draft commit",
+  "status": "Implemented and scoped tests passed; not activated; parent acceptance remains open",
+  "environment": {
+    "go": "1.25.8",
+    "mysql": "8.4.8",
+    "postgres_image": "postgres:16",
+    "compose_project": "decision-authoring-20261102",
+    "database_scope": "Isolated disposable databases only; explicit fixture model and authority providers",
+    "required_mysql_environment": "DECISION_MYSQL_REQUIRE_INTEGRATION=1; DECISION_MYSQL_EXPECT_VERSION=8.4.8",
+    "required_postgres_environment": "DECISION_ENGINE_REQUIRE_INTEGRATION=1; disposable PostgreSQL URL supplied"
+  },
+  "verification": {
+    "distinct_top_level_tests_passed": 64,
+    "distinct_subtests_passed": 9,
+    "failures": 0,
+    "skips": 0,
+    "counting": "Unique package/test pairs across accepted JSONL runs; HTTP and commit suites intentionally repeated after edits",
+    "race": true,
+    "module_compile": "go test -mod=readonly -p 2 -run ^$ ./...",
+    "vet": "go vet -mod=readonly -p 2 ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/store/mysql ./internal/service",
+    "final_http_vet": "go vet -mod=readonly -p 2 ./internal/mysqlapi",
+    "mapping_refresh": "go test -mod=readonly -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -update-decision-schema-manifest -count=1",
+    "mapping_delta": "Only pinned_preparation.go source hash changed; schema catalog/proposals and 149-step target SQL lineage unchanged"
+  },
+  "runs": [
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/migrationaudit",
+      "output": "2026-11-02_decision-authoring-runtime.jsonl",
+      "exit_code": 0
+    },
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/service ./internal/store/mysql -run 'Test(.*Authoring|.*Preparation|.*Prepared|.*StoredObject|.*AllScenariosValidates|.*ExecutionBatch|.*CloneExecutionRequests|.*SchemaManifest|.*CommitWaitsForRuleMutation|.*ConcurrentPublication)'",
+      "output": "2026-11-02_decision-authoring-regression.jsonl",
+      "exit_code": 0
+    },
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlexecution -run TestAuthoring",
+      "output": "2026-11-02_decision-authoring-concurrency.jsonl",
+      "exit_code": 0
+    },
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlruntime",
+      "output": "2026-11-02_decision-authoring-http.jsonl",
+      "exit_code": 0
+    }
+  ],
+  "behavior_verified": [
+    "Actual authenticated scenario/iteration/rule HTTP lifecycle, existing response shapes, strict JSON and identifiers",
+    "Duplicate-name conflict, invalid/missing formula, cross-scenario iteration rejection and revoked authority",
+    "Portable boolean AST validation before commit; committed rules immutable; cloned rules preserve stable IDs and change row IDs",
+    "Rule write during model retrieval completes without retained owner locks and invalidates the prepared commit",
+    "Authority and registry rechecks reject revoked/closed prepared writes without committing",
+    "Concurrent draft creation allocates unique versions; failed ID allocation rolls its counter change back",
+    "Injected commit statement failure leaves draft status/timestamp unchanged and returns no provisional success",
+    "Existing PostgreSQL/MySQL authoring corpus and preparation/runtime regression suites"
+  ],
+  "limitations": [
+    "No configured runtime switch, production migration, deployment, commit or push",
+    "Not full source HTTP parity: graph-copy/browser/configuration HTTP composition and standalone validation/preparation APIs remain",
+    "Real foreign owner providers and index-preparation job/API composition remain",
+    "Target commit requires current published registry/gates and supported aggregate capability; it does not create missing physical indexes",
+    "Authoring collections are bounded with explicit overflow errors, not cursor-paginated",
+    "No automatic mutation retry or operation-result replay after uncertain commit",
+    "Complete business/provider differential, restricted-role all-path acceptance and shared-stack release/restore remain",
+    "Performance/load/query-plan acceptance remains deferred; no Aurora testing"
+  ]
+}

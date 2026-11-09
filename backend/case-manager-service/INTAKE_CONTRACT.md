@@ -39,6 +39,53 @@ The title is a literal `name`, then literal `title`, then `Workflow case`. `titl
 
 Receipts are keyed by `(tenant_id, source='workflow', workflow_execution_id)`. A normalized typed request is hashed, including action configuration and tag order. An identical retry returns the recorded case without additional links/events/tags. A conflicting use of the same ID returns 409. Receipts commit with all case writes; failure rolls everything back. Response is `200 {"case": ...}`; retries may return the case's current state. Retain receipts for as long as producer executions can be replayed.
 
+## Opt-in decision receipt extension
+
+`RouterConfig.EnableWorkflowReceipts` exposes two additional integration-token
+routes: `POST /internal/v1/workflow-receipts/deliver` and
+`POST /internal/v1/workflow-receipts/reconcile`. The flag defaults to false;
+command configuration and deployed routing have not been activated.
+
+These routes accept the decision-v1 envelope: `idempotency_key`, `kind`,
+`tenant_id`, `resource_id`, `domain_attempt`, `redrive_generation`,
+`payload_sha256` and `payload`. Kind must be `workflow_execution`; the full scalar
+identity determines the canonical `decision-v1-` key. The SHA-256 binds the exact
+payload bytes emitted by decision dispatch. The nested payload uses
+`execution_id` and the existing case action fields. Unknown envelope/action
+configuration fields, mismatched identities, invalid hashes and oversized
+requests fail explicitly. The trusted service tenant allowlist still applies.
+
+Delivery reuses the existing case service transaction and mutation rules.
+The existing business receipt, an execution-wide raw body binding under source
+`workflow.payload.v1`, and an attempt receipt under source
+`workflow.receipt.v1:<domain_attempt>:<redrive_generation>` commit together.
+Source plus tenant and execution UUID retain the full scalar identity; a digest
+alone is not the deduplication key. Every attempt of an accepted execution keeps
+the original case and cannot change the body or create duplicate business work.
+Retain all three receipt forms for the producer execution's replay lifetime.
+No schema changes or additional application database are introduced.
+
+Successful delivery/reconciliation returns HTTP 200 with the echoed key/hash,
+`outcome: accepted` and the case UUID as `reference`. An absent attempt returns
+`outcome: not_found` with an empty reference from reconciliation only. A missing
+receipt is safe to retry using the same identity because delivery serializes
+that execution before its existing workflow/object locks. Transport errors and
+HTTP error statuses do not prove rejection or absence.
+
+The decision adapter `internal/clients/workflowreceipt` uses a fixed configured
+case-service base URL, a dedicated credential, a bounded timeout/response, and
+no redirects. HTTPS is required unless HTTP is explicitly enabled for a private
+environment. Caller action URLs never select its destination. The service API
+preserves the current case owner's authorization, grouping, audit and outbox
+rules instead of duplicating those mutations in decision SQL. It makes no claim
+that network IO is required merely because both owners share a database.
+
+This extension covers case actions on the real PostgreSQL owner. External
+`add_tag`/`emit_event` receiver contracts and the staged MySQL case mutation owner
+and same-pool runtime composition remain unimplemented. It does not complete
+the full D19.17 migration gate. Tests exercise actual owner transactions and the
+actual decision HTTP adapter, including acceptance followed by a lost response.
+
 ## Screening reviews
 
 `POST /v1/screening-events/reviewed`, authenticated by the same integration boundary:

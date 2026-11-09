@@ -28,6 +28,17 @@ before quoting identifiers. Transaction callbacks must not execute DDL, change
 session settings, commit/rollback themselves, or call external services. Snapshot
 consistency starts at its first ordinary SELECT, not at function entry.
 
+`Config.InterpolateParameters` is an explicit opt-in to the pinned driver's
+parameter encoder for one-shot queries. It pins the client character set to
+`utf8mb4` and collation to `utf8mb4_bin`; repository code continues passing
+placeholder arguments to `QueryContext`/`ExecContext`. This avoids implicit
+prepare/execute/close round trips for supported values. Explicit prepared
+statements and the driver's fallback remain available. Multi-statements,
+local infile and matched-row reporting stay disabled. The default is false;
+the decision service's local API, worker and provider pools opt in. Native
+transport parity checks cover binary values, quoted Unicode text, precise
+JSON numbers, timestamps, SQL NULL, cancellation and rollback.
+
 CommitError means the operation outcome needs reconciliation using its stable
 operation key. Do not blindly retry it. Deadlock/timeout categories also do not
 authorize automatic retries: domain idempotency and the whole transaction's

@@ -1,0 +1,8 @@
+# Optional CPU experiment on the shared development database. Apply together
+# with docker-compose-mysql.yml and the same three generated env files.
+# Pool limits, durable writes, workers, secrets and memory budgets are unchanged.
+services:
+  mysql:
+    cpus: 4
+  decision-engine-service:
+    cpus: 2

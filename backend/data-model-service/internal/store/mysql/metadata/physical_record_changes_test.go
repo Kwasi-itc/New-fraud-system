@@ -22,7 +22,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, database string, tenantID, tableID uuid.UUID, name string, original store.PhysicalDDLPlan, mapped []store.MappedPhysicalField, shared *installation.ExactKeyReadiness, installer installation.RecordInstallerPolicy, policies []store.PhysicalAccessPolicy, scenario string) {
+func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, database string, tenantID, tableID uuid.UUID, name string, original store.PhysicalDDLPlan, mapped []store.MappedPhysicalField, shared *installation.ExactKeyReadiness, installer installation.RecordInstallerPolicy, policies []store.PhysicalAccessPolicy, scenario string, installed migrations.Plan) {
 	t.Helper()
 	schema, _ := mysqlstore.Identifier(database)
 	exec := func(q string, args ...any) {
@@ -31,6 +31,8 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 			t.Fatal(err)
 		}
 	}
+	textPatch := strings.HasPrefix(scenario, "service_allocated_native_text_patch_")
+	textCreation := strings.HasPrefix(scenario, "service_allocated_native_text_") && !textPatch
 	fieldID := uuid.New()
 	at := time.Now().UTC().Truncate(time.Microsecond)
 	field := datamodel.Field{ID: fieldID, TenantID: tenantID, TableID: tableID, Name: "score", DataType: datamodel.DataTypeInt, Nullable: true, CreatedAt: at, UpdatedAt: at}
@@ -40,25 +42,46 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	if strings.Contains(scenario, "_unique_float_") {
 		field.DataType = datamodel.DataTypeFloat
 	}
+	if textCreation || textPatch {
+		field.DataType = datamodel.DataTypeString
+		field.IsUnique = textCreation
+	}
 	column := "field_score_" + strings.ReplaceAll(fieldID.String(), "-", "") + "_value"
 	mapped = append(mapped, store.MappedPhysicalField{Field: field, Components: []store.PhysicalField{{FieldID: fieldID, Name: column, Component: "value"}}})
 	planner, err := store.NewPhysicalPlanner(database, tenantID, store.PhysicalTable{TableID: tableID, Name: name}, mapped)
 	if err != nil {
 		t.Fatal(err)
 	}
-	statement, err := planner.AddFields([]uuid.UUID{fieldID})
+	var statement store.PhysicalStatement
+	var textStatements []store.PhysicalStatement
+	if textCreation {
+		textStatements, err = planner.AddUniqueText(fieldID, original.Creation.Definer)
+		if err == nil {
+			statement = textStatements[0]
+		}
+	} else {
+		statement, err = planner.AddFields([]uuid.UUID{fieldID})
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
 	indexID := uuid.New()
-	index, e := planner.CreateIndex(indexID, []uuid.UUID{fieldID}, false)
+	var index store.PhysicalStatement
+	var e error
+	if !textCreation && !textPatch {
+		index, e = planner.CreateIndex(indexID, []uuid.UUID{fieldID}, false)
+	}
 	if e != nil {
 		t.Fatal(e)
 	}
 	statements := []store.PhysicalStatement{statement, index}
+	if textCreation {
+		statements = textStatements
+	}
 	nullabilityOwner := strings.HasPrefix(scenario, "service_allocated_native_nullability_") || strings.HasPrefix(scenario, "service_allocated_native_unique_")
 	fieldOwner := strings.HasPrefix(scenario, "service_allocated_native_field_") || nullabilityOwner
-	if fieldOwner {
+	indexWorker := strings.HasPrefix(scenario, "service_allocated_native_index_worker")
+	if fieldOwner || indexWorker || textPatch {
 		statements = statements[:1]
 	}
 	var reference []migrations.Step
@@ -70,14 +93,14 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	}
 	for _, statement := range statements {
 		step := statement.ReferenceStep()
-		step.Before, err = migrations.Definition(ctx, conn, database, "TABLE", name)
+		step.Before, err = migrations.Definition(ctx, conn, database, step.Kind, step.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, err := conn.ExecContext(ctx, step.SQL); err != nil {
 			t.Fatal(err)
 		}
-		step.After, err = migrations.Definition(ctx, conn, database, "TABLE", name)
+		step.After, err = migrations.Definition(ctx, conn, database, step.Kind, step.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,9 +110,22 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	if e != nil {
 		t.Fatal(e)
 	}
-	if !fieldOwner {
+	if !fieldOwner && !indexWorker && !textCreation && !textPatch {
 		if _, err := conn.ExecContext(ctx, drop.ReferenceStep().SQL); err != nil {
 			t.Fatal(err)
+		}
+	}
+	if textCreation {
+		for _, guard := range reference[1:] {
+			if _, err := conn.ExecContext(ctx, "DROP TRIGGER "+schema+".`"+guard.Name+"`"); err != nil {
+				t.Fatal(err)
+			}
+		}
+		compact := strings.ReplaceAll(fieldID.String(), "-", "")
+		for _, clause := range []string{"DROP FOREIGN KEY `record_text_ref_" + compact + "`", "DROP CHECK `record_text_present_" + compact + "`", "DROP INDEX `record_unique_" + compact + "`", "DROP COLUMN `record_text_key_" + compact + "`"} {
+			if _, err := conn.ExecContext(ctx, "ALTER TABLE "+schema+".`"+name+"` "+clause); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	if _, err := conn.ExecContext(ctx, "ALTER TABLE "+schema+".`"+name+"` DROP COLUMN `"+column+"`"); err != nil {
@@ -151,7 +187,7 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	}
 	// Trigger inspection authority belongs to a temporary installer, never the
 	// long-lived native DDL role. It cannot install another principal's definer.
-	native := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "na_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:24], Host: "%"}, Table: name, NativeChanges: true}
+	native := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "na_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:24], Host: "%"}, Table: name, NativeChanges: true, TextGuards: textCreation}
 	account, _ := native.Principal.SQLAccount()
 	exec("CREATE USER " + account + " IDENTIFIED BY 'isolated-native-only'")
 	defer func() {
@@ -224,7 +260,13 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 			exec(q)
 		}
 	}
-	if scenario == "service_allocated_native_lost_ack" {
+	if scenario == "service_allocated_native_lost_ack" || (textCreation && strings.HasSuffix(scenario, "_ack")) {
+		if strings.HasSuffix(scenario, "_insert_ack") {
+			step = reference[1]
+		}
+		if strings.HasSuffix(scenario, "_update_ack") {
+			step = reference[2]
+		}
 		var observed atomic.Bool
 		faultDB := physicalFaultDBAs(t, database, step.SQL, &observed, native.Principal.User, "isolated-native-only")
 		fault, e := store.NewPhysicalExecutor(faultDB, database, tenantID)
@@ -250,6 +292,9 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 			t.Fatal(err)
 		}
 		exec("ALTER USER " + account + " ACCOUNT LOCK")
+		if textCreation {
+			exec("REVOKE SET_ANY_DEFINER ON *.* FROM " + account)
+		}
 	}
 	if scenario == "service_allocated_native_guard_after" {
 		exec("DROP TRIGGER " + schema + ".`" + original.Steps[1].Name + "`")
@@ -269,10 +314,13 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	request := store.PhysicalPublicationRequest{TableID: tableID, Operation: store.PublicationOperation{ID: operation, RequestHash: hash, Condition: store.PublicationCondition{Mode: store.PublicationExactVersion, Version: expected}}, ActorKind: "api", ActorID: actor}
 	if fieldOwner {
 		creationScenario := scenario
-		if nullabilityOwner {
+		if nullabilityOwner || strings.Contains(scenario, "_field_delete_") || strings.Contains(scenario, "_field_enum_") {
 			creationScenario = "service_allocated_native_field_commit"
 		}
 		verifyPreparedFieldOwner(t, ctx, db, database, tenantID, field, request, name, policies, shared, native, creationScenario)
+		if strings.Contains(scenario, "_field_delete_") || strings.Contains(scenario, "_field_enum_") {
+			verifyCatalogRetirement(t, ctx, db, database, tenantID, field, name, plan, mapped, shared, native, policies, scenario)
+		}
 		if nullabilityOwner {
 			verifyFieldNullabilityOwner(t, ctx, db, database, tenantID, field, name, plan, mapped, shared, native, policies, scenario)
 		}
@@ -313,7 +361,7 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	}
 	selected := verifier
 	var observed atomic.Bool
-	if scenario == "service_allocated_native_lost_commit" {
+	if scenario == "service_allocated_native_lost_commit" || scenario == "service_allocated_native_text_lost_commit" {
 		fault, e := store.NewPhysicalExecutor(deliveryFaultDB(t, database, &observed), database, tenantID)
 		if e != nil {
 			t.Fatal(e)
@@ -324,7 +372,7 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 		}
 	}
 	published, err := selected.PublishVerifiedOperation(ctx, publication, request, policies, authorize, owner)
-	if scenario == "service_allocated_native_lost_commit" {
+	if scenario == "service_allocated_native_lost_commit" || scenario == "service_allocated_native_text_lost_commit" {
 		var ambiguous *mysqlstore.CommitError
 		if !errors.As(err, &ambiguous) || !observed.Load() || published.Version != uuid.Nil {
 			t.Fatal("native ambiguous publication", err)
@@ -365,7 +413,14 @@ func verifyGuardedNativeChange(t *testing.T, ctx context.Context, db *sql.DB, da
 	if err != nil || published.Version == uuid.Nil || published.Version == expected || calls != 1 {
 		t.Fatal("guarded native publication", err, calls)
 	}
+	if indexWorker {
+		verifyNativeIndexWorker(t, ctx, db, database, tenantID, tableID, name, plan, mapped, shared, native, policies, scenario, installed)
+		return
+	}
 	exec("INSERT INTO "+schema+".`"+name+"` (id,`"+original.Creation.ObjectColumn+"`,`"+original.Creation.UpdatedColumn+"`,`"+column+"`) VALUES (?,?,?,?)", mysqlstore.UUID(uuid.New()), "after native alteration", at, 42)
 	_, err = db.ExecContext(ctx, "INSERT INTO "+schema+".`"+name+"` (id,`"+original.Creation.ObjectColumn+"`,`"+original.Creation.UpdatedColumn+"`) VALUES (?,?,?)", mysqlstore.UUID(uuid.New()), "after native alteration", at)
 	mysqlError(t, err, 1062)
+	if textPatch {
+		verifyTextConstraintRecovery(t, ctx, db, database, tenantID, tableID, name, field, mapped, plan, shared, policies, scenario)
+	}
 }

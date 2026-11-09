@@ -1,0 +1,1513 @@
+{
+  "reportedAt": "2026-11-05T14:41:17.951Z",
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "prefix": "decision-audit-f8637eb6-0111-429a-986e-e992276ca765",
+  "requestCount": 209,
+  "documentedOperations": 120,
+  "totals": {
+    "success_verified": 38,
+    "not_mounted": 39,
+    "capability_disabled": 13,
+    "identity_unavailable": 1,
+    "coverage_gap": 29
+  },
+  "suites": [
+    {
+      "name": "health-docs-catalog-and-origin",
+      "passed": true
+    },
+    {
+      "name": "scenario-authoring-and-validation",
+      "passed": true
+    },
+    {
+      "name": "publication-clone-and-test-run-administration",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/scenarios/85810d9c-7bf2-4ed9-b08a-0ba64c1f667d/copy: 201: {\"scenario\":{\"id\":\"d389832a-2bc9-47d0-b242-d92de4202697\",\"tenant_id\":\"5c1ea673-693c-4bcb-adc8-eb3db2f2f868\",\"name\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-copy\",\"description\":\"Updated local audit fixture\",\"trigger_object_type\":\"transactions\",\"live_iteration_id\":\"62769a5f-6a75-4337-b852-d7d4734175de\",\"created_at\":\"2026-11-05T14:41:05.67815Z\",\"updated_at\":\"2026-11-05T14:41:05.67815Z\"}}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:48:35)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:151:3\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:55:8)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:140:1"
+    },
+    {
+      "name": "custom-lists-csv-and-platform-records",
+      "passed": true
+    },
+    {
+      "name": "async-scheduled-execution-history-and-replay",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/async-decision-executions: 200: {\"async_decision_execution\":{\"id\":\"3456abd1-0e45-4272-abe7-f1e837e420d4\",\"tenant_id\":\"5c1ea673-693c-4bcb-adc8-eb3db2f2f868\",\"scenario_id\":\"85810d9c-7bf2-4ed9-b08a-0ba64c1f667d\",\"object_type\":\"transactions\",\"status\":\"completed\",\"idempotency_key\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\",\"attempt_count\":1,\"max_attempts\":3,\"request_body\":{\"items\":[{\"fields\":{\"amount\":125.5,\"currency\":\"USD\"},\"object_id\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\",\"object_type\":\"transactions\"}],\"object_type\":\"transactions\",\"scenario_id\":\"85810d9c-7bf2-4ed9-b08a-0ba64c1f667d\",\"callback_url\":\"\",\"idempotency_key\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\",\"wait_timeout_ms\":0},\"result_body\":{\"decision\":{\"ID\":\"60bbe351-91a2-4a54-9e80-1806acf743c6\",\"Score\":15,\"Outcome\":\"review\",\"ObjectID\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\",\"TenantID\":\"5c1ea673-693c-4bcb-adc8-eb3db2f2f868\",\"CreatedAt\":\"2026-11-05T14:41:07.057348Z\",\"Triggered\":true,\"ObjectType\":\"transactions\",\"ScenarioID\":\"85810d9c-7bf2-4ed9-b08a-0ba64c1f667d\",\"RequestBody\":{\"fields\":{\"amount\":125.5,\"currency\":\"USD\",\"object_id\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\"},\"object_id\":\"decision-audit-f8637eb6-0111-429a-986e-e992276ca765-async\",\"object_type\":\"transactions\",\"model_revision\":\"164f275f9b7f2e67d38ff0a898a6d24532c11e4f\"},\"ScenarioIterationID\":\"07876643-dffa-4359-b0ee-3612342d8658\"},\"triggered\":true,\"model_revision\":\"164f275f9b7f2e67d38ff0a898a6d24532c11e4f\",\"rule_executions\":[{\"ID\":\"c50ee081-42e2-4085-a72b-c4155a18b8af\",\"RuleID\":\"dc32aa89-21ca-43a8-8ef3-d3f8583f85af\",\"Outcome\":\"hit\",\"RuleName\":\"Updated audit review\",\"CreatedAt\":\"2026-11-05T14:41:07.057348Z\",\"DecisionID\":\"60bbe351-91a2-4a54-9e80-1806acf743c6\",\"Evaluation\":{\"constant\":true,\"return_value\":true},\"ScoreModifier\":15}]},\"callback_attempt_count\":0,\"created_at\":\"2026-11-05T14:41:06.648043Z\",\"completed_at\":\"2026-11-05T14:41:07.164616Z\",\"generation\":0,\"callback_max_attempts\":3},\"replay\":true,\"completed_inline\":true}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:48:35)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:188:3\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:55:8)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:180:1"
+    },
+    {
+      "name": "worker-cancellation-redrive-and-process-restart",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/async-decision-executions/fac2cee5-9316-4aa5-9647-4422267f9f6d/retry: 409: {\"error\":\"execution_conflict\"}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:48:35)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:218:22\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:55:8)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:209:1"
+    },
+    {
+      "name": "recurring-schedule-configuration-and-preconditions",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: DELETE /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/scenarios/85810d9c-7bf2-4ed9-b08a-0ba64c1f667d/recurring-schedule: 400: {\"error\":\"invalid_execution_request\"}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:48:35)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:247:3\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:55:8)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:237:1"
+    },
+    {
+      "name": "unavailable-integrations-and-publication-deactivation",
+      "passed": true
+    },
+    {
+      "name": "documented-operation-mount-and-capability-probes",
+      "passed": true
+    }
+  ],
+  "workers": [],
+  "profilePassed": false,
+  "allDocumentedOperationsCovered": false,
+  "matrix": [
+    {
+      "method": "GET",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-info",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/rule-functions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        201,
+        400,
+        422
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        200
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        200,
+        422
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/copy",
+      "status": "identity_unavailable",
+      "reason": "Requires a trusted human session outside this local profile",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rules/latest",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/metadata",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        409,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/draft",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/commit",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/deactivate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "unavailable-integrations-and-publication-deactivation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "unavailable-integrations-and-publication-deactivation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        202,
+        400
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-groups",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/validate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        422,
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/decisions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/count",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions/all",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/ingestion-events/record-ingested",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/cancel",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/workflow-executions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/status",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/retry",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 503,
+      "observedStatuses": [
+        503
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/scoring-requests",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}",
+      "status": "capability_disabled",
+      "reason": "External capability disabled; reads requiring provider-produced resources lack a local fixture",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/status",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/retry",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/retry",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/status-summary",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        200,
+        409,
+        422
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        202,
+        200,
+        503,
+        422
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/status-summary",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/retry",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        409,
+        400
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 201,
+      "observedStatuses": [
+        201
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/import",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-list-entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-list-entries",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/record-tags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/record-tags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/risk-snapshots",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/ip-flags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/ip-flags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/outbox-events",
+      "status": "coverage_gap",
+      "reason": "Mounted operation lacks a successful asserted response in a passing suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": []
+    },
+    {
+      "method": "POST",
+      "path": "/internal/screening-status-updates",
+      "status": "not_mounted",
+      "reason": "Route absent from the local MySQL host",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404
+      ],
+      "successfulSuites": []
+    }
+  ]
+}

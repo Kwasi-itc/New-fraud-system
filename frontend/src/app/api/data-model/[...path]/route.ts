@@ -1,4 +1,5 @@
 import { platformSession, privateHeaders } from "@/lib/server/auth";
+import { localMySQLSession } from "@/lib/server/local-mysql-session";
 
 type Context = { params: Promise<{ path: string[] }> };
 function failure(status: number, message: string) {
@@ -17,6 +18,7 @@ async function proxy(request: Request, context: Context) {
     if (!identity) return failure(401, "Sign in required.");
     const { path } = await context.params;
     if (!path.length || path.some(segment => !/^[A-Za-z0-9_-]+$/.test(segment))) return failure(400, "Invalid API path.");
+    if (localMySQLSession() && path[0] === "tenants" && path[1] !== identity.session.tenant_id) return failure(403, "Local MySQL is scoped to the configured tenant.");
     const base = process.env.DATA_MODEL_SERVICE_URL;
     if (!base) return failure(503, "Data Model is not configured.");
     let body: ArrayBuffer | undefined;

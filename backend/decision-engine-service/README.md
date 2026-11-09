@@ -1,5 +1,13 @@
 # Decision Engine Service
 
+For the local MySQL API at `http://localhost:8082/docs`, use the
+[Docker setup](MYSQL_DOCKER.md). It includes a restricted core API and async/scheduled
+worker, sharing the existing data-model and ingestion database.
+
+MySQL acceptance is tracked in [MYSQL_ENDPOINT_STATUS.md](MYSQL_ENDPOINT_STATUS.md)
+and [MYSQL_WORKER_STATUS.md](MYSQL_WORKER_STATUS.md), with reproducible live and
+disposable-database test commands and explicit local capability gaps.
+
 ## Screening review routing
 
 Scenario screening configuration create/update/read APIs now include nullable `review_inbox_id` (a nonzero UUID). Apply migration `000017_screening_review_inbox` before deploying these API/repository changes or the new case consumer. The field is separate from provider `config_json` and is not sent to the sanctions provider. Configuration update replaces the field; omission/null clears it. Existing configurations remain readable with a null route. UUID syntax is validated on save; case-manager validates tenant, destination existence and active state when first creating an investigation.
@@ -1895,3 +1903,414 @@ No EC2, Aurora, application database, live container, configured backend or
 runtime activation has been changed by this work. Performance/load acceptance
 remains explicitly deferred. Full deployment and controlled activation cannot
 be reported complete from these decision-only fixtures.
+
+## MySQL publication and guarded installation checkpoint (2026-11-02)
+
+The inactive MySQL application now registers `GET` and `POST
+/v1/tenants/:tenantId/scenarios/:scenarioId/publications`. POST accepts the
+existing `{ "action": "publish" | "unpublish", "iteration_id": "UUID" }`
+contract. Publish uses the full prepared AST/model/registry coordinator;
+unpublish does not require the model provider to be healthy. Both require
+current local owner authorization. GET without query parameters returns bounded
+publication history and fails on overflow; opt-in pagination is described below. Unknown fields,
+duplicate JSON keys, invalid identifiers and unexpected query parameters fail.
+No automatic mutation retry or exactly-once publication guarantee is introduced.
+
+The verified release library now offers `Release.Apply` using shared
+`Runner.ApplyGuarded`. It checks database, exact engine version, writer UUID,
+read-only state and locked definer on the actual locked migration connection
+before each ledger/DDL write. Failed checks preserve dirty recovery evidence.
+The caller still owns verified TLS, deployment authorization and shared-owner
+ordering. The `mysql-release` command remains read-only with respect to the
+installation target; no production apply/activation mode was added.
+
+Actual-service PostgreSQL/MySQL tests now compare trigger behavior, threshold
+outcomes and persisted decision/rule evidence. External effects and real owner
+providers remain outside that new corpus. See the
+[checkpoint and remaining gates](../../mysql_migration/implementation/modules/03_decision_engine_service.md#latest-implementation-checkpoint--2026-11-02)
+and [verification evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_implementation.json).
+
+## MySQL authoring API checkpoint (2026-11-02)
+
+The inactive application also registers scenario CRUD; iteration creation,
+listing/metadata, editing, cloning and commit; rule CRUD/listing and rule-group
+reads under `/v1/tenants/:tenantId/scenarios`. Existing DTO shapes are retained.
+Lists use configured row/byte bounds and reject overflow rather than truncate.
+No automatic retry or mutation-result replay is provided for uncertain commits.
+
+The authoring coordinator validates draft AST/types and thresholds against a
+fresh bounded model outside database locks. Commit then rechecks authorization,
+freezes the selected iteration, compares the complete prepared draft and checks
+the current published-model registry and target aggregate capabilities on the
+same transaction. It rejects concurrent edits, unavailable model gates and
+revoked authority. Scenario saves also recheck the trigger registry before writing.
+All rule writers share the iteration lock, so a commit cannot miss a concurrent
+rule change. Unrelated scenarios do not share a parent lock.
+
+These APIs are explicit MySQL composition, not a deployed backend switch.
+Scenario graph-copy/browser and remaining configuration HTTP composition,
+preparation APIs, index jobs and real owner providers remain outstanding.
+The PostgreSQL runtime stays configured. See the
+[authoring checkpoint](../../mysql_migration/implementation/modules/03_decision_engine_service.md#authoring-implementation-checkpoint--2026-11-02)
+and [test evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_authoring.json).
+
+## Ten additional MySQL API tasks (2026-11-02)
+
+All ten subtasks are implemented and verified in the inactive application:
+
+| Task | API under `/v1` |
+|---|---|
+| T01 | `GET /tenants/:tenantId/scenarios/:scenarioId/scoring-configs` |
+| T02 | `GET /tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId` |
+| T03 | `POST /tenants/:tenantId/scenarios/:scenarioId/scoring-configs` |
+| T04 | `PUT /tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId` |
+| T05 | `DELETE /tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId` |
+| T06 | `POST /tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate` |
+| T07 | `GET /tenants/:tenantId/scenarios/:scenarioId/rules/latest` |
+| T08 | `POST /tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate` |
+| T09 | `GET /tenants/:tenantId/scenarios/:scenarioId/publications?limit=100&cursor=...` |
+| T10 | `GET /rule-functions` |
+
+Scoring mutations validate the existing request contract and change configuration
+and ordered outcomes atomically. Null array elements are rejected, preserving
+the distinction from empty-string outcomes. Reads share a bounded snapshot;
+updates/deletes lock the selected configuration row. They do not dispatch scoring
+requests or replace any foreign provider. All tenant operations recheck authority.
+
+Validation returns the source-compatible detailed `validation` response with
+model revision and trigger/rule errors (200 valid, 422 invalid). It validates a
+bounded snapshot outside database locks and rechecks authority and unchanged
+inputs after model retrieval. It changes no iteration and grants no later commit
+authority. Latest rules prefer the exact live iteration; otherwise a single-row
+latest-version query is used. Deactivation uses the authorized unpublish owner
+and remains available while the model registry is closed.
+
+History pagination is opt-in: `limit` accepts 1–500 subject to the configured row
+budget; its default with a cursor is 100. Responses contain `publications` and
+`next_cursor` (empty on the last page). Cursors bind tenant/scenario and the last
+`created_at,id` position. Each page is authorized independently; cursors grant no
+authority. Newer events require restarting from the first page. No-query requests
+retain the prior bounded history response. This is keyset traversal, not a frozen
+multi-request snapshot or a performance/load certification.
+
+The catalog uses actual evaluator metadata and the application's authentication
+and readiness checks. No backend switch, production migration or deployment was
+performed. See [ten-task evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_ten_api_tasks.json).
+
+### Historical-read API batch (T11–T20)
+
+The opt-in MySQL application now exposes GET decision lists/count/detail,
+scenario decision lists, scenario test-run lists, test-run detail, active rule
+snoozes, decision workflow-execution/scoring-request lists and scoring-request
+detail. Existing response DTOs are retained. Every request uses trusted read
+authority and one tenant-scoped read-only snapshot; dependent histories verify
+the parent without loading its request JSON. No foreign-owner mutation is added.
+
+Decision lists always use keyset pages: `limit` defaults to 50, capped by both
+500 and the configured row budget; `cursor` binds tenant and every filter.
+Supported filters are `decision_id`, `scenario_id`, `object_type`, `object_id`,
+`object_id_prefix`, `outcome`, `search`, `min_score` and `max_score`.
+`include_total_count=true` counts in the same snapshot. Filters must be repeated
+on continuation requests; the scenario path supplies its own scenario filter.
+`offset`, unknown/repeated parameters and malformed cursors return 400. Filter
+JSON is limited to 768 bytes and raw query strings to 4096 bytes. Lists omit
+request payloads. Newer decisions require restarting traversal; this is not a
+frozen snapshot across requests. Counts/contains search can inspect many rows
+and remain subject to the application request deadline.
+
+Test-run, evidence, snooze and effect collections retain their bounded source
+shape; row/byte overflow returns 413, never partial success. Snoozes accept only
+`object_type` and `object_id`, preserving exact bytes and exclusive expiry.
+Missing records/parents return 404. Detail routes reject query parameters.
+
+All ten named HTTP tests and scoped race regressions passed; compilation and vet
+passed. The 512-row query plans are fixture evidence only. Statistics, test-run
+mutations, other remaining APIs and production-scale acceptance are not supplied
+by these reads. PostgreSQL remains configured. See
+[history task evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_history_tasks.json).
+### Administration API batch (T21–T30)
+
+The opt-in MySQL API now supports workflow configuration GET/POST collection,
+GET/PUT/DELETE detail and POST reorder; test-run POST create/cancel; rule-snooze
+POST create; and GET outbox history. Workflow reorder retains the source JSON
+array of UUIDs and requires every current workflow exactly once. Creation returns
+201; deletion/reorder return 204; other successful operations return 200.
+
+Workflows require decision.workflow.read or decision.workflow.author authority.
+Case configurations additionally require a trusted session and the approved local
+inbox/tag contracts. Lists fail closed if an included case destination cannot be
+authorized. Saves authorize old/new destinations before taking workflow locks,
+require active destinations/tags for enabled configurations, and reject a changed
+configuration after locking. Missing contracts return 503; denied permission
+returns 403. No cross-owner tables are written. The workflow guard is scoped to
+one scenario; unrelated scenarios remain independent. Order allocation uses the
+existing order index and does not scan a capped list to find the next position.
+
+Test-run creation pins the live publication with a shared parent lock, requires a
+different phantom iteration from the same scenario and a future valid expiry.
+Cancellation sets the selected row down. These endpoints manage metadata only;
+target comparison evaluation/statistics remain pending. Snoozes validate UUIDs
+and expiry while preserving exact object bytes, including trailing spaces.
+
+Outbox history returns the latest N events, ordered by created_at/id, with limit
+50 by default and a maximum of min(500, configured row budget). It has no cursor.
+Other workflow collections fail explicitly on row/byte overflow. Unknown queries,
+malformed JSON and forged body identities are rejected. Uncertain transaction
+outcomes retain their existing 503 response and are not automatically retried.
+
+All ten named HTTP checks and the scoped race suite passed; full compilation and
+vet passed. Configured runtime remains PostgreSQL; real providers, complete API
+parity and release/activation remain open. See
+[administration evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_administration_tasks.json).
+### Custom-list API batch (T31–T40)
+
+The opt-in MySQL API supports GET/POST custom-list collection, GET/PUT/DELETE
+list detail, GET/POST entries, POST entries/import and PUT/DELETE entry detail
+under /tenants/:tenantId/platform/custom-lists. Reads and mutations require their
+distinct list-owner authority. All records are tenant scoped. Creates return 201,
+deletes 204 and other successful operations 200.
+
+Collections are bounded snapshots without cursors; configured row/byte overflow
+returns 413. Single-entry writes preserve exact whitespace and explicit empty
+values; missing/null values are rejected. Imports accept one multipart file field
+named file, use the first CSV column, support BOM and optional value/values header,
+trim values and deduplicate within the request. Existing equal entries remain
+allowed. The configured HTTP body and owner row/byte budgets bound each upload.
+Parsing finishes before mutation locks; 100-row insert batches commit atomically.
+A shared selected-list lock coordinates imports with rename/delete while unrelated
+lists remain writable. Uncertain commits are not automatically retried.
+
+All ten named HTTP tests and scoped race regressions passed, along with compilation
+and vet. No schema migration or configured runtime switch was made. PostgreSQL
+remains configured; legacy by-name lookup, remaining APIs, real provider integration,
+full parity and release/activation remain open. See
+[custom-list evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_custom_list_tasks.json).
+
+### Platform API batch (T41–T50)
+
+The opt-in MySQL API now supplies the remaining platform routes under
+/tenants/:tenantId/platform:
+
+| Method | Path | Contract |
+|---|---|---|
+| GET | custom-list-entries | Explicit list_name; source-compatible case-folded, accent/whitespace-sensitive lookup |
+| GET | record-tags | Explicit object_type and object_id, preserving exact bytes |
+| POST | record-tags | Create a decision-owned tag |
+| POST | risk-snapshots | Append a decision-owned risk snapshot |
+| GET | ip-flags | Explicit ip_address, preserving exact text |
+| POST | ip-flags | Append a decision-owned flag |
+
+Creation returns 201 and collections return 200. Required body fields must be
+present and non-null; explicit empty strings remain supported. Required query
+keys may have empty values. An empty list_name retains the source behavior of
+listing all tenant entries, subject to the configured cap. Missing, repeated,
+unknown or malformed query parameters are rejected. No IP canonicalization,
+object-ID trimming or risk-level enum is invented.
+
+Authorities.PlatformMutations is a separate trusted callback for tag/risk/IP
+administration. Missing authority returns 503 for mutations; denied authority
+returns 403. Reads use existing read authority; custom-list lookup retains its
+distinct list-owner read permission. Evaluation persistence authority never
+implicitly grants platform mutations. Production providers must explicitly
+supply/recheck this permission; no permissive default or auth adapter is added.
+
+Collections use existing indexed, bounded repository queries and read snapshots;
+row/byte overflow returns 413 without partial results. Mutations authorize and
+perform insert/readback in one short transaction, without a shared parent lock
+or network IO. Provisional results are discarded on rollback or uncertain commit.
+Repeated creates are not idempotent and uncertain commits are not auto-retried.
+These decision-owned records are the same records read by the evaluator.
+
+T41–T46 cover the six routes; T47–T50 cover authority separation, strict requests,
+bounded projections and rollback/evaluator integration. Runtime stays configured
+for PostgreSQL. Test-run comparison, screening/provider APIs, full parity,
+production performance and release/activation remain open. See
+[platform task evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_platform_tasks.json).
+
+### Browser workflow APIs and D13–D20 verification
+
+The staged application exposes GET /internal/workflow-authoring/tenants/:tenantId/scenarios/:scenarioId
+and PUT/DELETE of the same path followed by /rules/:ruleId. These routes share the
+application authentication, readiness and request deadlines. A trusted session and
+current SQL permission providers are required; actor headers or body fields cannot
+substitute for that session. Missing providers fail closed.
+
+Requests use strict JSON and a body limit of at most 16 KiB. Path/body rule IDs must
+match. Updates and deletes use the saved updated_at version; delete accepts the
+saved rule shape. Successful list/save/delete responses return 200 and private,
+no-store caching. Mutations and attributed audit writes commit together; an audit
+failure rolls back the mutation. Scenario/browser copy HTTP integration remains open.
+
+Verification adds PostgreSQL/MySQL history filtering, counts, pagination and snooze
+boundary comparisons, plus actual-service configured effects and required-job
+rollback on both engines. The accepted race runs passed 171 top-level tests and
+214 subtests, with no failures or skips. Query-plan tests were excluded; this does
+not establish production performance or real-provider acceptance. Whole-module
+compilation and affected-package vet passed. PostgreSQL remains configured.
+See [D13–D20 evidence](../../mysql_migration/implementation/evidence/2026-11-02_decision_d13_d20_progress.json).
+### Publication-aware model preparation and browser copy
+
+The optional data-model publication reader supplies a table-level published_version
+through the public DTO; this is independent of the tenant model revision. Decision
+preparation uses GetFreshTenantModel where supported, bypassing the advisory TTL
+cache and never falling back to it after a refresh error. The owner response is
+limited to 64 MiB before decoding. Consumers still fence the table version against
+the physical registry on their transaction. The configured PostgreSQL routes and
+backend selection are unchanged.
+
+POST /internal/workflow-authoring/tenants/:tenantId/scenarios/:scenarioId/copy
+accepts {"destination_scenario_id":"<uuid>"} and returns {"rules":[...]} with 200.
+It requires the trusted session, current identity/inbox/tag permissions and a
+published destination model. Payload condition fields must exist and support their
+operators/value types. Model IO occurs before mutation locks; the registry version
+and destination identity are checked before graph writes. Copied priorities and
+audit records use the existing atomic owner copy operation. An audit failure rolls
+back the complete graph. Copies are not idempotent; uncertain results require
+inspection before retrying. This workflow-only route does not copy scenarios.
+
+The staged POST /v1/tenants/:tenantId/scenarios/:scenarioId/copy route accepts
+{"name":"<optional copy name>"} and returns {"scenario":...} with 201. It copies
+a bounded snapshot of iterations, rules and structured workflows, remapping rule-hit
+references to new rule IDs. Fresh-model IO and static validation finish before the
+destination transaction. Current authority, case references and publication versions
+are rechecked before writes; a live copy and its publication event commit together.
+It does not copy decision history, jobs, screening/scoring configurations or snoozes.
+Case actions require a trusted session and available case-owner contracts. The route
+is not idempotent; do not automatically retry uncertain commits. Real providers and
+full migration acceptance remain outstanding; the configured backend is PostgreSQL.
+
+### Bounded index preparation
+
+The staged GET/POST /v1/tenants/:tenantId/scenarios/:scenarioId/publications/preparation
+routes accept iteration_id (query for GET; JSON for POST). GET returns 200 and POST
+202 with a preparation object. Both drafts and committed versions use a coherent,
+bounded snapshot, current authority and fresh model validation. Provider IO holds
+no SQL transaction. Supply mysqlruntime.Dependencies.IndexPreparation explicitly;
+missing capability fails instead of using an unbounded history fallback.
+
+The HTTP provider uses the owner /v1/tenants/:tenantId/index-jobs/scoped endpoint.
+It verifies tenant/table bindings, result count and response bytes. Start creates
+missing search jobs, retries failed jobs and rereads status. Owner calls are not
+one atomic operation; partial failures require status reconciliation. A cancelled
+job follows source status semantics and does not prove physical usability. Publish
+still validates the actual registry. Target owner/worker/grant activation and full
+D13-D15 acceptance remain open. See the 2026-11-03 checklist/evidence checkpoint.
+
+IndexPreparation providers must return an explicit empty slice when no jobs exist,
+and retain TenantID and TableID on every job. Preparation rejects stale table-name
+bindings, missing results, duplicates and projections exceeding its byte budget
+before requesting mutations. An accepted job followed by a response failure is
+reconciled on the next start; concurrent-create idempotency is not guaranteed.
+
+### Custom-list evaluation failures
+
+CustomListAccess resolves UUID references by ID, with legacy name fallback only
+for confirmed absence (`ports.ErrCustomListNotFound`). Non-UUID references use
+the name query directly. Authorization, cancellation, timeout and storage errors
+propagate; they cannot become a successful name lookup. Both SQL repositories
+retain their original no-row errors alongside the explicit absence contract.
+
+## Shared owner acceptance (cycle 7)
+
+The staged composition now binds `data-model-service/decisionaccess` to decision
+preparation using the same pool, database and tenant. Native owner records use
+its explicitly selected v005 exact-key lookup function; there is no fallback on
+missing migrations or grants. Separate preparation/worker grant policies cover
+metadata operations; physical installation retains its separate owner policy.
+
+The disposable owner journey exercises decision HTTP preparation, one deduplicated
+index job, physical publication, failed-job retry, restart and lost-response
+recovery. It also compares 19 aggregate/navigation rules and committed evidence
+on PostgreSQL and MySQL, verifies pinned evaluation after a model gate closes,
+and checks browser/scenario copy, rule-hit remapping, attributed audits and
+permission races. PostgreSQL browser copy is an owner API; deployment routing is
+not changed. Shared condition validation lives in `internal/modelvalidation`.
+
+Run the repeatable isolated acceptance suite from the repository root:
+
+```powershell
+./backend/decision-engine-service/scripts/test-shared-owners.ps1 -EvidenceDirectory ./mysql_migration/implementation/evidence/new-run
+```
+
+The output directory must be new. The runner requires Docker, uses a unique
+Compose project, records commands/versions/results, rejects missing or skipped
+required tests and removes its databases in `finally`. It never accepts an
+application database URL. The six owners install independently tracked migrations
+into one disposable logical database per engine.
+
+Screening's staged `mysqlpublication` mutations and local projector now supply
+versioned source-to-decision updates with atomic queue writes and bounded retries.
+External receipt-aware providers, complete end-to-end effects, production identity
+wiring, load acceptance, release grants and activation remain separate gates.
+PostgreSQL remains configured. The shared resource budget is a deployment plan,
+not a claim that current defaults or measured throughput satisfy it.
+
+## Explicit history load acceptance
+
+`internal/loadacceptance` schedules an offered rate with bounded workers and a
+bounded queue. It retains every scheduled request, includes queue delay in
+latency, and counts dropped, failed and canceled requests against the error
+budget. It joins workers before returning; work callbacks must honor context.
+No default production target is inferred from a smoke result.
+
+`TestManualHistoryLoadAcceptance` consumes `DECISION_HISTORY_LOAD_PROFILE` and
+writes a new file at `DECISION_HISTORY_LOAD_OUTPUT`. It requires the private
+Compose address `mysql:3306` and `DECISION_MYSQL_REQUIRE_INTEGRATION=1`. It creates
+only generated fixture databases, seeds 100-row batches with real FKs/triggers,
+authorizes history requests through the actual identity owner, and caps its pool
+at eight connections. The artifact records the seed, per-tenant counts, raw
+latencies, unhinted page/count/cursor plans and pool/MySQL counters sampled at
+one-second intervals during the workload and at its boundaries.
+Contains search remains a measured residual filter, not an indexed-text claim.
+The request mix cycles through tenant/scenario/hot-object/contains/count/cursor
+reads; hot-tenant request share follows the configured skew.
+
+`scripts/history-load.proposed.json` retains the original unapproved proposal.
+`scripts/history-load.acceptance.json` records the working baseline under the
+2026-11-03 user direction to finish using the stated engineering defaults. This
+is scoped history acceptance, not combined-stack or production certification.
+The manual command inside the private runner is:
+
+```sh
+DECISION_HISTORY_LOAD_PROFILE=/backend/decision-engine-service/scripts/history-load.acceptance.json \
+DECISION_HISTORY_LOAD_OUTPUT=/tmp/history-acceptance.json \
+go test -mod=readonly -p 2 -count=1 -timeout=60m -json ./internal/store/mysql -run '^TestManualHistoryLoadAcceptance$'
+```
+
+`TestHistoryLoadHarnessSmoke` verifies the harness on 240 rows across three
+tenants. Its optional `DECISION_HISTORY_SMOKE_OUTPUT` retains the raw artifact;
+otherwise the test uses a temporary directory. Smoke results never close load
+acceptance. CPU/I/O sampling across all services, source-engine load comparison,
+evaluation/effect load and sustained combined workloads remain separate work.
+
+## Evaluation load fixture
+
+`scripts/test-load-fixtures.sh` runs bounded-load unit tests, model-cache
+regressions, history/evaluation smoke tests and effect producer locking,
+idempotency, tenant and rollback checks with the race detector, then runs vet.
+It requires the private Compose integration flags and address. Use `sh` to run
+the script inside the disposable runner. It does not start application services.
+
+`TestManualEvaluationLoadAcceptance` reads `DECISION_EVALUATION_LOAD_PROFILE`
+and writes a new `DECISION_EVALUATION_LOAD_OUTPUT`. The fixture uses one generated
+database and one eight-connection pool across ten tenant services. Each decision
+evaluates eight scalar rules and two distinct indexed SQL aggregates, persists
+ten evidence rows, three external-effect records, four outbox records and seven
+required job receipts/deliveries atomically. Outcome, tenant/scenario identity
+and persisted counts are checked. Failure categories contain no provider bodies
+or credentials. No workers deliver those effects during this producer test.
+
+The model registry and authority are explicit consumer fixtures; full owner
+publication and provider delivery remain separate acceptance requirements. The
+fixture seeds 100 wallet records per tenant. It does not seed the history
+population or run simultaneous history requests; the combined benchmark still
+needs that composition. Request IDs, rule/model identities and tenant skew are
+reproducible from the profile seed and request index; transaction timestamps
+use the real clock.
+
+Start with `scripts/evaluation-load.ramp.json` (100/sec for 30 seconds) before
+`scripts/evaluation-load.acceptance.json` (the 1,000/sec, five-minute target).
+Both retain four live workers from the shared budget. A failed ramp is evidence
+of an unmet target; do not lower the denominator or hide bounded-queue drops.
+`DECISION_EVALUATION_SMOKE_OUTPUT` optionally retains the 100-request smoke
+artifact. None of these profiles activates MySQL in the application.

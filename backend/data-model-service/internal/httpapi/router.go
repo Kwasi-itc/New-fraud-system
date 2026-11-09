@@ -232,6 +232,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) (*gin.En
 	v1.GET("/tenants/:tenantId/schema-migrations", tenantSchemaMigrationHandler.List)
 	v1.POST("/tenants/:tenantId/index-jobs", indexJobHandler.Create)
 	v1.GET("/tenants/:tenantId/index-jobs", indexJobHandler.List)
+	v1.GET("/tenants/:tenantId/index-jobs/scoped", indexJobHandler.ListScoped)
 	v1.GET("/index-jobs/:jobId", indexJobHandler.Get)
 	v1.POST("/index-jobs/:jobId/retry", indexJobHandler.Retry)
 	v1.PATCH("/tables/:tableId", dataModelHandler.UpdateTable)

@@ -1,0 +1,112 @@
+{
+    "date":  "2026-11-02",
+    "base_commit":  "ab9ff6be59a6c6530d3d1c760dbe3350e850e12f",
+    "status":  "scoped implementation verified; parent tasks remain open",
+    "tasks":  [
+                  "D13",
+                  "D15",
+                  "D24",
+                  "D25"
+              ],
+    "engines":  {
+                    "go":  "1.25.8 linux/amd64",
+                    "postgres":  "16.15",
+                    "mysql":  "8.4.8"
+                },
+    "fixture":  {
+                    "published_ports":  false,
+                    "application_access":  false,
+                    "network":  "decision-next-20261102_default",
+                    "compose_project":  "decision-next-20261102",
+                    "foreign_providers":  "explicit contract fixtures; not actual auth/case/screening/receipt implementations",
+                    "databases":  "generated disposable owner databases, migration_test in private tmpfs MySQL, decision_test_* in private tmpfs PostgreSQL",
+                    "cleanup":  "Task-owned runner, MySQL, PostgreSQL and private network removed after saving evidence; pre-existing containers untouched"
+                },
+    "commands":  [
+                     "go test -json -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/mysqlruntime ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlrelease ./cmd/mysql-release",
+                     "go test -json -mod=readonly -race -p 2 -count=1 -timeout=300s ./internal/store/mysql -run Test(ActualDecisionServicePostgresMySQLThresholdEvidenceParity|MySQLActualDecisionServiceThresholdsEvidenceEffectsAndRequiredJobRollback|AuthoringPostgresMySQLDifferentialCorpus|BrowserPostgresMySQLDifferentialCorpus|MySQLAggregatePublicationRegistryFencingAndRollback)",
+                     "cd backend/mysqlstore; go vet ./migrations; go test -json -mod=readonly -race -count=1 -timeout=120s ./migrations",
+                     "go test -mod=readonly -p 2 -run ^$ ./...",
+                     "go vet -p 2 ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/mysqlrelease ./internal/store/mysql ./cmd/mysql-release"
+                 ],
+    "results":  {
+                    "runtime":  {
+                                    "passed_subtests":  16,
+                                    "skipped":  0,
+                                    "passed_top_level":  49,
+                                    "failed":  0,
+                                    "log":  "2026-11-02_decision-runtime.jsonl"
+                                },
+                    "whole_module_compile":  "passed; not whole-module test execution",
+                    "affected_vet":  "passed",
+                    "differential":  {
+                                         "passed_subtests":  18,
+                                         "skipped":  0,
+                                         "passed_top_level":  5,
+                                         "failed":  0,
+                                         "log":  "2026-11-02_decision-differential.jsonl"
+                                     },
+                    "shared_migrations":  {
+                                              "passed_subtests":  5,
+                                              "skipped":  0,
+                                              "passed_top_level":  8,
+                                              "failed":  0,
+                                              "log":  "2026-11-02_decision-shared-migrations.jsonl"
+                                          }
+                },
+    "remaining":  [
+                      "Real auth/case/screening/receipt providers and expanded auth actions",
+                      "Complete data-model/index-preparation and remaining authoring/preparation API integration",
+                      "Full actual-service business/effect/provider differential and operational fault/concurrency acceptance",
+                      "Publication history pagination and operation-specific publication replay after ambiguous commits are not supplied by the new routes",
+                      "Frozen/promoted production artifacts and image, reviewed grants/inspection policy, shared-stack fencing/restore and approved activation",
+                      "Performance/load and Aurora excluded; no production readiness claim"
+                  ],
+    "non_acceptance":  "An initial evidence-capture invocation failed at shell parsing before tests ran; corrected command results are retained. Earlier completed exploratory runs are not added to final test totals.",
+    "source_files":  [
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlapi/execution_http.go",
+                             "sha256":  "284c67510142d19b11100cc1a445678d32a81c0d03a92d965de28a598071d6b2"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlapi/publication_http.go",
+                             "sha256":  "6f51147cdcf8aafd31ee1088308391e83846d3cbbfbb7566791a9d78d6d48372"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlexecution/publication.go",
+                             "sha256":  "12f4f96d237ef737b78c48a76a23461358237af44fd0e34db63881b83025ab4f"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlrelease/release.go",
+                             "sha256":  "278ef2475217db192d345e1d391cb4d1755ede40b992fd7fc4482b94ef79bc27"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlrelease/release_integration_test.go",
+                             "sha256":  "5c53e67782836e182d6b4794d20e29afd8444aa43de7071548bbaa9cdc953e6c"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlruntime/application_integration_test.go",
+                             "sha256":  "b43f9d5d52a92786e3b5aa2c6d3a8d3cf02304399f8eade023d4d76ef3c4136e"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/mysqlruntime/scope.go",
+                             "sha256":  "ad92d08501d6d1f578d6bfcea68c3faaacad96273fcbf0b01caec58da4beca41"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/store/mysql/authoring_operations.go",
+                             "sha256":  "060207e7b99668c826041768b16b440690e4322062770bedfd363a3bfa37c4b8"
+                         },
+                         {
+                             "path":  "backend/decision-engine-service/internal/store/mysql/decision_service_differential_test.go",
+                             "sha256":  "6dc5bd103c2b1e34bc7b90b2c363ff459c718bcd768df4e67a58eb70d2107bf2"
+                         },
+                         {
+                             "path":  "backend/mysqlstore/migrations/runner.go",
+                             "sha256":  "b4da124e25472aac8effb6a19e21d47b5f8c5d4a52425fef9f55bd1675ec4bc1"
+                         },
+                         {
+                             "path":  "backend/mysqlstore/migrations/guard_test.go",
+                             "sha256":  "fcf3072011f04a1e73dcaf313f6360c3de48fc5c31a80e254735e7192e90389a"
+                         }
+                     ]
+}

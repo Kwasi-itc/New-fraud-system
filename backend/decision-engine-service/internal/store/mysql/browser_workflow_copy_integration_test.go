@@ -50,6 +50,12 @@ func TestMySQLBrowserWorkflowCopyAuditAuthorizationAndRollback(t *testing.T) {
 	if _, err := copyRules(actor, nil); !errors.Is(err, ErrDecisionAuthorizationUnavailable) {
 		t.Fatal("missing guard allowed", err)
 	}
+	if _, err := s.copy(ctx, tenant.String(), source.String(), target.String(), actor, guard, func(context.Context, *sql.Tx) error { return ErrDecisionAuthorizationDenied }); !errors.Is(err, ErrDecisionAuthorizationDenied) {
+		t.Fatal("revoked model authority allowed copy", err)
+	}
+	if called != 0 {
+		t.Fatal("model preparation ran after authority denial")
+	}
 	bad := actor
 	bad.SessionID = uuid.NewString()
 	if _, err := copyRules(bad, guard); !errors.Is(err, workflow.ErrAuthoringDenied) {

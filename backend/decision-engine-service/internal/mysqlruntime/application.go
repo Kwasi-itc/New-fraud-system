@@ -24,18 +24,38 @@ import (
 // Handler exposes only implemented routes; it never mounts PostgreSQL routes
 // over a MySQL pool or advertises unsupported endpoints as successful no-ops.
 type Application struct {
-	runtime       *Runtime
-	handler       *gin.Engine
-	tenants       []uuid.UUID
-	workers       []workerLoop
-	ready         atomic.Bool
-	workerRunning atomic.Bool
-	stopped       atomic.Bool
-	shutdownMu    sync.Mutex
-	workerCancel  context.CancelFunc
-	workerDone    chan struct{}
+	localReviewLegacyTenantID uuid.UUID
+	runtime                   *Runtime
+	handler                   *gin.Engine
+	tenants                   []uuid.UUID
+	workers                   []workerLoop
+	ready                     atomic.Bool
+	workerRunning             atomic.Bool
+	stopped                   atomic.Bool
+	shutdownMu                sync.Mutex
+	workerCancel              context.CancelFunc
+	workerDone                chan struct{}
 }
 type workerLoop func(context.Context, func(context.Context, error) error) error
+
+type RouteDefinition struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
+// RouteInventory describes only routes actually registered by this host. The
+// local diagnostic command uses it to audit undocumented runtime extensions.
+func (a *Application) RouteInventory() []RouteDefinition {
+	if a == nil || a.handler == nil {
+		return nil
+	}
+	routes := a.handler.Routes()
+	out := make([]RouteDefinition, len(routes))
+	for i, route := range routes {
+		out[i] = RouteDefinition{Method: route.Method, Path: route.Path}
+	}
+	return out
+}
 
 // Start completes cold shape/provider checks before returning an HTTP handler.
 // Worker tenant scope is an explicit bounded service deployment inventory, not
@@ -45,6 +65,7 @@ func (r *Runtime) Start(ctx context.Context, tenants []uuid.UUID) (*Application,
 		return nil, mysql.ErrTenantScope
 	}
 	seen := map[uuid.UUID]bool{}
+	allKinds := enabledKinds(allKinds, r.policy.Evaluation.DeferAdditionalScoring)
 	slotsPerTenant := len(allKinds) + 1 // bounded maintenance loops plus scheduler
 	for _, kind := range allKinds {
 		slotsPerTenant += r.policy.Workers[kind].Concurrency
@@ -70,6 +91,11 @@ func (r *Runtime) Start(ctx context.Context, tenants []uuid.UUID) (*Application,
 		scope, err := r.Scope(ctx, tenant, true)
 		if err != nil {
 			return nil, err
+		}
+		if r.policy.Evaluation.DeferAdditionalScoring {
+			if err := scope.Effects.CheckAdditionalScoringDeferred(ctx); err != nil {
+				return nil, err
+			}
 		}
 		loops, err := r.workerLoops(scope, tenant)
 		if err != nil {
@@ -110,10 +136,14 @@ func (r *Runtime) Start(ctx context.Context, tenants []uuid.UUID) (*Application,
 		c.JSON(200, gin.H{"status": "ready"})
 	})
 	v1 := engine.Group("/v1")
-	v1.Use(func(c *gin.Context) {
+	authenticate := func(c *gin.Context) {
 		trusted, err := r.deps.Authenticate(c.Request)
 		if err != nil || trusted == nil {
 			c.AbortWithStatusJSON(401, gin.H{"error": "authentication_required"})
+			return
+		}
+		if !a.ready.Load() || a.stopped.Load() {
+			c.AbortWithStatusJSON(503, gin.H{"error": "required_provider_unavailable"})
 			return
 		}
 		bounded, cancel := context.WithTimeout(trusted, r.policy.RequestTimeout)
@@ -123,8 +153,12 @@ func (r *Runtime) Start(ctx context.Context, tenants []uuid.UUID) (*Application,
 		defer stop()
 		c.Request = c.Request.WithContext(bounded)
 		c.Next()
-	})
+	}
+	v1.Use(authenticate)
 	h.Register(v1)
+	browser := engine.Group("/internal/workflow-authoring")
+	browser.Use(authenticate)
+	h.RegisterBrowser(browser)
 	a.handler = engine
 	a.ready.Store(true)
 	return a, nil
@@ -157,9 +191,13 @@ func (a *Application) HTTPServer(address string) (*http.Server, error) {
 }
 
 func (r *Runtime) workerLoops(scope *Scope, tenant uuid.UUID) ([]workerLoop, error) {
+	return r.workerLoopsForKinds(scope, tenant, enabledKinds(allKinds, r.policy.Evaluation.DeferAdditionalScoring))
+}
+
+func (r *Runtime) workerLoopsForKinds(scope *Scope, tenant uuid.UUID, kinds []ports.JobKind) ([]workerLoop, error) {
 	p := r.policy
 	var loops []workerLoop
-	for _, kind := range allKinds {
+	for _, kind := range kinds {
 		var dispatch *mysql.DispatchStore
 		if kind == ports.JobScheduled || kind == ports.JobAsync || kind == ports.JobCallback {
 			transport, err := mysql.NewExecutionDeliveryStore(r.deps.DB, r.deps.Database, tenant, kind, p.Execution.Queues[kind].Name, p.Lease, scope.worker)

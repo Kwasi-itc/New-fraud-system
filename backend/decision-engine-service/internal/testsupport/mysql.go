@@ -34,7 +34,7 @@ func decisionMySQLReference(t *testing.T, observe bool) (*sql.DB, string, string
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	config := mysqlstore.Config{Address: "mysql:3306", Database: "decision_platform_test", User: "root", Password: "isolated-test-root-only", AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute}
+	config := mysqlstore.Config{Address: "mysql:3306", Database: "decision_platform_test", User: "root", Password: "isolated-test-root-only", AllowInsecureTransport: true, InterpolateParameters: os.Getenv("DECISION_MYSQL_TEST_INTERPOLATE") == "1", MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute}
 	admin, err := mysqlstore.Open(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -168,4 +168,46 @@ func DecisionMySQLRuntimeDatabase(t *testing.T) (*sql.DB, string, string, []migr
 		t.Fatal(err)
 	}
 	return db, name, definer, steps
+}
+
+// InstallDecisionOnOwnerFixture adds independently tracked decision objects to
+// a generated data-model integration database; it never resets that database.
+func InstallDecisionOnOwnerFixture(t *testing.T, db *sql.DB, database string) {
+	t.Helper()
+	if !strings.HasPrefix(database, "data_model_metadata_test_") {
+		t.Fatal("generated owner fixture required")
+	}
+	ref, refName, definer, observed := decisionMySQLReference(t, true)
+	steps, err := metadata.DispatchStatements(database, definer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range steps {
+		steps[i].Before = strings.ReplaceAll(observed[i].Before, refName, database)
+		steps[i].After = strings.ReplaceAll(observed[i].After, refName, database)
+	}
+	plan, err := metadata.DispatchPlan(database, definer, steps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runner, err := migrations.NewForOwner(db, "decision_engine", plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := runner.Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	grants, err := metadata.DispatchDefinerGrants(database, definer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, grant := range grants {
+		if _, err := ref.ExecContext(ctx, grant); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := runner.Verify(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
 }

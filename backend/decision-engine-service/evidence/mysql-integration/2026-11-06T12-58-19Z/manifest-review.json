@@ -1,0 +1,17 @@
+{
+  "catalogUnchanged": true,
+  "changedSources": [
+    "internal/ports/evaluation_reads.go",
+    "internal/ports/evaluation_trace.go",
+    "internal/service/decision_service.go",
+    "internal/service/pinned_preparation.go"
+  ],
+  "changedContracts": [
+    {
+      "id": "internal/service/decision_service.go::DecisionService.buildOutboxEvents",
+      "fields": [
+        "Line"
+      ]
+    }
+  ]
+}

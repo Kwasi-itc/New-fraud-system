@@ -1,0 +1,206 @@
+{
+  "at": "2026-11-06T14:27:46.078Z",
+  "origin": "http://127.0.0.1:8082/",
+  "fixtureSource": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-fraud\\2026-11-06T12-12-00.522Z",
+  "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+  "scenario": "afcc21e6-8f80-4a80-99e1-0b51184aed2f",
+  "datasetSha256": "e2493697f94fc01a8eb67c20c00c71f5e111c5430ff19242fbde2840aa9b76d5",
+  "rules": 5,
+  "scope": "Completed synchronous HTTP decision including model retrieval, SQL persistence and durable outbox production; excludes asynchronous delivery completion",
+  "requestGenerator": {
+    "mode": "open-loop offered rate with a bounded in-flight cap; skips are reported, no retries",
+    "maxInflight": 64,
+    "timeoutMs": 5000,
+    "keepAlive": true
+  },
+  "targetP95Ms": 50,
+  "baselineHealthLatency": {
+    "samples": 100,
+    "minMs": 1.743,
+    "meanMs": 2.528,
+    "p50Ms": 2.49,
+    "p95Ms": 3.425,
+    "p99Ms": 3.839,
+    "maxMs": 4.352,
+    "atOrBelowTargetPercent": 100
+  },
+  "baselineModelReadLatency": {
+    "samples": 20,
+    "minMs": 21.643,
+    "meanMs": 26.943,
+    "p50Ms": 24.143,
+    "p95Ms": 39.629,
+    "p99Ms": 42.65,
+    "maxMs": 42.65,
+    "atOrBelowTargetPercent": 100
+  },
+  "warmupRequests": 28,
+  "warmupErrors": 0,
+  "before": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "a03da7627212283b02da85577f9f38b9cc3553a68e01c0034f2a0b45e81e0fcd",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:16:19.477779878Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "52a6f35f6f60158ae4c5e94fd5ac214e5b3539063d057f45fcabfebb420c2843",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:20:02.238219888Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "9c22c7ba249d1d964790031e3289ba9c45ba3c30f65244dd9d73682b7cb245a5",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:19:50.280546705Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "after": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "id": "a03da7627212283b02da85577f9f38b9cc3553a68e01c0034f2a0b45e81e0fcd",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:16:19.477779878Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "id": "52a6f35f6f60158ae4c5e94fd5ac214e5b3539063d057f45fcabfebb420c2843",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:20:02.238219888Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 536870912
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "id": "9c22c7ba249d1d964790031e3289ba9c45ba3c30f65244dd9d73682b7cb245a5",
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "startedAt": "2026-11-06T14:19:50.280546705Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 1,
+      "memoryLimitBytes": 268435456
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "id": "a3f2b5e96b9ee86f70e4f2221a32a46b4b4607de7d3f7e73ffe2c2dabc1c631c",
+      "image": "sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+      "startedAt": "2026-11-04T11:32:09.987286095Z",
+      "restarts": 0,
+      "health": "healthy",
+      "state": "running",
+      "cpuLimit": 2,
+      "memoryLimitBytes": 2147483648
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "id": "cc861c9eda06d56d56ea5aa91bdafff24dfcf2cfcc6af0c2c0c76e9926db73a9",
+      "image": "sha256:ed1a2940a506d20f45c8320e1eff679a68e1d580f1706393f2b7270890b0b6ce",
+      "startedAt": "2026-11-05T11:39:37.171416602Z",
+      "restarts": 0,
+      "state": "running",
+      "cpuLimit": null,
+      "memoryLimitBytes": null
+    }
+  ],
+  "runtimeUnchanged": true,
+  "resourceSamples": 75,
+  "phases": [
+    {
+      "name": "500rps",
+      "configuredSeconds": 5,
+      "offeredRate": 500,
+      "concurrencyLimit": 64,
+      "offered": 2500,
+      "sent": 209,
+      "validated": 209,
+      "errors": 0,
+      "clientSkipped": 2291,
+      "elapsedSeconds": 6.131164299999999,
+      "completedPerSecond": 34.08814211682437,
+      "successfulResponseLatency": {
+        "samples": 209,
+        "minMs": 314.736,
+        "meanMs": 1723.681,
+        "p50Ms": 1603.2,
+        "p95Ms": 2899.049,
+        "p99Ms": 3355.264,
+        "maxMs": 3872.574,
+        "atOrBelowTargetPercent": 0
+      },
+      "firstByteLatency": {
+        "samples": 209,
+        "minMs": 314.403,
+        "meanMs": 1723.398,
+        "p50Ms": 1602.963,
+        "p95Ms": 2898.802,
+        "p99Ms": 3355.029,
+        "maxMs": 3872.38,
+        "atOrBelowTargetPercent": 0
+      },
+      "schedulerDelay": {
+        "samples": 209,
+        "minMs": -0.775,
+        "meanMs": 4.348,
+        "p50Ms": 3.419,
+        "p95Ms": 13.042,
+        "p99Ms": 14.844,
+        "maxMs": 16.164,
+        "atOrBelowTargetPercent": 100
+      },
+      "targetP95Ms": 50,
+      "targetMet": false,
+      "profileTimings": false
+    }
+  ],
+  "stopReason": "Stopped load ramp after excessive errors or client-capacity skips",
+  "valid": true,
+  "measurementValid": true,
+  "offeredLoadMet": false,
+  "targetMet": false
+}

@@ -1,0 +1,96 @@
+# Local MySQL foundation. Deliberately not an overlay on docker-compose.yml:
+# the normal API binaries still select PostgreSQL. See docker/mysql-dev/README.md.
+name: fraud-mysql-dev
+services:
+  mysql:
+    image: mysql:8.4.8
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_bin
+      - --max-connections=100
+      - --socket=/var/run/mysqld/mysqld.sock
+    environment:
+      MYSQL_DATABASE: fraud
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_root_password
+    ports:
+      - "127.0.0.1:${MYSQL_DEV_PORT:-3307}:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - mysql_dev_socket:/var/run/mysqld
+      - ./docker/mysql-dev/verify.sh:/opt/mysql-dev/verify.sh:ro
+    cpus: 2
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/mysql_root_password) mysql --protocol=socket -uroot --database=fraud --batch --skip-column-names -e 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  mysql-reference:
+    profiles: [install]
+    image: mysql:8.4.8
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--socket=/var/run/mysqld/mysqld.sock"]
+    environment:
+      MYSQL_DATABASE: fraud
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets: [mysql_root_password]
+    tmpfs: [/var/lib/mysql]
+    volumes:
+      - mysql_dev_reference_socket:/var/run/mysqld
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/mysql_root_password) mysql --protocol=socket -uroot --database=fraud -Nse 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  migrate-data-model: &migration
+    profiles: [install]
+    image: fraud-mysql-dev-installer:local
+    build:
+      context: .
+      dockerfile: docker/mysql-dev/Dockerfile.install
+    command: [/app/install-data-model]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:3001
+    secrets: [mysql_root_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ./.local/mysql-dev/plans:/plans
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-reference:
+        condition: service_healthy
+
+  migrate-ingestion:
+    <<: *migration
+    command: [/app/install-ingestion]
+    depends_on:
+      migrate-data-model:
+        condition: service_completed_successfully
+
+  migrate-decisions:
+    <<: *migration
+    command: [/app/install-decisions]
+    depends_on:
+      migrate-ingestion:
+        condition: service_completed_successfully
+
+secrets:
+  mysql_root_password:
+    file: ./.local/mysql-dev/root-password.txt
+
+volumes:
+  mysql_dev_data:
+  mysql_dev_socket:
+  mysql_dev_reference_socket:

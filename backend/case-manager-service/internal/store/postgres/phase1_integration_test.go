@@ -81,6 +81,19 @@ func testDatabase(t *testing.T, migrate bool) *pgxpool.Pool {
 		}
 	}
 	applyMigration(t, db, "000001_init.up.sql")
+	// Case contributor/name reads depend on the real shared identity owner.
+	// Install its definitions in this generated fixture, as for the other owners;
+	// an empty substitute table would hide schema and migration dependencies.
+	for _, name := range []string{"schema.sql", "schema_v2.sql", "schema_v3.sql"} {
+		path := filepath.Join("..", "..", "..", "..", "auth-service", "internal", "platform", name)
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(ctx, string(content)); err != nil {
+			t.Fatalf("identity owner migration %s: %v", name, err)
+		}
+	}
 	if migrate {
 		applyMigration(t, db, "000002_tenant_integrity.up.sql")
 		applyMigration(t, db, "000003_phase1_access.up.sql")

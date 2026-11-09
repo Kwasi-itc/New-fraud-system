@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "recordedAt": "2026-11-05T11:15:33.107Z",
+  "scope": "Local development administrator MySQL runtime",
+  "regression": {
+    "vet": "passed",
+    "packages": 15,
+    "topLevelTests": 174,
+    "testAndSubtestPasses": 954,
+    "failed": 0,
+    "skippedTests": 0,
+    "raceWarnings": 0,
+    "packageNames": [
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/build-mysql-reference",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/migrate-mysql",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/reconcile-physical-mysql",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/inspect-deliveries-mysql",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/cmd/redrive-delivery-mysql",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/contract",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/exactkeys",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation",
+      "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/metadata",
+      "github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/workers",
+      "github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
+    ]
+  },
+  "endpoints": {
+    "passed": true,
+    "operations": 43,
+    "suites": 10,
+    "requests": 428,
+    "workerPausedForQueueAssertions": true
+  },
+  "live": {
+    "passed": true,
+    "checks": [
+      "API enqueue -> native physical index -> atomic job/delivery completion",
+      "text prefix index preserves full 40KB values and residual equality; indexed lookup on 1002 rows",
+      "automatic caption and navigation jobs execute, including text filter + timestamp order",
+      "reconciliation restores missing retained index, publishes repair, and returns healthy",
+      "terminal enqueue deduplication preserves one physical effect and one apply audit",
+      "failed atomic apply/audit retries from committed publication without duplicate DDL",
+      "hard process kill during DDL, lease expiry rescue, retained-plan resume and single completion"
+    ]
+  },
+  "installation": {
+    "previousSteps": 91,
+    "currentSteps": 93,
+    "retainedPrefixUnchanged": true,
+    "previousArtifactSHA256": "834e6b8ca8e06653a2e1d6212dfe0922f24075bd828fc692411cdb019cb8150d",
+    "currentArtifactSHA256": "a627faee7aab2538f08d5c8354bb7423805825a41ac5844eef80831f0f71411e",
+    "indexes": "data_model_index_jobs\tdata_model_jobs_table_scope\ttenant_id,table_id,requested_at,id\ndata_model_schema_change_intents\tdata_model_intent_epoch\ttenant_id,table_id,expected_epoch,state",
+    "jobPlan": "1\tSIMPLE\tdata_model_index_jobs\tNULL\tref\ttenant_id,data_model_jobs_dedupe_lookup,data_model_jobs_tenant,data_model_jobs_table_scope\tdata_model_jobs_table_scope\t33\tconst,const\t6\t100.00\tUsing where; Using index",
+    "intentPlan": "1\tSIMPLE\tdata_model_schema_change_intents\tNULL\tindex_merge\tPRIMARY,tenant_id,data_model_schema_change_reconcile,data_model_intent_epoch\tdata_model_intent_epoch,PRIMARY\t52,16\tNULL\t1\t100.00\tUsing intersect(data_model_intent_epoch,PRIMARY); Using where"
+  },
+  "worker": {
+    "imageID": "sha256:edf4956a94415a5d1b3ac8fcb9cf4b583dc21da6427f1fa96ad1faececb57ba8",
+    "running": true,
+    "paused": false,
+    "health": "healthy",
+    "startedAt": "2026-11-05T10:56:28.546556345Z"
+  },
+  "limitations": [
+    "Explicit local administrator mode; production identity/grants and River cutover not accepted",
+    "No representative sustained load acceptance",
+    "Text BTREE prefixes do not establish PostgreSQL trigram performance parity"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-02",
+  "status": "All ten API subtasks implemented, verified and checked; inactive application only",
+  "parent_tasks": ["D13", "D16", "D19", "D22"],
+  "parent_acceptance_closed": false,
+  "tasks": [
+    {"id":"T01","task":"Scoring configuration list","status":"passed","http_subtest":"T01_scoring_list"},
+    {"id":"T02","task":"Scoring configuration detail","status":"passed","http_subtest":"T02_scoring_detail"},
+    {"id":"T03","task":"Scoring configuration create","status":"passed","http_subtest":"T03_scoring_create"},
+    {"id":"T04","task":"Scoring configuration update","status":"passed","http_subtest":"T04_scoring_update"},
+    {"id":"T05","task":"Scoring configuration delete","status":"passed","http_subtest":"T05_scoring_delete"},
+    {"id":"T06","task":"Standalone iteration validation","status":"passed","http_subtest":"T06_iteration_validation"},
+    {"id":"T07","task":"Latest rules","status":"passed","http_subtest":"T07_latest_rules"},
+    {"id":"T08","task":"Iteration deactivation","status":"passed","http_subtest":"T08_deactivate"},
+    {"id":"T09","task":"Publication history pagination","status":"passed","http_subtest":"T09_publication_pagination"},
+    {"id":"T10","task":"Rule function catalog","status":"passed","http_subtest":"T10_function_catalog"}
+  ],
+  "http_test_prefix": "TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle/ten_remaining_APIs/",
+  "additional_tests": [
+    "TestScoringAuthoringConcurrentReplacementSnapshotAndBounds",
+    "TestStandaloneValidationRechecksEditsRevocationAndLatestWithoutHistory",
+    "TestPublicationCursorStrictDecoding",
+    "TestBoundedIterationValidationDetailsAndLimits",
+    "TestPublicationPageScopeBoundsAndCursor"
+  ],
+  "environment": {
+    "go": "1.25.8",
+    "mysql": "8.4.8",
+    "postgres_image": "postgres:16",
+    "compose_project": "decision-ten-20261102",
+    "database_scope": "Isolated disposable databases; explicit fixture identity/model providers; no application database setup",
+    "required_integration": ["DECISION_MYSQL_REQUIRE_INTEGRATION=1", "DECISION_MYSQL_EXPECT_VERSION=8.4.8", "DECISION_ENGINE_REQUIRE_INTEGRATION=1", "DECISION_ENGINE_TEST_DATABASE_URL points to disposable postgres fixture"]
+  },
+  "verification": {
+    "top_level_passed": 86,
+    "subtests_passed": 52,
+    "failures": 0,
+    "skips": 0,
+    "race_enabled": true,
+    "module_compile": "go test -mod=readonly -p 2 -run ^$ ./...",
+    "module_compile_exit_code": 0,
+    "vet": "go vet -mod=readonly -p 2 ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/store/mysql ./internal/service",
+    "vet_exit_code": 0,
+    "mapping_refresh": "go test -mod=readonly -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -update-decision-schema-manifest -count=1",
+    "mapping_refresh_exit_code": 0,
+    "mapping_delta_this_batch": "validation_service.go source hash only; earlier authoring batch already changed pinned_preparation.go hash",
+    "target_sql_lineage": "Unchanged"
+  },
+  "accepted_runs": [
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/mysqlapi ./internal/mysqlexecution ./internal/mysqlruntime ./internal/migrationaudit",
+      "output": "2026-11-02_decision-ten-api-runtime.jsonl",
+      "exit_code": 0
+    },
+    {
+      "command": "go test -mod=readonly -race -p 2 -count=1 -json ./internal/service ./internal/store/mysql -run 'Test(.*Validat|.*Preparation|.*Prepared|.*Authoring|.*Publication|.*Scoring|.*RuleEvidence|.*SchemaManifest)'",
+      "output": "2026-11-02_decision-ten-api-regression.jsonl",
+      "exit_code": 0
+    }
+  ],
+  "verified_behaviors": [
+    "Scoring CRUD HTTP contracts, exact tenant/scenario/config binding, malformed inputs, revoked authority and ordered duplicate/empty outcomes",
+    "Configuration/outcome insertion and replacement failures roll back completely; SQL details remain redacted",
+    "Restrictive dependent deletion conflicts preserve config/outcomes; successful deletion returns 204 and missing resources return 404",
+    "Concurrent scoring updates and snapshot reads never assemble mixed parent/child versions",
+    "Standalone validation returns detailed trigger/rule/threshold errors and model revision without changing iteration state",
+    "Validation rejects revoked authority or changed input after model provider IO; depth/node/input/output budgets are enforced",
+    "Latest rules prefer the live iteration and fall back to the newest version even when iteration history exceeds the reader cap",
+    "Deactivation uses atomic authorized unpublish, rejects invalid/live-state mismatch, rolls back failed event insertion and works with a closed model gate",
+    "Publication keyset traversal handles timestamp ties, respects scope/row/byte bounds, rejects malformed cursors and excludes newer insertions after the current position",
+    "Rule-function catalog matches evaluator metadata, requires application authentication and is unavailable after shutdown"
+  ],
+  "initial_test_corrections": [
+    "Cross-scenario deactivation expectation corrected to the existing 409 state-conflict contract",
+    "Immutable publication history correctly rejected test UPDATE; tied fixture events are now appended without disabling integrity triggers"
+  ],
+  "limitations": [
+    "No production runtime switch, migration, deployment, commit or push; PostgreSQL remains configured",
+    "The ten checks close API subtasks, not parent acceptance or release gates",
+    "Real auth/model/case/screening/scoring/receipt providers and remaining APIs/index-preparation jobs remain dependencies",
+    "Scoring configuration APIs do not implement an external scoring provider",
+    "Validation is advisory snapshot evidence, not a commit or publication authorization token",
+    "No-query publication history retains its bounded legacy shape; pagination is opt-in and not a frozen multi-request snapshot",
+    "No automatic mutation retries or replay after uncertain commit; full restricted-role/provider acceptance remains open",
+    "Performance/load/query-plan acceptance remains deferred; no optimization or Aurora readiness claimed"
+  ]
+}

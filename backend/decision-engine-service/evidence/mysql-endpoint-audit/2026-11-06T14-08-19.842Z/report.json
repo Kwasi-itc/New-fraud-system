@@ -1,0 +1,2138 @@
+{
+  "reportedAt": "2026-11-06T14:11:42.748Z",
+  "tenantId": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "prefix": "decision-audit-0b256ad1-6116-4d13-bb1e-f2fa8a2784f8",
+  "requestCount": 775,
+  "documentedOperations": 120,
+  "mountedOperations": 130,
+  "mountedSuccessfulOperations": 130,
+  "runtimeCoverageGaps": [],
+  "totals": {
+    "success_verified": 120,
+    "not_mounted": 0,
+    "capability_disabled": 0,
+    "identity_unavailable": 0,
+    "coverage_gap": 0
+  },
+  "suites": [
+    {
+      "name": "health-docs-catalog-and-origin",
+      "passed": true
+    },
+    {
+      "name": "scenario-authoring-and-validation",
+      "passed": true
+    },
+    {
+      "name": "publication-clone-and-test-run-administration",
+      "passed": true
+    },
+    {
+      "name": "custom-lists-csv-and-platform-records",
+      "passed": true
+    },
+    {
+      "name": "async-scheduled-execution-history-and-replay",
+      "passed": true
+    },
+    {
+      "name": "worker-cancellation-redrive-and-process-restart",
+      "passed": true
+    },
+    {
+      "name": "recurring-schedule-configuration-and-preconditions",
+      "passed": true
+    },
+    {
+      "name": "local-provider-validation-and-publication-deactivation",
+      "passed": true
+    },
+    {
+      "name": "documented-operation-mount-and-capability-probes",
+      "passed": true
+    },
+    {
+      "name": "unrouted/fixture-and-new-direct-routes",
+      "passed": true
+    },
+    {
+      "name": "unrouted/test-run-draft-comparison-and-analytics",
+      "passed": true
+    },
+    {
+      "name": "unrouted/workflow-rule-condition-action-lifecycle",
+      "passed": true
+    },
+    {
+      "name": "unrouted/screening-config-lifecycle-and-list-entry-alias",
+      "passed": true
+    },
+    {
+      "name": "unrouted/investigator-review-replay-version-and-case-access",
+      "passed": true
+    },
+    {
+      "name": "unrouted/screening-scoring-status-retry-and-authoritative-callback",
+      "passed": true
+    },
+    {
+      "name": "unrouted/local-expression-assistance-and-model-validation",
+      "passed": true
+    },
+    {
+      "name": "unrouted/all-tenant-route-isolation-and-mounted-inventory",
+      "passed": true
+    },
+    {
+      "name": "formerly-unrouted-39-operations",
+      "passed": true
+    },
+    {
+      "name": "delivery/enabled-local-provider-profile-and-fixture",
+      "passed": true
+    },
+    {
+      "name": "delivery/legacy-workflow-crud-reorder-and-isolation",
+      "passed": true
+    },
+    {
+      "name": "delivery/scoring-config-crud-and-validation",
+      "passed": true
+    },
+    {
+      "name": "delivery/real-case-screening-scoring-and-outbox-delivery",
+      "passed": false,
+      "error": "Error: Timed out: screening result projection\n    at until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:21:141)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:58:19\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:20:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:48:1"
+    },
+    {
+      "name": "delivery/callback-rejection-redrive-cancellation-and-restart",
+      "passed": true
+    },
+    {
+      "name": "delivery/formerly-disabled-route-tenant-isolation",
+      "passed": true
+    },
+    {
+      "name": "formerly-disabled-delivery-operations",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: PASS enabled-local-provider-profile-and-fixture\nPASS legacy-workflow-crud-reorder-and-isolation\nPASS scoring-config-crud-and-validation\nPASS callback-rejection-redrive-cancellation-and-restart\nPASS formerly-disabled-route-tenant-isolation\n{\n  \"output\": \"C:\\\\Users\\\\T H I N K\\\\Documents\\\\Dev\\\\Work\\\\ITC\\\\marble\\\\New-fraud-system\\\\backend\\\\decision-engine-service\\\\evidence\\\\mysql-disabled\\\\2026-11-06T14-09-47.604Z\",\n  \"verified\": 12,\n  \"total\": 12,\n  \"suites\": [\n    {\n      \"name\": \"enabled-local-provider-profile-and-fixture\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"legacy-workflow-crud-reorder-and-isolation\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"scoring-config-crud-and-validation\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"real-case-screening-scoring-and-outbox-delivery\",\n      \"passed\": false,\n      \"error\": \"Error: Timed out: screening result projection\\n    at until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:21:141)\\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:58:19\\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:20:49)\\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-disabled-audit.mjs:48:1\"\n    },\n    {\n      \"name\": \"callback-rejection-redrive-cancellation-and-restart\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"formerly-disabled-route-tenant-isolation\",\n      \"passed\": true\n    }\n  ]\n}\n\nFAIL real-case-screening-scoring-and-outbox-delivery: Timed out: screening result projection\n\n\n1 !== 0\n\n    at file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:348:10\n    at suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:56:14)\n    at file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-endpoint-audit.mjs:337:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    }
+  ],
+  "workers": [
+    {
+      "check": "async and scheduled execution, stored record lookup and durable decision history",
+      "passed": true
+    },
+    {
+      "check": "pending cancellation and queued work across process stop/start",
+      "passed": true
+    },
+    {
+      "check": "persistence lock timeout retries, exhaustion, rollback, generation-fenced redrive and recovery",
+      "passed": true
+    },
+    {
+      "check": "callback failure exhaustion, generation-fenced redrive, cancellation, receiver/worker restart and unchanged evaluation results",
+      "passed": true
+    }
+  ],
+  "unroutedEvidence": {
+    "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-unrouted\\2026-11-06T14-09-19.066Z",
+    "verified": 39,
+    "all39Passed": true,
+    "localExpressionAssistant": true
+  },
+  "disabledEvidence": {
+    "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-disabled\\2026-11-06T14-09-47.604Z",
+    "verified": 12,
+    "total": 12,
+    "profilePassed": false
+  },
+  "profilePassed": false,
+  "allDocumentedOperationsCovered": true,
+  "matrix": [
+    {
+      "method": "GET",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/investigator-review-replay-version-and-case-access"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/investigator/tenants/{tenantId}/cases/{caseId}/review",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200,
+        409
+      ],
+      "successfulSuites": [
+        "unrouted/investigator-review-replay-version-and-case-access"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-info",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/rule-functions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        403,
+        201,
+        400,
+        422
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        200,
+        422,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/copy",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rules/latest",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/ast-ai-description",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200,
+        422
+      ],
+      "successfulSuites": [
+        "unrouted/local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/generate-ast",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/editor-identifiers",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/metadata",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        409,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/draft",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration",
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/commit",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation",
+        "publication-clone-and-test-run-administration",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/deactivate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "local-provider-validation-and-publication-deactivation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration",
+        "local-provider-validation-and-publication-deactivation",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/publications/preparation",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        202,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        201,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-groups",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/rules/{ruleId}/ai-description",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/local-expression-assistance-and-model-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/iterations/{iterationId}/validate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        422,
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "scenario-authoring-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/evaluate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200,
+        422
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/decisions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "worker-cancellation-redrive-and-process-restart",
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/count",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/decisions/all",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 409,
+      "observedStatuses": [
+        409,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "unrouted/investigator-review-replay-version-and-case-access"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/ingestion-events/record-ingested",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 409,
+      "observedStatuses": [
+        409,
+        403,
+        200,
+        202
+      ],
+      "successfulSuites": [
+        "unrouted/fixture-and-new-direct-routes"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/test-runs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration",
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/cancel",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "publication-clone-and-test-run-administration",
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/decision-data-by-score",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/data-by-rule-execution",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/test-runs/{testRunId}/evaluate",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200,
+        409
+      ],
+      "successfulSuites": [
+        "unrouted/test-run-draft-comparison-and-analytics"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        422,
+        404,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/reorder",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        204,
+        422
+      ],
+      "successfulSuites": [
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflows/{workflowId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "delivery/legacy-workflow-crud-reorder-and-isolation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 500,
+      "observedStatuses": [
+        500,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/reorder",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 500,
+      "observedStatuses": [
+        500,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 500,
+      "observedStatuses": [
+        500,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        200,
+        400
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/conditions/{conditionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/workflow-rules/{ruleId}/actions/{actionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "unrouted/workflow-rule-condition-action-lifecycle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/workflow-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        201,
+        422
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/screening-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/screening-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/status",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/screening-executions/{executionId}/retry",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200,
+        409
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "local-provider-validation-and-publication-deactivation",
+        "delivery/scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        422,
+        404,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "delivery/scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "delivery/scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "delivery/scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scoring-configs/{configId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        204
+      ],
+      "successfulSuites": [
+        "delivery/scoring-config-crud-and-validation"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/decisions/{decisionId}/scoring-requests",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/status",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        422,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scoring-requests/{requestId}/retry",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        404,
+        403,
+        200,
+        409
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/rule-snoozes",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        201,
+        422,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        202,
+        422,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/retry",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        409,
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/status-summary",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "recurring-schedule-configuration-and-preconditions"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        200,
+        409,
+        422,
+        403
+      ],
+      "successfulSuites": [
+        "recurring-schedule-configuration-and-preconditions"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 422,
+      "observedStatuses": [
+        202,
+        200,
+        422,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "worker-cancellation-redrive-and-process-restart",
+        "delivery/callback-rejection-redrive-cancellation-and-restart"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/status-summary",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403,
+        404
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay",
+        "worker-cancellation-redrive-and-process-restart",
+        "unrouted/fixture-and-new-direct-routes",
+        "delivery/callback-rejection-redrive-cancellation-and-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/retry",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        409,
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 409,
+      "observedStatuses": [
+        201,
+        409,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records",
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records",
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/import",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/platform/custom-lists/{listId}/entries/{entryId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        204,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/custom-list-entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/custom-list-entries",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        201
+      ],
+      "successfulSuites": [
+        "unrouted/screening-config-lifecycle-and-list-entry-alias"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/record-tags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/record-tags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/risk-snapshots",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/platform/ip-flags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/platform/ip-flags",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        201,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "custom-lists-csv-and-platform-records"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/outbox-events",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "async-scheduled-execution-history-and-replay"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/internal/screening-status-updates",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        409,
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "unrouted/screening-scoring-status-retry-and-authoritative-callback"
+      ]
+    }
+  ],
+  "extraMatrix": [
+    {
+      "method": "GET",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule/{scheduleId}",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 404,
+      "observedStatuses": [
+        200,
+        404,
+        403
+      ],
+      "successfulSuites": [
+        "recurring-schedule-configuration-and-preconditions"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/redoc",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.yaml",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200,
+        403
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/capabilities",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 200,
+      "observedStatuses": [
+        200
+      ],
+      "successfulSuites": [
+        "health-docs-catalog-and-origin",
+        "delivery/enabled-local-provider-profile-and-fixture"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/scheduled-executions/{executionId}/cancel",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/cancel",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200
+      ],
+      "successfulSuites": [
+        "delivery/callback-rejection-redrive-cancellation-and-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/callback/retry",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        400,
+        403,
+        200,
+        409
+      ],
+      "successfulSuites": [
+        "delivery/callback-rejection-redrive-cancellation-and-restart"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/{tenantId}/async-decision-executions/{executionId}/cancel",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "worker-cancellation-redrive-and-process-restart"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/tenants/{tenantId}/scenarios/{scenarioId}/recurring-schedule",
+      "status": "success_verified",
+      "reason": "Successful response with assertions in a passing live suite",
+      "probeStatus": 400,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "successfulSuites": [
+        "recurring-schedule-configuration-and-preconditions"
+      ]
+    }
+  ]
+}

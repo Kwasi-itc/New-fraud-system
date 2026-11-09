@@ -1,0 +1,36 @@
+{
+  "catalogUnchanged": true,
+  "existingQueryContractsUnchangedApartFromLine": true,
+  "addedContracts": [
+    {
+      "ID": "internal/runtime/ast_eval/aggregate_executor.go::AggregateBatcher.Evaluate",
+      "File": "internal/runtime/ast_eval/aggregate_executor.go",
+      "Line": 85,
+      "Access": [],
+      "References": [],
+      "SQLFragments": [
+        "aggregate demand limit exceeded",
+        "aggregate pending group limit exceeded"
+      ],
+      "Contract": "Preserve tenant/parent predicates, domain ordering and atomic mutation boundaries; replace RETURNING inside caller transaction, bound lists/parameters/projections, and preserve nullable/time/JSON/scalar scanner behavior. SQL fragments and catalog relations are review evidence, not an executable target adapter.",
+      "Limitations": "Source-fragment/manual-contract inventory, not SQL parsing, data profiling, transitive call-graph analysis or measured index usage"
+    }
+  ],
+  "changedSources": [
+    "internal/ports/tenant_data_reader.go",
+    "internal/runtime/ast_eval/aggregate_executor.go",
+    "internal/runtime/ast_eval/aggregate_result_cache.go",
+    "internal/runtime/ast_eval/evaluator.go",
+    "internal/runtime/ast_eval/evidence.go",
+    "internal/runtime/ast_eval/formula_plans.go",
+    "internal/runtime/ast_eval/runtime.go",
+    "internal/service/comparison_preparation.go",
+    "internal/service/decision_service.go",
+    "internal/service/pinned_preparation.go"
+  ],
+  "reviewNotes": [
+    "New batching contract delegates actual reads to the existing TenantDataReader capability. Its extracted fragments are bound-error messages containing LIMIT, not executable SQL.",
+    "Reviewed request-local grouping, cancellation, fixed runtime admission slots, fresh owner reads, immutable model/program fingerprinting and same-transaction persistence. Native SQL/rollback/tenant tests cover generated MySQL adapters separately."
+  ],
+  "accepted": true
+}

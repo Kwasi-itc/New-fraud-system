@@ -1,0 +1,255 @@
+{
+  "startedAt": "2026-11-05T12:01:04.698Z",
+  "finishedAt": "2026-11-05T12:01:22.343Z",
+  "origin": "http://localhost:8081",
+  "tenant": "5c1ea673-693c-4bcb-adc8-eb3db2f2f868",
+  "objectType": "transactions",
+  "fixturePrefix": "audit-b2b4329f-d1d1-4e11-8ebc-cbe4b32acbd7",
+  "suites": [
+    {
+      "name": "health-documentation-and-known-gap",
+      "passed": true,
+      "elapsedMs": 254
+    },
+    {
+      "name": "single-writes-replay-conflict-and-validation",
+      "passed": true,
+      "elapsedMs": 504
+    },
+    {
+      "name": "batch-writes-atomic-validation-and-replay",
+      "passed": false,
+      "elapsedMs": 281,
+      "error": "AssertionError [ERR_ASSERTION]: PATCH /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/ingest/transactions/batch: 422, wanted 409: {\"error\":{\"category\":\"validation_failed\",\"code\":\"validation_failed\",\"message\":\"batch validation failed\",\"request_id\":\"4a3d8039-c327-4c70-8e47-ec0b3954d42d\"},\"validation_errors\":[{\"object_id\":\"audit-b2b4329f-d1d1-4e11-8ebc-cbe4b32acbd7-duplicate\",\"field\":\"object_id\",\"code\":\"duplicate_object_id\",\"message\":\"duplicate normalized object_id in batch\"}]}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/ingestion-service/scripts/mysql-endpoint-audit.mjs:54:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/ingestion-service/scripts/mysql-endpoint-audit.mjs:148:3\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/ingestion-service/scripts/mysql-endpoint-audit.mjs:62:9)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/ingestion-service/scripts/mysql-endpoint-audit.mjs:137:1"
+    },
+    {
+      "name": "reads-search-and-all-aggregates",
+      "passed": true,
+      "elapsedMs": 355
+    },
+    {
+      "name": "tenant-scope-resource-identities-and-json-limits",
+      "passed": true,
+      "elapsedMs": 317
+    },
+    {
+      "name": "csv-worker-lifecycle-and-invalid-input",
+      "passed": true,
+      "elapsedMs": 2133
+    },
+    {
+      "name": "deferred-overload-polling-and-worker-completion",
+      "passed": false,
+      "elapsedMs": 11824,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/ingest/transactions: 503, wanted 200: {\"error\":{\"code\":\"dependency_unavailable\",\"message\":\"required storage capability unavailable\",\"category\":\"dependency_failure\",\"request_id\":\"b917881e-ef55-4766-ac26-0048e2417ea1\"}}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/ingestion-service/scripts/mysql-endpoint-audit.mjs:54:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "name": "durable-audit-outbox-and-replay-evidence",
+      "passed": true,
+      "elapsedMs": 886
+    }
+  ],
+  "requestCount": 79,
+  "operationsTotal": 15,
+  "operationsCovered": 11,
+  "coverage": [
+    {
+      "operation": "GET /healthz",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200
+      ],
+      "suites": [
+        "health-documentation-and-known-gap"
+      ]
+    },
+    {
+      "operation": "GET /readyz",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200
+      ],
+      "suites": [
+        "health-documentation-and-known-gap"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}",
+      "covered": true,
+      "successfulRequests": 3,
+      "observedStatuses": [
+        200,
+        409,
+        422,
+        403,
+        400,
+        413,
+        503
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation"
+      ]
+    },
+    {
+      "operation": "PATCH /v1/tenants/{tenantId}/ingest/{objectType}",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        403,
+        202
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}/batch",
+      "covered": false,
+      "successfulRequests": 0,
+      "observedStatuses": [
+        200,
+        422,
+        400,
+        403
+      ],
+      "suites": []
+    },
+    {
+      "operation": "PATCH /v1/tenants/{tenantId}/ingest/{objectType}/batch",
+      "covered": false,
+      "successfulRequests": 0,
+      "observedStatuses": [
+        200,
+        422,
+        403
+      ],
+      "suites": []
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        413,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}/search",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/records/{objectType}/{objectId}",
+      "covered": true,
+      "successfulRequests": 3,
+      "observedStatuses": [
+        200,
+        404,
+        400,
+        403
+      ],
+      "suites": [
+        "single-writes-replay-conflict-and-validation",
+        "reads-search-and-all-aggregates",
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/ingest/{objectType}/csv",
+      "covered": true,
+      "successfulRequests": 2,
+      "observedStatuses": [
+        202,
+        400
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "GET /v1/tenants/{tenantId}/ingest/{objectType}/upload-logs",
+      "covered": true,
+      "successfulRequests": 1,
+      "observedStatuses": [
+        403,
+        200
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "POST /v1/tenants/{tenantId}/query/aggregate",
+      "covered": true,
+      "successfulRequests": 6,
+      "observedStatuses": [
+        200,
+        400,
+        403
+      ],
+      "suites": [
+        "reads-search-and-all-aggregates"
+      ]
+    },
+    {
+      "operation": "GET /v1/upload-logs/{uploadLogId}",
+      "covered": true,
+      "successfulRequests": 9,
+      "observedStatuses": [
+        400,
+        404,
+        200
+      ],
+      "suites": [
+        "csv-worker-lifecycle-and-invalid-input"
+      ]
+    },
+    {
+      "operation": "GET /v1/deferred-ingests/{deferredIngestId}",
+      "covered": false,
+      "successfulRequests": 0,
+      "observedStatuses": [
+        400,
+        404,
+        200
+      ],
+      "suites": []
+    },
+    {
+      "operation": "GET /v1/admin/deferred-ingest-metrics",
+      "covered": false,
+      "successfulRequests": 0,
+      "observedStatuses": [
+        404
+      ],
+      "suites": []
+    }
+  ],
+  "runtimeAcceptancePassed": false,
+  "knownUnsupported": [
+    "GET /v1/admin/deferred-ingest-metrics"
+  ],
+  "limitations": [
+    "Local login-free runtime, one tenant/table",
+    "Fixtures and audit/queue history retained",
+    "Worker briefly paused and restored for deterministic deferred admission",
+    "Production identity, sustained load and external event consumers are separate acceptance"
+  ],
+  "passed": false
+}

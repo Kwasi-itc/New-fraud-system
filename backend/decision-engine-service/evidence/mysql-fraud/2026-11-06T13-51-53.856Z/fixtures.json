@@ -1,0 +1,29 @@
+{
+  "at": "2026-11-06T09:17:37.506Z",
+  "tenants": [
+    {
+      "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+      "table": "f9ff9bc5-3127-4ba9-8c58-fcfddb5cb5a6",
+      "scenario": "283b1445-8229-4756-a5b8-299c6834804e",
+      "parent": "/v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scenarios/283b1445-8229-4756-a5b8-299c6834804e",
+      "iteration": "05f4691b-67f7-4af4-9b21-aea63fc4c3fc"
+    },
+    {
+      "tenant": "00e8b384-ae35-4c80-ad4f-f6dbbfae029e",
+      "table": "d82a1c4c-d275-4464-81ea-02d5a2aa64f8",
+      "scenario": "9152510e-087c-42ce-87d2-da53ae7ccd7d",
+      "parent": "/v1/tenants/00e8b384-ae35-4c80-ad4f-f6dbbfae029e/scenarios/9152510e-087c-42ce-87d2-da53ae7ccd7d",
+      "iteration": "36583878-ab0d-444a-b81c-348dfe92385a"
+    }
+  ],
+  "inactive": {
+    "tenant": "c01d1f48-4b0f-456f-9854-e93e7d86d722"
+  },
+  "late": {
+    "tenant": "791be4b6-8b26-43dd-b9ee-598861086760",
+    "table": "d6a1c434-b62f-4dc0-97a0-903f2dafc8ca",
+    "scenario": "79c12fd5-60f5-41b8-9187-3fe5fc231c2b",
+    "parent": "/v1/tenants/791be4b6-8b26-43dd-b9ee-598861086760/scenarios/79c12fd5-60f5-41b8-9187-3fe5fc231c2b",
+    "iteration": "11ac7f35-bbfc-44c7-bdf2-7525e95aed8e"
+  }
+}

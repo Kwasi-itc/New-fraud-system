@@ -84,25 +84,25 @@ func (s OptionsService) Upsert(ctx context.Context, input datamodel.TableOptions
 		}
 	}
 	if len(input.DisplayedFields) > 12 {
-		return datamodel.TableOptions{}, fmt.Errorf("at most 12 displayed fields are allowed")
+		return datamodel.TableOptions{}, fmt.Errorf("%w: at most 12 displayed fields are allowed", ErrRelationshipInvalid)
 	}
 	for _, ids := range [][]uuid.UUID{input.DisplayedFields, input.FieldOrder} {
 		seen := make(map[uuid.UUID]bool)
 		for _, id := range ids {
 			if seen[id] {
-				return datamodel.TableOptions{}, fmt.Errorf("display fields must be distinct")
+				return datamodel.TableOptions{}, fmt.Errorf("%w: display fields must be distinct", ErrRelationshipInvalid)
 			}
 			seen[id] = true
 		}
 	}
 	for _, fieldID := range input.DisplayedFields {
 		if _, ok := validFieldIDs[fieldID]; !ok {
-			return datamodel.TableOptions{}, fmt.Errorf("displayed field does not belong to table")
+			return datamodel.TableOptions{}, fmt.Errorf("%w: displayed field does not belong to table", ErrRelationshipInvalid)
 		}
 	}
 	for _, fieldID := range input.FieldOrder {
 		if _, ok := validFieldIDs[fieldID]; !ok {
-			return datamodel.TableOptions{}, fmt.Errorf("ordered field does not belong to table")
+			return datamodel.TableOptions{}, fmt.Errorf("%w: ordered field does not belong to table", ErrRelationshipInvalid)
 		}
 	}
 

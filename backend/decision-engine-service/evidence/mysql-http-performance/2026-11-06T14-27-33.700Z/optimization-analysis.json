@@ -1,0 +1,2096 @@
+{
+  "at": "2026-11-06T14:33:37.250Z",
+  "objective": {
+    "completedEvaluationsPerSecond": 500,
+    "p95Ms": 50
+  },
+  "matchedFixtureAndBudgets": {
+    "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+    "scenario": "afcc21e6-8f80-4a80-99e1-0b51184aed2f",
+    "dataset": "e2493697f94fc01a8eb67c20c00c71f5e111c5430ff19242fbde2840aa9b76d5",
+    "rules": 5,
+    "origin": "http://127.0.0.1:8082/",
+    "cap": 64,
+    "limits": [
+      {
+        "name": "fraud-mysql-dev-decision-engine-service-1",
+        "cpu": 1,
+        "memory": 536870912
+      },
+      {
+        "name": "fraud-mysql-dev-decision-engine-worker-1",
+        "cpu": 1,
+        "memory": 536870912
+      },
+      {
+        "name": "fraud-mysql-dev-decision-local-providers-1",
+        "cpu": 1,
+        "memory": 268435456
+      },
+      {
+        "name": "fraud-mysql-dev-mysql-1",
+        "cpu": 2,
+        "memory": 2147483648
+      },
+      {
+        "name": "fraud-mysql-dev-data-model-service-1",
+        "cpu": null,
+        "memory": null
+      }
+    ]
+  },
+  "changes": [
+    "One fresh owner-authorized routing snapshot per pinned evaluation",
+    "One indexed autocommit tenant-admission read; authorization remains inside owner transactions",
+    "Explicit UTF-8 driver parameter encoding for local pools",
+    "Typed JSON bindings in linked provider, case/review and screening owners; byte-exact receipt archives preserved",
+    "Opt-in request-local server timings and pinned fixture selection"
+  ],
+  "before": {
+    "source": "evidence/mysql-http-performance/2026-11-06T13-14-58.841Z",
+    "measurementValid": true,
+    "runtimeUnchanged": true,
+    "image": "sha256:800d9945ef1fadd8c0b5d1a5e7567ddba7e5f88333d3707ce38c6a7fbd972ab3",
+    "healthP95Ms": 3.165,
+    "phases": [
+      {
+        "offeredRate": 5,
+        "seconds": 20,
+        "profileTimings": true,
+        "offered": 100,
+        "sent": 100,
+        "validated": 100,
+        "errors": 0,
+        "clientSkipped": 0,
+        "completedPerSecond": 4.996179845947091,
+        "p50Ms": 81.529,
+        "p95Ms": 148.667,
+        "targetMet": false,
+        "serverStageLatencies": {
+          "direct_total": {
+            "samples": 100,
+            "minMs": 54.608,
+            "meanMs": 81.838,
+            "p50Ms": 77.081,
+            "p95Ms": 138.893,
+            "p99Ms": 150.028,
+            "maxMs": 159.094,
+            "atOrBelowTargetPercent": 0
+          },
+          "evaluation": {
+            "samples": 100,
+            "minMs": 9.787,
+            "meanMs": 15.954,
+            "p50Ms": 14.897,
+            "p95Ms": 26.461,
+            "p99Ms": 29.682,
+            "maxMs": 30.588,
+            "atOrBelowTargetPercent": 100
+          },
+          "metadata": {
+            "samples": 100,
+            "minMs": 3.566,
+            "meanMs": 5.466,
+            "p50Ms": 4.901,
+            "p95Ms": 9.536,
+            "p99Ms": 13.503,
+            "maxMs": 14.359,
+            "atOrBelowTargetPercent": 100
+          },
+          "model": {
+            "samples": 100,
+            "minMs": 10.414,
+            "meanMs": 15.665,
+            "p50Ms": 14.188,
+            "p95Ms": 24.467,
+            "p99Ms": 30.533,
+            "maxMs": 33.251,
+            "atOrBelowTargetPercent": 100
+          },
+          "object_preparation": {
+            "samples": 100,
+            "minMs": 0.079,
+            "meanMs": 0.179,
+            "p50Ms": 0.137,
+            "p95Ms": 0.319,
+            "p99Ms": 0.656,
+            "maxMs": 1.263,
+            "atOrBelowTargetPercent": 100
+          },
+          "persistence": {
+            "samples": 100,
+            "minMs": 24.941,
+            "meanMs": 39.194,
+            "p50Ms": 36.969,
+            "p95Ms": 64.352,
+            "p99Ms": 72.587,
+            "maxMs": 92.867,
+            "atOrBelowTargetPercent": 88
+          },
+          "prepare_decision_build": {
+            "samples": 100,
+            "minMs": 0.003,
+            "meanMs": 0.006,
+            "p50Ms": 0.005,
+            "p95Ms": 0.011,
+            "p99Ms": 0.014,
+            "maxMs": 0.016,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_iteration_get": {
+            "samples": 100,
+            "minMs": 0,
+            "meanMs": 0.001,
+            "p50Ms": 0,
+            "p95Ms": 0.001,
+            "p99Ms": 0.039,
+            "maxMs": 0.05,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_rules_eval": {
+            "samples": 100,
+            "minMs": 0.195,
+            "meanMs": 0.463,
+            "p50Ms": 0.368,
+            "p95Ms": 0.974,
+            "p99Ms": 1.727,
+            "maxMs": 1.76,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_rules_list": {
+            "samples": 100,
+            "minMs": 0,
+            "meanMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 0,
+            "p99Ms": 0.001,
+            "maxMs": 0.001,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_scenario_get": {
+            "samples": 100,
+            "minMs": 0.001,
+            "meanMs": 0.003,
+            "p50Ms": 0.002,
+            "p95Ms": 0.005,
+            "p99Ms": 0.028,
+            "maxMs": 0.07,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_scoring_build": {
+            "samples": 100,
+            "minMs": 1.872,
+            "meanMs": 3,
+            "p50Ms": 2.866,
+            "p95Ms": 4.806,
+            "p99Ms": 5.789,
+            "maxMs": 5.851,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_screening_build": {
+            "samples": 100,
+            "minMs": 1.668,
+            "meanMs": 3.016,
+            "p50Ms": 2.823,
+            "p95Ms": 4.857,
+            "p99Ms": 5.897,
+            "maxMs": 6.428,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_snoozes_list": {
+            "samples": 100,
+            "minMs": 1.87,
+            "meanMs": 3.021,
+            "p50Ms": 2.825,
+            "p95Ms": 4.728,
+            "p99Ms": 5.142,
+            "maxMs": 7.017,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_trigger_eval": {
+            "samples": 100,
+            "minMs": 0.028,
+            "meanMs": 0.057,
+            "p50Ms": 0.043,
+            "p95Ms": 0.105,
+            "p99Ms": 0.247,
+            "maxMs": 0.363,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_workflow_build": {
+            "samples": 100,
+            "minMs": 3.507,
+            "meanMs": 5.955,
+            "p50Ms": 5.645,
+            "p95Ms": 9.23,
+            "p99Ms": 11.024,
+            "maxMs": 13.028,
+            "atOrBelowTargetPercent": 100
+          },
+          "registry_validation": {
+            "samples": 100,
+            "minMs": 3.232,
+            "meanMs": 5.361,
+            "p50Ms": 4.812,
+            "p95Ms": 8.702,
+            "p99Ms": 11.72,
+            "maxMs": 14.196,
+            "atOrBelowTargetPercent": 100
+          },
+          "scope": {
+            "samples": 100,
+            "minMs": 0.049,
+            "meanMs": 0.091,
+            "p50Ms": 0.067,
+            "p95Ms": 0.194,
+            "p99Ms": 0.382,
+            "maxMs": 0.434,
+            "atOrBelowTargetPercent": 100
+          },
+          "tenant_auth": {
+            "samples": 100,
+            "minMs": 1.309,
+            "meanMs": 2.405,
+            "p50Ms": 1.8,
+            "p95Ms": 3.315,
+            "p99Ms": 4.75,
+            "maxMs": 46.218,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_begin": {
+            "samples": 100,
+            "minMs": 0.408,
+            "meanMs": 0.647,
+            "p50Ms": 0.607,
+            "p95Ms": 0.961,
+            "p99Ms": 1.076,
+            "maxMs": 1.087,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_body": {
+            "samples": 100,
+            "minMs": 20.276,
+            "meanMs": 33.019,
+            "p50Ms": 30.599,
+            "p95Ms": 55.044,
+            "p99Ms": 65.239,
+            "maxMs": 85.136,
+            "atOrBelowTargetPercent": 91
+          },
+          "tx_body_total": {
+            "samples": 100,
+            "minMs": 14.571,
+            "meanMs": 25.373,
+            "p50Ms": 23.692,
+            "p95Ms": 39.783,
+            "p99Ms": 46.51,
+            "maxMs": 73.271,
+            "atOrBelowTargetPercent": 99
+          },
+          "tx_commit": {
+            "samples": 100,
+            "minMs": 3.488,
+            "meanMs": 5.356,
+            "p50Ms": 5.023,
+            "p95Ms": 8.186,
+            "p99Ms": 9.359,
+            "maxMs": 11.574,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_decision_insert": {
+            "samples": 100,
+            "minMs": 1.929,
+            "meanMs": 4.054,
+            "p50Ms": 3.556,
+            "p95Ms": 6.167,
+            "p99Ms": 11.117,
+            "maxMs": 25.096,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_outbox_build": {
+            "samples": 100,
+            "minMs": 0.02,
+            "meanMs": 0.038,
+            "p50Ms": 0.032,
+            "p95Ms": 0.061,
+            "p99Ms": 0.104,
+            "maxMs": 0.166,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_outbox_insert": {
+            "samples": 100,
+            "minMs": 6.252,
+            "meanMs": 10.828,
+            "p50Ms": 10.443,
+            "p95Ms": 16.992,
+            "p99Ms": 20.768,
+            "maxMs": 23.848,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_rule_exec_insert": {
+            "samples": 100,
+            "minMs": 5.094,
+            "meanMs": 10.405,
+            "p50Ms": 9.772,
+            "p95Ms": 17.034,
+            "p99Ms": 24.221,
+            "maxMs": 27.21,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_scoring_insert": {
+            "samples": 100,
+            "minMs": 0.003,
+            "meanMs": 0.008,
+            "p50Ms": 0.005,
+            "p95Ms": 0.01,
+            "p99Ms": 0.042,
+            "maxMs": 0.145,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_screening_insert": {
+            "samples": 100,
+            "minMs": 0.006,
+            "meanMs": 0.015,
+            "p50Ms": 0.011,
+            "p95Ms": 0.036,
+            "p99Ms": 0.08,
+            "maxMs": 0.164,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_workflow_insert": {
+            "samples": 100,
+            "minMs": 0.01,
+            "meanMs": 0.019,
+            "p50Ms": 0.014,
+            "p95Ms": 0.037,
+            "p99Ms": 0.095,
+            "maxMs": 0.11,
+            "atOrBelowTargetPercent": 100
+          }
+        }
+      },
+      {
+        "offeredRate": 25,
+        "seconds": 20,
+        "profileTimings": true,
+        "offered": 500,
+        "sent": 500,
+        "validated": 500,
+        "errors": 0,
+        "clientSkipped": 0,
+        "completedPerSecond": 24.61822584649117,
+        "p50Ms": 457.509,
+        "p95Ms": 990.255,
+        "targetMet": false,
+        "serverStageLatencies": {
+          "direct_total": {
+            "samples": 500,
+            "minMs": 65.722,
+            "meanMs": 428.634,
+            "p50Ms": 413.452,
+            "p95Ms": 900.405,
+            "p99Ms": 1117.844,
+            "maxMs": 1316.936,
+            "atOrBelowTargetPercent": 0
+          },
+          "evaluation": {
+            "samples": 500,
+            "minMs": 11.985,
+            "meanMs": 151.334,
+            "p50Ms": 104.722,
+            "p95Ms": 402.979,
+            "p99Ms": 662.556,
+            "maxMs": 702.694,
+            "atOrBelowTargetPercent": 24.4
+          },
+          "metadata": {
+            "samples": 500,
+            "minMs": 4.071,
+            "meanMs": 36.732,
+            "p50Ms": 13.35,
+            "p95Ms": 106.707,
+            "p99Ms": 186.632,
+            "maxMs": 375.5,
+            "atOrBelowTargetPercent": 70.4
+          },
+          "model": {
+            "samples": 500,
+            "minMs": 13.457,
+            "meanMs": 52.733,
+            "p50Ms": 27.998,
+            "p95Ms": 100.662,
+            "p99Ms": 117.605,
+            "maxMs": 271.356,
+            "atOrBelowTargetPercent": 52.6
+          },
+          "object_preparation": {
+            "samples": 500,
+            "minMs": 0.095,
+            "meanMs": 0.264,
+            "p50Ms": 0.215,
+            "p95Ms": 0.49,
+            "p99Ms": 1.281,
+            "maxMs": 4.337,
+            "atOrBelowTargetPercent": 100
+          },
+          "persistence": {
+            "samples": 500,
+            "minMs": 28.628,
+            "meanMs": 145.235,
+            "p50Ms": 119.898,
+            "p95Ms": 296.879,
+            "p99Ms": 413.413,
+            "maxMs": 505.421,
+            "atOrBelowTargetPercent": 11.8
+          },
+          "prepare_decision_build": {
+            "samples": 500,
+            "minMs": 0.003,
+            "meanMs": 0.01,
+            "p50Ms": 0.008,
+            "p95Ms": 0.014,
+            "p99Ms": 0.04,
+            "maxMs": 0.544,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_iteration_get": {
+            "samples": 500,
+            "minMs": 0,
+            "meanMs": 0.001,
+            "p50Ms": 0,
+            "p95Ms": 0.001,
+            "p99Ms": 0.002,
+            "maxMs": 0.071,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_rules_eval": {
+            "samples": 500,
+            "minMs": 0.262,
+            "meanMs": 0.946,
+            "p50Ms": 0.827,
+            "p95Ms": 2.072,
+            "p99Ms": 3.138,
+            "maxMs": 4.533,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_rules_list": {
+            "samples": 500,
+            "minMs": 0,
+            "meanMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 0.001,
+            "p99Ms": 0.001,
+            "maxMs": 0.025,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_scenario_get": {
+            "samples": 500,
+            "minMs": 0.001,
+            "meanMs": 0.004,
+            "p50Ms": 0.003,
+            "p95Ms": 0.007,
+            "p99Ms": 0.024,
+            "maxMs": 0.168,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_scoring_build": {
+            "samples": 500,
+            "minMs": 2.209,
+            "meanMs": 29.494,
+            "p50Ms": 7.187,
+            "p95Ms": 101.549,
+            "p99Ms": 184.512,
+            "maxMs": 403.581,
+            "atOrBelowTargetPercent": 74.2
+          },
+          "prepare_screening_build": {
+            "samples": 500,
+            "minMs": 1.968,
+            "meanMs": 32.15,
+            "p50Ms": 8.031,
+            "p95Ms": 104.69,
+            "p99Ms": 189.318,
+            "maxMs": 316.633,
+            "atOrBelowTargetPercent": 71.6
+          },
+          "prepare_snoozes_list": {
+            "samples": 500,
+            "minMs": 2.102,
+            "meanMs": 30.1,
+            "p50Ms": 7.68,
+            "p95Ms": 97.72,
+            "p99Ms": 186.502,
+            "maxMs": 302.453,
+            "atOrBelowTargetPercent": 72.4
+          },
+          "prepare_trigger_eval": {
+            "samples": 500,
+            "minMs": 0.023,
+            "meanMs": 0.09,
+            "p50Ms": 0.076,
+            "p95Ms": 0.193,
+            "p99Ms": 0.372,
+            "maxMs": 0.971,
+            "atOrBelowTargetPercent": 100
+          },
+          "prepare_workflow_build": {
+            "samples": 500,
+            "minMs": 4.519,
+            "meanMs": 57.844,
+            "p50Ms": 30.818,
+            "p95Ms": 185.456,
+            "p99Ms": 302.9,
+            "maxMs": 499.126,
+            "atOrBelowTargetPercent": 52.8
+          },
+          "registry_validation": {
+            "samples": 500,
+            "minMs": 4.019,
+            "meanMs": 42.317,
+            "p50Ms": 13.938,
+            "p95Ms": 115.755,
+            "p99Ms": 203.12,
+            "maxMs": 393.017,
+            "atOrBelowTargetPercent": 63.8
+          },
+          "scope": {
+            "samples": 500,
+            "minMs": 0.038,
+            "meanMs": 0.112,
+            "p50Ms": 0.092,
+            "p95Ms": 0.18,
+            "p99Ms": 0.56,
+            "maxMs": 1.664,
+            "atOrBelowTargetPercent": 100
+          },
+          "tenant_auth": {
+            "samples": 500,
+            "minMs": 1.479,
+            "meanMs": 32.882,
+            "p50Ms": 20.894,
+            "p95Ms": 92.698,
+            "p99Ms": 174.32,
+            "maxMs": 380.062,
+            "atOrBelowTargetPercent": 74.6
+          },
+          "tx_begin": {
+            "samples": 500,
+            "minMs": 0.363,
+            "meanMs": 18.855,
+            "p50Ms": 2.131,
+            "p95Ms": 94.285,
+            "p99Ms": 188.099,
+            "maxMs": 227.263,
+            "atOrBelowTargetPercent": 83.4
+          },
+          "tx_body": {
+            "samples": 500,
+            "minMs": 21.968,
+            "meanMs": 107.779,
+            "p50Ms": 99.717,
+            "p95Ms": 199.952,
+            "p99Ms": 379.219,
+            "maxMs": 483.083,
+            "atOrBelowTargetPercent": 17.2
+          },
+          "tx_body_total": {
+            "samples": 500,
+            "minMs": 14.965,
+            "meanMs": 78.966,
+            "p50Ms": 83.999,
+            "p95Ms": 179.208,
+            "p99Ms": 302.411,
+            "maxMs": 468.713,
+            "atOrBelowTargetPercent": 33
+          },
+          "tx_commit": {
+            "samples": 500,
+            "minMs": 4.032,
+            "meanMs": 18.332,
+            "p50Ms": 8.39,
+            "p95Ms": 75.315,
+            "p99Ms": 86.193,
+            "maxMs": 91.169,
+            "atOrBelowTargetPercent": 84.6
+          },
+          "tx_decision_insert": {
+            "samples": 500,
+            "minMs": 1.961,
+            "meanMs": 12.41,
+            "p50Ms": 4.37,
+            "p95Ms": 68.245,
+            "p99Ms": 79.551,
+            "maxMs": 191.708,
+            "atOrBelowTargetPercent": 88.8
+          },
+          "tx_outbox_build": {
+            "samples": 500,
+            "minMs": 0.012,
+            "meanMs": 0.045,
+            "p50Ms": 0.037,
+            "p95Ms": 0.078,
+            "p99Ms": 0.256,
+            "maxMs": 1.079,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_outbox_insert": {
+            "samples": 500,
+            "minMs": 7.065,
+            "meanMs": 40.827,
+            "p50Ms": 16.944,
+            "p95Ms": 91.875,
+            "p99Ms": 189.496,
+            "maxMs": 298.708,
+            "atOrBelowTargetPercent": 61.8
+          },
+          "tx_rule_exec_insert": {
+            "samples": 500,
+            "minMs": 4.456,
+            "meanMs": 25.617,
+            "p50Ms": 10.496,
+            "p95Ms": 81.932,
+            "p99Ms": 103.949,
+            "maxMs": 203.235,
+            "atOrBelowTargetPercent": 78
+          },
+          "tx_scoring_insert": {
+            "samples": 500,
+            "minMs": 0.002,
+            "meanMs": 0.009,
+            "p50Ms": 0.007,
+            "p95Ms": 0.015,
+            "p99Ms": 0.053,
+            "maxMs": 0.098,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_screening_insert": {
+            "samples": 500,
+            "minMs": 0.005,
+            "meanMs": 0.019,
+            "p50Ms": 0.013,
+            "p95Ms": 0.026,
+            "p99Ms": 0.11,
+            "maxMs": 1.489,
+            "atOrBelowTargetPercent": 100
+          },
+          "tx_workflow_insert": {
+            "samples": 500,
+            "minMs": 0.005,
+            "meanMs": 0.019,
+            "p50Ms": 0.016,
+            "p95Ms": 0.038,
+            "p99Ms": 0.089,
+            "maxMs": 0.106,
+            "atOrBelowTargetPercent": 100
+          }
+        }
+      }
+    ]
+  },
+  "after": [
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T14-23-37.409Z",
+      "measurementValid": true,
+      "runtimeUnchanged": true,
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "healthP95Ms": 4.734,
+      "phases": [
+        {
+          "offeredRate": 5,
+          "seconds": 20,
+          "profileTimings": true,
+          "offered": 100,
+          "sent": 100,
+          "validated": 100,
+          "errors": 0,
+          "clientSkipped": 0,
+          "completedPerSecond": 4.997922663424174,
+          "p50Ms": 84.449,
+          "p95Ms": 134.637,
+          "targetMet": false,
+          "serverStageLatencies": {
+            "direct_total": {
+              "samples": 100,
+              "minMs": 43.473,
+              "meanMs": 82.121,
+              "p50Ms": 78.497,
+              "p95Ms": 126.688,
+              "p99Ms": 160.883,
+              "maxMs": 163.166,
+              "atOrBelowTargetPercent": 8
+            },
+            "evaluation": {
+              "samples": 100,
+              "minMs": 5.257,
+              "meanMs": 11.418,
+              "p50Ms": 10.299,
+              "p95Ms": 23.093,
+              "p99Ms": 29.471,
+              "maxMs": 31.733,
+              "atOrBelowTargetPercent": 100
+            },
+            "metadata": {
+              "samples": 100,
+              "minMs": 2.557,
+              "meanMs": 5.858,
+              "p50Ms": 5.34,
+              "p95Ms": 12.016,
+              "p99Ms": 14.35,
+              "maxMs": 16.358,
+              "atOrBelowTargetPercent": 100
+            },
+            "model": {
+              "samples": 100,
+              "minMs": 11.038,
+              "meanMs": 23.592,
+              "p50Ms": 22.296,
+              "p95Ms": 40.555,
+              "p99Ms": 56.01,
+              "maxMs": 66.803,
+              "atOrBelowTargetPercent": 98
+            },
+            "object_preparation": {
+              "samples": 100,
+              "minMs": 0.102,
+              "meanMs": 0.276,
+              "p50Ms": 0.217,
+              "p95Ms": 0.357,
+              "p99Ms": 0.735,
+              "maxMs": 5.085,
+              "atOrBelowTargetPercent": 100
+            },
+            "persistence": {
+              "samples": 100,
+              "minMs": 20.891,
+              "meanMs": 35.666,
+              "p50Ms": 33.889,
+              "p95Ms": 51.941,
+              "p99Ms": 80.911,
+              "maxMs": 85.136,
+              "atOrBelowTargetPercent": 90
+            },
+            "prepare_decision_build": {
+              "samples": 100,
+              "minMs": 0.004,
+              "meanMs": 0.01,
+              "p50Ms": 0.009,
+              "p95Ms": 0.015,
+              "p99Ms": 0.026,
+              "maxMs": 0.092,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_iteration_get": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.002,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_routing_read": {
+              "samples": 100,
+              "minMs": 3.052,
+              "meanMs": 6.133,
+              "p50Ms": 5.735,
+              "p95Ms": 10.365,
+              "p99Ms": 15.054,
+              "maxMs": 17.588,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_rules_eval": {
+              "samples": 100,
+              "minMs": 0.267,
+              "meanMs": 0.821,
+              "p50Ms": 0.585,
+              "p95Ms": 1.28,
+              "p99Ms": 4.003,
+              "maxMs": 16.826,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_rules_list": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.001,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scenario_get": {
+              "samples": 100,
+              "minMs": 0.001,
+              "meanMs": 0.003,
+              "p50Ms": 0.003,
+              "p95Ms": 0.005,
+              "p99Ms": 0.012,
+              "maxMs": 0.014,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scoring_build": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0,
+              "p99Ms": 0.001,
+              "maxMs": 0.002,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_screening_build": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0.001,
+              "p50Ms": 0.001,
+              "p95Ms": 0.002,
+              "p99Ms": 0.036,
+              "maxMs": 0.045,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_snoozes_list": {
+              "samples": 100,
+              "minMs": 1.544,
+              "meanMs": 3.13,
+              "p50Ms": 2.936,
+              "p95Ms": 4.843,
+              "p99Ms": 8.039,
+              "maxMs": 9.768,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_trigger_eval": {
+              "samples": 100,
+              "minMs": 0.034,
+              "meanMs": 0.078,
+              "p50Ms": 0.076,
+              "p95Ms": 0.124,
+              "p99Ms": 0.173,
+              "maxMs": 0.315,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_workflow_build": {
+              "samples": 100,
+              "minMs": 0.001,
+              "meanMs": 0.158,
+              "p50Ms": 0.003,
+              "p95Ms": 0.004,
+              "p99Ms": 0.037,
+              "maxMs": 15.492,
+              "atOrBelowTargetPercent": 100
+            },
+            "registry_validation": {
+              "samples": 100,
+              "minMs": 2.788,
+              "meanMs": 5.286,
+              "p50Ms": 4.798,
+              "p95Ms": 8.834,
+              "p99Ms": 15.622,
+              "maxMs": 28.174,
+              "atOrBelowTargetPercent": 100
+            },
+            "scope": {
+              "samples": 100,
+              "minMs": 0.051,
+              "meanMs": 0.264,
+              "p50Ms": 0.106,
+              "p95Ms": 0.226,
+              "p99Ms": 0.96,
+              "maxMs": 13.495,
+              "atOrBelowTargetPercent": 100
+            },
+            "tenant_auth": {
+              "samples": 100,
+              "minMs": 0.526,
+              "meanMs": 1.327,
+              "p50Ms": 0.945,
+              "p95Ms": 1.787,
+              "p99Ms": 13.633,
+              "maxMs": 20.108,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_begin": {
+              "samples": 100,
+              "minMs": 0.475,
+              "meanMs": 0.948,
+              "p50Ms": 0.842,
+              "p95Ms": 2.007,
+              "p99Ms": 3.263,
+              "maxMs": 3.568,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_body": {
+              "samples": 100,
+              "minMs": 14.729,
+              "meanMs": 27.898,
+              "p50Ms": 25.473,
+              "p95Ms": 43.058,
+              "p99Ms": 73.334,
+              "maxMs": 78.631,
+              "atOrBelowTargetPercent": 97
+            },
+            "tx_body_total": {
+              "samples": 100,
+              "minMs": 11.339,
+              "meanMs": 22.133,
+              "p50Ms": 20.039,
+              "p95Ms": 36.53,
+              "p99Ms": 64.157,
+              "maxMs": 72.789,
+              "atOrBelowTargetPercent": 98
+            },
+            "tx_commit": {
+              "samples": 100,
+              "minMs": 3.566,
+              "meanMs": 6.582,
+              "p50Ms": 6.228,
+              "p95Ms": 9.839,
+              "p99Ms": 13.344,
+              "maxMs": 18.989,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_decision_insert": {
+              "samples": 100,
+              "minMs": 1.43,
+              "meanMs": 3.097,
+              "p50Ms": 2.582,
+              "p95Ms": 5.719,
+              "p99Ms": 8.765,
+              "maxMs": 13.232,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_build": {
+              "samples": 100,
+              "minMs": 0.028,
+              "meanMs": 0.05,
+              "p50Ms": 0.045,
+              "p95Ms": 0.084,
+              "p99Ms": 0.144,
+              "maxMs": 0.418,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_insert": {
+              "samples": 100,
+              "minMs": 3.754,
+              "meanMs": 8.707,
+              "p50Ms": 7.309,
+              "p95Ms": 14.195,
+              "p99Ms": 52.739,
+              "maxMs": 58.986,
+              "atOrBelowTargetPercent": 98
+            },
+            "tx_rule_exec_insert": {
+              "samples": 100,
+              "minMs": 4.924,
+              "meanMs": 10.228,
+              "p50Ms": 8.905,
+              "p95Ms": 18.983,
+              "p99Ms": 28.064,
+              "maxMs": 33.563,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_scoring_insert": {
+              "samples": 100,
+              "minMs": 0.003,
+              "meanMs": 0.009,
+              "p50Ms": 0.007,
+              "p95Ms": 0.014,
+              "p99Ms": 0.046,
+              "maxMs": 0.078,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_screening_insert": {
+              "samples": 100,
+              "minMs": 0.007,
+              "meanMs": 0.016,
+              "p50Ms": 0.013,
+              "p95Ms": 0.023,
+              "p99Ms": 0.056,
+              "maxMs": 0.114,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_workflow_insert": {
+              "samples": 100,
+              "minMs": 0.011,
+              "meanMs": 0.021,
+              "p50Ms": 0.02,
+              "p95Ms": 0.028,
+              "p99Ms": 0.046,
+              "maxMs": 0.075,
+              "atOrBelowTargetPercent": 100
+            }
+          }
+        },
+        {
+          "offeredRate": 25,
+          "seconds": 20,
+          "profileTimings": true,
+          "offered": 500,
+          "sent": 494,
+          "validated": 492,
+          "errors": 2,
+          "clientSkipped": 6,
+          "completedPerSecond": 23.407112456645812,
+          "p50Ms": 1756.782,
+          "p95Ms": 3319.187,
+          "targetMet": false,
+          "serverStageLatencies": {
+            "direct_total": {
+              "samples": 492,
+              "minMs": 138.26,
+              "meanMs": 1592.543,
+              "p50Ms": 1489.763,
+              "p95Ms": 2898.53,
+              "p99Ms": 3414.448,
+              "maxMs": 4617.382,
+              "atOrBelowTargetPercent": 0
+            },
+            "evaluation": {
+              "samples": 492,
+              "minMs": 10.665,
+              "meanMs": 505.728,
+              "p50Ms": 399.153,
+              "p95Ms": 1307.792,
+              "p99Ms": 1883.631,
+              "maxMs": 2011.677,
+              "atOrBelowTargetPercent": 3.252
+            },
+            "metadata": {
+              "samples": 492,
+              "minMs": 6.664,
+              "meanMs": 273.771,
+              "p50Ms": 188.058,
+              "p95Ms": 805.17,
+              "p99Ms": 1200.762,
+              "maxMs": 1800.61,
+              "atOrBelowTargetPercent": 13.618
+            },
+            "model": {
+              "samples": 492,
+              "minMs": 16.405,
+              "meanMs": 107.354,
+              "p50Ms": 97.46,
+              "p95Ms": 208.228,
+              "p99Ms": 324.803,
+              "maxMs": 583.301,
+              "atOrBelowTargetPercent": 15.244
+            },
+            "object_preparation": {
+              "samples": 492,
+              "minMs": 0.124,
+              "meanMs": 0.398,
+              "p50Ms": 0.247,
+              "p95Ms": 0.77,
+              "p99Ms": 2.038,
+              "maxMs": 34.169,
+              "atOrBelowTargetPercent": 100
+            },
+            "persistence": {
+              "samples": 492,
+              "minMs": 38.359,
+              "meanMs": 444.844,
+              "p50Ms": 386.268,
+              "p95Ms": 1018.724,
+              "p99Ms": 1402.046,
+              "maxMs": 2185.127,
+              "atOrBelowTargetPercent": 0.203
+            },
+            "prepare_decision_build": {
+              "samples": 492,
+              "minMs": 0.004,
+              "meanMs": 0.012,
+              "p50Ms": 0.01,
+              "p95Ms": 0.016,
+              "p99Ms": 0.084,
+              "maxMs": 0.326,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_iteration_get": {
+              "samples": 492,
+              "minMs": 0,
+              "meanMs": 0.001,
+              "p50Ms": 0.001,
+              "p95Ms": 0.001,
+              "p99Ms": 0.003,
+              "maxMs": 0.006,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_routing_read": {
+              "samples": 492,
+              "minMs": 4.697,
+              "meanMs": 248.43,
+              "p50Ms": 169.622,
+              "p95Ms": 883.551,
+              "p99Ms": 1187.652,
+              "maxMs": 1497.567,
+              "atOrBelowTargetPercent": 12.602
+            },
+            "prepare_rules_eval": {
+              "samples": 492,
+              "minMs": 0.411,
+              "meanMs": 1.621,
+              "p50Ms": 0.989,
+              "p95Ms": 3.631,
+              "p99Ms": 12.403,
+              "maxMs": 50.137,
+              "atOrBelowTargetPercent": 99.797
+            },
+            "prepare_rules_list": {
+              "samples": 492,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.002,
+              "maxMs": 0.026,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scenario_get": {
+              "samples": 492,
+              "minMs": 0.001,
+              "meanMs": 0.049,
+              "p50Ms": 0.004,
+              "p95Ms": 0.009,
+              "p99Ms": 0.058,
+              "maxMs": 14.325,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scoring_build": {
+              "samples": 492,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.004,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_screening_build": {
+              "samples": 492,
+              "minMs": 0,
+              "meanMs": 0.002,
+              "p50Ms": 0.001,
+              "p95Ms": 0.001,
+              "p99Ms": 0.057,
+              "maxMs": 0.142,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_snoozes_list": {
+              "samples": 492,
+              "minMs": 2.903,
+              "meanMs": 254.524,
+              "p50Ms": 172.746,
+              "p95Ms": 885.632,
+              "p99Ms": 1217.833,
+              "maxMs": 1911.955,
+              "atOrBelowTargetPercent": 19.512
+            },
+            "prepare_trigger_eval": {
+              "samples": 492,
+              "minMs": 0.039,
+              "meanMs": 0.124,
+              "p50Ms": 0.095,
+              "p95Ms": 0.278,
+              "p99Ms": 0.782,
+              "maxMs": 2.081,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_workflow_build": {
+              "samples": 492,
+              "minMs": 0.001,
+              "meanMs": 0.004,
+              "p50Ms": 0.003,
+              "p95Ms": 0.004,
+              "p99Ms": 0.06,
+              "maxMs": 0.36,
+              "atOrBelowTargetPercent": 100
+            },
+            "registry_validation": {
+              "samples": 492,
+              "minMs": 5.301,
+              "meanMs": 260.427,
+              "p50Ms": 180.219,
+              "p95Ms": 802.032,
+              "p99Ms": 1404.091,
+              "maxMs": 1684.764,
+              "atOrBelowTargetPercent": 13.008
+            },
+            "scope": {
+              "samples": 492,
+              "minMs": 0.058,
+              "meanMs": 0.271,
+              "p50Ms": 0.107,
+              "p95Ms": 0.498,
+              "p99Ms": 3.702,
+              "maxMs": 30.915,
+              "atOrBelowTargetPercent": 100
+            },
+            "tenant_auth": {
+              "samples": 492,
+              "minMs": 0.806,
+              "meanMs": 244.661,
+              "p50Ms": 151.274,
+              "p95Ms": 740.499,
+              "p99Ms": 1321.158,
+              "maxMs": 1735.508,
+              "atOrBelowTargetPercent": 19.919
+            },
+            "tx_begin": {
+              "samples": 492,
+              "minMs": 0.775,
+              "meanMs": 236.487,
+              "p50Ms": 138.516,
+              "p95Ms": 793.116,
+              "p99Ms": 1117.678,
+              "maxMs": 1904.023,
+              "atOrBelowTargetPercent": 26.016
+            },
+            "tx_body": {
+              "samples": 492,
+              "minMs": 22.283,
+              "meanMs": 171.985,
+              "p50Ms": 123.927,
+              "p95Ms": 374.961,
+              "p99Ms": 808.068,
+              "maxMs": 1170.683,
+              "atOrBelowTargetPercent": 5.081
+            },
+            "tx_body_total": {
+              "samples": 492,
+              "minMs": 15.766,
+              "meanMs": 142.66,
+              "p50Ms": 103.295,
+              "p95Ms": 303.138,
+              "p99Ms": 721.555,
+              "maxMs": 1105.196,
+              "atOrBelowTargetPercent": 13.211
+            },
+            "tx_commit": {
+              "samples": 492,
+              "minMs": 5.875,
+              "meanMs": 36.032,
+              "p50Ms": 14.938,
+              "p95Ms": 94.789,
+              "p99Ms": 108.844,
+              "maxMs": 185.966,
+              "atOrBelowTargetPercent": 68.089
+            },
+            "tx_decision_insert": {
+              "samples": 492,
+              "minMs": 1.456,
+              "meanMs": 26.643,
+              "p50Ms": 5.862,
+              "p95Ms": 92.473,
+              "p99Ms": 196.029,
+              "maxMs": 401.537,
+              "atOrBelowTargetPercent": 76.016
+            },
+            "tx_outbox_build": {
+              "samples": 492,
+              "minMs": 0.017,
+              "meanMs": 0.103,
+              "p50Ms": 0.041,
+              "p95Ms": 0.102,
+              "p99Ms": 0.589,
+              "maxMs": 16.976,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_insert": {
+              "samples": 492,
+              "minMs": 5.02,
+              "meanMs": 52.911,
+              "p50Ms": 59.908,
+              "p95Ms": 115.008,
+              "p99Ms": 186.26,
+              "maxMs": 261.815,
+              "atOrBelowTargetPercent": 48.374
+            },
+            "tx_rule_exec_insert": {
+              "samples": 492,
+              "minMs": 4.209,
+              "meanMs": 62.923,
+              "p50Ms": 24.805,
+              "p95Ms": 181.55,
+              "p99Ms": 581.15,
+              "maxMs": 921.837,
+              "atOrBelowTargetPercent": 52.846
+            },
+            "tx_scoring_insert": {
+              "samples": 492,
+              "minMs": 0.003,
+              "meanMs": 0.015,
+              "p50Ms": 0.008,
+              "p95Ms": 0.029,
+              "p99Ms": 0.133,
+              "maxMs": 0.76,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_screening_insert": {
+              "samples": 492,
+              "minMs": 0.005,
+              "meanMs": 0.028,
+              "p50Ms": 0.014,
+              "p95Ms": 0.03,
+              "p99Ms": 0.192,
+              "maxMs": 4.143,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_workflow_insert": {
+              "samples": 492,
+              "minMs": 0.007,
+              "meanMs": 0.03,
+              "p50Ms": 0.017,
+              "p95Ms": 0.042,
+              "p99Ms": 0.406,
+              "maxMs": 2.241,
+              "atOrBelowTargetPercent": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T14-31-04.578Z",
+      "measurementValid": true,
+      "runtimeUnchanged": true,
+      "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+      "healthP95Ms": 4.51,
+      "phases": [
+        {
+          "offeredRate": 5,
+          "seconds": 20,
+          "profileTimings": true,
+          "offered": 100,
+          "sent": 100,
+          "validated": 100,
+          "errors": 0,
+          "clientSkipped": 0,
+          "completedPerSecond": 4.997459866111954,
+          "p50Ms": 55.154,
+          "p95Ms": 100.075,
+          "targetMet": false,
+          "serverStageLatencies": {
+            "direct_total": {
+              "samples": 100,
+              "minMs": 34.93,
+              "meanMs": 57.618,
+              "p50Ms": 51.472,
+              "p95Ms": 94.859,
+              "p99Ms": 124.169,
+              "maxMs": 159.12,
+              "atOrBelowTargetPercent": 44
+            },
+            "evaluation": {
+              "samples": 100,
+              "minMs": 4.561,
+              "meanMs": 7.759,
+              "p50Ms": 6.959,
+              "p95Ms": 13.866,
+              "p99Ms": 16.296,
+              "maxMs": 24.438,
+              "atOrBelowTargetPercent": 100
+            },
+            "metadata": {
+              "samples": 100,
+              "minMs": 2.597,
+              "meanMs": 3.947,
+              "p50Ms": 3.4,
+              "p95Ms": 6.931,
+              "p99Ms": 8.83,
+              "maxMs": 9.655,
+              "atOrBelowTargetPercent": 100
+            },
+            "model": {
+              "samples": 100,
+              "minMs": 9.593,
+              "meanMs": 15.939,
+              "p50Ms": 14.549,
+              "p95Ms": 26.292,
+              "p99Ms": 32.651,
+              "maxMs": 33.335,
+              "atOrBelowTargetPercent": 100
+            },
+            "object_preparation": {
+              "samples": 100,
+              "minMs": 0.09,
+              "meanMs": 0.173,
+              "p50Ms": 0.157,
+              "p95Ms": 0.28,
+              "p99Ms": 0.331,
+              "maxMs": 0.342,
+              "atOrBelowTargetPercent": 100
+            },
+            "persistence": {
+              "samples": 100,
+              "minMs": 14.99,
+              "meanMs": 25.97,
+              "p50Ms": 22.339,
+              "p95Ms": 41.598,
+              "p99Ms": 54.784,
+              "maxMs": 116.72,
+              "atOrBelowTargetPercent": 97
+            },
+            "prepare_decision_build": {
+              "samples": 100,
+              "minMs": 0.003,
+              "meanMs": 0.008,
+              "p50Ms": 0.006,
+              "p95Ms": 0.013,
+              "p99Ms": 0.036,
+              "maxMs": 0.067,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_iteration_get": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.002,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_routing_read": {
+              "samples": 100,
+              "minMs": 2.577,
+              "meanMs": 4.504,
+              "p50Ms": 3.845,
+              "p95Ms": 8.499,
+              "p99Ms": 12.017,
+              "maxMs": 17.616,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_rules_eval": {
+              "samples": 100,
+              "minMs": 0.234,
+              "meanMs": 0.453,
+              "p50Ms": 0.37,
+              "p95Ms": 0.778,
+              "p99Ms": 1.102,
+              "maxMs": 1.323,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_rules_list": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.001,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scenario_get": {
+              "samples": 100,
+              "minMs": 0.001,
+              "meanMs": 0.005,
+              "p50Ms": 0.002,
+              "p95Ms": 0.007,
+              "p99Ms": 0.043,
+              "maxMs": 0.195,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scoring_build": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0,
+              "p99Ms": 0.001,
+              "maxMs": 0.026,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_screening_build": {
+              "samples": 100,
+              "minMs": 0,
+              "meanMs": 0.001,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.032,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_snoozes_list": {
+              "samples": 100,
+              "minMs": 1.418,
+              "meanMs": 2.275,
+              "p50Ms": 2.04,
+              "p95Ms": 3.7,
+              "p99Ms": 4.01,
+              "maxMs": 4.982,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_trigger_eval": {
+              "samples": 100,
+              "minMs": 0.032,
+              "meanMs": 0.065,
+              "p50Ms": 0.046,
+              "p95Ms": 0.149,
+              "p99Ms": 0.303,
+              "maxMs": 0.31,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_workflow_build": {
+              "samples": 100,
+              "minMs": 0.001,
+              "meanMs": 0.003,
+              "p50Ms": 0.002,
+              "p95Ms": 0.004,
+              "p99Ms": 0.025,
+              "maxMs": 0.043,
+              "atOrBelowTargetPercent": 100
+            },
+            "registry_validation": {
+              "samples": 100,
+              "minMs": 2.268,
+              "meanMs": 3.812,
+              "p50Ms": 3.255,
+              "p95Ms": 6.243,
+              "p99Ms": 10.578,
+              "maxMs": 13.203,
+              "atOrBelowTargetPercent": 100
+            },
+            "scope": {
+              "samples": 100,
+              "minMs": 0.047,
+              "meanMs": 0.091,
+              "p50Ms": 0.07,
+              "p95Ms": 0.158,
+              "p99Ms": 0.386,
+              "maxMs": 0.416,
+              "atOrBelowTargetPercent": 100
+            },
+            "tenant_auth": {
+              "samples": 100,
+              "minMs": 0.406,
+              "meanMs": 0.798,
+              "p50Ms": 0.717,
+              "p95Ms": 1.276,
+              "p99Ms": 1.407,
+              "maxMs": 3.069,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_begin": {
+              "samples": 100,
+              "minMs": 0.395,
+              "meanMs": 0.744,
+              "p50Ms": 0.637,
+              "p95Ms": 1.115,
+              "p99Ms": 1.684,
+              "maxMs": 5.602,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_body": {
+              "samples": 100,
+              "minMs": 10.52,
+              "meanMs": 19.369,
+              "p50Ms": 16.622,
+              "p95Ms": 31.272,
+              "p99Ms": 45.114,
+              "maxMs": 108.202,
+              "atOrBelowTargetPercent": 99
+            },
+            "tx_body_total": {
+              "samples": 100,
+              "minMs": 7.587,
+              "meanMs": 14.657,
+              "p50Ms": 12.596,
+              "p95Ms": 23.878,
+              "p99Ms": 30.065,
+              "maxMs": 101.791,
+              "atOrBelowTargetPercent": 99
+            },
+            "tx_commit": {
+              "samples": 100,
+              "minMs": 3.105,
+              "meanMs": 5.671,
+              "p50Ms": 5.248,
+              "p95Ms": 9.382,
+              "p99Ms": 10.186,
+              "maxMs": 11.535,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_decision_insert": {
+              "samples": 100,
+              "minMs": 0.993,
+              "meanMs": 2.216,
+              "p50Ms": 2.058,
+              "p95Ms": 3.587,
+              "p99Ms": 4.568,
+              "maxMs": 6.337,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_build": {
+              "samples": 100,
+              "minMs": 0.016,
+              "meanMs": 0.039,
+              "p50Ms": 0.035,
+              "p95Ms": 0.063,
+              "p99Ms": 0.081,
+              "maxMs": 0.106,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_insert": {
+              "samples": 100,
+              "minMs": 3.133,
+              "meanMs": 6.637,
+              "p50Ms": 5.296,
+              "p95Ms": 10.977,
+              "p99Ms": 14.223,
+              "maxMs": 92.322,
+              "atOrBelowTargetPercent": 99
+            },
+            "tx_rule_exec_insert": {
+              "samples": 100,
+              "minMs": 2.342,
+              "meanMs": 5.718,
+              "p50Ms": 5.179,
+              "p95Ms": 10.59,
+              "p99Ms": 12.86,
+              "maxMs": 13.023,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_scoring_insert": {
+              "samples": 100,
+              "minMs": 0.003,
+              "meanMs": 0.007,
+              "p50Ms": 0.006,
+              "p95Ms": 0.013,
+              "p99Ms": 0.025,
+              "maxMs": 0.034,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_screening_insert": {
+              "samples": 100,
+              "minMs": 0.006,
+              "meanMs": 0.017,
+              "p50Ms": 0.011,
+              "p95Ms": 0.021,
+              "p99Ms": 0.04,
+              "maxMs": 0.547,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_workflow_insert": {
+              "samples": 100,
+              "minMs": 0.006,
+              "meanMs": 0.016,
+              "p50Ms": 0.015,
+              "p95Ms": 0.023,
+              "p99Ms": 0.027,
+              "maxMs": 0.027,
+              "atOrBelowTargetPercent": 100
+            }
+          }
+        },
+        {
+          "offeredRate": 25,
+          "seconds": 20,
+          "profileTimings": true,
+          "offered": 500,
+          "sent": 500,
+          "validated": 500,
+          "errors": 0,
+          "clientSkipped": 0,
+          "completedPerSecond": 24.965150023650235,
+          "p50Ms": 90.061,
+          "p95Ms": 607.263,
+          "targetMet": false,
+          "serverStageLatencies": {
+            "direct_total": {
+              "samples": 500,
+              "minMs": 42.341,
+              "meanMs": 155.025,
+              "p50Ms": 83.916,
+              "p95Ms": 525.847,
+              "p99Ms": 761.536,
+              "maxMs": 898.167,
+              "atOrBelowTargetPercent": 0.8
+            },
+            "evaluation": {
+              "samples": 500,
+              "minMs": 5.978,
+              "meanMs": 26.522,
+              "p50Ms": 10.307,
+              "p95Ms": 97.309,
+              "p99Ms": 224.772,
+              "maxMs": 295.536,
+              "atOrBelowTargetPercent": 84.6
+            },
+            "metadata": {
+              "samples": 500,
+              "minMs": 2.963,
+              "meanMs": 12.001,
+              "p50Ms": 5.346,
+              "p95Ms": 56.428,
+              "p99Ms": 101.384,
+              "maxMs": 188.158,
+              "atOrBelowTargetPercent": 94.4
+            },
+            "model": {
+              "samples": 500,
+              "minMs": 12.354,
+              "meanMs": 38.016,
+              "p50Ms": 22.649,
+              "p95Ms": 98.083,
+              "p99Ms": 202.297,
+              "maxMs": 303.461,
+              "atOrBelowTargetPercent": 81
+            },
+            "object_preparation": {
+              "samples": 500,
+              "minMs": 0.11,
+              "meanMs": 0.263,
+              "p50Ms": 0.226,
+              "p95Ms": 0.369,
+              "p99Ms": 1.01,
+              "maxMs": 3.125,
+              "atOrBelowTargetPercent": 100
+            },
+            "persistence": {
+              "samples": 500,
+              "minMs": 17.945,
+              "meanMs": 64.794,
+              "p50Ms": 32.436,
+              "p95Ms": 196.587,
+              "p99Ms": 316.669,
+              "maxMs": 777.315,
+              "atOrBelowTargetPercent": 69.8
+            },
+            "prepare_decision_build": {
+              "samples": 500,
+              "minMs": 0.004,
+              "meanMs": 0.01,
+              "p50Ms": 0.009,
+              "p95Ms": 0.015,
+              "p99Ms": 0.054,
+              "maxMs": 0.089,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_iteration_get": {
+              "samples": 500,
+              "minMs": 0,
+              "meanMs": 0.001,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.002,
+              "maxMs": 0.028,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_routing_read": {
+              "samples": 500,
+              "minMs": 3.39,
+              "meanMs": 15.084,
+              "p50Ms": 5.746,
+              "p95Ms": 78.34,
+              "p99Ms": 113.916,
+              "maxMs": 196.733,
+              "atOrBelowTargetPercent": 89.6
+            },
+            "prepare_rules_eval": {
+              "samples": 500,
+              "minMs": 0.277,
+              "meanMs": 0.761,
+              "p50Ms": 0.626,
+              "p95Ms": 1.429,
+              "p99Ms": 4.123,
+              "maxMs": 7.534,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_rules_list": {
+              "samples": 500,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.038,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scenario_get": {
+              "samples": 500,
+              "minMs": 0.001,
+              "meanMs": 0.006,
+              "p50Ms": 0.003,
+              "p95Ms": 0.007,
+              "p99Ms": 0.023,
+              "maxMs": 0.988,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_scoring_build": {
+              "samples": 500,
+              "minMs": 0,
+              "meanMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 0.001,
+              "p99Ms": 0.001,
+              "maxMs": 0.043,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_screening_build": {
+              "samples": 500,
+              "minMs": 0,
+              "meanMs": 0.001,
+              "p50Ms": 0.001,
+              "p95Ms": 0.001,
+              "p99Ms": 0.002,
+              "maxMs": 0.006,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_snoozes_list": {
+              "samples": 500,
+              "minMs": 1.786,
+              "meanMs": 9.873,
+              "p50Ms": 2.915,
+              "p95Ms": 65.688,
+              "p99Ms": 98.576,
+              "maxMs": 213.044,
+              "atOrBelowTargetPercent": 93.2
+            },
+            "prepare_trigger_eval": {
+              "samples": 500,
+              "minMs": 0.032,
+              "meanMs": 0.1,
+              "p50Ms": 0.081,
+              "p95Ms": 0.194,
+              "p99Ms": 0.462,
+              "maxMs": 1.374,
+              "atOrBelowTargetPercent": 100
+            },
+            "prepare_workflow_build": {
+              "samples": 500,
+              "minMs": 0.001,
+              "meanMs": 0.003,
+              "p50Ms": 0.003,
+              "p95Ms": 0.004,
+              "p99Ms": 0.005,
+              "maxMs": 0.23,
+              "atOrBelowTargetPercent": 100
+            },
+            "registry_validation": {
+              "samples": 500,
+              "minMs": 2.909,
+              "meanMs": 13.408,
+              "p50Ms": 4.718,
+              "p95Ms": 78.093,
+              "p99Ms": 122.384,
+              "maxMs": 216.207,
+              "atOrBelowTargetPercent": 91.2
+            },
+            "scope": {
+              "samples": 500,
+              "minMs": 0.05,
+              "meanMs": 0.133,
+              "p50Ms": 0.103,
+              "p95Ms": 0.189,
+              "p99Ms": 0.477,
+              "maxMs": 8.073,
+              "atOrBelowTargetPercent": 100
+            },
+            "tenant_auth": {
+              "samples": 500,
+              "minMs": 0.391,
+              "meanMs": 8.564,
+              "p50Ms": 0.735,
+              "p95Ms": 55.527,
+              "p99Ms": 133.981,
+              "maxMs": 223.551,
+              "atOrBelowTargetPercent": 94.6
+            },
+            "tx_begin": {
+              "samples": 500,
+              "minMs": 0.406,
+              "meanMs": 4.207,
+              "p50Ms": 0.841,
+              "p95Ms": 9.175,
+              "p99Ms": 86.426,
+              "maxMs": 164.141,
+              "atOrBelowTargetPercent": 96.8
+            },
+            "tx_body": {
+              "samples": 500,
+              "minMs": 12.51,
+              "meanMs": 45.556,
+              "p50Ms": 23.078,
+              "p95Ms": 118.721,
+              "p99Ms": 199.99,
+              "maxMs": 659.691,
+              "atOrBelowTargetPercent": 75.4
+            },
+            "tx_body_total": {
+              "samples": 500,
+              "minMs": 9.081,
+              "meanMs": 35.618,
+              "p50Ms": 16.804,
+              "p95Ms": 102.706,
+              "p99Ms": 186.813,
+              "maxMs": 606.726,
+              "atOrBelowTargetPercent": 79.4
+            },
+            "tx_commit": {
+              "samples": 500,
+              "minMs": 4.122,
+              "meanMs": 14.755,
+              "p50Ms": 7.584,
+              "p95Ms": 70.628,
+              "p99Ms": 101.544,
+              "maxMs": 222.776,
+              "atOrBelowTargetPercent": 92.6
+            },
+            "tx_decision_insert": {
+              "samples": 500,
+              "minMs": 1.11,
+              "meanMs": 6.482,
+              "p50Ms": 2.543,
+              "p95Ms": 14.491,
+              "p99Ms": 74.471,
+              "maxMs": 322.26,
+              "atOrBelowTargetPercent": 96.2
+            },
+            "tx_outbox_build": {
+              "samples": 500,
+              "minMs": 0.022,
+              "meanMs": 0.05,
+              "p50Ms": 0.045,
+              "p95Ms": 0.079,
+              "p99Ms": 0.163,
+              "maxMs": 0.994,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_outbox_insert": {
+              "samples": 500,
+              "minMs": 3.576,
+              "meanMs": 14.892,
+              "p50Ms": 6.978,
+              "p95Ms": 75.519,
+              "p99Ms": 94.59,
+              "maxMs": 169.726,
+              "atOrBelowTargetPercent": 90
+            },
+            "tx_rule_exec_insert": {
+              "samples": 500,
+              "minMs": 2.943,
+              "meanMs": 14.015,
+              "p50Ms": 6.443,
+              "p95Ms": 67.657,
+              "p99Ms": 90.514,
+              "maxMs": 301.143,
+              "atOrBelowTargetPercent": 92.8
+            },
+            "tx_scoring_insert": {
+              "samples": 500,
+              "minMs": 0.003,
+              "meanMs": 0.01,
+              "p50Ms": 0.008,
+              "p95Ms": 0.016,
+              "p99Ms": 0.059,
+              "maxMs": 0.27,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_screening_insert": {
+              "samples": 500,
+              "minMs": 0.006,
+              "meanMs": 0.019,
+              "p50Ms": 0.015,
+              "p95Ms": 0.03,
+              "p99Ms": 0.086,
+              "maxMs": 0.627,
+              "atOrBelowTargetPercent": 100
+            },
+            "tx_workflow_insert": {
+              "samples": 500,
+              "minMs": 0.009,
+              "meanMs": 0.142,
+              "p50Ms": 0.019,
+              "p95Ms": 0.043,
+              "p99Ms": 0.199,
+              "maxMs": 58.89,
+              "atOrBelowTargetPercent": 99.8
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "targetAttempt": {
+    "source": "evidence/mysql-http-performance/2026-11-06T14-27-33.700Z",
+    "measurementValid": true,
+    "runtimeUnchanged": true,
+    "image": "sha256:b63b9fa06767ae9f74545d2e6d0844031bb8adb01981dc20c6b2432a87ca127c",
+    "healthP95Ms": 3.425,
+    "phases": [
+      {
+        "offeredRate": 500,
+        "seconds": 5,
+        "profileTimings": false,
+        "offered": 2500,
+        "sent": 209,
+        "validated": 209,
+        "errors": 0,
+        "clientSkipped": 2291,
+        "completedPerSecond": 34.08814211682437,
+        "p50Ms": 1603.2,
+        "p95Ms": 2899.049,
+        "targetMet": false
+      }
+    ]
+  },
+  "earlierAcceptedBurst": {
+    "source": "evidence/mysql-http-performance/2026-11-06T12-13-53.544Z",
+    "measurementValid": true,
+    "runtimeUnchanged": true,
+    "image": "sha256:7cf625f3e9018689b403e239290d1ec9e53c3f06f5bdb779143cd6c480a503a3",
+    "healthP95Ms": 4.198,
+    "phases": [
+      {
+        "offeredRate": 500,
+        "seconds": 5,
+        "offered": 2500,
+        "sent": 138,
+        "validated": 134,
+        "errors": 4,
+        "clientSkipped": 2362,
+        "completedPerSecond": 18.80619535019627,
+        "p50Ms": 2606.902,
+        "p95Ms": 4627.833,
+        "targetMet": false
+      }
+    ]
+  },
+  "excludedCandidateMeasurements": [
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T12-30-30.619Z",
+      "reason": "Diagnostic investigation overlapped disposable fixture work; not a clean comparison"
+    },
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T13-17-51.846Z",
+      "reason": "Intermediate build failed provider/case/screening acceptance; not accepted as a performance gain"
+    },
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T13-20-35.162Z",
+      "reason": "Intermediate build failed provider/case/screening acceptance; not accepted as a performance gain"
+    },
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T13-25-52.464Z",
+      "reason": "Intermediate build failed provider/case/screening acceptance; not accepted as a performance gain"
+    },
+    {
+      "source": "evidence/mysql-http-performance/2026-11-06T13-31-55.898Z",
+      "reason": "Intermediate build failed provider/case/screening acceptance; not accepted as a performance gain"
+    }
+  ],
+  "verification": {
+    "endpoints": "evidence/mysql-endpoint-audit/2026-11-06T14-17-31.171Z/report.json",
+    "fraud": "evidence/mysql-fraud/2026-11-06T14-21-13.672Z/report.json",
+    "nativeRegression": "evidence/mysql-integration/2026-11-06T14-16-16Z/report.json",
+    "interpolatedOwnerProfile": "evidence/mysql-integration/2026-11-06T14-16-16Z/transport-profile.json",
+    "queueSnapshot": "evidence/mysql-queue-snapshots/2026-11-06T14-30-07.115Z/report.json"
+  },
+  "conclusion": "500 TPS and 50 ms p95 remain unmet. Final short 500/sec attempt observed 34.1 validated responses/sec with zero errors among sent requests, but 2291 unsent requests. Matched latency results vary substantially: after-fix 25/sec p95 was 3319 and 607 ms versus 990 ms before. No consistent latency improvement or production capacity established.",
+  "limitations": [
+    "Shared development host and background work vary; compare both final runs, not only the better repeat",
+    "Observed burst completions include response drain; not a sustained capacity result",
+    "Asynchronous completion excluded from HTTP timer; point-in-time drained queues do not prove delivery capacity",
+    "Timeout mutations are uncertain and never retried; client skips are unsent",
+    "Standard running budgets: API one CPU/eight SQL connections, worker eight connections, provider four, shared MySQL two CPUs. Optional CPU experiment restored."
+  ]
+}

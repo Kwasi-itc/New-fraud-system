@@ -1,0 +1,17 @@
+FROM golang:1.25.0 AS build
+WORKDIR /backend/data-model-service
+COPY mysqlstore ../mysqlstore
+COPY investigator ../investigator
+COPY data-model-service/go.mod data-model-service/go.sum ./
+COPY data-model-service ./
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/install-data-model ./cmd/mysql-dev-install
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-api ./cmd/mysql-api
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-local-author ./cmd/mysql-local-author
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/mysql-worker ./cmd/mysql-worker
+
+FROM gcr.io/distroless/base-debian12
+COPY --from=build /bin/install-data-model /app/install-data-model
+COPY --from=build /bin/mysql-api /app/mysql-api
+COPY --from=build /bin/mysql-local-author /app/mysql-local-author
+COPY --from=build /bin/mysql-worker /app/mysql-worker
+CMD ["/app/install-data-model"]

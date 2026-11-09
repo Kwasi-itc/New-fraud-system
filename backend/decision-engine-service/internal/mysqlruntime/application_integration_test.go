@@ -46,6 +46,21 @@ func (f *fixtureModel) GetTenantModel(_ context.Context, tenant string) (ports.T
 
 type unusedDispatch struct{}
 
+type fixtureIndexPreparation struct{ tenant uuid.UUID }
+
+func (f fixtureIndexPreparation) ListIndexJobsForTables(_ context.Context, tenant string, tables []string, limit int) ([]ports.ManagedIndexJob, error) {
+	if tenant != f.tenant.String() || len(tables) != 1 || limit < 1 {
+		return nil, errors.New("wrong fixture index scope")
+	}
+	return []ports.ManagedIndexJob{}, nil
+}
+func (f fixtureIndexPreparation) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
+	return ports.ManagedIndexJob{}, errors.New("fixture has no index requirement")
+}
+func (f fixtureIndexPreparation) RetryIndexJob(context.Context, string) error {
+	return errors.New("fixture has no failed index job")
+}
+
 func (unusedDispatch) Deliver(context.Context, ports.DispatchRequest) (ports.DispatchReceipt, error) {
 	return ports.DispatchReceipt{}, errors.New("fixture must not dispatch external work")
 }
@@ -79,6 +94,8 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 	tenant, parent := uuid.New(), uuid.New()
 	schema, _ := mysqlstore.Identifier(database)
 	var revoked atomic.Bool
+	var platformDenied, platformMissing atomic.Bool
+	var browserSession atomic.Pointer[mysql.TrustedDecisionSession]
 	check := func(_ context.Context, tx *sql.Tx, id uuid.UUID) error {
 		if tx == nil || id != tenant || revoked.Load() {
 			return mysql.ErrDecisionAuthorizationDenied
@@ -89,7 +106,18 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 		if id != tenant {
 			return Authorities{}, mysql.ErrDecisionAuthorizationDenied
 		}
+		var mutate mysql.PlatformAuthorizer = func(ctx context.Context, tx *sql.Tx, id uuid.UUID, write bool) error {
+			if !write || platformDenied.Load() {
+				return mysql.ErrDecisionAuthorizationDenied
+			}
+			return check(ctx, tx, id)
+		}
+		if platformMissing.Load() {
+			mutate = nil
+		}
 		return Authorities{TenantID: tenant,
+			Session:           browserSession.Load(),
+			PlatformMutations: mutate,
 			Authoring: func(ctx context.Context, tx *sql.Tx, id uuid.UUID, _ mysql.AuthoringAction) error {
 				return check(ctx, tx, id)
 			},
@@ -117,7 +145,7 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 		t.Fatal(err)
 	}
 	models := &fixtureModel{tenant: tenant, model: ports.TenantModel{RevisionID: uuid.NewString(), RecordLookupField: "object_id", Tables: map[string]ports.TenantModelTable{}}}
-	deps := Dependencies{DB: db, Database: database, Models: models, IDs: fixtureIDs{}, Clock: fixtureClock{}, Readiness: readiness, ServiceAuthority: authority,
+	deps := Dependencies{DB: db, Database: database, Models: models, IndexPreparation: fixtureIndexPreparation{tenant}, IDs: fixtureIDs{}, Clock: fixtureClock{}, Readiness: readiness, ServiceAuthority: authority,
 		Authenticate: func(r *http.Request) (context.Context, error) {
 			if r.Header.Get("Authorization") != "Bearer fixture-only" {
 				return nil, mysql.ErrDecisionAuthorizationDenied
@@ -139,6 +167,43 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 		t.Fatal(err)
 	}
 	// Input map mutation cannot redirect an already constructed worker.
+	t.Run("explicit scoring deferral omits worker and authoring capability", func(t *testing.T) {
+		deferredDeps := deps
+		deferredDeps.Dispatch = cloneMap(deps.Dispatch)
+		delete(deferredDeps.Dispatch, ports.JobScoring)
+		policy := runtimePolicy()
+		if _, err := New(deferredDeps, policy); !errors.Is(err, mysql.ErrOwnerContractUnavailable) {
+			t.Fatal("implicit deferral accepted", err)
+		}
+		policy.Evaluation.DeferAdditionalScoring = true
+		delete(policy.Workers, ports.JobScoring)
+		r, err := New(deferredDeps, policy)
+		if err != nil {
+			t.Fatal(err)
+		}
+		scope, err := r.Scope(ctx, tenant, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if scope.Endpoint.Scoring != nil {
+			t.Fatal("scoring authoring available during deferral")
+		}
+		app, err := r.Start(ctx, []uuid.UUID{tenant})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(app.workers) != 13 {
+			t.Fatal("unexpected worker/maintenance count", len(app.workers))
+		}
+		for _, kind := range []ports.JobKind{ports.JobWorkflow, ports.JobOutbox} {
+			incomplete := deferredDeps
+			incomplete.Dispatch = cloneMap(deferredDeps.Dispatch)
+			delete(incomplete.Dispatch, kind)
+			if _, err := New(incomplete, policy); !errors.Is(err, mysql.ErrOwnerContractUnavailable) {
+				t.Fatal("unrelated missing provider accepted", kind, err)
+			}
+		}
+	})
 	p.Execution.Queues[ports.JobScheduled] = mysql.DeliveryQueuePolicy{Name: "changed", MaxAttempts: 9}
 	if runtime.policy.Execution.Queues[ports.JobScheduled].Name == "changed" {
 		t.Fatal("mutable configuration retained")
@@ -254,6 +319,108 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 		t.Fatal(err)
 	}
 	models.model.Tables["wallets"] = ports.TenantModelTable{ID: table.String(), Name: "wallets", PublishedVersion: version.String(), Fields: map[string]ports.TenantModelField{"object_id": {Name: "object_id", Type: "string"}}}
+	t.Run("ten remaining APIs", func(t *testing.T) { testTenAPIs(t, a.Handler(), base, db, schema, &revoked) })
+	t.Run("ten history APIs", func(t *testing.T) { testHistoryAPIs(t, a.Handler(), base, db, database, &revoked) })
+	t.Run("ten administration APIs", func(t *testing.T) { testAdministrationAPIs(t, a.Handler(), base, db, schema, &revoked) })
+	t.Run("ten custom list APIs", func(t *testing.T) { testCustomListAPIs(t, a.Handler(), base, db, schema, &revoked) })
+	t.Run("ten platform tasks", func(t *testing.T) {
+		testPlatformAPIs(t, a.Handler(), base, db, schema, &revoked, &platformDenied, &platformMissing)
+	})
+	t.Run("browser workflow APIs", func(t *testing.T) { testBrowserWorkflowAPIs(t, a.Handler(), base, db, schema, &browserSession) })
+	t.Run("authoring HTTP lifecycle", func(t *testing.T) {
+		root := base + "/scenarios"
+		decodeID := func(rec *httptest.ResponseRecorder, key string) string {
+			t.Helper()
+			var body map[string]struct {
+				ID string `json:"id"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || body[key].ID == "" {
+				t.Fatalf("missing %s: %s", key, rec.Body.String())
+			}
+			return body[key].ID
+		}
+		request("POST", root, `{"name":"HTTP authoring","trigger_object_type":"wallets","tenant_id":"forged"}`, true, 400)
+		request("POST", root, `{"name":"HTTP authoring","trigger_object_type":"wallets"}`, false, 401)
+		id := decodeID(request("POST", root, `{"name":"HTTP authoring","trigger_object_type":"wallets"}`, true, 201), "scenario")
+		path := root + "/" + id
+		request("POST", root, `{"name":"HTTP authoring","trigger_object_type":"wallets"}`, true, 409)
+		request("GET", path, "", true, 200)
+		request("GET", root, "", true, 200)
+		request("PUT", path, `{"name":"HTTP updated","description":"edited","trigger_object_type":"wallets"}`, true, 200)
+		request("POST", path+"/iterations", `{"status":"committed"}`, true, 400)
+		it := decodeID(request("POST", path+"/iterations", "", true, 201), "iteration")
+		ip := path + "/iterations/" + it
+		request("PUT", ip, `{}`, true, 422)
+		request("POST", ip+"/rules", `{"name":"missing formula"}`, true, 422)
+		request("GET", path+"/iterations/metadata", "", true, 200)
+		request("GET", path+"/iterations", "", true, 200)
+		request("GET", ip, "", true, 200)
+		invalid := `{"trigger_formula":{"constant":5},"score_review_threshold":1,"score_block_and_review_threshold":10,"score_decline_threshold":20}`
+		request("PUT", ip, invalid, true, 200)
+		request("GET", path+"/publications/preparation?iteration_id="+it, "", true, 422)
+		request("POST", ip+"/commit", "{}", true, 422)
+		valid := `{"trigger_formula":{"constant":true},"score_review_threshold":1,"score_block_and_review_threshold":10,"score_decline_threshold":20}`
+		request("PUT", ip, valid, true, 200)
+		ruleBody := `{"name":"test","formula":{"constant":true},"score_modifier":12,"rule_group":"risk","stable_rule_id":"stable-http"}`
+		rid := decodeID(request("POST", ip+"/rules", ruleBody, true, 201), "rule")
+		request("PUT", ip+"/rules/"+rid, ruleBody, true, 200)
+		request("GET", ip+"/rules", "", true, 200)
+		request("GET", path+"/publications/preparation?iteration_id="+it, "", true, 200)
+		request("POST", path+"/publications/preparation", `{"iteration_id":"`+it+`"}`, true, 202)
+		request("GET", path+"/rule-groups", "", true, 200)
+		request("GET", root+"/"+parent.String()+"/iterations/"+it+"/rules", "", true, 404)
+		revoked.Store(true)
+		request("GET", path, "", true, 403)
+		request("POST", ip+"/commit", "", true, 403)
+		revoked.Store(false)
+		request("POST", ip+"/commit", "{}", true, 200)
+		request("PUT", ip, valid, true, 409)
+		request("DELETE", ip+"/rules/"+rid, "", true, 409)
+		clone := decodeID(request("POST", ip+"/draft", "", true, 201), "iteration")
+		cp := path + "/iterations/" + clone
+		var rules struct {
+			Rules []struct {
+				ID     string `json:"id"`
+				Stable string `json:"stable_rule_id"`
+			} `json:"rules"`
+		}
+		res := request("GET", cp+"/rules", "", true, 200)
+		if err := json.Unmarshal(res.Body.Bytes(), &rules); err != nil || len(rules.Rules) != 1 || rules.Rules[0].ID == rid || rules.Rules[0].Stable != "stable-http" {
+			t.Fatal("clone lost rule identity", res.Body.String(), err)
+		}
+		request("DELETE", cp+"/rules/"+rules.Rules[0].ID, "", true, 204)
+		request("POST", path+"/copy", `{"name":"Copied authoring graph"}`, false, 401)
+		request("POST", path+"/copy", `{"name":"copy","actor":"forged"}`, true, 400)
+		revoked.Store(true)
+		request("POST", path+"/copy", `{"name":"copy"}`, true, 403)
+		revoked.Store(false)
+		copied := decodeID(request("POST", path+"/copy", `{"name":"Copied authoring graph"}`, true, 201), "scenario")
+		copyPath := root + "/" + copied
+		var copiedIterations struct {
+			Iterations []struct {
+				ID      string `json:"id"`
+				Version int    `json:"version"`
+			} `json:"iterations"`
+		}
+		res = request("GET", copyPath+"/iterations", "", true, 200)
+		if err := json.Unmarshal(res.Body.Bytes(), &copiedIterations); err != nil || len(copiedIterations.Iterations) != 2 {
+			t.Fatal("incomplete copied iterations", res.Body.String(), err)
+		}
+		for _, copyIteration := range copiedIterations.Iterations {
+			if copyIteration.ID == it || copyIteration.ID == clone {
+				t.Fatal("source iteration identity retained")
+			}
+			if copyIteration.Version == 1 {
+				res = request("GET", copyPath+"/iterations/"+copyIteration.ID+"/rules", "", true, 200)
+				if err := json.Unmarshal(res.Body.Bytes(), &rules); err != nil || len(rules.Rules) != 1 || rules.Rules[0].ID == rid || rules.Rules[0].Stable == "stable-http" {
+					t.Fatal("copied rule binding", res.Body.String(), err)
+				}
+			}
+		}
+		request("DELETE", copyPath, "", true, 204)
+		request("DELETE", path, "", true, 204)
+		request("GET", path, "", true, 404)
+	})
 	auth, err := authority(ctx, tenant)
 	if err != nil {
 		t.Fatal(err)
@@ -281,13 +448,122 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 	}); err != nil {
 		t.Fatal(err)
 	}
-	serviceScope, err := runtime.Scope(ctx, tenant, true)
-	if err != nil {
+	publicationPath := base + "/scenarios/" + parent.String() + "/publications"
+	t.Run("bounded publication preparation API", func(t *testing.T) {
+		path := publicationPath + "/preparation"
+		query := "?iteration_id=" + iteration.String()
+		body := `{"iteration_id":"` + iteration.String() + `"}`
+		request("GET", path+query, "", false, 401)
+		request("GET", path, "", true, 400)
+		request("GET", path+query+"&iteration_id="+iteration.String(), "", true, 400)
+		request("POST", path, `{"iteration_id":"`+iteration.String()+`","actor":"forged"}`, true, 400)
+		revoked.Store(true)
+		request("GET", path+query, "", true, 403)
+		request("POST", path, body, true, 403)
+		revoked.Store(false)
+		request("GET", path+"?iteration_id="+uuid.NewString(), "", true, 404)
+		for _, method := range []string{"GET", "POST"} {
+			url, payload, want := path+query, "", 200
+			if method == "POST" {
+				url, payload, want = path, body, 202
+			}
+			rec := request(method, url, payload, true, want)
+			var response struct {
+				Preparation struct {
+					Required bool `json:"preparation_required"`
+					Finished bool `json:"preparation_finished"`
+				} `json:"preparation"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil || response.Preparation.Required || !response.Preparation.Finished {
+				t.Fatal(rec.Body.String(), err)
+			}
+		}
+	})
+	publishBody := `{"action":"publish","iteration_id":"` + iteration.String() + `"}`
+	unpublishBody := `{"action":"unpublish","iteration_id":"` + iteration.String() + `"}`
+	request("POST", publicationPath, publishBody, false, 401)
+	request("POST", publicationPath, `{"action":"publish","action":"unpublish","iteration_id":"`+iteration.String()+`"}`, true, 400)
+	request("POST", publicationPath, `{"action":"publish","iteration_id":"`+iteration.String()+`","actor":"forged"}`, true, 400)
+	request("POST", publicationPath, `{"action":"publish","iteration_id":"invalid"}`, true, 400)
+	request("POST", publicationPath+"?ignored=1", publishBody, true, 400)
+	request("POST", publicationPath, unpublishBody, true, 409)
+	request("POST", publicationPath, publishBody, true, 200)
+	assertPublicationCount := func(want int) {
+		t.Helper()
+		var result struct {
+			Publications []json.RawMessage `json:"publications"`
+		}
+		rec := request("GET", publicationPath, "", true, 200)
+		if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil || len(result.Publications) != want {
+			t.Fatalf("publication count: %s, want %d: %v", rec.Body.String(), want, err)
+		}
+	}
+	assertPublicationCount(1)
+	request("GET", "/v1/tenants/"+uuid.NewString()+"/scenarios/"+parent.String()+"/publications", "", true, 403)
+	request("GET", base+"/scenarios/"+uuid.NewString()+"/publications", "", true, 404)
+	if _, err := db.Exec("UPDATE " + schema + ".data_model_physical_tables SET write_state='closed'"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := serviceScope.Publication.Publish(ctx, mysql.PublicationInput{ScenarioID: parent, IterationID: iteration, EventID: uuid.New(), ReplacedEventID: uuid.New()}); err != nil {
+	request("POST", publicationPath, publishBody, true, 409)
+	assertPublicationCount(1)
+	// Unpublication is still available when model preparation is unavailable.
+	request("POST", publicationPath, unpublishBody, true, 200)
+	assertPublicationCount(2)
+	if _, err := db.Exec("UPDATE " + schema + ".data_model_physical_tables SET write_state='open'"); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec("CREATE TRIGGER " + schema + ".fixture_publication_failure BEFORE INSERT ON " + schema + ".decision_engine_scenario_publications FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='private fixture failure'"); err != nil {
+		t.Fatal(err)
+	}
+	failed := request("POST", publicationPath, publishBody, true, 500)
+	if strings.Contains(failed.Body.String(), "private fixture") {
+		t.Fatal("database error leaked")
+	}
+	assertPublicationCount(2)
+	// The live-link update must roll back with the failed history insert.
+	request("POST", publicationPath, unpublishBody, true, 409)
+	if _, err := db.Exec("DROP TRIGGER " + schema + ".fixture_publication_failure"); err != nil {
+		t.Fatal(err)
+	}
+	revoked.Store(true)
+	request("POST", publicationPath, publishBody, true, 403)
+	request("GET", publicationPath, "", true, 403)
+	revoked.Store(false)
+	request("POST", publicationPath, publishBody, true, 200)
+	assertPublicationCount(3)
+	t.Run("live scenario copy and publication rollback", func(t *testing.T) {
+		copyPath := base + "/scenarios/" + parent.String() + "/copy"
+		if _, err := db.Exec("CREATE TRIGGER " + schema + ".fixture_copy_publication_failure BEFORE INSERT ON " + schema + ".decision_engine_scenario_publications FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='copy publication failure'"); err != nil {
+			t.Fatal(err)
+		}
+		request("POST", copyPath, `{"name":"Must rollback copy"}`, true, 500)
+		if _, err := db.Exec("DROP TRIGGER " + schema + ".fixture_copy_publication_failure"); err != nil {
+			t.Fatal(err)
+		}
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM "+schema+".decision_engine_scenarios WHERE tenant_id=? AND name='Must rollback copy'", mysqlstore.UUID(tenant)).Scan(&count); err != nil || count != 0 {
+			t.Fatal("partial scenario survived", count, err)
+		}
+		if _, err := db.Exec("UPDATE " + schema + ".data_model_physical_tables SET write_state='closed'"); err != nil {
+			t.Fatal(err)
+		}
+		request("POST", copyPath, `{"name":"Closed-model copy"}`, true, 409)
+		if _, err := db.Exec("UPDATE " + schema + ".data_model_physical_tables SET write_state='open'"); err != nil {
+			t.Fatal(err)
+		}
+		rec := request("POST", copyPath, `{"name":"Live copied scenario"}`, true, 201)
+		var result struct {
+			Scenario struct {
+				ID   string  `json:"id"`
+				Live *string `json:"live_iteration_id"`
+			} `json:"scenario"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil || result.Scenario.Live == nil || *result.Scenario.Live == iteration.String() {
+			t.Fatal("live copy", rec.Body.String(), err)
+		}
+		request("POST", base+"/scenarios/"+result.Scenario.ID+"/publications", `{"action":"unpublish","iteration_id":"`+*result.Scenario.Live+`"}`, true, 200)
+		request("DELETE", base+"/scenarios/"+result.Scenario.ID, "", true, 204)
+	})
 	schedulePath := base + "/scenarios/" + parent.String() + "/recurring-schedule"
 	scheduleID := uuid.New()
 	request("PUT", schedulePath, `{"schedule_id":"`+scheduleID.String()+`","expected_schedule_id":"00000000-0000-0000-0000-000000000000","expected_watermark_version":0,"calendar":{"version":1,"frequency":"daily","timezone":"UTC","time_of_day":"09:30","gap_policy":"skip","overlap_policy":"first"},"start_local":"2099-10-31T09:30","missed_policy":"coalesce","candidate_limit":1}`, true, 200)
@@ -312,6 +588,7 @@ func TestMySQLApplicationActualRoutesScopesReadinessAndWorkerLifecycle(t *testin
 		t.Fatal("workers reported successful completion")
 	}
 	request("GET", "/readyz", "", false, 503)
+	request("GET", "/v1/rule-functions", "", true, 503)
 	request("GET", base+"/async-decision-executions", "", true, 503)
 	if _, err := db.Exec("DROP TRIGGER " + schema + ".decision_engine_dispatch_intents_update"); err != nil {
 		t.Fatal(err)

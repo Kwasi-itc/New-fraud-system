@@ -1,0 +1,103 @@
+﻿{
+    "date":  "2026-11-03",
+    "scope":  "D15.11 scalar/value golden parity and evaluator alias fixes",
+    "completed":  [
+                      "D15.11"
+                  ],
+    "parent_D15_complete":  false,
+    "checklist":  {
+                      "done":  81,
+                      "total":  152,
+                      "remaining":  71
+                  },
+    "runtime":  "Configured application remains PostgreSQL. MySQL adapters exercised only in isolated test fixtures.",
+    "versions":  {
+                     "go":  "1.25.8",
+                     "postgres":  "16.15",
+                     "mysql":  "8.4.8"
+                 },
+    "verification":  [
+                         {
+                             "subtest_passes":  229,
+                             "batch_subtests":  10,
+                             "failures":  0,
+                             "skips":  0,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=600s -json ./internal/store/mysql -run TestActualDecisionServicePostgresMySQLScalarGoldenParity",
+                             "log":  "2026-11-03_cycle3-scalar-final.jsonl",
+                             "golden_cases":  219,
+                             "exit_code":  0,
+                             "top_level_passes":  1
+                         },
+                         {
+                             "exit_code":  0,
+                             "subtest_passes":  31,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -json ./internal/runtime/ast_eval",
+                             "failures":  0,
+                             "top_level_passes":  46,
+                             "skips":  0,
+                             "log":  "2026-11-03_cycle3-evaluator-final.jsonl"
+                         },
+                         {
+                             "exit_code":  0,
+                             "subtest_passes":  19,
+                             "command":  "go test -mod=readonly -race -p 2 -count=1 -timeout=240s -json ./internal/store/mysql -run TestActualDecisionServicePostgresMySQLThresholdEvidenceParity|TestActualDecisionServicePostgresMySQLConfiguredEffectParity",
+                             "failures":  0,
+                             "top_level_passes":  2,
+                             "skips":  0,
+                             "log":  "2026-11-03_cycle3-service-regression.jsonl"
+                         }
+                     ],
+    "checks":  [
+                   {
+                       "command":  "go test -mod=readonly -race -p 2 ./internal/service -run TestIntegrationDecisionSchemaManifest -args -update-decision-schema-manifest",
+                       "log":  "2026-11-03_cycle3-manifest.log",
+                       "exit_code":  0
+                   },
+                   {
+                       "command":  "go test -mod=readonly -race -p 2 ./internal/migrationaudit",
+                       "log":  "2026-11-03_cycle3-audit.log",
+                       "exit_code":  0
+                   },
+                   {
+                       "command":  "go vet -p 2 ./internal/runtime/ast_eval ./internal/store/mysql",
+                       "log":  "2026-11-03_cycle3-vet.log",
+                       "exit_code":  0
+                   }
+               ],
+    "fixes":  [
+                  "Arithmetic aliases reached the canonical branch but were passed unnormalized to arithmeticValue.",
+                  "StringStartsWith selected suffix comparison because the helper compared the raw alias.",
+                  "Case conversion and numeric-list dispatch now retain the same canonical normalization, including whitespace."
+              ],
+    "assertions":  [
+                       "Explicit expected score/outcome and evidence return values for every rule on both actual services.",
+                       "Complete returned and persisted decision/evidence equality with only generated identities normalized.",
+                       "Invalid evaluations return no provisional result and leave decision/evidence row counts unchanged on both engines.",
+                       "219 golden cases cover E01-E06 and aliases; 13 focused normalization cases exercise plain and evidence evaluation."
+                   ],
+    "initial_findings":  [
+                             {
+                                 "finding":  "Empty coalesce in the source evidence evaluator yields nil, rejected by the enclosing boolean operation; golden error expectation corrected to current source behavior.",
+                                 "log":  "2026-11-03_cycle3-scalar-initial.jsonl"
+                             },
+                             {
+                                 "finding":  "Expanded canonical corpus passed before alias expansion.",
+                                 "log":  "2026-11-03_cycle3-scalar-expanded.jsonl"
+                             },
+                             {
+                                 "finding":  "Arithmetic alias regression failed before fix.",
+                                 "log":  "2026-11-03_cycle3-scalar-alias-before.jsonl"
+                             },
+                             {
+                                 "finding":  "Prefix alias regression failed before fix; subsequent row-count failures were a consequence of the first failed assertion.",
+                                 "log":  "2026-11-03_cycle3-scalar-alias-corpus.jsonl"
+                             }
+                         ],
+    "limitations":  [
+                        "Model and authorization are explicit fixtures, not real owner/identity providers.",
+                        "No physical publication, external delivery, load, grant or runtime-activation acceptance is claimed.",
+                        "D13-D20 parents other than D16 remain open; 71 executable leaves remain.",
+                        "No full application suite was run; affected evaluator, actual-service parity, source mapping and vet checks are recorded above."
+                    ],
+    "cleanup":  "Complete: decision-cycle3-runner, decision-cycle3-mysql-1, decision-cycle3-postgres-1 and decision-cycle3_default removed. Databases used disposable tmpfs with no published application ports; no application database was changed."
+}

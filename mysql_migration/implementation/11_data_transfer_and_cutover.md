@@ -36,3 +36,16 @@ Provider migration is separate from local identity row conversion. The [Keycloak
 Before target writes, abandon target and resume source after confirming no external effects or divergent accepted operations. After target writes, flipping URLs loses accepted data and may repeat external effects. Pause target writes, reconcile target-only business operations and receipts through a rehearsed reverse transform/change journal, or choose controlled roll-forward recovery. Any reverse migration must preserve audit immutability and operation identities. Never promise rollback unless that exact path has been tested with new target data and worker deliveries.
 
 A failed schema step uses forward repair/reconciliation; an old PostgreSQL down migration is not MySQL rollback. Restore backups and apply binary logs according to the selected recovery design; [MySQL PITR documentation](https://dev.mysql.com/doc/refman/8.4/en/point-in-time-recovery.html) describes mechanics, not this system's achieved RPO/RTO. Run an isolated timed restore with grants/routines/keys and queue reconciliation before production approval.
+
+## Verified isolated restore scope (2026-11-04)
+
+Decision cycle 16 restored a synthetic shared decision/identity/case schema onto a
+separate MySQL 8.4.8 server and matched 263 definition/data inventory entries,
+original migration ledgers and restricted case receipt replay without duplicates.
+See [evidence](evidence/2026-11-04_decision_cycle16.md) and the
+[reproducible rehearsal](../../backend/decision-engine-service/scripts/RESTORE_REHEARSAL.md).
+The passing procedure installs frozen migration plans and imports data only; a
+plain schema dump failed strict definition comparison. Restore-time guard removal
+is confined to the new offline isolated target, with all guards restored and
+verified before runtime access. This does not close production-volume restore,
+PITR, full owner compatibility, provider fencing or activation gates above.

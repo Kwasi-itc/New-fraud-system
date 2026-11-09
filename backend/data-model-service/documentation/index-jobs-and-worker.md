@@ -1,5 +1,10 @@
 # Index Jobs And Worker
 
+The executable/deployment behavior below describes PostgreSQL/River. For the
+MySQL migration, see [MySQL worker status](../MYSQL_WORKER_STATUS.md): the separate
+`cmd/mysql-worker` host executes search, navigation and repair jobs in the local
+Compose deployment. Its transport and recovery differ from the River flow below.
+
 This document explains the standalone service's async index-job system:
 
 - what an index job is

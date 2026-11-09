@@ -77,6 +77,24 @@ func TestUUIDAndErrors(t *testing.T) {
 	}
 }
 
+func TestInterpolationIsExplicitAndPinsSafeCharset(t *testing.T) {
+	c := testConfig()
+	c.AllowInsecureTransport = true
+	c.InterpolateParameters = true
+	cfg, err := c.connector()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.InterpolateParams || cfg.Collation != "utf8mb4_bin" || !strings.Contains(cfg.FormatDSN(), "charset=utf8mb4") || cfg.MultiStatements || cfg.AllowAllFiles || cfg.ClientFoundRows {
+		t.Fatal("unsafe parameter transport configuration")
+	}
+	c.InterpolateParameters = false
+	cfg, err = c.connector()
+	if err != nil || cfg.InterpolateParams {
+		t.Fatal("interpolation enabled implicitly", err)
+	}
+}
+
 func integrationDB(t *testing.T) *sql.DB {
 	t.Helper()
 	c := testConfig()

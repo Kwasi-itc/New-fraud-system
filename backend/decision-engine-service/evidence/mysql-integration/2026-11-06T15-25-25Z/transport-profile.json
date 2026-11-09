@@ -1,0 +1,7 @@
+{
+  "parameterInterpolation": true,
+  "source": "compose run -e DECISION_MYSQL_TEST_INTERPOLATE=1; testdata/mysql-aggregate-native-pattern.txt",
+  "previousRegression": "evidence/mysql-integration/2026-11-06T14-16-16Z/report.json",
+  "fullEvaluatorPublicationAttempt": "evidence/mysql-integration/2026-11-06T15-17-35Z",
+  "note": "The earlier stale compiler parameter-count assertion failed; repaired and all native aggregate contracts rerun in this attempt"
+}

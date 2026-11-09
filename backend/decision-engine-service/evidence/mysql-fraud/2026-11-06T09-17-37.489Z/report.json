@@ -1,0 +1,72 @@
+{
+  "at": "2026-11-06T09:22:51.858Z",
+  "runtimeImage": "sha256:fb5928fa7a68bc3749fba64b8eb18bcf8a073c4f996cfee07616d7643a7d29b1",
+  "runtimeUnchanged": true,
+  "fixtures": {
+    "at": "2026-11-06T09:17:37.506Z",
+    "tenants": [
+      {
+        "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+        "table": "f9ff9bc5-3127-4ba9-8c58-fcfddb5cb5a6",
+        "scenario": "485ca00a-cc4d-4e70-9830-894aaee4baa6",
+        "parent": "/v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scenarios/485ca00a-cc4d-4e70-9830-894aaee4baa6",
+        "iteration": "6bd3e51e-754b-4047-b39a-5a1a9b94c84c"
+      },
+      {
+        "tenant": "00e8b384-ae35-4c80-ad4f-f6dbbfae029e",
+        "table": "d82a1c4c-d275-4464-81ea-02d5a2aa64f8",
+        "scenario": "d9e819a5-3b26-45a2-a63b-3ef024dd56ee",
+        "parent": "/v1/tenants/00e8b384-ae35-4c80-ad4f-f6dbbfae029e/scenarios/d9e819a5-3b26-45a2-a63b-3ef024dd56ee",
+        "iteration": "1187a6e8-26ef-461b-aafd-39fea1936a94"
+      }
+    ],
+    "inactive": {
+      "tenant": "c01d1f48-4b0f-456f-9854-e93e7d86d722"
+    },
+    "late": {
+      "tenant": "fc408b04-cba0-418d-ad74-c2dd8e5d2657",
+      "table": "b80d4414-aaf9-4554-ad83-feef7060cc59",
+      "scenario": "93722805-315a-46ad-b2f5-4415e44f9678",
+      "parent": "/v1/tenants/fc408b04-cba0-418d-ad74-c2dd8e5d2657/scenarios/93722805-315a-46ad-b2f5-4415e44f9678",
+      "iteration": "96dfc138-0e70-4f6c-8ac5-d8e1cb2ff87b"
+    }
+  },
+  "datasetVersion": 1,
+  "syntheticTransactions": 256,
+  "verifiedTransactions": 256,
+  "outcomes": {
+    "approve": 81,
+    "review": 71,
+    "block_and_review": 71,
+    "decline": 33
+  },
+  "suites": [
+    {
+      "name": "all-active-tenant-mode-and-rule-publication",
+      "passed": true
+    },
+    {
+      "name": "synthetic-fraud-dataset-and-persisted-rule-explanations",
+      "passed": true
+    },
+    {
+      "name": "multi-tenant-policy-and-resource-isolation",
+      "passed": true
+    },
+    {
+      "name": "typed-input-validation-and-trigger-nonmatch",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: POST /v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scenarios/485ca00a-cc4d-4e70-9830-894aaee4baa6/evaluate: 200 {\"result\":{\"model_revision\":\"a115a2f3a0421597dcce3c78198a08da8301821a\",\"triggered\":true,\"decision\":{\"id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"tenant_id\":\"6e2b3016-636a-4622-b18c-424276502a73\",\"scenario_id\":\"485ca00a-cc4d-4e70-9830-894aaee4baa6\",\"scenario_iteration_id\":\"6bd3e51e-754b-4047-b39a-5a1a9b94c84c\",\"object_id\":\"boundary-001\",\"object_type\":\"fraud_transactions\",\"outcome\":\"approve\",\"score\":0,\"triggered\":true,\"created_at\":\"2026-11-06T09:22:23.918595Z\"},\"rule_executions\":[{\"id\":\"6c8c84a9-a3c1-4915-bc8c-74e63cdea63a\",\"decision_id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"rule_id\":\"d5d6e2aa-8fe4-40e4-95ad-aa1ca4631a58\",\"rule_name\":\"High transaction amount\",\"outcome\":\"no_hit\",\"score_modifier\":35,\"evaluation\":{\"function\":\"gte\",\"return_value\":false,\"children\":[{\"function\":\"Payload\",\"return_value\":100,\"children\":[{\"constant\":\"amount\",\"return_value\":\"amount\"}]},{\"constant\":10000,\"return_value\":10000}]},\"created_at\":\"2026-11-06T09:22:23.918595Z\"},{\"id\":\"df0046b9-e895-46b1-82b7-08048adf9258\",\"decision_id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"rule_id\":\"d72f2995-e7ed-456e-a32f-c4a5a0a9e75f\",\"rule_name\":\"High supplied risk score\",\"outcome\":\"no_hit\",\"score_modifier\":40,\"evaluation\":{\"function\":\"gte\",\"return_value\":false,\"children\":[{\"function\":\"Payload\",\"return_value\":0,\"children\":[{\"constant\":\"risk_score\",\"return_value\":\"risk_score\"}]},{\"constant\":80,\"return_value\":80}]},\"created_at\":\"2026-11-06T09:22:23.918595Z\"},{\"id\":\"69ea7b5f-26fb-4702-9907-55326a385e7c\",\"decision_id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"rule_id\":\"3feccc72-e35d-470d-afe3-f1d214f187f8\",\"rule_name\":\"New account making a large payment\",\"outcome\":\"no_hit\",\"score_modifier\":25,\"evaluation\":{\"function\":\"and\",\"return_value\":false,\"children\":[{\"function\":\"lt\",\"return_value\":false,\"children\":[{\"function\":\"Payload\",\"return_value\":30,\"children\":[{\"constant\":\"customer_age_days\",\"return_value\":\"customer_age_days\"}]},{\"constant\":7,\"return_value\":7}]},{\"function\":\"gte\",\"children\":[{\"function\":\"Payload\",\"children\":[{\"constant\":\"amount\",\"skipped\":true}],\"skipped\":true},{\"constant\":1000,\"skipped\":true}],\"skipped\":true}]},\"created_at\":\"2026-11-06T09:22:23.918595Z\"},{\"id\":\"b66a8582-918d-4052-b8d1-3174dedbf90e\",\"decision_id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"rule_id\":\"fb6bc771-e211-4943-bcb2-92d3fe82855d\",\"rule_name\":\"Foreign currency and merchant country\",\"outcome\":\"no_hit\",\"score_modifier\":10,\"evaluation\":{\"function\":\"and\",\"return_value\":false,\"children\":[{\"function\":\"neq\",\"return_value\":false,\"children\":[{\"function\":\"Payload\",\"return_value\":\"USD\",\"children\":[{\"constant\":\"currency\",\"return_value\":\"currency\"}]},{\"constant\":\"USD\",\"return_value\":\"USD\"}]},{\"function\":\"neq\",\"children\":[{\"function\":\"Payload\",\"children\":[{\"constant\":\"merchant_country\",\"skipped\":true}],\"skipped\":true},{\"constant\":\"US\",\"skipped\":true}],\"skipped\":true}]},\"created_at\":\"2026-11-06T09:22:23.918595Z\"},{\"id\":\"cdef1b7e-040e-4dfd-bc25-f986ae6a36da\",\"decision_id\":\"b48e1b2d-b038-47e4-8975-2aafa889def1\",\"rule_id\":\"66626b09-3e33-4f5b-9991-9cf485608d21\",\"rule_name\":\"Large card-not-present payment\",\"outcome\":\"no_hit\",\"score_modifier\":20,\"evaluation\":{\"function\":\"and\",\"return_value\":false,\"children\":[{\"function\":\"not\",\"return_value\":true,\"children\":[{\"function\":\"Payload\",\"return_value\":false,\"children\":[{\"constant\":\"card_present\",\"return_value\":\"card_present\"}]}]},{\"function\":\"gte\",\"return_value\":false,\"children\":[{\"function\":\"Payload\",\"return_value\":100,\"children\":[{\"constant\":\"amount\",\"return_value\":\"amount\"}]},{\"constant\":5000,\"return_value\":5000}]}]},\"created_at\":\"2026-11-06T09:22:23.918595Z\"}]}}\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:16:272)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:71:159\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:19:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:70:2"
+    },
+    {
+      "name": "async-scheduled-evaluation-and-cross-tenant-local-delivery",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: GET /v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scheduled-executions/f971be37-722a-4228-8ba9-e02c0e95048c: 404 404 page not found\n    at call (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:16:272)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async until (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:20:76)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:83:4\n    at async suite (file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:19:49)\n    at async file:///C:/Users/T%20H%20I%20N%20K/Documents/Dev/Work/ITC/marble/New-fraud-system/backend/decision-engine-service/scripts/mysql-fraud-audit.mjs:74:2"
+    },
+    {
+      "name": "new-tenant-discovery-without-restarting-the-decision-service",
+      "passed": true
+    }
+  ],
+  "passed": false
+}

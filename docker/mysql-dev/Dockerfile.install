@@ -1,0 +1,16 @@
+FROM golang:1.25.0 AS build
+WORKDIR /backend
+COPY backend/mysqlstore ./mysqlstore
+COPY backend/data-model-service ./data-model-service
+COPY backend/ingestion-service ./ingestion-service
+COPY backend/decision-engine-service ./decision-engine-service
+COPY backend/auth-service ./auth-service
+COPY backend/case-manager-service ./case-manager-service
+COPY backend/screening-service ./screening-service
+RUN cd data-model-service && CGO_ENABLED=0 go build -mod=readonly -o /bin/install-data-model ./cmd/mysql-dev-install
+RUN cd ingestion-service && CGO_ENABLED=0 go build -mod=readonly -o /bin/install-ingestion ./cmd/mysql-dev-install
+RUN cd decision-engine-service && CGO_ENABLED=0 go build -mod=readonly -o /bin/install-decisions ./cmd/mysql-dev-install
+FROM gcr.io/distroless/base-debian12
+COPY --from=build /bin/install-data-model /app/install-data-model
+COPY --from=build /bin/install-ingestion /app/install-ingestion
+COPY --from=build /bin/install-decisions /app/install-decisions

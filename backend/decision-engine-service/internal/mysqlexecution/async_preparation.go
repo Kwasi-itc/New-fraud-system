@@ -114,7 +114,7 @@ func (p *Preparer) PrepareAsync(ctx context.Context, identity mysqljobs.Identity
 		if err != nil {
 			return PreparedAsync{}, err
 		}
-		if err := service.ValidatePinnedModel(pins[i], model); err != nil {
+		if err := p.evaluator.ValidatePinnedModel(pins[i], model); err != nil {
 			return PreparedAsync{}, err
 		}
 	}

@@ -349,6 +349,19 @@ func (s WorkflowRuleService) aggregate(ctx context.Context, tenantID string, rul
 }
 
 func (s WorkflowRuleService) validateCondition(ctx context.Context, tenantID, scenarioID string, item workflow.Condition) error {
+	return ValidateWorkflowCondition(item, func() (string, ports.TenantModel, error) {
+		scn, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
+		if err != nil {
+			return "", ports.TenantModel{}, err
+		}
+		model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+		return scn.TriggerObjectType, model, err
+	})
+}
+
+// ValidateWorkflowCondition shares the condition language across storage hosts.
+// Resolve is called only for expressions requiring authorized current metadata.
+func ValidateWorkflowCondition(item workflow.Condition, resolve func() (string, ports.TenantModel, error)) error {
 	if err := item.Validate(); err != nil {
 		return err
 	}
@@ -394,11 +407,7 @@ func (s WorkflowRuleService) validateCondition(ctx context.Context, tenantID, sc
 		if len(params.Expression) == 0 {
 			return fmt.Errorf("expression is required")
 		}
-		scn, err := s.scenarioRepo.GetByID(ctx, tenantID, scenarioID)
-		if err != nil {
-			return err
-		}
-		model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+		objectType, model, err := resolve()
 		if err != nil {
 			return err
 		}
@@ -406,7 +415,7 @@ func (s WorkflowRuleService) validateCondition(ctx context.Context, tenantID, sc
 		if err := json.Unmarshal(params.Expression, &node); err != nil {
 			return err
 		}
-		valueType, errs := asteval.ValidateNode(node, model, scn.TriggerObjectType)
+		valueType, errs := asteval.ValidateNode(node, model, objectType)
 		if len(errs) > 0 {
 			return fmt.Errorf("invalid payload expression: %v", errs)
 		}

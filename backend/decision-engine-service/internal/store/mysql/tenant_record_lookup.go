@@ -13,6 +13,27 @@ import (
 // LONGTEXT or allocate a key. The data query uses its unique BINARY(16) index and
 // retains a full exact-text residual even after resolving a colliding bucket.
 func (r authoringRepository) recordLookup(ctx context.Context, t registryTable, value string) (string, []any, error) {
+	if t.ownerRecordKeys {
+		// registry() already locked and verified the actual owner publication
+		// token and physical mappings. v005 only resolves the scoped exact key;
+		// the physical row read retains the full binary-text residual.
+		lookup, ok := t.fields[t.lookup]
+		if !ok || !lookup.IsUnique || lookup.Type != "string" {
+			return "", nil, ErrPublishedModelUnavailable
+		}
+		var key mysqlstore.NullUUID
+		err := r.tx.QueryRowContext(ctx, "SELECT "+r.schema+".data_model_find_record_object_key_v1(?,?,?)", mysqlstore.UUID(r.tenant), mysqlstore.UUID(t.id), mysqlstore.Text(value)).Scan(&key)
+		if err != nil {
+			return "", nil, errors.Join(ErrPublishedModelUnavailable, err)
+		}
+		if !key.Valid {
+			return "", nil, sql.ErrNoRows
+		}
+		if uuid.UUID(key.UUID) == uuid.Nil {
+			return "", nil, ErrPublishedModelUnavailable
+		}
+		return "`record_object_key_id`=? AND CAST(" + lookup.columns["value"] + " AS BINARY)=CAST(? AS BINARY)", []any{key.UUID, mysqlstore.Text(value)}, nil
+	}
 	var field mysqlstore.UUID
 	var kind, keyColumn string
 	args := []any{mysqlstore.UUID(r.tenant), mysqlstore.UUID(t.id)}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -89,6 +90,7 @@ type DecisionService struct {
 	decisionRepo                  ports.DecisionRepository
 	ruleExecRepo                  ports.RuleExecutionRepository
 	workflowRepo                  ports.EvaluationWorkflows
+	routingReader                 ports.EvaluationRoutingReader
 	workflowRuleRepo              ports.EvaluationWorkflowRules
 	workflowCondRepo              ports.WorkflowConditionRepository
 	workflowActionRepo            ports.WorkflowActionRepository
@@ -110,6 +112,8 @@ type DecisionService struct {
 	ruleEvaluationConcurrency     int
 	scenarioEvaluationConcurrency int
 	aggregateRemoteConcurrency    int
+	aggregateExecutor             *asteval.AggregateExecutor
+	formulaPlans                  *asteval.FormulaPlans
 	evaluationCache               *decisionEvaluationCache
 	metadataLoadGroup             *singleflight.Group
 	dbPoolStatsProvider           DBPoolStatsProvider
@@ -378,6 +382,11 @@ func (s DecisionService) evaluateScenarioWithOptions(
 	timingStartedAt := time.Now()
 	stageStartedAt := timingStartedAt
 	timings := make(map[string]int64, 20)
+	defer func() {
+		for name, micros := range timings {
+			ports.RecordEvaluationDuration(ctx, "prepare_"+strings.TrimSuffix(name, "_us"), time.Duration(micros)*time.Microsecond)
+		}
+	}()
 	currentStage := "scenario_get"
 	poolStatsBefore, hasPoolStats := s.snapshotDBPoolStats()
 	cacheStatsBefore, hasCacheStats := s.snapshotCacheStats()
@@ -466,6 +475,17 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		AggregateResultCache:        aggregateCache,
 		RelatedPathCache:            asteval.NewRelatedPathCache(),
 		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
+		AggregateBatcher:            asteval.NewAggregateBatcher(ctx, tenantID, req.prepared.reader, s.aggregateExecutor),
+		FormulaPlans:                s.formulaPlans,
+	}
+	if options.snapshot != nil {
+		// Model fingerprint includes published versions and field definitions;
+		// model validation remains fresh before every pinned preparation.
+		var scopeErr error
+		runtime.PlanScope, scopeErr = options.snapshot.modelPlanScope(model)
+		if scopeErr != nil {
+			return DecisionEvaluationResult{}, scopeErr
+		}
 	}
 	currentStage = "trigger_eval"
 	triggered, err := asteval.EvaluateFormula(ctx, iteration.TriggerFormula, runtime)
@@ -572,9 +592,22 @@ func (s DecisionService) evaluateScenarioWithOptions(
 
 	var stored decision.Decision
 	var storedExecs []decision.RuleExecution
+	var routing *ports.EvaluationRoutingSnapshot
+	if options.snapshot != nil && s.routingReader != nil {
+		started := time.Now()
+		read, readErr := s.routingReader.ReadEvaluationRouting(ctx, tenantID, scenarioID)
+		timings["routing_read_us"] = time.Since(started).Microseconds()
+		if readErr != nil {
+			return DecisionEvaluationResult{}, readErr
+		}
+		if read.TenantID != tenantID || read.ScenarioID != scenarioID {
+			return DecisionEvaluationResult{}, ErrExecutionPreparation
+		}
+		routing = &read
+	}
 	currentStage = "workflow_build"
 	workflowBuildStartedAt := time.Now()
-	workflowExecs, err := s.buildWorkflowExecutions(ctx, item, ruleExecs, runtime)
+	workflowExecs, err := s.buildWorkflowExecutionsWithRouting(ctx, item, ruleExecs, runtime, routing)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -583,7 +616,7 @@ func (s DecisionService) evaluateScenarioWithOptions(
 	stageStartedAt = workflowBuiltAt
 	currentStage = "screening_build"
 	screeningBuildStartedAt := time.Now()
-	screeningExecs, err := s.buildScreeningExecutions(ctx, item, req.Fields)
+	screeningExecs, err := s.buildScreeningExecutionsWithRouting(ctx, item, req.Fields, routing)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -592,7 +625,7 @@ func (s DecisionService) evaluateScenarioWithOptions(
 	stageStartedAt = screeningBuiltAt
 	currentStage = "scoring_build"
 	scoringBuildStartedAt := time.Now()
-	scoringReqs, err := s.buildScoringRequests(ctx, item)
+	scoringReqs, err := s.buildScoringRequestsWithRouting(ctx, item, routing)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -609,6 +642,13 @@ func (s DecisionService) evaluateScenarioWithOptions(
 	// This local persistence function is shared by ordinary synchronous writes
 	// and target pinned preparation. It retains outputs, not a transaction.
 	persist := func(ctx context.Context, store ports.DecisionMutationStore) error {
+		defer func() {
+			for name, micros := range timings {
+				if strings.HasPrefix(name, "tx_") {
+					ports.RecordEvaluationDuration(ctx, strings.TrimSuffix(name, "_us"), time.Duration(micros)*time.Microsecond)
+				}
+			}
+		}()
 		txStartedAt := time.Now()
 		txStageStartedAt := txStartedAt
 		markTxTiming := func(stage string) {
@@ -635,10 +675,12 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		if err != nil {
 			return err
 		}
-		for _, item := range storedWorkflowExecs {
-			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobWorkflow, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
-				return err
-			}
+		workflowJobs := make([]ports.JobRequest, len(storedWorkflowExecs))
+		for i, item := range storedWorkflowExecs {
+			workflowJobs[i] = ports.JobRequest{Kind: ports.JobWorkflow, TenantID: item.TenantID, ResourceID: item.ID}
+		}
+		if err := enqueueDecisionJobs(ctx, store, workflowJobs); err != nil {
+			return err
 		}
 		markTxTiming("workflow_insert")
 		currentStage = "tx_screening_insert"
@@ -646,10 +688,12 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		if err != nil {
 			return err
 		}
-		for _, item := range storedScreeningExecs {
-			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScreening, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
-				return err
-			}
+		screeningJobs := make([]ports.JobRequest, len(storedScreeningExecs))
+		for i, item := range storedScreeningExecs {
+			screeningJobs[i] = ports.JobRequest{Kind: ports.JobScreening, TenantID: item.TenantID, ResourceID: item.ID}
+		}
+		if err := enqueueDecisionJobs(ctx, store, screeningJobs); err != nil {
+			return err
 		}
 		markTxTiming("screening_insert")
 		currentStage = "tx_scoring_insert"
@@ -657,10 +701,12 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		if err != nil {
 			return err
 		}
-		for _, item := range storedScoringReqs {
-			if err := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobScoring, TenantID: item.TenantID, ResourceID: item.ID}); err != nil {
-				return err
-			}
+		scoringJobs := make([]ports.JobRequest, len(storedScoringReqs))
+		for i, item := range storedScoringReqs {
+			scoringJobs[i] = ports.JobRequest{Kind: ports.JobScoring, TenantID: item.TenantID, ResourceID: item.ID}
+		}
+		if err := enqueueDecisionJobs(ctx, store, scoringJobs); err != nil {
+			return err
 		}
 		markTxTiming("scoring_insert")
 		// Optional integration publication is independent of workflow dispatch and
@@ -682,10 +728,12 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		currentStage = "tx_outbox_insert"
 		storedOutboxEvents, err := store.OutboxEvents().CreateMany(ctx, outboxEvents)
 		if err == nil {
-			for _, item := range storedOutboxEvents {
-				if enqueueErr := store.Enqueue(ctx, ports.JobRequest{Kind: ports.JobOutbox, TenantID: item.TenantID, ResourceID: item.ID}); enqueueErr != nil {
-					return enqueueErr
-				}
+			jobs := make([]ports.JobRequest, len(storedOutboxEvents))
+			for i, item := range storedOutboxEvents {
+				jobs[i] = ports.JobRequest{Kind: ports.JobOutbox, TenantID: item.TenantID, ResourceID: item.ID}
+			}
+			if enqueueErr := enqueueDecisionJobs(ctx, store, jobs); enqueueErr != nil {
+				return enqueueErr
 			}
 		}
 		markTxTiming("outbox_insert")
@@ -1856,13 +1904,12 @@ func cloneTenantModel(item ports.TenantModel) ports.TenantModel {
 		Tables:              make(map[string]ports.TenantModelTable, len(item.Tables)),
 	}
 	for name, table := range item.Tables {
-		clonedTable := ports.TenantModelTable{
-			ID:            table.ID,
-			Name:          table.Name,
-			Archived:      table.Archived,
-			Fields:        make(map[string]ports.TenantModelField, len(table.Fields)),
-			LinksToSingle: make(map[string]ports.TenantModelLink, len(table.LinksToSingle)),
-		}
+		// Keep publication identity along with the logical table metadata. The
+		// registry reader rejects an absent/stale publication token, including
+		// when this snapshot passed through the shared metadata cache.
+		clonedTable := table
+		clonedTable.Fields = make(map[string]ports.TenantModelField, len(table.Fields))
+		clonedTable.LinksToSingle = make(map[string]ports.TenantModelLink, len(table.LinksToSingle))
 		for fieldName, field := range table.Fields {
 			field.EnumValues = append([]string(nil), field.EnumValues...)
 			clonedTable.Fields[fieldName] = field
@@ -2216,15 +2263,29 @@ func resolveScenarioEvaluationConcurrency(configured, scenarioCount int) int {
 }
 
 func (s DecisionService) buildWorkflowExecutions(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime) ([]workflow.Execution, error) {
+	return s.buildWorkflowExecutionsWithRouting(ctx, item, ruleExecs, runtime, nil)
+}
+func (s DecisionService) buildWorkflowExecutionsWithRouting(ctx context.Context, item decision.Decision, ruleExecs []decision.RuleExecution, runtime asteval.Runtime, routing *ports.EvaluationRoutingSnapshot) ([]workflow.Execution, error) {
 	// One statement snapshot prevents mixing conditions and actions from different edits.
-	structuredRules, err := s.workflowRuleRepo.ListStructured(ctx, item.TenantID, item.ScenarioID)
+	var structuredRules []workflow.StructuredRule
+	var err error
+	if routing != nil {
+		structuredRules = routing.WorkflowRules
+	} else {
+		structuredRules, err = s.workflowRuleRepo.ListStructured(ctx, item.TenantID, item.ScenarioID)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if len(structuredRules) > 0 {
 		return s.buildStructuredWorkflowExecutions(ctx, item, ruleExecs, runtime, structuredRules)
 	}
-	workflows, err := s.getActiveWorkflows(ctx, item.TenantID, item.ScenarioID)
+	var workflows []workflow.Definition
+	if routing != nil {
+		workflows = routing.Workflows
+	} else {
+		workflows, err = s.getActiveWorkflows(ctx, item.TenantID, item.ScenarioID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -2371,7 +2432,16 @@ func stringPtr(value string) *string {
 }
 
 func (s DecisionService) buildScreeningExecutions(ctx context.Context, item decision.Decision, objectFields map[string]any) ([]screening.Execution, error) {
-	configs, err := s.getActiveScreeningConfigs(ctx, item.TenantID, item.ScenarioID)
+	return s.buildScreeningExecutionsWithRouting(ctx, item, objectFields, nil)
+}
+func (s DecisionService) buildScreeningExecutionsWithRouting(ctx context.Context, item decision.Decision, objectFields map[string]any, routing *ports.EvaluationRoutingSnapshot) ([]screening.Execution, error) {
+	var configs []screening.Config
+	var err error
+	if routing != nil {
+		configs = routing.ScreeningConfigs
+	} else {
+		configs, err = s.getActiveScreeningConfigs(ctx, item.TenantID, item.ScenarioID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -2438,7 +2508,16 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 }
 
 func (s DecisionService) buildScoringRequests(ctx context.Context, item decision.Decision) ([]scoring.Request, error) {
-	configs, err := s.getActiveScoringConfigs(ctx, item.TenantID, item.ScenarioID)
+	return s.buildScoringRequestsWithRouting(ctx, item, nil)
+}
+func (s DecisionService) buildScoringRequestsWithRouting(ctx context.Context, item decision.Decision, routing *ports.EvaluationRoutingSnapshot) ([]scoring.Request, error) {
+	var configs []scoring.Config
+	var err error
+	if routing != nil {
+		configs = routing.ScoringConfigs
+	} else {
+		configs, err = s.getActiveScoringConfigs(ctx, item.TenantID, item.ScenarioID)
+	}
 	if err != nil {
 		return nil, err
 	}

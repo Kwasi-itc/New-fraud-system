@@ -3167,3 +3167,788 @@ Decision-engine module tests and vet passed; optional database tests in the broa
 suite remain opt-in. Explicit schema-manifest PostgreSQL integration and new
 MySQL ignore-list race integration passed on isolated fixtures. Both merge parents
 remain preserved. No force push or production runtime change is authorized here.
+
+## 2026-11-02 — Decision publication API, guarded release installer and service parity
+
+Implemented decision-owned work under D13/D15/D24/D25. The inactive MySQL API
+now connects scenario publication/unpublication and bounded history to the
+existing prepared coordinator, with strict decoding, same-scope composition,
+current authorization and atomic rollback. Shared migrations gained an explicit
+same-session pre-write guard; the decision release library uses it before each
+write. The public release CLI remains read-only and no runtime was switched.
+Added actual DecisionService PostgreSQL/MySQL threshold and persisted-evidence
+comparison, including non-triggering and invalid inputs.
+
+Final isolated race evidence: 62 top-level tests and 39 subtests passed, zero
+failures/skips. Whole decision module compile and affected vet passed; shared
+migration vet passed. Go 1.25.8, MySQL 8.4.8, PostgreSQL 16.15. A Windows shell
+quoting error prevented one capture command from starting tests; corrected
+accepted JSONL output is retained. Existing source inventory/mapping inputs and
+149-step target SQL lineage were not changed. No performance/Aurora acceptance.
+
+No parent checkbox was closed. Real foreign providers, complete model/index-job
+and remaining authoring API integration, full business/provider differential,
+production artifact/grants/inspection review and shared-stack deployment/restore
+acceptance remain open. Publication history is capped rather than paginated;
+publication operation-result replay is not implemented by these routes.
+Evidence: evidence/2026-11-02_decision_implementation.json.
+
+## 2026-11-02 — Decision authoring APIs and validated draft commit
+
+Implemented the inactive MySQL application paths for scenario CRUD, draft
+creation/editing/clone/commit, iteration metadata/listing and rule CRUD/groups.
+The coordinator uses bounded owner repositories and current authorization.
+Draft validation occurs outside locks; the final transaction freezes/rechecks
+the complete draft and published model registry before committing. A changed
+rule, revoked authority, closed model gate or failed statement cannot return a
+successful committed draft. Concurrent version allocation and rollback were
+verified. Existing DTO shapes and draft defaults are retained; malformed requests
+and signed-INT overflow are rejected before SQL.
+
+Accepted race runs contain 64 distinct top-level tests and 9 subtests with no
+failures/skips. Actual HTTP lifecycle, cross-scenario scope, clone identity,
+immutability, version rollback, commit rollback and provider-time edit tests
+passed, alongside PostgreSQL/MySQL authoring and preparation regressions.
+Whole-module compilation and affected-package vet passed. Fresh disposable-PG
+mapping regeneration changed only the shared validator source hash; target SQL
+lineage and configured runtime are unchanged. Fixtures used MySQL 8.4.8 and
+Go 1.25.8 with explicit test model/authority providers.
+
+No parent acceptance task was closed. Remaining graph-copy/browser/configuration
+HTTP composition, standalone validation/preparation APIs, index jobs, real
+providers and release/activation acceptance are recorded in the module checklist.
+Performance/load acceptance remains deferred. These changes are not deployed.
+Evidence: evidence/2026-11-02_decision_authoring.json.
+
+## 2026-11-02 — Ten remaining decision API subtasks completed
+
+Completed and checked T01–T10: scoring configuration list/detail/create/update/
+delete; standalone iteration validation; latest rules; iteration deactivation;
+keyset publication history; authenticated rule-function catalog. Each has a
+named actual HTTP subtest and is wired into the inactive MySQL application.
+Configuration and ordered outcomes share authorized transactions; validation
+rechecks authority/draft identity after model retrieval; latest rules use the
+live link or a one-row version lookup; deactivation uses the existing publication
+owner; history cursors bind tenant/scenario and preserve timestamp/UUID ordering.
+
+Accepted evidence contains 86 top-level tests and 52 subtests with race detection,
+zero failures/skips. Concurrent scoring updates/snapshot reads, create/update
+rollback, deletion conflicts, tenant scope, revocation, model-time edits,
+validation budgets, cursor rejection/ties and history-cap behavior passed.
+Full-module compilation and affected vet passed. Disposable-PG source mapping
+regeneration changes the validation-service hash only for this batch; target SQL
+lineage is unchanged. Initial HTTP test assumptions about cross-scenario conflict
+status and mutable publication history were corrected: the final tests preserve
+409 conflict semantics and append tied fixture events without disabling guards.
+
+The ten checks close API subtasks, not parent migration acceptance gates. Real
+providers, remaining APIs/index jobs and release/activation remain open. No
+production change, runtime switch, commit or push. Performance/load/query-plan
+acceptance remains deferred. Evidence: evidence/2026-11-02_decision_ten_api_tasks.json.
+
+### 2026-11-02 — Decision history API tasks T11–T20
+
+Implemented and checked ten new historical-read API subtasks: tenant/scenario
+decision pages, filtered count, detail with evidence, test-run list/detail,
+active snoozes, workflow execution history and scoring-request list/detail.
+One read-only authorized snapshot owns each response. Cursor filters are bound,
+list payloads are projected out and collection overflow fails explicitly.
+Read-only enforcement, concurrent-writer snapshot stability, strict query/cursor
+validation, exact identity, tenant isolation and revocation were verified.
+
+Accepted runs: 58 distinct top-level tests and 32 subtests, race enabled, zero
+failures/skips; whole-module compile and affected-package vet passed. Initial
+fixture field/timestamp/event-URL errors were corrected before accepted runs.
+A uniform 512-row object fixture selected a scan; a varied fixture selected
+indexed tenant/scenario/exact-object page access. No SQL/index change or broad
+performance claim follows from those plans. Production performance acceptance
+remains deferred. All ten named HTTP checks passed.
+
+No parent migration gate, provider contract, release or runtime activation was
+closed. PostgreSQL stays configured. No production migration, deployment, commit
+or push. Evidence: evidence/2026-11-02_decision_history_tasks.json.
+### 2026-11-02 — Decision administration API tasks T21–T30
+
+Completed and checked ten new subtasks: workflow list/detail/create/update/delete/
+reorder, test-run create/cancel, snooze creation and bounded outbox history.
+Workflow operations use explicit workflow authority and approved inbox/tag SQL
+contracts; authorizations precede owner locks and changed snapshots are rejected.
+No real provider is substituted. Test-run publication selection and insertion are
+atomic. Snoozes preserve exact object identity. Runtime remains PostgreSQL.
+
+Accepted final verification: 57 distinct top-level tests and 43 subtests, race
+enabled, zero failures/skips, all ten named HTTP checks passed. Whole-module
+compilation and affected-package vet passed. Tests include transactional rollback,
+revocation/tenant isolation, concurrent display-order allocation, unrelated-owner
+progress, deterministic stale-write rejection, allocation beyond the list cap,
+inactive/denied inboxes and missing tag-provider failures. A 33-row correctness
+fixture logged the MAX-order query plan; production performance remains deferred.
+Missing-parent and invalid-text responses were corrected during final review and
+reverified. No production migration, deployment, runtime switch, commit or push.
+
+Remaining: comparison evaluation/statistics, other API/browser gaps, real provider
+integration, full acceptance, release and activation. Parent gates remain open.
+Evidence: evidence/2026-11-02_decision_administration_tasks.json.
+### 2026-11-02 — Decision custom-list API tasks T31–T40
+
+Completed and checked list collection/detail/create/update/delete and entry
+collection/create/import/update/delete. Owner authority and exact tenant/parent
+binding govern each route. CSV uploads are bounded and parsed before locks;
+100-row inserts share one atomic transaction and selected-parent lock. Renames
+atomically update linked names; unrelated lists remain independent.
+
+Accepted verification: 58 distinct top-level tests and 61 subtests, race enabled,
+zero failures/skips, all ten named HTTP checks passed. Whole-module compilation
+and affected-package vet passed. Tests cover revoked/foreign access, invalid input,
+second-batch rollback, bounded uploads/collections, empty-import mutation authority,
+rename/import concurrency and evaluator visibility. A test-only unused variable
+was corrected before the accepted store/compile run. The 256-entry query plan is
+correctness evidence only; production performance acceptance remains deferred.
+
+Collections have no cursors. Repeated imports can insert existing equal values,
+matching source semantics. Legacy by-name lookup and other API gaps, real authority/
+providers, full parity, release and activation remain open. No production migration,
+deployment, runtime switch, commit or push; PostgreSQL remains configured.
+Evidence: evidence/2026-11-02_decision_custom_list_tasks.json.
+
+### 2026-11-02 — Decision platform tasks T41–T50
+
+Completed and checked six missing platform endpoints (list-name entry lookup,
+record-tag list/create, risk-snapshot create, IP-flag list/create) and four required
+integration tasks (separate mutation authority, strict requests, bounded results,
+rollback/evaluator consistency). Platform mutations use an explicit trusted
+PlatformMutations callback; generic evaluation persistence grants no such authority.
+No new production permission adapter or permissive provider is supplied.
+
+Accepted verification: 63 distinct top-level tests and 91 subtests passed with
+race detection, zero failures/skips. All ten named HTTP checks passed. Full-module
+compilation and affected-package vet passed. Coverage includes tenant/revocation,
+missing mutation contracts, exact whitespace/empty values, row/text/upload limits,
+post-insert readback rollback for all three record types, discarded provisional
+outputs, concurrent inserts and evaluator snapshot/commit visibility. The initial
+compile ran before the HTTP helper file was present; the completed files passed
+the final compile, race suites and vet.
+
+Existing bounded indexed repositories were reused; no schema/index change or
+performance optimization claim. Required query/body fields are explicit/non-null;
+empty list_name retains source all-entry semantics within the configured cap.
+Collections have no cursors; creates are not idempotent. Real permissions/providers,
+comparison/screening and other remaining APIs, full parity, production performance,
+release and activation remain open. PostgreSQL remains configured. No deployment,
+production migration, commit or push.
+Evidence: evidence/2026-11-02_decision_platform_tasks.json.
+
+### 2026-11-02 — D13–D20 scoped implementation and acceptance audit
+
+Implemented staged browser workflow list/save/delete HTTP composition with trusted
+session identity, strict 16 KiB JSON limits, version checks and atomic audits.
+Actual HTTP tests cover forged actor headers, absent/denied/revoked providers,
+tenant isolation, stale writes, audit failure rollback and deletion. Added a
+48-record PostgreSQL/MySQL history corpus with 14 filters, counts, cursor/offset
+pages, exact object IDs and snooze expiry boundaries. Extended actual-service
+cross-engine comparisons to configured workflow/screening/scoring effects, outbox
+and required jobs; forced job failures leave all seven table counts unchanged.
+
+Accepted verification: 171 distinct top-level tests and 214 subtests passed with
+race detection, zero failures/skips. Query-plan tests were explicitly excluded.
+Whole-module compilation and affected-package vet passed. Initial fixture issues
+(missing snooze migration and job-interface signatures) were corrected before the
+accepted runs. Model/authority/foreign SQL/job fixtures are explicitly test-only.
+
+D16 remains checked. D13–D15 and D17–D20 retain open parent gates: real published
+models/index jobs, graph-copy HTTP/destination models, actual identity/case/list/
+platform/screening/scoring/dispatch providers, complete failure/provider acceptance
+and deployment grants. Production performance was previously deferred. The user
+was asked whether to expand into dependent services and reopen that acceptance;
+no scope answer has been received at this checkpoint. No live runtime change,
+production migration, deployment, commit or push. PostgreSQL remains configured.
+Evidence: evidence/2026-11-02_decision_d13_d20_progress.json.
+### 2026-11-02 — D13–D20 continuation: publication contract and browser copy
+
+Added an opt-in publication-aware data-model reader, owner DTO/OpenAPI token
+mapping and consumer support. Metadata, revision and table publication versions
+share one bounded snapshot. Closed/active gates and archived tables expose no
+usable token. Decision preparation requests fresh HTTP models and does not fall
+back to cached values after failure; responses are bounded to 64 MiB.
+
+Added browser workflow copy HTTP with trusted actor attribution, fresh destination
+model checks, field/operator/literal compatibility, registry version fencing and
+mutation-time model-read authority rechecks before case locks. Existing graph,
+priority and audit writes remain atomic. Copy is not idempotent. Scenario graph
+copy is still separate unfinished work.
+
+Accepted evidence: 140 distinct top-level tests and 208 subtests passed with race
+detection, zero failures/skips. The full decision-store suite includes query-plan
+and PostgreSQL/MySQL differential tests. Runtime, browser copy, owner snapshot,
+concurrent token/metadata consistency, exact budgets, tenant/permission rejection
+and audit rollback passed. Both modules compiled and affected-package vet passed.
+The initial browser assertion expected 503 for unpublished destination; corrected
+to the established 409 contract before the accepted run. A final focused browser
+regression verified the later mutation-time authority recheck.
+
+The renewed instruction authorizes dependent-service implementation; the previous
+scope question no longer blocks work. Numeric performance targets were requested
+because G0 requires them before performance acceptance. No production throughput,
+SLO, provider conformance or deployment acceptance is claimed. D16 remains checked;
+D13–D15/D17–D20 retain their real-provider, graph-copy/index and acceptance gates.
+No production database/configuration change, deployment, commit or push.
+Evidence: evidence/2026-11-02_decision_d13_d20_followup.json.
+### 2026-11-02 � D17 scenario graph-copy continuation
+
+Implemented the staged scenario-copy route, fresh-model/AST preparation outside
+write transactions, current case permissions and registry guards, and copied
+rule-hit identity remapping. Added HTTP live-copy/rollback/revocation checks and
+store tests for case-reference denial, missing providers and released preparation
+connections. The full store race suite included query-plan tests. Across runtime,
+API, execution, store, service and migration-audit suites, 294 distinct top-level
+tests and 319 subtests passed; zero skips. The initial service suite failed on a
+stale source manifest; reviewed regeneration and the full service/audit rerun
+passed. Whole-module compilation and affected-package vet passed. Raw initial
+failure evidence is retained alongside the clean rerun.
+
+Only these verified subtasks are ticked. D13-D15 and D17-D25 retain outstanding
+provider, index-preparation, full acceptance and release work. No runtime switch,
+application database change, production load claim, deployment, commit or push.
+Evidence: evidence/2026-11-02_graph-copy-*.jsonl and matching compile/vet logs.
+
+### 2026-11-03 � D13-D15 bounded preparation and parity
+
+Implemented draft/committed preparation GET/POST APIs, an explicit bounded index
+provider contract and client, owner scoped HTTP/SQL reads, and PostgreSQL index
+migration 000009. Missing search indexes are requested through owner APIs; failures
+and cancellation propagate. Non-search jobs cannot satisfy search requirements.
+Extended real PostgreSQL/MySQL tests for cursor continuation during new inserts,
+snoozed-rule scoring/evidence, source whitespace normalization and exclusive expiry.
+
+Accepted race runs: 187 distinct top-level tests and 227 subtests, no failures or
+skips. Both modules compiled and affected-package vet passed. The scoped PostgreSQL
+plan selected the new index with 5,000 unrelated jobs. Reviewed source-manifest
+regeneration passed the full service/audit rerun. Initial incorrect whitespace test
+expectation and an import-edit/build overlap were corrected before accepted runs.
+
+Ticked only verified local subtasks. D13 target owner/worker/grant configuration and
+D14/D15 full provider/failure/performance acceptance remain open. Numeric targets
+are still required for SLO acceptance. No application DB change, cutover, deployment,
+commit or push. Evidence: evidence/2026-11-03_decision_d13_d15.json.
+
+### 2026-11-03 - D13-D15 owner identity and fault recovery
+
+Preserved index-job tenant/table UUIDs and enforced fresh-model name/UUID binding,
+complete results and byte budgets before mutations. Added accepted-job/lost-response
+reconciliation coverage. Extended real PostgreSQL/MySQL cursor parity to absent
+boundaries and actual-service rollback tests to evidence, workflow, screening,
+scoring and outbox failures. Accepted race runs: 184 top-level tests and 238 subtests,
+zero failures/skips. Full decision module compilation and affected-package vet passed.
+Initial direct deletion fixture correctly hit immutable evidence protection;
+replaced it with an absent-boundary test without weakening production guards.
+Only scoped subtasks ticked. Provider/worker/grant integration, broad crash/commit
+acceptance and numeric SLO/load/soak gates remain open. PostgreSQL stays configured.
+Evidence: evidence/2026-11-03_decision_d13_d15_faults.json.
+
+### 2026-11-03 - D13-D20 custom-list failures and snapshot acceptance
+
+Fixed custom-list evaluation so authorization/cancellation/storage failures cannot
+be hidden by a successful name fallback. Added explicit confirmed-absence contracts
+in PostgreSQL/MySQL repositories, preserving driver no-row errors and legacy names.
+Real cross-engine list tests and stable history count/page snapshots across separate
+writer commits passed. Accepted race runs: 233 top-level tests, 244 subtests, no
+failures/skips in accepted package runs. Full module compilation and scoped vet passed.
+Initial PostgreSQL inventory failure was corrected after reviewing four hash changes;
+four skipped source-provider tests passed with their separate isolated DB variable.
+Initial log is retained; final PostgreSQL run supersedes that package's initial result.
+D16 stays complete. D13-D15/D17-D20 remain open: real target owner/provider/grant
+work, role-to-action policy, broad acceptance and numeric SLO/load gates remain.
+No backend activation or application database changes. Evidence:
+evidence/2026-11-03_decision_d13_d20_acceptance.json.
+
+### 2026-11-03 - Granular D13-D20 working checklist
+
+Created modules/03_decision_engine_subtasks.md as the current execution queue and
+linked it near the top of the main decision-engine checklist. Split the eight
+parents into 151 uniquely numbered leaf subtasks: 68 recorded as already verified,
+83 open. Each open item identifies its output/completion check, work type and
+prerequisites; sections identify owners and existing evidence. D16 remains the
+only completed parent in this range. Added a five-item ready cycle and 3-5-item
+iteration rules. Counts, unique IDs, dependency references/cycles and local evidence
+links were checked. Documentation only; no new implementation or acceptance claimed.
+
+### 2026-11-03 — Decision D13–D20 granular cycle 1
+
+Completed and checked eleven leaves: D13.11–D13.13, D14.09–D14.11, D15.10,
+D17.10, D18.09, D19.11 and D20.07. Seven are reviewed integration/case/policy
+maps; four are endpoint implementations or history verification items.
+
+Owner model HTTP now uses the publication-aware snapshot and mandatory SQL read
+authority. Scoped index reads and create/retry use one owner transaction and
+same-pool durable delivery. Enqueue failures roll back all owner changes;
+concurrent retries create one replacement and preserve delivery evidence.
+History adds eight golden filters, page sizes 1/5/48, exhausted cursor/offset
+checks and replay rejection for all nine filter fields.
+
+Accepted race-enabled runs: 22 top-level test executions and 97 subtest
+executions, zero failures/skips. Owner full compile and affected owner/decision
+vet checks passed. An initial unused test import and an API run with one missing
+fixture skip were corrected; raw attempts remain in evidence.
+
+Evidence: implementation/evidence/2026-11-03_decision_cycle1.json.
+Matrix: implementation/modules/03_decision_engine_integration_matrix.md.
+Checklist: 79/151 leaves checked, 72 remaining. D16 alone is a completed parent
+in this range. Real worker publication, auth/case/effect providers, restricted
+grants and sustained load remain open. Permission policy and numeric acceptance
+targets were requested; no response was assumed. PostgreSQL remains configured.
+All disposable cycle1 containers and their private network were removed.
+
+### 2026-11-03 — Decision cycle 2: D13.14a native-index completion fence
+
+Added opt-in WithPublishedNativeIndex on leased index execution. Completion locks
+registry before job/delivery, checks the exact publication token and actual full,
+visible, nonunique BTREE index against persisted job fields, then atomically
+commits job state, audit and delivery acknowledgement. Missing/wrong indexes,
+closed/stale publication, foreign scope, expired lease and failed audit do not
+commit completion. An observed registry lock wait followed by token replacement
+proves stale completion rejection and registry-before-job lock ordering.
+
+Verified 4 top-level tests and 36 subtests under -race, zero failures/skips; full
+owner compile and affected store/worker/runtime vet passed. Evidence:
+implementation/evidence/2026-11-03_decision_cycle2.json.
+
+D13.14 split into a completion guard (a, checked) and actual physical worker
+composition (b, open). Current totals: 80/152 leaves checked, 72 remaining.
+Physical DDL/publication is explicit disposable setup in this test, not a claim
+that the planner/intent/publication worker is composed. Text-index strategies,
+real cross-owner providers, policy and load acceptance remain open. No new parent
+was marked complete; PostgreSQL remains configured. Disposable runner, MySQL
+container and private network were removed.
+
+### 2026-11-03 — Decision cycle 3: D15.11 scalar/value parity
+
+Completed and ticked D15.11. Added 219 actual-service PostgreSQL/MySQL golden cases across E01-E06 and aliases, with complete returned/persisted rule evidence and unchanged decision/evidence counts after invalid evaluations. Fixed arithmetic aliases rejected by the helper and StringStartsWith incorrectly taking the suffix branch; retained canonical normalization for case conversion and local numeric aggregates. Added 13 plain/evidence normalization regression cases.
+
+Accepted race-enabled results: 49 top-level tests and 279 subtests (including 219 golden cases and 10 batch nodes), zero failures/skips. Source mapping regenerated and checked; affected-package vet passed. Initial failures and corrections are retained in cycle 3 evidence. The unconfigured model/authority providers remain fixtures; physical owner, real provider, grants, load and runtime acceptance are not claimed.
+
+Checklist: 81/152 leaves checked, 71 remaining. D16 is still the only completed parent in D13-D20. All decision-cycle3 containers and the private network were removed; disposable database data used tmpfs. Configured application remains PostgreSQL; no application database was changed. Evidence: implementation/evidence/2026-11-03_decision_cycle3.json.
+
+### 2026-11-03 — Decision cycle 4: D13.14b native index worker
+
+Completed and ticked D13.14b. Added PhysicalPublicationManager.RunNativeIndexJob to compose a committed delivery lease, typed native planner, immutable intent, pinned physical execution, publication and fenced job/audit/delivery completion. Persisted job identity determines the physical index and operation identity. Published retries reconcile the original receipt rather than repeating DDL. Start/completion transactions recheck local owner authority.
+
+Nine race-enabled worker integration scenarios passed: physical success, audit rollback/recovery, denied authority, expired lease, explicit unsupported text, foreign tenant, different pool, authority loss after publication and lease loss before publication. Four regression tests with 36 subtests passed. Accepted totals: 5 top-level tests and 45 subtests, zero failures/skips. Full owner compilation and affected-package vet passed.
+
+Retained reference inputs and authority are fixture-supplied; configured artifact loading, caller lease supervision/failure disposition, real identity/grants and decision HTTP integration remain open. No runtime activation or full D13-D20 completion is claimed. Checklist: 82/152 checked, 70 remaining; D16 remains the only complete parent in this range. All cycle4 containers/network removed; no application database changed. Evidence: implementation/evidence/2026-11-03_decision_cycle4.json.
+
+### 2026-11-03 — Decision cycle 5: screening source prerequisites
+
+Completed D19.12 and D19.13, with independently tracked screening owner storage, exact execution bindings, bounded generated projection and an updatable MERGE source view. Four integration tests and 18 subtests passed with -race; no failures or skips. Owner package vet, decision-store vet and full screening-service compile passed. Atomic source/enqueue rollback and repeated real-view reconciliation are verified supporting work; complete mutation, match-count and delivery worker integration remain D19.14–D19.16.
+
+Requested batch: 20 leaves (D17.11–D17.22, D18.10–D18.15, D19.12–D19.13); only 2 are complete. The other 18 depend on the unanswered D17.11 policy decision. No approval or completion is inferred. Totals: 84/152 checked, 68 remaining; no parent newly completed. PostgreSQL remains configured. Disposable cycle5 runner, MySQL container and network removed. Evidence: implementation/evidence/2026-11-03_decision_cycle5.json.
+
+## 2026-11-03 — Decision cycle 6: approved identity and list integration
+
+User approved the D17.10 permission matrix with "i approve". Completed and ticked D17.11–D17.22 and D18.10–D18.15. Together with cycle 5 D19.12–D19.13, all 20 selected subtasks are complete. Granular checklist: 102/152 checked, 50 remaining; no additional parent closed.
+
+Implemented auth-owned membership/session migrations and current authorization, case-owned bounded inbox/tag contracts, same-pool opaque credential composition and restricted grants. Verified role/action boundaries, post-lock-wait revocation/expiry, maximum 500-inbox batches and narrow locks, list snapshot/revocation races, required-job rollback, nine actual-service PostgreSQL/MySQL list golden cases and unhinted plans over 14,080 entries. Differential testing exposed folded-name lookup drift; exact lookup now matches PostgreSQL while folded uniqueness is retained.
+
+Accepted race-enabled integration runs have zero failures/skips; affected auth checks, case/decision compilation and vet passed. Initial failed parity output is retained alongside corrected passing output. Full source auth integration, browser/copy parity, owner provisioning, effect-provider composition and release/load acceptance are not claimed. PostgreSQL remains configured; MySQL remains staged. Disposable runner, database containers and network were removed successfully; application database untouched.
+
+Evidence: [cycle 6](evidence/2026-11-03_decision_cycle6.json). Commands, test counts, limitations and raw logs are recorded there.
+
+### 2026-11-03 - Decision cycle 7: 20 additional subtasks complete
+
+Completed D13.15-D13.20, D15.12/D15.15/D15.16, D17.23-D17.26,
+D18.16, D19.14-D19.16 and D20.08/D20.09/D20.13. The granular checklist
+now has 122/152 checked and 30 remaining. D13/D17/D18 close in recorded
+implementation/verification scope; overall service migration remains incomplete.
+
+Actual owner publication/recovery/concurrency/grants, 19 aggregate/navigation
+rules with persisted cross-engine evidence, edit/copy/race acceptance, permission
+revocation, versioned screening mutations and projection delivery passed. A clean
+reproducible run passed 5 required integration tests and 11 subtests with zero
+failures/skips and successful cleanup. Affected regressions passed 192 top-level
+and 141 subtests with four explicitly unconfigured legacy PostgreSQL tests skipped;
+storage regressions passed 17 top-level and 27 subtests without skips. Three
+services compiled and focused vet passed. Evidence: evidence/2026-11-03_decision_cycle7.json.
+
+PostgreSQL remains the shared configured application database. Tests used generated
+disposable databases only. External receipt providers, complete runtime effect
+journeys, load targets/soak, full release grants and activation remain open. The
+73/100 connection budget is an explicit configuration plan, not deployed defaults
+or throughput evidence. No application deployment or database reset occurred.
+
+### 2026-11-03 - Decision cycle 8: partial next batch
+
+Completed D15.13 and D20.11; 124/152 leaves checked, 28 remaining. Added 12
+platform tag/risk/IP cases beside nine list cases, comparing actual PostgreSQL
+and MySQL service output and committed evidence. Four target SQL-read failures
+abort without provisional or committed output. Extended the real-owner browser
+copy journey through destination publication, evaluation, committed workflow
+action and the original trusted-actor audit.
+
+Five top-level tests and 50 subtests passed under the race detector without
+failures/skips. Evidence: evidence/2026-11-03_decision_cycle8.json. The requested
+20-item batch is not complete. Workflow/screening receipt bindings remain
+implementation work; scoring/outbox durable provider contracts and user-agreed
+history/evaluation load targets were requested but not supplied. No send-only
+client was promoted to a receipt-aware provider and no unapproved target was
+invented. PostgreSQL stays configured; only disposable fixtures were used.
+
+### 2026-11-03 - Decision cycle 9: load-harness preparation
+
+Request: finish all 152 leaves. Status remains incomplete: 124 checked, 28 open;
+no new leaves were ticked. Implemented bounded offered-rate scheduling with
+explicit saturation/cancellation accounting, deterministic batched history seed,
+real session-authorized history reads, strict manual profile/output guards, nine
+unhinted plans and before/after database/pool snapshots. Five race-enabled tests
+and go vet passed. Retained the 240-row, 12-request smoke artifact; this does not
+establish representative-scale or sustained performance acceptance.
+
+Proposed history profile is saved with an empty approval reference. D14.12 and
+D15.17 require user-agreed targets; scoring/outbox receiver contracts remain
+unresolved. Workflow/screening receipt bindings and dependent acceptance still
+require implementation. No application database or configured runtime changed.
+Evidence: evidence/2026-11-03_decision_cycle9.json and linked raw artifacts.
+Cycle 9 cleanup: removed only the decision-cycle9 disposable containers/network after retaining evidence. Verified checklist totals: 124 checked, 28 unchecked; focused diff whitespace check passed.
+
+### 2026-11-03 - Decision cycle 10: screening receipt owner
+
+Completed D19.18; current count 125/152, 27 remain. Implemented permanent
+screening-owned intake keys/receipts, bounded validated local owner binding,
+atomic pending source/projection/receipt persistence and exact reconciliation.
+Fixed source-publication-before-dispatch-ack handling: only an existing intent
+can resume, and an accepted receipt must reference the attached source; the
+acknowledgement preserves the newer result. No network IO under decision locks.
+
+Eight top-level tests and 41 subtests passed, race-enabled, no failures/skips;
+decision and screening vet passed. Covers duplicate intake, lost response,
+rollback, payload/identity/tenant/provider conflicts, cancellation before intake,
+source/receipt retention and both handoff orderings plus existing regressions.
+Authority in new intake fixtures is explicit; trusted runtime identity and full
+restricted grants remain D19.21/D19.22. External search results are synthetic
+inputs to the real publication owner, not a configured search-worker claim.
+Workflow receipt binding and downstream acceptance remain implementation work;
+scoring/outbox contracts and user-agreed targets are still unanswered.
+Evidence: evidence/2026-11-03_decision_cycle10.json and linked raw test logs.
+No application database reset, runtime activation or deployment occurred.
+Cycle 10 final checks: canonical leaf counts verified at 125 checked and 27 unchecked; focused whitespace check passed with existing CRLF source format preserved. Test artifacts were retained before cleaning up the isolated decision-cycle10 environment.
+
+### 2026-11-03 - Decision cycle 11: partial workflow receipt binding
+
+Implemented actual case-owner attempt/redrive receipt delivery and reconciliation,
+reusing its existing business transaction and receipt table. Added opt-in HTTP
+routes and a fixed-destination decision client with strict receipt validation,
+bounded IO and redirects disabled. The actual adapter/real PostgreSQL owner test
+commits a case, discards its HTTP response, then reconciles the retained receipt.
+Concurrent duplicate, conflicting body/identity/tenant, late receipt rollback,
+HTTP auth and existing workflow grouping/metadata/rollback regressions passed.
+Selected older workflow fixtures now install the real identity schema required
+by contributor reads; their initial missing-schema failures were not ignored.
+
+Final verification: nine top-level tests and 13 subtests, race-enabled, zero
+failures/skips; both vet runs passed. D19.17 stays open: staged MySQL case mutation
+ownership and external workflow receivers are not implemented by this source
+contract extension. No new leaves ticked; 125/152 complete, 27 remain. Scoring/
+outbox provider contracts and user-agreed numeric targets remain unresolved.
+The receipt route flag is false by default; no command/deployment was activated.
+All SQL verification used generated disposable databases in decision-cycle11.
+Evidence: evidence/2026-11-03_decision_cycle11.json and linked final logs.
+Cycle 11 final audit: canonical counts remain 125 checked / 27 unchecked; focused whitespace checks passed. Final test/vet artifacts were saved before isolated decision-cycle11 cleanup.
+
+2026-11-03: Recorded user direction: design for 1,000 evaluations/second and reuse PostgreSQL scoring/outbox providers. Inspected existing HTTP payload/authentication and optional outbox contracts; legacy senders do not implement durable receipt reconciliation. Added performance/provider direction evidence and updated current checklist/integration contracts. Documentation-only; no runtime changes, capacity measurement or new completion claimed. Checklist remains 125/152, 27 open. Focused diff whitespace check passed.
+
+2026-11-03 cycle 12: Completed D14.12-D14.16 and D15.17-D15.18 under user-directed 1000/sec target and stated engineering defaults; checklist audited at 132/152 complete, 20 remaining. Scoped history acceptance: 100000 rows, 6000/6000 requests, p95 21.417036ms, p99 31.468878ms, nine plans and 301 resource snapshots. Implemented actual-service evaluation load fixture; fixed model-copy publication-token loss and reproduced unrelated-owner outbox deadlock via primary-index owner locking. Final race suite: 11 top-level tests, 8 subtests, zero failures/skips; vet passed. Post-fix 100/sec ramp FAILED capacity: 1529 successful, zero evaluation errors, 1471 drops; all persisted counts matched. No 1000/sec or real-provider completion claim. Evidence: evidence/2026-11-03_decision_cycle12.md. No application database/runtime changes.
+Cycle 12 final audit: private decision-cycle12 runner, MySQL container and network removed successfully. Final count 132 checked and 20 unchecked leaves. Focused diff check passed with cr-at-eol to preserve effect_jobs.go's existing CRLF format; production diff is limited to the model-copy and narrow-lock fixes. Remaining acceptance failures are retained, not ticked.
+
+### 2026-11-03 decision cycle 13
+Bounded optional job batching implemented with whole-request validation, deterministic locking and transaction poisoning. Isolated PostgreSQL/MySQL regressions passed 25 top-level tests and 53 subtests with race detection; vet passed. Four-worker local ramp improved from 1601 to 2122 completed evaluations out of 3000 offered; capacity still fails, as does eight-worker p95. No additional checklist leaf closed: 132/152 complete, 20 open. See evidence/2026-11-03_decision_cycle13.md. Runtime remains PostgreSQL; real receiver contracts and shared-stack acceptance remain open.
+
+### 2026-11-03 - Decision cycle 14: real case workflow owner and recovery
+
+Implemented staged MySQL case workflow receipt intake using the actual shared case service contract, atomic case/link/tag/audit/outbox mutations, tenant-consistent schema, restricted grants and the real authenticated HTTP adapter. Added fresh/upgrade/repeat/drift migration rehearsal and fixed the PostgreSQL shared-owner test fixture to include identity migrations. Final isolated MySQL 8.4.8/PostgreSQL 16 run: 26 top-level tests and 44 subtests passed with race detection, zero failures/skips; decision and case vet passed. Includes concurrent replay, permissions, cancellation, source/target parity, real dispatch completion, process death after commit, and protocol connection loss before COMMIT and after its server acknowledgement. Reconciliation and replay preserve exactly one set of effects.
+
+A redundant-enqueue optimization experiment produced only 2141/3000 completions at 100 offered/sec (859 drops), with no meaningful gain; removed it. It does not establish 1000 evaluations/sec. External event/action receivers and full runtime/release acceptance remain open. Additional scoring integration is deferred by the user, not falsely completed. Checklist remains 132/152 complete, 19 active remaining and 1 deferred. PostgreSQL remains active. Evidence: implementation/evidence/2026-11-03_decision_cycle14.md and its raw artifacts.
+
+### 2026-11-03 - Decision cycle 15: scoring deferral and decision COMMIT loss
+
+Implemented explicit staged additional-scoring deferral: omit scoring worker/provider and authoring capability; cold-start gate active configuration, unfinished requests and live delivery backlog; reject late configured effects and poison rejected request/update/enqueue transactions. Internal rule scoring is unchanged. Added real protocol loss before COMMIT and after COMMIT OK for atomic decision/four-effect/job persistence, with reconciliation through a healthy pool. Corrected a stale runtime test expecting case-insensitive list lookup despite PostgreSQL exact matching. Final isolated MySQL 8.4.8 regression: 5 top-level tests, 84 subtests, zero failures/skips, race detector and vet passed. Full providers/capacity/release remain open; no runtime switch or throughput claim. Checklist 132/152 complete, 19 active remaining, 1 deferred. Evidence: implementation/evidence/2026-11-03_decision_cycle15.md.
+
+### 2026-11-04 - Decision cycle 16: restore proof and rejected performance experiment
+
+Added a private MySQL 8.4.8 logical restore rehearsal, exact frozen-schema/data
+verification, retained case receipt replay with restricted grants and reproducible
+PowerShell orchestration. Manual and fresh-runner executions passed all 263
+inventory entries; both disposable projects cleaned up. Plain schema dump failed
+strict comparison; frozen plans plus data-only import passed without weakening
+readiness. Final race suites passed 31 top-level tests and 129 subtests with zero
+failures/skips; vet passed. New stored-status rollback regression retained.
+Paired 100/sec ramps completed 2006 baseline versus 1953 experimental requests of
+3000; the shortcut was removed. No 1000/sec or production-readiness claim.
+Checklist remains 132/152 complete, 19 active remaining, 1 external-scoring item
+deferred. Real receiver contracts and staging resource budget still needed.
+Evidence: evidence/2026-11-04_decision_cycle16.md. PostgreSQL remains active.
+
+### 2026-11-04 - Decision cycle 17: production-readiness subtask checks
+
+Added offline declared-FK restore inspection with composite tenant keys, orphan
+and cross-tenant rejection, nullable semantics, cancellation and empty-inventory
+failure. Added real restored-schema inspection: 77 relationships and 263 exact
+schema/data entries passed. Expanded release upgrade rehearsal through the original
+115-step prefix, then 140/145/current. Reusable -ReleaseChecks runner verified
+artifact/command rejection, migration recovery, restricted API/worker grants and
+restore receipt replay. Eight top-level tests and 12 subtests passed with race
+detection, no failures/skips; vet and disposable cleanup passed. Application DB
+untouched; PostgreSQL remains active. New production-readiness breakdown: 9 local
+checks ticked, 6 deployed-system gates open; original 132/152 count unchanged.
+Evidence: evidence/2026-11-04_decision_cycle17.md.
+
+### 2026-11-04 - Decision cycle 18: critical integration/recovery and mixed load
+
+Extended real case workflow acceptance with producer lease expiry after receiver
+commit, receipt-aware rescue, replacement claim/reconciliation and stale completion
+fencing. Added concurrent same-database/pool history load, explicit scoring-deferred
+profiles and bounded aggregate-concurrency diagnostics. Critical load/workflow/
+recovery/shared-owner scripts passed 62 top-level tests and 165 subtests, race
+and vet enabled with no failures/skips. Final mixed smoke and vet also passed.
+Measured 30-second workloads: ramp 1749/3000 evaluations; target 2306/30000;
+four-aggregate-slot experiment 3237/30000. All evaluation acceptance runs failed;
+all history runs passed 600/600, zero evaluation errors, exact persisted counts.
+No production configuration change or 1000/sec claim. Real receiver contracts,
+full configured-provider composition and representative staging allocation remain.
+Evidence: evidence/2026-11-04_decision_cycle18.md. Checklist 132/152 unchanged;
+PostgreSQL remains active. Disposable cycle18 stack removed after evidence capture.
+
+## 2026-11-04 - Persistent local MySQL Docker foundation
+Added compose.mysql-dev.yaml and docker/mysql-dev/setup.ps1, verify.sh and README.md.
+Dedicated fraud-mysql-dev project uses MySQL 8.4.8, one fraud database, persistent
+volume, loopback port 3307, secret-file credentials, 2 CPU/2 GiB and 100 connections.
+Verified setup twice preserves credentials; both local configuration files ignored;
+Compose config validation passed; container healthy; read-only version/schema/
+charset/collation checks passed before and after forced container recreation.
+Persistent server UUID remained 634f5c14-d834-11f1-b49c-4e5d65726b92.
+Database left running for local development. No PostgreSQL data/config changed.
+This is database provisioning only: no application migrations or runtime grants
+applied. Browser testing remains blocked by data-model API runtime composition,
+ingestion fixture-only configuration, decisions executable/provider composition,
+and PostgreSQL-backed auth. Auth architecture clarification requested, unanswered.
+No migration acceptance boxes ticked and no application cutover claimed.
+
+## 2026-11-04 - Explicit local MySQL mode without login (application wiring incomplete)
+User approved disabling auth for local data-model/ingestion/decisions testing.
+Implemented server-side frontend development identity and visible banner, fixed
+configured tenant scope in data-model proxy, and opt-in ingestion local runtime
+scope for fraud. Shared localdev HTTP adapter binds the server-owned service
+credential, rejects foreign origins/cross-site browsers, and leaves owner tenant
+checks and migration/grant/publication readiness intact. Default auth unchanged.
+Packaged MySQL API/worker commands in ingestion Dockerfile. No application
+Compose services enabled: data-model API composition, owner installation/config
+and decisions provider composition remain unfinished. Asked whether local
+internal-rule-only decisions may omit case/screening/scoring/event integrations;
+no answer at the time of this entry. No readiness/checklist completion claimed.
+Verification: 3 frontend local-session tests; TypeScript noEmit and targeted ESLint;
+2 shared localdev tests and 4 ingestion runtime tests (including existing readiness
+file test) passed with race detection; vet passed for both Go packages. Both
+MySQL ingestion command builds passed. Local Docker image built successfully.
+
+### 2026-11-04: Service-local data-model MySQL Compose
+- Added backend/data-model-service/docker-compose-mysql.yml, dedicated installer Dockerfile and MYSQL_DOCKER.md. Reuses the fraud-mysql-dev shared database/volumes and keeps PostgreSQL Compose intact.
+- Docker Compose validation and installer build passed. Startup applied/verified data-model migrations; a second installer run exited zero. MySQL health verification reported 8.4.8, database fraud, max_connections 100.
+- Full lookup-lineage readiness constructor tests (race) and targeted vet passed; the real installer also verified the v006 shared prerequisites against MySQL.
+- Limitation: no MySQL HTTP API/worker composition or frontend authoring verification. This is database plus migration setup, not PostgreSQL runtime parity. No production acceptance or performance checkbox completed.
+
+
+### 2026-11-04: Local data-model MySQL HTTP entrypoint
+- Added cmd/mysql-api and explicit opt-in local HTTP composition, Swagger /docs and /openapi.json, readiness, bounded tenant catalogue, owner-transaction pending tenant registration and published model read route. Compose publishes only 127.0.0.1:8080; API has separate owner-scoped database credential, no root socket or DDL grants, and eight-connection pool.
+- Fixed local clock precision to microseconds after the real registration smoke test exposed DateTime rejection. Regression test checks the clock against the actual MySQL scalar adapter.
+- Verified Docker build/start and race-enabled HTTP boundary tests plus Go vet. Repeatable scripts/mysql-local-smoke.ps1 passed before and after API restart: docs/spec, readiness, registration/list/model read, foreign-origin 403. Retained pending smoke tenant 984df53a-6868-4ef1-877d-dc4f5577a678. Browser rendering itself was not automated.
+- Scope remains partial: physical provisioning, table/field mutations, imports/exports and worker composition are not exposed. Local no-auth mode grants development platform administration; it is not production tenant authorization. No production acceptance or performance checkbox changed.
+
+
+### 2026-11-04: Restore complete OpenAPI catalogue in local MySQL docs
+- Removed the reduced MySQL documentation inventory. /docs now loads the full shared API contract; /openapi.yaml serves the embedded original and /openapi.json serves its complete JSON representation. Added a runtime availability note without hiding operations.
+- Regression test compares the entire JSON contract and exact YAML bytes. Docker rebuild/start passed; live endpoint verification found 30 paths / 43 operations and matching source/served YAML hashes. This is documentation coverage, not completion of unwired MySQL handlers.
+
+
+### 2026-11-04: Wire local MySQL tenant lookup
+- Mounted GET /v1/tenants/:tenantId using the tenant-scoped MySQL metadata repository inside an authorized read-only snapshot. Preserves tenant DTO response; malformed/zero UUID returns 400, absent tenant returns structured 404, database errors return 503.
+- Race-enabled mysqlruntime tests passed. Rebuilt/restarted Compose API. User-provided tenant 984df53a-6868-4ef1-877d-dc4f5577a678 returned HTTP 200 with its persisted pending record. Extended live smoke test verified exact-ID lookup and missing-tenant 404, and passed with existing docs/catalogue/model/origin checks.
+
+
+### 2026-11-04: Shared MySQL tenant provisioning
+- Added authorized owner transaction for pending-to-active provisioning in the preinstalled shared MySQL database. Exact tenant-row lock serializes activation; status, audit and revision commit together. Active replay returns persisted result without duplicate history. Does not create a separate tenant database or business tables; startup installer verifies shared schema and definer prerequisites.
+- Wired POST /v1/tenants/:tenantId/provision and granted local API only UPDATE(status,updated_at) on tenant metadata in addition to existing grants. Preserves structured 400/404/503 responses.
+- Real isolated MySQL race test passed: missing tenant, unauthorized tenant, failed revision rollback of status/audit, eight concurrent calls with one audit/revision and unchanged replay. HTTP regression tests and targeted vet passed.
+- Rebuilt local Compose; requested tenant b364b6c6-ffc5-4fa3-bfce-8977a646798b returned 200 active twice with identical timestamp; unknown tenant 404 and malformed UUID 400 verified. Isolated fixture stopped afterward. Physical table/field API composition remains open.
+
+
+### 2026-11-04: Local physical table creation and metadata reads
+- Added private mysql-local-author process with server credential authentication and no published port. Public API proxies validated table creation to it without administrative credentials. Worker runs durable owner allocation, isolated reference capture, typed plan binding, restricted temporary installer, full v006 readiness/grant verification and atomic publication/recovery. At most two workflows; separate bounded pools. Local trigger installation enables log_bin_trust_function_creators; production approval/readiness is not claimed.
+- POST /v1/tenants/b364b6c6-ffc5-4fa3-bfce-8977a646798b/tables with the supplied transactions body returned 201, table d127765f-9620-4f13-8295-beb96f871ffd. Read-only SQL verified physical table, two guards, open gate, published version and exactly one create audit event. Same-body replay after container recreation retained the same ID/timestamps; changed command returned 409.
+- Mounted bounded MySQL table/field/enum/link/pivot/options/navigation/history/revision/index-job reads. Actual HTTP checks passed for table/field/options/navigation/link/pivot/history/revision/index-job list and assembled model. Worker token/input boundary tests, race tests and targeted vet passed. Repeatable mysql-table-smoke.ps1 retained the requested table; no records were inserted into its physical data table.
+- Explicit incomplete scope: all requested CRUD is NOT finished. MYSQL_ENDPOINT_STATUS.md records 19/43 wired operations. Field mutations, relationship mutations, update/delete lifecycle, display mutations, import/export and dispatch/reconcile remain open. Initial table recovery is request-driven, not automatically scheduled. No production/checklist completion or 1000/sec claim.
+
+
+## 2026-11-04 - Local MySQL native field creation and presentation PATCH routes
+- Added private-author/public-proxy PATCH tables and fields using existing owner publication/result receipts, atomic audit/revision updates, strict JSON property validation, and historical replay using the original version precondition.
+- Added POST table fields for native bool/int/float/string/timestamp/IP types. Stable operation/field IDs, retained typed DDL intents, separate disposable reference capture, restricted temporary native installer, locked installer before verified publication, owner result receipts, and request-driven recovery. Required additions reject populated tables before the preparation transaction commits. Native numeric uniqueness is supported by field creation.
+- Added mutation-boundary tests and scripts/mysql-mutation-smoke.mjs. Real local Compose smoke passed six types, physical creation, required numeric unique addition, parallel field creation with same-key retries, concurrent presentation edits, historical replay across subsequent schema versions, request-key conflicts and missing-resource responses. Race tests for internal/mysqlruntime and internal/store/mysql and targeted runtime/command vet passed.
+- SQL inspection of dedicated smoke table 946d9f11-d778-4167-ba2f-173fc8930226: write_state=open, epoch=10, 11 model fields, 17 physical columns, native installer account locked. No pending intent remained from the earlier intentionally concurrent smoke run that exited on a busy response.
+- Scope remains incomplete: table/field deletion, enum creation/update/delete, enum and unique-text field creation, field constraint edits and table caption edits are not implemented. Unsupported creation/PATCH modes return 422 without partial success. Checklist now distinguishes 19 checked operations, 3 partially wired operations and 21 unwired operations. No claim of full CRUD, crash-injection acceptance, performance target or production readiness. Existing application data and shared owner migrations were preserved; smoke data lives in newly created dedicated tenants.
+- Final deployed-image smoke passed again (tenant 959be5f9-158f-4d52-8cd8-0dcb76bf3ee4). Added one record only to the dedicated prior smoke table; a required-field addition returned 409 explicit_backfill_required, left field metadata unchanged, and kept the published model readable (200), verifying preparation rollback on populated-table rejection. Public proxy forwards Retry-After. Final local Compose API/author worker rebuild completed successfully.
+
+## 2026-11-04 - Modular local MySQL HTTP composition
+- Split public/private router composition from resource handlers, middleware, documentation, health, forwarding, shared responses, scoped reads and tenant operations. Presentation owner workflows no longer depend on Gin. Kept a single Go package to avoid cycles and unnecessary exported APIs; MYSQL_RUNTIME.md documents ownership and how to add endpoints.
+- Added injectable authoring workflow/client boundaries and regression tests for the exact 25 public routes (22 operations plus 3 documentation routes), all four private workflow dispatches, trusted scope/operation propagation, worker credential substitution, no caller identity forwarding, response/status/retry-header preservation, invalid IDs, redirects, cancellation and response limits.
+- Existing and new runtime plus HTTP API/DTO/handler race suites and targeted vet passed. Broader HTTP tests uncovered an existing missing platform policy for GET /v1/tenants/:tenantId/index-jobs/scoped; assigned the same tenant-read policy as the existing list route. No SQL migrations, data-model publication protocols, grants, ports or missing CRUD modes were changed.
+- Expanded the live mutation smoke to exercise all mounted operation paths and a second tenant's empty table list. Live final-image verification results follow separately. PostgreSQL database-dependent auth integration and production/fault acceptance are not established by the unit suite.
+
+### Live verification after modular HTTP rebuild
+
+- Rebuilt and restarted the local MySQL API and private authoring worker using the service compose file; migrations completed successfully.
+- All three live smoke scripts passed: mysql-local-smoke.ps1, mysql-mutation-smoke.mjs, and mysql-table-smoke.ps1 against tenant b364b6c6-ffc5-4fa3-bfce-8977a646798b.
+- Verified docs/OpenAPI, readiness, registration/catalogue/model reads, foreign-origin rejection, mounted operation paths, concurrent edits, six native field types, original-result replay, changed-command conflicts, missing-resource responses, and tenant-scoped table lists.
+- Existing Transactions table d127765f-9620-4f13-8295-beb96f871ffd was preserved. Mutation smoke retained its dedicated tenant ef4b227f-92c5-47b8-96a1-fc1435cd5e52 and table e3a2a1ec-6b66-401f-b7a7-efb72924c948 for inspection.
+- These checks validate the refactor and currently mounted behavior; they do not establish completion of unimplemented CRUD, production acceptance, exhaustive failure recovery, or performance targets.
+
+## 2026-11-04 - Local MySQL captions, enum seeds and field constraints
+
+Implemented and activated in the data-model local compose:
+- Table PATCH caption set/clear through the display dependency coordinator, preserving other display settings, owner audit/revision effects and immutable original Table responses.
+- Transactional caption search-index enqueue using the existing MySQL delivery store and index_jobs queue. The local compose still does not execute search-index jobs; pending deliveries are not represented as applied indexes.
+- Enum field creation for string/int/float with validated inline seeds, deterministic allocation, atomic preparation and checked publication. Enum membership follows PostgreSQL: ingestion validates against the published catalog; native columns retain their base type.
+- Field PATCH nullable changes, numeric uniqueness enable/disable, enum flags and combined presentation edits. Enum-only and no-op constraint commands use atomic catalog publication with synchronized registry/contract versions, not artificial DDL.
+- Populated-column nullability tightening validates NULL absence before preparation and execution; old empty-table physical plans retain their original semantics. Duplicate values and dependent relationships/enum values reject incompatible commands without committing a closed writer gate.
+- Explicit error mapping, bounded results, shared two-slot authoring limit and longer field-DDL HTTP deadline.
+
+Verification:
+- Passed Go race tests for internal/mysqlruntime, internal/service, internal/store/mysql and internal/httpapi/...; targeted vet passed. Added seed validation, native enum column and checked-nullability compatibility regression tests.
+- Rebuilt and restarted the API/private worker using docker-compose-mysql.yml; migrations completed successfully.
+- Passed mysql-local-smoke.ps1, mysql-mutation-smoke.mjs, mysql-table-smoke.ps1 against the existing tenant, and mysql-partial-endpoints-smoke.mjs --physical.
+- Live tests cover caption validation rollback/set/clear, catalog-only and combined changes, string/int/float enum seeds, original-result replay and key conflicts, concurrent alias/constraint edits, real unique-index enforcement, nullable unique keys, populated valid-data tightening, NULL/duplicate/dependency rejection, writer-gate rollback, positive index-job lookup and caption delivery deduplication.
+- Physical smoke retained tenant d301025c-a7a4-4344-a1e7-87b065bbf0a6 and table 62648af0-cfda-449b-b970-797bbec9a09c. Its temporary relationship fixture alone was removed after testing. Existing Transactions table d127765f-9620-4f13-8295-beb96f871ffd was preserved.
+
+Remaining scope, explicitly not complete:
+- Unique-text field creation and unique-text constraint changes still require the additional exact-key/trigger installation and recovery protocol. These modes remain rejected rather than weakened to prefix/hash-only uniqueness.
+- Endpoint checklist now has 20 checked operations, 2 partial operations and 21 unavailable operations (22/43 mounted). No additional route was exposed in this work.
+- Required-field addition to populated records still requires an explicit backfill. Local index execution, full shared-service ingestion integration, crash injection and representative load acceptance were not established by these smoke tests.
+
+### 2026-11-04 - Local MySQL unique-text field creation completed
+
+Scope: POST /v1/tables/{tableId}/fields. Added typed full-value unique-text creation, hidden exact-key columns, NULL parity checks, unique/FK constraints and locked-definer INSERT/UPDATE guards. The resolver domain is record_field_value with tenant UUID + field UUID scope; equality compares complete binary values, never prefixes or digests alone. Nullable creation supports populated tables; required additions reject populated tables without backfill.
+
+Durability and ownership:
+- Column and guard steps use the existing durable journal, immutable request identity, writer barrier and atomic owner publication/original Field result.
+- Complete trigger SQL is regenerated from typed inputs. All retained guards and journal-aware new guards are verified; later native plans retain the text guards.
+- Native installers require an explicit TextGuards capability for transient SET_ANY_DEFINER; the local worker revokes it, locks the account and closes its session before publication.
+- Public/private local creation and prepared owner publication now accept unique strings. PATCH unique-text constraint transitions remain unavailable.
+
+Verification:
+- Go race tests passed for mysqlruntime, service, store/mysql, installation and httpapi/...; targeted vet passed.
+- Live mysql-unique-text-smoke.mjs passed: 20KB shared-prefix strings, duplicate INSERT/UPDATE rejection, concurrent duplicate rejection, NULL/empty/case/trailing spaces, private-key derivation, rollback, nullable additions on populated records, required-addition rollback, later native changes, original result replay/key conflict, field/tenant separation and installer deactivation.
+- Unique-text smoke retained tenant 4495d91c-4fb3-4da4-a908-3e2c8c0659ed, table b68fbdbe-f07f-44fd-b6b3-9b235a80e9f7, field 8a62066f-de33-525c-8c63-7b47c377ea51; separate isolation tenant 76b06960-7228-4dd6-a196-6cd6955526d1.
+- Isolated MySQL metadata tests passed all four service_allocated_native_text cases: actual lost responses after ALTER, INSERT trigger, UPDATE trigger and publication COMMIT. Healthy retries completed without duplicate owner effects.
+- Passed mysql-local-smoke.ps1, mysql-mutation-smoke.mjs, mysql-table-smoke.ps1 and mysql-partial-endpoints-smoke.mjs --physical. Existing Transactions table and baseline tenant preserved.
+- Local API/private worker image rebuilt and running at localhost:8080/docs. No application database reset or production cutover performed.
+
+Checklist: 21 complete, 1 partial, 21 unwired operations (22/43 mounted). Unique-text PATCH, required-field backfill, full ingestion integration and production/load acceptance remain open.
+
+### 2026-11-04 - Local MySQL existing-text constraints PATCH completed
+
+Scope: PATCH /v1/fields/{fieldId}. Existing string fields now support enabling/removing uniqueness, nullable/required changes and valid combined presentation/enum updates. Mandatory fields retain their restrictions. The endpoint is checked off: 22 complete, zero partial and 21 unwired operations out of 43.
+
+Implementation:
+- Added typed promotion and retirement plans. Promotion installs the hidden key/index/FK and both exact-key guards, fills existing keys in primary-key batches of 256, then installs the NULL-parity CHECK. Retirement drops the CHECK, both lineage-verified guards and the hidden key/index/FK while preserving text values.
+- Duplicate preflight retains only IDs/digests in indexed session-local temporary tables and confirms matches with complete binary text through primary-key lookups. Duplicate detection rolls preparation back and leaves the existing writer gate open. No text GROUP BY truncation or digest-only equality is used.
+- Preparation uses a dedicated READ COMMITTED connection discarded after completion/cancellation so canceled transactions cannot leak temporary-table state into the pool. Existing NULL values prevent required-field tightening; dependent parent-field links prevent uniqueness removal, with dependencies rechecked during final publication.
+- Journal-aware guard verification now handles typed retirement and retains only active guards in later plans. The ordinary shared migration validator still rejects DROP; only the explicit physical trigger-retirement validator admits the exact qualified DROP TRIGGER with a retained Before definition.
+- Backfill receives transient UPDATE on exactly one text column. That grant and SET_ANY_DEFINER are revoked before inactive-account and session verification. Runtime record consumers receive no new dictionary or resolver capabilities.
+- Private reference capture rebuilds the full published table/guard shape in the disposable reference and captures the sequence on one connection. Request hashes, operation-key recovery and immutable original Field results are preserved.
+
+Verification:
+- Passed selected race tests for mysqlruntime, service, store/mysql, installation, httpapi/... and mysqlstore/migrations. Passed targeted vet including recursive MySQL adapter/test packages. Focused diff whitespace checks passed.
+- Passed TestTextPreparationCancellationAndDuplicateRollback, including 40KB values, deterministic duplicate values crossing batch boundaries, cancellation rollback and discarded-session recovery.
+- Passed all 11 TestPhysicalTextConstraintRecovery cases: lost ALTER, both guard creation responses, response after a committed partial UPDATE batch, final CHECK, both guard retirement responses, hidden-column removal, enable/disable publication COMMIT, and canceled execution. These cases also reject foreign-tenant execution and prove healthy replay preserves all 302 fixture records and applies owner effects once. The socket fault consumes an actual server OK before discarding the response.
+- Rebuilt/restarted local API/private worker. Passed all six live scripts: mysql-local-smoke.ps1, mysql-mutation-smoke.mjs, mysql-table-smoke.ps1, mysql-partial-endpoints-smoke.mjs --physical, mysql-unique-text-smoke.mjs, and mysql-text-constraints-smoke.mjs.
+- Final PATCH smoke retained tenant 016f8200-bf21-47d8-90bf-4338ac97cfdd, table ee62024e-128b-41c5-ad63-2141dc6ebcfc, field 97e25e27-3a69-5bf7-ac96-39b6ddf45a51. It verified 600+ existing records, 40KB common-prefix values, INSERT/UPDATE/concurrent duplicate rejection, required/nullable changes, relationship rejection, removal/re-enabling, original-result replay/conflict, later native changes, combined enum changes and exact privilege cleanup.
+- EXPLAIN on the live duplicate probe showed digest_id ref access for candidate matches and PRIMARY eq_ref access for both original records. This establishes the intended indexed access path, not production throughput.
+- Existing Transactions table d127765f-9620-4f13-8295-beb96f871ffd and baseline tenant 984df53a-6868-4ef1-877d-dc4f5577a678 were preserved. Isolated recovery tests used only generated disposable databases on dm-text-patch-accept, separate from fraud.
+
+Limits: synchronous validation necessarily inspects existing values and is bounded by the local request timeout; retry the same Idempotency-Key after uncertain work. Required-new-column defaults/backfill, asynchronous large-table orchestration, full shared-service integration, production authorization/cutover and representative production load acceptance remain separate. PostgreSQL production configuration was not switched.
+
+### 2026-11-04 — Local MySQL field deletion and enum-value mutations
+
+Implemented DELETE /v1/fields/{fieldId}, PATCH /v1/enum-values/{enumValueId}, and DELETE /v1/enum-values/{enumValueId}. Local endpoint inventory is now 25/43 wired, 18 unavailable. Public/private modular handlers preserve the existing response contracts and forward query parameters, including dry_run=true. Production PostgreSQL selection and authentication were not changed.
+
+Field deletion uses typed, reference-verified physical plans and the existing durable intent/journal/installer/publication protocol. It removes bool/IP checks, native uniqueness, all mapped components, and (for unique text) the complete guard/key retirement sequence before dropping the value column. Preparation and final publication check reserved fields, indexed link/pivot dependencies, caption/display/navigation references and dependent index jobs. Final metadata mapping removal, field/enum/field-order cleanup, audit, revision, contract publication and writer reopening are atomic. Reusing a catalog PATCH operation key for DELETE is rejected before preparing physical work. Other records/fields are preserved.
+
+Enum mutation runs owner validation inside the locked publication transaction. Values/labels/sort order are validated, duplicate values/labels conflict, and the ingestion catalog and physical registry version change atomically. PATCH retains its original response for operation-key replay. Existing record values are retained, matching the catalog-based enum contract. Successfully deleted resources return 404 on subsequent HTTP requests; interrupted physical deletion resumes with the same key while metadata exists. The underlying publishers reconcile committed operation receipts without repeating effects. Exact-key dictionary garbage collection is outside these endpoints.
+
+Verification:
+- Targeted Go race tests passed for mysqlruntime, service, MySQL store and HTTP packages; go vet passed for runtime/service/MySQL packages.
+- New TestCatalogRetirementRecovery passed against disposable MySQL 8.4.8: field owner rollback (including mapping restoration), lost physical ALTER acknowledgement, lost publication COMMIT, enum owner rollback/lost COMMIT, cancellation, scope rejection, receipt replay and no duplicate owner effects. Test project dm-delete-enum-accept was removed afterward; application volumes were not reset.
+- Final live mysql-field-delete-enum-smoke.mjs passed: strict input validation, string/int/float enums, duplicate conflicts, concurrent PATCH replay, catalog versions, reserved/link/pivot conflicts, dry-run forwarding, operation-key conflict before DDL, all six storage types, unique-text trigger removal, mapping/enum cleanup, row preservation and a subsequent field creation. Dependency EXPLAIN used an indexed ref/const lookup. Retained test tenant cb9d4715-4941-4200-8292-136d58282b52; table 229dcc9a-f61e-42db-99a5-8e85cb84152e.
+- Existing mysql-text-constraints-smoke.mjs regression passed with 600+ records and 40KB strings, backfill, concurrent duplicates, nullable/required changes, dependency rejection, uniqueness removal/re-enabling, rollback, receipts and temporary privilege cleanup. Retained tenant fd38274b-99b5-4ba9-b8d0-baa4ad363e3d; table 932b846d-d2e9-40d8-9562-006b571aad80.
+- Rebuilt and started the final data-model API/author Docker image on localhost:8080. These are local development runtime checks, not production authorization or throughput acceptance.
+
+### 2026-11-04 - Local MySQL display endpoints
+Implemented GET/PUT table display-settings and POST tenant record-displays through modular local handlers and scoped display stores. PUT uses the existing owner publication protocol with optimistic versioning, durable replay, atomic audit/revision/index-job enqueue. Record reads use bounded typed projections, ordered table/registry locks, current-record filtering, exact-key joins and related display fallback. Materialized request keys plus the record unique index avoid the index scan detected during EXPLAIN validation.
+Validation: targeted display/mysqlruntime/service/mysql race tests and vet passed. Isolated TestDisplayRuntimePublicationAcceptance and TestMySQLDisplayStore passed, including concurrency, rollback, restricted authority, lost commit response and tenant boundaries. Disposable dm-display-accept was removed afterward. Rebuilt local compose and ran scripts/mysql-display-smoke.mjs successfully: direct types, enums, related captions, validation, stale versions, historical replay, 100-record batch, tenant isolation, closed gates and expired rows. EXPLAIN on 1,001 records reports eq_ref with one indexed row per key. Retained test tenant 265565ee-2eec-47e5-8130-e2afbd386842; child 3ebcd712-cb84-42ed-82ff-934f77da473d; parent 03c678b3-93ec-4590-b44d-bb609a753d8d. Existing user resources were not reset.
+Checklist now 28/43 wired, 15 open. Limitations: local privileged authority only; production authentication/permissions acceptance, index-job worker dispatch and link mutation HTTP routes remain separate. No throughput claim or PostgreSQL production switch.
+
+### 2026-11-04 - Local MySQL portable import/export
+Wired GET tenant data-model/export and POST tenant data-model/import through modular local handlers. Export reuses the shared portable v1 projection over an authorized consistent published snapshot. Fixed shared request adapter omission of field aliases. Import prevalidates the graph, binds the complete body to a scoped operation, derives stable table/field/caption owner command keys, and atomically commits final links/pivots/options/navigation/index-queue effects with the historical result receipt. Immutable started/completed portable_import history entries are retained recovery records, not disposable telemetry. No new physical DDL bypass or production backend switch.
+Verification: targeted Go race tests and vet; live source d6f933ff-f158-4c46-b48d-83f9cfdc29dd exported/imported into 3bb79044-d2b0-4496-ba05-6fb57a4f042c with matching aliases, enum values, captions/options, links/pivots/navigation and distinct tenant resource IDs. Invalid later-field type rejected before creating tables. Same-key historical replay, changed-body conflict and concurrent replay passed (tenant 84a20090-40ef-4e14-a9a2-92a49e5fd15a). Cancelled after allocation and resumed successfully without duplicate tables/fields (tenant f102d71c-53a8-46f5-8972-eb14f4e8f2d7). TestPortableMetadataCommitAndRollback passed in dedicated disposable dm-portable-accept MySQL: authority, lock cancellation, tenant receipt isolation and injected completion audit failure rollback. Runtime rebuilt and live endpoints verified.
+Checklist: 30/43 complete; 13 remaining. Limits: portable v1 schema-only scope, 1 MiB/200-item local import bound, 60-second resumable attempts; physical creation/caption steps can persist before final metadata commit. Index workers and production auth/cutover acceptance remain separate. No whole-import atomicity, process-crash or throughput claim.
+
+### 2026-11-04 - Local MySQL table DELETE and enum POST
+
+Implemented DELETE /v1/tables/{tableId} with dry-run/dependency checks, table-scoped
+DDL locking, journaled writer closure, physical DROP and verified retirement.
+Retained hidden metadata/receipts preserve immutable publication lineage and
+same-key recovery. Published reads omit retired tables; original names can be
+reused with a new explicit creation key. Implemented POST /v1/fields/{fieldId}/enum-values
+with owner transaction, atomic catalog publication, validation and original response
+replay. Found and fixed non-finite float and signed INT sort-order validation gaps.
+
+Verification: focused Go race tests and vet passed. Isolated MySQL
+TestTableRetirementRecovery and TestEnumCreationPublicationRecovery passed,
+including lost COMMIT acknowledgements, failure after DROP, rollback, authority/
+tenant checks and replay. TestAssembledRepository and TestCatalogRetirementRecovery
+regressions passed. Rebuilt local compose and live mysql-table-delete-enum-create-smoke.mjs
+passed: tenant bcd809f1-6ee1-4c2a-9da7-eed417c4b6db, deleted table
+376065f6-3584-4683-9db1-5a7a4bccc799, replacement dced891a-810f-4c60-82b1-c3b9b7c83482,
+pivot-blocked table 2db6d420-de4a-4325-a6c1-c5b4a25f3a90. Only newly allocated
+fixtures were mutated. Endpoint checklist now 32/43 wired, 11 open.
+
+Limits: local administrator runtime only; PostgreSQL production remains active.
+Pending/running index jobs block table deletion. Recovery uses the same endpoint
+and operation key; production retirement reconciler/grants, real process restarts
+and final retirement COMMIT fault acceptance are not established by these tests.
+
+### 2026-11-04 - Remaining local MySQL data-model routes
+
+Completed and checked the remaining 11 local runtime routes: link/pivot create and
+delete, options PUT, navigation create/delete, index-job create/scoped list/retry,
+and admin reconciliation. Checklist is 43/43 wired, 0 unchecked. Added bounded
+relationship-path resolution, ordered table/registry locks, dependency rejection,
+transactional response receipts, navigation revisions, durable index queue wiring,
+and bounded reconciliation with deduplicated repair scheduling. Updated the public
+proxy to validate all resource UUID parameters and forward the admin report.
+
+Verified focused Go race tests and vet for runtime/service/MySQL/HTTP handlers.
+Isolated TestRemainingRelationshipTransactions passed receipt-failure rollback,
+concurrent replay, tenant rejection and cancellation while blocked on a table lock.
+Isolated TestStagedIndexJobEndpoints and TestScopedIndexJobs passed. Final live
+mysql-remaining-endpoints-smoke.mjs passed all 11 routes, concurrent create/delete
+replay, invalid-input rollback, dependency checks, options contract, navigation,
+failed-job retry, physical column drift, repair dedupe/requeue and tenant isolation.
+Final fixture tenant: 9e6e7d06-8221-4f00-8d5b-43fc03bc09a1; foreign tenant:
+c6fe1b25-d91f-4705-9c09-687aad88dfa8; parent table:
+56859a79-04e1-4ad8-bfda-42eb43c6e4b7; child table:
+52571f40-4a0c-439f-bfe4-2e966a4fd60f. Only newly allocated fixtures were changed.
+The temporary drift column was removed. Disposable dm-remaining-accept stack was
+removed. Final local compose build is running; /readyz and /docs returned 200.
+
+Limitations: this completes endpoint wiring, not production readiness. Index and
+repair requests are durably queued, but no index execution worker runs in the local
+compose. Reconciliation observes names/columns/index coverage during possible DDL;
+it is not exact type/trigger/definer attestation or arbitrary DDL-intent recovery.
+Production permissions, shared-load performance and restart acceptance remain
+separate. PostgreSQL production configuration remains unchanged.

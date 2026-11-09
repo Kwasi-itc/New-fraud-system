@@ -2,6 +2,7 @@ package ast_eval
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -85,5 +86,6 @@ func aggregateResultCacheKey(tenantID string, query ports.AggregateQuery) (strin
 	if err != nil {
 		return "", false
 	}
-	return fmt.Sprintf("%x", bytes), true
+	digest := sha256.Sum256(bytes)
+	return string(digest[:]), true
 }

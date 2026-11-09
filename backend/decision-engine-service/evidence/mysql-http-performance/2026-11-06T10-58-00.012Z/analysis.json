@@ -1,0 +1,185 @@
+{
+  "at": "2026-11-06T11:04:55.203Z",
+  "target": {
+    "metric": "successful completed synchronous HTTP decision p95",
+    "milliseconds": 50,
+    "met": false
+  },
+  "scope": "Completed synchronous HTTP decision including model retrieval, SQL persistence and durable outbox production; excludes asynchronous delivery completion",
+  "runs": [
+    {
+      "report": "evidence/mysql-http-performance/2026-11-06T10-49-47.407Z/report.json",
+      "runtimeUnchanged": true,
+      "phases": [
+        {
+          "offeredRate": 10,
+          "seconds": 30,
+          "sent": 298,
+          "validated": 298,
+          "errors": 0,
+          "clientSkipped": 2,
+          "completedPerSecond": 9.931381717512025,
+          "latency": {
+            "samples": 298,
+            "minMs": 61.043,
+            "meanMs": 140.096,
+            "p50Ms": 97.563,
+            "p95Ms": 379.073,
+            "p99Ms": 893.911,
+            "maxMs": 1088.716,
+            "atOrBelowTargetPercent": 0
+          }
+        },
+        {
+          "offeredRate": 25,
+          "seconds": 30,
+          "sent": 688,
+          "validated": 688,
+          "errors": 0,
+          "clientSkipped": 62,
+          "completedPerSecond": 22.855781913025822,
+          "latency": {
+            "samples": 688,
+            "minMs": 68.295,
+            "meanMs": 196.347,
+            "p50Ms": 148.107,
+            "p95Ms": 420.065,
+            "p99Ms": 569.712,
+            "maxMs": 874.751,
+            "atOrBelowTargetPercent": 0
+          }
+        },
+        {
+          "offeredRate": 50,
+          "seconds": 30,
+          "sent": 370,
+          "validated": 370,
+          "errors": 0,
+          "clientSkipped": 1130,
+          "completedPerSecond": 12.209769328153941,
+          "latency": {
+            "samples": 370,
+            "minMs": 283.733,
+            "meanMs": 628.284,
+            "p50Ms": 587.39,
+            "p95Ms": 991.505,
+            "p99Ms": 1295.113,
+            "maxMs": 1711.439,
+            "atOrBelowTargetPercent": 0
+          }
+        }
+      ]
+    },
+    {
+      "report": "evidence/mysql-http-performance/2026-11-06T10-58-00.012Z/report.json",
+      "runtimeUnchanged": true,
+      "phases": [
+        {
+          "offeredRate": 1,
+          "seconds": 20,
+          "sent": 20,
+          "validated": 20,
+          "errors": 0,
+          "clientSkipped": 0,
+          "completedPerSecond": 0.9996735815837734,
+          "latency": {
+            "samples": 20,
+            "minMs": 138.997,
+            "meanMs": 180.162,
+            "p50Ms": 145.933,
+            "p95Ms": 253.659,
+            "p99Ms": 324.919,
+            "maxMs": 324.919,
+            "atOrBelowTargetPercent": 0
+          }
+        },
+        {
+          "offeredRate": 5,
+          "seconds": 20,
+          "sent": 100,
+          "validated": 100,
+          "errors": 0,
+          "clientSkipped": 0,
+          "completedPerSecond": 4.996515180487369,
+          "latency": {
+            "samples": 100,
+            "minMs": 124.403,
+            "meanMs": 293.228,
+            "p50Ms": 182.085,
+            "p95Ms": 692.347,
+            "p99Ms": 782.86,
+            "maxMs": 863.939,
+            "atOrBelowTargetPercent": 0
+          }
+        }
+      ]
+    }
+  ],
+  "measuredValidatedRequests": 1476,
+  "measuredHttpErrors": 0,
+  "controls": {
+    "health": {
+      "samples": 100,
+      "minMs": 2.69,
+      "meanMs": 3.99,
+      "p50Ms": 3.89,
+      "p95Ms": 5.924,
+      "p99Ms": 7.916,
+      "maxMs": 8.136,
+      "atOrBelowTargetPercent": 100
+    },
+    "modelRead": {
+      "samples": 20,
+      "minMs": 32.548,
+      "meanMs": 64.861,
+      "p50Ms": 44.573,
+      "p95Ms": 92.988,
+      "p99Ms": 397.37,
+      "maxMs": 397.37,
+      "atOrBelowTargetPercent": 70
+    }
+  },
+  "resources": [
+    {
+      "name": "fraud-mysql-dev-decision-engine-service-1",
+      "samples": 115,
+      "meanCpuPercent": 25.16130434782609,
+      "maxCpuPercent": 55.69,
+      "lastMemoryUsage": "13.79MiB / 512MiB"
+    },
+    {
+      "name": "fraud-mysql-dev-decision-engine-worker-1",
+      "samples": 115,
+      "meanCpuPercent": 52.95156521739131,
+      "maxCpuPercent": 97.74,
+      "lastMemoryUsage": "13.07MiB / 512MiB"
+    },
+    {
+      "name": "fraud-mysql-dev-decision-local-providers-1",
+      "samples": 115,
+      "meanCpuPercent": 22.438521739130426,
+      "maxCpuPercent": 44.38,
+      "lastMemoryUsage": "10.84MiB / 256MiB"
+    },
+    {
+      "name": "fraud-mysql-dev-mysql-1",
+      "samples": 115,
+      "meanCpuPercent": 126.29695652173908,
+      "maxCpuPercent": 235.87,
+      "lastMemoryUsage": "951.9MiB / 2GiB"
+    },
+    {
+      "name": "fraud-mysql-dev-data-model-service-1",
+      "samples": 115,
+      "meanCpuPercent": 9.404173913043474,
+      "maxCpuPercent": 79.27,
+      "lastMemoryUsage": "20.59MiB / 7.173GiB"
+    }
+  ],
+  "limitations": [
+    "Two short runs on a shared development host, not a controlled production capacity study",
+    "High-rate samples include client admission skips, reported separately",
+    "Initial ramp resource sampler did not parse ANSI-prefixed output; complete resource samples are retained for the lower-load follow-up",
+    "Independent controls suggest model and SQL work should be profiled; component attribution has not been measured"
+  ]
+}

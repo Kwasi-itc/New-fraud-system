@@ -1,0 +1,66 @@
+{"Time":"2026-11-07T08:07:12.557105169Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"}
+{"Time":"2026-11-07T08:07:12.580139447Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:12.583154614Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:13.595140203Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion\t1.025s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:13.596125348Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion","Elapsed":1.039}
+{"Time":"2026-11-07T08:07:18.253992192Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi"}
+{"Time":"2026-11-07T08:07:18.324873568Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:18.32660946Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:19.331366717Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi\t1.076s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:19.332441533Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi","Elapsed":1.078}
+{"Time":"2026-11-07T08:07:19.341865273Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto"}
+{"Time":"2026-11-07T08:07:19.342938225Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:19.343704906Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto","Elapsed":0.002}
+{"Time":"2026-11-07T08:07:20.667578527Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers"}
+{"Time":"2026-11-07T08:07:20.718027678Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:20.719294645Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:21.723903239Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers\t1.055s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:21.724983837Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers","Elapsed":1.057}
+{"Time":"2026-11-07T08:07:22.921340542Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime"}
+{"Time":"2026-11-07T08:07:22.983251498Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:22.984156856Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:23.99026705Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime\t1.065s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:23.991422493Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime","Elapsed":1.07}
+{"Time":"2026-11-07T08:07:33.834617968Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql"}
+{"Time":"2026-11-07T08:07:33.86430839Z","Action":"run","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Test":"TestIngestionWorkRestrictedGrants"}
+{"Time":"2026-11-07T08:07:33.86533848Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Test":"TestIngestionWorkRestrictedGrants","Output":"=== RUN   TestIngestionWorkRestrictedGrants\n"}
+{"Time":"2026-11-07T08:07:36.244850042Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Test":"TestIngestionWorkRestrictedGrants","Output":"--- PASS: TestIngestionWorkRestrictedGrants (2.38s)\n"}
+{"Time":"2026-11-07T08:07:36.246303165Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Test":"TestIngestionWorkRestrictedGrants","Elapsed":2.38}
+{"Time":"2026-11-07T08:07:36.247273871Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:37.250574673Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql\t3.415s\n"}
+{"Time":"2026-11-07T08:07:37.251572502Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql","Elapsed":3.417}
+{"Time":"2026-11-07T08:07:38.045070552Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts"}
+{"Time":"2026-11-07T08:07:38.0752035Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:38.076591817Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:39.079681878Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts\t1.033s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:39.080652804Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts","Elapsed":1.036}
+{"Time":"2026-11-07T08:07:39.640275701Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts"}
+{"Time":"2026-11-07T08:07:39.669142413Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:39.670273158Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:40.673188723Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts\t1.032s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:40.674221823Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts","Elapsed":1.034}
+{"Time":"2026-11-07T08:07:42.071452236Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate"}
+{"Time":"2026-11-07T08:07:42.11846905Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:42.119624685Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:43.124112494Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate\t1.051s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:43.125109643Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate","Elapsed":1.054}
+{"Time":"2026-11-07T08:07:43.198808739Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api"}
+{"Time":"2026-11-07T08:07:43.199846864Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:43.200630613Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api","Elapsed":0.002}
+{"Time":"2026-11-07T08:07:43.265532078Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install"}
+{"Time":"2026-11-07T08:07:43.266617479Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:43.267356617Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install","Elapsed":0.002}
+{"Time":"2026-11-07T08:07:43.308685962Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker"}
+{"Time":"2026-11-07T08:07:43.30977304Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:43.31053514Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker","Elapsed":0.002}
+{"Time":"2026-11-07T08:07:43.353436464Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server"}
+{"Time":"2026-11-07T08:07:43.354416323Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:43.355257325Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server","Elapsed":0.002}
+{"Time":"2026-11-07T08:07:43.715613142Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture"}
+{"Time":"2026-11-07T08:07:43.737352694Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-07T08:07:43.738733497Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture","Output":"PASS\n"}
+{"Time":"2026-11-07T08:07:44.741287736Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture","Output":"ok  \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture\t1.025s [no tests to run]\n"}
+{"Time":"2026-11-07T08:07:44.742206819Z","Action":"pass","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture","Elapsed":1.027}
+{"Time":"2026-11-07T08:07:44.825688402Z","Action":"start","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker"}
+{"Time":"2026-11-07T08:07:44.826716603Z","Action":"output","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker","Output":"?   \tgithub.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker\t[no test files]\n"}
+{"Time":"2026-11-07T08:07:44.827463462Z","Action":"skip","Package":"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker","Elapsed":0.002}

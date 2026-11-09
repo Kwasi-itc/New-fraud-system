@@ -47,7 +47,7 @@ const docsHTML = `<!doctype html>
       <strong>Ingestion Service API</strong>
       <span style="margin-left:16px;">Raw spec: <a href="/openapi.yaml">/openapi.yaml</a></span>
       <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
-        Phase 0 and Phase 1 scaffold. Health and readiness routes are live. Ingestion endpoints will be added as implementation moves into synchronous and batch writes.
+        Ingestion, record queries and asynchronous CSV processing. Check /readyz before sending requests; available capabilities depend on the selected runtime.
       </div>
     </header>
     <div id="swagger-ui"></div>

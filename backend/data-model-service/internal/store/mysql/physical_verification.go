@@ -204,7 +204,7 @@ func (e *PhysicalExecutor) withVerifiedPhysicalConn(ctx context.Context, conn *s
 		if err != nil {
 			return err
 		}
-		if actual != plan.Steps[len(plan.Steps)-1].After {
+		if actual != plan.FinalTableDefinition() {
 			return migrations.ErrDrift
 		}
 		if plan.Version == 3 {

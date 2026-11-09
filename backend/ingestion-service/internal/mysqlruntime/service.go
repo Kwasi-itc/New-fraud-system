@@ -26,7 +26,13 @@ func (s *Service) owner(ctx context.Context, tenant uuid.UUID, name string) (*st
 	if tenant != s.Config.TenantID || name != s.Config.ObjectType {
 		return nil, service.ErrForbidden
 	}
-	return store.ResolveRecordOwner(ctx, s.DB, s.Config.Database, tenant, name, s.Config.Token, s.Config.Limits, s.Config.ContractBytes)
+	owner, err := store.ResolveRecordOwner(ctx, s.DB, s.Config.Database, tenant, name, s.Config.Token, s.Config.Limits, s.Config.ContractBytes)
+	if err != nil {
+		return nil, err
+	}
+	// The validated v006 lineage includes summary metadata. Every runtime
+	// writer must participate once an operator activates a table definition.
+	return owner.WithVelocitySummaries(), nil
 }
 func boundary(err error) error {
 	if err == nil {
@@ -45,7 +51,7 @@ func boundary(err error) error {
 		kind = service.ErrIdempotencyKeyReused
 	case errors.Is(err, store.ErrRecordConflict):
 		kind = service.ErrRecordConflict
-	case errors.Is(err, store.ErrReceiptLimit), errors.Is(err, store.ErrContractBounds):
+	case errors.Is(err, store.ErrReceiptLimit), errors.Is(err, store.ErrContractBounds), errors.Is(err, store.ErrWorkMetricsBound):
 		kind = service.ErrRequestLimits
 	case errors.Is(err, store.ErrCommandInput):
 		kind = service.ErrBadInput

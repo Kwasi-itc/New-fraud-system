@@ -160,7 +160,7 @@ func (r providerExecutionRepository) create(ctx context.Context, items []provide
 	for i, v := range items {
 		values[i][5] = bindings[v.decision]
 	}
-	return insertEffectBatch(ctx, r.authoringRepository, r.table(), "id,tenant_id,config_id,decision_id,scenario_id,decision_iteration_id,status,request_json,response_json,provider_reference,last_error,created_at,updated_at,sent_at,completed_at,failed_at", r.selectSQL(), values, ids, r.scan, func(v providerExecution) string { return v.id })
+	return insertEffectBatch(ctx, r.authoringRepository, r.table(), "id,tenant_id,config_id,decision_id,scenario_id,decision_iteration_id,status,request_json,response_json,provider_reference,last_error,created_at,updated_at,sent_at,completed_at,failed_at", r.selectSQL(), values, ids, r.scan, func(v providerExecution) string { return v.id }, func(v providerExecution) string { return v.status })
 }
 func (r providerExecutionRepository) update(ctx context.Context, v providerExecution) (providerExecution, error) {
 	if err := r.mutating(); err != nil {

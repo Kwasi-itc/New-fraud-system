@@ -51,6 +51,9 @@ func (r CustomListRepository) GetListByID(ctx context.Context, tenantID, listID 
 	const stmt = `select id, tenant_id, name, description, kind, created_at, updated_at from core.custom_lists where tenant_id = $1 and id = $2`
 	var out platform.CustomList
 	err := r.q.QueryRow(ctx, stmt, tenantID, listID).Scan(&out.ID, &out.TenantID, &out.Name, &out.Description, &out.Kind, &out.CreatedAt, &out.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return platform.CustomList{}, errors.Join(ports.ErrCustomListNotFound, err)
+	}
 	return out, err
 }
 

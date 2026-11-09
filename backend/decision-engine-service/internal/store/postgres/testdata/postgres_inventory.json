@@ -512,14 +512,14 @@
   },
   {
     "path": "../../ports/data_model_reader.go",
-    "sha256": "ed2f11ea8a3d3e022f93fe130d359a33c11c76b76f501e32fffb1ad085a7dac5",
+    "sha256": "0613ffa691902f580c01f152bcd1827f91fc23f56f5df19ab232d6479cf9b1b0",
     "qualified_references": [],
     "features": [],
     "scan_calls": 0
   },
   {
     "path": "../../ports/decision_transactions.go",
-    "sha256": "4e8e0aa29baed8e68c02e4808d7edc9ae12dc5058134177ec9d5ffcfa69fb1d6",
+    "sha256": "22e7b0c44aa34921aa97b250337fc9062ffe119d9cb155ea2ae415b22ac8e2d0",
     "qualified_references": [],
     "features": [],
     "scan_calls": 0
@@ -533,21 +533,21 @@
   },
   {
     "path": "../../ports/dispatch_receipt.go",
-    "sha256": "d7608a1d298c6d45370a12181e14981a6dff90f68e9a93a50241bf036a932cd8",
+    "sha256": "df1c1448239af5078967f536a0e9778a42e58b1baed09c0e671f822863fe5f01",
     "qualified_references": [],
     "features": [],
     "scan_calls": 0
   },
   {
     "path": "../../ports/errors.go",
-    "sha256": "395840adcd83d8b4c580af6e235d773dced4ef73298099f6909fee45739fcb77",
+    "sha256": "4cd18666816cd1a9f73768111417ce63d30bbfba3c30d084d18d9a731835b5a0",
     "qualified_references": [],
     "features": [],
     "scan_calls": 0
   },
   {
     "path": "../../ports/evaluation_reads.go",
-    "sha256": "7500768b43262ec41b69c6fa70b13317c588714d0b1e1c6a87d46e1eedc7b193",
+    "sha256": "36c085adbc7d5b33428fcebbce5503e76fa4ec9dbe09c5c92d4e346200a01239",
     "qualified_references": [],
     "features": [],
     "scan_calls": 0
@@ -718,7 +718,7 @@
   },
   {
     "path": "platform_repository.go",
-    "sha256": "9a47c193a28a46bf850efd657d5a045703a6f5ff6dcb7d3179e1a4a5e5e9867e",
+    "sha256": "71a38a94418842b69bf6451ef5ac3a41a0a1cc6670c0b0d0b82d57fc5ce12a4a",
     "qualified_references": [
       "core.custom_list_entries",
       "core.custom_lists",
@@ -895,7 +895,7 @@
   },
   {
     "path": "tenant_data_reader.go",
-    "sha256": "38046277680bf305e4b95316ee6f4f488f1fde3bddc15d2f5129fca50cffb900",
+    "sha256": "041daba65dc571fdbb5a51c65e05a235109ab8fb1de4c41c8904c4d3a4de5ec0",
     "qualified_references": [],
     "features": [
       "jsonb",
@@ -952,6 +952,25 @@
       "pgx"
     ],
     "scan_calls": 13
+  },
+  {
+    "path": "workflow_authoring_copy.go",
+    "sha256": "e0e906d91ea6d21b21eb96658e4a0b3b6e2d3b4b69d2d187a1228b5fc5bad73a",
+    "qualified_references": [
+      "core.model_fields",
+      "core.model_tables",
+      "core.scenarios",
+      "core.workflow_authoring_events",
+      "core.workflow_rules",
+      "core.workflows"
+    ],
+    "features": [
+      "uuid[]",
+      "::",
+      "for update",
+      "pgx"
+    ],
+    "scan_calls": 9
   },
   {
     "path": "workflow_condition_repository.go",

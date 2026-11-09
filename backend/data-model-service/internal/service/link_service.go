@@ -58,7 +58,7 @@ func (s LinkService) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]da
 
 func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamodel.Link, error) {
 	if err := datamodel.ValidateLinkName(input.Name); err != nil {
-		return datamodel.Link{}, err
+		return datamodel.Link{}, fmt.Errorf("%w: %v", ErrRelationshipInvalid, err)
 	}
 
 	parentTable, err := s.tableRepository.GetByID(ctx, input.ParentTable)
@@ -79,16 +79,16 @@ func (s LinkService) Create(ctx context.Context, input CreateLinkInput) (datamod
 	}
 
 	if parentTable.TenantID != input.TenantID || childTable.TenantID != input.TenantID {
-		return datamodel.Link{}, fmt.Errorf("tables do not belong to tenant")
+		return datamodel.Link{}, fmt.Errorf("%w: tables do not belong to tenant", ErrRelationshipInvalid)
 	}
 	if parentField.TenantID != input.TenantID || childField.TenantID != input.TenantID || parentField.TableID != parentTable.ID || childField.TableID != childTable.ID {
-		return datamodel.Link{}, fmt.Errorf("link fields do not belong to the selected tenant and tables")
+		return datamodel.Link{}, fmt.Errorf("%w: link fields do not belong to the selected tenant and tables", ErrRelationshipInvalid)
 	}
 	if !parentField.IsUnique {
-		return datamodel.Link{}, fmt.Errorf("parent field must be unique")
+		return datamodel.Link{}, fmt.Errorf("%w: parent field must be unique", ErrRelationshipInvalid)
 	}
 	if parentField.DataType != datamodel.DataTypeString || childField.DataType != datamodel.DataTypeString {
-		return datamodel.Link{}, fmt.Errorf("parent and child link fields must be string")
+		return datamodel.Link{}, fmt.Errorf("%w: parent and child link fields must be string", ErrRelationshipInvalid)
 	}
 
 	link := datamodel.Link{
@@ -153,7 +153,7 @@ func (s LinkService) Delete(ctx context.Context, linkID uuid.UUID, dryRun bool) 
 	}
 
 	if len(report.Conflicts.Pivots) > 0 {
-		return report, fmt.Errorf("link has internal conflicts")
+		return report, fmt.Errorf("%w: link has internal conflicts", ErrRelationshipInvalid)
 	}
 	if dryRun {
 		return report, nil

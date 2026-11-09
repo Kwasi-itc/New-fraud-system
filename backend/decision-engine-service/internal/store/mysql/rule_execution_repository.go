@@ -59,9 +59,16 @@ func (r RuleExecutionRepository) ListByDecision(ctx context.Context, tenant, par
 // consistently ordered chunks. Tenant-less public evidence objects cannot
 // select another tenant's decisions or forge the evidence iteration binding.
 func (r authoringRepository) evidenceBindings(ctx context.Context, table string, parents []string) (map[string]mysqlstore.UUID, error) {
-	ordered := append([]string(nil), parents...)
-	sort.Strings(ordered)
 	result := map[string]mysqlstore.UUID{}
+	ordered := make([]string, 0, len(parents))
+	for _, parent := range parents {
+		if binding, ok := r.newDecisionBindings.get(parent); ok && table == "decision_engine_decisions" {
+			result[parent] = binding
+		} else {
+			ordered = append(ordered, parent)
+		}
+	}
+	sort.Strings(ordered)
 	for start := 0; start < len(ordered); start += 100 {
 		end := min(start+100, len(ordered))
 		ids := ordered[start:end]
@@ -93,7 +100,7 @@ func (r authoringRepository) evidenceBindings(ctx context.Context, table string,
 			return nil, err
 		}
 	}
-	if len(result) != len(ordered) {
+	if len(result) != len(parents) {
 		return nil, sql.ErrNoRows
 	}
 	return result, nil

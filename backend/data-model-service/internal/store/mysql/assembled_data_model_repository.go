@@ -16,6 +16,8 @@ import (
 // It does not certify physical readiness. GetDataModelSnapshot also reads the
 // revision envelope in the same snapshot for the snapshot-aware owner service.
 type DataModelReadRepository struct {
+	published         bool
+	authorize         ModelReadAuthorizer
 	db                *sql.DB
 	schema            string
 	tenant            uuid.UUID
@@ -30,7 +32,7 @@ func NewDataModelReadRepository(db *sql.DB, database string, tenant uuid.UUID, m
 	if db == nil || tenant == uuid.Nil || maxRows < 1 || maxRows > 100000 || maxBytes < 1 || maxBytes > 64<<20 {
 		return nil, errors.New("database, tenant and bounded row/byte limits required")
 	}
-	return &DataModelReadRepository{db, schema, tenant, maxRows, maxBytes}, nil
+	return &DataModelReadRepository{db: db, schema: schema, tenant: tenant, maxRows: maxRows, maxBytes: maxBytes}, nil
 }
 
 func (r *DataModelReadRepository) GetAssembledDataModel(ctx context.Context, tenant uuid.UUID) (datamodel.AssembledDataModel, error) {
@@ -39,8 +41,13 @@ func (r *DataModelReadRepository) GetAssembledDataModel(ctx context.Context, ten
 	}
 	var model datamodel.AssembledDataModel
 	err := mysqlstore.Snapshot(ctx, r.db, func(tx *sql.Tx) error {
+		if r.authorize != nil {
+			if err := r.authorize(ctx, tx, r.tenant); err != nil {
+				return err
+			}
+		}
 		var err error
-		model, err = loadAssembledModel(ctx, metadataRepository{tx, r.schema, r.tenant, r.maxRows, r.maxBytes})
+		model, err = r.loadModel(ctx, metadataRepository{tx, r.schema, r.tenant, r.maxRows, r.maxBytes})
 		return err
 	})
 	if err != nil {
@@ -63,16 +70,32 @@ func aggregateList[T any](ctx context.Context, r *metadataRepository, query stri
 }
 
 func loadAssembledModel(ctx context.Context, r metadataRepository) (datamodel.AssembledDataModel, error) {
+	return loadAssembledModelBudget(ctx, &r)
+}
+
+func loadAssembledModelBudget(ctx context.Context, remaining *metadataRepository) (datamodel.AssembledDataModel, error) {
+	return loadAssembledModelVisibility(ctx, remaining, false)
+}
+func loadAssembledModelVisibility(ctx context.Context, remaining *metadataRepository, hideRetired bool) (datamodel.AssembledDataModel, error) {
+	r := *remaining
+	defer func() { *remaining = r }()
 	empty := datamodel.AssembledDataModel{}
-	tables, err := aggregateList(ctx, &r, (TableRepository{r}).selectSQL()+" ORDER BY created_at DESC,id DESC", scanTable)
+	tableFilter, fieldFilter, enumFilter := "", "", ""
+	if hideRetired {
+		tableFilter = " AND NOT EXISTS (SELECT 1 FROM " + r.schema + ".data_model_physical_tables p WHERE p.tenant_id=data_model_tables.tenant_id AND p.table_id=data_model_tables.id AND p.write_state='retired')"
+		fieldFilter = " AND NOT EXISTS (SELECT 1 FROM " + r.schema + ".data_model_physical_tables p WHERE p.tenant_id=data_model_fields.tenant_id AND p.table_id=data_model_fields.table_id AND p.write_state='retired')"
+		enumFilter = " AND NOT EXISTS (SELECT 1 FROM " + r.schema + ".data_model_fields f JOIN " + r.schema + ".data_model_physical_tables p ON p.tenant_id=f.tenant_id AND p.table_id=f.table_id WHERE f.tenant_id=data_model_field_enum_values.tenant_id AND f.id=data_model_field_enum_values.field_id AND p.write_state='retired')"
+	}
+
+	tables, err := aggregateList(ctx, &r, (TableRepository{r}).selectSQL()+tableFilter+" ORDER BY created_at DESC,id DESC", scanTable)
 	if err != nil {
 		return empty, err
 	}
-	fields, err := aggregateList(ctx, &r, (FieldRepository{r}).selectSQL()+" ORDER BY table_id,created_at,id", scanField)
+	fields, err := aggregateList(ctx, &r, (FieldRepository{r}).selectSQL()+fieldFilter+" ORDER BY table_id,created_at,id", scanField)
 	if err != nil {
 		return empty, err
 	}
-	enums, err := aggregateList(ctx, &r, (FieldEnumValueRepository{r}).selectSQL()+" ORDER BY field_id,sort_order,created_at,id", scanEnum)
+	enums, err := aggregateList(ctx, &r, (FieldEnumValueRepository{r}).selectSQL()+enumFilter+" ORDER BY field_id,sort_order,created_at,id", scanEnum)
 	if err != nil {
 		return empty, err
 	}
@@ -242,6 +265,11 @@ func (r *DataModelReadRepository) GetDataModelSnapshot(ctx context.Context, tena
 	}
 	var result ports.DataModelSnapshot
 	err := mysqlstore.Snapshot(ctx, r.db, func(tx *sql.Tx) error {
+		if r.authorize != nil {
+			if err := r.authorize(ctx, tx, r.tenant); err != nil {
+				return err
+			}
+		}
 		budget := metadataRepository{tx, r.schema, r.tenant, r.maxRows, r.maxBytes}
 		tenants, err := aggregateList(ctx, &budget, tenantSelect(budget)+" WHERE id=?", scanTenant)
 		if err != nil {
@@ -255,7 +283,7 @@ func (r *DataModelReadRepository) GetDataModelSnapshot(ctx context.Context, tena
 		if err != nil {
 			return err
 		}
-		result.Model, err = loadAssembledModel(ctx, budget)
+		result.Model, err = r.loadModel(ctx, budget)
 		return err
 	})
 	if err != nil {

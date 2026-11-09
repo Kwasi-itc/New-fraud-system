@@ -10,8 +10,8 @@ import (
 )
 
 func EvaluateFormulaWithEvidence(ctx context.Context, formula json.RawMessage, runtime Runtime) (bool, *domainast.EvaluationNode, error) {
-	var node domainast.Node
-	if err := json.Unmarshal(formula, &node); err != nil {
+	node, err := runtime.FormulaPlans.parse(formula, runtime)
+	if err != nil {
 		return false, nil, err
 	}
 	evaluation, err := evaluateNodeWithEvidence(ctx, node, runtime)
@@ -28,10 +28,10 @@ func EvaluateFormulaWithEvidence(ctx context.Context, formula json.RawMessage, r
 func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime Runtime) (domainast.EvaluationNode, error) {
 	evaluation := domainast.EvaluationNode{
 		Function: node.Function,
-		Constant: node.Constant,
+		Constant: detachedConstant(node.Constant),
 	}
 	if node.Function == "" || strings.EqualFold(node.Function, "constant") {
-		evaluation.ReturnValue = node.Constant
+		evaluation.ReturnValue = detachedConstant(node.Constant)
 		return evaluation, nil
 	}
 
@@ -128,7 +128,13 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 	if len(node.NamedChildren) > 0 {
 		evaluation.NamedChildren = make(map[string]domainast.EvaluationNode, len(node.NamedChildren))
 		for name, child := range node.NamedChildren {
-			childEval, err := evaluateNodeWithEvidence(ctx, child, runtime)
+			var childEval domainast.EvaluationNode
+			var err error
+			if canonicalFunctionName(node.Function) == "aggregator" && name == "filters" {
+				childEval, err = aggregateFilterEvidence(ctx, child, runtime)
+			} else {
+				childEval, err = evaluateNodeWithEvidence(ctx, child, runtime)
+			}
 			if err != nil {
 				return domainast.EvaluationNode{}, err
 			}

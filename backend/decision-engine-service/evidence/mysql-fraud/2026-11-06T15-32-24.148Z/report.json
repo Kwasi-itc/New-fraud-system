@@ -1,0 +1,122 @@
+{
+  "at": "2026-11-06T15:33:23.417Z",
+  "runtimeImage": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+  "runtimeUnchanged": true,
+  "runtimeBefore": [
+    {
+      "name": "decision-engine-service",
+      "id": "7f35039040039ab123a7b7e81e6d06fc2f338b899c0b200c4ae8038db6c113c7",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:58.77859185Z",
+      "restarts": 0
+    },
+    {
+      "name": "decision-engine-worker",
+      "id": "57d012a8e60846be1ebf8248e28414d0b2ac246c7dae19ed83da5c5fc4905878",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:52.832039285Z",
+      "restarts": 0
+    },
+    {
+      "name": "decision-local-providers",
+      "id": "dfb6159eade4026f3c8533247ae783c57b3070852e780e62f09d50d2fbcae994",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:41.578731789Z",
+      "restarts": 0
+    }
+  ],
+  "runtimeAfter": [
+    {
+      "name": "decision-engine-service",
+      "id": "7f35039040039ab123a7b7e81e6d06fc2f338b899c0b200c4ae8038db6c113c7",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:58.77859185Z",
+      "restarts": 0
+    },
+    {
+      "name": "decision-engine-worker",
+      "id": "57d012a8e60846be1ebf8248e28414d0b2ac246c7dae19ed83da5c5fc4905878",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:52.832039285Z",
+      "restarts": 0
+    },
+    {
+      "name": "decision-local-providers",
+      "id": "dfb6159eade4026f3c8533247ae783c57b3070852e780e62f09d50d2fbcae994",
+      "image": "sha256:f21839df1f4ca79cb1da3f16b4b3aa900d715adf577f024d3108bcf1cac31da2",
+      "startedAt": "2026-11-06T15:31:41.578731789Z",
+      "restarts": 0
+    }
+  ],
+  "fixtureSource": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\decision-engine-service\\evidence\\mysql-fraud\\2026-11-06T09-17-37.489Z",
+  "requestCount": 608,
+  "fixtures": {
+    "at": "2026-11-06T09:17:37.506Z",
+    "tenants": [
+      {
+        "tenant": "6e2b3016-636a-4622-b18c-424276502a73",
+        "table": "f9ff9bc5-3127-4ba9-8c58-fcfddb5cb5a6",
+        "scenario": "35f01adc-55d8-49ba-b063-3a46d17a8811",
+        "parent": "/v1/tenants/6e2b3016-636a-4622-b18c-424276502a73/scenarios/35f01adc-55d8-49ba-b063-3a46d17a8811",
+        "iteration": "9de1519d-ac9f-45fd-bffa-c7ed100652e4"
+      },
+      {
+        "tenant": "00e8b384-ae35-4c80-ad4f-f6dbbfae029e",
+        "table": "d82a1c4c-d275-4464-81ea-02d5a2aa64f8",
+        "scenario": "b9f23597-8b5a-4037-8e9e-a1ed4f60cb07",
+        "parent": "/v1/tenants/00e8b384-ae35-4c80-ad4f-f6dbbfae029e/scenarios/b9f23597-8b5a-4037-8e9e-a1ed4f60cb07",
+        "iteration": "39df2098-0637-416f-8b4e-0dd890d712cc"
+      }
+    ],
+    "inactive": {
+      "tenant": "c01d1f48-4b0f-456f-9854-e93e7d86d722"
+    },
+    "late": {
+      "tenant": "29bdd774-1358-4316-8963-ec03f29075e7",
+      "table": "7cf4dcb4-f1dd-41bf-a1d5-ea83784cf1c7",
+      "scenario": "adf67239-95cd-48fa-a79b-07892246a46f",
+      "parent": "/v1/tenants/29bdd774-1358-4316-8963-ec03f29075e7/scenarios/adf67239-95cd-48fa-a79b-07892246a46f",
+      "iteration": "97a0dae9-acb7-449a-bff0-a38712a9ea26"
+    }
+  },
+  "datasetVersion": 1,
+  "syntheticTransactions": 256,
+  "verifiedTransactions": 256,
+  "outcomes": {
+    "approve": 81,
+    "review": 71,
+    "block_and_review": 71,
+    "decline": 33
+  },
+  "suites": [
+    {
+      "name": "all-active-tenant-mode-and-rule-publication",
+      "passed": true
+    },
+    {
+      "name": "synthetic-fraud-dataset-and-persisted-rule-explanations",
+      "passed": true
+    },
+    {
+      "name": "multi-tenant-policy-and-resource-isolation",
+      "passed": true
+    },
+    {
+      "name": "typed-input-validation-and-trigger-nonmatch",
+      "passed": true
+    },
+    {
+      "name": "async-scheduled-evaluation-and-cross-tenant-local-delivery",
+      "passed": true
+    },
+    {
+      "name": "case-workflow-delivery-and-real-review-identities-in-both-tenants",
+      "passed": true
+    },
+    {
+      "name": "new-tenant-discovery-without-restarting-the-decision-service",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

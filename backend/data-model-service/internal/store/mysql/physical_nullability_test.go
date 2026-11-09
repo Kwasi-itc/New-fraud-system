@@ -47,8 +47,8 @@ func TestPhysicalNullabilityPlanning(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := p.SetFieldNullable(field.Field.ID, true); !errors.Is(err, ErrPhysicalPlanningUnsupported) {
-			t.Fatalf("enum accepted: %v", err)
+		if _, err := p.SetFieldNullable(field.Field.ID, true); err != nil {
+			t.Fatalf("enum base-type column rejected: %v", err)
 		}
 		if field.Field.DataType == datamodel.DataTypeString {
 			field.Field.IsEnum, field.Field.IsUnique = false, true

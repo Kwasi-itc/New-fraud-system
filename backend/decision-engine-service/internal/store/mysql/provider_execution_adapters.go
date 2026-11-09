@@ -72,6 +72,12 @@ func (r ScreeningExecutionRepository) UpdateStatus(ctx context.Context, id strin
 	return r.status(ctx, id, string(status))
 }
 func (r ScoringRequestRepository) CreateMany(ctx context.Context, items []scoring.Request) ([]scoring.Request, error) {
+	if r.deferScoring && len(items) > 0 {
+		if r.effectJobError != nil {
+			*r.effectJobError = ErrAdditionalScoringDeferred
+		}
+		return nil, ErrAdditionalScoringDeferred
+	}
 	values := make([]providerExecution, len(items))
 	for i, v := range items {
 		values[i] = scoringExecutionRecord(v)
@@ -105,9 +111,21 @@ func (r ScoringRequestRepository) ListByStatus(context.Context, scoring.RequestS
 	return nil, ErrSystemScopeRequired
 }
 func (r ScoringRequestRepository) Update(ctx context.Context, item scoring.Request) (scoring.Request, error) {
+	if r.deferScoring {
+		if r.effectJobError != nil {
+			*r.effectJobError = ErrAdditionalScoringDeferred
+		}
+		return scoring.Request{}, ErrAdditionalScoringDeferred
+	}
 	v, err := r.update(ctx, scoringExecutionRecord(item))
 	return scoringRequest(v), err
 }
 func (r ScoringRequestRepository) UpdateStatus(ctx context.Context, id string, status scoring.RequestStatus) error {
+	if r.deferScoring {
+		if r.effectJobError != nil {
+			*r.effectJobError = ErrAdditionalScoringDeferred
+		}
+		return ErrAdditionalScoringDeferred
+	}
 	return r.status(ctx, id, string(status))
 }

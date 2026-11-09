@@ -1,0 +1,95 @@
+# Includes the existing shared MySQL and data-model services with their original
+# paths, credentials and volumes. Requires Docker Compose with include support.
+name: fraud-mysql-dev
+include:
+  - ../data-model-service/docker-compose-mysql.yml
+
+services:
+  migrate-ingestion:
+    image: fraud-ingestion-mysql:local
+    build:
+      context: ..
+      dockerfile: ingestion-service/Dockerfile.mysql
+    command: [/app/install-ingestion]
+    environment:
+      LOCAL_MYSQL_NO_AUTH: "1"
+      LOCAL_INGESTION_API: "1"
+      APP_ORIGIN: http://localhost:8081
+      INGESTION_TENANT_ID: ${INGESTION_TENANT_ID:-}
+      INGESTION_OBJECT_TYPE: ${INGESTION_OBJECT_TYPE:-transactions}
+    secrets:
+      - mysql_root_password
+      - ingestion_api_password
+      - ingestion_worker_password
+      - ingestion_runtime_token
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+      - ../../.local/mysql-dev/ingestion-runtime:/runtime
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      migrate-data-model:
+        condition: service_completed_successfully
+      data-model-service:
+        condition: service_started
+
+  ingestion-service:
+    image: fraud-ingestion-mysql:local
+    command: [/app/mysql-api, --local, --listen, "0.0.0.0:8081"]
+    environment: &local-environment
+      LOCAL_MYSQL_NO_AUTH: "1"
+      APP_ORIGIN: http://localhost:8081
+      GIN_MODE: release
+    secrets: [ingestion_api_password, ingestion_runtime_token]
+    volumes: &runtime-volumes
+      - ../../.local/mysql-dev/ingestion-runtime:/runtime:ro
+    ports: ["127.0.0.1:8081:8081"]
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 512m
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 9s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-ingestion:
+        condition: service_completed_successfully
+
+  ingestion-worker:
+    image: fraud-ingestion-mysql:local
+    command: [/app/mysql-worker, --local]
+    environment: *local-environment
+    secrets: [ingestion_worker_password, ingestion_runtime_token]
+    volumes: *runtime-volumes
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 512m
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, /app/mysql-worker, --local, --healthcheck]
+      interval: 15s
+      timeout: 25s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-ingestion:
+        condition: service_completed_successfully
+
+secrets:
+  ingestion_api_password:
+    file: ../../.local/mysql-dev/ingestion-api-password.txt
+  ingestion_worker_password:
+    file: ../../.local/mysql-dev/ingestion-worker-password.txt
+  ingestion_runtime_token:
+    file: ../../.local/mysql-dev/ingestion-runtime-token.txt

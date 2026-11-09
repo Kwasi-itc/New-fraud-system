@@ -20,6 +20,7 @@ type PhysicalNativeChange struct {
 	FieldIDs []uuid.UUID `json:"field_ids,omitempty"`
 	FieldID  uuid.UUID   `json:"field_id"`
 	IndexID  uuid.UUID   `json:"index_id"`
+	Enum     bool        `json:"enum,omitempty"`
 	Unique   bool        `json:"unique,omitempty"`
 	Nullable bool        `json:"nullable,omitempty"`
 }
@@ -50,7 +51,20 @@ func (p *PhysicalPlanner) nativeSource(statements []PhysicalStatement) *Physical
 
 func (p *PhysicalPlanner) regenerateNative(v PhysicalNativeChange) (PhysicalStatement, error) {
 	invalid := errors.New("invalid typed native change")
+	if v.Enum && v.Kind != "field_enum" {
+		return PhysicalStatement{}, invalid
+	}
 	switch v.Kind {
+	case "create_managed_index":
+		if v.FieldID != uuid.Nil || v.Nullable || v.Unique {
+			return PhysicalStatement{}, invalid
+		}
+		return p.CreateManagedIndex(v.IndexID, v.FieldIDs)
+	case "delete_field":
+		if v.IndexID != uuid.Nil || len(v.FieldIDs) != 0 || v.Unique || v.Nullable {
+			return PhysicalStatement{}, invalid
+		}
+		return p.DropField(v.FieldID)
 	case "add_fields":
 		if v.FieldID != uuid.Nil || v.IndexID != uuid.Nil || v.Unique || v.Nullable {
 			return PhysicalStatement{}, invalid
@@ -66,9 +80,17 @@ func (p *PhysicalPlanner) regenerateNative(v PhysicalNativeChange) (PhysicalStat
 			return PhysicalStatement{}, invalid
 		}
 		return p.DropIndex(v.IndexID)
-	case "create_field_unique", "drop_field_unique", "field_nullability":
+	case "field_enum":
 		if v.IndexID != uuid.Nil || len(v.FieldIDs) != 0 || v.Unique {
 			return PhysicalStatement{}, invalid
+		}
+		return p.SetFieldEnum(v.FieldID, v.Enum, v.Nullable)
+	case "create_field_unique", "drop_field_unique", "field_nullability", "field_nullability_checked":
+		if v.IndexID != uuid.Nil || len(v.FieldIDs) != 0 || v.Unique {
+			return PhysicalStatement{}, invalid
+		}
+		if v.Kind == "field_nullability_checked" {
+			return p.SetFieldNullableChecked(v.FieldID, v.Nullable)
 		}
 		if v.Kind == "field_nullability" {
 			return p.SetFieldNullable(v.FieldID, v.Nullable)
@@ -96,9 +118,43 @@ func validateNativeSource(plan PhysicalDDLPlan, database, name string) error {
 	if err := validateNativeMandatory(p, plan.Creation); err != nil {
 		return err
 	}
+	if err := validateTextChangeSequence(plan); err != nil {
+		return err
+	}
+	for i, v := range plan.Native.Changes {
+		if v.Kind == "delete_field" {
+			f := p.fields[v.FieldID]
+			if f.field.DataType == datamodel.DataTypeString && f.field.IsUnique && (i < 4 || plan.Native.Changes[i-1].Kind != "remove_text_key" || plan.Native.Changes[i-1].FieldID != v.FieldID) {
+				return errors.New("text field deletion requires prior guard retirement")
+			}
+		}
+	}
 	var empty []string
 	for i, v := range plan.Native.Changes {
-		generated, err := p.regenerateNative(v)
+		var generated PhysicalStatement
+		var err error
+		switch v.Kind {
+		case "add_unique_text", "text_guard_insert", "text_guard_update":
+			if v.Enum || v.Unique || v.Nullable || v.IndexID != uuid.Nil || len(v.FieldIDs) != 0 {
+				return errors.New("invalid text change")
+			}
+			steps, e := p.AddUniqueText(v.FieldID, plan.Creation.Definer)
+			err = e
+			if e == nil {
+				index := 0
+				if v.Kind == "text_guard_insert" {
+					index = 1
+				}
+				if v.Kind == "text_guard_update" {
+					index = 2
+				}
+				generated = steps[index]
+			}
+		case "enable_text_unique", "enable_text_insert", "enable_text_update", "text_unique_check", "disable_text_unique", "disable_text_insert", "disable_text_update", "remove_text_key", "text_nullability":
+			generated, err = p.regenerateTextConstraint(v, plan.Creation.Definer)
+		default:
+			generated, err = p.regenerateNative(v)
+		}
 		if err != nil {
 			return err
 		}

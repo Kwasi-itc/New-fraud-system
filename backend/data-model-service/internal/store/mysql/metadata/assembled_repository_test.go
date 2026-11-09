@@ -96,6 +96,68 @@ func TestAssembledRepository(t *testing.T) {
 		}
 		return r
 	}
+	t.Run("published_versions_are_owner_scoped_and_gated", func(t *testing.T) {
+		r, err := store.NewPublishedDataModelReadRepository(db, database, a, 100, 10000)
+		if err != nil {
+			t.Fatal(err)
+		}
+		version := uuid.New()
+		if err := mysqlstore.Mutation(ctx, db, func(tx *sql.Tx) error {
+			registry, err := store.NewPhysicalRegistry(tx, database, a, 100)
+			if err != nil {
+				return err
+			}
+			return registry.RegisterTable(ctx, child.ID)
+		}); err != nil {
+			t.Fatal(err)
+		}
+		// Privileged disposable setup exercises the read contract, not publication.
+		for _, gate := range []string{"closed", "open", "closed"} {
+			if _, err := db.ExecContext(ctx, "UPDATE data_model_physical_tables SET published_version=?,write_state=? WHERE tenant_id=? AND table_id=?", mysqlstore.UUID(version), gate, mysqlstore.UUID(a), mysqlstore.UUID(child.ID)); err != nil {
+				t.Fatal(err)
+			}
+			got, err := r.GetAssembledDataModel(ctx, a)
+			if err != nil {
+				t.Fatal(err)
+			}
+			token := got.Tables["child"].PublishedVersion
+			if gate == "open" && (token == nil || *token != version) {
+				t.Fatalf("lost owner version: %v", token)
+			}
+			if gate == "closed" && token != nil {
+				t.Fatal("closed gate advertised a version")
+			}
+			if got.Tables["parent"].PublishedVersion != nil {
+				t.Fatal("unpublished table advertised a version")
+			}
+			plain, err := read(t, 100, 10000).GetAssembledDataModel(ctx, a)
+			if err != nil || plain.Tables["child"].PublishedVersion != nil {
+				t.Fatalf("metadata reader changed: %v", err)
+			}
+		}
+		if got, err := r.GetAssembledDataModel(ctx, b); err == nil || got.Tables != nil {
+			t.Fatal("foreign tenant accepted")
+		}
+		if _, err := db.ExecContext(ctx, "UPDATE data_model_physical_tables SET write_state='open' WHERE tenant_id=? AND table_id=?", mysqlstore.UUID(a), mysqlstore.UUID(child.ID)); err != nil {
+			t.Fatal(err)
+		}
+		for _, limit := range []int{14, 15} {
+			bounded, err := store.NewPublishedDataModelReadRepository(db, database, a, limit, 10000)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := bounded.GetAssembledDataModel(ctx, a)
+			if limit == 14 && (!errors.Is(err, store.ErrSnapshotLimit) || got.Tables != nil) {
+				t.Fatalf("publication projection escaped total row budget: %+v %v", got, err)
+			}
+			if limit == 15 && (err != nil || got.Tables["child"].PublishedVersion == nil) {
+				t.Fatalf("exact publication budget failed: %+v %v", got, err)
+			}
+		}
+		if _, err := db.ExecContext(ctx, "UPDATE data_model_physical_tables SET write_state='closed' WHERE tenant_id=? AND table_id=?", mysqlstore.UUID(a), mysqlstore.UUID(child.ID)); err != nil {
+			t.Fatal(err)
+		}
+	})
 	t.Run("all_relations_and_empty_shapes", func(t *testing.T) {
 		got, err := read(t, 100, 10000).GetAssembledDataModel(ctx, a)
 		if err != nil {
@@ -342,6 +404,54 @@ func TestAssembledRepository(t *testing.T) {
 		}
 		if got, err := read(t, 1, 10000).GetDataModelSnapshot(ctx, a); !errors.Is(err, store.ErrSnapshotLimit) || got.Tenant.ID != uuid.Nil || got.Model.Tables != nil {
 			t.Fatalf("snapshot limits: %+v %v", got, err)
+		}
+	})
+	t.Run("publication_token_and_metadata_share_one_snapshot", func(t *testing.T) {
+		r, err := store.NewPublishedDataModelReadRepository(db, database, a, 10000, 1<<20)
+		if err != nil {
+			t.Fatal(err)
+		}
+		write := func() error {
+			version := uuid.New()
+			return mysqlstore.Mutation(ctx, db, func(tx *sql.Tx) error {
+				if _, err := tx.ExecContext(ctx, "UPDATE data_model_tables SET alias=? WHERE tenant_id=? AND id=?", version.String(), mysqlstore.UUID(a), mysqlstore.UUID(child.ID)); err != nil {
+					return err
+				}
+				_, err := tx.ExecContext(ctx, "UPDATE data_model_physical_tables SET published_version=?,write_state='open' WHERE tenant_id=? AND table_id=?", mysqlstore.UUID(version), mysqlstore.UUID(a), mysqlstore.UUID(child.ID))
+				return err
+			})
+		}
+		if err := write(); err != nil {
+			t.Fatal(err)
+		}
+		finished := make(chan error, 1)
+		go func() {
+			for i := 0; i < 30; i++ {
+				if err := write(); err != nil {
+					finished <- err
+					return
+				}
+			}
+			finished <- nil
+		}()
+		var readErr error
+		for i := 0; i < 40; i++ {
+			snapshot, err := r.GetDataModelSnapshot(ctx, a)
+			if err != nil {
+				readErr = err
+				break
+			}
+			table := snapshot.Model.Tables["child"]
+			if table.PublishedVersion == nil || table.PublishedVersion.String() != table.Alias {
+				readErr = fmt.Errorf("torn publication token: %v/%s", table.PublishedVersion, table.Alias)
+				break
+			}
+		}
+		if err := <-finished; err != nil {
+			t.Fatal(err)
+		}
+		if readErr != nil {
+			t.Fatal(readErr)
 		}
 	})
 	t.Run("corrupt_order_returns_no_model", func(t *testing.T) {

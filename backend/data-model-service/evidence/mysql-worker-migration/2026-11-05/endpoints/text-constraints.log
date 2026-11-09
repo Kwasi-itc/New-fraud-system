@@ -1,0 +1,5 @@
+1	SIMPLE	c	NULL	index	PRIMARY,digest_id	digest_id	49	NULL	247	100.00	Using where; Using index
+1	SIMPLE	s	NULL	ref	digest_id	digest_id	33	fraud.c.digest	1	33.33	Using where; Using index
+1	SIMPLE	a	NULL	eq_ref	PRIMARY	PRIMARY	16	fraud.c.id	1	100.00	NULL
+1	SIMPLE	b	NULL	eq_ref	PRIMARY	PRIMARY	16	fraud.s.id	1	100.00	Using where
+{"tenantId":"de137966-22e2-4755-b916-ecf4eba2ec10","tableId":"e798d061-c948-4353-9315-e93c3d84ea88","fieldId":"79df7d22-4ec3-57c3-9abc-b1025e29cf71","checks":"600+ record backfill; 40KB prefix equality; duplicate insert/update; concurrent duplicates; nullable/required transitions; dependency rejection; disable/reenable; duplicate rollback leaves gate open; original receipts; later native changes; enum combination; temporary grant cleanup; indexed duplicate probe"}

@@ -20,12 +20,13 @@ import (
 type migrationLostDDL struct {
 	net.Conn
 	statement string
+	prefix    bool
 	armed     atomic.Bool
 	observed  *atomic.Bool
 }
 
 func (c *migrationLostDDL) Write(p []byte) (int, error) {
-	if len(p) > 5 && p[4] == 3 && string(p[5:]) == c.statement {
+	if len(p) > 5 && p[4] == 3 && (string(p[5:]) == c.statement || (c.prefix && strings.HasPrefix(string(p[5:]), c.statement))) {
 		c.armed.Store(true)
 	}
 	return c.Conn.Write(p)

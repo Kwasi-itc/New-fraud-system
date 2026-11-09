@@ -1,0 +1,20 @@
+{
+    "command":  "go vet ./... \u0026\u0026 go test -mod=readonly -p=1 -race -count=1 -timeout=900s -v ./cmd/build-mysql-reference ./cmd/migrate-mysql ./cmd/reconcile-physical-mysql ./cmd/inspect-deliveries-mysql ./cmd/redrive-delivery-mysql ./internal/contract ./internal/ports ./internal/worker ./internal/mysqlruntime ./internal/store/mysql/...",
+    "exitCode":  1,
+    "vetPassed":  true,
+    "passedPackages":  12,
+    "topLevelTestsPassed":  150,
+    "testsAndSubtestsPassed":  902,
+    "failedTests":  [
+                        "TestMetadataColumnManifest"
+                    ],
+    "skippedTests":  1,
+    "skippedCases": [
+      {
+        "test": "TestPhysicalCreationAllocated/service_allocated_native_index_worker_decision",
+        "reason": "Separate decision-engine private MySQL fixture not configured"
+      }
+    ],
+    "raceWarnings":  0,
+    "timedOut":  false
+}

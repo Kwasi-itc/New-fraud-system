@@ -1,0 +1,132 @@
+{
+  "reportedAt": "2026-11-07T08:04:48.443Z",
+  "selection": "^(TestProcessUploadLifecycle|TestProcessDeferredLifecycle|TestProcessScheduledKinds|TestProcessCompetingWorkers|TestProcessScopedWorkerClaims|TestProcessFailedWorkDetails|TestProcessIdenticalReceipts|TestProcessConflictingReceipts|TestProcessAlternateUniqueRace|TestProcessEffectGrantRollback|TestProcessCancellationBeforeCommit|TestProcessOrderedPatches|TestProcessLimitsAndAuthentication|TestCanonicalReceiptReplay|TestReceiptLostCommit|TestReceiptBoundsAndLocalAuthorization|TestReceiptInvalidResponseRollback|TestReceiptExecution|TestRecordAverageCompilation|TestRecordAverageIntegerDecimal|TestRecordAverageFloatAndEmpty|TestRecordAveragePrecisionAndSafety|TestRecordAverageExecutionFailures|TestRecordBoundsConfiguration|TestRecordBoundsDecode|TestRecordBoundsSQLTransferGuard|TestRecordBoundsPageCollection|TestRecordBoundsRestrictedAndCancellation|TestRecordCountMappedTypes|TestRecordCountFilteredEmptyAndNull|TestRecordCountCompilationAndBounds|TestRecordCountDecoding|TestRecordCountErrorsAreNotZeroSuccess|TestRecordDecodeScalars|TestRecordDecodeStringsAndNulls|TestRecordDecodeTimestamp|TestRecordDecodeIP|TestRecordDecodeDatabaseRoundTrips|TestRecordDistinctCompilation|TestRecordDistinctNumericEquality|TestRecordDistinctBooleanTimeAndNull|TestRecordDistinctFilteredCountAndDecoder|TestRecordDistinctExecutionFailures|TestRecordMinCompilation|TestRecordMinTypedBoundaries|TestRecordMinNullsAndFilters|TestRecordMinDecoding|TestRecordMinExecutionFailures|TestRecordMaxCompilation|TestRecordMaxTypedBoundaries|TestRecordMaxNullsAndFilters|TestRecordMaxDecoding|TestRecordMaxExecutionFailures|TestRecordFilterTruthTables|TestRecordFilterEmptySemantics|TestRecordFilterParameterOrderAndCopies|TestRecordFilterTraversalBounds|TestRecordFilterFailureIsAtomic|TestMembershipMappingAndOwnership|TestMembershipTypedTruthTables|TestMembershipNullLogic|TestMembershipListBounds|TestMembershipRejectsInvalidMembersAndFields|TestKeyedRecordOwnerAtomicity|TestKeyedRecordOwnerScopeAndDuplicateValidation|TestKeyedRecordOwnerLostCommit|TestKeyedRecordOwnerRestrictedGrants|TestScalarPredicateMappingAndArguments|TestScalarPredicateNumericTruthTables|TestScalarPredicateBooleanAndTime|TestScalarPredicateNullSemantics|TestScalarPredicateRejectsCoercionAndUnsupported|TestStringPredicateContracts|TestRecordProjectionRequestValidation|TestRecordProjectionMappingFailures|TestRecordProjectionRoundTripAndCopies|TestRecordProjectionBarrierLifetime|TestRecordProjectionLogicalNamesNeverBecomeSQL|TestRecordQueryLimitConfiguration|TestRecordQueryValueAccounting|TestRecordQueryCompositionBudget|TestRecordQuerySelection|TestRecordQueryRejectsBeforeExecution|TestExactReadInvalidIdentity|TestExactReadByteIdentity|TestExactReadScopeAndVersion|TestExactReadBounds|TestExactReadFailuresAreNotMissing|TestRecordSumCompilation|TestRecordSumIntegerPrecision|TestRecordSumFloatAndEmptyInputs|TestRecordSumDecoderBounds|TestRecordSumFailuresAndOverflow|TestPhysicalTransactionReceipt|TestPhysicalLookupForcedCollision|TestPhysicalRecordWriter|TestPhysicalWriterRestrictedLookup|TestFullSharedInstallation|TestFullSharedLegacyOperatorCommands|TestFullSharedReadPlans|TestFullSharedRestrictedOwners|TestFullSharedEffectGrantRollback|TestFullSharedRouteBinding|TestFullSharedSourceDataset|TestFullSharedCurrentAndTimeWindowSemantics|TestIngestionWorkAttemptTimestamps|TestReceiptCreationTimeSurvivesReplay|TestUploadListPaginationAndPlan|TestUploadListAuthorizationAndProjection|TestUploadListMissingJobFailsClosed|TestIngestionWorkRestrictedGrants|TestWorkInspectionBoundsAndAuthorization|TestWorkInspectionPaginationAndPlan|TestWorkInspectionRestrictedGrants|TestWorkInspectionConcurrentReadsAndFailure|TestWorkInspectionStateFilters|TestFullSharedDeferredMetrics|TestWorkOperatorCancellation|TestWorkOperatorCancelWorkerRace|TestWorkOperatorRestrictedGrants|TestWorkOperatorLostCommit|TestIngestionWorkLifecycle|TestIngestionWorkRunnerAndConcurrentClaims|TestIngestionWorkScopeAndPrivateReceipts|TestWorkCSVBounds|TestIngestionWorkRecovery|TestFullSharedRedrive|TestWorkRedriveIneligible|TestWorkRedriveReceiptAndCancellation|TestWorkRedriveLostCommit|TestWorkTelemetryCompletionAndPool|TestWorkTelemetryRetriesAndExhaustion|TestWorkTelemetryExpiredAndClaimFailure|TestWorkTelemetryHeartbeatFence|TestWorkTelemetryQueueWaitUsesDatabaseTime|TestWriteBarrierSnapshot|TestWriteBarrierBlocksDDLPreparation)$",
+  "testsExit": 1,
+  "vetExit": 0,
+  "packagesPassed": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture"
+  ],
+  "packagesWithoutTests": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker"
+  ],
+  "topLevelPassed": 249,
+  "testAndSubtestPasses": 644,
+  "failed": [
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql",
+      "test": "TestIngestionWorkRestrictedGrants"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql",
+      "test": null
+    }
+  ],
+  "skipped": [],
+  "processTests": [
+    "TestProcessLostCommitAcknowledgement",
+    "TestProcessEventContract",
+    "TestProcessWriteBaseline",
+    "TestProcessReceiptCollision",
+    "TestProcessMeasuredWorkloads",
+    "TestProcessDeferredMetricsEndpoint",
+    "TestProcessWorkerInterruption",
+    "TestProcessWorkerCommitLoss",
+    "TestProcessMalformedWork",
+    "TestProcessRetryExhaustion",
+    "TestProcessDependencyOutage",
+    "TestProcessOperatorRecovery",
+    "TestProcessReadContracts",
+    "TestProcessReadRevocation",
+    "TestProcessPublicationRace",
+    "TestProcessConcurrentReadsAndWrites",
+    "TestProcessRevocationDuringReplay",
+    "TestProcessReadBudgetsAndMembership",
+    "TestProcessCrossTenantReadAndWork",
+    "TestProcessStartupChecks",
+    "TestProcessHandlerTimeout",
+    "TestProcessAPIRuntimeGrants",
+    "TestProcessUploadLifecycle",
+    "TestProcessDeferredLifecycle",
+    "TestProcessScheduledKinds",
+    "TestProcessCompetingWorkers",
+    "TestProcessScopedWorkerClaims",
+    "TestProcessFailedWorkDetails",
+    "TestProcessIdenticalReceipts",
+    "TestProcessConflictingReceipts",
+    "TestProcessAlternateUniqueRace",
+    "TestProcessEffectGrantRollback",
+    "TestProcessCancellationBeforeCommit",
+    "TestProcessOrderedPatches",
+    "TestProcessLimitsAndAuthentication"
+  ],
+  "sharedOwnerTests": [
+    "TestFullSharedContractTransitions",
+    "TestFullSharedAuthorizedReadLifetime",
+    "TestFullSharedDeferredSnapshotConcurrentCompletion",
+    "TestFullSharedDeferredSnapshot",
+    "TestFullSharedDeferredSnapshotRedriveAndIntegrity",
+    "TestFullSharedContractReader",
+    "TestFullSharedInstallation",
+    "TestFullSharedLegacyOperatorCommands",
+    "TestFullSharedReadPlans",
+    "TestFullSharedRestrictedOwners",
+    "TestFullSharedEffectGrantRollback",
+    "TestFullSharedRouteBinding",
+    "TestFullSharedSourceDataset",
+    "TestFullSharedCurrentAndTimeWindowSemantics",
+    "TestFullSharedDeferredMetrics",
+    "TestFullSharedRedrive"
+  ],
+  "parityTests": [
+    "TestLiveParityDeferredMetrics",
+    "TestLiveParityScalarAndMembership",
+    "TestLiveParityRawFilterInputs",
+    "TestLiveParityLogicalFilters",
+    "TestLiveParitySupportedAggregates",
+    "TestLiveParityCurrentReads",
+    "TestLiveParityStringMembershipBytes",
+    "TestLiveParityIPMembershipAndCount",
+    "TestLiveParityTextAggregates",
+    "TestLiveParityIntegerAveragePrecision",
+    "TestLiveParityIPOrder",
+    "TestLiveParitySingleWrites",
+    "TestLiveParityBatchWrites"
+  ],
+  "raceWarnings": 0,
+  "expectedTopLevelTests": 250,
+  "missingTests": [],
+  "attempts": [
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\evidence\\mysql-integration\\2026-11-06T22-09-14Z",
+      "selection": "all",
+      "testsExit": 1,
+      "vetExit": 0
+    },
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\evidence\\mysql-integration\\2026-11-07T07-26-37Z",
+      "selection": "^Test(ProcessHandlerTimeout|ProcessAPIRuntimeGrants|VerifierCancelsChildProcessGroup|VelocityOwnerReplayCorrectionsLateEventsRollbackAndConcurrentReaders)$",
+      "testsExit": 0,
+      "vetExit": 0
+    },
+    {
+      "directory": "C:\\Users\\T H I N K\\Documents\\Dev\\Work\\ITC\\marble\\New-fraud-system\\backend\\ingestion-service\\evidence\\mysql-integration\\2026-11-07T07-38-40Z",
+      "selection": "^(TestProcessUploadLifecycle|TestProcessDeferredLifecycle|TestProcessScheduledKinds|TestProcessCompetingWorkers|TestProcessScopedWorkerClaims|TestProcessFailedWorkDetails|TestProcessIdenticalReceipts|TestProcessConflictingReceipts|TestProcessAlternateUniqueRace|TestProcessEffectGrantRollback|TestProcessCancellationBeforeCommit|TestProcessOrderedPatches|TestProcessLimitsAndAuthentication|TestCanonicalReceiptReplay|TestReceiptLostCommit|TestReceiptBoundsAndLocalAuthorization|TestReceiptInvalidResponseRollback|TestReceiptExecution|TestRecordAverageCompilation|TestRecordAverageIntegerDecimal|TestRecordAverageFloatAndEmpty|TestRecordAveragePrecisionAndSafety|TestRecordAverageExecutionFailures|TestRecordBoundsConfiguration|TestRecordBoundsDecode|TestRecordBoundsSQLTransferGuard|TestRecordBoundsPageCollection|TestRecordBoundsRestrictedAndCancellation|TestRecordCountMappedTypes|TestRecordCountFilteredEmptyAndNull|TestRecordCountCompilationAndBounds|TestRecordCountDecoding|TestRecordCountErrorsAreNotZeroSuccess|TestRecordDecodeScalars|TestRecordDecodeStringsAndNulls|TestRecordDecodeTimestamp|TestRecordDecodeIP|TestRecordDecodeDatabaseRoundTrips|TestRecordDistinctCompilation|TestRecordDistinctNumericEquality|TestRecordDistinctBooleanTimeAndNull|TestRecordDistinctFilteredCountAndDecoder|TestRecordDistinctExecutionFailures|TestRecordMinCompilation|TestRecordMinTypedBoundaries|TestRecordMinNullsAndFilters|TestRecordMinDecoding|TestRecordMinExecutionFailures|TestRecordMaxCompilation|TestRecordMaxTypedBoundaries|TestRecordMaxNullsAndFilters|TestRecordMaxDecoding|TestRecordMaxExecutionFailures|TestRecordFilterTruthTables|TestRecordFilterEmptySemantics|TestRecordFilterParameterOrderAndCopies|TestRecordFilterTraversalBounds|TestRecordFilterFailureIsAtomic|TestMembershipMappingAndOwnership|TestMembershipTypedTruthTables|TestMembershipNullLogic|TestMembershipListBounds|TestMembershipRejectsInvalidMembersAndFields|TestKeyedRecordOwnerAtomicity|TestKeyedRecordOwnerScopeAndDuplicateValidation|TestKeyedRecordOwnerLostCommit|TestKeyedRecordOwnerRestrictedGrants|TestScalarPredicateMappingAndArguments|TestScalarPredicateNumericTruthTables|TestScalarPredicateBooleanAndTime|TestScalarPredicateNullSemantics|TestScalarPredicateRejectsCoercionAndUnsupported|TestStringPredicateContracts|TestRecordProjectionRequestValidation|TestRecordProjectionMappingFailures|TestRecordProjectionRoundTripAndCopies|TestRecordProjectionBarrierLifetime|TestRecordProjectionLogicalNamesNeverBecomeSQL|TestRecordQueryLimitConfiguration|TestRecordQueryValueAccounting|TestRecordQueryCompositionBudget|TestRecordQuerySelection|TestRecordQueryRejectsBeforeExecution|TestExactReadInvalidIdentity|TestExactReadByteIdentity|TestExactReadScopeAndVersion|TestExactReadBounds|TestExactReadFailuresAreNotMissing|TestRecordSumCompilation|TestRecordSumIntegerPrecision|TestRecordSumFloatAndEmptyInputs|TestRecordSumDecoderBounds|TestRecordSumFailuresAndOverflow|TestPhysicalTransactionReceipt|TestPhysicalLookupForcedCollision|TestPhysicalRecordWriter|TestPhysicalWriterRestrictedLookup|TestFullSharedInstallation|TestFullSharedLegacyOperatorCommands|TestFullSharedReadPlans|TestFullSharedRestrictedOwners|TestFullSharedEffectGrantRollback|TestFullSharedRouteBinding|TestFullSharedSourceDataset|TestFullSharedCurrentAndTimeWindowSemantics|TestIngestionWorkAttemptTimestamps|TestReceiptCreationTimeSurvivesReplay|TestUploadListPaginationAndPlan|TestUploadListAuthorizationAndProjection|TestUploadListMissingJobFailsClosed|TestIngestionWorkRestrictedGrants|TestWorkInspectionBoundsAndAuthorization|TestWorkInspectionPaginationAndPlan|TestWorkInspectionRestrictedGrants|TestWorkInspectionConcurrentReadsAndFailure|TestWorkInspectionStateFilters|TestFullSharedDeferredMetrics|TestWorkOperatorCancellation|TestWorkOperatorCancelWorkerRace|TestWorkOperatorRestrictedGrants|TestWorkOperatorLostCommit|TestIngestionWorkLifecycle|TestIngestionWorkRunnerAndConcurrentClaims|TestIngestionWorkScopeAndPrivateReceipts|TestWorkCSVBounds|TestIngestionWorkRecovery|TestFullSharedRedrive|TestWorkRedriveIneligible|TestWorkRedriveReceiptAndCancellation|TestWorkRedriveLostCommit|TestWorkTelemetryCompletionAndPool|TestWorkTelemetryRetriesAndExhaustion|TestWorkTelemetryExpiredAndClaimFailure|TestWorkTelemetryHeartbeatFence|TestWorkTelemetryQueueWaitUsesDatabaseTime|TestWriteBarrierSnapshot|TestWriteBarrierBlocksDDLPreparation)$",
+      "testsExit": 1,
+      "vetExit": 0
+    }
+  ],
+  "fullSuiteRun": true,
+  "passed": false
+}

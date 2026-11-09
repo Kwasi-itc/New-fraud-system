@@ -16,6 +16,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqljobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/google/uuid"
 )
 
 var ErrDispatchReceipt = errors.New("invalid or inconsistent provider dispatch receipt")
@@ -97,7 +98,7 @@ func (s *DispatchStore) Prepare(ctx context.Context, lease EffectDeliveryLease) 
 			}
 			// Callback URL is destination material for the provider policy, not
 			// permission to send internal credentials to caller-controlled hosts.
-			return s.prepareIntent(ctx, r.Async.tx, lease, map[string]any{"callback_url": v.CallbackURL, "body": body}, &out)
+			return s.prepareIntent(ctx, r.Async.tx, lease, map[string]any{"callback_url": v.CallbackURL, "body": body}, &out, false)
 		})
 	} else {
 		err = mysqlstore.Mutation(ctx, s.delivery.db, func(tx *sql.Tx) error {
@@ -109,7 +110,16 @@ func (s *DispatchStore) Prepare(ctx context.Context, lease EffectDeliveryLease) 
 				return err
 			}
 			if owned {
-				return ErrEffectSourceOwned
+				// Publication can win the race with the dispatch acknowledgement.
+				// Resume only an existing intent; never create or resend new work
+				// merely because the source has advanced the decision projection.
+				if err := s.lockEffectDispatchLease(ctx, tx, lease); err != nil {
+					return err
+				}
+				if err := s.prepareIntent(ctx, tx, lease, nil, &out, true); err != nil {
+					return err
+				}
+				return s.checkDispatchLease(ctx, tx, lease)
 			}
 			if !effectDispatchPending(lease.Identity.Kind, status) {
 				return ErrEffectJobOwnerState
@@ -148,7 +158,7 @@ func (s *DispatchStore) Prepare(ctx context.Context, lease EffectDeliveryLease) 
 			default:
 				return ErrDispatchReceipt
 			}
-			if err := s.prepareIntent(ctx, tx, lease, body, &out); err != nil {
+			if err := s.prepareIntent(ctx, tx, lease, body, &out, false); err != nil {
 				return err
 			}
 			return s.checkDispatchLease(ctx, tx, lease)
@@ -207,7 +217,7 @@ func canonicalDispatch(raw []byte, max int) ([]byte, error) {
 	return out, nil
 }
 
-func (s *DispatchStore) prepareIntent(ctx context.Context, tx *sql.Tx, lease EffectDeliveryLease, body any, out *DispatchIntent) error {
+func (s *DispatchStore) prepareIntent(ctx context.Context, tx *sql.Tx, lease EffectDeliveryLease, body any, out *DispatchIntent, resumeOnly bool) error {
 	d := s.delivery
 	var payload mysqlstore.JSON
 	var savedHash []byte
@@ -222,6 +232,9 @@ func (s *DispatchStore) prepareIntent(ctx context.Context, tx *sql.Tx, lease Eff
 		return ErrDispatchReceipt
 	}
 	if !resumed {
+		if resumeOnly {
+			return ErrEffectSourceOwned
+		}
 		raw, err := json.Marshal(body)
 		if err != nil {
 			return err
@@ -305,7 +318,24 @@ func (s *DispatchStore) Complete(ctx context.Context, lease EffectDeliveryLease,
 			return err
 		}
 		if owned {
-			return ErrEffectSourceOwned
+			// Record the accepted handoff without overwriting a newer screening
+			// result. Check the already-locked projection identity; do not acquire
+			// a source lock here (publication orders source before projection).
+			if lease.Identity.Kind != ports.JobScreening || receipt.Outcome != ports.DispatchAccepted {
+				return ErrEffectSourceOwned
+			}
+			source, err := uuid.Parse(receipt.Reference)
+			if err != nil || source == uuid.Nil {
+				return ErrEffectSourceOwned
+			}
+			var bound mysqlstore.UUID
+			if err := tx.QueryRowContext(ctx, "SELECT projection_source_id FROM "+s.delivery.schema+".decision_engine_screening_executions WHERE tenant_id=? AND id=?", mysqlstore.UUID(s.delivery.tenant), mysqlstore.UUID(lease.Identity.ResourceID)).Scan(&bound); err != nil {
+				return err
+			}
+			if uuid.UUID(bound) != source {
+				return ErrEffectSourceOwned
+			}
+			return s.recordReceipt(ctx, tx, lease, request, receipt)
 		}
 		if !effectDispatchPending(lease.Identity.Kind, status) {
 			return ErrEffectJobOwnerState

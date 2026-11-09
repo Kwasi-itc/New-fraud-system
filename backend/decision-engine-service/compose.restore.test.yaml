@@ -1,0 +1,28 @@
+# Overlay for logical backup/restore acceptance. No published ports or volumes
+# from application databases. The client copies only a generated fixture schema.
+services:
+  mysqlrestore:
+    image: mysql:8.4.8
+    command: ["--log-bin-trust-function-creators=ON"]
+    environment:
+      MYSQL_ROOT_PASSWORD: isolated-test-root-only
+      MYSQL_ROOT_HOST: "%"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  restore-agent:
+    image: mysql:8.4.8
+    entrypoint: ["sh", "/backend/decision-engine-service/scripts/restore-disposable.sh"]
+    volumes:
+      - ..:/backend
+    environment:
+      MYSQL_PWD: isolated-test-root-only
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysqlrestore:
+        condition: service_healthy

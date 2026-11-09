@@ -1,0 +1,6 @@
+{
+  "group_field": "account_id",
+  "time_field": "transaction_at",
+  "amount_field": "amount_minor",
+  "max_rows": 100000
+}

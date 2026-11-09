@@ -318,8 +318,8 @@ type PortableImportSummary struct {
 }
 
 type PortableDataModelDocument struct {
-	Version    string                 `json:"version"`
-	RevisionID string                 `json:"revision_id,omitempty"`
+	Version    string                  `json:"version"`
+	RevisionID string                  `json:"revision_id,omitempty"`
 	Tables     []PortableTableDocument `json:"tables"`
 	Links      []PortableLinkDocument  `json:"links"`
 	Pivots     []PortablePivotDocument `json:"pivots"`
@@ -383,6 +383,7 @@ type IngestionContractResponse struct {
 
 type AssembledTableResponse struct {
 	ID                uuid.UUID                         `json:"id"`
+	PublishedVersion  *uuid.UUID                        `json:"published_version,omitempty"`
 	Name              string                            `json:"name"`
 	Description       string                            `json:"description"`
 	Alias             string                            `json:"alias"`
@@ -495,6 +496,7 @@ func AdaptAssembledDataModel(model datamodel.AssembledDataModel, revisionID stri
 		}
 		response.Tables[key] = AssembledTableResponse{
 			ID:                table.ID,
+			PublishedVersion:  table.PublishedVersion,
 			Name:              table.Name,
 			Description:       table.Description,
 			Alias:             table.Alias,

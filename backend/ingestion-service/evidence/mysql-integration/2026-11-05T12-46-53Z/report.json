@@ -1,0 +1,50 @@
+{
+  "reportedAt": "2026-11-05T12:49:23.490Z",
+  "selection": "Test.*(Deferred.*Metrics|DeferredSnapshot|MetricsFailure|MySQLRouter)",
+  "testsExit": 1,
+  "vetExit": 0,
+  "packagesPassed": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/handlers",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/mysqlruntime",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/import-mysql-receipts",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/inspect-legacy-receipts",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/migrate",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/verify-mysql-fixture"
+  ],
+  "packagesWithoutTests": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/httpapi/dto",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-api",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-dev-install",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/mysql-worker",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/server",
+    "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/cmd/worker"
+  ],
+  "topLevelPassed": 6,
+  "testAndSubtestPasses": 6,
+  "failed": [
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql",
+      "test": "TestLiveParityDeferredMetrics"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql",
+      "test": "TestProcessDeferredMetricsEndpoint"
+    },
+    {
+      "package": "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql",
+      "test": null
+    }
+  ],
+  "skipped": [],
+  "processTests": [],
+  "sharedOwnerTests": [
+    "TestFullSharedDeferredSnapshot",
+    "TestFullSharedDeferredSnapshotRedriveAndIntegrity",
+    "TestFullSharedDeferredMetrics"
+  ],
+  "parityTests": [],
+  "raceWarnings": 0,
+  "passed": false
+}

@@ -129,8 +129,8 @@ func (p *PhysicalPlanner) statement(action, sql string) PhysicalStatement {
 
 // AddFields adds a bounded group in one ALTER. Nullability is explicit. Boolean
 // and IP checks enforce representable values; IP components are all-null or a
-// complete family/address/prefix tuple, preserving host bits. Enum enforcement
-// and long-text uniqueness must use their additional owner protocols.
+// complete family/address/prefix tuple, preserving host bits. Enum membership
+// uses the published ingestion catalog; long-text uniqueness needs exact keys.
 func (p *PhysicalPlanner) AddFields(ids []uuid.UUID) (PhysicalStatement, error) {
 	fields, err := p.selectFields(ids)
 	if err != nil {
@@ -142,9 +142,6 @@ func (p *PhysicalPlanner) AddFields(ids []uuid.UUID) (PhysicalStatement, error) 
 		components += len(f.columns)
 		if components > 1000 {
 			return PhysicalStatement{}, errors.New("field addition exceeds 1000 physical columns")
-		}
-		if f.field.IsEnum {
-			return PhysicalStatement{}, ErrPhysicalPlanningUnsupported
 		}
 		nullability := " NULL"
 		if !f.field.Nullable {

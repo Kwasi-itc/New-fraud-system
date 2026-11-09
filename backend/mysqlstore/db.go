@@ -36,6 +36,10 @@ type Config struct {
 	ConnMaxLifetime, ConnMaxIdleTime          time.Duration
 	// Optional explicit server lock wait bound, applied to every pooled connection.
 	LockWaitTimeout time.Duration
+	// InterpolateParameters opts into the driver's parameter encoder with a
+	// pinned UTF-8 character set. It avoids prepare/execute/close round trips
+	// for one-shot statements. Explicit prepared statements still work.
+	InterpolateParameters bool
 }
 
 func (c Config) connector() (*mysql.Config, error) {
@@ -71,10 +75,18 @@ func (c Config) connector() (*mysql.Config, error) {
 			cfg.TLS.MinVersion = tls.VersionTLS12
 		}
 	}
-	// No arbitrary DSN flags: multi-statements, interpolation, local infile and
-	// matched-row reporting stay disabled. Every new physical connection gets
+	// No arbitrary DSN flags: multi-statements, local infile and matched-row
+	// reporting stay disabled. Every new physical connection gets
 	// the same UTC/strict/isolation settings, including after pool replacement.
 	cfg.MultiStatements, cfg.InterpolateParams, cfg.ClientFoundRows, cfg.AllowAllFiles = false, false, false, false
+	if c.InterpolateParameters {
+		// The driver rejects unsafe multibyte encodings for interpolation. Pin
+		// both charset and collation rather than relying on a server default.
+		if err := cfg.Apply(mysql.Charset("utf8mb4", "utf8mb4_bin")); err != nil {
+			return nil, err
+		}
+		cfg.InterpolateParams = true
+	}
 	cfg.Params = map[string]string{
 		"autocommit":            "1",
 		"completion_type":       "0",

@@ -884,24 +884,8 @@ type WorkflowActionConfig struct {
 }
 
 func (s CaseService) handleWorkflowAction(ctx context.Context, in WorkflowActionInput) (casepkg.Case, error) {
-	if in.ActionConfig.URL != "" || len(in.ActionConfig.TitleTemplate) > 0 {
-		return casepkg.Case{}, casepkg.Invalid("case actions accept literal name/title and no dispatcher URL or title_template")
-	}
-	if err := requireIDs(in.TenantID, in.WorkflowExecutionID, in.DecisionID); err != nil {
+	if err := ValidateWorkflowInput(in); err != nil {
 		return casepkg.Case{}, err
-	}
-	switch in.ActionType {
-	case "create_case", "add_to_case", "add_to_case_if_possible":
-	default:
-		return casepkg.Case{}, casepkg.Invalid("unsupported case workflow action")
-	}
-	if in.ActionConfig.InboxID == uuid.Nil {
-		return casepkg.Case{}, casepkg.Invalid("action_config.inbox_id is required")
-	}
-	if in.ScenarioID != nil {
-		if err := requireIDs(*in.ScenarioID); err != nil {
-			return casepkg.Case{}, err
-		}
 	}
 	if _, err := s.activeInbox(ctx, in.TenantID, in.ActionConfig.InboxID); err != nil {
 		return casepkg.Case{}, err

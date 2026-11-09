@@ -267,3 +267,79 @@ These methods do not allocate a stable field ID before preparation or install ne
 runtime entry points. Durable field allocation, remaining physical planners and
 owners, operational orchestration, lifecycle/retention, API/consumer adoption and
 reviewed deployment acceptance remain required.
+
+## Unique-text field creation in the local MySQL runtime (2026-11-04)
+
+V3 plans now also support typed `add_unique_text`, `text_guard_insert` and
+`text_guard_update` changes, in that exact sequence. Existing native plans remain
+valid. The table lineage uses the last TABLE definition, not the final trigger
+definition. Subsequent plans retain every published text guard as well as the
+mandatory object-ID guards. Complete SQL is regenerated from the scoped field
+snapshot and original locked definer; arbitrary trigger SQL is rejected.
+
+Each unique string remains LONGTEXT with utf8mb4_0900_bin collation. A private
+BINARY(16) key has a unique index and a foreign key to the existing exact-key
+dictionary. The `record_field_value` domain uses the 32-byte tenant UUID + field
+UUID scope. The resolver compares complete binary values within locked hash
+buckets; digest collisions cannot collapse distinct values. NULL values have no
+dictionary entry and allow multiple records; empty strings are ordinary values.
+BEFORE INSERT/UPDATE guards always replace caller-supplied keys. A CHECK enforces
+value/key NULL parity. Nullable additions preserve existing rows; required
+additions reject populated tables until an explicit backfill protocol exists.
+
+Execution verifies journal-aware before/after definitions for new triggers and
+the full retained trigger inventory. Unjournaled, missing or altered guards are
+drift; uncertain DDL remains dirty and resumes only from the recorded before/after
+pair. Publication checks the complete metadata snapshot and original-result
+receipt atomically with reopening the writer gate.
+
+`RecordInstallerPolicy.TextGuards` explicitly enables transient SET_ANY_DEFINER
+for this installation. Ordinary native ALTERs do not receive that authority.
+The private local worker revokes it and locks/disconnects the installer before
+publication verifies exact inactive grants. Runtime record writers receive no
+resolver EXECUTE or private dictionary mutation capability.
+
+Acceptance: race-enabled unit tests, live API/physical-constraint smoke tests,
+and isolated MySQL lost-ALTER, lost-insert-trigger, lost-update-trigger and
+lost-publication-COMMIT tests passed. Existing unique-text constraint PATCH,
+backfill, production orchestration and representative load acceptance remain
+outside this implementation.
+
+## Updating existing text constraints in the local MySQL runtime (2026-11-04)
+
+PATCH now supports enabling/disabling unique text and changing its nullability.
+Promotion records four ordered steps: add nullable key/index/FK, create INSERT
+and UPDATE guards, then add the NULL-parity CHECK. Immediately before the last
+step, the executor fills keys with primary-key batches of at most 256 records.
+Each UPDATE batch is atomic and uses the installed guards and unique index.
+Retries skip already populated keys; no synthetic application values are written.
+The final CHECK proves that all non-NULL text has a key before publication.
+
+Preparation holds only this table's writer barrier while validating existing
+values. Session-local indexed temporary tables retain IDs/digests in batches;
+candidate duplicates use full binary text comparison through primary-key lookups.
+No LONGTEXT GROUP BY truncation, prefix uniqueness, hash-only equality or per-row
+network lookup is used. Duplicate rejection rolls back preparation and leaves
+the writer gate open. The connection is discarded after preparation, including
+cancellation, because temporary tables can outlive a canceled transaction.
+Validation must inspect all existing values; the HTTP deadline bounds this local
+synchronous path, and large-table operational/load acceptance remains separate.
+
+Retirement records dropping the CHECK, both guards, then the key/FK/index. Guard
+Before definitions must match the published lineage; absent After definitions
+are allowed only by the explicit physical trigger-retirement validator. Ordinary
+shared migration plans still reject DROP. Later plans retain only active guards.
+Relationship dependencies are checked in preparation and final publication.
+Text nullability changes preserve the exact-key guards and validate existing NULLs.
+
+The installer receives UPDATE on only the one text column during backfill. It
+receives no direct dictionary DML or resolver EXECUTE. This grant and transient
+SET_ANY_DEFINER are revoked, the account is locked, and active sessions must be
+absent before verified owner publication. Failed/uncertain execution retains a
+closed writer gate and journal; retry the identical operation key to resume.
+
+Local API checks and isolated socket-fault tests cover promotion, retirement,
+re-enabling, partial-batch recovery, uncertain commits, cancellation, tenant
+scoping, duplicates, NULLs, dependent links and exact temporary privilege cleanup.
+PostgreSQL production runtime, required-new-column defaults/backfill, asynchronous
+large-table orchestration and representative production load remain separate.
