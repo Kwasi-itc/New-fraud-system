@@ -326,7 +326,7 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this decision.
+          Your session has no active tenant. Sign in again or contact an administrator.
         </CardContent>
       </Card>
     );

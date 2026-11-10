@@ -13,7 +13,7 @@ function execution(id: string, status: string, response_json: Record<string, unk
 test.beforeEach(async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
-  await page.route("**/v1/tenants/**", async route => {
+  await page.route("**/api/decisions/tenants/**", async route => {
     const p = new URL(route.request().url()).pathname;
     expect(p).toContain(tenant);
     if (p.endsWith(`/decisions/${decision}`)) return route.fulfill({ json: {

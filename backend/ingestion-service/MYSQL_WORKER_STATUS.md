@@ -106,8 +106,11 @@ docker compose -p ingestion-mysql-tests -f compose.mysql-test.yaml down
 
 The health check opens a fresh restricted pool and checks database prerequisites;
 it is not a heartbeat measuring progress or processing latency. The runtime
-currently serves one configured tenant/object type. Drain outstanding work before
-changing that scope. Failed jobs remain retained for trusted operator inspection;
+uses the configured tenant/object type in isolated profiles. The explicit local
+development profile also serves other active published owners, resolving and
+revalidating each leased resource before processing. Its admin metrics retain
+the configured fixture scope. Drain outstanding work before changing an isolated
+runtime's scope. Failed jobs remain retained for trusted operator inspection;
 there is no general operator HTTP or dead-letter service in this Compose setup.
 Production authorization, River cutover, external consumers, sustained throughput
 and restart faults against the exact development container image remain separate

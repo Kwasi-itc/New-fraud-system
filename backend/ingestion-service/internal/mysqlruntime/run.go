@@ -105,6 +105,9 @@ func (s *Service) Serve(ctx context.Context, listener net.Listener, logger *slog
 }
 func (s *Service) Worker(ctx context.Context, logger *slog.Logger, started func() error) error {
 	queue, err := work.NewScoped(s.DB, s.Config.Database, "ingestion", 4096, s.Config.TenantID)
+	if s.multiTenantLocal() {
+		queue, err = work.New(s.DB, s.Config.Database, "ingestion", 4096)
+	}
 	if err != nil {
 		return err
 	}
@@ -127,7 +130,14 @@ func (s *Service) Worker(ctx context.Context, logger *slog.Logger, started func(
 			defer wg.Done()
 			errs <- queue.Run(runCtx, work.RunnerConfig{Queue: name, Concurrency: s.Config.Concurrency, Lease: s.Config.Lease, Timeout: s.Config.Timeout, Poll: s.Config.Poll, RetryBase: time.Second, RetryMax: 10 * time.Second}, func(ctx context.Context, lease work.Lease) error {
 				ctx = store.WithServiceCredential(ctx, s.Config.Token)
-				w, err := s.work(ctx, s.Config.TenantID, s.Config.ObjectType)
+				tenant, object, err := s.resourceOwner(ctx, lease.ResourceID, lease.Kind)
+				if err != nil {
+					return err
+				}
+				if tenant != lease.TenantID {
+					return work.ErrLease
+				}
+				w, err := s.work(ctx, tenant, object)
 				if err != nil {
 					return err
 				}

@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspaceTenant } from "@/components/workspace-session";
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -47,7 +48,7 @@ function ResourceCard({
 }
 
 export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
 
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
@@ -58,7 +59,7 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this scenario.
+          Your session has no active tenant. Sign in again or contact an administrator.
         </CardContent>
       </Card>
     );

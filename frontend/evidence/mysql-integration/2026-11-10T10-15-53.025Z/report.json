@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-10T10:16:28.926Z",
+  "profile": "authenticated-local-mysql",
+  "passed": false,
+  "suites": [],
+  "requestCount": 0,
+  "syntheticTenant": "f0a774d4-1b99-43e6-a612-a7f5d5d36787",
+  "temporaryProviderUserRemoved": false,
+  "retainedSyntheticMySQLData": true,
+  "failure": "isolated-synthetic-tenant-and-real-provider-account: The operation was aborted due to timeout"
+}

@@ -8,7 +8,7 @@ let enabled = false, deny = false, settings;
 export function resetDisplay() { enabled = false; deny = false; settings = { table_id: table, name: "payment", version: 0, caption_field: "", displayed_fields: [], field_order: [reference, customer, amount], field_display: {}, fields: [{ id: reference, name: "reference", data_type: "string", enum_labels: {} }, { id: customer, name: "customer_id", data_type: "string", enum_labels: {} }, { id: amount, name: "amount", data_type: "float", enum_labels: {} }], links: [{ id: link, field_id: customer, name: "customer", target_table: "customer", target_field: "object_id", caption_field: "full_name" }] }; }
 resetDisplay();
 export async function handleDisplay(req, url, send) {
-  if (url.pathname === "/fixture/display") { enabled = true; deny = url.searchParams.has("deny"); send(200, {}); return true; }
+  if (url.pathname === "/fixture/display") { enabled = true; deny = url.searchParams.has("deny"); settings.links[0].target_fields = [{ id: "17171717-1717-4717-8717-171717171717", name: "full_name", data_type: "string" }]; send(200, {}); return true; }
   if (!enabled || !url.pathname.startsWith("/v1/")) return false;
   const tenantPath = `/v1/tenants/${tenant}`;
   const settingsPath = `/v1/tables/${table}/display-settings`;

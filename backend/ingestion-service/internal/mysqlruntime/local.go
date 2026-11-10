@@ -43,6 +43,7 @@ func LoadLocal(worker bool) (Config, error) {
 		return c, errors.New("local MySQL configuration required")
 	}
 	c.User = LocalAPIUser
+	c.LocalAllTenants = true
 	if worker {
 		c.User = LocalWorkerUser
 	}

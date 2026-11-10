@@ -335,6 +335,10 @@ func (h *ExecutionHTTP) handle(op string) gin.HandlerFunc {
 			c.JSON(status, out)
 			return
 		}
+		if strings.HasPrefix(op, "browser-screening.") {
+			h.browserScreening(c, api.Browser, op)
+			return
+		}
 		if strings.HasPrefix(op, "browser.") {
 			out, err = h.browserWorkflow(c, api.Browser, strings.TrimPrefix(op, "browser."))
 			if err != nil {

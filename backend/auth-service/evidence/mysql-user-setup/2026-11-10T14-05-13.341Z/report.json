@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-10T14:06:42.502Z",
+  "passed": false,
+  "suites": [
+    {
+      "name": "preview-resolves-portable-tenant-without-creating-user",
+      "passed": true
+    }
+  ],
+  "temporaryProviderUserRemoved": false,
+  "retainedSyntheticMySQLData": true,
+  "followupCleanup": {
+    "completed": true,
+    "at": "2026-11-10T14:16:14.185Z",
+    "method": "Exact synthetic username and profile verified before provider-user deletion"
+  }
+}

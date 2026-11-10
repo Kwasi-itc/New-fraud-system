@@ -1,0 +1,32 @@
+{
+  "at": "2026-11-10T11:38:59.140Z",
+  "profile": "authenticated-local-mysql",
+  "passed": false,
+  "suites": [
+    {
+      "name": "isolated-synthetic-tenant-and-real-provider-account",
+      "passed": true
+    },
+    {
+      "name": "real-browser-login-and-secure-cookie",
+      "passed": true
+    },
+    {
+      "name": "data-model-authoring-and-resource-ownership",
+      "passed": true
+    },
+    {
+      "name": "csv-ingestion-and-record-browsing",
+      "passed": true
+    },
+    {
+      "name": "scenario-rule-publication-and-real-evaluation",
+      "passed": true
+    }
+  ],
+  "requestCount": 28,
+  "syntheticTenant": "245ce034-9a2f-4a80-9619-244aec03a998",
+  "temporaryProviderUserRemoved": true,
+  "retainedSyntheticMySQLData": true,
+  "failure": "case-workspace-and-screening-authoring: GET workflows/scenarios/3276b97e-d4c3-4ff0-8230-46b260e3b2a0 status 503"
+}

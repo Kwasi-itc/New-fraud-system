@@ -333,7 +333,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as ApiErrorEnvelope | null;
-    throw new Error(errorBody?.error.message ?? `Request failed with status ${response.status}`);
+    throw new Error((typeof errorBody?.error === "string" ? errorBody.error : errorBody?.error?.message) ?? `Request failed with status ${response.status}`);
   }
 
   if (response.status === 204) {

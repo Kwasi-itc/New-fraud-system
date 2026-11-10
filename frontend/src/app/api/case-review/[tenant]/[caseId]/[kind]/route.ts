@@ -1,10 +1,11 @@
 import { caseToken, failure, relay } from "@/lib/server/case-proxy";
+import { rawSession } from "@/lib/server/auth";
 
 type Context = { params: Promise<{ tenant: string; caseId: string; kind: string }> };
 async function handle(request: Request, context: Context) {
   const { tenant, caseId, kind } = await context.params;
   if (![tenant, caseId].every(id => /^[0-9a-f-]{36}$/i.test(id)) || !["decisions", "matches"].includes(kind)) return failure("Invalid review resource.", 400);
-  const token = await caseToken();
+  const token = kind === "decisions" && process.env.BACKEND_PROFILE === "mysql" ? await rawSession() : await caseToken();
   if (!token) return failure("Investigator sign-in is required.", 401);
   const url = new URL(request.url);
   let body: string | undefined;

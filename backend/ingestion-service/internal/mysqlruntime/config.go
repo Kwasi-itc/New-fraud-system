@@ -21,6 +21,7 @@ import (
 type Config struct {
 	Authority, Address, Database, User                                      string
 	Token                                                                   string `json:"-"`
+	LocalAllTenants                                                         bool   `json:"-"`
 	TenantID                                                                uuid.UUID
 	ObjectType                                                              string
 	UploadQueue, DeferredQueue                                              string

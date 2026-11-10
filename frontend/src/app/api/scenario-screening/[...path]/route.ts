@@ -1,4 +1,5 @@
-import { platformSession, privateHeaders } from "@/lib/server/auth";
+import { platformSession, privateHeaders, rawSession } from "@/lib/server/auth";
+import { serviceSecret } from "@/lib/server/service-secret";
 
 type Context = { params: Promise<{ path: string[] }> };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,7 +20,7 @@ async function proxy(request: Request, context: Context) {
     const { path } = await context.params;
     if (path[0] !== "scenarios" || !uuid.test(path[1] ?? "") ||
       (request.method === "GET" ? path.length !== 2 : path.length !== 4 || path[2] !== "configs" || !uuid.test(path[3]))) return failure(400, "Invalid screening path.");
-    const base = process.env.DECISION_ENGINE_SERVICE_URL, token = process.env.SCREENING_AUTHORING_TOKEN;
+    const base = process.env.DECISION_ENGINE_SERVICE_URL, token = process.env.BACKEND_PROFILE === "mysql" ? await rawSession() : serviceSecret("SCREENING_AUTHORING_TOKEN");
     if (!base || !token || token.length < 32) return failure(503, "Screening authoring is not configured.");
     let body: Uint8Array<ArrayBuffer> | undefined;
     if (request.method !== "GET") {

@@ -101,8 +101,13 @@ func (h *ExecutionHTTP) customLists(c *gin.Context, s *mysql.CustomListAdmin, op
 	list, entry := param("listId"), param("entryId")
 	switch op {
 	case "list":
-		v, e := s.Lists(ctx)
-		return gin.H{"custom_lists": adaptHistory(v, dto.AdaptCustomList)}, 200, e
+		v, e := s.Summaries(ctx)
+		return gin.H{"custom_lists": adaptHistory(v, func(item mysql.CustomListSummary) any {
+			return struct {
+				dto.CustomListResponse
+				EntryCount int64 `json:"entry_count"`
+			}{dto.AdaptCustomList(item.CustomList), item.EntryCount}
+		})}, 200, e
 	case "get":
 		v, e := s.Get(ctx, list)
 		return gin.H{"custom_list": dto.AdaptCustomList(v)}, 200, e

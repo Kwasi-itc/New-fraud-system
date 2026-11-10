@@ -7,7 +7,7 @@ import { AssigneeSearchDropdown } from "./assignee-search-dropdown";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { caseDecisionEvidence } from "@/lib/case-decision-evidence";
 import {
   Activity,
   AlertTriangle,
@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  caseKeys,
   useCaseContext,
   useCaseLinks,
   useCaseQuery,
@@ -755,17 +756,17 @@ function CaseDecisionCard({
   scenarios: Map<string, string>;
 }) {
   const decisionQuery = useQuery({
-    queryKey: ["decision-engine", "decision", tenant, link.decision_id],
-    queryFn: () => decisionEngineApi.getDecision(tenant, link.decision_id),
+    queryKey: [...caseKeys.scope(tenant, session), id, "decision", link.decision_id],
+    queryFn: () => caseDecisionEvidence(tenant, id, link.decision_id),
     enabled: Boolean(tenant && link.decision_id),
     staleTime: 60_000,
   });
   const decision = decisionQuery.data?.decision;
-  const scenarioName = decision?.scenario_id
+  const scenarioName = decision?.scenario_name ?? (decision?.scenario_id
     ? scenarios.get(decision.scenario_id)
     : link.scenario_id
     ? scenarios.get(link.scenario_id)
-    : undefined;
+    : undefined);
   const rec = displays.record(link);
   const cols = displays.allColumns[link.object_type] ?? [];
   const hasCaption = Boolean(rec?.caption && rec.caption !== link.object_id);
@@ -883,19 +884,7 @@ function CaseInvestigationConnectionsPanel({
   const displays = useRecordDisplays(tenant, session, objects);
   const [selectedDecisionId, setSelectedDecisionId] = useState<string>("");
 
-  const scenariosQuery = useQuery({
-    queryKey: ["decision-engine", "scenarios", tenant],
-    queryFn: () => decisionEngineApi.listScenarios(tenant),
-    enabled: Boolean(tenant),
-    staleTime: 300_000,
-  });
-  const scenarios = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of scenariosQuery.data?.scenarios ?? []) {
-      map.set(s.id, s.name);
-    }
-    return map;
-  }, [scenariosQuery.data]);
+  const scenarios = useMemo(() => new Map<string, string>(), []);
 
   const activeDecisionId = selectedDecisionId || (items[0]?.decision_id ?? "");
   const activeLink = items.find((item) => item.decision_id === activeDecisionId);
@@ -903,17 +892,17 @@ function CaseInvestigationConnectionsPanel({
   const activeCaption = activeRec?.caption && activeRec.caption !== activeLink?.object_id ? activeRec.caption : null;
 
   const activeDecisionQuery = useQuery({
-    queryKey: ["decision-engine", "decision", tenant, activeDecisionId],
-    queryFn: () => decisionEngineApi.getDecision(tenant, activeDecisionId),
+    queryKey: [...caseKeys.scope(tenant, session), id, "decision", activeDecisionId],
+    queryFn: () => caseDecisionEvidence(tenant, id, activeDecisionId),
     enabled: Boolean(tenant && activeDecisionId),
     staleTime: 60_000,
   });
   const activeDec = activeDecisionQuery.data?.decision;
-  const activeScenarioName = activeDec?.scenario_id
+  const activeScenarioName = activeDec?.scenario_name ?? (activeDec?.scenario_id
     ? scenarios.get(activeDec.scenario_id)
     : activeLink?.scenario_id
     ? scenarios.get(activeLink.scenario_id)
-    : undefined;
+    : undefined);
 
   return (
     <Panel
@@ -1007,19 +996,7 @@ function CaseDecisionsPanel({
   const objects = items.map((link) => ({ object_type: link.object_type, object_id: link.object_id }));
   const displays = useRecordDisplays(tenant, session, objects);
 
-  const scenariosQuery = useQuery({
-    queryKey: ["decision-engine", "scenarios", tenant],
-    queryFn: () => decisionEngineApi.listScenarios(tenant),
-    enabled: Boolean(tenant),
-    staleTime: 300_000,
-  });
-  const scenarios = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of scenariosQuery.data?.scenarios ?? []) {
-      map.set(s.id, s.name);
-    }
-    return map;
-  }, [scenariosQuery.data]);
+  const scenarios = useMemo(() => new Map<string, string>(), []);
 
   return (
     <Panel title="Linked decisions">

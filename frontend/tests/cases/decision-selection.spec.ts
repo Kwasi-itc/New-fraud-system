@@ -12,7 +12,7 @@ test.beforeEach(async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
   // Detection owner reads are controlled; case writes use the real Next proxy.
-  await page.route("**/v1/tenants/**", async route => {
+  await page.route("**/api/decisions/tenants/**", async route => {
     const url = new URL(route.request().url());
     expect(url.pathname).toContain(tenant);
     if (url.pathname.endsWith("/scenarios")) return route.fulfill({ json: { scenarios: [{ id: scenario, name: "Payment checks", trigger_object_type: "payment", created_at: "2026-01-01T00:00:00Z" }] } });
@@ -26,12 +26,13 @@ test.beforeEach(async ({ page, context, request }) => {
 
 test("select decisions, show actual membership, create one case and navigate", async ({ page }) => {
   const add = page.getByRole("button", { name: /^Add to Case/ });
-  await expect(add).toBeDisabled();
+  await expect(add).toBeHidden();
   await expect(page.getByLabel(`Select decision ${linked}`, { exact: true })).toBeDisabled();
   await expect(page.getByLabel(`Select decision ${privateID}`, { exact: true })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Payment investigation · investigating" })).toBeVisible();
   await page.getByLabel("Select eligible decisions on this page").check();
-  await expect(add).toHaveText("Add to Case (2)");
+  await expect(add).toHaveText("Add to Case");
+  await expect(page.getByText("2 selected", { exact: true })).toBeVisible();
   await add.click();
   const modal = page.getByRole("dialog", { name: "Create case" });
   await expect(modal.getByText("2 selected decisions")).toBeVisible();
@@ -58,10 +59,10 @@ test("selection clears on filter/page-size changes and modal supports remove/can
   await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeFocused();
   await page.getByLabel(`Select decision ${first}`, { exact: true }).check();
   await page.getByRole("combobox", { name: "Rows per page" }).selectOption("10");
-  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeHidden();
   await page.getByLabel(`Select decision ${first}`, { exact: true }).check();
   await page.getByPlaceholder("Search by decision, object, or scenario").fill("payment");
-  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeHidden();
   await page.getByPlaceholder("Search by decision, object, or scenario").clear();
   await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).not.toBeChecked();
 });

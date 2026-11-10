@@ -1,0 +1,20 @@
+{
+  "at": "2026-11-10T10:21:07.483Z",
+  "profile": "authenticated-local-mysql",
+  "passed": false,
+  "suites": [
+    {
+      "name": "isolated-synthetic-tenant-and-real-provider-account",
+      "passed": true
+    },
+    {
+      "name": "real-browser-login-and-secure-cookie",
+      "passed": true
+    }
+  ],
+  "requestCount": 2,
+  "syntheticTenant": "375f112a-0a24-4990-a893-3c889aac99b4",
+  "temporaryProviderUserRemoved": true,
+  "retainedSyntheticMySQLData": true,
+  "failure": "data-model-authoring-and-resource-ownership: POST data-model/tenants/375f112a-0a24-4990-a893-3c889aac99b4/tables status 503"
+}

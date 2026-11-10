@@ -1,5 +1,7 @@
-param([switch]$SkipProviderStartup)
+param([switch]$SkipProviderStartup, [string]$UsersFile, [switch]$CreateMissingUsers)
 $ErrorActionPreference = 'Stop'
+if ($CreateMissingUsers -and !$UsersFile) { throw '-CreateMissingUsers requires -UsersFile' }
+if ($UsersFile) { $UsersFile = (Resolve-Path -LiteralPath $UsersFile).Path }
 $service = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $service '../..'))
 $local = Join-Path $repo '.local/mysql-dev'
@@ -19,5 +21,10 @@ Checked 'docker' ($compose + @('stop','auth-service','auth-worker'))
 Checked 'docker' ($compose + @('build','migrate-auth'))
 Checked 'docker' ($compose + @('run','--rm','--no-deps','migrate-auth'))
 Checked 'docker' ($compose + @('up','-d','--no-deps','--wait','auth-mail','auth-service','auth-worker'))
+if ($UsersFile) {
+    $userArguments = @((Join-Path $service 'scripts/setup-mysql-users.mjs'),'--file',$UsersFile,'--apply')
+    if ($CreateMissingUsers) { $userArguments += '--create-missing' }
+    Checked 'node' $userArguments
+}
 Write-Output 'Auth API: http://localhost:8087/docs ; local invitation mailbox: http://localhost:8027'
 Write-Output 'Proxy credential: ignored .local/mysql-dev/auth-proxy-token.txt. Real sessions and membership permissions remain required.'

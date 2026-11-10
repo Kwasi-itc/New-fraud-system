@@ -349,6 +349,9 @@ func (p *LocalCreation) Create(ctx context.Context, input service.CreateTableInp
 	if err != nil {
 		return zero, err
 	}
+	if err := p.grantLocalConsumers(ctx, physical.Name); err != nil {
+		return zero, err
+	}
 	request := ports.PhysicalPublicationRequest{TableID: table.ID, OperationID: op, RequestHash: saved.PublicationHash, Condition: store.PublicationCondition{Mode: store.PublicationMustBeAbsent}, ActorKind: "api", ActorID: actor.String()}
 	if _, err := owner.PublishPreparedCreation(ctx, input, request, manager); err != nil {
 		return zero, fmt.Errorf("publish creation: %w", err)

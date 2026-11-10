@@ -1,0 +1,8 @@
+{"suite":"real-browser-login-and-secure-cookie","service":"data-model","method":"GET","path":"/tenants/067d3b2d-b4f3-4052-96d2-9c41d019763b/tables","status":200,"expected":200}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"POST","path":"/tenants/067d3b2d-b4f3-4052-96d2-9c41d019763b/tables","status":201,"expected":201}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"POST","path":"/tables/4ee3e83e-0262-4035-a42e-cdf4f7a03bae/fields","status":201,"expected":201}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"POST","path":"/tables/4ee3e83e-0262-4035-a42e-cdf4f7a03bae/fields","status":201,"expected":201}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"GET","path":"/tenants/067d3b2d-b4f3-4052-96d2-9c41d019763b/data-model","status":200,"expected":200}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"GET","path":"/tables/4ee3e83e-0262-4035-a42e-cdf4f7a03bae/display-settings","status":200,"expected":200}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"GET","path":"/tenants/88238c5c-e4b7-47d6-a54b-fe2297df54d8/tables","status":403,"expected":403}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"GET","path":"/tables/00c6b042-149d-434b-89b6-fc44cda082ec/display-settings","status":403,"expected":403}

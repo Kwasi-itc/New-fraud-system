@@ -126,13 +126,13 @@ function formatListKind(kind: string) {
   }
 }
 
-function adaptCustomLists(items: CustomList[], entryCounts: Map<string, number>): DetectionList[] {
+function adaptCustomLists(items: CustomList[]): DetectionList[] {
   return items.map((item) => ({
     id: item.id,
     name: item.name,
     description: item.description || "No description provided",
     type: formatListKind(item.kind),
-    count: formatListCount(entryCounts.get(item.id) ?? 0),
+    count: item.entry_count == null ? "—" : formatListCount(item.entry_count),
   }));
 }
 
@@ -2536,11 +2536,6 @@ function DetectionPageContent() {
     queryFn: () => decisionEngineApi.listCustomLists(tenantId),
     enabled: Boolean(tenantId),
   });
-  const customListEntriesQuery = useQuery({
-    queryKey: ["decision-engine", "custom-list-entries", tenantId],
-    queryFn: () => decisionEngineApi.listCustomListEntries(tenantId),
-    enabled: Boolean(tenantId),
-  });
 
   const createScenarioMutation = useMutation({
     mutationFn: async () => {
@@ -2674,19 +2669,9 @@ function DetectionPageContent() {
     () => (scenariosQuery.data?.scenarios ?? []).map(adaptScenario),
     [scenariosQuery.data]
   );
-  const listEntryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of customListEntriesQuery.data?.custom_list_entries ?? []) {
-      if (!item.list_id) {
-        continue;
-      }
-      counts.set(item.list_id, (counts.get(item.list_id) ?? 0) + 1);
-    }
-    return counts;
-  }, [customListEntriesQuery.data?.custom_list_entries]);
   const lists = useMemo(
-    () => adaptCustomLists(customListsQuery.data?.custom_lists ?? [], listEntryCounts),
-    [customListsQuery.data?.custom_lists, listEntryCounts]
+    () => adaptCustomLists(customListsQuery.data?.custom_lists ?? []),
+    [customListsQuery.data?.custom_lists]
   );
 
   const createActionLabel = useMemo(() => {
@@ -2840,18 +2825,16 @@ function DetectionPageContent() {
                 Sign in with an active tenant to load lists.
               </CardContent>
             </Card>
-          ) : customListsQuery.isLoading || customListEntriesQuery.isLoading ? (
+          ) : customListsQuery.isLoading ? (
             <Card className="rounded-xl border border-slate-200 shadow-none">
               <CardContent className="p-4 text-sm text-slate-600">Loading lists...</CardContent>
             </Card>
-          ) : customListsQuery.isError || customListEntriesQuery.isError ? (
+          ) : customListsQuery.isError ? (
             <Card className="rounded-xl border border-red-200 bg-red-50 shadow-none">
               <CardContent className="p-4 text-sm text-red-700">
                 {customListsQuery.error instanceof Error
                   ? customListsQuery.error.message
-                  : customListEntriesQuery.error instanceof Error
-                    ? customListEntriesQuery.error.message
-                    : "Failed to load lists."}
+                  : "Failed to load lists."}
               </CardContent>
             </Card>
           ) : (

@@ -1,0 +1,2 @@
+{"suite":"real-browser-login-and-secure-cookie","service":"data-model","method":"GET","path":"/tenants/375f112a-0a24-4990-a893-3c889aac99b4/tables","status":200,"expected":200}
+{"suite":"data-model-authoring-and-resource-ownership","service":"data-model","method":"POST","path":"/tenants/375f112a-0a24-4990-a893-3c889aac99b4/tables","status":503,"expected":201}

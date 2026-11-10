@@ -11,3 +11,8 @@ yarn-error.log*
 .DS_Store
 .git
 .gitignore
+tests
+test-results
+playwright-report
+evidence
+*.tsbuildinfo

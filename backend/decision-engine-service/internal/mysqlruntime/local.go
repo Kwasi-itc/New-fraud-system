@@ -215,8 +215,15 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 	if err != nil {
 		return fail(err)
 	}
+	frontendIdentity, err := localFrontendIdentity(db)
+	if err != nil {
+		return fail(err)
+	}
 	authority := func(serviceScope bool) AuthorityProvider {
 		return func(ctx context.Context, tenant uuid.UUID) (Authorities, error) {
+			if !serviceScope && ctx.Value(verifiedSessionKey{}) != nil {
+				return frontendIdentity.RequestAuthority(ctx, tenant)
+			}
 			if tenant == uuid.Nil || !serviceScope && ctx.Value(localCredential{}) != token {
 				return Authorities{}, store.ErrDecisionAuthorizationDenied
 			}
@@ -379,9 +386,17 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 				c.Request = c.Request.WithContext(ports.WithEvaluationTrace(c.Request.Context()))
 			}
 			raw := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
-			if subtle.ConstantTimeCompare([]byte(raw), []byte(token)) != 1 {
-				c.AbortWithStatusJSON(401, gin.H{"error": "authentication_required"})
-				return
+			trusted := c.Request.Context()
+			machine := subtle.ConstantTimeCompare([]byte(raw), []byte(token)) == 1
+			if machine {
+				trusted = context.WithValue(trusted, localCredential{}, token)
+			} else {
+				var err error
+				trusted, err = frontendIdentity.Authenticate(c.Request)
+				if err != nil {
+					c.AbortWithStatusJSON(401, gin.H{"error": "authentication_required"})
+					return
+				}
 			}
 			if raw := c.Param("tenantId"); raw != "" {
 				tenant, err := uuid.Parse(raw)
@@ -402,9 +417,9 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 				}
 			}
 			path := c.FullPath()
-			bounded, cancel := context.WithTimeout(context.WithValue(c.Request.Context(), localCredential{}, token), p.RequestTimeout)
+			bounded, cancel := context.WithTimeout(trusted, p.RequestTimeout)
 			defer cancel()
-			if strings.Contains(path, "/investigator/") || strings.Contains(path, "/workflows") || strings.Contains(path, "/workflow-rules") || strings.Contains(path, "/screening-configs") {
+			if machine && (strings.Contains(path, "/investigator/") || strings.Contains(path, "/workflows") || strings.Contains(path, "/workflow-rules") || strings.Contains(path, "/screening-configs")) {
 				bounded = context.WithValue(bounded, localReviewCredential{}, true)
 			}
 			c.Request = c.Request.WithContext(bounded)
@@ -418,6 +433,9 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 		internal := engine.Group("")
 		internal.Use(localMiddleware)
 		h.RegisterInternal(internal)
+		browser := engine.Group("/internal/workflow-authoring", localMiddleware)
+		h.RegisterBrowser(browser)
+		h.RegisterBrowserScreening(engine.Group("/internal/screening-authoring", localMiddleware))
 	}
 	a.handler = engine
 	a.ready.Store(true)
@@ -430,5 +448,5 @@ func (a *Application) LocalHandler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return localdev.WithoutLogin(a.Handler(), os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN"), token)
+	return localFrontendHandler(a.Handler(), os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN"), token)
 }

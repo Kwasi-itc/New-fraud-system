@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-10T10:02:32.278Z",
+  "profile": "authenticated-local-mysql",
+  "passed": false,
+  "suites": [
+    {
+      "name": "isolated-synthetic-tenant-and-real-provider-account",
+      "passed": true
+    }
+  ],
+  "requestCount": 0,
+  "syntheticTenant": "b82aa15d-fd82-42f5-8480-d37d1cdc3631",
+  "temporaryProviderUserRemoved": true,
+  "retainedSyntheticMySQLData": true,
+  "failure": "real-browser-login-and-secure-cookie: locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Continue to sign in' })\u001b[22m\n"
+}

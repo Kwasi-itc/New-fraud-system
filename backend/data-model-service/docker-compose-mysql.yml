@@ -34,7 +34,7 @@ services:
 
   mysql-reference:
     image: mysql:8.4.8
-    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--socket=/var/run/mysqld/mysqld.sock"]
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--socket=/var/run/mysqld/mysqld.sock", "--log-bin-trust-function-creators=ON"]
     environment:
       MYSQL_DATABASE: fraud
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password

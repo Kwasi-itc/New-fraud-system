@@ -1710,10 +1710,7 @@ export default function YourDataPage() {
           Your Data Model
         </h2>
         <p className="max-w-2xl text-sm leading-7 text-slate-600">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to connect this workspace to a real
-          tenant in the data-model-service. The frontend query foundation is in place,
-          but it needs a tenant id before it can fetch tables, schema history, and
-          index jobs.
+          Your session has no active tenant. Sign in again or contact an administrator.
         </p>
       </div>
     );

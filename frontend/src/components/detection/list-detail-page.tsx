@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspaceTenant } from "@/components/workspace-session";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -93,7 +94,7 @@ function ListModal({
 }
 
 export function ListDetailPage({ listId }: { listId: string }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const queryClient = useQueryClient();
   const [newValueOpen, setNewValueOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -129,7 +130,7 @@ export function ListDetailPage({ listId }: { listId: string }) {
         queryKey: ["decision-engine", "custom-list-entries", tenantId, listId],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "custom-list-entries", tenantId],
+        queryKey: ["decision-engine", "custom-lists", tenantId],
       });
       setNewValue("");
       setNewValueOpen(false);
@@ -160,7 +161,7 @@ export function ListDetailPage({ listId }: { listId: string }) {
         queryKey: ["decision-engine", "custom-list-entries", tenantId, listId],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "custom-list-entries", tenantId],
+        queryKey: ["decision-engine", "custom-lists", tenantId],
       });
     },
   });
@@ -192,7 +193,7 @@ export function ListDetailPage({ listId }: { listId: string }) {
         queryKey: ["decision-engine", "custom-list-entries", tenantId, listId],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["decision-engine", "custom-list-entries", tenantId],
+        queryKey: ["decision-engine", "custom-lists", tenantId],
       });
       setImportFeedback({
         tone: "success",
@@ -244,7 +245,7 @@ export function ListDetailPage({ listId }: { listId: string }) {
     return (
       <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load list details.
+          Your session has no active tenant. Sign in again or contact an administrator.
         </CardContent>
       </Card>
     );

@@ -1,0 +1,30 @@
+name: fraud-mysql-dev
+services:
+  frontend:
+    image: fraud-frontend-mysql:local
+    build: {context: ., dockerfile: Dockerfile.mysql}
+    env_file: [../.local/mysql-dev/frontend.env]
+    secrets: [frontend_auth_proxy, frontend_ingestion, frontend_decision, frontend_screening, frontend_screening_operator]
+    ports: ["127.0.0.1:3002:3000"]
+    read_only: true
+    tmpfs: [/tmp, "/app/.next/cache:uid=1000,gid=1000,mode=0700"]
+    mem_limit: 768m
+    cpus: 1
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      start_period: 30s
+      retries: 4
+    restart: unless-stopped
+secrets:
+  frontend_auth_proxy: {file: ../.local/mysql-dev/auth-proxy-token.txt}
+  frontend_ingestion: {file: ../.local/mysql-dev/ingestion-runtime-token.txt}
+  frontend_decision: {file: ../.local/mysql-dev/decision-runtime-token.txt}
+  frontend_screening: {file: ../.local/mysql-dev/screening-service-token.txt}
+  frontend_screening_operator: {file: ../.local/mysql-dev/screening-operator-token.txt}
+networks:
+  default:
+    external: true
+    name: fraud-mysql-dev_default

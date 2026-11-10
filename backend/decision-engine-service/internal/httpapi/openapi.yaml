@@ -4887,6 +4887,12 @@ components:
         kind:
           type: string
           description: List kind or matching mode used by evaluator helpers.
+        entry_count:
+          type: integer
+          format: int64
+          minimum: 0
+          readOnly: true
+          description: Exact number of entries linked to this list, included by the MySQL list overview.
         created_at:
           type: string
           format: date-time

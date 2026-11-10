@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspaceTenant } from "@/components/workspace-session";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -473,7 +474,7 @@ export function ScenarioEditPage({
   initialTab?: EditorTab;
   preferLiveIteration?: boolean;
 }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const router = useRouter();
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
@@ -1125,7 +1126,7 @@ export function ScenarioEditPage({
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this scenario.
+          Your session has no active tenant. Sign in again or contact an administrator.
         </CardContent>
       </Card>
     );

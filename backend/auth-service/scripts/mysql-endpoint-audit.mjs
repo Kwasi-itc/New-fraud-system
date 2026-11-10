@@ -14,6 +14,8 @@ const service=fileURLToPath(new URL('../',import.meta.url)),root=resolve(service
 const parse=file=>Object.fromEntries(readFileSync(file,'utf8').split(/\r?\n/).filter(line=>line&&!line.startsWith('#')).map(line=>{const at=line.indexOf('=');return [line.slice(0,at),line.slice(at+1)];}));
 const settings=JSON.parse(readFileSync(resolve(local,'auth-runtime/config.json'),'utf8'));
 const provider=parse(resolve(root,'.local/auth-provider/auth.env')),admin=parse(resolve(root,'.local/auth-provider/keycloak.env'));
+// Follow the active auth runtime when the local frontend uses another port.
+provider.OIDC_REDIRECT_URL=settings.Provider.RedirectURL;
 const issuer=new URL(provider.OIDC_ISSUER_URL);assert.ok(['localhost','127.0.0.1'].includes(issuer.hostname),'Acceptance requires a local Keycloak issuer');assert.equal(issuer.pathname,'/realms/fraud');
 const proxy=readFileSync(resolve(local,'auth-proxy-token.txt'),'utf8');const origin='http://127.0.0.1:8087';
 const output=resolve(service,'evidence/mysql-endpoint-audit',new Date().toISOString().replaceAll(':','-'));mkdirSync(output,{recursive:true});
@@ -38,7 +40,7 @@ async function login(user,invitationToken){
   const raw=(await api('POST','/internal/login/complete',{state:url.searchParams.get('state'),binding:start.binding,code:url.searchParams.get('code')})).session;assert.ok(raw);sessions.push(raw);return raw;
  }finally{await context.close();}
 }
-async function mailboxToken(email){const deadline=Date.now()+20000;while(Date.now()<deadline){const response=await request('http://127.0.0.1:8027/api/v1/messages');assert.equal(response.status,200);const list=await response.json();const item=list.messages?.find(message=>message.To?.some(to=>to.Address===email));if(item){const message=await(await request('http://127.0.0.1:8027/api/v1/message/'+encodeURIComponent(item.ID))).json();const match=message.Text?.match(/http:\/\/localhost:3000\/invite#([A-Za-z0-9_-]{43})/);assert.ok(match,'Captured SMTP message lacks invitation link');return match[1];}await delay(300);}throw new Error('Invitation mailbox receipt timed out');}
+async function mailboxToken(email){const deadline=Date.now()+20000;while(Date.now()<deadline){const response=await request('http://127.0.0.1:8027/api/v1/messages');assert.equal(response.status,200);const list=await response.json();const item=list.messages?.find(message=>message.To?.some(to=>to.Address===email));if(item){const message=await(await request('http://127.0.0.1:8027/api/v1/message/'+encodeURIComponent(item.ID))).json();const linkPrefix=settings.InvitationOrigin.replace(/\/$/,'')+'/invite#';const start=message.Text?.indexOf(linkPrefix)??-1;const match=start<0?null:message.Text.slice(start+linkPrefix.length).match(/^([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/);assert.ok(match,'Captured SMTP message lacks invitation link');return match[1];}await delay(300);}throw new Error('Invitation mailbox receipt timed out');}
 
 let failure;
 try{

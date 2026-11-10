@@ -77,6 +77,7 @@ createServer(async (req, res) => {
     if (url.pathname === "/internal/invitations/start") return body.token === "a".repeat(43) ? send(200, { url: "http://127.0.0.1:3199/provider-login", binding: "fixture-login-binding" }) : send(403, {});
     if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
     if (url.pathname === "/internal/session" && body.session === "fixture-workflow") return send(200, { access_token: "fixture-admin", session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Workflow administrator", roles: ["platform_admin", "case_manager_admin"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
+    if (url.pathname === "/internal/session" && ["fixture-platform", "fixture-admin"].includes(body.session)) return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Platform fixture", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin", "platform_admin"] : ["platform_builder"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
     if (url.pathname === "/internal/logout") { revokedSessions.add(body.session); return send(204); }
     if (url.pathname === "/internal/session") return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
     if (url.pathname === "/internal/sessions/list") return send(200, { items: [currentSessionID, otherSessionID].filter(id => !revokedSessionIDs.has(id)).map(id => ({ id, current: id === currentSessionID, created_at: "2026-10-06T12:00:00Z", expires_at: "2099-01-01T00:00:00Z", idle_until: "2099-01-01T00:00:00Z" })), next_after: "" });
@@ -115,6 +116,10 @@ createServer(async (req, res) => {
     return send(204);
   }
   const token = req.headers.authorization;
+  if (url.pathname === `/v1/tenants/${tenant}/integration-fixture`) {
+    if (!["Bearer fixture-owner-token", "Bearer fixture-ingestion-owner-token"].includes(token)) return send(401,{});
+    return send(200,{verified:true});
+  }
   if (url.pathname === `/v1/investigator/tenants/${tenant}/cases/${id}/exclusions`) {
     if (token !== "Bearer fixture-analyst") return send(401, { error: "Investigator sign-in required." });
     if (exclusionMode === "denied") return send(403, { error: "Current case/resource access is required." });

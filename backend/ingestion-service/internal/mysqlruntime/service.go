@@ -23,7 +23,7 @@ type Service struct {
 }
 
 func (s *Service) owner(ctx context.Context, tenant uuid.UUID, name string) (*store.KeyedRecordOwner, error) {
-	if tenant != s.Config.TenantID || name != s.Config.ObjectType {
+	if !s.multiTenantLocal() && (tenant != s.Config.TenantID || name != s.Config.ObjectType) {
 		return nil, service.ErrForbidden
 	}
 	owner, err := store.ResolveRecordOwner(ctx, s.DB, s.Config.Database, tenant, name, s.Config.Token, s.Config.Limits, s.Config.ContractBytes)
@@ -144,18 +144,18 @@ func status(state string, upload bool) string {
 type Uploads struct{ *Service }
 type Deferred struct{ *Service }
 
-func (s Uploads) adapt(r store.UploadSummary) ingestion.UploadLog {
-	return ingestion.UploadLog{ID: r.ID.String(), TenantID: s.Config.TenantID.String(), ObjectType: s.Config.ObjectType, Mode: r.Mode, Filename: r.Filename, ContentType: r.ContentType, Status: ingestion.UploadLogStatus(status(r.State, true)), TotalRows: r.TotalRows, SuccessfulRows: r.SuccessfulRows, FailedRows: r.FailedRows, AttemptCount: r.Attempt, ErrorMessage: r.ErrorCode, RequestedAt: r.RequestedAt, StartedAt: r.StartedAt, CompletedAt: r.CompletedAt}
+func (s Uploads) adapt(r store.UploadSummary, tenant uuid.UUID, name string) ingestion.UploadLog {
+	return ingestion.UploadLog{ID: r.ID.String(), TenantID: tenant.String(), ObjectType: name, Mode: r.Mode, Filename: r.Filename, ContentType: r.ContentType, Status: ingestion.UploadLogStatus(status(r.State, true)), TotalRows: r.TotalRows, SuccessfulRows: r.SuccessfulRows, FailedRows: r.FailedRows, AttemptCount: r.Attempt, ErrorMessage: r.ErrorCode, RequestedAt: r.RequestedAt, StartedAt: r.StartedAt, CompletedAt: r.CompletedAt}
 }
-func (s Deferred) adapt(r store.UploadSummary) ingestion.DeferredIngest {
-	return ingestion.DeferredIngest{ID: r.ID.String(), TenantID: s.Config.TenantID.String(), ObjectType: s.Config.ObjectType, Mode: r.Mode, Status: ingestion.DeferredIngestStatus(status(r.State, false)), AttemptCount: r.Attempt, ErrorMessage: r.ErrorCode, RequestedAt: r.RequestedAt, StartedAt: r.StartedAt, CompletedAt: r.CompletedAt}
+func (s Deferred) adapt(r store.UploadSummary, tenant uuid.UUID, name string) ingestion.DeferredIngest {
+	return ingestion.DeferredIngest{ID: r.ID.String(), TenantID: tenant.String(), ObjectType: name, Mode: r.Mode, Status: ingestion.DeferredIngestStatus(status(r.State, false)), AttemptCount: r.Attempt, ErrorMessage: r.ErrorCode, RequestedAt: r.RequestedAt, StartedAt: r.StartedAt, CompletedAt: r.CompletedAt}
 }
 func (s Uploads) Create(ctx context.Context, tenant uuid.UUID, name string, mode ingestion.Mode, filename, content string, payload []byte) (ingestion.UploadLog, error) {
 	r, e := s.submit(ctx, tenant, name, store.WorkInput{ID: uuid.New(), Kind: store.UploadWork, Mode: mode, Payload: payload, Filename: filename, ContentType: content, ScheduledAt: time.Now().UTC().Truncate(time.Microsecond)})
 	if e != nil {
 		return ingestion.UploadLog{}, e
 	}
-	return s.adapt(r), nil
+	return s.adapt(r, tenant, name), nil
 }
 func (s Deferred) Create(ctx context.Context, tenant uuid.UUID, name string, mode ingestion.Mode, payload map[string]any, key *string) (ingestion.DeferredIngest, error) {
 	if payload == nil {
@@ -169,10 +169,14 @@ func (s Deferred) Create(ctx context.Context, tenant uuid.UUID, name string, mod
 	if e != nil {
 		return ingestion.DeferredIngest{}, e
 	}
-	return s.adapt(r), nil
+	return s.adapt(r, tenant, name), nil
 }
 func (s Uploads) Get(ctx context.Context, id uuid.UUID) (ingestion.UploadLog, error) {
-	w, e := s.work(ctx, s.Config.TenantID, s.Config.ObjectType)
+	tenant, name, e := s.resourceOwner(ctx, id, store.UploadWork)
+	if e != nil {
+		return ingestion.UploadLog{}, e
+	}
+	w, e := s.work(ctx, tenant, name)
 	if e != nil {
 		return ingestion.UploadLog{}, e
 	}
@@ -180,10 +184,14 @@ func (s Uploads) Get(ctx context.Context, id uuid.UUID) (ingestion.UploadLog, er
 	if e != nil {
 		return ingestion.UploadLog{}, boundary(e)
 	}
-	return s.adapt(r), nil
+	return s.adapt(r, tenant, name), nil
 }
 func (s Deferred) Get(ctx context.Context, id uuid.UUID) (ingestion.DeferredIngest, error) {
-	w, e := s.work(ctx, s.Config.TenantID, s.Config.ObjectType)
+	tenant, name, e := s.resourceOwner(ctx, id, store.DeferredWork)
+	if e != nil {
+		return ingestion.DeferredIngest{}, e
+	}
+	w, e := s.work(ctx, tenant, name)
 	if e != nil {
 		return ingestion.DeferredIngest{}, e
 	}
@@ -191,7 +199,7 @@ func (s Deferred) Get(ctx context.Context, id uuid.UUID) (ingestion.DeferredInge
 	if e != nil {
 		return ingestion.DeferredIngest{}, boundary(e)
 	}
-	return s.adapt(r), nil
+	return s.adapt(r, tenant, name), nil
 }
 func (s Uploads) List(ctx context.Context, tenant uuid.UUID, name string) ([]ingestion.UploadLog, error) {
 	w, e := s.work(ctx, tenant, name)
@@ -204,7 +212,7 @@ func (s Uploads) List(ctx context.Context, tenant uuid.UUID, name string) ([]ing
 	}
 	out := make([]ingestion.UploadLog, len(page.Items))
 	for i, r := range page.Items {
-		out[i] = s.adapt(r)
+		out[i] = s.adapt(r, tenant, name)
 	}
 	return out, nil
 }

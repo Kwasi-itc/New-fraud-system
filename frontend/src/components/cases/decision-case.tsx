@@ -19,7 +19,8 @@ import {
   useCaseQueue,
   useCaseWrite,
 } from "@/lib/case-manager-query";
-import { decisionEngineApi } from "@/lib/decision-engine-api";
+import { caseDecisionEvidence } from "@/lib/case-decision-evidence";
+import { caseKeys } from "@/lib/case-manager-query";
 import { displayValue, useRecordDisplays } from "@/components/detection/decision-display";
 import {
   CaseNav,
@@ -88,22 +89,13 @@ export function DecisionCase({
     identity.isSuccess && membership.isSuccess && !membership.error && !linked.length;
 
   const decisionQuery = useQuery({
-    queryKey: ["decision-engine", "decision", tenant, decisionId],
-    queryFn: () => decisionEngineApi.getDecision(tenant, decisionId),
-    enabled: Boolean(tenant && decisionId),
+    queryKey: [...caseKeys.scope(tenant, session), linked[0]?.id, "decision", decisionId],
+    queryFn: () => caseDecisionEvidence(tenant, linked[0].id, decisionId),
+    enabled: Boolean(tenant && decisionId && linked.length),
   });
   const decision = decisionQuery.data?.decision;
 
-  const scenariosQuery = useQuery({
-    queryKey: ["decision-engine", "scenarios", tenant],
-    queryFn: () => decisionEngineApi.listScenarios(tenant),
-    enabled: Boolean(tenant),
-    staleTime: 300_000,
-  });
-  const scenarioName = useMemo(() => {
-    if (!decision?.scenario_id || !scenariosQuery.data?.scenarios) return undefined;
-    return scenariosQuery.data.scenarios.find((s) => s.id === decision.scenario_id)?.name;
-  }, [decision?.scenario_id, scenariosQuery.data?.scenarios]);
+  const scenarioName = decision?.scenario_name;
 
   const objects = useMemo(
     () => (decision ? [{ object_type: decision.object_type, object_id: decision.object_id }] : []),

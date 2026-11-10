@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "tenant": { "name": "IT Consortium" },
+  "users": [
+    {
+      "username": "fraud-admin",
+      "first_name": "Local",
+      "last_name": "Administrator",
+      "email": "fraud-admin@example.test",
+      "roles": ["tenant_admin", "platform_admin", "case_manager_admin", "case_investigator"]
+    },
+    {
+      "username": "fraud-analyst",
+      "first_name": "Local",
+      "last_name": "Analyst",
+      "email": "fraud-analyst@example.test",
+      "roles": ["platform_viewer", "case_investigator"]
+    },
+    {
+      "username": "fraud-builder",
+      "first_name": "Local",
+      "last_name": "Builder",
+      "email": "fraud-builder@example.test",
+      "roles": ["platform_builder"]
+    }
+  ]
+}

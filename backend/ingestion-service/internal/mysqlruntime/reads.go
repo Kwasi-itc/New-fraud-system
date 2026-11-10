@@ -32,7 +32,7 @@ func readBoundary(e error) error {
 	return boundary(e)
 }
 func (s *Service) read(ctx context.Context, tenant uuid.UUID, name string, call func(context.Context, *sql.Tx, *store.RecordProjection) error) error {
-	if tenant != s.Config.TenantID || name != s.Config.ObjectType {
+	if !s.multiTenantLocal() && (tenant != s.Config.TenantID || name != s.Config.ObjectType) {
 		return service.ErrForbidden
 	}
 	contracts, e := store.NewIngestionContractStore(s.DB, s.Config.Database, s.Config.ContractBytes)

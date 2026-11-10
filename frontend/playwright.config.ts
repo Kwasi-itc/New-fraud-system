@@ -9,8 +9,8 @@ export default defineConfig({
   },
   webServer: [
     { command: "node tests/cases/service-fixture.mjs", url: "http://127.0.0.1:3199/health", reuseExistingServer: false },
-    { command: "npm run start -- --hostname 127.0.0.1 --port 3100", url: "http://127.0.0.1:3100/login", reuseExistingServer: false,
-      env: { SCREENING_OPERATOR_TOKEN: "fixture-screening-owner-private-token-32", SCREENING_AUTHORING_TOKEN: "fixture-screening-authoring-private-token-32", WORKFLOW_AUTHORING_TOKEN: "fixture-workflow-authoring-private-token-32", DATA_MODEL_SERVICE_URL: "http://127.0.0.1:3199", AUTH_SERVICE_URL: "http://127.0.0.1:3199", AUTH_PROXY_TOKEN: "fixture-private-auth-proxy-token-32", CASE_MANAGER_SERVICE_URL: "http://127.0.0.1:3199", CASE_SESSION_COOKIE: "case_test_session", APP_ORIGIN: "http://127.0.0.1:3100", DECISION_ENGINE_SERVICE_URL: "http://127.0.0.1:3199", SCREENING_SERVICE_URL: "http://127.0.0.1:3199", DECISION_ENGINE_AUTH_TOKEN: "fixture-owner-token", SCREENING_AUTH_TOKEN: "fixture-owner-token" },
+    { command: "node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3100", url: "http://127.0.0.1:3100/login", reuseExistingServer: false,
+      env: { INGESTION_SERVICE_URL: "http://127.0.0.1:3199", INGESTION_AUTH_TOKEN: "fixture-ingestion-owner-token", SCREENING_OPERATOR_TOKEN: "fixture-screening-owner-private-token-32", SCREENING_AUTHORING_TOKEN: "fixture-screening-authoring-private-token-32", WORKFLOW_AUTHORING_TOKEN: "fixture-workflow-authoring-private-token-32", DATA_MODEL_SERVICE_URL: "http://127.0.0.1:3199", AUTH_SERVICE_URL: "http://127.0.0.1:3199", AUTH_PROXY_TOKEN: "fixture-private-auth-proxy-token-32", CASE_MANAGER_SERVICE_URL: "http://127.0.0.1:3199", CASE_SESSION_COOKIE: "case_test_session", APP_ORIGIN: "http://127.0.0.1:3100", DECISION_ENGINE_SERVICE_URL: "http://127.0.0.1:3199", SCREENING_SERVICE_URL: "http://127.0.0.1:3199", DECISION_ENGINE_AUTH_TOKEN: "fixture-owner-token", SCREENING_AUTH_TOKEN: "fixture-owner-token" },
     },
   ],
 });

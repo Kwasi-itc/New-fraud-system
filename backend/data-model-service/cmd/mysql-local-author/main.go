@@ -28,6 +28,11 @@ func run() error {
 	}
 	defer worker.Target.Close()
 	defer worker.Reference.Close()
+	if len(os.Args) == 2 && os.Args[1] == "--sync-local-consumers" {
+		bounded, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		return worker.SyncLocalConsumers(bounded)
+	}
 	handler, err := mysqlruntime.NewLocalAuthorHTTP(worker)
 	if err != nil {
 		return err

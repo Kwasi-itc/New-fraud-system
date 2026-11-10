@@ -12,6 +12,14 @@ import (
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	if len(os.Args) == 2 && os.Args[1] == "--grant-local-browser" {
+		if err := grantLocalBrowser(ctx); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Println("local decision browser read contract granted")
+		return
+	}
 	steps, err := metadata.DispatchStatements(localdev.Database, "local_decision_guard")
 	if err == nil {
 		var grants []string

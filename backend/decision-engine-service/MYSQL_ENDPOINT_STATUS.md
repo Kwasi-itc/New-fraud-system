@@ -127,7 +127,7 @@ A checked row means successful **live local** coverage. Delivery acceptance uses
 | GET /v1/tenants/{tenantId}/async-decision-executions/status-summary | [x] Asserted success | async-scheduled-execution-history-and-replay |
 | GET /v1/tenants/{tenantId}/async-decision-executions/{executionId} | [x] Asserted success | async-scheduled-execution-history-and-replay, worker-cancellation-redrive-and-process-restart, unrouted/fixture-and-new-direct-routes, delivery/callback-rejection-redrive-cancellation-and-restart |
 | POST /v1/tenants/{tenantId}/async-decision-executions/{executionId}/retry | [x] Asserted success | worker-cancellation-redrive-and-process-restart |
-| GET /v1/tenants/{tenantId}/platform/custom-lists | [x] Asserted success | custom-lists-csv-and-platform-records |
+| GET /v1/tenants/{tenantId}/platform/custom-lists | [x] Asserted success | custom-lists-csv-and-platform-records; [frontend list counts](../../frontend/evidence/mysql-integration/2026-11-10T13-20-22.737Z/report.json) |
 | POST /v1/tenants/{tenantId}/platform/custom-lists | [x] Asserted success | custom-lists-csv-and-platform-records, unrouted/screening-config-lifecycle-and-list-entry-alias |
 | GET /v1/tenants/{tenantId}/platform/custom-lists/{listId} | [x] Asserted success | custom-lists-csv-and-platform-records |
 | PUT /v1/tenants/{tenantId}/platform/custom-lists/{listId} | [x] Asserted success | custom-lists-csv-and-platform-records |

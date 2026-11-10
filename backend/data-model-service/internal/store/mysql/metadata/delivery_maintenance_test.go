@@ -75,6 +75,13 @@ func TestMySQLDeliveryMaintenance(t *testing.T) {
 			if err := q.Finish(ctx, *v, false, 0, "", nil); err != nil {
 				t.Fatal(err)
 			}
+			// Older completed history may have no retained reservation. Both
+			// forms must be cleaned without terminating the worker.
+			if i == 3 {
+				if _, err := db.ExecContext(ctx, "DELETE FROM data_model_index_delivery_reservations WHERE delivery_id=?", mysqlstore.UUID(v.ID)); err != nil {
+					t.Fatal(err)
+				}
+			}
 			_, err = db.ExecContext(ctx, "UPDATE data_model_index_deliveries SET retain_until=TIMESTAMPADD(SECOND,?,UTC_TIMESTAMP(6)) WHERE id=?", -100+i, mysqlstore.UUID(v.ID))
 		} else {
 			_, err = db.ExecContext(ctx, "UPDATE data_model_index_deliveries SET lease_until=TIMESTAMPADD(SECOND,?,UTC_TIMESTAMP(6)) WHERE id=?", -100+i, mysqlstore.UUID(v.ID))

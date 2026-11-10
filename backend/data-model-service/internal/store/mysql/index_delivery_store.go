@@ -398,7 +398,10 @@ func (s *IndexDeliveryStore) MaintainPage(ctx context.Context, limit int, cleanu
 			}
 			if cleanup {
 				if state == "completed" {
-					if err := s.release(ctx, tx, v); err != nil {
+					// Completed history may predate reservation retention. Cleanup
+					// holds the job and terminal row locks; an already absent
+					// reservation is safe, while SQL failures still abort deletion.
+					if _, err := tx.ExecContext(ctx, "DELETE FROM "+s.schema+".data_model_index_delivery_reservations WHERE tenant_id=? AND job_id=? AND delivery_id=?", mysqlstore.UUID(v.TenantID), mysqlstore.UUID(v.JobID), mysqlstore.UUID(v.ID)); err != nil {
 						return err
 					}
 				}

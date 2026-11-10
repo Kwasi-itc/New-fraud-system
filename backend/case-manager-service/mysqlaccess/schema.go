@@ -124,7 +124,7 @@ func DefinerGrants(database, definer string) ([]string, error) {
 	for _, table := range []string{"case_manager_inboxes", "case_manager_tags", "case_manager_inbox_users"} {
 		out = append(out, "GRANT SELECT,TRIGGER ON "+s+"."+table+" TO "+u+"@`localhost`")
 	}
-	for _, name := range []string{"identity_session_roles_v1", "case_manager_decision_inboxes_v1", "case_manager_decision_tags_v1", "case_manager_authorize_decision_inboxes_v1", "case_manager_authorize_decision_inbox_v1", "case_manager_authorize_decision_tags_v1"} {
+	for _, name := range []string{"identity_session_roles_v1", "case_manager_decision_inboxes_v1", "case_manager_decision_tags_v1", "case_manager_authorize_decision_inboxes_v1", "case_manager_authorize_decision_inbox_v1", "case_manager_authorize_decision_tags_v1", "case_manager_visible_decision_inboxes_v1"} {
 		out = append(out, "GRANT EXECUTE ON FUNCTION "+s+"."+name+" TO "+u+"@`localhost`")
 	}
 	return out, nil

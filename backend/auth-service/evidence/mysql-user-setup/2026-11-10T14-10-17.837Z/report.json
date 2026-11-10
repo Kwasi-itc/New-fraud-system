@@ -1,0 +1,32 @@
+{
+  "at": "2026-11-10T14:11:46.998Z",
+  "passed": true,
+  "suites": [
+    {
+      "name": "preview-resolves-portable-tenant-without-creating-user",
+      "passed": true
+    },
+    {
+      "name": "new-provider-user-and-audited-mysql-membership",
+      "passed": true
+    },
+    {
+      "name": "idempotent-replay-preserves-provider-password-and-identity",
+      "passed": true
+    },
+    {
+      "name": "existing-membership-permissions-cannot-be-overwritten",
+      "passed": true
+    },
+    {
+      "name": "first-login-requires-password-change-and-creates-real-session",
+      "passed": true
+    },
+    {
+      "name": "viewer-can-read-but-cannot-create-data-model-tables",
+      "passed": true
+    }
+  ],
+  "temporaryProviderUserRemoved": true,
+  "retainedSyntheticMySQLData": true
+}

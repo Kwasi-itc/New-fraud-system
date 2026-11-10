@@ -133,7 +133,7 @@ func reviewGrants(account string) []string {
 	for _, table := range []string{"identity_tenants", "identity_users", "identity_memberships", "identity_sessions", "case_manager_cases", "case_manager_inboxes", "case_manager_inbox_users", "case_manager_case_decisions", "case_manager_resource_reviews", "screening_decision_source_v1", "screening_screenings"} {
 		out = append(out, "GRANT SELECT ON fraud."+table+" TO "+account)
 	}
-	for _, name := range []string{"identity_session_roles_v1", "identity_authorize_decision_v1", "case_manager_decision_inboxes_v1", "case_manager_authorize_decision_inboxes_v1", "case_manager_authorize_decision_inbox_v1", "case_manager_authorize_decision_tags_v1"} {
+	for _, name := range []string{"identity_session_roles_v1", "identity_authorize_decision_v1", "case_manager_decision_inboxes_v1", "case_manager_authorize_decision_inboxes_v1", "case_manager_authorize_decision_inbox_v1", "case_manager_authorize_decision_tags_v1", "case_manager_visible_decision_inboxes_v1"} {
 		out = append(out, "GRANT EXECUTE ON FUNCTION fraud."+name+" TO "+account)
 	}
 	for _, table := range []string{"case_manager_cases", "case_manager_case_decisions", "case_manager_resource_reviews", "case_manager_case_events", "case_manager_outbox_events"} {

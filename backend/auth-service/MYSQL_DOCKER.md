@@ -44,6 +44,96 @@ part of an explicit frontend/consumer rollout. The backend acceptance runner
 captures a real browser callback to exercise the API directly; it does not certify
 the existing frontend cookie/proxy deployment or production SSO cutover.
 
+## Portable user and permission setup
+
+After setting up the MySQL backends and an active data-model tenant, run the
+versioned user setup script from the repository root. It uses the existing local
+Keycloak and the auth owner's audited provisioning command. Node.js 22 or later
+and Docker Compose are required. The script works from any working directory
+when its script and manifest paths are supplied correctly.
+
+```powershell
+New-Item -ItemType Directory -Force .local/mysql-dev | Out-Null
+Copy-Item backend/auth-service/scripts/mysql-users.example.json .local/mysql-dev/users.json
+```
+
+Edit the copy to select your tenant and desired usernames/roles. The example
+contains an administrator, analyst and builder; remove accounts you do not need.
+Tenant selectors accept exactly one of `name`, `external_key` or `id`. Selecting
+a unique name or external key avoids copying machine-specific tenant UUIDs.
+The tenant must already exist and be active; this script does not create tenants.
+
+Preview the resolved provider users and permissions:
+
+```powershell
+node backend/auth-service/scripts/setup-mysql-users.mjs --file .local/mysql-dev/users.json --create-missing
+```
+
+Apply that configuration:
+
+```powershell
+node backend/auth-service/scripts/setup-mysql-users.mjs --file .local/mysql-dev/users.json --create-missing --apply
+```
+
+Omit `--create-missing` when all accounts already exist in Keycloak. New accounts
+require `first_name`, `last_name` and `email`. Each receives a unique temporary
+password, saved only in an ignored `.local/mysql-dev/user-bootstrap/*.credentials.json`
+file. The console prints the filename, never the password. The user must change
+that password at first login. Existing accounts keep their current passwords.
+The manifest rejects password fields and unsupported or duplicate roles.
+
+The auth infrastructure setup can also apply the manifest as its last step:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File backend/auth-service/scripts/setup-mysql.ps1 -UsersFile .local/mysql-dev/users.json -CreateMissingUsers
+```
+
+For the frontend at port 3002, finish with its existing setup, which configures
+the exact Keycloak callback:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File frontend/scripts/setup-mysql.ps1
+```
+
+| Role | Application permission |
+| --- | --- |
+| `tenant_admin` | Manage tenant members and invitations |
+| `platform_viewer` | Read data models and detection information |
+| `platform_builder` | Author data models, scenarios, rules and lists |
+| `platform_publisher` | Publish or deactivate scenario versions |
+| `platform_admin` | Platform authoring and publishing administration |
+| `case_investigator` | Investigate cases within the user's permitted scope |
+| `case_manager_admin` | Case management administration |
+
+Roles are explicit rather than inferred from Keycloak claims. Case inbox and
+resource access rules still apply. Rerunning an identical membership is safe.
+Different roles, suspended memberships and disabled provider accounts require
+review through the existing administration flows; setup does not overwrite or
+reactivate them. Each membership is provisioned independently. If a later account
+fails, earlier successful memberships remain recorded. The private `last-run.json`
+records partial progress. Uncertain provider creation is not automatically
+retried; inspect its receipt before rerunning. Never reset an existing user's
+password to recover a failed membership setup.
+
+Only the scripts and credential-free example belong in Git. On another device,
+generate fresh `.local` secrets with the normal setup and run your reviewed user
+manifest. Do not copy or commit this machine's `.local` directory.
+
+Verification:
+
+- [x] Nine Node tests cover manifest validation, exact tenant/user selection,
+  preview behavior, disabled accounts, safe replay, failure handling and provider
+  token refresh after long provisioning operations.
+- [x] Six [live acceptance checks](evidence/mysql-user-setup/2026-11-10T14-10-17.837Z/report.json)
+  cover account creation, audited membership provisioning, replay without password
+  changes, rejection of role overwrites, mandatory first-login password change,
+  and read-only permission enforcement. The temporary provider user was removed;
+  synthetic MySQL audit and identity records were retained.
+
+```powershell
+node --test backend/auth-service/scripts/setup-mysql-users.test.mjs
+```
+
 ## Explicit operator provisioning
 
 Login requires an already provisioned membership. Obtain the real provider issuer

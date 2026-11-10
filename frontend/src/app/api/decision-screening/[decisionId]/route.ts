@@ -1,4 +1,5 @@
-import { platformSession, privateHeaders } from "@/lib/server/auth";
+import { platformSession, privateHeaders, rawSession } from "@/lib/server/auth";
+import { serviceSecret } from "@/lib/server/service-secret";
 
 export async function GET(_request: Request, context: { params: Promise<{ decisionId: string }> }) {
   const fail = (status: number, error: string) => Response.json({ error }, { status, headers: privateHeaders });
@@ -7,7 +8,7 @@ export async function GET(_request: Request, context: { params: Promise<{ decisi
     if (!identity) return fail(401, "Sign in required.");
     const { decisionId } = await context.params;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decisionId)) return fail(400, "Invalid decision.");
-    const base = process.env.DECISION_ENGINE_SERVICE_URL, token = process.env.SCREENING_AUTHORING_TOKEN;
+    const base = process.env.DECISION_ENGINE_SERVICE_URL, token = process.env.BACKEND_PROFILE === "mysql" ? await rawSession() : serviceSecret("SCREENING_AUTHORING_TOKEN");
     if (!base || !token || token.length < 32) return fail(503, "Screening access is unavailable.");
     const s = identity.session;
     const response = await fetch(`${base.replace(/\/$/, "")}/internal/screening-authoring/tenants/${encodeURIComponent(s.tenant_id)}/decisions/${decisionId}/screenings`, {

@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { StoredScreeningEvidence } from "@/components/screening/stored-evidence";
 import { caseKeys } from "@/lib/case-manager-query";
 import {
-  decisionEngineApi,
   type Rule,
   type RuleExecution,
   type RuleEvaluationNode,
@@ -244,37 +243,22 @@ function RuleExecutionItem({
   );
 }
 
-function DecisionRuleExecutions({ data, tenant }: { data: unknown; tenant: string }) {
+function DecisionRuleExecutions({ data }: { data: unknown }) {
   const ruleExecutions: RuleExecution[] = Array.isArray(data)
     ? (data as RuleExecution[])
     : Array.isArray((data as { rule_executions?: RuleExecution[] })?.rule_executions)
     ? (data as { rule_executions: RuleExecution[] }).rule_executions
     : [];
 
-  const decision = (data as {
-    decision?: {
-      scenario_id?: string;
-      scenario_iteration_id?: string;
-    };
-  })?.decision;
-
-  const scenarioId = decision?.scenario_id;
-  const iterationId = decision?.scenario_iteration_id;
-
-  const rulesQuery = useQuery({
-    queryKey: ["decision-engine", "rules", tenant, scenarioId, iterationId],
-    queryFn: () => decisionEngineApi.listRules(tenant, scenarioId!, iterationId!),
-    enabled: Boolean(tenant && scenarioId && iterationId),
-    staleTime: 300_000,
-  });
+  const rules = (data as { rules?: Rule[] })?.rules;
 
   const rulesById = useMemo(() => {
     const map = new Map<string, Rule>();
-    for (const rule of rulesQuery.data?.rules ?? []) {
+    for (const rule of rules ?? []) {
       map.set(rule.id, rule);
     }
     return map;
-  }, [rulesQuery.data?.rules]);
+  }, [rules]);
 
   if (ruleExecutions.length === 0) {
     return (
@@ -338,7 +322,7 @@ export function Evidence({
     staleTime: 0,
     gcTime: 0,
     queryFn: async () => {
-      const response = await fetch(`/api/case-evidence/${tenant}/${caseId}/${kind}/${resource}`, {
+      const response = await fetch(`/api/case-evidence/${tenant}/${caseId}/${kind}/${resource}${kind === "decisions" ? "?rules=1" : ""}`, {
         cache: "no-store",
       });
       const data = await response.json();
@@ -386,7 +370,7 @@ export function Evidence({
           )}
           {query.isSuccess && (
             kind === "decisions" ? (
-              <DecisionRuleExecutions data={query.data} tenant={tenant} />
+              <DecisionRuleExecutions data={query.data} />
             ) : (
               <StoredScreeningEvidence data={query.data} />
             )

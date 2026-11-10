@@ -6,6 +6,11 @@ The dedicated MySQL API/worker setup and Swagger documentation are described in
 and [MYSQL_WORKER_STATUS.md](MYSQL_WORKER_STATUS.md). The existing OIDC provider
 contract and PostgreSQL entrypoint below remain available separately.
 
+For another development device, use the [portable MySQL user setup](MYSQL_DOCKER.md#portable-user-and-permission-setup)
+with `scripts/mysql-users.example.json`. It resolves local provider identities and
+tenant IDs, provisions explicit roles, and can create missing Keycloak accounts
+with unique temporary passwords. Local credentials stay under ignored `.local/`.
+
 2026-10-09 invitation increment: tenant administrators can invite users and manage
 invitations, member access and audit at `/administration/users`. Auth schema v3,
 SMTP configuration and an approved provider account path are required. Invitations

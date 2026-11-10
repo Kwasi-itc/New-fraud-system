@@ -1,0 +1,10 @@
+import {readFileSync,writeFileSync,existsSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
+const root=fileURLToPath(new URL('../../',import.meta.url)),local=resolve(root,'.local/mysql-dev');
+const auth=JSON.parse(readFileSync(resolve(local,'auth-runtime/config.json'),'utf8'));
+if(auth.Provider.RedirectURL!=='http://localhost:3002/api/auth/callback')throw new Error('Auth provider redirect must target http://localhost:3002/api/auth/callback');
+for(const name of ['auth-proxy-token','ingestion-runtime-token','decision-runtime-token','screening-service-token','screening-operator-token'])if(!existsSync(resolve(local,name+'.txt')))throw new Error('Complete the backend MySQL setup first; missing '+name);
+const settings={BACKEND_PROFILE:'mysql',APP_ORIGIN:'http://localhost:3002',AUTH_SERVICE_URL:'http://auth-service:8087',DATA_MODEL_SERVICE_URL:'http://data-model-service:8080',INGESTION_SERVICE_URL:'http://ingestion-service:8081',DECISION_ENGINE_SERVICE_URL:'http://decision-engine-service:8082',SCREENING_SERVICE_URL:'http://screening-service:8085',CASE_MANAGER_SERVICE_URL:'http://case-manager-service:8086'};
+writeFileSync(resolve(local,'frontend.env'),Object.entries(settings).map(([name,value])=>name+'='+value).join('\n')+'\n',{mode:0o600});
+console.log('Prepared authenticated frontend URLs; runtime credentials stay in mounted secret files.');

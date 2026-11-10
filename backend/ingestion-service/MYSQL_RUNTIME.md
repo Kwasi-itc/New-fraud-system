@@ -86,7 +86,14 @@ tests and 13 PostgreSQL parity tests. Vet passed with no skipped tests or race
 warnings. Metrics-specific tests also verify authority, missing grants/lineage,
 bounded indexed history, redrive and snapshot consistency during completion.
 
-Upload-list HTTP cursors, multiple runtime
-tenant/table scopes, production identity/cutover and external event delivery are
+The authenticated [local frontend](../../frontend/MYSQL_INTEGRATION.md) now
+uses the explicit local profile across active published tenant/table owners.
+Requests and leased jobs resolve the actual resource owner and revalidate its
+publication in SQL. New physical tables receive bounded grants for existing
+local ingestion accounts; isolated runtimes retain their configured scope.
+The live frontend acceptance includes CSV worker completion in a new tenant.
+
+Upload-list HTTP cursors, general production multi-tenant deployment,
+production identity/cutover and external event delivery are
 remaining work. Passing these suites does not establish sustained production
 capacity or cover every failure mode of every operation.
