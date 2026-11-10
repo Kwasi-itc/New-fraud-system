@@ -7,6 +7,7 @@ import (
 	"fmt"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/store/mysql"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
 	"github.com/google/uuid"
 	"strings"
@@ -23,7 +24,7 @@ func (s *Service) Check(ctx context.Context, worker bool) error {
 	if err := s.DB.QueryRowContext(ctx, "SELECT VERSION(),CURRENT_USER(),CURRENT_ROLE()").Scan(&version, &login, &role); err != nil {
 		return err
 	}
-	if version != "8.4.8" || role != "NONE" {
+	if !ec2test.VersionSupported(version) || role != "NONE" {
 		return errors.New("pinned server and explicit direct grants required")
 	}
 	latest := map[string]string{}

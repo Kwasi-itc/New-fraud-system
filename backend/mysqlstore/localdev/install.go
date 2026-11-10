@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
 	"github.com/go-sql-driver/mysql"
 )
@@ -38,6 +39,9 @@ func socketDB(ctx context.Context, socket, password string) (*sql.DB, error) {
 	c.ParseTime, c.Loc = true, time.UTC
 	c.Timeout, c.ReadTimeout, c.WriteTimeout = 5*time.Second, 30*time.Second, 30*time.Second
 	c.Params = map[string]string{"time_zone": "'+00:00'", "transaction_isolation": "'READ-COMMITTED'", "sql_mode": "'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY'"}
+	if err := ec2test.Driver(c, socket == "/reference-socket/mysqld.sock"); err != nil {
+		return nil, err
+	}
 	connector, err := mysql.NewConnector(c)
 	if err != nil {
 		return nil, err
@@ -109,8 +113,8 @@ func Install(ctx context.Context, installation Installation) error {
 	if err := target.QueryRowContext(ctx, "SELECT @@server_uuid,VERSION()").Scan(&targetID, &version); err != nil {
 		return err
 	}
-	if version != "8.4.8" {
-		return errors.New("pinned MySQL 8.4.8 required")
+	if !ec2test.VersionSupported(version) {
+		return errors.New("unsupported MySQL target version for the selected profile")
 	}
 	if err := reference.QueryRowContext(ctx, "SELECT @@server_uuid,VERSION()").Scan(&referenceID, &version); err != nil {
 		return err

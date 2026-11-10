@@ -7,6 +7,7 @@ import (
 	"fmt"
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	caseclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/case"
 	ingestion "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion"
 	api "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi"
@@ -67,7 +68,7 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	db, e := mysqlstore.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_screening_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
+	db, e := ec2test.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_screening_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
 	if e != nil {
 		return e
 	}

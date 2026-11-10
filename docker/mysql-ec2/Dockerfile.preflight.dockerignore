@@ -1,0 +1,9 @@
+**
+!backend/
+!backend/mysqlstore/
+!backend/mysqlstore/**
+**/.env*
+**/evidence/
+**/testdata/
+**/*.pem
+**/*.key

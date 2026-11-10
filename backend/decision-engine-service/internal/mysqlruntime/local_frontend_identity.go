@@ -6,6 +6,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/mysql"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/google/uuid"
 	"net/http"
@@ -20,6 +21,9 @@ type presentedLocalCredential struct{}
 // wrapper. Missing credentials retain the existing local operator behavior;
 // presented sessions must reach the real verifier, including invalid sessions.
 func localFrontendHandler(next http.Handler, enabled, origin, token string) (http.Handler, error) {
+	if ec2test.Enabled() {
+		return ec2test.RequirePresented(next, origin)
+	}
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if value, ok := r.Context().Value(presentedLocalCredential{}).(string); ok {
 			r.Header.Set("Authorization", value)

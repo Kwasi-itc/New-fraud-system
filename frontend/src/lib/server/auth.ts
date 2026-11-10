@@ -2,10 +2,11 @@ import "server-only";
 import { cookies } from "next/headers";
 import { localMySQLSession } from "./local-mysql-session";
 import { serviceSecret } from "./service-secret";
+import { httpTest } from "../../../scripts/http-test.mjs";
 export type PlatformSession = { id: string; user_id: string; tenant_id: string; name: string; roles: string[]; version: number; expires_at: string };
-export const sessionCookie = () => process.env.CASE_SESSION_COOKIE ?? "__Host-fraud_session";
-export const loginCookie = "__Host-fraud_login";
-export const cookieOptions = { httpOnly: true, secure: true, sameSite: "lax" as const, path: "/" };
+export const sessionCookie = () => process.env.CASE_SESSION_COOKIE ?? (httpTest() ? "fraud_ec2_test_session" : "__Host-fraud_session");
+export const loginCookie = httpTest() ? "fraud_ec2_test_login" : "__Host-fraud_login";
+export const cookieOptions = { httpOnly: true, secure: !httpTest(), sameSite: "lax" as const, path: "/" };
 export const privateHeaders = { "Cache-Control": "private, no-store" };
 export async function authCall(path: string, body: unknown) {
   const base = process.env.AUTH_SERVICE_URL, token = serviceSecret("AUTH_PROXY_TOKEN");

@@ -17,6 +17,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/worker"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/google/uuid"
 )
 
@@ -205,7 +206,11 @@ func (p *LocalCreation) executeDelivery(ctx context.Context, queue *store.IndexD
 		if err != nil {
 			return err
 		}
-		installer := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lcn_" + strings.ReplaceAll(table.String(), "-", "")[:24], Host: "localhost"}, Table: work.Physical.Name, NativeChanges: true}
+		installerHost, err := ec2test.InstallerHost()
+		if err != nil {
+			return err
+		}
+		installer := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lcn_" + strings.ReplaceAll(table.String(), "-", "")[:24], Host: installerHost}, Table: work.Physical.Name, NativeChanges: true}
 		manager, err = manager.WithCreationReadiness(ready, installer)
 		if err != nil {
 			return err

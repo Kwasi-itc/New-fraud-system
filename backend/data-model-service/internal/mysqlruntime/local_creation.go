@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"os"
 	"strings"
 	"time"
@@ -44,6 +45,9 @@ func OpenLocalSocket(ctx context.Context, path, user, password string) (*sql.DB,
 	cfg.ReadTimeout = 30 * time.Second
 	cfg.WriteTimeout = 30 * time.Second
 	cfg.Params = map[string]string{"time_zone": "'+00:00'"}
+	if err := ec2test.Driver(cfg, path == "/reference-socket/mysqld.sock"); err != nil {
+		return nil, err
+	}
 	connector, err := driver.NewConnector(cfg)
 	if err != nil {
 		return nil, err
@@ -243,7 +247,11 @@ func (p *LocalCreation) Create(ctx context.Context, input service.CreateTableInp
 	if _, err := allocation.BindPlan(ctx, ports.TableCreationRequest{TenantID: input.TenantID, OperationID: op, ActorID: actor, RequestHash: hash}, plan); err != nil {
 		return zero, err
 	}
-	install := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lci_" + suffix, Host: "localhost"}, Table: physical.Name}
+	installerHost, err := ec2test.InstallerHost()
+	if err != nil {
+		return zero, err
+	}
+	install := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lci_" + suffix, Host: installerHost}, Table: physical.Name}
 	installer, _ := install.Principal.SQLAccount()
 	passwordHash := sha256.Sum256([]byte(p.Secret + install.Principal.User))
 	password := hex.EncodeToString(passwordHash[:])

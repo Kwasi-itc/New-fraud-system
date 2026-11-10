@@ -1,8 +1,11 @@
 import {readFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
-if(process.env.BACKEND_PROFILE!=='mysql'||process.env.APP_ORIGIN!=='http://localhost:3002'||process.env.LOCAL_MYSQL_NO_AUTH)throw new Error('Authenticated local MySQL frontend configuration required');
+import {httpTest} from './http-test.mjs';
+const remote=httpTest();
+if(process.env.BACKEND_PROFILE!=='mysql'||(!remote&&process.env.APP_ORIGIN!=='http://localhost:3002')||process.env.LOCAL_MYSQL_NO_AUTH)throw new Error('Authenticated MySQL frontend configuration required');
 for(const name of ['NEXT_PUBLIC_INGESTION_SERVICE_TOKEN','NEXT_PUBLIC_DECISION_ENGINE_SERVICE_TOKEN'])if(process.env[name])throw new Error('Browser-visible service credentials are not supported');
 const secrets={AUTH_PROXY_TOKEN:'frontend_auth_proxy',INGESTION_AUTH_TOKEN:'frontend_ingestion',DECISION_ENGINE_AUTH_TOKEN:'frontend_decision',SCREENING_AUTH_TOKEN:'frontend_screening',SCREENING_OPERATOR_TOKEN:'frontend_screening_operator'};
+if(remote)secrets.DATA_MODEL_AUTH_TOKEN='frontend_data_model';
 for(const [name,file]of Object.entries(secrets)){
  const value=readFileSync('/run/secrets/'+file,'utf8').trim();
  if(!/^[a-f0-9]{64}$/.test(value))throw new Error('Invalid mounted service credential');

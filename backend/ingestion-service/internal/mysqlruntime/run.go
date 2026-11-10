@@ -3,6 +3,7 @@ package mysqlruntime
 import (
 	"context"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"log/slog"
 	"net"
 	"net/http"
@@ -40,7 +41,7 @@ func Open(ctx context.Context, c Config, worker bool) (*Service, error) {
 	if lockWait < time.Second {
 		lockWait = time.Second
 	}
-	db, err := mysqlstore.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: c.User, Password: password, AllowInsecureTransport: true, LockWaitTimeout: lockWait, MaxOpen: c.Pool, MaxIdle: c.Pool, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute})
+	db, err := ec2test.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: c.User, Password: password, AllowInsecureTransport: true, LockWaitTimeout: lockWait, MaxOpen: c.Pool, MaxIdle: c.Pool, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute})
 	if err != nil {
 		return nil, err
 	}
