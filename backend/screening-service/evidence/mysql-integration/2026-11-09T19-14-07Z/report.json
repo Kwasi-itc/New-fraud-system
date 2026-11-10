@@ -1,0 +1,118 @@
+{
+  "scope": "Native screening lifecycle/workers, independent MySQL target/reference fixtures and PostgreSQL source characterization. Default provider uses a labelled synthetic catalog.",
+  "evidence": "evidence/mysql-integration/2026-11-09T19-14-07Z",
+  "environment": "go version go1.25.8 linux/amd64",
+  "testsExit": 1,
+  "vetExit": 0,
+  "expectedTopLevelTests": 105,
+  "topLevelPassed": 103,
+  "testAndSubtestPasses": 189,
+  "missingTests": [],
+  "failed": [
+    {
+      "Time": "2026-11-09T19:29:09.803741537Z",
+      "Action": "fail",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestExecutionProjectionRecoveryOrderingAndFences",
+      "Elapsed": 21.01
+    },
+    {
+      "Time": "2026-11-09T19:29:30.415707765Z",
+      "Action": "fail",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestInvestigatorOwnerHTTPJourneys/core",
+      "Elapsed": 20.06
+    },
+    {
+      "Time": "2026-11-09T19:29:31.25041284Z",
+      "Action": "fail",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestInvestigatorOwnerHTTPJourneys",
+      "Elapsed": 21.45
+    }
+  ],
+  "skipped": [
+    {
+      "Time": "2026-11-09T19:29:35.12917416Z",
+      "Action": "skip",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestSavedScenarioScreeningQueuesAuthorizedExecution/local_worker_provider_and_case_delivery",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-11-09T19:29:35.319229191Z",
+      "Action": "skip",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestSavedScenarioScreeningQueuesAuthorizedExecution/address_direct_worker_journey",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-11-09T19:29:35.324911012Z",
+      "Action": "skip",
+      "Package": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres",
+      "Test": "TestSavedScenarioScreeningQueuesAuthorizedExecution/address_worker_configuration_drift",
+      "Elapsed": 0
+    }
+  ],
+  "packageFailures": [
+    "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+  ],
+  "raceWarnings": 0,
+  "positiveHTTPRoutes": [
+    "DELETE /v1/tenants/:tenantId/continuous-screening-configs/:configId",
+    "DELETE /v1/tenants/:tenantId/monitored-objects/:monitoredObjectId",
+    "DELETE /v1/tenants/:tenantId/screening-whitelist",
+    "GET /docs",
+    "GET /healthz",
+    "GET /internal/screening-capabilities",
+    "GET /local/evidence/:capability",
+    "GET /metrics",
+    "GET /openapi.json",
+    "GET /openapi.yaml",
+    "GET /readyz",
+    "GET /redoc",
+    "GET /v1/investigator/tenants/:tenantId/cases/:caseId/exclusions",
+    "GET /v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "GET /v1/manual-screenings",
+    "GET /v1/manual-screenings/:id",
+    "GET /v1/screening-provider/catalog",
+    "GET /v1/screening-provider/freshness",
+    "GET /v1/service-info",
+    "GET /v1/tenants/:tenantId/continuous-screening-configs",
+    "GET /v1/tenants/:tenantId/continuous-screening-configs/:configId",
+    "GET /v1/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects",
+    "GET /v1/tenants/:tenantId/dataset-update-jobs",
+    "GET /v1/tenants/:tenantId/dataset-update-jobs/:jobId",
+    "GET /v1/tenants/:tenantId/decisions/:decisionId/screenings",
+    "GET /v1/tenants/:tenantId/monitored-objects/:monitoredObjectId",
+    "GET /v1/tenants/:tenantId/screening-whitelist",
+    "GET /v1/tenants/:tenantId/screenings/:screeningId",
+    "GET /v1/tenants/:tenantId/screenings/:screeningId/files",
+    "GET /v1/tenants/:tenantId/screenings/:screeningId/files/:fileId",
+    "GET /v1/tenants/:tenantId/screenings/:screeningId/files/:fileId/download",
+    "POST /internal/v1/tenants/:tenantId/decision-screenings",
+    "POST /v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "POST /v1/manual-screenings",
+    "POST /v1/tenants/:tenantId/continuous-screening-configs",
+    "POST /v1/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects",
+    "POST /v1/tenants/:tenantId/dataset-update-jobs",
+    "POST /v1/tenants/:tenantId/dataset-update-jobs/:jobId/retry",
+    "POST /v1/tenants/:tenantId/monitored-objects/:monitoredObjectId/requeue",
+    "POST /v1/tenants/:tenantId/screening-matches/:matchId/comments",
+    "POST /v1/tenants/:tenantId/screening-matches/:matchId/enrich",
+    "POST /v1/tenants/:tenantId/screening-matches/:matchId/review",
+    "POST /v1/tenants/:tenantId/screening-whitelist",
+    "POST /v1/tenants/:tenantId/screenings",
+    "POST /v1/tenants/:tenantId/screenings/:screeningId/file-uploads",
+    "POST /v1/tenants/:tenantId/screenings/:screeningId/files",
+    "POST /v1/tenants/:tenantId/screenings/:screeningId/retry",
+    "POST /v1/tenants/:tenantId/screenings/freeform-search",
+    "PUT /local/evidence/:capability",
+    "PUT /v1/tenants/:tenantId/continuous-screening-configs/:configId"
+  ],
+  "protectedOperations": 41,
+  "mountedOperations": 50,
+  "productionDataTransfer": false,
+  "realSanctionsProviderAcceptance": false,
+  "passed": false
+}

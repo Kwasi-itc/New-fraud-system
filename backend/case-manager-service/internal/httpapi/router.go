@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -19,6 +20,7 @@ type RouterConfig struct {
 	EnableWorkflowReceipts bool
 	UserVerifier           *access.Verifier
 	ServiceTenantIDs       []uuid.UUID
+	ServiceTenantAllowed   func(context.Context, uuid.UUID) (bool, error)
 	RequestTimeout         time.Duration
 	AuthMode               string
 	AuthToken              string
@@ -40,6 +42,12 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
+	health := handlers.NewHealthHandler(logger, db)
+	svc := service.NewCaseService(uuidGenerator{}, systemClock{}, storepostgres.NewRepositories(db), storepostgres.NewUnitOfWork(db))
+	return newRouter(logger, cfg, svc, userMiddleware(cfg.UserVerifier, db), health.Healthz, health.Readyz)
+}
+
+func newRouter(logger *slog.Logger, cfg RouterConfig, caseService service.CaseService, userAuth, healthz, readyz gin.HandlerFunc) *gin.Engine {
 	router := gin.New()
 	router.Use(requestContextMiddleware(logger))
 	router.Use(recoverRequest())
@@ -48,18 +56,15 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	}
 	router.Use(requestDeadline(cfg.RequestTimeout))
 
-	healthHandler := handlers.NewHealthHandler(logger, db)
-	router.GET("/healthz", healthHandler.Healthz)
-	router.GET("/readyz", healthHandler.Readyz)
-
-	caseService := service.NewCaseService(uuidGenerator{}, systemClock{}, storepostgres.NewRepositories(db), storepostgres.NewUnitOfWork(db))
+	router.GET("/healthz", healthz)
+	router.GET("/readyz", readyz)
 	caseHandler := handlers.NewCaseHandler(caseService)
 	tagHandler := handlers.NewTagHandler(caseService)
 	inboxHandler := handlers.NewInboxHandler(caseService)
 	integrationHandler := handlers.NewIntegrationHandler(caseService)
 
 	v1 := router.Group("/v1")
-	v1.Use(userMiddleware(cfg.UserVerifier, db))
+	v1.Use(userAuth)
 	v1.GET("/service-info", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                "case-manager-service",
@@ -122,13 +127,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.PATCH("/tenants/:tenantId/tags/:tagId", tagHandler.Update)
 	v1.DELETE("/tenants/:tenantId/tags/:tagId", tagHandler.Archive)
 	callbacks := router.Group("/v1/screening-events")
-	callbacks.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
+	callbacks.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs, TenantAllowed: cfg.ServiceTenantAllowed}))
 	callbacks.POST("/reviewed", integrationHandler.ScreeningReviewed)
 	callbacks.POST("/requires-review", integrationHandler.ScreeningRequiresReview)
 	callbacks.POST("/evidence-uploaded", integrationHandler.ScreeningEvidenceUploaded)
 
 	internal := router.Group("/internal")
-	internal.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
+	internal.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs, TenantAllowed: cfg.ServiceTenantAllowed}))
 	internal.GET("/v1/tenants/:tenantId/inboxes/:inboxId", inboxHandler.Get)
 	internal.POST("/v1/workflow-actions", integrationHandler.WorkflowAction)
 	if cfg.EnableWorkflowReceipts {

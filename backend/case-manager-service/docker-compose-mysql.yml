@@ -1,0 +1,68 @@
+name: fraud-mysql-dev
+include:
+  - ../../compose.mysql-dev.yaml
+services:
+  migrate-case:
+    image: fraud-case-mysql:local
+    build:
+      context: ..
+      dockerfile: case-manager-service/Dockerfile.mysql
+    user: "0:0"
+    command: [/app/install-case]
+    environment: {LOCAL_MYSQL_NO_AUTH: "1", CASE_LOCAL_MYSQL: "1", APP_ORIGIN: "http://localhost:8086"}
+    secrets: [mysql_root_password, case_api_password, case_worker_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+      - ../../.local/mysql-dev/case-runtime:/runtime:ro
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql: {condition: service_healthy}
+      mysql-reference: {condition: service_healthy}
+  case-manager-service:
+    image: fraud-case-mysql:local
+    environment: {CASE_LOCAL_MYSQL: "1", USER_REQUIRE_SESSION: "true", GIN_MODE: release}
+    secrets: [case_api_password, case_service_token]
+    volumes: [../../.local/mysql-dev/case-runtime:/runtime:ro]
+    ports: ["127.0.0.1:8086:8086"]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 1
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-case: {condition: service_completed_successfully}
+  case-manager-worker:
+    image: fraud-case-mysql:local
+    command: [/app/mysql-api, --worker]
+    environment: {CASE_LOCAL_MYSQL: "1"}
+    secrets: [case_worker_password, case_publisher_token]
+    volumes: [../../.local/mysql-dev/case-runtime:/runtime:ro]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-case: {condition: service_completed_successfully}
+secrets:
+  case_api_password: {file: ../../.local/mysql-dev/case-api-password.txt}
+  case_worker_password: {file: ../../.local/mysql-dev/case-worker-password.txt}
+  case_service_token: {file: ../../.local/mysql-dev/case-service-token.txt}
+  case_publisher_token: {file: ../../.local/mysql-dev/case-publisher-token.txt}

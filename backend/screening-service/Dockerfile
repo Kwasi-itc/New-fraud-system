@@ -1,8 +1,13 @@
-FROM golang:1.24.2 AS builder
+FROM golang:1.25.8 AS builder
 
 WORKDIR /app/screening-service
 COPY screening-service/go.mod screening-service/go.sum ./
 COPY investigator ../investigator
+COPY mysqlstore ../mysqlstore
+COPY auth-service ../auth-service
+COPY case-manager-service ../case-manager-service
+COPY data-model-service ../data-model-service
+COPY decision-engine-service ../decision-engine-service
 RUN go mod download
 
 COPY screening-service/ .

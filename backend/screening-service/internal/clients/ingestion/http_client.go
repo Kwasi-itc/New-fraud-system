@@ -15,7 +15,10 @@ import (
 type HTTPClient struct {
 	baseURL string
 	client  *http.Client
+	token string
 }
+
+func NewAuthenticatedHTTPClient(baseURL,token string,timeout time.Duration)HTTPClient{c:=NewHTTPClient(baseURL,timeout);c.token=token;return c}
 
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
@@ -35,6 +38,7 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("could not create ingestion record request")
 	}
+	if c.token!="" { req.Header.Set("Authorization","Bearer "+c.token) }
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("ingestion record request failed")

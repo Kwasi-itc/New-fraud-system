@@ -167,10 +167,12 @@ type CaseEventRepository interface {
 }
 
 type CaseEvent struct {
-	ID       string
-	Kind     string
-	Payload  json.RawMessage
-	Attempts int
+	TenantID   string
+	LeaseToken string
+	ID         string
+	Kind       string
+	Payload    json.RawMessage
+	Attempts   int
 }
 type CaseDeliveryRepository interface {
 	Claim(context.Context) (*CaseEvent, error)

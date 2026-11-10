@@ -1,12 +1,12 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
-	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"io"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -14,14 +14,18 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuthConfig struct {
-	Mode      string
-	Token     string
-	TenantIDs []uuid.UUID
+	Mode          string
+	Token         string
+	TenantIDs     []uuid.UUID
+	TenantAllowed func(context.Context, uuid.UUID) (bool, error)
 }
 
 func requestContextMiddleware(logger *slog.Logger) gin.HandlerFunc {
@@ -73,11 +77,46 @@ func recoverRequest() gin.HandlerFunc {
 
 func authMiddleware(cfg AuthConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if cfg.Mode != "token" || cfg.Token == "" || len(cfg.TenantIDs) == 0 || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+cfg.Token)) != 1 {
+		if cfg.Mode != "token" || cfg.Token == "" || (len(cfg.TenantIDs) == 0 && cfg.TenantAllowed == nil) || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+cfg.Token)) != 1 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		c.Request = c.Request.WithContext(access.WithPrincipal(c.Request.Context(), access.Principal{Kind: access.Service, Subject: "case-integration", ServiceTenants: cfg.TenantIDs}))
+		tenants := cfg.TenantIDs
+		if cfg.TenantAllowed != nil {
+			var tenant uuid.UUID
+			if raw := c.Param("tenantId"); raw != "" {
+				tenant, _ = uuid.Parse(raw)
+			} else if !strings.Contains(c.FullPath(), "/ai-case-reviews/") && !strings.HasSuffix(c.FullPath(), "/auto-assignment/run") {
+				const bodyLimit = (1 << 20) + 4096 // Same envelope bound as workflow receipt handlers.
+				body, e := io.ReadAll(io.LimitReader(c.Request.Body, bodyLimit+1))
+				if e != nil || len(body) > bodyLimit {
+					c.AbortWithStatusJSON(400, gin.H{"error": "invalid integration payload"})
+					return
+				}
+				c.Request.Body = io.NopCloser(bytes.NewReader(body))
+				var envelope struct {
+					TenantID uuid.UUID `json:"tenant_id"`
+				}
+				if json.Unmarshal(body, &envelope) != nil {
+					c.AbortWithStatusJSON(400, gin.H{"error": "invalid integration payload"})
+					return
+				}
+				tenant = envelope.TenantID
+			}
+			if tenant != uuid.Nil {
+				ok, e := cfg.TenantAllowed(c.Request.Context(), tenant)
+				if e != nil {
+					c.AbortWithStatusJSON(503, gin.H{"error": "tenant registry unavailable"})
+					return
+				}
+				if !ok {
+					c.AbortWithStatusJSON(403, gin.H{"error": "forbidden"})
+					return
+				}
+				tenants = []uuid.UUID{tenant}
+			}
+		}
+		c.Request = c.Request.WithContext(access.WithPrincipal(c.Request.Context(), access.Principal{Kind: access.Service, Subject: "case-integration", ServiceTenants: tenants}))
 		c.Next()
 	}
 }

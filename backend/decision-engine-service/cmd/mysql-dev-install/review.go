@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/sessioncredential"
-	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlreview"
+	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlcase"
 	R "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlruntime"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlschema"
+	screeningLifecycle "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlscreening"
 	"github.com/google/uuid"
+	"os"
 )
 
 // Prerequisites retain their own migration histories and locked definers. They
@@ -23,9 +27,44 @@ func installReviewOwners(ctx context.Context) error {
 		grants        func(string, string) ([]string, error)
 	}{
 		{"identity", "local_identity_guard", mysqlidentity.Statements, mysqlidentity.DefinerGrants},
-		{"case_manager", "local_case_guard", mysqlreview.Statements, mysqlreview.DefinerGrants},
 		{"screening", "local_screening_guard", mysqlschema.Statements, mysqlschema.DefinerGrants},
+		{"case_manager", "local_case_guard", mysqlcase.Statements, mysqlcase.DefinerGrants},
 	} {
+		if owner.name == "screening" {
+			// A later screening lifecycle deployment retains the publication
+			// prefix. Never attempt to downgrade its artifact on decision setup.
+			b, e := os.ReadFile("/plans/screening.json")
+			if e == nil {
+				var p migrations.Plan
+				if e = json.Unmarshal(b, &p); e != nil {
+					return e
+				}
+				if e = p.Validate(); e != nil {
+					return e
+				}
+				base, e := mysqlschema.Statements("fraud", owner.definer)
+				if e != nil {
+					return e
+				}
+				if len(p.Steps) > len(base) {
+					full, e := screeningLifecycle.Statements("fraud", owner.definer)
+					if e != nil {
+						return e
+					}
+					if p.Owner != "screening" || p.Database != "fraud" || len(p.Steps) > len(full) {
+						return errors.New("unexpected screening lifecycle artifact")
+					}
+					for i, s := range p.Steps {
+						if s.ID != full[i].ID || s.SQL != full[i].SQL || s.Kind != full[i].Kind || s.Name != full[i].Name {
+							return migrations.ErrLineage
+						}
+					}
+					continue
+				}
+			} else if !os.IsNotExist(e) {
+				return e
+			}
+		}
 		steps, err := owner.steps("fraud", owner.definer)
 		if err != nil {
 			return err
@@ -37,6 +76,19 @@ func installReviewOwners(ctx context.Context) error {
 		if err := localdev.Install(ctx, localdev.Installation{Owner: owner.name, Steps: steps, Accounts: []string{owner.definer}, Grants: grants, Upgrade: extendLocalOwnerPlan(steps)}); err != nil {
 			return err
 		}
+	}
+	// The lifecycle needs case inboxes; the case owner itself needs the earlier
+	// screening publication prefix. Keep that bootstrap order explicit.
+	steps, e := screeningLifecycle.Statements("fraud", "local_screening_guard")
+	if e != nil {
+		return e
+	}
+	grants, e := screeningLifecycle.DefinerGrants("fraud", "local_screening_guard")
+	if e != nil {
+		return e
+	}
+	if e = localdev.Install(ctx, localdev.Installation{Owner: "screening", Steps: steps, Accounts: []string{"local_screening_guard"}, Grants: grants, Upgrade: extendLocalOwnerPlan(steps)}); e != nil {
+		return e
 	}
 	return nil
 }

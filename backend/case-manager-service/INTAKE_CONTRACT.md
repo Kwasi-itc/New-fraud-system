@@ -1,6 +1,30 @@
 # Case intake contract (v1)
 
-All APIs share one PostgreSQL database. Decision, screening, and case tables retain their service owners. Case intake never trusts caller-supplied actor headers or modifies another service's records.
+The legacy APIs share one PostgreSQL database; the MySQL development profile
+shares the `fraud` database. Decision, screening, and case tables retain their
+service owners. Case intake never trusts caller-supplied actor headers or modifies
+another service's records.
+
+## MySQL screening evidence delivery
+
+The native MySQL `POST /v1/screening-events/evidence-uploaded` callback is
+implemented. It requires the case integration bearer credential and an active
+registered tenant. Its payload contains `event_id`, `tenant_id`, `screening_id`,
+`file_id`, and optional `uploaded_by`; `event_id` must equal the source file UUID.
+The screening owner must have published the matching immutable `evidence-uploaded`
+outbox event. Supplied identities/uploader must match its actual file and event.
+
+Case intake finds the existing canonical screening case or related decision case,
+imports authoritative file metadata, verifies owner bytes/SHA-256, and commits the
+file, audit/outbox and `screening.evidence` receipt in one transaction. Success is
+`204`; identical retries are idempotent. Concurrent callbacks and manual imports
+share the case lock and reuse the same imported file. No case link, incomplete
+upload or invalid owner publication leaves delivery visibly retryable rather
+than acknowledging incomplete evidence. Conflicting receipt payloads return `409`.
+
+The PostgreSQL evidence callback retains its existing `501` below. See
+[MySQL setup/status](MYSQL_DOCKER.md) for verified native behavior and remaining
+release acceptance.
 
 ## Workflow actions
 

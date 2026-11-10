@@ -125,6 +125,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	registerInvestigator(router, db, cfg.InvestigatorVerifier, screeningService)
 	registerManualSearch(router, db, cfg.InvestigatorVerifier, screeningService, manualQueueReady, providerClient.ManualCapabilities())
+	return mountScreeningRoutes(router, cfg, screeningService, providerClient.ManualCapabilities())
+}
+
+// Both database runtimes mount the same owner and integration handlers.
+func mountScreeningRoutes(router *gin.Engine, cfg RouterConfig, screeningService service.ScreeningService, providerCapability provider.ManualCapabilities) *gin.Engine {
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
 	whitelistHandler := handlers.NewWhitelistHandler(screeningService)
 	continuousHandler := handlers.NewContinuousHandler(screeningService)
@@ -191,7 +196,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.Use(screeningServiceBoundary(cfg.ScreeningIntakeToken, cfg.AuthToken, cfg.ScreeningOperatorToken, cfg.ScreeningCallbackToken))
 	internal.POST("/v1/tenants/:tenantId/decision-screenings", internalDecisionHandler.Create)
 	internal.GET("/screening-capabilities", func(c *gin.Context) {
-		capability := providerClient.ManualCapabilities()
+		capability := providerCapability
 		supported := capability.Configured && capability.Adapter == "opensanctions_match"
 		c.JSON(200, gin.H{"matching_settings_supported": supported, "address_supported": supported, "birth_date_supported": supported, "nationality_supported": supported, "country_supported": supported, "registration_number_supported": supported})
 	})

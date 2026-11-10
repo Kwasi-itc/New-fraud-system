@@ -1,0 +1,57 @@
+# Disposable test databases only. No application volumes or published ports.
+services:
+  mysql:
+    image: mysql:8.4.8
+    command: [--log-bin-trust-function-creators=ON]
+    environment: {MYSQL_ROOT_PASSWORD: isolated-screening-test-root, MYSQL_ROOT_HOST: "%"}
+    tmpfs: [/var/lib/mysql]
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: [CMD-SHELL, "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  mysql-reference:
+    image: mysql:8.4.8
+    command: [--log-bin-trust-function-creators=ON]
+    environment: {MYSQL_ROOT_PASSWORD: isolated-screening-test-root, MYSQL_ROOT_HOST: "%"}
+    tmpfs: [/var/lib/mysql]
+    mem_limit: 1g
+    healthcheck:
+      test: [CMD-SHELL, "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  postgres:
+    image: postgres:16
+    environment: {POSTGRES_DB: screening_test, POSTGRES_USER: screening_test, POSTGRES_PASSWORD: isolated-screening-parity}
+    tmpfs: [/var/lib/postgresql/data]
+    mem_limit: 512m
+    healthcheck:
+      test: [CMD, pg_isready, -U, screening_test, -d, screening_test]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  test:
+    image: golang:1.25.8
+    working_dir: /backend/screening-service
+    volumes:
+      - ..:/backend
+      - screen_go_mod:/go/pkg/mod
+      - screen_go_build:/root/.cache/go-build
+    environment:
+      SCREENING_MYSQL_TEST_ADDRESS: mysql:3306
+      SCREENING_MYSQL_REFERENCE_ADDRESS: mysql-reference:3306
+      SCREENING_REQUIRE_MYSQL_TEST: "1"
+      SCREENING_TEST_REPORT_DIR: /backend/screening-service/evidence
+      SCREENING_TEST_DATABASE_URL: postgres://screening_test:isolated-screening-parity@postgres:5432/screening_test?sslmode=disable
+      GOMAXPROCS: "2"
+    depends_on:
+      mysql: {condition: service_healthy}
+      mysql-reference: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    command: [sh, scripts/test-mysql.sh]
+volumes:
+  screen_go_mod:
+  screen_go_build:

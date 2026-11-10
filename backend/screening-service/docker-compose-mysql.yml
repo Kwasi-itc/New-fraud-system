@@ -1,0 +1,69 @@
+name: fraud-mysql-dev
+include:
+  - ../../compose.mysql-dev.yaml
+services:
+  migrate-screening:
+    image: fraud-screening-mysql:local
+    build: {context: .., dockerfile: screening-service/Dockerfile.mysql}
+    user: "0:0"
+    command: [/app/install-screening]
+    environment: {LOCAL_MYSQL_NO_AUTH: "1", APP_ORIGIN: "http://localhost:8085", SCREENING_LOCAL_MYSQL: "1"}
+    secrets: [mysql_root_password, screening_api_password, screening_worker_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - mysql_dev_reference_socket:/reference-socket
+      - ../../.local/mysql-dev/plans:/plans
+      - ../../.local/mysql-dev/screening-runtime:/runtime:ro
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql: {condition: service_healthy}
+      mysql-reference: {condition: service_healthy}
+  screening-service:
+    image: fraud-screening-mysql:local
+    environment: {SCREENING_LOCAL_MYSQL: "1", USER_REQUIRE_SESSION: "true", GIN_MODE: release}
+    secrets: [screening_api_password, screening_service_token, screening_operator_token, screening_intake_token]
+    volumes: [../../.local/mysql-dev/screening-runtime:/runtime:ro]
+    ports: ["127.0.0.1:8085:8085"]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 1
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-screening: {condition: service_completed_successfully}
+  screening-worker:
+    image: fraud-screening-mysql:local
+    command: [/app/mysql-api, --worker]
+    environment: {SCREENING_LOCAL_MYSQL: "1"}
+    secrets: [screening_worker_password, case_service_token, ingestion_runtime_token]
+    volumes: [../../.local/mysql-dev/screening-runtime:/runtime:ro]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 1
+    stop_grace_period: 35s
+    healthcheck:
+      test: [CMD, /app/mysql-api, --healthcheck]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      migrate-screening: {condition: service_completed_successfully}
+secrets:
+  screening_api_password: {file: ../../.local/mysql-dev/screening-api-password.txt}
+  screening_worker_password: {file: ../../.local/mysql-dev/screening-worker-password.txt}
+  screening_service_token: {file: ../../.local/mysql-dev/screening-service-token.txt}
+  screening_operator_token: {file: ../../.local/mysql-dev/screening-operator-token.txt}
+  screening_intake_token: {file: ../../.local/mysql-dev/screening-intake-token.txt}
+  case_service_token: {file: ../../.local/mysql-dev/case-service-token.txt}
+  ingestion_runtime_token: {file: ../../.local/mysql-dev/ingestion-runtime-token.txt}

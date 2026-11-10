@@ -3,6 +3,7 @@ package localdev
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -149,7 +150,9 @@ func Install(ctx context.Context, installation Installation) error {
 			if err := matchingSource(upgraded, installation); err != nil {
 				return err
 			}
-			backup := path + ".before-upgrade"
+			// Retain every upgrade's exact input. A single fixed backup name
+			// prevents a second legitimate append-only owner upgrade.
+			backup := fmt.Sprintf("%s.before-upgrade-%x", path, sha256.Sum256(data))
 			f, e := os.OpenFile(backup, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 			if e == nil {
 				_, writeErr := f.Write(data)

@@ -1,5 +1,10 @@
 # Case Manager Service
 
+Local MySQL development now has a [Docker setup](MYSQL_DOCKER.md), a
+[migration plan](MYSQL_PLAN.md), an [endpoint status](MYSQL_ENDPOINT_STATUS.md)
+and a [worker status](MYSQL_WORKER_STATUS.md). Its Swagger UI runs at
+`http://localhost:8086/docs`. The contracts below describe the PostgreSQL source.
+
 Identity update (2026-10-06): Docker uses the [platform auth service](../auth-service/PLATFORM_AUTH.md).
 The browser holds an opaque session; Next resolves it privately to a signed,
 short-lived human credential. `USER_REQUIRE_SESSION=true` requires session/version

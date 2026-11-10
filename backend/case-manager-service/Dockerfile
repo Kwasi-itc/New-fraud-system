@@ -1,8 +1,13 @@
-FROM golang:1.24.2 AS builder
+FROM golang:1.25.8 AS builder
 
 WORKDIR /app/case-manager-service
 COPY case-manager-service/go.mod case-manager-service/go.sum ./
 COPY investigator ../investigator
+COPY mysqlstore ../mysqlstore
+COPY auth-service ../auth-service
+COPY data-model-service ../data-model-service
+COPY decision-engine-service ../decision-engine-service
+COPY screening-service ../screening-service
 RUN go mod download
 
 COPY case-manager-service/ .

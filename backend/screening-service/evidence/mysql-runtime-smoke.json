@@ -1,0 +1,156 @@
+{
+  "verified_at": "2026-11-09T23:15:53.301Z",
+  "passed": true,
+  "auth_session": "existing session resolved by auth service",
+  "browser_operations": 47,
+  "worker_healthy": true,
+  "synthetic_worker_match": true,
+  "manual_intake_replay": true,
+  "evidence_callback_delivery": true,
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/manual-screenings",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "method": "GET",
+      "path": "/internal/screening-capabilities",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "method": "POST",
+      "path": "/internal/session",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/manual-screenings/capabilities",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/manual-screenings",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/investigator/tenants/8ff35301-9c2b-42af-a0ea-142ef0612c0f/cases/7e201802-4830-4998-b6de-a898ddc2def8/review",
+      "status": 403,
+      "expected": 403
+    },
+    {
+      "method": "POST",
+      "path": "/v1/manual-screenings",
+      "status": 202,
+      "expected": 202
+    },
+    {
+      "method": "POST",
+      "path": "/v1/manual-screenings",
+      "status": 202,
+      "expected": 202
+    },
+    {
+      "method": "GET",
+      "path": "/v1/manual-screenings/48797d9c-4a6d-4851-9df5-c63250ff572b",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/manual-screenings/48797d9c-4a6d-4851-9df5-c63250ff572b",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/inboxes",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/manual-screening-investigations",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/screenings/48797d9c-4a6d-4851-9df5-c63250ff572b/file-uploads",
+      "status": 201,
+      "expected": 201
+    },
+    {
+      "method": "PUT",
+      "path": "/local/evidence/:capability",
+      "status": 204,
+      "expected": 204
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/links/files",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/links/files",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/links/files",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/links/files",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/files/bbe1037b-fc88-4c9b-910a-eca2409df78b/download",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases/a472c914-1b83-4e89-9bd0-43f60d79d1fc/files",
+      "status": 201,
+      "expected": 201
+    }
+  ]
+}

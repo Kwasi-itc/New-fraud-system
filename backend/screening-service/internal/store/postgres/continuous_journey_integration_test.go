@@ -284,6 +284,15 @@ const testCallbackToken = "synthetic-callback-private-token-32bytes"
 
 func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant string, environment ...string) (string, string, func(string, string, string) string) {
 	t.Helper()
+	// The real decision server validates River's schema at startup. Each
+	// journey uses a fresh private database, so install the queue owner too.
+	migrator, err := rivermigrate.New(riverpgxv5.New(db), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = migrator.Migrate(context.Background(), rivermigrate.DirectionUp, nil); err != nil {
+		t.Fatal(err)
+	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)

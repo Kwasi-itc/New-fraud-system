@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "successful_operations": [
+    "POST /v1/tenants/:tenantId/manual-screening-investigations",
+    "POST /v1/tenants/:tenantId/cases/:caseId/files",
+    "POST /v1/screening-events/reviewed",
+    "POST /v1/screening-events/requires-review",
+    "POST /v1/screening-events/evidence-uploaded"
+  ],
+  "verified_at": "2026-11-09T22:58:47.013982938Z"
+}

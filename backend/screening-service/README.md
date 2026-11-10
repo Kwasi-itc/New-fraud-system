@@ -1,6 +1,11 @@
 # Screening Service
 
-## Reliable case callbacks
+For the shared MySQL development runtime at `http://localhost:8085/docs`, see
+[Docker setup](MYSQL_DOCKER.md), [migration plan](MYSQL_PLAN.md),
+[endpoint checklist](MYSQL_ENDPOINT_STATUS.md) and [worker checklist](MYSQL_WORKER_STATUS.md).
+The default MySQL matcher uses a labelled synthetic catalog.
+
+## Reliable case callbacks (PostgreSQL deployment)
 
 Match reviews and file creation now enqueue case callbacks in `screening.case_event_outbox` in the same transaction as their mutations. The default Compose service `screening-case-delivery-worker` delivers them independently of provider jobs; its executable is `/app/case-delivery-worker`. It requires `DATABASE_URL`, `CASE_SERVICE_URL`, and `CASE_SERVICE_AUTH_TOKEN`. The case token's tenant allowlist must cover the producer tenants. Inbox lookups use `INBOX_SERVICE_URL` and the same case token.
 

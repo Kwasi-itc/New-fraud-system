@@ -6,10 +6,11 @@ import (
 )
 
 var (
-	ErrValidation = errors.New("invalid request")
-	ErrNotFound   = errors.New("not found")
-	ErrForbidden  = errors.New("forbidden")
-	ErrConflict   = errors.New("conflict")
+	ErrValidation  = errors.New("invalid request")
+	ErrNotFound    = errors.New("not found")
+	ErrForbidden   = errors.New("forbidden")
+	ErrConflict    = errors.New("conflict")
+	ErrUnavailable = errors.New("required owner contract unavailable")
 )
 
 func Invalid(message string) error {

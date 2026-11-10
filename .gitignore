@@ -23,7 +23,8 @@ server.err.log
 .env.local
 .env.*.local
 pii-hmac.key
-# Local development identity material (never mount private keys into services)
+# Local development state and credentials (never commit)
+/.local/
 .local/case-auth/
 .local/auth-provider/
 .local/mysql-dev/

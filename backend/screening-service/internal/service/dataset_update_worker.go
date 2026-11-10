@@ -79,6 +79,9 @@ func (s DatasetUpdateWorkerService) processJob(ctx context.Context, item screeni
 		return err
 	}
 
+	if repo, ok := s.datasetJobRepo.(ports.ResumableDatasetJobs); ok && (item.JobType == "rescreen_monitored_objects" || item.JobType == "dataset_delta_rescreen") {
+		return s.processResumable(ctx, item, repo)
+	}
 	var result []byte
 	var err error
 	switch item.JobType {

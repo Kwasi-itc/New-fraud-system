@@ -10,6 +10,7 @@ import (
 
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 	"github.com/gin-gonic/gin"
+	driver "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -54,6 +55,7 @@ func presentError(c *gin.Context, err error) {
 	}
 	status, code, message := http.StatusInternalServerError, "internal_error", "internal server error"
 	var dbError *pgconn.PgError
+	var mysqlError *driver.MySQLError
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		status, code, message = http.StatusGatewayTimeout, "timeout", "request timed out"
@@ -63,8 +65,27 @@ func presentError(c *gin.Context, err error) {
 		status, code, message = http.StatusNotFound, "not_found", "not found"
 	case errors.Is(err, casepkg.ErrForbidden):
 		status, code, message = http.StatusForbidden, "forbidden", "forbidden"
+	case errors.Is(err, casepkg.ErrUnavailable):
+		status, code, message = http.StatusServiceUnavailable, "owner_unavailable", "required owner contract unavailable"
 	case errors.Is(err, casepkg.ErrConflict):
 		status, code, message = http.StatusConflict, "conflict", "request conflicts with current state"
+	case errors.As(err, &mysqlError):
+		switch mysqlError.Number {
+		case 1062, 1205, 1213:
+			status, code, message = http.StatusConflict, "conflict", "request conflicts with current state"
+		case 1048, 1406, 1411, 1451, 1452, 3819:
+			status, code, message = http.StatusBadRequest, "validation_error", "invalid resource reference or value"
+		case 1644:
+			if mysqlError.Message == "case assignment capacity reached" {
+				status, code, message = http.StatusConflict, "capacity_reached", "assignee has reached inbox capacity"
+			}
+			if mysqlError.Message == "case assignee is not an inbox member" {
+				status, code, message = http.StatusBadRequest, "validation_error", "assignee must be an inbox member"
+			}
+			if mysqlError.Message == "case assignee must be an active investigator" {
+				status, code, message = http.StatusBadRequest, "validation_error", "assignee must be an active investigator"
+			}
+		}
 	case errors.As(err, &dbError):
 		switch dbError.Code {
 		case "23505", "40001", "40P01", "55P03":

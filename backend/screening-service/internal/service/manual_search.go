@@ -149,6 +149,15 @@ func (s ScreeningService) CreateManualSearch(ctx context.Context, tenant, actor 
 		if err == nil && !sameManualRequest(result.RequestJSON, req) {
 			return ErrManualConflict
 		}
+		// Native MySQL publishes creator provenance explicitly. The writer is
+		// optional so the PostgreSQL repository retains its existing contract.
+		if err == nil {
+			if owner, ok := store.Screenings().(interface {
+				SetManualCreator(context.Context, string, string, string) error
+			}); ok {
+				err = owner.SetManualCreator(ctx, tenant, result.ID, actor)
+			}
+		}
 		return err
 	})
 	return result, err

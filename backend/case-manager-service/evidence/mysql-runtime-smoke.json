@@ -1,0 +1,99 @@
+{
+  "verified_at": "2026-11-09T23:15:57.711Z",
+  "passed": true,
+  "read_only_application_smoke": true,
+  "auth_session": "existing local session resolved by auth service",
+  "browser_operations": 61,
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-info",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "method": "POST",
+      "path": "/internal/v1/workflow-actions",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "method": "POST",
+      "path": "/internal/session",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/case-session",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/inboxes",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/cases",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/case-queue?limit=2",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/case-analytics?from=2026-11-09T22:15:54.414Z&to=2026-11-10T00:15:54.414Z",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tenants/f7243450-0103-4818-8531-09621cf85043/cases",
+      "status": 403,
+      "expected": 403
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/tenants/5c1ea673-693c-4bcb-adc8-eb3db2f2f868/inboxes/1c7f97e4-da97-5b04-8982-095c4834881e",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/tenants/9060ea56-9617-4127-9757-fa3a3ba6cdce/inboxes/6ca02c2e-5183-4668-9378-3fb8c3934beb",
+      "status": 403,
+      "expected": 403
+    }
+  ]
+}

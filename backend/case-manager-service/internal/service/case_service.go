@@ -842,6 +842,15 @@ func (s CaseService) addFile(ctx context.Context, file casepkg.File, actorID *st
 	if err != nil {
 		return casepkg.File{}, err
 	}
+	if owner, ok := s.references.(screeningEvidenceOwner); ok {
+		prior, err := owner.ImportedEvidence(ctx, file.TenantID, file.CaseID, *file.SourceFileID)
+		if err != nil {
+			return casepkg.File{}, err
+		}
+		if prior != nil {
+			return *prior, nil
+		}
+	}
 	if strings.TrimSpace(file.FileName) == "" || strings.TrimSpace(file.StorageKey) == "" || file.FileSize < 0 {
 		return casepkg.File{}, casepkg.Invalid("source file metadata is incomplete")
 	}

@@ -1,0 +1,13 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve,relative} from 'node:path';
+const directory=resolve(process.argv[2]??readFileSync('evidence/mysql-integration/latest.txt','utf8').trim());
+const read=name=>readFileSync(resolve(directory,name),'utf8');
+const events=read('raw.jsonl').trim().split('\n').filter(Boolean).map(JSON.parse),inventory=read('inventory.jsonl').trim().split('\n').filter(Boolean).map(JSON.parse);
+const expected=new Set(inventory.filter(e=>e.Output?.trim().match(/^Test\w+$/)).map(e=>e.Package+' '+e.Output.trim()));
+const results=events.filter(e=>e.Test&&['pass','fail','skip'].includes(e.Action)),tops=results.filter(e=>!e.Test.includes('/')),actual=new Set(tops.map(e=>e.Package+' '+e.Test));
+const http=JSON.parse(readFileSync('evidence/mysql-http-results.json','utf8'));
+const report={scope:'Native screening lifecycle/workers, independent MySQL target/reference fixtures and PostgreSQL source characterization. Default provider uses a labelled synthetic catalog.',evidence:relative(process.cwd(),directory).replaceAll('\\','/'),environment:read('environment.txt').trim(),testsExit:Number(read('tests.exit')),vetExit:Number(read('vet.exit')),expectedTopLevelTests:expected.size,topLevelPassed:tops.filter(e=>e.Action==='pass').length,testAndSubtestPasses:results.filter(e=>e.Action==='pass').length,missingTests:[...expected].filter(v=>!actual.has(v)),failed:results.filter(e=>e.Action==='fail'),skipped:results.filter(e=>e.Action==='skip'),packageFailures:events.filter(e=>e.Action==='fail'&&!e.Test).map(e=>e.Package),raceWarnings:events.filter(e=>e.Output?.includes('WARNING: DATA RACE')).length,positiveHTTPRoutes:http.successful_operations,protectedOperations:http.protected_operations,mountedOperations:http.mounted_operations,productionDataTransfer:false,realSanctionsProviderAcceptance:false};
+report.restrictedRuntimeAccounts=http.restricted_runtime_accounts===true;
+report.passed=report.testsExit===0&&report.vetExit===0&&!report.missingTests.length&&!report.failed.length&&!report.skipped.length&&!report.packageFailures.length&&!report.raceWarnings&&http.passed&&report.restrictedRuntimeAccounts&&http.successful_operations.length===http.mounted_operations;
+writeFileSync(resolve(directory,'report.json'),JSON.stringify(report,null,2)+'\n');
+console.log(JSON.stringify({passed:report.passed,topLevel:report.topLevelPassed,testAndSubtests:report.testAndSubtestPasses,missing:report.missingTests.length,skipped:report.skipped.length,failed:report.failed.length,positiveHTTP:report.positiveHTTPRoutes.length,guardedHTTP:report.protectedOperations,evidence:report.evidence},null,2));process.exitCode=report.passed?0:1;

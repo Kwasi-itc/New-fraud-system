@@ -40,9 +40,9 @@ paths:
                 properties:
                   id: {type: string, enum: [opensanctions]}
                   name: {type: string}
-                  adapter: {type: string, enum: [generic, opensanctions_match]}
+                  adapter: {type: string, enum: [generic, opensanctions_match, local-development]}
                   configured: {type: boolean}
-                  health: {type: string, enum: [unknown]}
+                  health: {type: string, enum: [unknown, local]}
                   entity_types: {type: array, items: {type: string}}
                   fields: {type: object, additionalProperties: {type: array, items: {type: string}}}
                   dataset_selection: {type: boolean}
