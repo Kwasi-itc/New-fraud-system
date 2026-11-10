@@ -10,9 +10,10 @@ const local=JSON.parse(readFileSync(resolve(service,'../../.local/mysql-dev/deci
 const tenant=local.TenantID;
 const base='/v1/tenants/'+tenant;
 const prefix='unrouted-'+randomUUID();
-const output=resolve(service,'evidence/mysql-unrouted',new Date().toISOString().replaceAll(':','-'));
+const outputArg=process.argv.indexOf('--output');
+const output=outputArg<0?resolve(service,'evidence/mysql-unrouted',new Date().toISOString().replaceAll(':','-')):resolve(process.argv[outputArg+1]);
 mkdirSync(output,{recursive:true});
-writeFileSync(resolve(service,'evidence/mysql-unrouted/latest.txt'),output+'\n');
+if(outputArg<0)writeFileSync(resolve(service,'evidence/mysql-unrouted/latest.txt'),output+'\n');
 const original=JSON.parse(readFileSync(resolve(service,'testdata/mysql-unrouted-operations.json'),'utf8'));
 const requests=[],suites=[];let current='';
 async function call(method,path,body,expected=200){
