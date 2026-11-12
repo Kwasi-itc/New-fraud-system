@@ -18,9 +18,10 @@ const env = Object.fromEntries(readFileSync(resolve(repo, '.local/mysql-dev/inge
 assert.equal(tenant, env.INGESTION_TENANT_ID, 'Audit requires the shared prepared tenant');
 const object = env.INGESTION_OBJECT_TYPE;
 const prefix = 'decision-audit-' + randomUUID();
-const output = resolve(service, 'evidence/mysql-endpoint-audit', new Date().toISOString().replaceAll(':', '-'));
+const outputArg = process.argv.indexOf('--output');
+const output = outputArg < 0 ? resolve(service, 'evidence/mysql-endpoint-audit', new Date().toISOString().replaceAll(':', '-')) : resolve(process.argv[outputArg + 1]);
 mkdirSync(output, {recursive: true});
-writeFileSync(resolve(service, 'evidence/mysql-endpoint-audit/latest.txt'), output + '\n');
+if (outputArg < 0) writeFileSync(resolve(service, 'evidence/mysql-endpoint-audit/latest.txt'), output + '\n');
 const worker = 'fraud-mysql-dev-decision-engine-worker-1';
 const requests = [], suites = [], workers = [];
 let currentSuite = '', workerStopped = false;
@@ -323,10 +324,10 @@ await suite('documented-operation-mount-and-capability-probes', async () => {
   }
 });
 await suite('formerly-unrouted-39-operations',async()=>{
-  const child=spawnSync(process.execPath,[resolve(service,'scripts/mysql-unrouted-audit.mjs')],{cwd:service,encoding:'utf8',timeout:180000,maxBuffer:2<<20});
+  const folder=resolve(output,'unrouted');
+  const child=spawnSync(process.execPath,[resolve(service,'scripts/mysql-unrouted-audit.mjs'),'--output',folder],{cwd:service,encoding:'utf8',timeout:180000,maxBuffer:2<<20});
   appendFileSync(resolve(output,'unrouted-run.log'),child.stdout+'\n'+child.stderr);
   assert.equal(child.status,0,child.error?.message??child.stdout+'\n'+child.stderr);
-  const folder=readFileSync(resolve(service,'evidence/mysql-unrouted/latest.txt'),'utf8').trim();
   const result=JSON.parse(readFileSync(resolve(folder,'report.json'),'utf8'));assert.equal(result.all39Passed,true);assert.equal(result.runtimeImage,initialRuntime['fraud-mysql-dev-decision-engine-service-1'].image);
   unroutedEvidence={directory:folder,verified:result.verifiedOperations,all39Passed:result.all39Passed,localExpressionAssistant:true};
   for(const check of result.suites)suites.push({...check,name:'unrouted/'+check.name});
@@ -335,9 +336,9 @@ await suite('formerly-unrouted-39-operations',async()=>{
   }
 });
 await suite('formerly-disabled-delivery-operations',async()=>{
-  const child=spawnSync(process.execPath,[resolve(service,'scripts/mysql-disabled-audit.mjs')],{cwd:service,encoding:'utf8',timeout:360000,maxBuffer:2<<20});
+  const folder=resolve(output,'delivery');
+  const child=spawnSync(process.execPath,[resolve(service,'scripts/mysql-disabled-audit.mjs'),'--output',folder],{cwd:service,encoding:'utf8',timeout:360000,maxBuffer:2<<20});
   appendFileSync(resolve(output,'disabled-run.log'),child.stdout+'\n'+child.stderr);
-  const folder=readFileSync(resolve(service,'evidence/mysql-disabled/latest.txt'),'utf8').trim();
   const result=JSON.parse(readFileSync(resolve(folder,'report.json'),'utf8'));
   disabledEvidence={directory:folder,verified:result.verifiedOperations,total:result.totalOperations,profilePassed:result.profilePassed};
   for(const check of result.suites)suites.push({...check,name:'delivery/'+check.name});

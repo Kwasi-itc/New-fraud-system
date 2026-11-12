@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"log/slog"
 	"net/http"
 	"os"
@@ -66,7 +67,7 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	db, e := mysqlstore.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_case_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
+	db, e := ec2test.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_case_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
 	if e != nil {
 		return e
 	}

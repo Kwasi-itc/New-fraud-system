@@ -28,6 +28,8 @@ pii-hmac.key
 .local/case-auth/
 .local/auth-provider/
 .local/mysql-dev/
+/docker/mysql-dev/setup-mac.py
+/docker/mysql-dev/integration/
 .local/stress-python-deps/
 backend/stress-tests/database-scale-runs/
 .local/decision-commit-preview/

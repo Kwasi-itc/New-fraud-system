@@ -10,7 +10,9 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	// Reference capture, journaled migrations and local owner setup share this
+	// deadline; first installs on Docker Desktop can exceed three minutes.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	if len(os.Args) == 2 && os.Args[1] == "--grant-local-browser" {
 		if err := grantLocalBrowser(ctx); err != nil {

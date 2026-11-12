@@ -12,6 +12,7 @@ import (
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/mysqlreview"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"net/http"
 	"os"
 	"strings"
@@ -205,7 +206,7 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	db, err := mysqlstore.Open(ctx, mysqlstore.Config{Address: "mysql:3306", Database: "fraud", User: user, Password: password, AllowInsecureTransport: true, InterpolateParameters: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
+	db, err := ec2test.Open(ctx, mysqlstore.Config{Address: "mysql:3306", Database: "fraud", User: user, Password: password, AllowInsecureTransport: true, InterpolateParameters: true, MaxOpen: 8, MaxIdle: 4, ConnectTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 5 * time.Second})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -301,7 +302,7 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 		if err := db.QueryRowContext(ctx, "SELECT VERSION(),CURRENT_USER(),CURRENT_ROLE()").Scan(&version, &login, &role); err != nil {
 			return err
 		}
-		if version != "8.4.8" || !strings.HasPrefix(login, user+"@") || role != "NONE" {
+		if !ec2test.VersionSupported(version) || !strings.HasPrefix(login, user+"@") || role != "NONE" {
 			return errors.New("pinned MySQL and restricted local account required")
 		}
 		history, err := runner.Status(ctx)

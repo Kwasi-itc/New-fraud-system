@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,7 +32,12 @@ func NewLocalBlob(db *sql.DB, database, origin string) (*LocalBlob, error) {
 		return nil, e
 	}
 	u, e := url.Parse(origin)
-	if e != nil || u.Scheme != "http" || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1") || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || db == nil {
+	validOrigin := e == nil && u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1") && u.User == nil && u.Path == "" && u.RawQuery == "" && u.Fragment == ""
+	if ec2test.Enabled() {
+		_, err := ec2test.Origin(origin)
+		validOrigin = err == nil
+	}
+	if !validOrigin || db == nil {
 		return nil, errors.New("explicit loopback development blob origin required")
 	}
 	return &LocalBlob{db, schema + ".screening_local_blobs", origin}, nil

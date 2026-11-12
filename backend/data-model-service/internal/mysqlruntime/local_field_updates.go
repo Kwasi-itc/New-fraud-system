@@ -16,6 +16,7 @@ import (
 	store "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/mysql/installation"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/google/uuid"
 )
 
@@ -279,7 +280,11 @@ func (p *LocalCreation) mutatePhysicalField(ctx context.Context, input service.U
 				return err
 			}
 		}
-		installer := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lcn_" + strings.ReplaceAll(tableID.String(), "-", "")[:24], Host: "localhost"}, Table: physical.Name, NativeChanges: true, TextGuards: plan.InstallsTextGuards(), BackfillColumn: plan.TextBackfillColumn()}
+		installerHost, err := ec2test.InstallerHost()
+		if err != nil {
+			return err
+		}
+		installer := installation.RecordInstallerPolicy{Principal: installation.Definer{User: "lcn_" + strings.ReplaceAll(tableID.String(), "-", "")[:24], Host: installerHost}, Table: physical.Name, NativeChanges: true, TextGuards: plan.InstallsTextGuards(), BackfillColumn: plan.TextBackfillColumn()}
 		if state != "published" {
 			if err := p.executeNative(ctx, tenantID, tableID, op, installer); err != nil {
 				return err

@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/gin-gonic/gin"
 )
@@ -25,7 +27,15 @@ func NewLocalHTTP(db *sql.DB, enabled, origin string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return localdev.WithoutLogin(router, enabled, origin, "local-data-model-development")
+	credential := "local-data-model-development"
+	if ec2test.Enabled() {
+		value, err := os.ReadFile("/run/secrets/data_model_service_token")
+		if err != nil || len(value) < 32 {
+			return nil, errors.New("data-model service credential required")
+		}
+		credential = string(value)
+	}
+	return localdev.WithoutLogin(router, enabled, origin, credential)
 }
 
 func newLocalRouter(db *sql.DB) (*gin.Engine, error) {

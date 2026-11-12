@@ -3,14 +3,23 @@
 package localdev
 
 import (
+	"crypto/subtle"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
-// Origin refuses a public deployment URL. Docker must additionally publish all
-// API and frontend ports on loopback; a configured URL is not a network fence.
+// Origin requires loopback unless the separate EC2 test configuration is
+// explicitly selected. A configured URL alone is not a network fence.
 func Origin(enabled, raw string) (string, error) {
+	if ec2test.Enabled() {
+		if enabled != "1" {
+			return "", errors.New("explicit test compatibility switch required")
+		}
+		return ec2test.Origin(raw)
+	}
 	u, err := url.Parse(raw)
 	if enabled != "1" || err != nil || u.Scheme != "http" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return "", errors.New("explicit local MySQL mode and loopback HTTP origin required")
@@ -46,7 +55,16 @@ func WithoutLogin(next http.Handler, enabled, rawOrigin, credential string) (htt
 			return
 		}
 		clone := r.Clone(r.Context())
-		clone.Header.Set("Authorization", "Bearer "+credential)
+		if ec2test.Enabled() {
+			// Remote tests retain the service credential check; no anonymous
+			// request is promoted to the local operator identity.
+			if strings.HasPrefix(r.URL.Path, "/v1/") && subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+credential)) != 1 {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+		} else {
+			clone.Header.Set("Authorization", "Bearer "+credential)
+		}
 		w.Header().Set("Cache-Control", "no-store")
 		next.ServeHTTP(w, clone)
 	}), nil

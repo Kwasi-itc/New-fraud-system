@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/mysqlruntime"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/go-sql-driver/mysql"
 )
@@ -29,6 +30,9 @@ func run() error {
 	cfg.ParseTime = true
 	cfg.Timeout, cfg.ReadTimeout, cfg.WriteTimeout = 5*time.Second, 15*time.Second, 15*time.Second
 	cfg.Params = map[string]string{"time_zone": "'+00:00'", "transaction_isolation": "'READ-COMMITTED'"}
+	if err := ec2test.Driver(cfg, false); err != nil {
+		return err
+	}
 	connector, err := mysql.NewConnector(cfg)
 	if err != nil {
 		return err
@@ -53,7 +57,11 @@ func run() error {
 	server := &http.Server{Addr: ":8080", Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 << 10}
 	done := make(chan error, 1)
 	go func() { done <- server.ListenAndServe() }()
-	log.Print("local MySQL API listening on :8080; login disabled; docs at /docs")
+	if ec2test.Enabled() {
+		log.Print("EC2 MySQL test API listening on :8080; service credential required; docs at /docs")
+	} else {
+		log.Print("local MySQL API listening on :8080; login disabled; docs at /docs")
+	}
 	select {
 	case err := <-done:
 		return err

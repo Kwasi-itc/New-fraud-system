@@ -1,0 +1,7 @@
+FROM golang:1.25.0 AS build
+WORKDIR /backend/mysqlstore
+COPY backend/mysqlstore ./
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -mod=readonly -o /bin/preflight ./cmd/ec2-test-preflight
+FROM gcr.io/distroless/base-debian12
+COPY --from=build /bin/preflight /app/preflight
+ENTRYPOINT ["/app/preflight"]

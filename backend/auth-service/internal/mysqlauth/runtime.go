@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"io"
 	"log/slog"
 	"net/http"
@@ -96,7 +97,7 @@ func OpenRuntime(ctx context.Context, c LocalConfig, secrets string, worker bool
 	if e != nil {
 		return nil, nil, e
 	}
-	db, e := mysqlstore.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_auth_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: pool, MaxIdle: pool, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 3 * time.Second, InterpolateParameters: true})
+	db, e := ec2test.Open(ctx, mysqlstore.Config{Address: c.Address, Database: c.Database, User: "local_auth_" + role, Password: password, AllowInsecureTransport: true, MaxOpen: pool, MaxIdle: pool, ConnectTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, ConnMaxLifetime: 5 * time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 3 * time.Second, InterpolateParameters: true})
 	if e != nil {
 		return nil, nil, e
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"io"
 	"os"
 )
@@ -25,7 +26,12 @@ func Load(path string) (Config, error) {
 	if d.Decode(new(any)) != io.EOF {
 		return c, errors.New("one runtime configuration required")
 	}
-	if c.Address != "mysql:3306" || c.Database != "fraud" || c.AccountHost == "" || c.Issuer == "" || c.Audience == "" || c.KeyID == "" || c.Origin != "http://localhost:8085" || c.CaseURL != "http://case-manager-service:8086" || c.IngestionURL != "http://ingestion-service:8081" {
+	validOrigin := c.Origin == "http://localhost:8085"
+	if ec2test.Enabled() {
+		_, err := ec2test.Origin(c.Origin)
+		validOrigin = err == nil
+	}
+	if c.Address != "mysql:3306" || c.Database != "fraud" || c.AccountHost == "" || c.Issuer == "" || c.Audience == "" || c.KeyID == "" || !validOrigin || c.CaseURL != "http://case-manager-service:8086" || c.IngestionURL != "http://ingestion-service:8081" {
 		return c, errors.New("prepared shared MySQL development configuration required")
 	}
 	return c, nil

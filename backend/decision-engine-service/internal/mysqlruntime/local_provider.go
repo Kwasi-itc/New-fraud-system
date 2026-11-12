@@ -8,6 +8,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/localdelivery"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/ec2test"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
 	"github.com/google/uuid"
@@ -38,7 +39,7 @@ func OpenLocalProvider(ctx context.Context) (*localdelivery.MultiProvider, *sql.
 	if err != nil {
 		return nil, nil, err
 	}
-	db, err := mysqlstore.Open(ctx, mysqlstore.Config{Address: "mysql:3306", Database: "fraud", User: LocalProviderUser, Password: password, AllowInsecureTransport: true, InterpolateParameters: true, MaxOpen: 4, MaxIdle: 2, ConnectTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 3 * time.Second})
+	db, err := ec2test.Open(ctx, mysqlstore.Config{Address: "mysql:3306", Database: "fraud", User: LocalProviderUser, Password: password, AllowInsecureTransport: true, InterpolateParameters: true, MaxOpen: 4, MaxIdle: 2, ConnectTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, ConnMaxLifetime: time.Minute, ConnMaxIdleTime: time.Minute, LockWaitTimeout: 3 * time.Second})
 	if err != nil {
 		return nil, nil, err
 	}
