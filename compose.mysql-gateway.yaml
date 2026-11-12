@@ -1,0 +1,11 @@
+# Compatibility module. The gateway definition now lives under docker/.
+# Normal frontend/backend setup: powershell -File docker/setup.ps1
+# Use docker/compose.yaml to start and stop the complete platform.
+name: fraud-mysql-dev
+services:
+  api-gateway:
+    extends: {file: docker/gateway.compose.yaml, service: api-gateway}
+networks:
+  default:
+    external: true
+    name: fraud-mysql-dev_default

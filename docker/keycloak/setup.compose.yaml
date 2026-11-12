@@ -1,0 +1,11 @@
+# Provider bootstrap without loading not-yet-generated application env files.
+name: fraud-mysql-dev
+include: [../provider.compose.yaml]
+services:
+  api-gateway:
+    extends: {file: ../gateway.compose.yaml, service: api-gateway}
+  mysql:
+    extends: {file: ../../backend/data-model-service/docker-compose-mysql.yml, service: mysql}
+    ports: !reset []
+volumes:
+  mysql_dev_data:

@@ -12,12 +12,13 @@ function Checked([string]$Program,[string[]]$Arguments) {
 }
 Checked 'node' @((Join-Path $service 'scripts/setup-local-provider.mjs'))
 if (!$SkipProviderStartup) {
-    Checked 'docker' @('compose','--project-directory',$repo,'-f',(Join-Path $repo 'docker-compose.yml'),'-f',(Join-Path $service 'compose.provider-limits.yaml'),'up','-d','--wait','keycloak')
+    Checked 'node' @((Join-Path $repo 'docker/mysql-dev/consolidate-provider.mjs'))
+    Checked 'node' @((Join-Path $repo 'docker/keycloak/configure-gateway-issuer.mjs'))
 }
 $compose = @('compose','--profile','install','--env-file',(Join-Path $local 'compose.env'),'-f',(Join-Path $service 'docker-compose-mysql.yml'))
 Checked 'docker' ($compose + @('up','-d','--wait','mysql','mysql-reference'))
-Checked 'node' @((Join-Path $service 'scripts/prepare-mysql.mjs'))
 Checked 'docker' ($compose + @('stop','auth-service','auth-worker'))
+Checked 'node' @((Join-Path $service 'scripts/prepare-mysql.mjs'),'--reconcile-network')
 Checked 'docker' ($compose + @('build','migrate-auth'))
 Checked 'docker' ($compose + @('run','--rm','--no-deps','migrate-auth'))
 Checked 'docker' ($compose + @('up','-d','--no-deps','--wait','auth-mail','auth-service','auth-worker'))

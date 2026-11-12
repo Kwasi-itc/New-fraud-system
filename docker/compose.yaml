@@ -1,0 +1,150 @@
+# Canonical local MySQL platform: one Docker Desktop project, one app URL.
+# First setup: powershell -File docker/setup.ps1
+# Subsequent restarts: docker compose -f docker/compose.yaml up -d --wait
+name: fraud-mysql-dev
+include: [provider.compose.yaml]
+services:
+  mysql:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: mysql}
+    ports: !reset []
+  mysql-reference:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: mysql-reference}
+  migrate-data-model:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: migrate-data-model}
+    profiles: [install]
+  data-model-author:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: data-model-author}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      mysql-reference: {condition: service_healthy}
+  data-model-worker:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: data-model-worker}
+  data-model-service:
+    extends: {file: ../backend/data-model-service/docker-compose-mysql.yml, service: data-model-service}
+    ports: !reset []
+    depends_on: !override
+      data-model-author: {condition: service_started}
+  migrate-ingestion:
+    extends: {file: ../backend/ingestion-service/docker-compose-mysql.yml, service: migrate-ingestion}
+    profiles: [install]
+  ingestion-service:
+    extends: {file: ../backend/ingestion-service/docker-compose-mysql.yml, service: ingestion-service}
+    ports: !reset []
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      data-model-service: {condition: service_started}
+  ingestion-worker:
+    extends: {file: ../backend/ingestion-service/docker-compose-mysql.yml, service: ingestion-worker}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+  migrate-decisions:
+    extends: {file: ../backend/decision-engine-service/docker-compose-mysql.yml, service: migrate-decisions}
+    profiles: [install]
+  decision-local-providers:
+    extends: {file: ../backend/decision-engine-service/docker-compose-mysql.yml, service: decision-local-providers}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+  decision-engine-worker:
+    extends: {file: ../backend/decision-engine-service/docker-compose-mysql.yml, service: decision-engine-worker}
+    depends_on: !override
+      decision-local-providers: {condition: service_healthy}
+  decision-engine-service:
+    extends: {file: ../backend/decision-engine-service/docker-compose-mysql.yml, service: decision-engine-service}
+    ports: !reset []
+  migrate-auth:
+    extends: {file: ../backend/auth-service/docker-compose-mysql.yml, service: migrate-auth}
+    profiles: [install]
+  auth-mail:
+    extends: {file: ../backend/auth-service/docker-compose-mysql.yml, service: auth-mail}
+    ports: !reset []
+  auth-service:
+    extends: {file: ../backend/auth-service/docker-compose-mysql.yml, service: auth-service}
+    ports: !reset []
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+  auth-worker:
+    extends: {file: ../backend/auth-service/docker-compose-mysql.yml, service: auth-worker}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      auth-mail: {condition: service_started}
+  migrate-case:
+    extends: {file: ../backend/case-manager-service/docker-compose-mysql.yml, service: migrate-case}
+    profiles: [install]
+  case-manager-service:
+    extends: {file: ../backend/case-manager-service/docker-compose-mysql.yml, service: case-manager-service}
+    ports: !reset []
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+  case-manager-worker:
+    extends: {file: ../backend/case-manager-service/docker-compose-mysql.yml, service: case-manager-worker}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+  migrate-screening:
+    extends: {file: ../backend/screening-service/docker-compose-mysql.yml, service: migrate-screening}
+    profiles: [install]
+  screening-service:
+    extends: {file: ../backend/screening-service/docker-compose-mysql.yml, service: screening-service}
+    ports: !reset []
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+  screening-worker:
+    extends: {file: ../backend/screening-service/docker-compose-mysql.yml, service: screening-worker}
+    depends_on: !override
+      mysql: {condition: service_healthy}
+      case-manager-service: {condition: service_healthy}
+  frontend:
+    extends: {file: ../frontend/docker-compose-mysql.yml, service: frontend}
+    ports: !reset []
+    environment:
+      APP_ORIGIN: http://localhost:${MYSQL_GATEWAY_PORT:-8088}
+    depends_on:
+      auth-service: {condition: service_healthy}
+      ingestion-service: {condition: service_healthy}
+      decision-engine-service: {condition: service_healthy}
+      screening-service: {condition: service_healthy}
+      case-manager-service: {condition: service_healthy}
+  api-gateway:
+    extends: {file: gateway.compose.yaml, service: api-gateway}
+    depends_on:
+      frontend: {condition: service_healthy}
+
+# Reuse owner definitions above; declare their shared resources once here.
+volumes:
+  mysql_dev_data:
+  mysql_dev_reference_socket:
+  mysql_dev_reference_data:
+  auth_mail_data:
+secrets:
+  data_model_mysql_password: {file: ../.local/mysql-dev/data-model-password.txt}
+  ingestion_api_password: {file: ../.local/mysql-dev/ingestion-api-password.txt}
+  ingestion_worker_password: {file: ../.local/mysql-dev/ingestion-worker-password.txt}
+  ingestion_runtime_token: {file: ../.local/mysql-dev/ingestion-runtime-token.txt}
+  decision_api_password: {file: ../.local/mysql-dev/decision-api-password.txt}
+  decision_worker_password: {file: ../.local/mysql-dev/decision-worker-password.txt}
+  decision_runtime_token: {file: ../.local/mysql-dev/decision-runtime-token.txt}
+  decision_review_session: {file: ../.local/mysql-dev/decision-review-session.txt}
+  decision_provider_password: {file: ../.local/mysql-dev/decision-provider-password.txt}
+  decision_provider_token: {file: ../.local/mysql-dev/decision-provider-token.txt}
+  auth_api_password: {file: ../.local/mysql-dev/auth-api-password.txt}
+  auth_worker_password: {file: ../.local/mysql-dev/auth-worker-password.txt}
+  auth_proxy_token: {file: ../.local/mysql-dev/auth-proxy-token.txt}
+  auth_invitation_key: {file: ../.local/mysql-dev/auth-invitation-key.txt}
+  auth_signing_key: {file: ../.local/mysql-dev/auth-private.pem}
+  auth_oidc_client_secret: {file: ../.local/mysql-dev/auth-oidc-client-secret.txt}
+  case_api_password: {file: ../.local/mysql-dev/case-api-password.txt}
+  case_worker_password: {file: ../.local/mysql-dev/case-worker-password.txt}
+  case_service_token: {file: ../.local/mysql-dev/case-service-token.txt}
+  case_publisher_token: {file: ../.local/mysql-dev/case-publisher-token.txt}
+  screening_api_password: {file: ../.local/mysql-dev/screening-api-password.txt}
+  screening_worker_password: {file: ../.local/mysql-dev/screening-worker-password.txt}
+  screening_service_token: {file: ../.local/mysql-dev/screening-service-token.txt}
+  screening_operator_token: {file: ../.local/mysql-dev/screening-operator-token.txt}
+  screening_intake_token: {file: ../.local/mysql-dev/screening-intake-token.txt}
+  frontend_auth_proxy: {file: ../.local/mysql-dev/auth-proxy-token.txt}
+  frontend_ingestion: {file: ../.local/mysql-dev/ingestion-runtime-token.txt}
+  frontend_decision: {file: ../.local/mysql-dev/decision-runtime-token.txt}
+  frontend_screening: {file: ../.local/mysql-dev/screening-service-token.txt}
+  frontend_screening_operator: {file: ../.local/mysql-dev/screening-operator-token.txt}

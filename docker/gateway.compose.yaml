@@ -1,0 +1,27 @@
+# Shared proxy definition. The complete application is docker/compose.yaml.
+name: fraud-mysql-dev
+services:
+  api-gateway:
+    image: nginx:1.30.6-alpine
+    entrypoint: [nginx]
+    command: [-g, "daemon off;"]
+    user: "101:101"
+    ports:
+      - "127.0.0.1:${MYSQL_GATEWAY_PORT:-8088}:8080"
+    volumes:
+      - ./mysql-dev/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp:uid=101,gid=101,mode=0700
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.5
+    mem_limit: 128m
+    healthcheck:
+      # Proxy liveness; the verifier probes frontend and owners separately.
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/healthz]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped

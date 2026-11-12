@@ -1,0 +1,50 @@
+# Keycloak uses the shared MySQL server with its own restricted owner database.
+# Existing PostgreSQL installations are migrated by migrate-keycloak-mysql.mjs.
+name: fraud-mysql-dev
+services:
+  keycloak-db-init:
+    image: mysql:8.4.8
+    entrypoint: [/bin/sh, /provider/provision-mysql.sh]
+    secrets: [mysql_root_password, keycloak_mysql_password]
+    volumes:
+      - mysql_dev_socket:/target-socket
+      - ./keycloak/provision-mysql.sh:/provider/provision-mysql.sh:ro
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      mysql: {condition: service_healthy}
+    restart: "no"
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    command: [start-dev, --import-realm]
+    env_file: [../.local/auth-provider/keycloak.env]
+    environment:
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/keycloak?sslMode=PREFERRED
+      KC_DB_USERNAME: fraud_keycloak
+      KC_DB_POOL_INITIAL_SIZE: "1"
+      KC_DB_POOL_MIN_SIZE: "1"
+      KC_DB_POOL_MAX_SIZE: "5"
+      KC_HOSTNAME: http://localhost:${MYSQL_GATEWAY_PORT:-8088}/identity
+      KC_HTTP_RELATIVE_PATH: /identity
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: info
+    volumes: [./keycloak/fraud-realm.json:/opt/keycloak/data/import/fraud-realm.json:ro]
+    depends_on:
+      keycloak-db-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, /bin/bash, -c, "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3; head -n 1 <&3 | grep -q '200'"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+    mem_limit: 1g
+    cpus: 1
+    restart: unless-stopped
+volumes:
+  mysql_dev_socket:
+secrets:
+  mysql_root_password: {file: ../.local/mysql-dev/root-password.txt}
+  keycloak_mysql_password: {file: ../.local/mysql-dev/keycloak-db-password.txt}

@@ -1,12 +1,19 @@
 # Local auth service with MySQL
 
+For the unified frontend/backend platform, use `docker/setup.ps1` from the
+repository root and http://localhost:8088/services/auth/docs. The direct ports
+below describe the per-service development profile.
+
 The API is at **http://localhost:8087/docs**. Auth application data uses the same
 MySQL 8.4.8 `fraud` database as data-model, ingestion and decisions. The separate
 invitation worker publishes through the local SMTP mailbox at
 **http://localhost:8027**.
 
-The user-selected existing Keycloak remains the OIDC issuer; its existing
-PostgreSQL storage is unchanged. Auth's identity, membership, session, invitation,
+The existing Keycloak remains the OIDC issuer and uses the shared MySQL server's
+dedicated `keycloak` database. Existing PostgreSQL provider data is migrated by
+the setup helper using verified, user-inclusive realm exports; the old volume
+is retained offline. See the [platform migration notes](../../docker/mysql-dev/README.md).
+Auth's identity, membership, session, invitation,
 audit and delivery state use MySQL. Provider claims and email addresses do not
 automatically grant application permissions.
 
@@ -23,6 +30,14 @@ restricted roles and local mailbox. Repeating setup preserves keys, credentials
 and business data. `-SkipProviderStartup` keeps provider lifecycle external when
 the configured existing provider is already available. The setup does not start
 the PostgreSQL-backed auth API or migrate its application tables.
+
+If Docker recreates its local network with a different subnet, setup stops auth
+before reconciling `AccountHost` and installing restricted accounts for that
+network. It retains a configuration backup and preserves secrets, signing keys,
+login callbacks and membership settings. Database/address changes remain errors.
+For the complete dependency chain, use
+`powershell -NoProfile -ExecutionPolicy Bypass -File docker/mysql-dev/setup-platform.ps1`
+from the repository root; it stops if a stage fails.
 
 | Address | Purpose |
 | --- | --- |
@@ -143,7 +158,7 @@ and immutable subject (Keycloak user ID), and prepare this private JSON file as
 ```json
 {
   "TenantID": "existing-active-data-model-tenant-uuid",
-  "Issuer": "http://localhost:8090/realms/fraud",
+  "Issuer": "http://localhost:8088/identity/realms/fraud",
   "Subject": "existing-keycloak-user-id",
   "Name": "Local administrator",
   "Roles": ["tenant_admin", "platform_admin"]

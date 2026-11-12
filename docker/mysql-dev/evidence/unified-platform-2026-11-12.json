@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-12",
+  "compose": "docker/compose.yaml",
+  "setup": "docker/setup.ps1",
+  "project": "fraud-mysql-dev",
+  "applicationOrigin": "http://localhost:8088",
+  "apiPrefix": "/services",
+  "retainedIdentityIssuer": "http://localhost:8090/realms/fraud",
+  "verification": {
+    "existingPlatformConsolidationPassed": true,
+    "setupSkipBuildRestartPassed": true,
+    "frontendProductionBuildPassed": true,
+    "nodeValidationTestsPassed": 17,
+    "isolatedProxyContractsPassed": 6,
+    "swaggerBrowserExecutionPassed": 6,
+    "realRetainedDemoLoginPassed": true,
+    "secureSessionCookieAndCallbackPassed": true,
+    "authenticatedFrontendAPIContractsPassed": 4,
+    "frontendPagesWithoutRouteShadowingPassed": 4,
+    "csrfAndMissingInvalidCredentialsRejected": true,
+    "credentialAndKeyFilesUnchanged": 35,
+    "registeredTenantsRetained": 154,
+    "providerAccountsRetained": 4,
+    "originalApplicationAndProviderVolumeMountsRetained": true,
+    "runningComposeProjects": ["fraud-mysql-dev"],
+    "publishedHostPorts": [8088, 8090]
+  },
+  "limitations": [
+    "Validated migration of the existing retained local installation; a separate empty-workspace installation was not exercised.",
+    "Keycloak retains port 8090 and its existing issuer to preserve provider identity relationships.",
+    "Provider rollback guards were reviewed but not exercised by injecting a database startup failure."
+  ]
+}

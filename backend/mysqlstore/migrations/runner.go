@@ -210,7 +210,19 @@ func (r *Runner) Status(ctx context.Context) ([]History, error) {
 // After. An existing object without a journal is never silently adopted. Errors
 // leave dirty state visible; there is no force-clean or destructive down command.
 func (r *Runner) Apply(ctx context.Context) error {
-	return r.apply(ctx, nil)
+	return r.apply(ctx, nil, len(r.plan.Steps))
+}
+
+// ApplyThrough installs a prerequisite prefix of the retained full plan without
+// truncating its lineage. Later journal rows are still checked; a dirty suffix
+// is preserved for its owner to resume after cross-owner prerequisites exist.
+func (r *Runner) ApplyThrough(ctx context.Context, stepID string) error {
+	for i, step := range r.plan.Steps {
+		if step.ID == stepID {
+			return r.apply(ctx, nil, i+1)
+		}
+	}
+	return errors.New("prerequisite step is absent from the retained migration plan")
 }
 
 // ApplyGuarded checks deployment identity/policy on the locked DDL connection
@@ -221,10 +233,10 @@ func (r *Runner) ApplyGuarded(ctx context.Context, guard func(context.Context, *
 	if guard == nil {
 		return errors.New("same-session pre-write migration guard required")
 	}
-	return r.apply(ctx, guard)
+	return r.apply(ctx, guard, len(r.plan.Steps))
 }
 
-func (r *Runner) apply(ctx context.Context, guard func(context.Context, *sql.Conn) error) error {
+func (r *Runner) apply(ctx context.Context, guard func(context.Context, *sql.Conn) error, through int) error {
 	return r.locked(ctx, func(conn *sql.Conn, schema string) error {
 		check := func() error {
 			if err := ctx.Err(); err != nil {
@@ -254,6 +266,15 @@ func (r *Runner) apply(ctx context.Context, guard func(context.Context, *sql.Con
 		}
 		for i, h := range history {
 			s := r.plan.Steps[i]
+			if h.State == "dirty" && i >= through {
+				actual, err := Definition(ctx, conn, r.plan.Database, s.Kind, s.Name)
+				if err != nil {
+					return err
+				}
+				if actual != s.Before && actual != s.After {
+					return fmt.Errorf("dirty suffix step %s: %w", s.ID, ErrDrift)
+				}
+			}
 			if latest[s.Kind+":"+s.Name] != i || h.State != "applied" {
 				continue
 			}
@@ -265,7 +286,7 @@ func (r *Runner) apply(ctx context.Context, guard func(context.Context, *sql.Con
 				return fmt.Errorf("applied step %s: %w", s.ID, ErrDrift)
 			}
 		}
-		for i, s := range r.plan.Steps {
+		for i, s := range r.plan.Steps[:through] {
 			if i < len(history) && history[i].State == "applied" {
 				continue
 			}

@@ -6,10 +6,10 @@ function Checked([string]$Program,[string[]]$Arguments) {
     & $Program @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Program failed; see output above" }
 }
-Checked 'node' @((Join-Path $service 'scripts/prepare-mysql.mjs'))
 $compose = @('compose','--profile','install','--env-file',(Join-Path $local 'compose.env'),'-f',(Join-Path $service 'docker-compose-mysql.yml'))
 Checked 'docker' ($compose + @('up','-d','--wait','mysql','mysql-reference'))
 Checked 'docker' ($compose + @('stop','screening-service','screening-worker'))
+Checked 'node' @((Join-Path $service 'scripts/prepare-mysql.mjs'),'--reconcile-network')
 Checked 'docker' ($compose + @('build','migrate-screening'))
 Checked 'docker' ($compose + @('run','--rm','--no-deps','migrate-screening'))
 Checked 'docker' ($compose + @('up','-d','--no-deps','--wait','screening-service','screening-worker'))

@@ -6,6 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
+import {issuerURLs} from '../../../docker/keycloak/urls.mjs';
 
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 export const supportedRoles=['tenant_admin','case_manager_admin','case_investigator','platform_viewer','platform_builder','platform_publisher','platform_admin'];
@@ -73,6 +74,11 @@ function readJSON(path,max=65536){
 }
 function readEnv(path){return Object.fromEntries(readFileSync(path,'utf8').split(/\r?\n/).filter(line=>line&&!line.startsWith('#')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)];}));}
 function localURL(value){const url=new URL(value);requireValue(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)&&!url.username&&!url.password&&!url.search&&!url.hash,'Only local development service URLs are supported');return url;}
+export function dataModelBase(value){
+  const url=localURL(value);
+  requireValue(['/', '/services/data-model', '/services/data-model/'].includes(url.pathname),'Unexpected local data-model base URL');
+  return url.origin+(url.pathname==='/'?'':url.pathname.replace(/\/$/,''));
+}
 async function request(url,options={}){
   try{return await fetch(url,{...options,redirect:'error',signal:AbortSignal.timeout(20000)});}
   catch{throw Error('Local service request failed; no automatic retry was attempted');}
@@ -105,12 +111,11 @@ async function main(){
   const local=resolve(root,'.local/mysql-dev'),runtime=resolve(local,'auth-runtime');
   const config=readJSON(resolve(runtime,'config.json'));
   requireValue(config.Database==='fraud'&&config.Provider.ClientID==='fraud-auth','Expected the existing local MySQL fraud auth profile');
-  const issuer=localURL(config.Provider.IssuerURL),dataModel=localURL(values['data-model-url']);
-  requireValue(issuer.pathname==='/realms/fraud'&&dataModel.pathname==='/','Unexpected local provider or data-model base URL');
+  const issuer=issuerURLs(config.Provider.IssuerURL),dataModel=dataModelBase(values['data-model-url']);
   const admin=readEnv(resolve(root,'.local/auth-provider/keycloak.env'));
   requireValue(admin.KC_BOOTSTRAP_ADMIN_USERNAME&&admin.KC_BOOTSTRAP_ADMIN_PASSWORD,'Local provider administrator credentials are missing');
-  const providerRequest=providerClient(issuer.origin,admin);
-  const providerUsers=issuer.origin+'/admin/realms/fraud/users';
+  const providerRequest=providerClient(issuer.base,admin);
+  const providerUsers=issuer.users;
   const records=[];
   const privateDir=resolve(local,'user-bootstrap'),provisionDir=resolve(runtime,'user-bootstrap');
   const record=(event)=>{
@@ -120,7 +125,7 @@ async function main(){
   const services={
     async tenant(selector){
       const path=selector.id?'/v1/tenants/'+selector.id:'/v1/tenants';
-      const result=await json(await request(dataModel.origin+path),'Tenant lookup');
+      const result=await json(await request(dataModel+path),'Tenant lookup');
       const tenants=selector.id?[result.tenant]:result.tenants;
       requireValue(Array.isArray(tenants)&&tenants.length<=5000,'Tenant catalog is unavailable or too large; select an id');
       return selectTenant(selector,tenants);

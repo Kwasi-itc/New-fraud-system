@@ -16,4 +16,5 @@ $compose = @('compose','-f',(Join-Path $frontend 'docker-compose-mysql.yml'))
 Checked 'docker' @('compose','-f',(Join-Path $frontend '../backend/data-model-service/docker-compose-mysql.yml'),'run','--rm','--no-deps','data-model-author','/app/mysql-local-author','--sync-local-consumers')
 Checked 'docker' ($compose + @('build','frontend'))
 Checked 'docker' ($compose + @('up','-d','--no-deps','--wait','frontend'))
-Write-Output 'Authenticated frontend: http://localhost:3002. Sign in with a provisioned Keycloak account.'
+$origin = if ($env:FRAUD_APP_ORIGIN) { $env:FRAUD_APP_ORIGIN } else { 'http://localhost:3002' }
+Write-Output "Authenticated frontend origin: $origin. Sign in with a provisioned Keycloak account."

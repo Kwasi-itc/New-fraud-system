@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-12",
+  "profile": "unified-local-mysql",
+  "keycloakVersion": "26.8.0",
+  "database": "mysql:3306/keycloak",
+  "applicationDatabase": "mysql:3306/fraud",
+  "issuer": "http://localhost:8090/realms/fraud",
+  "verification": {
+    "offlineRealmExportImportPassed": true,
+    "realmsRetained": 2,
+    "usersRetained": 4,
+    "userAndRealmIdsPreserved": true,
+    "passwordMaterialPreserved": true,
+    "existingApplicationClientSecretsAndCallbacksPreserved": true,
+    "rolesAndSigningKeysPreserved": true,
+    "liveKeycloakMySQLConnectionVerified": true,
+    "keycloakAccountCannotReadFraudTables": true,
+    "noRunningPostgreSQLContainer": true,
+    "oldPostgreSQLVolumeRetainedOffline": true,
+    "retainedDemoBrowserLoginPassed": true,
+    "authenticatedFrontendAPIContractsPassed": 4,
+    "frontendPageChecksPassed": 4,
+    "fraudAPIReadinessChecksPassed": 6,
+    "applicationTenantsUnchanged": 154,
+    "originalCredentialAndKeyFilesUnchanged": 35,
+    "nodeValidationTestsPassed": 22,
+    "normalSetupSkipBuildRestartPassed": true,
+    "rollbackToPostgreSQLExercisedSuccessfully": true,
+    "resumedVerificationDidNotOverwritePopulatedRealms": true
+  },
+  "normalization": "Only generated secrets for known bearer-only built-in clients whose source export had no secret are normalized. Existing secrets, all application clients and client flow flags remain strict checks.",
+  "limitations": [
+    "Keycloak's realm export does not migrate active provider sessions, events, workflow state or revoked tokens. The original PostgreSQL volume remains available offline.",
+    "An independent empty-workspace first installation was not exercised; the retained-data migration and repeated normal setup were verified.",
+    "The login issuer remains on port 8090; this change migrates database storage only."
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "at": "2026-11-11T09:15:26.232Z",
+  "passed": true,
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File docker/mysql-dev/setup-platform.ps1",
+  "nodeTests": {
+    "passed": 13
+  },
+  "migrationAndReferenceTests": {
+    "passed": true,
+    "raceDetector": true,
+    "disposableMySQL": true
+  },
+  "retainedCredentialFiles": {
+    "checked": 25,
+    "changed": 0
+  },
+  "migrationJournals": {
+    "application": {
+      "case_manager": {
+        "steps": 72,
+        "dirty": 0
+      },
+      "screening": {
+        "steps": 84,
+        "dirty": 0
+      },
+      "identity": {
+        "steps": 14,
+        "dirty": 0
+      },
+      "identity_auth": {
+        "steps": 7,
+        "dirty": 0
+      }
+    },
+    "reference": {
+      "case_manager": {
+        "steps": 72,
+        "dirty": 0
+      },
+      "screening": {
+        "steps": 84,
+        "dirty": 0
+      },
+      "identity": {
+        "steps": 14,
+        "dirty": 0
+      },
+      "identity_auth": {
+        "steps": 7,
+        "dirty": 0
+      }
+    }
+  },
+  "httpProbes": [
+    {
+      "service": "data-model",
+      "port": 8080,
+      "path": "/readyz",
+      "status": 200
+    },
+    {
+      "service": "ingestion",
+      "port": 8081,
+      "path": "/readyz",
+      "status": 200
+    },
+    {
+      "service": "decisions",
+      "port": 8082,
+      "path": "/readyz",
+      "status": 200
+    },
+    {
+      "service": "screening",
+      "port": 8085,
+      "path": "/readyz",
+      "status": 200
+    },
+    {
+      "service": "case-management",
+      "port": 8086,
+      "path": "/readyz",
+      "status": 200
+    },
+    {
+      "service": "auth",
+      "port": 8087,
+      "path": "/readyz",
+      "status": 204
+    },
+    {
+      "service": "frontend",
+      "port": 3002,
+      "path": "/login",
+      "status": 200
+    }
+  ],
+  "liveAcceptance": {
+    "report": "frontend/evidence/mysql-integration/2026-11-11T09-10-05.562Z/report.json",
+    "suites": 10,
+    "requests": 48,
+    "temporaryProviderUserRemoved": true
+  },
+  "applicationDatabaseReset": false
+}

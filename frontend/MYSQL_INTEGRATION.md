@@ -1,6 +1,6 @@
 # Frontend with the local MySQL services
 
-Open **http://localhost:3002** and select **Continue to sign in**. Use an existing Keycloak account provisioned by the auth service. Port 3000 belongs to another application on this development machine.
+For the unified platform, run `powershell -NoProfile -ExecutionPolicy Bypass -File docker/setup.ps1`, open **http://localhost:8088** and select **Continue to sign in**. Keycloak login and administration use `/identity/` on that same port. Use an existing Keycloak account provisioned by the auth service. Individual service ports stay inside Docker.
 
 The frontend resolves its tenant from the current auth session. It does not require a tenant or a service credential in a browser environment variable. Backend URLs and mounted service credentials stay on the Next server. Data-model resource IDs without a tenant prefix are checked against the current tenant's metadata before forwarding.
 
@@ -26,13 +26,18 @@ fresh local credentials on that device rather than copying `.local/`.
 | Case management and authorized evidence | `/api/cases/*`, `/api/case-evidence/*`, `/api/case-review/*` | case-manager-service:8086 and resource owners |
 | Manual screening | `/api/screening-search/*` | screening-service:8085 |
 
-From the repository root, after completing the backend MySQL setup:
+For initial installation or a restarted Docker network, use the complete
+[platform setup](../docker/mysql-dev/README.md#unified-frontend-and-backend):
+`powershell -NoProfile -ExecutionPolicy Bypass -File docker/mysql-dev/setup-platform.ps1`.
+It installs prerequisites on both database servers, reconciles local account
+subnets and stops on the first error. To rebuild just the already installed
+frontend integration, use:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File frontend/scripts/setup-mysql.ps1
 ```
 
-This registers the exact fraud callback on the existing local Keycloak client, prepares ignored frontend settings, builds the updated backend images, synchronizes grants on published physical tables, reloads the auth API and worker, and starts the frontend. It does not reset application volumes or run business-work retries. Keycloak keeps its existing PostgreSQL storage; application data uses MySQL.
+This separate development helper registers the fraud callback on the existing local Keycloak client, prepares ignored frontend settings, builds backend images, synchronizes grants on published physical tables, reloads the auth API and worker, and starts the frontend. It can publish individual development ports, including frontend port 3002; use `docker/setup.ps1` to return to the unified single-port setup. It does not reset application volumes or run business-work retries. Keycloak uses its dedicated `keycloak` database on the shared MySQL server; application data uses `fraud`.
 
 The local table author grants the existing ingestion accounts `SELECT, INSERT, UPDATE` on each newly created physical table, and gives existing decision/case/data-model reader accounts `SELECT`. The operator sync paginates existing publications and does not grant privileges across the schema or create accounts. The local ingestion worker resolves each resource's actual published owner. Isolated runtimes retain their configured tenant/table scope.
 

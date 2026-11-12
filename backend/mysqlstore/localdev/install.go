@@ -30,6 +30,7 @@ type Installation struct {
 	Grants   []string
 	Verify   func(context.Context, *sql.DB, migrations.Plan) error
 	Upgrade  func(context.Context, *sql.DB, migrations.Plan) (migrations.Plan, error)
+	Through  string // prerequisite prefix of an existing, unmodified full artifact
 }
 
 func socketDB(ctx context.Context, socket, password string) (*sql.DB, error) {
@@ -85,6 +86,17 @@ func matchingSource(plan migrations.Plan, installation Installation) error {
 }
 
 func Install(ctx context.Context, installation Installation) error {
+	if installation.Through != "" {
+		found := false
+		for _, step := range installation.Steps {
+			if step.ID == installation.Through {
+				found = true
+			}
+		}
+		if !found {
+			return errors.New("prerequisite step is absent from source")
+		}
+	}
 	if _, err := Origin(os.Getenv("LOCAL_MYSQL_NO_AUTH"), os.Getenv("APP_ORIGIN")); err != nil {
 		return err
 	}
@@ -186,6 +198,9 @@ func Install(ctx context.Context, installation Installation) error {
 			plan = upgraded
 		}
 	} else if errors.Is(err, os.ErrNotExist) {
+		if installation.Through != "" {
+			return errors.New("prefix replay requires an existing full artifact")
+		}
 		captured = true
 		plan = migrations.Plan{Database: Database, Owner: installation.Owner, Steps: append([]migrations.Step(nil), installation.Steps...)}
 		conn, err := reference.Conn(ctx)
@@ -238,31 +253,11 @@ func Install(ctx context.Context, installation Installation) error {
 			continue
 		}
 		if db == reference {
-			conn, err := db.Conn(ctx)
+			complete, err := referenceReady(ctx, db, plan, installation.Through)
 			if err != nil {
 				return err
 			}
-			latest := map[string]migrations.Step{}
-			for _, step := range plan.Steps {
-				latest[step.Kind+":"+step.Name] = step
-			}
-			present := 0
-			for _, step := range latest {
-				actual, err := migrations.Definition(ctx, conn, Database, step.Kind, step.Name)
-				if err != nil {
-					conn.Close()
-					return err
-				}
-				if actual != "" {
-					if actual != step.After {
-						conn.Close()
-						return migrations.ErrDrift
-					}
-					present++
-				}
-			}
-			conn.Close()
-			if present == len(latest) {
+			if complete {
 				for _, grant := range installation.Grants {
 					if _, err := db.ExecContext(ctx, grant); err != nil {
 						return err
@@ -270,15 +265,16 @@ func Install(ctx context.Context, installation Installation) error {
 				}
 				continue
 			}
-			if present != 0 {
-				return errors.New("partial reference schema; recreate the disposable reference container")
-			}
 		}
 		runner, err := migrations.NewForOwner(db, installation.Owner, plan)
 		if err != nil {
 			return err
 		}
-		if err := runner.Apply(ctx); err != nil {
+		apply := runner.Apply
+		if installation.Through != "" {
+			apply = func(ctx context.Context) error { return runner.ApplyThrough(ctx, installation.Through) }
+		}
+		if err := apply(ctx); err != nil {
 			return err
 		}
 		for _, grant := range installation.Grants {

@@ -39,8 +39,8 @@ services:
       MYSQL_DATABASE: fraud
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
     secrets: [mysql_root_password]
-    tmpfs: [/var/lib/mysql]
     volumes:
+      - mysql_dev_reference_data:/var/lib/mysql
       - mysql_dev_reference_socket:/var/run/mysqld
     mem_limit: 1g
     healthcheck:
@@ -149,3 +149,4 @@ volumes:
   mysql_dev_data:
   mysql_dev_socket:
   mysql_dev_reference_socket:
+  mysql_dev_reference_data:

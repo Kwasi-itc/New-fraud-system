@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {applyUsers,planUsers,providerClient,selectTenant,validateManifest} from './setup-mysql-users.mjs';
+import {applyUsers,dataModelBase,planUsers,providerClient,selectTenant,validateManifest} from './setup-mysql-users.mjs';
+
+test('local data-model URL supports a gateway prefix without accepting arbitrary destinations',()=>{
+  assert.equal(dataModelBase('http://localhost:8080'),'http://localhost:8080');
+  assert.equal(dataModelBase('http://localhost:8088/services/data-model/'),'http://localhost:8088/services/data-model');
+  for(const value of ['http://remote.example/services/data-model','http://localhost:8088/services/auth','http://localhost:8088/services/data-model?token=bad','http://user@localhost:8088/services/data-model'])assert.throws(()=>dataModelBase(value));
+});
 
 const tenant={id:'11111111-1111-4111-8111-111111111111',name:'Example tenant',external_key:'example',status:'active'};
 const account={id:'22222222-2222-4222-8222-222222222222',username:'operator',enabled:true};

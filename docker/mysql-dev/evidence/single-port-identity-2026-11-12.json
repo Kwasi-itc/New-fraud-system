@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-12",
+  "profile": "unified-local-mysql",
+  "project": "fraud-mysql-dev",
+  "publishedPorts": ["127.0.0.1:8088"],
+  "frontend": "http://localhost:8088/",
+  "apiIndex": "http://localhost:8088/services/",
+  "identity": "http://localhost:8088/identity/",
+  "issuer": "http://localhost:8088/identity/realms/fraud",
+  "keycloakDatabase": "mysql:3306/keycloak",
+  "verification": {
+    "completeSetupSkipBuildPassed": true,
+    "runtimePortBindingsInspected": true,
+    "externalIdentityLinksPreserved": 31,
+    "membershipsRolesAndVersionsUnchanged": 174,
+    "credentialAndKeyFilesUnchanged": 33,
+    "applicationClientSecretUnchanged": true,
+    "invitationIssuerReferencesMoved": 2,
+    "nodeValidationTestsPassed": 17,
+    "ownerIssuerIntegrationTestsPassedWithRaceDetector": 3,
+    "isolatedProxyContractsPassed": 7,
+    "fraudAPIReadinessAndDocumentationChecksPassed": 6,
+    "discoveryAndPublicSigningKeysPassed": true,
+    "retainedDemoBrowserLoginPassed": true,
+    "sameOriginCallbackAndProviderCookiePathsPassed": true,
+    "authenticatedFrontendAPIContractsPassed": 4,
+    "authenticatedFrontendPagesPassed": 4,
+    "frontendCSRFRejectionPassed": true,
+    "keycloakAdminLoginAndAssetsPassed": true,
+    "keycloakMySQLStorageAndPrivilegeVerificationPassed": true
+  },
+  "limitations": [
+    "Retained application session behavior was verified in the owner integration tests; a live browser session spanning the original issuer cutover was not verified.",
+    "Old in-progress sign-in transactions expire during issuer moves; restart sign-in if one was open.",
+    "The full retained-platform setup was exercised. An independent empty-workspace first installation was not exercised.",
+    "This is the local HTTP development setup. Production TLS and an external hostname were not configured."
+  ]
+}

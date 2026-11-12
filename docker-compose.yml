@@ -1,3 +1,5 @@
+# PostgreSQL application profile. For the unified local MySQL frontend/backend,
+# use docker/setup.ps1 and docker/compose.yaml instead of starting this stack.
 x-backend-common: &backend-common
   SERVICE_AUTH_MODE: disabled
   SERVICE_AUTH_TOKEN: ""

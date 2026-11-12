@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import {gatewayIssuer} from '../../../docker/keycloak/urls.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const directory = path.join(root, '.local', 'auth-provider');
@@ -26,7 +27,7 @@ if (!existsSync(keycloakPath)) {
   ].join('\n'), { flag: 'wx', mode: 0o600 });
   writeFileSync(authPath, [
     'AUTH_ENV=development',
-    'OIDC_ISSUER_URL=http://localhost:8090/realms/fraud',
+    'OIDC_ISSUER_URL='+gatewayIssuer().issuer,
     'OIDC_BACKCHANNEL_ORIGIN=http://keycloak:8080',
     'OIDC_CLIENT_ID=fraud-auth',
     `OIDC_CLIENT_SECRET=${clientSecret}`,
