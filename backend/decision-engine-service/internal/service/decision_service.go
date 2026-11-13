@@ -75,6 +75,7 @@ type DBPoolStats struct {
 type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
+	InlineScreeningEvaluator      screening.InlineEvaluator
 	NameRecognizer                screening.NameRecognizer
 	preparationMetrics            *preparationMetrics
 	payloadValidator              *payload.Validator
@@ -605,6 +606,21 @@ func (s DecisionService) evaluateScenarioWithOptions(
 		}
 		routing = &read
 	}
+	// Synchronous matching happens before any write transaction and before
+	// outcome-dependent workflows/scoring. Persist its exact evidence atomically
+	// with the decision so workers never repeat the search against newer data.
+	screeningRouting := routing
+	if screeningRouting == nil {
+		configs, readErr := s.getActiveScreeningConfigs(ctx, tenantID, scenarioID)
+		if readErr != nil {
+			return DecisionEvaluationResult{}, readErr
+		}
+		screeningRouting = &ports.EvaluationRoutingSnapshot{TenantID: tenantID, ScenarioID: scenarioID, ScreeningConfigs: configs}
+	}
+	inlineExecs, err := s.applyInlineScreening(ctx, &item, req.Fields, screeningRouting)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
 	currentStage = "workflow_build"
 	workflowBuildStartedAt := time.Now()
 	workflowExecs, err := s.buildWorkflowExecutionsWithRouting(ctx, item, ruleExecs, runtime, routing)
@@ -616,10 +632,11 @@ func (s DecisionService) evaluateScenarioWithOptions(
 	stageStartedAt = workflowBuiltAt
 	currentStage = "screening_build"
 	screeningBuildStartedAt := time.Now()
-	screeningExecs, err := s.buildScreeningExecutionsWithRouting(ctx, item, req.Fields, routing)
+	screeningExecs, err := s.buildScreeningExecutionsWithRouting(ctx, item, req.Fields, screeningRouting)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	screeningExecs = append(inlineExecs, screeningExecs...)
 	screeningBuiltAt := time.Now()
 	timings["screening_build_us"] = screeningBuiltAt.Sub(screeningBuildStartedAt).Microseconds()
 	stageStartedAt = screeningBuiltAt
@@ -2435,6 +2452,9 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 	return s.buildScreeningExecutionsWithRouting(ctx, item, objectFields, nil)
 }
 func (s DecisionService) buildScreeningExecutionsWithRouting(ctx context.Context, item decision.Decision, objectFields map[string]any, routing *ports.EvaluationRoutingSnapshot) ([]screening.Execution, error) {
+	return s.buildScreeningPhase(ctx, item, objectFields, routing, false)
+}
+func (s DecisionService) buildScreeningPhase(ctx context.Context, item decision.Decision, objectFields map[string]any, routing *ports.EvaluationRoutingSnapshot, inline bool) ([]screening.Execution, error) {
 	var configs []screening.Config
 	var err error
 	if routing != nil {
@@ -2449,17 +2469,24 @@ func (s DecisionService) buildScreeningExecutionsWithRouting(ctx context.Context
 	out := make([]screening.Execution, 0, len(configs))
 	ignoreCache := map[string][]string{}
 	for _, cfg := range configs {
-		if !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
-			continue
-		}
 		// Reuse the bounded workflow predicate contract; only the current object is
 		// visible, with no unscoped related-record lookup or provider side effect.
 		var configured struct {
-			Condition    *workflow.ConditionTree `json:"condition"`
-			IgnoreListID string                  `json:"ignore_list_id"`
+			ForcedOutcome string                  `json:"forced_outcome"`
+			Condition     *workflow.ConditionTree `json:"condition"`
+			IgnoreListID  string                  `json:"ignore_list_id"`
 		}
 		if err := json.Unmarshal(cfg.ConfigJSON, &configured); err != nil {
 			return nil, invalidScreeningQuery("Invalid screening configuration.")
+		}
+		if (configured.ForcedOutcome != "") != inline {
+			continue
+		}
+		if !inline && !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
+			continue
+		}
+		if inline && configured.ForcedOutcome != "review" && configured.ForcedOutcome != "block_and_review" && configured.ForcedOutcome != "decline" {
+			return nil, invalidScreeningQuery("Invalid forced outcome.")
 		}
 		if configured.Condition != nil {
 			if err := configured.Condition.Validate(); err != nil {
@@ -2502,6 +2529,41 @@ func (s DecisionService) buildScreeningExecutionsWithRouting(ctx context.Context
 			continue
 		} // Explicit preprocessing skip; no provider execution.
 		exec.RequestJSON = req
+		if inline {
+			if s.InlineScreeningEvaluator == nil {
+				return nil, screening.ErrInlineUnavailable
+			}
+			var policyRequest map[string]json.RawMessage
+			if json.Unmarshal(req, &policyRequest) != nil {
+				return nil, screening.ErrInlineFailed
+			}
+			policyRequest["forced_outcome"], _ = json.Marshal(configured.ForcedOutcome)
+			req, err = json.Marshal(policyRequest)
+			if err != nil {
+				return nil, screening.ErrInlineFailed
+			}
+			result, err := s.InlineScreeningEvaluator(ctx, item.TenantID, req)
+			if err != nil || ctx.Err() != nil {
+				return nil, screening.ErrInlineFailed
+			}
+			if result.MatchCount < 0 || result.MatchCount > 50 || (result.Partial && result.MatchCount == 0) || len(result.Result) > 512<<10 || !json.Valid(result.Result) {
+				return nil, screening.ErrInlineFailed
+			}
+			var body map[string]json.RawMessage
+			if json.Unmarshal(req, &body) != nil {
+				return nil, screening.ErrInlineFailed
+			}
+			body["inline_result"] = result.Result
+			exec.RequestJSON, err = json.Marshal(body)
+			if err != nil {
+				return nil, screening.ErrInlineFailed
+			}
+			forced := ""
+			if result.MatchCount > 0 {
+				forced = configured.ForcedOutcome
+			}
+			exec.ResponseJSON, _ = json.Marshal(map[string]any{"status": "evaluated", "match_count": result.MatchCount, "partial": result.Partial, "forced_outcome": forced})
+		}
 		out = append(out, exec)
 	}
 	return out, nil

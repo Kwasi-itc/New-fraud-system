@@ -24,7 +24,65 @@ func (s ScreeningService) InvestigatorReview(ctx context.Context, store ports.Mu
 	}
 	eligible := match.Status == "pending" && !parent.IsArchived &&
 		(parent.Status == "awaiting_review" || parent.Status == "confirmed_hit")
+	if parent.Partial {
+		return identity.State{Status: string(match.Status), Version: match.UpdatedAt.UTC().Format(time.RFC3339Nano), Eligible: false, Actions: []string{}, Reason: "Screening results are incomplete. Refine the search before reviewing matches."}, nil
+	}
+	if native, ok := store.(interface {
+		IsScreeningSuperseded(context.Context, string, string) (bool, error)
+	}); ok {
+		replaced, e := native.IsScreeningSuperseded(ctx, tenant, parent.ID)
+		if e != nil {
+			return identity.State{}, e
+		}
+		if replaced {
+			return identity.State{Status: string(match.Status), Version: match.UpdatedAt.UTC().Format(time.RFC3339Nano), Eligible: false, Actions: []string{}, Reason: "This screening was refined. Review its replacement; the original evidence is retained."}, nil
+		}
+	}
 	actions := []string{"confirmed_hit", "no_hit"}
+	whitelistScope := parent
+	if native, ok := store.(interface {
+		CounterpartyScope(context.Context, screening.Screening) (screening.Screening, error)
+	}); ok {
+		whitelistScope, err = native.CounterpartyScope(ctx, parent)
+		if err != nil {
+			return identity.State{}, err
+		}
+	}
+	if native, ok := store.(ports.CounterpartyExclusionStore); ok && whitelistScope.UniqueCounterpartyIdentifier != nil && *whitelistScope.UniqueCounterpartyIdentifier != "" && !whitelistScope.IsManual && whitelistScope.DecisionID != "" {
+		active, e := native.CounterpartyExclusions(ctx, tenant, whitelistScope.Provider, *whitelistScope.UniqueCounterpartyIdentifier, []string{match.EntityID})
+		if e != nil {
+			return identity.State{}, e
+		}
+		if eligible {
+			actions = append(actions, "dismiss_and_whitelist")
+		}
+		if active[match.EntityID] != "" && match.Status == "no_hit" {
+			eligible = true
+			actions = []string{"remove_counterparty_exclusion"}
+		}
+		if cmd != nil && (cmd.Action == "dismiss_and_whitelist" || cmd.Action == "remove_counterparty_exclusion") {
+			if !eligible {
+				return identity.State{}, identity.Conflict()
+			}
+			allowed := false
+			for _, a := range actions {
+				allowed = allowed || a == cmd.Action
+			}
+			if !allowed {
+				return identity.State{}, identity.Conflict()
+			}
+			if e := native.SetCounterpartyExclusion(ctx, whitelistScope, match, actor, cmd, cmd.Action == "dismiss_and_whitelist"); e != nil {
+				return identity.State{}, e
+			}
+			if cmd.Action == "dismiss_and_whitelist" {
+				match, e = s.reviewMatch(ctx, store, tenant, resource, "no_hit", "[counterparty whitelist] "+cmd.Findings, actor, false, false)
+				if e != nil {
+					return identity.State{}, e
+				}
+			}
+			return identity.State{Status: string(match.Status), Version: match.UpdatedAt.UTC().Format(time.RFC3339Nano), Eligible: false, Actions: []string{}}, nil
+		}
+	}
 	scope, scoped := objectExclusionScope(parent)
 	excluded := false
 	exclusionVersion := ""

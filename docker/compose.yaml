@@ -1,5 +1,5 @@
 # Canonical local MySQL platform: one Docker Desktop project, one app URL.
-# First setup: powershell -File docker/setup.ps1
+# First setup (macOS/Linux/Windows): node docker/setup.mjs
 # Subsequent restarts: docker compose -f docker/compose.yaml up -d --wait
 name: fraud-mysql-dev
 include: [provider.compose.yaml]

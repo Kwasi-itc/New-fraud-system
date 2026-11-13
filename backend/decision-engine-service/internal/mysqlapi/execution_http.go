@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/mysqlexecution"
@@ -558,6 +559,10 @@ func executionHTTPError(c *gin.Context, err error) {
 	var invalid *payload.Error
 	var modelContract *payload.ModelContractError
 	switch {
+	case errors.Is(err, screening.ErrInlineUnavailable), errors.Is(err, screening.ErrInlineFailed):
+		status, code = 503, "screening_evaluation_unavailable"
+	case errors.Is(err, screening.ErrInvalidQuery):
+		status, code = 422, "invalid_screening_input"
 	case errors.As(err, &uncertain):
 		status, code, executionID = 503, "admission_outcome_unknown", uncertain.ExecutionID
 	case errors.As(err, &wait):

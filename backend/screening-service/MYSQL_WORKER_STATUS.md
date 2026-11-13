@@ -4,6 +4,7 @@ Native work uses durable domain rows and fenced leases. PostgreSQL River jobs ar
 
 ## Worker checklist
 
+- [x] Counterparty whitelist suppression retains candidates and immutable application receipts; inline evidence preserves evaluation-time suppression.
 - [x] Screening dispatch, recovery, match persistence and stale-claim fencing.
 - [x] Monitored-object reads, continuous-run provenance and atomic pending screening creation.
 - [x] Dataset catalog/delta/rescreen jobs, bounded checkpoint pages beyond 500 objects and fenced recovery.

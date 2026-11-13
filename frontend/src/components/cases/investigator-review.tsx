@@ -9,6 +9,8 @@ import { fieldClass, Problem, readable } from "./shared";
 import { cn } from "@/lib/utils";
 
 type ReviewState = {
+	 disabled_actions?: Record<string, string>;
+	 reason?: string;
   status: string;
   version: string;
   eligible: boolean;
@@ -107,7 +109,7 @@ export function InvestigatorReview({
 
               {!query.data.eligible ? (
                 <p className="text-sm text-slate-500 italic">
-                  No action is available. Review and exclusion changes require current case access, an open case and an active inbox.
+                  {query.data.reason ?? "No action is available. Review and exclusion changes require current case access, an open case and an active inbox."}
                 </p>
               ) : (
                 <form
@@ -118,10 +120,10 @@ export function InvestigatorReview({
                     if (
                       !action ||
                       !findings.trim() ||
-                      new TextEncoder().encode(findings.trim()).length > (action === "dismiss_and_exclude" || action === "remove_exclusion" ? 9900 : 10000)
+                      new TextEncoder().encode(findings.trim()).length > (["dismiss_and_exclude", "remove_exclusion", "dismiss_and_whitelist", "remove_counterparty_exclusion"].includes(action) ? 9900 : 10000)
                     ) {
                       setError(
-                        new Error(`Choose an action and enter findings of 1–${action === "dismiss_and_exclude" || action === "remove_exclusion" ? 9900 : 10000} UTF-8 bytes.`)
+                        new Error(`Choose an action and enter findings of 1–${["dismiss_and_exclude", "remove_exclusion", "dismiss_and_whitelist", "remove_counterparty_exclusion"].includes(action) ? 9900 : 10000} UTF-8 bytes.`)
                       );
                       return;
                     }
@@ -179,12 +181,16 @@ export function InvestigatorReview({
                       }}
                     >
                       <option value="">Choose an action</option>
+                      {Object.entries(query.data.disabled_actions ?? {}).map(([value, reason]) => <option key={value} disabled value={value}>{readable(value)} — {reason}</option>)}
                       {query.data.actions.map((value) => (
                         <option key={value} value={value}>
-                          {value === "dismiss_and_exclude" ? "Dismiss and exclude for this monitored object" : value === "remove_exclusion" ? "Remove exclusion for future screenings" : readable(value)}
+                          {value === "dismiss_and_whitelist" ? "Dismiss and whitelist this counterparty" : value === "remove_counterparty_exclusion" ? "Remove counterparty whitelist" : value === "dismiss_and_exclude" ? "Dismiss and exclude for this monitored object" : value === "remove_exclusion" ? "Remove exclusion for future screenings" : readable(value)}
                         </option>
                       ))}
                     </select>
+                    {Object.entries(query.data.disabled_actions ?? {}).map(([value, reason]) => <p key={value} role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{readable(value)} unavailable: {reason}</p>)}
+                    {action === "dismiss_and_whitelist" && <p className="text-sm text-amber-900">Future screenings will suppress only this provider entity for the same tenant and mapped counterparty ID. The reviewed match and suppression history remain stored.</p>}
+                    {action === "remove_counterparty_exclusion" && <p className="text-sm text-blue-900">Future screenings will evaluate this counterparty and provider entity again. Historical results remain unchanged.</p>}
                     {action === "dismiss_and_exclude" && <p className="text-sm text-amber-900">Future continuous screenings will skip this provider entity only for this object and unchanged identifying query fields. Suppressed candidates remain stored. This does not exclude other customers or manual searches.</p>}
                     {action === "remove_exclusion" && <p className="text-sm text-blue-900">Future screenings will evaluate this entity again. The historical screening and candidate remain unchanged, including archived screenings. Removal is recorded in case history; removing an exclusion does not trigger a new search.</p>}
 

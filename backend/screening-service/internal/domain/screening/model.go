@@ -242,6 +242,8 @@ type SearchQuery struct {
 }
 
 type SearchRequest struct {
+	ForcedOutcome                string          `json:"forced_outcome,omitempty"`
+	InlineResult                 *InlineSnapshot `json:"inline_result,omitempty"`
 	Provider                     string          `json:"provider"`
 	DecisionID                   string          `json:"decision_id,omitempty"`
 	ScenarioID                   string          `json:"scenario_id,omitempty"`
@@ -257,6 +259,7 @@ type SearchRequest struct {
 }
 
 type ProviderMatch struct {
+	ExclusionOperationID string `json:"exclusion_operation_id,omitempty"`
 	EntityID                     string          `json:"entity_id"`
 	Name                         string          `json:"name"`
 	Score                        float64         `json:"score"`

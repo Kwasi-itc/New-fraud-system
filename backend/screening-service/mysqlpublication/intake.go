@@ -158,6 +158,12 @@ func (s *Intake) Deliver(ctx context.Context, r IntakeRequest) (out IntakeReceip
 	if _, ok := s.providers[request.Provider]; !ok {
 		return out, ErrInvalid
 	}
+	if request.InlineResult != nil && request.InlineResult.Validate(request) != nil {
+		return out, ErrInvalid
+	}
+	if request.UniqueCounterpartyIdentifier != nil && (!utf8.ValidString(*request.UniqueCounterpartyIdentifier) || len(*request.UniqueCounterpartyIdentifier) > 512) {
+		return out, ErrInvalid
+	}
 	if !utf8.ValidString(request.ObjectType) || !utf8.ValidString(request.ObjectID) || utf8.RuneCountInString(request.ObjectType) > 128 || utf8.RuneCountInString(request.ObjectID) > 512 {
 		return out, ErrInvalid
 	}
@@ -194,8 +200,8 @@ func (s *Intake) Deliver(ctx context.Context, r IntakeRequest) (out IntakeReceip
 		err = tx.QueryRowContext(ctx, "SELECT id FROM "+s.owner.schema+".screening_screenings WHERE tenant_id=? AND execution_id=? FOR UPDATE", mysqlstore.UUID(r.TenantID), mysqlstore.UUID(r.ExecutionID)).Scan(&source)
 		if errors.Is(err, sql.ErrNoRows) {
 			source = mysqlstore.UUID(uuid.New())
-			_, err = tx.ExecContext(ctx, "INSERT INTO "+s.owner.schema+`.screening_screenings(id,tenant_id,decision_id,scenario_id,screening_config_id,execution_id,status,provider,object_type,object_id,request_json,response_json,decision_projection,provider_reference,last_error,created_at,updated_at)
-   VALUES(?,?,?,?,?,?,'pending',?,?,?,?,'{}','{}','','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))`, source, mysqlstore.UUID(r.TenantID), mysqlstore.UUID(decision), mysqlstore.UUID(scenario), mysqlstore.UUID(config), mysqlstore.UUID(r.ExecutionID), request.Provider, request.ObjectType, request.ObjectID, mysqlstore.JSON(body.Request))
+			_, err = tx.ExecContext(ctx, "INSERT INTO "+s.owner.schema+`.screening_screenings(id,tenant_id,decision_id,scenario_id,screening_config_id,execution_id,status,provider,object_type,object_id,request_json,unique_counterparty_identifier,response_json,decision_projection,provider_reference,last_error,created_at,updated_at)
+   VALUES(?,?,?,?,?,?,'pending',?,?,?,?,?,'{}','{}','','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))`, source, mysqlstore.UUID(r.TenantID), mysqlstore.UUID(decision), mysqlstore.UUID(scenario), mysqlstore.UUID(config), mysqlstore.UUID(r.ExecutionID), request.Provider, request.ObjectType, request.ObjectID, mysqlstore.JSON(body.Request), request.UniqueCounterpartyIdentifier)
 		} else if err == nil {
 			// Only this intake may replay a pre-existing source; old fixture/import
 			// rows without a receipt must not be silently adopted as accepted work.

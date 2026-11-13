@@ -12,6 +12,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/mysqlidentity"
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlpublication"
 	driver "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"strings"
@@ -112,6 +113,16 @@ func (s *Store) Review(ctx context.Context, caseID, decision uuid.UUID, command 
 		}
 		before := state(outcome, previous)
 		before.Eligible = before.Eligible && active && status != "closed"
+		if before.Eligible {
+			reason, err := mysqlpublication.DecisionReviewReason(ctx, tx, s.database, s.session.TenantID, decision)
+			if err != nil {
+				return err
+			}
+			if reason != "" {
+				before.Actions = []string{"decline"}
+				before.DisabledActions = map[string]string{"approve": reason}
+			}
+		}
 		if command == nil {
 			out = before
 			return nil
@@ -141,6 +152,9 @@ func (s *Store) Review(ctx context.Context, caseID, decision uuid.UUID, command 
 		}
 		if command.Action != "approve" && command.Action != "decline" {
 			return identity.Invalid("Review action is unavailable.")
+		}
+		if reason := before.DisabledActions[command.Action]; reason != "" {
+			return identity.Invalid(reason)
 		}
 		out = state(outcome, command.Action)
 		result, err := json.Marshal(out)

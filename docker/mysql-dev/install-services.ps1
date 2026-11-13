@@ -1,4 +1,4 @@
-# Owner installers used by docker/setup.ps1 for first setup and explicit upgrades.
+# Legacy owner-by-owner Windows helper. Unified setup uses install-services.mjs.
 param([string]$UsersFile, [switch]$CreateMissingUsers)
 $ErrorActionPreference = 'Stop'
 if ($CreateMissingUsers -and !$UsersFile) { throw '-CreateMissingUsers requires -UsersFile' }

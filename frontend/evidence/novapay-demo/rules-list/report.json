@@ -1,0 +1,25 @@
+{
+  "at": "2026-11-12T13:21:08.864Z",
+  "passed": true,
+  "tenant": "6b3bdad8-60a5-41e0-b093-547f674c1183",
+  "scenario": "7a52d2a1-93a6-4e5f-8370-e88e0c54af69",
+  "scoreRows": 1,
+  "screeningRows": 2,
+  "screeningRequests": [
+    {
+      "method": "GET",
+      "path": "/api/scenario-screening/scenarios/7a52d2a1-93a6-4e5f-8370-e88e0c54af69"
+    },
+    {
+      "method": "GET",
+      "path": "/api/scenario-screening/scenarios/7a52d2a1-93a6-4e5f-8370-e88e0c54af69"
+    },
+    {
+      "method": "GET",
+      "path": "/api/scenario-screening/scenarios/7a52d2a1-93a6-4e5f-8370-e88e0c54af69"
+    }
+  ],
+  "desktopAndMobile": true,
+  "directEditorVerified": true,
+  "url": "http://localhost:3002/detection/7a52d2a1-93a6-4e5f-8370-e88e0c54af69/edit?tab=Rules&iterationId=dd4c4d37-18ef-4e8f-ad09-c6bc46a04d3d"
+}

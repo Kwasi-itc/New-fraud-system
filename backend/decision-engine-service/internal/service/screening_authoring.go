@@ -22,6 +22,15 @@ func (s ScreeningAuthoringService) List(ctx context.Context, t, sc string, a wor
 	return out, err
 }
 func (s ScreeningAuthoringService) Save(ctx context.Context, t, sc string, a workflow.AuthoringActor, r screening.AuthoringRule) (screening.AuthoringRule, error) {
+	if r.ForcedOutcome != "" {
+		if s.Capabilities == nil {
+			return screening.AuthoringRule{}, screening.ErrInlineUnavailable
+		}
+		cap, err := s.Capabilities(ctx)
+		if err != nil || !cap.InlineSupported {
+			return screening.AuthoringRule{}, screening.ErrInlineUnavailable
+		}
+	}
 	if r.UseNER && !s.NameRecognitionSupported {
 		return screening.AuthoringRule{}, screening.ErrRecognitionUnavailable
 	}
@@ -34,7 +43,7 @@ func (s ScreeningAuthoringService) Save(ctx context.Context, t, sc string, a wor
 				cap = screening.AuthoringCapabilities{}
 			}
 		}
-		if (r.UseNER || r.Threshold != nil || r.ResultLimit != nil || len(r.Datasets) > 0) && !cap.MatchingSupported {
+		if (r.UseNER && !cap.MatchingSupported) || (r.Threshold != nil && !cap.MatchingSupported && !cap.ThresholdSupported) || (r.ResultLimit != nil && !cap.MatchingSupported && !cap.ResultLimitSupported) || (len(r.Datasets) > 0 && !cap.MatchingSupported && !cap.DatasetSelectionSupported) {
 			return screening.AuthoringRule{}, screening.ErrMatchingUnavailable
 		}
 		if r.AddressField != "" && !cap.AddressSupported {

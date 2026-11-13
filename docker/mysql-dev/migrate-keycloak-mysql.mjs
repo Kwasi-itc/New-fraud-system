@@ -51,7 +51,7 @@ assert.equal(readFileSync(passwordFile, 'utf8'), provider.KC_DB_PASSWORD, 'Provi
 if (!existsSync(resolve(local, 'root-password.txt'))) {
   const existingData = docker(['volume', 'ls', '--filter', 'name=^fraud-mysql-dev_mysql_dev_data$', '--format', '{{.Name}}']).trim();
   assert(!existingData, 'Restore the retained MySQL root secret before running setup');
-  const setup = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', resolve(root, 'docker/mysql-dev/setup.ps1')], {cwd: root, stdio: 'inherit', windowsHide: true});
+  const setup = spawnSync(process.execPath, [resolve(root, 'docker/mysql-dev/configure-foundation.mjs')], {cwd: root, stdio: 'inherit', windowsHide: true});
   assert.equal(setup.status, 0, 'MySQL foundation setup failed');
 }
 docker(['compose', '-f', bootstrap, 'up', '-d', '--wait', 'mysql'], {log: 'mysql-start.log'});

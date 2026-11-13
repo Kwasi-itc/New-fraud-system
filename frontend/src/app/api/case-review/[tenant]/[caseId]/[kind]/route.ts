@@ -19,8 +19,9 @@ async function handle(request: Request, context: Context) {
   const base = kind === "decisions" ? process.env.DECISION_ENGINE_SERVICE_URL : process.env.SCREENING_SERVICE_URL;
   if (!base) return failure("The review service is not configured.", 503);
   const query = new URLSearchParams({ resource_id: url.searchParams.get("resource_id") ?? "" });
+  const suffix = request.method === "GET" ? `?${query}` : "";
   try {
-    return relay(await fetch(`${base.replace(/\/$/, "")}/v1/investigator/tenants/${tenant}/cases/${caseId}/review?${query}`, {
+    return relay(await fetch(`${base.replace(/\/$/, "")}/v1/investigator/tenants/${tenant}/cases/${caseId}/review${suffix}`, {
       method: request.method, body, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15000),
     }));

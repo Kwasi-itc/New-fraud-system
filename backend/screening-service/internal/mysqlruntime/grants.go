@@ -36,12 +36,33 @@ func ConfigureRuntimeGrants(ctx context.Context, db *sql.DB, database, role, use
 			return e
 		}
 	}
+	for _, table := range []string{"screening_counterparty_exclusions", "screening_refinements"} {
+		if e = grant("SELECT", table); e != nil {
+			return e
+		}
+		if role == "api" {
+			if e = grant("INSERT,UPDATE", table); e != nil {
+				return e
+			}
+		}
+	}
+	if e = grant("SELECT,INSERT", "screening_counterparty_applications"); e != nil {
+		return e
+	}
 	for _, table := range []string{"identity_tenants", "identity_users", "identity_memberships", "case_manager_cases", "case_manager_inboxes", "case_manager_inbox_users", "case_manager_case_screenings", "case_manager_case_decisions", "decision_engine_decisions", "decision_engine_screening_configs", "decision_engine_screening_executions"} {
 		if e = grant("SELECT", table); e != nil {
 			return e
 		}
 	}
 	if role == "api" {
+		if e = grant("SELECT,INSERT", "screening_counterparty_exclusion_events"); e != nil {
+			return e
+		}
+		for _, table := range []string{"screening_matches", "case_manager_case_screenings"} {
+			if e = grant("INSERT", table); e != nil {
+				return e
+			}
+		}
 		if e = grant("DELETE", "screening_matches"); e != nil {
 			return e
 		}

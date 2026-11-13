@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
@@ -201,6 +202,17 @@ func (s ScreeningService) Retry(ctx context.Context, tenantID, screeningID strin
 		if err != nil {
 			return err
 		}
+		if native, ok := store.(interface {
+			IsScreeningSuperseded(context.Context, string, string) (bool, error)
+		}); ok {
+			replaced, err := native.IsScreeningSuperseded(ctx, tenantID, screeningID)
+			if err != nil {
+				return err
+			}
+			if replaced {
+				return identity.Invalid("This screening was refined. Its original evidence cannot be retried.")
+			}
+		}
 		if item.Status != screening.StatusFailed {
 			return fmt.Errorf("screening status %q cannot be retried", item.Status)
 		}
@@ -262,6 +274,20 @@ func (s ScreeningService) reviewMatch(ctx context.Context, store ports.MutationS
 		match, runErr := store.ScreeningMatches().GetByID(ctx, tenantID, matchID)
 		if runErr != nil {
 			return runErr
+		}
+		if item.Partial {
+			return identity.Invalid("Screening results are incomplete. Refine the search before reviewing matches.")
+		}
+		if native, ok := store.(interface {
+			IsScreeningSuperseded(context.Context, string, string) (bool, error)
+		}); ok {
+			replaced, e := native.IsScreeningSuperseded(ctx, tenantID, item.ID)
+			if e != nil {
+				return e
+			}
+			if replaced {
+				return identity.Invalid("This screening was refined. Review its replacement.")
+			}
 		}
 		match.Status = nextStatus
 		match.UpdatedAt = now

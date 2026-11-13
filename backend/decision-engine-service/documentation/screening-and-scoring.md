@@ -2,6 +2,118 @@
 
 This document explains screening config CRUD, scoring config CRUD, execution/request inspection, and provider-result lifecycle updates.
 
+## Screening rule findings and MySQL behavior (2026-11-11)
+
+Reference: [setting up a screening rule](https://docs.checkmarble.com/docs/setting-up-a-sanction-check-rule)
+and [reviewing a screening](https://docs.checkmarble.com/docs/reviewing-a-sanction-check).
+The guide describes screening as part of decision evaluation, with a hit-driven
+outcome, combined names, preprocessing, dataset selection and counterparty
+whitelisting. The following checklist separates implemented behavior from parity
+work. It does not establish real sanctions coverage.
+
+- [x] Scenario Rules > Add offers a rule or screening configuration.
+- [x] Ordered name mapping: `name_field` plus up to four
+  `additional_name_fields`. Trim and join nonblank parts with one space before
+  preprocessing. Combined names must contain 1–200 characters; nontext values,
+  duplicate mappings and unavailable model fields are rejected.
+- [x] Optional `forced_outcome`: `review`, `block_and_review`, or `decline`.
+  An omitted value preserves asynchronous post-decision behavior. Inline rules
+  run after the scenario trigger and their additional condition, independently
+  of `outcomes`; that filter applies only to asynchronous configurations.
+- [x] Inline hits raise the outcome before workflow and scoring routing.
+  The numeric rule score stays unchanged. Severity is monotonic:
+  `approve < review < block_and_review < decline`. Multiple hits use the most
+  severe outcome; a screening cannot soften an existing decline.
+- [x] One two-second context budget covers all inline rules for a decision.
+  Provider failure, timeout or an incomplete response without any known match
+  fails evaluation; no successful approval or decision write is produced.
+  Provider work occurs before the write transaction. The local adapter makes
+  no network requests; a future external adapter must honor this deadline.
+- [x] Persist the exact owner-produced result snapshot and forced-outcome policy
+  with the decision effect in its existing atomic transaction. Private intake
+  validates the query digest and bounded result shape; screening workers replay
+  this evidence instead of searching again. Normal receipt replay, claims,
+  projection and case delivery remain in use.
+- [x] Use the same screening-owned synthetic matcher for inline and background
+  work. Authoring exposes its actual defaults: 80% and 50 results. Per-rule
+  overrides support 0–100 and 1–50 respectively; zero is an explicit threshold.
+- [x] Show the actual provider and its synthetic-data limitation in the editor.
+  Gate unsupported identity, dataset and recognition settings by capability.
+  Name-recognition copy explains its potential impact on decision latency.
+- [x] Existing bounded additional conditions and name preprocessing contracts
+  remain available. Custom-list removal and recognition are supported in the
+  portable external-provider path, but are unavailable in native local MySQL.
+- [ ] Organization-wide screening policy, inherited defaults and its settings
+  editor. The reference's 70%/30 defaults are not the current synthetic defaults.
+- [x] Counterparty text-field selector and audited suppression of the exact
+  `(tenant, provider, counterparty ID, matched entity)` pair. Investigators can
+  dismiss and whitelist, or remove that exclusion for future searches. Blank
+  identifiers never enable suppression. Candidates and application receipts are
+  retained. Inline evaluation captures the policy used at evaluation time;
+  background replay does not reinterpret that saved result after policy changes.
+- [x] Group the editor into global settings, counterparty ID, matching settings,
+  preprocessing and review routing. Saving is explicitly live configuration.
+- [x] Decision screening cards show rule names, timing and provider, with a
+  currently authorized case link. Case evidence presents expandable candidates,
+  similarity, datasets, identity properties and original search inputs.
+- [x] Approval is rejected by the backend while screening is pending, failed,
+  incomplete, archived or has unresolved/confirmed matches. The UI explains the
+  restriction and leaves decline available. Match review also rejects partial
+  and superseded sources. The machine decision score/outcome remains immutable.
+- [x] Linked refinement requires a fresh, complete, actor-owned manual preview,
+  expected source version and findings. Preview and apply are separate actions.
+  Applying atomically creates an immutable receipt, case links, history and
+  outbox event. It preserves the original source and does not approve a decision.
+  Competing refinements cannot fork a source; an identical retry replays its receipt.
+  Confirmed matches cannot be cleared by refinement. Applied descendants inherit
+  the original counterparty whitelist scope without changing their saved query.
+- [ ] Vehicle and Any-type matching with a capability-advertised provider contract.
+  The current editor and local matcher support Person and Organization.
+- [ ] Provider-backed dataset catalog and list-group selection. Existing dataset
+  ID settings require a suitable external adapter; the local catalog rejects them.
+- [ ] Native MySQL real-provider wiring, credentials, coverage, latency/load
+  acceptance, organization hit limits and production close-case workflows.
+  The new inline capability is explicitly a local development implementation.
+
+Configuration JSON remains in the existing MySQL owner tables. The investigation
+increment appends screening-owned refinement, counterparty exclusion, event and
+application tables; it does not add a PostgreSQL migration. Install the screening
+schema first, refresh the decision review read grants, and deploy screening API,
+worker and the local private intake/provider before the decision evaluator and
+frontend. The intake accepts the authored
+`opensanctions` alias for the synthetic catalog. The legacy `local-development`
+exact-watchlist traffic remains on its existing worker.
+Old readers must not edit configurations containing fields they do not understand.
+Local acceptance is recorded in `frontend/evidence/mysql-integration/`; focused
+tests are `inline_screening_test.go`, `screening_combined_names_test.go`, and
+`scenario-screening-inline.spec.ts`.
+
+Verified local acceptance: Go race regressions passed for the affected decision
+and screening packages; host and Docker production builds passed; 13 focused
+browser tests passed. The real authenticated MySQL journey passed 12 suites and
+69 recorded gateway requests, including unknown-field denial, combined-name
+authoring, forced block with numeric score 0, no-hit approval and completed
+captured-evidence projection. Raw execution inspection remains on the existing
+loopback development API; the browser gateway still denies it.
+Evidence: [live report](../../../frontend/evidence/mysql-integration/2026-11-11T11-53-58.331Z/report.json).
+Two earlier failed acceptance reports are retained; the linked report records
+the passing run after correcting the private intake/provider deployment.
+
+The investigation increment is verified separately by
+`mysql_review_refinement_test.go` against restricted native API/worker accounts
+and the disposable MySQL target/reference pair. It covers private intake and
+receipt replay, approval denial, partial-result rejection, tenant isolation,
+worker and inline suppression, audited removal, stale versions, rejected reused
+previews, history rollback, competing applies and final human review. Refinement
+previews expire after 15 minutes; each original source permits at most 20 applied
+refinements. Review reads are bounded to 100 sources/refinements per decision.
+Oversized histories fail explicitly instead of silently clearing approval.
+
+The focused screening browser suite passes 24 tests. The broader legacy case
+workspace suite still has stale tab/selector expectations and is not claimed as a
+clean regression run. Current live acceptance is linked from
+`frontend/MYSQL_INTEGRATION.md` and `screening-service/MYSQL_ENDPOINT_STATUS.md`.
+
 ## Screening configuration access
 
 Legacy `/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs`

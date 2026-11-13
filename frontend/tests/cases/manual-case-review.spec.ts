@@ -10,6 +10,7 @@ test("continuous candidate can be excluded and the exclusion removed through exp
   await request.post("http://127.0.0.1:3199/fixture/screening?match=1");
   await page.goto("/cases/33333333-3333-4333-8333-333333333333");
   await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
+  await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
   await page.getByRole("button", { name: "Review match", exact: true }).click();
   await page.getByLabel("Review action", { exact: true }).selectOption("dismiss_and_exclude");
   await expect(page.getByText("Suppressed candidates remain stored.", { exact: false })).toBeVisible();
@@ -28,6 +29,7 @@ test("continuous candidate can be excluded and the exclusion removed through exp
 test("manual freeform review offers no exclusion control", async ({ page }) => {
   await page.goto("/cases/33333333-3333-4333-8333-333333333333");
   await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
+  await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
   await page.getByRole("button", { name: "Review match", exact: true }).click();
   await expect(page.getByLabel("Review action", { exact: true })).toBeVisible();
   await expect(page.locator('option[value="dismiss_and_exclude"]')).toHaveCount(0);
@@ -42,6 +44,7 @@ test("archived-source exclusion removal is explicit and retries the same operati
   });
   await page.goto("/cases/33333333-3333-4333-8333-333333333333");
   await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
+  await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
   await page.getByRole("button", { name: "Review match", exact: true }).click();
   await page.getByLabel("Review action", { exact: true }).selectOption("remove_exclusion");
   await expect(page.getByText("including archived screenings.", { exact: false })).toBeVisible();
@@ -62,6 +65,7 @@ test("exclusion findings reserve audit-prefix space before submitting", async ({
   await request.post("http://127.0.0.1:3199/fixture/screening?match=1&archived_exclusion=1");
   await page.goto("/cases/33333333-3333-4333-8333-333333333333");
   await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
+  await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
   await page.getByRole("button", { name: "Review match", exact: true }).click();
   await page.getByLabel("Review action", { exact: true }).selectOption("remove_exclusion");
   await page.getByLabel("Review findings").fill("é".repeat(4951));
@@ -79,7 +83,8 @@ for (const action of ["confirmed_hit", "no_hit"]) {
     });
     await page.goto("/cases/33333333-3333-4333-8333-333333333333");
     await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
-    await page.getByRole("button", { name: "Review match", exact: true }).click();
+    await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
+  await page.getByRole("button", { name: "Review match", exact: true }).click();
     await page.getByLabel("Review action", { exact: true }).selectOption(action);
     await page.getByLabel("Review findings").fill("Synthetic identity investigation");
     await page.getByRole("button", { name: "Check review", exact: true }).click();

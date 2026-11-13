@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,6 +40,12 @@ type MutationStore interface {
 	MonitoredObjects() MonitoredObjectRepository
 	DatasetUpdateJobs() DatasetUpdateJobRepository
 	RawTx() pgx.Tx
+}
+
+type CounterpartyExclusionStore interface {
+	CounterpartyExclusions(context.Context, string, string, string, []string) (map[string]string, error)
+	SetCounterpartyExclusion(context.Context, screening.Screening, screening.Match, string, *identity.Command, bool) error
+	RecordCounterpartyApplications(context.Context, string, string, map[string]string) error
 }
 
 type ObjectExclusionRepository interface {

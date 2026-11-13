@@ -73,11 +73,13 @@ type Command struct {
 	Findings        string    `json:"findings"`
 }
 type State struct {
-	Status         string   `json:"status"`
-	Version        string   `json:"version"`
-	Eligible       bool     `json:"eligible"`
-	MachineOutcome string   `json:"machine_outcome,omitempty"`
-	Actions        []string `json:"actions"`
+	DisabledActions map[string]string `json:"disabled_actions,omitempty"`
+	Reason          string            `json:"reason,omitempty"`
+	Status          string            `json:"status"`
+	Version         string            `json:"version"`
+	Eligible        bool              `json:"eligible"`
+	MachineOutcome  string            `json:"machine_outcome,omitempty"`
+	Actions         []string          `json:"actions"`
 }
 type Apply func(context.Context, pgx.Tx, *Command) (State, error)
 

@@ -141,6 +141,7 @@ createServer(async (req, res) => {
     return send(200, { tables: [] });
   }
   if (url.pathname === `/v1/investigator/tenants/${tenant}/cases/${id}/review`) {
+    if (req.method === "POST" && url.search) return send(400, { error: "Review commands must not contain query parameters." });
     if (token !== "Bearer fixture-analyst") return send(401, { error: "Original human credential required" });
     if (reviewDenied) return send(403, { error: "Current case/resource access is required." });
     let data; if (req.method === "POST") { let body = ""; for await (const chunk of req) body += chunk; data = JSON.parse(body); }

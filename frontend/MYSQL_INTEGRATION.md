@@ -59,7 +59,7 @@ The production frontend image uses Next standalone output, runs as the Node user
 - [x] Lists overview with exact entry counts, without downloading every list entry.
 - [x] Cross-origin write denial and logout replay checks against the live services.
 
-The latest live acceptance run passed **10 suites and 47 gateway requests**. [Recorded results](evidence/mysql-integration/2026-11-10T13-20-22.737Z/report.json) include the synthetic tenant and provider-user cleanup status. The decisions screen also renders the published scenario using the owner's cursor API; page controls do not add SQL offset scans.
+The latest live acceptance run passed **14 suites and 100 recorded gateway requests**. [Recorded results](evidence/mysql-integration/2026-11-11T13-50-46.598Z/report.json) include the synthetic tenant and provider-user cleanup status. The decisions screen also renders the published scenario using the owner's cursor API; page controls do not add SQL offset scans.
 
 The Lists overview uses the MySQL list response's `entry_count`. The previous
 unfiltered `/platform/custom-list-entries` request was invalid because that
@@ -82,3 +82,34 @@ The first broad browser run recorded 97 passes and 21 failures. Those results ar
 The updated tenant, gateway, decision-selection, and display-settings regression group passes **12/12 browser tests**. The pagination and legacy local-session checks pass **6/6 Node tests**.
 
 This is a local development integration. Existing case AI review and explicit assignment-run limitations remain documented in the case service status files. Screening and other local provider adapters do not establish production provider readiness or production cutover approval.
+
+## Screening investigation increment (2026-11-11)
+
+- [x] Grouped screening editor with optional counterparty field and live-save notice.
+- [x] Named decision screening cards and authorized case links.
+- [x] Backend approval restrictions with an explanatory disabled approval option.
+- [x] Preview then apply refinement, retained original evidence, immutable audit and safe receipt replay.
+- [x] Scoped whitelist dismissal/removal, inline and worker suppression, and isolation across counterparties.
+- [x] Restricted MySQL integration covers private intake, partial results, stale versions, reused previews, rollback and competing applies with race detection.
+- [x] Twenty-four focused screening browser tests, four existing case review journeys, production builds and focused lint.
+- [x] Live authenticated journey through the actual MySQL-backed frontend and private provider.
+- [ ] Clean rerun of the complete legacy case UI suite after remaining navigation/selector updates.
+- [ ] Real provider, production workload and organization-wide policy acceptance.
+
+The review gateway now sends resource IDs in GET queries and POST command bodies. It no longer adds an empty query to native decision review commands. Screening private intake persists the mapped counterparty in both the query and source column. Local provider data remains synthetic.
+
+## Combined scenario rule list (2026-11-12)
+
+- [x] Show score rules and supported scenario screening configurations together in the Rules table.
+- [x] Label screening type, enabled state, mapped name fields, similarity threshold and forced outcome without assigning a numeric score modifier.
+- [x] Search both rule types and filter score rules or screening rules, including screening-only scenarios.
+- [x] Open the selected screening directly with `?configId=<id>`; preserve read-only controls and refresh the shared list after saving.
+- [x] Explain that screening uses live scenario settings independently of the selected score-rule iteration. Display unavailable screening data explicitly with retry.
+- [x] Eighteen focused browser tests, production host/Docker builds and focused lint passed.
+- [x] Authenticated, read-only NovaPay acceptance verified one score row and two screening rows, direct editor selection, and desktop/mobile rendering on localhost:3002.
+
+The list uses the existing session-bound screening authoring gateway and one
+scenario-level request, rather than fetching each configuration individually.
+The screening mutation and matching contracts are unchanged. Live evidence and
+screenshots: [report](evidence/novapay-demo/rules-list/report.json).
+Recheck the retained demo with `node frontend/scripts/verify-screening-rule-list.mjs`.

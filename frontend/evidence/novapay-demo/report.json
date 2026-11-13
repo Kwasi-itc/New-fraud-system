@@ -1,0 +1,180 @@
+{
+  "at": "2026-11-12T11:59:52.686Z",
+  "company": "NovaPay Fintech — Demo",
+  "synthetic": true,
+  "tenant": "6b3bdad8-60a5-41e0-b093-547f674c1183",
+  "username": "novapay.demo",
+  "tableCount": 3,
+  "relationshipCount": 3,
+  "customerCount": 3,
+  "walletCount": 3,
+  "transactionCount": 18,
+  "scenarioCount": 3,
+  "ruleCount": 11,
+  "screeningRuleCount": 2,
+  "decisionCount": 21,
+  "caseCount": 10,
+  "verified": true,
+  "links": {
+    "data-model": "http://localhost:3002/your-data",
+    "scenarios": "http://localhost:3002/detection",
+    "transfer-rules": "http://localhost:3002/detection/713cab06-bdc5-40fe-956e-6b1616a4627d/edit?tab=Rules",
+    "decisions": "http://localhost:3002/detection?tab=Decisions",
+    "screening-decision": "http://localhost:3002/detection/decisions/5816ca9d-79bb-4859-8d38-74b4bc188500",
+    "screening-configuration": "http://localhost:3002/detection/7a52d2a1-93a6-4e5f-8370-e88e0c54af69/screening",
+    "cases": "http://localhost:3002/cases"
+  },
+  "decisions": [
+    {
+      "id": "184aa913-f377-4e16-8392-ba7817576448",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Everyday wallet transfer",
+      "scenario": "transfers"
+    },
+    {
+      "id": "3992d090-cbf4-4186-a238-3bba0b435440",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Everyday wallet transfer",
+      "scenario": "screening"
+    },
+    {
+      "id": "c3e7319b-96f5-4a57-a60a-1cd370b29f1f",
+      "score": 40,
+      "outcome": "review",
+      "label": "High-value transfer",
+      "scenario": "transfers"
+    },
+    {
+      "id": "7e08d480-984e-489d-b204-2fa83c82ebf8",
+      "score": 0,
+      "outcome": "approve",
+      "label": "High-value transfer",
+      "scenario": "screening"
+    },
+    {
+      "id": "5202139e-1f8d-4511-b746-e6ec8af90646",
+      "score": 65,
+      "outcome": "review",
+      "label": "New customer, device and beneficiary",
+      "scenario": "transfers"
+    },
+    {
+      "id": "17d84ab5-6438-4a7d-b70e-04151b4782e6",
+      "score": 0,
+      "outcome": "approve",
+      "label": "New customer, device and beneficiary",
+      "scenario": "screening"
+    },
+    {
+      "id": "f5571f02-3b9c-4cd4-8184-e10db579fa96",
+      "score": 70,
+      "outcome": "block_and_review",
+      "label": "Possible account takeover",
+      "scenario": "transfers"
+    },
+    {
+      "id": "f899d986-44d4-4fe8-bc52-bd54af1a5fd9",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Possible account takeover",
+      "scenario": "screening"
+    },
+    {
+      "id": "33cb273f-05f6-4459-928c-29fc4596dfd8",
+      "score": 40,
+      "outcome": "review",
+      "label": "Burst of recent wallet transfers",
+      "scenario": "transfers"
+    },
+    {
+      "id": "63b0db3f-5cf3-4d55-8e61-9dae5646971c",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Burst of recent wallet transfers",
+      "scenario": "screening"
+    },
+    {
+      "id": "3092e1ba-9898-48aa-9866-9746d0d51e0e",
+      "score": 175,
+      "outcome": "decline",
+      "label": "Combined severe transfer signals",
+      "scenario": "transfers"
+    },
+    {
+      "id": "5b632ab7-fa5d-4356-b7a6-721cb75e11b2",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Combined severe transfer signals",
+      "scenario": "screening"
+    },
+    {
+      "id": "5bc47c66-d7a6-48eb-a9f2-8ebb7b7f6d43",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Synthetic person match — Alex Example",
+      "scenario": "transfers"
+    },
+    {
+      "id": "5816ca9d-79bb-4859-8d38-74b4bc188500",
+      "score": 0,
+      "outcome": "block_and_review",
+      "label": "Synthetic person match — Alex Example",
+      "scenario": "screening"
+    },
+    {
+      "id": "1891cd2f-1ee2-44de-a575-f56945200d55",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Synthetic person match — Morgan Sample",
+      "scenario": "transfers"
+    },
+    {
+      "id": "c1aae177-a98c-4650-86d9-b20a3d86fbe4",
+      "score": 0,
+      "outcome": "block_and_review",
+      "label": "Synthetic person match — Morgan Sample",
+      "scenario": "screening"
+    },
+    {
+      "id": "a16ea171-0b6e-47ca-9709-2c68c22a7884",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Synthetic organization match",
+      "scenario": "transfers"
+    },
+    {
+      "id": "cb236ceb-5057-401c-bced-15dc96f52d1c",
+      "score": 0,
+      "outcome": "review",
+      "label": "Synthetic organization match",
+      "scenario": "screening"
+    },
+    {
+      "id": "f3b175e6-2369-4a1d-b445-b41623a43885",
+      "score": 0,
+      "outcome": "approve",
+      "label": "Everyday domestic card payment",
+      "scenario": "cards"
+    },
+    {
+      "id": "ad5ccb0d-aac6-43a1-af59-ed42223a400f",
+      "score": 60,
+      "outcome": "review",
+      "label": "Foreign card-not-present payment",
+      "scenario": "cards"
+    },
+    {
+      "id": "dae1ea9c-3455-4178-9a5b-edfc91a17295",
+      "score": 135,
+      "outcome": "decline",
+      "label": "Severe card payment signals",
+      "scenario": "cards"
+    }
+  ],
+  "limitations": [
+    "Synthetic development screening catalog only; no live sanctions coverage.",
+    "Illustrative fraud thresholds; supplied source risk is a demo feature, not a trained model."
+  ]
+}

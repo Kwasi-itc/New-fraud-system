@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FileUpload } from "./file-upload";
 import { CaseReports } from "./reports";
 import { AssigneeSearchDropdown } from "./assignee-search-dropdown";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { caseDecisionEvidence } from "@/lib/case-decision-evidence";
@@ -110,7 +110,8 @@ export function CaseDetail({
   queueFilters: string;
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "investigation" | "screenings" | "files" | "activity">("overview");
+  const params = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"overview" | "investigation" | "screenings" | "files" | "activity">(params.get("tab") === "screenings" ? "screenings" : "overview");
   const { identity, inboxes, tags } = useCaseContext(tenant, session);
   const detail = useCaseQuery<{ case: CaseRecord }>(
     tenant,
@@ -1042,6 +1043,8 @@ function CaseScreeningsPanel({
   id: string;
 }) {
   const screenings = useCaseLinks<ScreeningLink>(tenant, session, id, "screenings");
+  const groups = new Map<string, ScreeningLink[]>();
+  for (const link of screenings.data?.pages.flatMap(page => page.items) ?? []) groups.set(link.screening_id, [...(groups.get(link.screening_id) ?? []), link]);
 
   return (
     <Panel title="Screening matches">
@@ -1051,12 +1054,12 @@ function CaseScreeningsPanel({
         <p className="text-sm text-slate-500 italic">No linked screenings.</p>
       )}
       {!screenings.error &&
-        screenings.data?.pages
-          .flatMap((page) => page.items)
+        Array.from(groups.values()).map(group => group[0])
           .map((link) => (
             <article
               className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/30 p-4"
               key={link.id}
+              id={`screening-${link.screening_id}`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                 <p className="break-all text-sm font-semibold text-slate-900">
@@ -1087,16 +1090,8 @@ function CaseScreeningsPanel({
                 caseId={id}
                 kind="screenings"
                 resource={link.screening_id}
+                reviewMatchIDs={groups.get(link.screening_id)?.flatMap(v => v.match_id ? [v.match_id] : [])}
               />
-              {link.match_id && (
-                <InvestigatorReview
-                  tenant={tenant}
-                  session={session}
-                  caseId={id}
-                  kind="matches"
-                  resource={link.match_id}
-                />
-              )}
             </article>
           ))}
       {screenings.hasNextPage && (

@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-11T13:51:33.307Z",
+  "passed": true,
+  "report": "../../frontend/evidence/mysql-integration/2026-11-11T13-50-46.598Z/report.json",
+  "successful_operations": [
+    "GET /v1/investigator/tenants/:tenantId/cases/:caseId/screenings/:screeningId/refinement",
+    "POST /v1/investigator/tenants/:tenantId/cases/:caseId/screenings/:screeningId/refinement"
+  ],
+  "verification": {
+    "focusedBrowserTests": 24,
+    "existingCaseReviewJourneys": 4,
+    "isolatedMySQLRaceJourney": true,
+    "productionBuilds": [
+      "frontend-host",
+      "frontend-docker",
+      "screening-api-worker",
+      "decision-api-worker-private-provider"
+    ],
+    "focusedLint": true,
+    "liveSuites": 14,
+    "liveGatewayRequests": 100
+  },
+  "limits": [
+    "Synthetic development catalog only; no real sanctions coverage.",
+    "Broader legacy case workspace tests still need navigation/selector updates.",
+    "No production throughput or provider acceptance established."
+  ]
+}

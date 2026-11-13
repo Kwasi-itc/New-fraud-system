@@ -1,6 +1,6 @@
 # Local MySQL development database
 
-For the complete frontend/backend platform, use `docker/setup.ps1` and
+For the complete frontend/backend platform, use `node docker/setup.mjs` and
 `docker/compose.yaml` as described below. The separate `compose.mysql-dev.yaml`
 foundation starts **MySQL only**. For service development, use the dedicated
 [data-model setup](../../backend/data-model-service/MYSQL_DOCKER.md) or
@@ -53,9 +53,52 @@ MYSQL_PWD="$(cat /run/secrets/mysql_root_password)" mysql --protocol=socket -uro
 
 From `New-fraud-system`, use one setup command:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File docker/setup.ps1
+```sh
+node docker/setup.mjs
 ```
+
+This entry point works on macOS, Linux and Windows without PowerShell. Install
+Node.js 22 or newer and Docker Desktop, start Docker Desktop with Linux
+containers, and use Docker Compose 2.24.4 or newer. On a Mac, the terminal wrapper
+is also available as `sh docker/setup.sh`; it forwards arguments to the same Node
+launcher. You do not need Go, MySQL, or frontend dependencies installed on the host.
+The images are built inside Docker for the selected engine architecture. The
+pinned base images publish both ARM64 and AMD64 variants, allowing Apple Silicon
+and Intel Mac builds without forcing AMD64 emulation.
+
+```sh
+# First installation or normal startup
+sh docker/setup.sh
+# Restart using an already-built frontend
+sh docker/setup.sh --skip-build
+# Explicit owner migration/backend image upgrade
+sh docker/setup.sh --install
+# Custom public port
+sh docker/setup.sh --port 8099
+# Explicit portable user provisioning (optional)
+sh docker/setup.sh --users-file "/path/to/users.json" --create-missing-users
+```
+
+Use `node docker/setup.mjs --help` for all options. Windows can keep using
+`powershell -ExecutionPolicy Bypass -File docker/setup.ps1`, whose parameters
+forward to the same implementation. The older per-service PowerShell scripts
+remain separate development tools; the portable installation never invokes them.
+Keep this repository in a local directory shared with Docker Desktop. On a new
+Mac, generate its own local credentials and provision intended users with the
+portable user manifest; do not copy another computer's `.local/` directory.
+
+On POSIX hosts, setup protects `.local/` and its private state directories with
+mode `0700`. Only declared secret bind mounts and runtime configuration files
+are made readable by container users within those private parent directories.
+This handles Compose's [file-backed secret permissions](https://docs.docker.com/compose/how-tos/use-secrets/)
+without changing credential values, granting host-wide access to the parent
+directories, or running the APIs as root. Private exports and backups retain
+their private modes. macOS hardware was not available for the current checks;
+the portable setup/permissions tests ran inside a Linux container and the
+installed-platform restart ran against Docker Desktop on Windows.
+Fresh-install command ordering and failure handling were tested with fixtures;
+a complete empty-database Mac installation still needs verification. See the
+[portable setup verification record](evidence/portable-setup-2026-11-12.json).
 
 The canonical Compose file is [docker/compose.yaml](../compose.yaml), with gateway
 and provider modules in the same `docker/` folder. Docker
@@ -66,8 +109,8 @@ the project is the single group that starts/stops them together.
 
 On first setup, the script runs the owner installers in dependency order. For an
 already installed platform, it reuses schemas and backend images, configures the
-frontend callback, and rebuilds the frontend. Use `-Install` after backend schema
-or image changes to replay the owner setup sequence explicitly. Use `-SkipBuild`
+frontend callback, and rebuilds the frontend. Use `--install` after backend schema
+or image changes to replay the owner setup sequence explicitly. Use `--skip-build`
 when restarting an unchanged, already-built frontend. Existing credentials,
 signing keys, owner plans and application data are retained. The first transition
 from the old temporary reference database also runs owner installers once to
@@ -168,12 +211,12 @@ docker compose -f docker/compose.yaml down
 
 Normal runtime startup excludes installer jobs, so a restart does not reapply
 migrations or revoke/regrant database permissions underneath running services.
-Run `docker/setup.ps1 -Install` when an upgrade requires owner migrations. Do not
+Run `node docker/setup.mjs --install` when an upgrade requires owner migrations. Do not
 add `--volumes` to `down` if you want to retain application data. Keycloak's
 MySQL database is persisted in the same main MySQL data volume. The old
 PostgreSQL rollback volume is outside this Compose model and is not removed.
 
-To change the application port, use `docker/setup.ps1 -Port 8099` and repeat that
+To change the application port, use `node docker/setup.mjs --port 8099` and repeat that
 argument for subsequent setup runs. Set `MYSQL_GATEWAY_PORT=8099` when using
 Compose directly so the published port and frontend origin agree. Existing setup
 entry points `docker/mysql-dev/setup-platform.ps1` and `setup-gateway.ps1` forward
@@ -189,8 +232,8 @@ docker compose -f docker/compose.yaml exec mysql sh
 Then use the socket-based MySQL command shown in the foundation section above.
 For initial users, follow the auth service's
 [portable user setup](../../backend/auth-service/MYSQL_DOCKER.md#portable-user-and-permission-setup).
-A user manifest can be passed to `docker/setup.ps1 -UsersFile <path>`, optionally
-with `-CreateMissingUsers`. When invoking the user helper separately against the
+A user manifest can be passed to `node docker/setup.mjs --users-file <path>`, optionally
+with `--create-missing-users`. When invoking the user helper separately against the
 consolidated runtime, pass
 `--data-model-url http://localhost:8088/services/data-model`.
 

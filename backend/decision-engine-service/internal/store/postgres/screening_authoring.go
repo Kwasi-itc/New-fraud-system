@@ -133,7 +133,7 @@ func (r ScreeningAuthoringRepository) Save(ctx context.Context, t, sc string, a 
 			return empty, screening.ErrAuthoringConflict
 		}
 	}
-	for _, mapped := range []string{in.NameField, in.AddressField, in.BirthDateField, in.NationalityField, in.CountryField, in.RegistrationField} {
+	for _, mapped := range append([]string{in.NameField, in.CounterpartyIDField, in.AddressField, in.BirthDateField, in.NationalityField, in.CountryField, in.RegistrationField}, in.AdditionalNameFields...) {
 		if mapped == "" {
 			continue
 		}

@@ -1,42 +1,44 @@
-# EC2 HTTP test deployment with Aurora
+# EC2 single-port HTTP test deployment with Aurora
 
-Run `setup.py` **on the EC2 Docker host**, from this checkout. It deploys the
-frontend, six backend services and workers, Keycloak, a PostgreSQL container for
-Keycloak, Mailpit, and a disposable migration reference server. All application
-data stays in the **single Aurora `fraud` database**. The reference server holds
-schema definitions used to verify owner migrations; application traffic never
-uses it.
+Run `setup.py` **on the Linux EC2 Docker host**. Frontend, six fraud APIs and
+Keycloak share **http://EC2_IP:8088**. Application services use Aurora's single
+`fraud` database. Keycloak uses a dedicated `keycloak` database on the same
+Aurora writer through its own restricted account. No PostgreSQL container or
+local application MySQL server is started. Reference MySQL is disposable and
+never receives application traffic or the Aurora administrator password.
 
-Reference MySQL uses a separate generated password; it does not receive the
-Aurora administrator password.
-
-This is the agreed IP-address/HTTP **test deployment**, not production activation.
-It retains the existing test screening/decision providers, privileged data-model
-DDL processes, and test email capture. HTTP browser traffic is unencrypted. Use a
-restricted test environment and test identities/data. Production still needs
-HTTPS and the remaining production runtime/provider work.
+This retains the existing IP-address/HTTP test profile and synthetic provider
+adapters. It does not configure production TLS, DNS or production activation.
+Browser traffic is HTTP; every Aurora connection verifies its CA and DNS name.
 
 ## Prerequisites
 
-- Linux Docker Engine, a current Docker Compose plugin supporting `include` and
-  `config --no-env-resolution`, Python 3.10+, and Node.js 22.
-- An Aurora **MySQL 8.4 compatible writer**, reached through its AWS DNS endpoint.
-  The script checks the actual engine; Aurora 3.x/MySQL 8.0 is rejected. Its
-  reference schema uses the repository's pinned MySQL 8.4.8 image. Cross-version
-  schema definitions must pass the existing migration checks.
-- EC2 network/security-group access to the Aurora writer port. Use the Aurora
-  migration administrator with permission to create the `fraud` database,
-  install owner schemas/routines/triggers, manage the restricted application
-  accounts/grants, read required MySQL account metadata, and delegate
-  `SET_ANY_DEFINER`. Read-only preflight does not prove every DDL privilege.
-- Aurora parameter `log_bin_trust_function_creators=1`. The script does not
-  change AWS parameter groups. `max_connections` must be at least **140** for this
-  single-replica stack: configured runtime pool caps total 100, with 40 reserved
-  for temporary DDL sessions, migrations and operators. Budget any other clients
-  separately; this is a connection budget, not a throughput claim.
-- Registry access to build/pull images. The RDS CA bundle is downloaded from AWS
-  unless supplied with `--db-ca-file`. Every Aurora connection verifies the CA
-  and DNS hostname; there is no insecure-TLS option.
+- Linux Docker Engine, Docker Compose supporting `include` and
+  `config --no-env-resolution`, Python 3.10+, and Node.js 22+.
+- An Aurora **MySQL 8.4 compatible writer**, using its AWS DNS endpoint.
+  Aurora 3.x/MySQL 8.0 is rejected. Reference capture uses MySQL 8.4.8;
+  captured owner definitions must pass the normal migration checks.
+- EC2 access to the Aurora port. The migration administrator needs permission
+  to create `fraud` and `keycloak`, install owner schemas/routines/triggers,
+  manage restricted accounts/grants, delegate `SET_ANY_DEFINER`, and read account
+  metadata including `mysql.procs_priv`, `mysql.global_grants` and `mysql.role_edges`.
+  Read-only preflight does not prove every DDL privilege.
+- Aurora parameters `log_bin_trust_function_creators=1` and
+  `sql_generate_invisible_primary_key=OFF`. Setup checks them without changing
+  AWS parameter groups.
+- `max_connections` of at least **145**: 100 configured application connections,
+  five for Keycloak and 40 reserved for migrations, temporary DDL and operators.
+  Budget other clients separately; this is not a throughput claim.
+- Registry access for builds/pulls. Supply `--db-ca-file` or allow setup to
+  download the AWS RDS CA bundle. No insecure database TLS option is provided.
+
+Keycloak uses its shipped MySQL driver with `sslMode=VERIFY_IDENTITY` and the
+AWS CA bundle via `KC_TRUSTSTORE_PATHS`. See the official
+[Keycloak database](https://www.keycloak.org/server/db),
+[system truststore](https://www.keycloak.org/server/keycloak-truststore) and
+[Connector/J verification](https://dev.mysql.com/doc/connector-j/en/connector-j-server-authentication.html)
+contracts. Aurora is used as a MySQL-compatible test target; acceptance against
+an actual Aurora cluster remains necessary.
 
 ## Start
 
@@ -45,116 +47,112 @@ python3 docker/mysql-ec2/setup.py \
   --public-ip 203.0.113.10 \
   --db-host YOUR-WRITER.cluster-XXXX.REGION.rds.amazonaws.com \
   --db-user YOUR_MIGRATION_ADMIN \
-  --port frontend=3002 \
-  --port keycloak=8090 \
   --bootstrap-user test-admin-user \
   --bootstrap-email test-admin@example.com
 ```
 
-Replace the example IP/endpoint/user/email. The script prompts for the database
-password on first use. Alternatively pass `--db-password-file /private/path` or
-`--db-password-stdin`; password text is never a command argument. Files must
-contain the exact password without a trailing newline. An explicitly supplied
-password must match retained state; credentials are never silently rotated.
+Replace the example values. Setup prompts for the migration password on first
+use. Alternatively pass `--db-password-file /private/path` or
+`--db-password-stdin`; passwords never go into command arguments. Password files
+contain the exact password without a trailing newline. A supplied password must
+match retained credentials; no password is silently rotated.
 
-The optional bootstrap flags create one Keycloak test account and provision its
-application membership after migrations. Default roles are `tenant_admin`,
-`platform_admin`, and `case_manager_admin`; override with `--bootstrap-roles`.
-Existing Keycloak passwords and existing application users/roles are preserved;
-the application's provision command rejects mismatching existing membership.
-New login credentials are stored in
-`.local/mysql-ec2/bootstrap-user-credentials.json` with mode 0600.
+Optional bootstrap flags create/reuse one test Keycloak account and provision
+its application membership after migrations. Default roles are
+`tenant_admin,platform_admin,case_manager_admin`; override with
+`--bootstrap-roles`. Existing passwords and memberships are not overwritten.
+New test credentials, if generated, are stored privately at
+`.local/mysql-ec2/bootstrap-user-credentials.json`.
 
-Use `--check-only` for verified-TLS, engine, writer, parameter and connection
-budget checks without schema migrations or service startup. It prepares private
-configuration and builds/runs only the preflight container. Use `--render-only`
-to validate configuration without connecting to Aurora or starting containers;
-also supply `--db-client-ip` to avoid routing/DNS discovery. CA download is still
-needed unless `--db-ca-file` is provided.
+Use `--port gateway=18088` for a different public port. Individual frontend, API,
+Keycloak and mailbox port overrides are no longer accepted.
 
-## Ports and access
+`--check-only` performs verified-TLS, engine, writer, parameter and connection
+budget checks without migrations or service startup. `--render-only` validates
+configuration without contacting Aurora or starting containers. Supply
+`--db-client-ip` to avoid route/DNS discovery and `--db-ca-file` to avoid a CA
+download during offline rendering.
 
-Repeat `--port NAME=NUMBER` for any of these defaults. Ports must be distinct and
-in 1024–65535. The script checks availability before stopping running services.
-Container ports remain fixed; browser URLs/callbacks use the selected host ports.
+## Public routes
 
-| Name | Default | Host binding |
-| --- | ---: | --- |
-| `frontend` | 3002 | All interfaces |
-| `keycloak` | 8090 | All interfaces |
-| `data-model` | 8080 | Loopback |
-| `ingestion` | 8081 | Loopback |
-| `decisions` | 8082 | Loopback |
-| `screening` | 8085 | Loopback |
-| `cases` | 8086 | Loopback |
-| `auth` | 8087 | Loopback |
-| `mailbox` | 8027 | Loopback |
+Only the gateway publishes **0.0.0.0:8088** by default. EC2 security-group ingress
+for test clients needs just that application port, alongside existing SSH access.
 
-Open the selected frontend and Keycloak ports in the EC2 security group for your
-test clients. Both are needed for browser login. APIs and mailbox are available
-on the host or through an SSH tunnel. `--api-bind 0.0.0.0` explicitly publishes
-those ports externally; restrict their security-group access as needed. No local
-MySQL, reference MySQL, or provider PostgreSQL port is published.
+| Component | Path |
+| --- | --- |
+| Frontend, assets and session-bound frontend APIs | `/` |
+| API reference index | `/services/` |
+| Data model | `/services/data-model/` |
+| Ingestion | `/services/ingestion/` |
+| Decisions | `/services/decisions/` |
+| Screening and evidence capabilities | `/services/screening/` |
+| Cases | `/services/cases/` |
+| Auth | `/services/auth/` |
+| Keycloak login, resources and administration | `/identity/` |
 
-The frontend requires a real application session and retains user/tenant checks.
-Data-model and ingestion direct APIs require their private service credentials;
-decision APIs accept their existing verified session/service contracts. This
-profile does not introduce tenant-scoped credentials for external customers.
+Each fraud API has `docs` and `readyz` under its service prefix. Keycloak's issuer
+is `http://EC2_IP:8088/identity/realms/fraud`; the callback is
+`http://EC2_IP:8088/api/auth/callback`.
 
-Screening evidence URLs use the selected screening host port, so direct
-capability uploads/downloads need client reachability to that port (for example,
-publish APIs for restricted test clients). Leaving API binding on loopback keeps
-these direct browser evidence operations unavailable remotely.
-
-The source address for SQL grants defaults to the EC2 host's selected route
-address. If NAT/routing changes the address Aurora sees, supply
-`--db-client-ip ACTUAL_SOURCE_IPV4`. Temporary physical-DDL accounts use that
-exact address. Other inherited local-development accounts may retain wildcard
-hosts; verified TLS, private networking and credentials remain required.
+The frontend retains session/tenant authorization. Raw APIs retain existing
+bearer/service credentials; the proxy never injects operator credentials.
+Screening capability URLs include the service prefix so evidence transfers use
+the same gateway. Mailpit, reference MySQL and Keycloak management health remain
+internal. No individual development port is published.
 
 ## Stages and recovery
 
-1. Validate parameters, lock setup against concurrent runs, prepare credentials
-   and Compose configuration, and check ports.
-2. Run read-only Aurora preflight. Failure here does not stop the running stack.
-3. Build images, stop the previous test runtime, create the shared database if absent, and
-   start reference MySQL, provider PostgreSQL, Mailpit and Keycloak.
-4. Apply data-model migrations and start its API/DDL
-   processes. Create/reuse the test tenant and published `transactions` table.
-   `--tenant-id` and `--object-type` select an existing scope instead.
-5. Apply ingestion, decision, auth, case and screening migrations in order;
-   start each owner's API/workers and refresh dependent grants.
-6. Optionally provision the test login and start the frontend.
+1. Validate parameters, lock setup, retain credentials, render configuration and
+   check the single public port.
+2. Run read-only Aurora preflight. A failure leaves the running stack untouched.
+3. Build images, stop runtime writers, create databases if absent and verify
+   Keycloak's restricted database account and retained password.
+4. Start reference MySQL, Mailpit, the gateway and Keycloak.
+5. Install data-model and create/reuse the test tenant and transactions table
+   through its gateway route. `--tenant-id` and `--object-type` select a scope.
+6. Install ingestion, decision, auth, case and screening owners in order;
+   refresh dependent grants, optionally provision the login and start frontend.
+7. Verify runtime port bindings, frontend login, six API readiness/docs routes,
+   Keycloak discovery URLs and signing keys.
 
-Rerun with the **same arguments and state directory** after resolving a failure.
-The existing owner migration runner verifies retained plans/applied definitions
-and resumes supported work. It fails on drift or uncertain outcomes that need
-reconciliation; the script does not mark failures successful or erase data.
-Failures after runtime shutdown may leave the deployment partly stopped.
+`fraud_ec2_keycloak` has privileges only on `keycloak.*`, requires SSL, and uses
+the exact EC2 database-client address. Provider collation is `utf8mb4_unicode_ci`;
+fraud tables retain their existing ownership and collation. Unexpected global,
+cross-database, grant-option or role privileges are rejected rather than
+silently revoked. Existing databases and provider passwords are never replaced.
 
-Public IP, auth port and Keycloak port form issuer identity and cannot silently
-change in retained state. Reconcile memberships, sessions and provider settings
-explicitly before moving them. Changing the frontend port updates its callback.
-The script never resets existing users or passwords to accommodate a change.
+SQL grant source defaults to the EC2 host's selected route address. If NAT or
+routing changes what Aurora sees, use `--db-client-ip ACTUAL_SOURCE_IPV4`.
+Temporary DDL and Keycloak accounts use that exact address; inherited application
+accounts can still have their existing wildcard hosts.
 
-## Retained credentials and operations
+Repeat setup with the **same arguments and state directory** after resolving a
+failure. The owner migration runner verifies lineage/drift and resumes supported
+work. Failures after runtime shutdown can leave services partly stopped. Setup
+does not erase application data or mark incomplete work successful.
 
-Default state is **`.local/mysql-ec2/`**, already covered by the repository's
-`/.local/` Git ignore. Its enclosing directory is mode **0700**. Selected
-file-backed secrets/configuration are mode 0644 inside that private directory so
-non-root containers can read their explicit mounts. Private host-only env,
-Compose, deployment and bootstrap files are mode 0600. Back up/restrict the state
-directory and Keycloak volume together. Do not print private Compose environment
-output into shared logs.
+Deployment identity includes public IP/port, provider storage kind, database
+endpoint, migration account and database-client address. It cannot silently
+change on a restart.
 
-Credentials, signing/encryption keys, provider configuration and migration plans
-remain on disk for restart/recovery. **No RAM-backed credential storage or
-Secrets Manager integration is used.** Temporary atomic-write files are removed.
-Deleting retained keys would invalidate sessions/invitations or lose provider
-access; setup never deletes them as cleanup.
+**Existing separate-port/PostgreSQL EC2 state is rejected before configuration
+is rewritten or containers are stopped.** This update does not automatically
+migrate old realms or rewrite application identity keys. An operator must
+perform and verify that migration explicitly, retaining old state and the
+PostgreSQL volume as rollback material. Do not delete state or create replacement
+realms to bypass this check.
 
-The isolated Compose project is `fraud-ec2-test`; it does not reuse the local
-`fraud-mysql-dev` database, network, images or credential directory.
+## Retained state and operations
+
+State defaults to **`.local/mysql-ec2/`**, covered by the existing `/.local/` Git
+ignore. Its parent is mode 0700; explicitly mounted secrets/configuration are
+0644 inside that private parent for non-root access. Host-only environment,
+Compose, deployment and bootstrap files remain 0600. Signing/encryption keys,
+credentials and plans persist for recovery; Secrets Manager and RAM-only
+credential storage are not introduced.
+
+The project **`fraud-ec2-test`** is separate from `fraud-mysql-dev` state, images,
+network and database.
 
 ```bash
 docker compose --project-name fraud-ec2-test --profile install \
@@ -162,25 +160,31 @@ docker compose --project-name fraud-ec2-test --profile install \
   -f .local/mysql-ec2/compose.json ps
 ```
 
-Use the same Compose prefix with `logs --tail 100 SERVICE` for diagnosis.
-Run setup again for migration/recovery; plain `up` does not perform the script's
-tenant preparation and ordered grant refresh.
+Use the same prefix with `logs --tail 100 api-gateway keycloak` for diagnosis.
+Repeat setup for upgrades/recovery; plain Compose `up` does not perform tenant
+preparation and ordered grant refresh.
 
-## Verification
+## Verification without AWS
 
 ```bash
-python3 -m unittest discover -s docker/mysql-ec2 -p 'test_*.py' -v
-node --test frontend/scripts/http-test.test.mjs
-cd backend/mysqlstore && go test ./ec2test ./localdev ./cmd/ec2-test-preflight
+# Offline configuration, retention and actual Compose validation
+docker compose -f docker/mysql-ec2/compose.test.yaml run --rm --build --no-deps offline
+# Disposable verified-TLS MySQL and owner provisioning checks
+docker compose -f docker/mysql-ec2/compose.test.yaml up -d --wait mysql
+docker compose -f docker/mysql-ec2/compose.test.yaml run --rm --no-deps owner-test
+# Actual Keycloak/MySQL JDBC truststore and identity path through Nginx
+docker compose -f docker/mysql-ec2/compose.test.yaml up -d --wait api-gateway
+node docker/mysql-ec2/verify-fixture.mjs
+# Optional real browser sign-in and PKCE exchange (frontend Playwright required)
+node docker/mysql-ec2/verify-fixture.mjs --browser
+# Remove test containers/network, retaining Go caches
+docker compose -f docker/mysql-ec2/compose.test.yaml down
 ```
 
-The compiled frontend cookie flow can also be checked with the loopback auth
-stub in `frontend/scripts/http-test-smoke.mjs`, run inside the built frontend
-image with `--network none`. It checks both the ordinary Secure cookies and the
-explicit EC2 HTTP test cookies without contacting a real identity provider.
+The fixture's credentials and port 18089 are isolated from application state and
+Aurora. Offline render checks mount no Docker socket and contact no database.
+A live EC2/Aurora installation and application browser login still need
+acceptance against the provisioned cluster.
 
-Offline tests check port/config generation, credential retention, interrupted
-model preparation, preflight failure ordering, origin checks, credential
-boundaries and verified-TLS settings. A live Aurora installation and browser
-login must still be verified against the actual provisioned cluster. These
-checks do not establish production readiness.
+See the [single-port verification record](evidence/single-port-2026-11-12.json)
+for the checks performed and their limits.

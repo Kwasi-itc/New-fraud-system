@@ -59,6 +59,15 @@ func installReviewOwners(ctx context.Context) error {
 							return migrations.ErrLineage
 						}
 					}
+					// Retaining a full artifact must not skip its prerequisites on
+					// a fresh target or a restarted disposable reference server.
+					grants, e := mysqlschema.DefinerGrants("fraud", owner.definer)
+					if e != nil {
+						return e
+					}
+					if e := localdev.Install(ctx, localdev.Installation{Owner: owner.name, Steps: full[:len(p.Steps)], Accounts: []string{owner.definer}, Grants: grants, Through: base[len(base)-1].ID}); e != nil {
+						return e
+					}
 					continue
 				}
 			} else if !os.IsNotExist(e) {
@@ -125,6 +134,9 @@ func seedReviewIdentity(ctx context.Context, db *sql.DB, tenant, fixtureTenant u
 func reviewGrants(account string) []string {
 	var out []string
 	out = append(out, "GRANT SELECT,INSERT,UPDATE ON fraud.case_manager_workflow_locks TO "+account)
+	for _, table := range []string{"screening_counterparty_exclusions", "screening_refinements", "case_manager_case_screenings"} {
+		out = append(out, "GRANT SELECT ON fraud."+table+" TO "+account)
+	}
 	// FOR UPDATE requires a locking privilege. The source ID is immutable,
 	// and its trigger also requires the next publication version; this column
 	// grant cannot modify an owner result or acknowledge its projection queue.

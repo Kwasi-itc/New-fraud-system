@@ -124,6 +124,10 @@ for (const action of ["approve", "decline", "confirmed_hit", "no_hit"]) {
     if (match) await request.post("http://127.0.0.1:3199/fixture/screening?match=1");
     await page.goto(`/cases?tenant=${tenant}`);
     await page.getByRole("link", { name: match ? "Screening review" : "Payment investigation", exact: true }).click();
+    if (match) {
+      await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
+      await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
+    }
     await page.getByRole("button", { name: match ? "Review match" : "Review decision", exact: true }).click();
     await page.getByLabel("Review action", { exact: true }).selectOption(action);
     await page.getByLabel("Review findings").fill(`Finding for ${action}`);
@@ -133,6 +137,7 @@ for (const action of ["approve", "decline", "confirmed_hit", "no_hit"]) {
     await expect(page.getByText("Review recorded with case history.")).toBeVisible();
     await expect(page.getByText(`Review status: ${action.replaceAll("_", " ")}`, { exact: true })).toBeVisible();
     await page.reload();
+    await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
     await expect(page.getByText(`Finding for ${action}`, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Reopen investigation", exact: true })).toHaveCount(0);
   });

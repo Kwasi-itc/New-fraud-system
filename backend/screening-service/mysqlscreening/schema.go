@@ -168,6 +168,25 @@ func Statements(database, definer string) ([]migrations.Step, error) {
 		}
 		add("TRIGGER", name, "CREATE DEFINER="+u+"@`localhost` TRIGGER "+s+"."+name+" BEFORE "+event+" ON "+s+".screening_rescreen_progress FOR EACH ROW BEGIN "+body+"END")
 	}
+	table("screening_counterparty_exclusions", `tenant_id BINARY(16) NOT NULL,provider VARBINARY(128) NOT NULL,counterparty_id VARBINARY(512) NOT NULL,entity_id VARBINARY(512) NOT NULL,
+ active BOOLEAN NOT NULL CHECK(active IN(0,1)),operation_id BINARY(16) NOT NULL,actor_id BINARY(16) NOT NULL,updated_at DATETIME(6) NOT NULL,
+ PRIMARY KEY(tenant_id,provider,counterparty_id,entity_id),FOREIGN KEY(tenant_id) REFERENCES `+s+`.identity_tenants(id)`)
+	table("screening_refinements", `tenant_id BINARY(16) NOT NULL,id BINARY(16) NOT NULL,case_id BINARY(16) NOT NULL,root_id BINARY(16) NOT NULL,source_id BINARY(16) NOT NULL,screening_id BINARY(16) NOT NULL,
+ actor_id BINARY(16) NOT NULL,payload_hash BINARY(32) NOT NULL,findings TEXT NOT NULL CHECK(OCTET_LENGTH(findings) BETWEEN 1 AND 2000),source_version DATETIME(6) NOT NULL,created_at DATETIME(6) NOT NULL,applied_at DATETIME(6) NULL,
+ applied_source BINARY(16) GENERATED ALWAYS AS(IF(applied_at IS NULL,NULL,source_id)) STORED,
+ PRIMARY KEY(tenant_id,id),UNIQUE KEY screening_refined_run(tenant_id,screening_id),UNIQUE KEY screening_refined_source(tenant_id,applied_source),KEY screening_refined_parent(tenant_id,source_id),KEY screening_refined_root(tenant_id,root_id),
+ FOREIGN KEY(tenant_id,source_id) REFERENCES `+s+`.screening_screenings(tenant_id,id),FOREIGN KEY(tenant_id,screening_id) REFERENCES `+s+`.screening_screenings(tenant_id,id),
+ FOREIGN KEY(tenant_id,case_id) REFERENCES `+s+`.case_manager_cases(tenant_id,id)`)
+	table("screening_counterparty_applications", `tenant_id BINARY(16) NOT NULL,screening_id BINARY(16) NOT NULL,match_id BINARY(16) NOT NULL,operation_id BINARY(16) NOT NULL,created_at DATETIME(6) NOT NULL,
+ PRIMARY KEY(tenant_id,screening_id,match_id),FOREIGN KEY(tenant_id,match_id) REFERENCES `+s+`.screening_matches(tenant_id,id)`)
+	table("screening_counterparty_exclusion_events", `tenant_id BINARY(16) NOT NULL,operation_id BINARY(16) NOT NULL,provider VARBINARY(128) NOT NULL,counterparty_id VARBINARY(512) NOT NULL,entity_id VARBINARY(512) NOT NULL,
+ active BOOLEAN NOT NULL,actor_id BINARY(16) NOT NULL,findings TEXT NOT NULL,created_at DATETIME(6) NOT NULL,PRIMARY KEY(tenant_id,operation_id),KEY screening_counterparty_history(tenant_id,provider,counterparty_id,entity_id,created_at),FOREIGN KEY(tenant_id) REFERENCES `+s+`.identity_tenants(id)`)
+	for _, name := range []string{"screening_refinements", "screening_counterparty_applications", "screening_counterparty_exclusion_events"} {
+		for _, event := range []string{"UPDATE", "DELETE"} {
+			trigger := fmt.Sprintf("sc_followup_%02d", n)
+			add("TRIGGER", trigger, "CREATE DEFINER="+u+"@`localhost` TRIGGER "+s+"."+trigger+" BEFORE "+event+" ON "+s+"."+name+" FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable screening followup history'")
+		}
+	}
 	return steps, nil
 }
 
@@ -188,5 +207,8 @@ func DefinerGrants(database, definer string) ([]string, error) {
 		out = append(out, "GRANT SELECT,TRIGGER ON "+s+"."+name+" TO "+u+"@`localhost`")
 	}
 	out = append(out, "GRANT SELECT,TRIGGER ON "+s+".screening_rescreen_progress TO "+u+"@`localhost`")
+	for _, name := range []string{"screening_counterparty_exclusions", "screening_refinements", "screening_counterparty_applications", "screening_counterparty_exclusion_events"} {
+		out = append(out, "GRANT SELECT,TRIGGER ON "+s+"."+name+" TO "+u+"@`localhost`")
+	}
 	return out, nil
 }

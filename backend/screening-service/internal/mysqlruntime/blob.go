@@ -36,6 +36,15 @@ func NewLocalBlob(db *sql.DB, database, origin string) (*LocalBlob, error) {
 	if ec2test.Enabled() {
 		_, err := ec2test.Origin(origin)
 		validOrigin = err == nil
+		if validOrigin {
+			profile, err := ec2test.Load()
+			if err != nil {
+				return nil, err
+			}
+			if profile.Gateway {
+				origin += "/services/screening"
+			}
+		}
 	}
 	if !validOrigin || db == nil {
 		return nil, errors.New("explicit loopback development blob origin required")

@@ -1,6 +1,6 @@
 # Screening MySQL endpoint status
 
-Source inventory: **47 mounted operations**, including documentation and health/metrics. **47 positively verified; 0 awaiting passing complete evidence.**
+Source inventory: **49 mounted operations**, including documentation and health/metrics. **49 positively verified; 0 awaiting passing complete evidence.**
 
 `[x]` requires successful native behavior in passing integration evidence. Code presence, expected rejection, synthetic data and a documented route do not establish production/provider acceptance.
 
@@ -53,6 +53,8 @@ Source inventory: **47 mounted operations**, including documentation and health/
 - [x] `GET /openapi.yaml` - Successful native MySQL workflow evidenced.
 - [x] `GET /docs` - Successful native MySQL workflow evidenced.
 - [x] `GET /redoc` - Successful native MySQL workflow evidenced.
+- [x] `GET /v1/investigator/tenants/:tenantId/cases/:caseId/screenings/:screeningId/refinement` - Successful native MySQL workflow evidenced.
+- [x] `POST /v1/investigator/tenants/:tenantId/cases/:caseId/screenings/:screeningId/refinement` - Successful native MySQL workflow evidenced.
 
 ## Verification and activation
 
@@ -63,6 +65,8 @@ Source inventory: **47 mounted operations**, including documentation and health/
 - [ ] Real sanctions-provider/data coverage and production workload acceptance (separate release work).
 
 Retained full evidence: [report](evidence/mysql-integration/2026-11-09T23-15-03Z/report.json), 107 top-level tests / 211 test/subtest results.
+
+Screening investigation increment: [acceptance](../../frontend/evidence/mysql-integration/2026-11-11T13-50-46.598Z/report.json), including the two refinement operations, review restrictions and scoped whitelist lifecycle. This supplements the earlier migration evidence; it does not rerun the complete suite.
 
 The default development provider searches a small built-in synthetic catalog only. It does not query OpenSanctions. Human manual/investigator APIs require a current auth access JWT. Owner routes retain their separate private operator and service credentials; integration routes use a dedicated intake credential.
 

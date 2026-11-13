@@ -3,6 +3,7 @@ package screening
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"reflect"
 	"testing"
 )
 
@@ -28,6 +29,20 @@ func TestAuthoringValidation(t *testing.T) {
 			if _, ok := DecodeAuthoring(c); ok {
 				t.Fatal("unsupported settings silently dropped")
 			}
+		}
+	}
+}
+
+func TestCombinedNameAuthoringRoundTrip(t *testing.T) {
+	r := AuthoringRule{ID: uuid.NewString(), InboxID: uuid.NewString(), Name: "Combined name", EntityType: "Person", NameField: "first", AdditionalNameFields: []string{"middle", "last"}, Outcomes: []string{"review"}}
+	decoded, ok := DecodeAuthoring(Config{ID: r.ID, Name: r.Name, Provider: "opensanctions", ConfigJSON: r.ConfigJSON(), AllowedOutcomes: r.Outcomes, ReviewInboxID: &r.InboxID})
+	if !ok || !reflect.DeepEqual(decoded.AdditionalNameFields, r.AdditionalNameFields) {
+		t.Fatal("ordered mapping did not round trip", decoded, ok)
+	}
+	for _, fields := range [][]string{{"first"}, {"last", "last"}, {"bad;name"}, {""}, {"a", "b", "c", "d", "e"}} {
+		r.AdditionalNameFields = fields
+		if r.Validate() == nil {
+			t.Fatal("invalid combined mapping accepted", fields)
 		}
 	}
 }

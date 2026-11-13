@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-12",
+  "profile": "fraud-ec2-test",
+  "publicPorts": [8088],
+  "frontend": "http://EC2_IP:8088/",
+  "apiReferences": "http://EC2_IP:8088/services/",
+  "providerIssuer": "http://EC2_IP:8088/identity/realms/fraud",
+  "applicationDatabase": "Aurora writer / fraud",
+  "providerDatabase": "Same Aurora writer / keycloak",
+  "providerAccount": "fraud_ec2_keycloak",
+  "verification": {
+    "offlinePythonTestsPassed": 13,
+    "actualComposeRenderValidated": true,
+    "onlyGatewayPublishedInRenderedModel": true,
+    "legacyDeploymentIdentityRejectedBeforeConfigurationChanges": true,
+    "failedPreflightCannotStopOrMigrateRuntime": true,
+    "isolatedMySQLProvisioningPassedWithRaceDetector": true,
+    "providerPasswordAndDataRetainedOnReplay": true,
+    "providerAccountRequiresSSL": true,
+    "crossDatabaseGlobalDynamicRoleAndGrantOptionPrivilegesRejected": true,
+    "screeningEvidenceGatewayPrefixAndOriginIsolationPassed": true,
+    "actualKeycloakMySQLJDBCVerifiedTLSStartupPassed": true,
+    "providerDiscoveryJWKSAndAdminLoginThroughNginxPassed": true,
+    "browserProviderLoginCallbackAndPKCEExchangePassed": true,
+    "idTokenSignatureIssuerAudienceAndSubjectChecked": true,
+    "providerCookiePathsRetainIdentityPrefix": true,
+    "temporaryBrowserFixtureUserRemoved": true
+  },
+  "limitations": [
+    "No live EC2 or Aurora deployment was performed. TLS MySQL, gateway and browser provider integration used disposable Docker fixtures.",
+    "A live Aurora installation and full application frontend login remain to be verified with the provisioned AWS cluster.",
+    "Existing separate-port PostgreSQL-backed EC2 deployments require an explicit verified realm and application-identity migration. They are rejected without rewriting their state or stopping their containers.",
+    "This remains the explicit HTTP test deployment; production HTTPS, DNS and provider activation are outside this change."
+  ]
+}

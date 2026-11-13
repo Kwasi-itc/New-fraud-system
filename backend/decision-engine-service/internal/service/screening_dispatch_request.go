@@ -24,6 +24,7 @@ type screeningDispatchConfig struct {
 	Queries                      []screeningDispatchQuery `json:"queries"`
 	Query                        map[string]any           `json:"query"`
 	QueryFields                  map[string]string        `json:"query_fields"`
+	AdditionalNameFields         []string                 `json:"additional_name_fields"`
 	ProviderConfig               json.RawMessage          `json:"provider_config"`
 	LimitOverride                *int                     `json:"limit_override"`
 	UniqueCounterpartyIdentifier *string                  `json:"unique_counterparty_identifier"`
@@ -272,8 +273,15 @@ func buildScreeningDispatchPreprocessed(ctx context.Context, execID string, cfg 
 
 	uniqueCounterpartyIdentifier := config.UniqueCounterpartyIdentifier
 	if uniqueCounterpartyIdentifier == nil && config.CounterpartyIDField != "" {
-		if value := lookupStringField(objectFields, config.CounterpartyIDField); value != "" {
-			uniqueCounterpartyIdentifier = &value
+		if raw := objectFields[config.CounterpartyIDField]; raw != nil {
+			value, ok := raw.(string)
+			if !ok || len(value) > 512 {
+				return nil, invalidScreeningQuery("Counterparty identifier must be text of at most 512 bytes.")
+			}
+			value = strings.TrimSpace(value)
+			if value != "" {
+				uniqueCounterpartyIdentifier = &value
+			}
 		}
 	}
 
@@ -294,6 +302,35 @@ func buildScreeningDispatchPreprocessed(ctx context.Context, execID string, cfg 
 }
 
 func resolveScreeningQueryName(config screeningDispatchConfig, objectFields map[string]any) (string, error) {
+	if len(config.AdditionalNameFields) > 0 {
+		if config.AuthoringVersion != 1 || len(config.AdditionalNameFields) > 4 || config.QueryFields["name"] == "" {
+			return "", invalidScreeningQuery("Invalid combined name mapping.")
+		}
+		parts := []string{}
+		seen := map[string]bool{}
+		for _, field := range append([]string{config.QueryFields["name"]}, config.AdditionalNameFields...) {
+			if field == "" || seen[field] {
+				return "", invalidScreeningQuery("Combined name fields must be nonblank and unique.")
+			}
+			seen[field] = true
+			value := objectFields[field]
+			if value == nil {
+				continue
+			}
+			text, ok := value.(string)
+			if !ok {
+				return "", invalidScreeningQuery("Mapped name fields must be text.")
+			}
+			if text = strings.TrimSpace(text); text != "" {
+				parts = append(parts, text)
+			}
+		}
+		name := strings.Join(parts, " ")
+		if name == "" || utf8.RuneCountInString(name) > 200 {
+			return "", invalidScreeningQuery("Combined name must contain 1 to 200 characters.")
+		}
+		return name, nil
+	}
 	if fieldName := strings.TrimSpace(config.QueryFields["name"]); fieldName != "" {
 		if config.AuthoringVersion == 1 && objectFields[fieldName] != nil {
 			if _, ok := objectFields[fieldName].(string); !ok {

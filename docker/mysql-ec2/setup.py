@@ -2,8 +2,9 @@
 """EC2 HTTP test deployment with an external Aurora MySQL 8.4 writer.
 
 Run on the Docker host. This profile is for restricted testing, not production
-activation. All application services share the fraud database. Keycloak has its
-own persistent PostgreSQL container. Runtime credentials remain in private state
+activation. All application services share the fraud database. Keycloak uses its
+own database on the same Aurora writer. Only gateway port 8088 is published.
+Runtime credentials remain in private state
 files so restarts and encrypted invitation delivery retain their keys.
 """
 
@@ -29,9 +30,7 @@ import uuid
 
 REPO = Path(__file__).resolve().parents[2]
 PROJECT = "fraud-ec2-test"
-DEFAULT_PORTS = {"frontend": 3002, "keycloak": 8090, "data-model": 8080,
-                 "ingestion": 8081, "decisions": 8082, "screening": 8085,
-                 "cases": 8086, "auth": 8087, "mailbox": 8027}
+DEFAULT_PORTS = {"gateway": 8088}
 SERVICES = {"data-model": "data-model-service", "ingestion": "ingestion-service",
             "decisions": "decision-engine-service", "screening": "screening-service",
             "cases": "case-manager-service", "auth": "auth-service"}
@@ -98,13 +97,32 @@ def selected_ports(values):
         seen.add(name)
     if any(not 1024 <= value <= 65535 for value in ports.values()):
         raise ValueError("Published ports must be in 1024..65535")
-    if len(set(ports.values())) != len(ports):
-        raise ValueError("Each published service must have a distinct port")
     return ports
 
 
-def origin(public_ip, ports, name):
-    return f"http://{public_ip}:{ports[name]}"
+def origin(public_ip, ports, name=None):
+    return f"http://{public_ip}:{ports['gateway']}"
+
+
+def provider_origin(public_ip, ports):
+    return origin(public_ip, ports) + "/identity"
+
+
+def local_service(ports, name):
+    return f"http://127.0.0.1:{ports['gateway']}/services/{name}"
+
+
+def deployment_identity(args, ports):
+    return {"version": 2, "public_ip": args.public_ip, "db_host": args.db_host,
+            "db_port": args.db_port, "db_user": args.db_user,
+            "db_client_ip": args.db_client_ip, "gateway_port": ports["gateway"],
+            "provider_database": "aurora-mysql/keycloak"}
+
+
+def verify_identity(state, identity):
+    file = state / "deployment.json"
+    if file.exists() and json.loads(file.read_text()) != identity:
+        raise ValueError("Deployment identity differs from retained state. Legacy separate-port/PostgreSQL deployments require an explicit realm and application-identity migration; no configuration was rewritten or services stopped.")
 
 
 def client_ip(address, port):
@@ -171,10 +189,10 @@ if(createPublicKey(readFileSync(p)).export({type:'spki',format:'pem'})!==readFil
     write_json(state / "ec2.json", {"Address": f"{args.db_host}:{args.db_port}",
                "AdminUser": args.db_user, "CAFile": "/ec2/db-ca.pem", "AccountHost": host,
                "ReferencePasswordFile": "/run/secrets/ec2_reference_password",
-               "Origins": [origin(args.public_ip, ports, name) for name in ports]}, 0o644)
+               "Origins": [origin(args.public_ip, ports)], "Gateway": True}, 0o644)
     callback = origin(args.public_ip, ports, "frontend") + "/api/auth/callback"
     issuer = origin(args.public_ip, ports, "auth")
-    provider = {"Environment": "development", "IssuerURL": origin(args.public_ip, ports, "keycloak") + "/realms/fraud",
+    provider = {"Environment": "development", "IssuerURL": provider_origin(args.public_ip, ports) + "/realms/fraud",
                 "BackchannelOrigin": "http://keycloak:8080", "ClientID": "fraud-auth",
                 "ClientSecret": "", "RedirectURL": callback}
     auth = {"Address": "mysql:3306", "Database": "fraud", "AccountHost": host,
@@ -221,10 +239,10 @@ def render(args, state, ports):
     model["secrets"].update(front["secrets"])
     model["name"] = PROJECT
     model["networks"] = {"default": {"name": PROJECT + "_default"}}
-    model["volumes"] = {"auth_mail_data": {"name": PROJECT + "_mail"}, "provider_data": {"name": PROJECT + "_provider"}}
+    model["volumes"] = {"auth_mail_data": {"name": PROJECT + "_mail"}}
     model["secrets"]["data_model_service_token"] = {"file": str(state / "data-model-service-token.txt")}
     model["secrets"]["frontend_data_model"] = {"file": str(state / "data-model-service-token.txt")}
-    model["secrets"]["provider_password"] = {"file": str(state / "keycloak-db-password.txt")}
+    model["secrets"]["keycloak_mysql_password"] = {"file": str(state / "keycloak-db-password.txt")}
     model["secrets"]["ec2_reference_password"] = {"file": str(state / "reference-root-password.txt")}
     service_origins = {name: origin(args.public_ip, ports, key) for key, name in SERVICES.items()}
     roles = {"data-model-author": "data-model-service", "data-model-worker": "data-model-service",
@@ -263,25 +281,30 @@ def render(args, state, ports):
     model["services"]["mysql-reference"]["environment"]["MYSQL_ROOT_HOST"] = "%"
     model["services"]["mysql-reference"]["environment"]["MYSQL_ROOT_PASSWORD_FILE"] = "/run/secrets/ec2_reference_password"
     model["services"]["mysql-reference"]["secrets"] = ["ec2_reference_password"]
+    # Local development now persists its reference schema. EC2 reference capture
+    # stays disposable and must not inherit that local volume or its ownership.
+    reference = model["services"]["mysql-reference"]
+    reference["volumes"] = [volume for volume in reference.get("volumes", [])
+                            if volume.get("target") != "/var/lib/mysql"]
+    reference["tmpfs"] = ["/var/lib/mysql"]
     model["services"]["mysql-reference"]["healthcheck"]["test"][1] = model["services"]["mysql-reference"]["healthcheck"]["test"][1].replace("mysql_root_password", "ec2_reference_password")
-    model["services"]["provider-postgres"] = {
-        "image": "postgres:16", "environment": {"POSTGRES_USER": "keycloak", "POSTGRES_DB": "keycloak", "POSTGRES_PASSWORD_FILE": "/run/secrets/provider_password"},
-        "secrets": ["provider_password"], "volumes": [{"type": "volume", "source": "provider_data", "target": "/var/lib/postgresql/data"}],
-        "healthcheck": {"test": ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"], "interval": "5s", "timeout": "5s", "retries": 30},
-        "mem_limit": "512m", "restart": "unless-stopped"}
     model["services"]["keycloak"] = {
         "image": "quay.io/keycloak/keycloak:26.8.0", "command": ["start-dev", "--import-realm"],
         "env_file": [{"path": str(state / "keycloak.env"), "required": True}],
-        "environment": {"KC_DB": "postgres", "KC_DB_URL": "jdbc:postgresql://provider-postgres:5432/keycloak", "KC_DB_USERNAME": "keycloak",
-                        "KC_HOSTNAME": origin(args.public_ip, ports, "keycloak"), "KC_HEALTH_ENABLED": "true", "KC_DB_POOL_MAX_SIZE": "5"},
-        "volumes": [{"type": "bind", "source": str(REPO / "docker/keycloak/fraud-realm.json"), "target": "/opt/keycloak/data/import/fraud-realm.json", "read_only": True}],
-        "depends_on": {"provider-postgres": {"condition": "service_healthy"}}, "mem_limit": "1g", "cpus": 1,
+        "environment": {"KC_DB": "mysql", "KC_DB_URL": f"jdbc:mysql://{args.db_host}:{args.db_port}/keycloak?sslMode=VERIFY_IDENTITY&fallbackToSystemTrustStore=true", "KC_DB_USERNAME": "fraud_ec2_keycloak",
+                        "KC_TRUSTSTORE_PATHS": "/ec2/db-ca.pem",
+                        "KC_HOSTNAME": provider_origin(args.public_ip, ports), "KC_HTTP_RELATIVE_PATH": "/identity",
+                        "KC_HTTP_MANAGEMENT_RELATIVE_PATH": "/", "KC_PROXY_HEADERS": "xforwarded",
+                        "KC_HEALTH_ENABLED": "true", "KC_DB_POOL_INITIAL_SIZE": "1", "KC_DB_POOL_MIN_SIZE": "1", "KC_DB_POOL_MAX_SIZE": "5"},
+        "volumes": [{"type": "bind", "source": str(REPO / "docker/keycloak/fraud-realm.json"), "target": "/opt/keycloak/data/import/fraud-realm.json", "read_only": True},
+                    {"type": "bind", "source": str(state / "db-ca.pem"), "target": "/ec2/db-ca.pem", "read_only": True}],
+        "mem_limit": "1g", "cpus": 1,
         "healthcheck": {"test": ["CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3; head -n 1 <&3 | grep -q '200'"],
                         "interval": "10s", "timeout": "5s", "start_period": "10m", "retries": 20}, "restart": "unless-stopped"}
     model["services"]["preflight"] = {
         "image": PROJECT + "-preflight:local", "profiles": ["install"],
         "build": {"context": str(REPO), "dockerfile": "docker/mysql-ec2/Dockerfile.preflight"},
-        "environment": {"EC2_MYSQL_TEST_CONFIG": "/ec2/ec2.json"}, "secrets": ["mysql_root_password"],
+        "environment": {"EC2_MYSQL_TEST_CONFIG": "/ec2/ec2.json"}, "secrets": ["mysql_root_password", "keycloak_mysql_password"],
         "volumes": [{"type": "bind", "source": str(state / "ec2.json"), "target": "/ec2/ec2.json", "read_only": True},
                     {"type": "bind", "source": str(state / "db-ca.pem"), "target": "/ec2/db-ca.pem", "read_only": True}],
         "read_only": True, "tmpfs": ["/tmp"]}
@@ -297,11 +320,9 @@ def render(args, state, ports):
             return {key: relocate(item) for key, item in value.items()}
         return value
     model = relocate(model)
-    for key, name in SERVICES.items():
-        target = DEFAULT_PORTS[key]
-        model["services"][name]["ports"] = [{"target": target, "published": str(ports[key]), "host_ip": args.api_bind, "protocol": "tcp"}]
-    for name, key, target, bind in [("frontend", "frontend", 3000, "0.0.0.0"), ("keycloak", "keycloak", 8080, "0.0.0.0"), ("auth-mail", "mailbox", 8025, args.api_bind)]:
-        model["services"][name]["ports"] = [{"target": target, "published": str(ports[key]), "host_ip": bind, "protocol": "tcp"}]
+    gateway = compose_source(REPO / "docker/gateway.compose.yaml")["services"]["api-gateway"]
+    gateway["ports"] = [{"target": 8080, "published": str(ports["gateway"]), "host_ip": "0.0.0.0", "protocol": "tcp"}]
+    model["services"]["api-gateway"] = gateway
     # Interpolation remains data: Compose receives only these non-secret values.
     tenant = args.tenant_id or ""
     settings = {"INGESTION_TENANT_ID": tenant, "INGESTION_OBJECT_TYPE": args.object_type,
@@ -349,7 +370,7 @@ def check_ports(ports):
 
 
 def prepare_tenant(args, state, ports):
-    base = f"http://127.0.0.1:{ports['data-model']}/v1"
+    base = local_service(ports, "data-model") + "/v1"
     token = (state / "data-model-service-token.txt").read_text()
     def model(path, method="GET", body=None):
         return api(base + path, method, body, token)
@@ -383,7 +404,7 @@ def wait_model(state, ports):
     deadline = time.monotonic() + 90
     while True:
         try:
-            api(f"http://127.0.0.1:{ports['data-model']}/readyz")
+            api(local_service(ports, "data-model") + "/readyz")
             return
         except (OSError, RuntimeError):
             if time.monotonic() >= deadline:
@@ -392,7 +413,7 @@ def wait_model(state, ports):
 
 
 def provider_client(state, ports):
-    base = f"http://127.0.0.1:{ports['keycloak']}"
+    base = f"http://127.0.0.1:{ports['gateway']}/identity"
     body = parse.urlencode({"grant_type": "password", "client_id": "admin-cli", "username": "test-admin",
                             "password": (state / "keycloak-admin-password.txt").read_text()}).encode()
     req = request.Request(base + "/realms/master/protocol/openid-connect/token", data=body,
@@ -443,10 +464,36 @@ def bootstrap_user(args, state, ports):
         raise ValueError("Bootstrap identity is unavailable or disabled")
     roles = args.bootstrap_roles.split(",")
     write_json(state / "auth-runtime/provision.json", {"TenantID": args.tenant_id,
-               "Issuer": origin(args.public_ip, ports, "keycloak") + "/realms/fraud", "Subject": users[0]["id"],
+               "Issuer": provider_origin(args.public_ip, ports) + "/realms/fraud", "Subject": users[0]["id"],
                "Name": args.bootstrap_user, "Roles": roles})
     compose(state, "run", "--rm", "--no-deps", "migrate-auth", "/app/install-auth", "--provision", "/runtime/provision.json")
     print("Bootstrap user ready. Newly generated credentials, if any, are in", state / "bootstrap-user-credentials.json")
+
+
+def verify_gateway(args, state, ports):
+    """Check actual host bindings and public URL contracts without user writes."""
+    ids = compose(state, "ps", "--status", "running", "-q", capture=True).split()
+    if not ids:
+        raise RuntimeError("No EC2 runtime containers found")
+    bindings = run("docker", "inspect", "--format", '{{index .Config.Labels "com.docker.compose.service"}}\t{{json .NetworkSettings.Ports}}', *ids, capture=True)
+    published = []
+    for line in bindings.splitlines():
+        name, values = line.split("\t", 1)
+        for target, mappings in (json.loads(values) or {}).items():
+            published.extend((name, target, value["HostIp"], value["HostPort"]) for value in mappings or [])
+    if published != [("api-gateway", "8080/tcp", "0.0.0.0", str(ports["gateway"]))]:
+        raise RuntimeError("EC2 runtime must publish only the selected gateway port")
+    base = f"http://127.0.0.1:{ports['gateway']}"
+    for path in ["/login", *[f"/services/{name}/{endpoint}" for name in SERVICES for endpoint in ("readyz", "docs")]]:
+        with request.urlopen(base + path, timeout=30) as response:
+            if response.status != 200:
+                raise RuntimeError("Gateway check failed: " + path)
+    discovery = api(base + "/identity/realms/fraud/.well-known/openid-configuration")
+    issuer = provider_origin(args.public_ip, ports) + "/realms/fraud"
+    if discovery.get("issuer") != issuer or any(not discovery.get(name, "").startswith(issuer + "/") for name in ("authorization_endpoint", "token_endpoint", "jwks_uri", "end_session_endpoint")):
+        raise RuntimeError("Keycloak discovery must use the public gateway identity context")
+    api(base + "/identity/realms/fraud/protocol/openid-connect/certs")
+    print("Verified one published port, frontend, six API references/readiness checks and Keycloak public discovery.")
 
 
 def deploy(args, state, ports):
@@ -463,9 +510,9 @@ def deploy(args, state, ports):
     compose(state, "build", "migrate-data-model", "migrate-ingestion", "migrate-decisions",
             "migrate-auth", "migrate-case", "migrate-screening", "frontend")
     # A failed preflight leaves any running deployment untouched.
-    compose(state, "stop", "frontend", "keycloak", *BACKEND_ROLES)
-    compose(state, "run", "--rm", "--no-deps", "preflight", "--initialize")
-    compose(state, "up", "-d", "--wait", "mysql-reference", "provider-postgres", "auth-mail")
+    compose(state, "stop", "api-gateway", "frontend", "keycloak", *BACKEND_ROLES)
+    compose(state, "run", "--rm", "--no-deps", "preflight", "--initialize", "--initialize-keycloak")
+    compose(state, "up", "-d", "--wait", "mysql-reference", "auth-mail", "api-gateway")
     compose(state, "up", "-d", "--wait", "--wait-timeout", "900", "keycloak")
     configure_provider(args, state, ports)
     compose(state, "run", "--rm", "--no-deps", "migrate-data-model")
@@ -490,8 +537,10 @@ def deploy(args, state, ports):
     bootstrap_user(args, state, ports)
     compose(state, "up", "-d", "--no-deps", "--wait", "frontend")
     print("HTTP test frontend:", origin(args.public_ip, ports, "frontend"))
-    print("Keycloak:", origin(args.public_ip, ports, "keycloak"), "(administrator test-admin; password in keycloak-admin-password.txt)")
-    print("API/mailbox bind address:", args.api_bind, "— selected ports:", json.dumps(ports))
+    verify_gateway(args, state, ports)
+    print("Keycloak:", provider_origin(args.public_ip, ports), "(administrator test-admin; password in keycloak-admin-password.txt)")
+    print("API references:", origin(args.public_ip, ports) + "/services/")
+    print("Only gateway port", ports["gateway"], "is published; APIs, Keycloak, mailbox and reference MySQL remain internal.")
     print("State and restart credentials retained privately at", state)
 
 
@@ -508,7 +557,6 @@ def main():
     parser.add_argument("--db-client-ip", help="Source IPv4 Aurora sees; defaults to the EC2 host's route address")
     parser.add_argument("--state-dir", type=Path, default=REPO / ".local/mysql-ec2")
     parser.add_argument("--port", action="append", default=[], metavar="NAME=NUMBER", help="Override any published port: " + ", ".join(DEFAULT_PORTS))
-    parser.add_argument("--api-bind", choices=["127.0.0.1", "0.0.0.0"], default="127.0.0.1", help="API/mailbox binding; frontend and Keycloak are reachable remotely")
     parser.add_argument("--tenant-id", help="Existing active tenant; otherwise create/reuse the test tenant")
     parser.add_argument("--object-type", default="transactions")
     parser.add_argument("--bootstrap-user", help="Explicitly create/reuse and provision one test administrator")
@@ -550,13 +598,9 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise RuntimeError("Another EC2 setup is already running") from None
-        identity_file = state / "deployment.json"
-        identity = {"public_ip": args.public_ip, "db_host": args.db_host, "db_port": args.db_port,
-                    "db_user": args.db_user, "db_client_ip": args.db_client_ip,
-                    "auth_port": ports["auth"], "keycloak_port": ports["keycloak"]}
-        if identity_file.exists() and json.loads(identity_file.read_text()) != identity:
-            raise ValueError("Deployment identity differs from retained state; reconcile database/issuer changes explicitly")
-        write_json(identity_file, identity)
+        identity = deployment_identity(args, ports)
+        verify_identity(state, identity)
+        write_json(state / "deployment.json", identity)
         prepare_files(args, state, ports)
         render(args, state, ports)
         deploy(args, state, ports)

@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoredScreeningEvidence } from "@/components/screening/stored-evidence";
+import { RefineScreening } from "@/components/screening/refine-screening";
+import { InvestigatorReview } from "./investigator-review";
 import { caseKeys } from "@/lib/case-manager-query";
 import {
   type Rule,
@@ -307,12 +309,14 @@ export function Evidence({
   caseId,
   kind,
   resource,
+  reviewMatchIDs,
 }: {
   tenant: string;
   session: string;
   caseId: string;
   kind: "decisions" | "screenings";
   resource: string;
+  reviewMatchIDs?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const query = useQuery({
@@ -372,7 +376,7 @@ export function Evidence({
             kind === "decisions" ? (
               <DecisionRuleExecutions data={query.data} />
             ) : (
-              <StoredScreeningEvidence data={query.data} />
+              <><StoredScreeningEvidence data={query.data} renderReview={matchId => reviewMatchIDs?.includes(matchId) ? <InvestigatorReview tenant={tenant} session={session} caseId={caseId} kind="matches" resource={matchId} /> : null} /><RefineScreening tenant={tenant} session={session} caseId={caseId} screeningId={resource} /></>
             )
           )}
         </div>

@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlpublication"
 	"github.com/google/uuid"
 )
 
@@ -17,6 +19,8 @@ import (
 // workflow editing. Provider-specific configurations remain read-only.
 func (s *BrowserWorkflowAdmin) ScreeningPage(ctx context.Context, parent uuid.UUID) (screening.AuthoringPage, error) {
 	out := screening.AuthoringPage{Rules: []screening.AuthoringRule{}, Fields: []string{}, IgnoreLists: []screening.IgnoreListOption{}}
+	threshold, limit := mysqlpublication.LocalDefaultThreshold, mysqlpublication.LocalDefaultResultLimit
+	out.AuthoringCapabilities = screening.AuthoringCapabilities{CounterpartySupported: true, InlineSupported: true, ProviderName: "Synthetic development catalog", DefaultThreshold: &threshold, DefaultResultLimit: &limit, ThresholdSupported: true, ResultLimitSupported: true}
 	if s == nil || s.owner == nil || s.copyReader == nil {
 		return out, ErrOwnerContractUnavailable
 	}
@@ -81,21 +85,24 @@ func (s *BrowserWorkflowAdmin) SaveScreening(ctx context.Context, parent uuid.UU
 	if err := in.Validate(); err != nil {
 		return screening.AuthoringRule{}, errors.Join(ErrAdministrationInput, err)
 	}
-	if in.UseNER || in.IgnoreListID != "" || in.Threshold != nil || in.ResultLimit != nil || len(in.Datasets) > 0 || in.AddressField != "" || in.BirthDateField != "" || in.NationalityField != "" || in.CountryField != "" || in.RegistrationField != "" {
+	if in.UseNER || in.IgnoreListID != "" || len(in.Datasets) > 0 || in.AddressField != "" || in.BirthDateField != "" || in.NationalityField != "" || in.CountryField != "" || in.RegistrationField != "" {
 		return screening.AuthoringRule{}, screening.ErrMatchingUnavailable
 	}
 	page, err := s.ScreeningPage(ctx, parent)
 	if err != nil {
 		return screening.AuthoringRule{}, err
 	}
-	found := false
+	available := map[string]bool{}
 	for _, name := range page.Fields {
-		if name == in.NameField {
-			found = true
-		}
+		available[name] = true
 	}
-	if !found {
-		return screening.AuthoringRule{}, ErrAdministrationInput
+	for _, name := range append([]string{in.NameField, in.CounterpartyIDField}, in.AdditionalNameFields...) {
+		if name == "" {
+			continue
+		}
+		if !available[name] {
+			return screening.AuthoringRule{}, ErrAdministrationInput
+		}
 	}
 	tenant, actor, err := s.binding()
 	if err != nil {
@@ -161,7 +168,11 @@ func (s *BrowserWorkflowAdmin) SaveScreening(ctx context.Context, parent uuid.UU
 		if !creating {
 			created = current.CreatedAt
 		}
-		value := screening.Config{ID: in.ID, TenantID: tenant, ScenarioID: parent.String(), Name: in.Name, Provider: "opensanctions", ConfigJSON: in.ConfigJSON(), AllowedOutcomes: in.Outcomes, ReviewInboxID: &in.InboxID, Active: in.Enabled, CreatedAt: created, UpdatedAt: now}
+		allowed := in.Outcomes
+		if in.ForcedOutcome != "" && len(allowed) == 0 {
+			allowed = []string{"approve", "review", "block_and_review", "decline"}
+		}
+		value := screening.Config{ID: in.ID, TenantID: tenant, ScenarioID: parent.String(), Name: in.Name, Provider: "opensanctions", ConfigJSON: in.ConfigJSON(), AllowedOutcomes: allowed, ReviewInboxID: &in.InboxID, Active: in.Enabled, CreatedAt: created, UpdatedAt: now}
 		if creating {
 			value, err = repo.Create(ctx, value)
 		} else {
@@ -177,11 +188,17 @@ func (s *BrowserWorkflowAdmin) SaveScreening(ctx context.Context, parent uuid.UU
 }
 
 type BrowserScreeningSummary struct {
-	ID       string         `json:"id"`
-	ConfigID string         `json:"config_id"`
-	Status   string         `json:"status"`
-	Request  map[string]any `json:"request_json"`
-	Response map[string]any `json:"response_json"`
+	Name          string         `json:"name"`
+	ProviderLabel string         `json:"provider_label"`
+	Mode          string         `json:"mode"`
+	ForcedOutcome string         `json:"forced_outcome,omitempty"`
+	ReviewCaseID  string         `json:"review_case_id,omitempty"`
+	SourceID      string         `json:"source_id,omitempty"`
+	ID            string         `json:"id"`
+	ConfigID      string         `json:"config_id"`
+	Status        string         `json:"status"`
+	Request       map[string]any `json:"request_json"`
+	Response      map[string]any `json:"response_json"`
 }
 
 // A summary never exposes queries, raw provider responses, or operational errors.
@@ -232,20 +249,67 @@ func (s *BrowserWorkflowAdmin) ScreeningSummaries(ctx context.Context, decision 
 		if err != nil {
 			return err
 		}
+		configs, err := screeningConfigRepo(r).ListByScenario(ctx, c.tenant.String(), d.ScenarioID)
+		if err != nil {
+			return err
+		}
+		configMap := map[string]screening.Config{}
+		for _, config := range configs {
+			configMap[config.ID] = config
+		}
+		for _, e := range executions {
+			config, ok := configMap[e.ConfigID]
+			if !ok || config.ReviewInboxID == nil {
+				return ErrOwnerRelationshipConflict
+			}
+			unique[uuid.MustParse(*config.ReviewInboxID)] = true
+		}
+		if err := s.owner.inboxes.AuthorizeBatch(ctx, tx, c.tenant, sortedWorkflowIDs(unique), false, false); err != nil {
+			return err
+		}
+		targets, err := readScreeningReviewTargets(ctx, tx, c.schema, c.tenant, decision)
+		if err != nil {
+			return err
+		}
+		// A screening may also be linked to a case separately from the decision.
+		// Authorize those current inboxes before exposing a review target.
+		caseIDs := map[string]bool{}
+		for _, target := range targets {
+			if target.CaseID != "" {
+				caseIDs[target.CaseID] = true
+			}
+		}
+		if len(caseIDs) > 0 {
+			marks := []string{}
+			args := []any{mysqlstore.UUID(c.tenant)}
+			for caseID := range caseIDs {
+				marks = append(marks, "?")
+				args = append(args, mysqlstore.UUID(uuid.MustParse(caseID)))
+			}
+			rows, err := tx.QueryContext(ctx, "SELECT inbox_id FROM "+c.schema+".case_manager_cases WHERE tenant_id=? AND id IN ("+strings.Join(marks, ",")+")", args...)
+			if err != nil {
+				return err
+			}
+			for rows.Next() {
+				var id mysqlstore.UUID
+				if err = rows.Scan(&id); err != nil {
+					rows.Close()
+					return err
+				}
+				unique[uuid.UUID(id)] = true
+			}
+			if err = errors.Join(rows.Err(), rows.Close()); err != nil {
+				return err
+			}
+			if err = s.owner.inboxes.AuthorizeBatch(ctx, tx, c.tenant, sortedWorkflowIDs(unique), false, false); err != nil {
+				return err
+			}
+		}
 		for _, e := range executions {
 			if e.ScenarioID != d.ScenarioID {
 				return ErrOwnerRelationshipConflict
 			}
-			config, err := screeningConfigRepo(r).GetByID(ctx, c.tenant.String(), e.ScenarioID, e.ConfigID)
-			if err != nil {
-				return err
-			}
-			if config.ReviewInboxID == nil {
-				return ErrDecisionAuthorizationDenied
-			}
-			if err := s.owner.inboxes.Authorize(ctx, tx, c.tenant, uuid.MustParse(*config.ReviewInboxID), false, false); err != nil {
-				return err
-			}
+			config := configMap[e.ConfigID]
 			response := map[string]any{}
 			var raw map[string]any
 			if json.Unmarshal(e.ResponseJSON, &raw) == nil {
@@ -257,7 +321,23 @@ func (s *BrowserWorkflowAdmin) ScreeningSummaries(ctx context.Context, decision 
 					}
 				}
 			}
-			out = append(out, BrowserScreeningSummary{e.ID, e.ConfigID, string(e.Status), map[string]any{"provider": config.Provider}, response})
+			var policy struct {
+				ForcedOutcome string `json:"forced_outcome"`
+			}
+			_ = json.Unmarshal(e.RequestJSON, &policy)
+			mode := "after"
+			if policy.ForcedOutcome != "" {
+				mode = "during"
+			}
+			label := "Screening provider"
+			if config.Provider == "opensanctions" {
+				label = "Synthetic development catalog"
+			}
+			target := targets[e.ID]
+			if target.Response != nil {
+				response = target.Response
+			}
+			out = append(out, BrowserScreeningSummary{ID: e.ID, ConfigID: e.ConfigID, Status: string(e.Status), Request: map[string]any{"provider": config.Provider}, Response: response, Name: config.Name, ProviderLabel: label, Mode: mode, ForcedOutcome: policy.ForcedOutcome, ReviewCaseID: target.CaseID, SourceID: target.SourceID})
 		}
 		return nil
 	})

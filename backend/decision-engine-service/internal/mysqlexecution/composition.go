@@ -3,6 +3,7 @@ package mysqlexecution
 import (
 	"context"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scoring"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
@@ -11,6 +12,7 @@ import (
 )
 
 type EvaluationPolicy struct {
+	InlineScreeningEvaluator                                   screening.InlineEvaluator
 	Limits                                                     service.ExecutionPreparationLimits
 	PublishOutboxEvents                                        bool
 	DeferAdditionalScoring                                     bool
@@ -80,6 +82,7 @@ func NewTargetPreparer(owner *mysql.ExecutionStore, reader mysql.TenantDataReade
 	}
 	evaluator := service.NewDecisionService(nil, ids, clock, nil, nil, nil, nil, reader, nil, nil, workflows, workflowRules, nil, nil, nil, reads.Snoozes(), nil, reads.CustomLists(), reads.RecordTags(), reads.RiskSnapshots(), reads.IPFlags(), screeningConfigs, nil, scoringConfigs, nil, policy.PublishOutboxEvents, "enabled", policy.Aggregates, policy.RuleConcurrency, policy.ScenarioConcurrency, policy.AggregateConcurrency, nil)
 	evaluator.SetGeoIPLookup(geo)
+	evaluator.InlineScreeningEvaluator = policy.InlineScreeningEvaluator
 	evaluator = evaluator.WithEvaluationOptimizations(policy.AggregateExecutor, policy.FormulaPlans)
 	if !policy.DeferAdditionalScoring && !policy.DeferExternalEffects {
 		evaluator = evaluator.WithEvaluationRoutingReader(reads)

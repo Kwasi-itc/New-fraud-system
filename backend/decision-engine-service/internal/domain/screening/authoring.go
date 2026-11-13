@@ -32,6 +32,8 @@ var datasetIdentifier = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}$`)
 var fieldName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
 
 type AuthoringRule struct {
+	CounterpartyIDField     string                  `json:"counterparty_id_field,omitempty"`
+	ForcedOutcome           string                  `json:"forced_outcome,omitempty"`
 	UseNER                  bool                    `json:"use_ner,omitempty"`
 	IgnoreNERClassification bool                    `json:"ner_ignore_classification,omitempty"`
 	IgnoreListID            string                  `json:"ignore_list_id,omitempty"`
@@ -46,6 +48,7 @@ type AuthoringRule struct {
 	Enabled                 bool                    `json:"enabled"`
 	EntityType              string                  `json:"entity_type"`
 	NameField               string                  `json:"name_field"`
+	AdditionalNameFields    []string                `json:"additional_name_fields,omitempty"`
 	RegistrationField       string                  `json:"registration_number_field,omitempty"`
 	NationalityField        string                  `json:"nationality_field,omitempty"`
 	CountryField            string                  `json:"country_field,omitempty"`
@@ -57,6 +60,12 @@ type AuthoringRule struct {
 }
 
 func (r AuthoringRule) Validate() error {
+	if r.CounterpartyIDField != "" && !fieldName.MatchString(r.CounterpartyIDField) {
+		return fmt.Errorf("Choose a supported counterparty text field.")
+	}
+	if r.ForcedOutcome != "" && r.ForcedOutcome != "review" && r.ForcedOutcome != "block_and_review" && r.ForcedOutcome != "decline" {
+		return fmt.Errorf("Choose review, block and review, or decline for a screening hit.")
+	}
 	if r.IgnoreNERClassification && !r.UseNER {
 		return fmt.Errorf("Name recognition must be enabled to ignore its classification.")
 	}
@@ -104,6 +113,16 @@ func (r AuthoringRule) Validate() error {
 	if !fieldName.MatchString(r.NameField) {
 		return fmt.Errorf("Choose a supported name field.")
 	}
+	if len(r.AdditionalNameFields) > 4 {
+		return fmt.Errorf("Choose at most five name fields.")
+	}
+	seenNames := map[string]bool{r.NameField: true}
+	for _, field := range r.AdditionalNameFields {
+		if !fieldName.MatchString(field) || seenNames[field] {
+			return fmt.Errorf("Name fields must be supported and unique.")
+		}
+		seenNames[field] = true
+	}
 	if r.AddressField != "" && !fieldName.MatchString(r.AddressField) {
 		return fmt.Errorf("Choose a supported address field.")
 	}
@@ -119,7 +138,7 @@ func (r AuthoringRule) Validate() error {
 	if r.RegistrationField != "" && (r.EntityType != "Organization" || !fieldName.MatchString(r.RegistrationField)) {
 		return fmt.Errorf("Choose a supported registration-number text field for Organization only.")
 	}
-	if len(r.Outcomes) == 0 || len(r.Outcomes) > 4 {
+	if (len(r.Outcomes) == 0 && r.ForcedOutcome == "") || len(r.Outcomes) > 4 {
 		return fmt.Errorf("Choose at least one decision outcome.")
 	}
 	seen := map[string]bool{}
@@ -156,6 +175,15 @@ func (r AuthoringRule) ConfigJSON() json.RawMessage {
 		fields["registration_number"] = r.RegistrationField
 	}
 	config := map[string]any{"authoring_version": 1, "entity_type": r.EntityType, "query_fields": fields}
+	if r.CounterpartyIDField != "" {
+		config["counterparty_id_field"] = r.CounterpartyIDField
+	}
+	if r.ForcedOutcome != "" {
+		config["forced_outcome"] = r.ForcedOutcome
+	}
+	if len(r.AdditionalNameFields) > 0 {
+		config["additional_name_fields"] = r.AdditionalNameFields
+	}
 	if r.Condition != nil {
 		config["condition"] = r.Condition
 	}
@@ -197,6 +225,9 @@ func (r AuthoringRule) ConfigJSON() json.RawMessage {
 func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 	r := AuthoringRule{ID: c.ID, Name: c.Name, Enabled: c.Active, Outcomes: c.AllowedOutcomes, UpdatedAt: &c.UpdatedAt}
 	var v struct {
+		CounterpartyIDField     string                  `json:"counterparty_id_field"`
+		ForcedOutcome           string                  `json:"forced_outcome"`
+		AdditionalNameFields    []string                `json:"additional_name_fields"`
 		UseNER                  bool                    `json:"use_ner"`
 		IgnoreNERClassification bool                    `json:"ner_ignore_classification"`
 		IgnoreListID            string                  `json:"ignore_list_id"`
@@ -222,6 +253,9 @@ func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 	r.Threshold, r.ResultLimit, r.Datasets = v.Provider.Threshold, v.Limit, v.Provider.Datasets
 	r.EntityType = v.EntityType
 	r.NameField = v.Fields["name"]
+	r.AdditionalNameFields = v.AdditionalNameFields
+	r.ForcedOutcome = v.ForcedOutcome
+	r.CounterpartyIDField = v.CounterpartyIDField
 	r.AddressField = v.Fields["address"]
 	r.BirthDateField = v.Fields["birth_date"]
 	r.NationalityField = v.Fields["nationality"]
@@ -237,12 +271,20 @@ func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 }
 
 type AuthoringCapabilities struct {
-	MatchingSupported     bool `json:"matching_settings_supported"`
-	RegistrationSupported bool `json:"registration_number_supported"`
-	NationalitySupported  bool `json:"nationality_supported"`
-	CountrySupported      bool `json:"country_supported"`
-	AddressSupported      bool `json:"address_supported"`
-	BirthDateSupported    bool `json:"birth_date_supported"`
+	CounterpartySupported     bool   `json:"counterparty_supported"`
+	InlineSupported           bool   `json:"inline_supported"`
+	ProviderName              string `json:"provider_name,omitempty"`
+	DefaultThreshold          *int   `json:"default_threshold,omitempty"`
+	DefaultResultLimit        *int   `json:"default_result_limit,omitempty"`
+	ThresholdSupported        bool   `json:"threshold_supported"`
+	ResultLimitSupported      bool   `json:"result_limit_supported"`
+	DatasetSelectionSupported bool   `json:"dataset_selection_supported"`
+	MatchingSupported         bool   `json:"matching_settings_supported"`
+	RegistrationSupported     bool   `json:"registration_number_supported"`
+	NationalitySupported      bool   `json:"nationality_supported"`
+	CountrySupported          bool   `json:"country_supported"`
+	AddressSupported          bool   `json:"address_supported"`
+	BirthDateSupported        bool   `json:"birth_date_supported"`
 }
 
 type IgnoreListOption struct {

@@ -15,6 +15,7 @@ import (
 
 func run() error {
 	initialize := flag.Bool("initialize", false, "create the shared fraud database if absent after checks pass")
+	keycloak := flag.Bool("initialize-keycloak", false, "provision the restricted Keycloak MySQL owner after checks pass")
 	flag.Parse()
 	c, err := ec2test.Load()
 	if err != nil {
@@ -32,8 +33,8 @@ func run() error {
 	}
 	defer db.Close()
 	var version, aurora string
-	var readOnly, trust, maxConnections int
-	if err := db.QueryRowContext(ctx, "SELECT VERSION(),AURORA_VERSION(),@@read_only,@@log_bin_trust_function_creators,@@max_connections").Scan(&version, &aurora, &readOnly, &trust, &maxConnections); err != nil {
+	var readOnly, trust, maxConnections, invisiblePK int
+	if err := db.QueryRowContext(ctx, "SELECT VERSION(),AURORA_VERSION(),@@read_only,@@log_bin_trust_function_creators,@@max_connections,@@sql_generate_invisible_primary_key").Scan(&version, &aurora, &readOnly, &trust, &maxConnections, &invisiblePK); err != nil {
 		return errors.New("target is not a verified Aurora MySQL writer")
 	}
 	if !ec2test.VersionSupported(version) {
@@ -45,14 +46,24 @@ func run() error {
 	if trust != 1 {
 		return errors.New("set log_bin_trust_function_creators=1 in the Aurora parameter group before running restricted trigger installers")
 	}
-	// Single-replica configured runtime pools total 100 connections. Reserve
+	if invisiblePK != 0 {
+		return errors.New("set sql_generate_invisible_primary_key=OFF before installing Keycloak on Aurora MySQL")
+	}
+	// Application runtime pools total 100 connections plus five for Keycloak. Reserve
 	// additional capacity for temporary DDL sessions, migrations and operators.
-	if maxConnections < 140 {
-		return errors.New("max_connections must be at least 140 for the configured runtime pools and migration headroom; account for other clients separately")
+	if maxConnections < 145 {
+		return errors.New("max_connections must be at least 145 for application/Keycloak pools and migration headroom; account for other clients separately")
 	}
 	fmt.Printf("Aurora %s / MySQL %s: writer connectivity and verified TLS passed\n", aurora, version)
 	if *initialize {
 		_, err = db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS fraud CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin")
+	}
+	if err == nil && *keycloak {
+		password, readErr := os.ReadFile("/run/secrets/keycloak_mysql_password")
+		if readErr != nil {
+			return errors.New("retained Keycloak database credential is unavailable")
+		}
+		err = ec2test.ProvisionKeycloak(ctx, db, c, string(password))
 	}
 	return err
 }

@@ -107,7 +107,7 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 		return s.failScreening(ctx, item, token, err.Error())
 	}
 
-	result, err := s.provider.Search(ctx, request)
+	result, err := screeningSearchResult(ctx, s.provider, request)
 	if err != nil {
 		return s.failScreening(ctx, item, token, err.Error())
 	}
@@ -162,6 +162,36 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 			return err
 		}
 		applications := map[string]string{}
+		counterpartyApplications := map[string]string{}
+		if native, ok := store.(ports.CounterpartyExclusionStore); ok && counterparty != nil && item.DecisionID != "" && !item.IsManual {
+			excluded := map[string]string{}
+			if request.InlineResult == nil {
+				entities := []string{}
+				for _, m := range matches {
+					entities = append(entities, m.EntityID)
+				}
+				excluded, err = native.CounterpartyExclusions(ctx, item.TenantID, item.Provider, *counterparty, entities)
+				if err != nil {
+					return err
+				}
+			} else {
+				for _, m := range request.InlineResult.Result.Matches {
+					excluded[m.EntityID] = m.ExclusionOperationID
+				}
+			}
+			pending := 0
+			for i := range matches {
+				if op := excluded[matches[i].EntityID]; op != "" {
+					matches[i].Status = screening.MatchStatusSkipped
+					counterpartyApplications[matches[i].ID] = op
+				} else {
+					pending++
+				}
+			}
+			if pending == 0 && !item.Partial {
+				item.Status = screening.StatusNoHit
+			}
+		}
 		if scope, ok := objectExclusionScope(item); ok && continuous && len(matches) > 0 {
 			entities := make([]string, 0, len(matches))
 			for _, match := range matches {
@@ -187,6 +217,11 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 		if err := store.ScreeningMatches().ReplaceForScreening(ctx, item.ID, matches); err != nil {
 			return err
 		}
+		if len(counterpartyApplications) > 0 {
+			if err := store.(ports.CounterpartyExclusionStore).RecordCounterpartyApplications(ctx, item.TenantID, item.ID, counterpartyApplications); err != nil {
+				return err
+			}
+		}
 		if len(applications) > 0 {
 			if err := store.ObjectExclusions().RecordApplications(ctx, item.TenantID, item.ID, applications); err != nil {
 				return err
@@ -206,6 +241,16 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 		_ = s.publishScreeningStatusChanged(ctx, item, len(matches))
 	}
 	return err
+}
+
+func screeningSearchResult(ctx context.Context, provider ports.ScreeningProvider, request screening.SearchRequest) (screening.ProviderResult, error) {
+	if request.InlineResult != nil {
+		if err := request.InlineResult.Validate(request); err != nil {
+			return screening.ProviderResult{}, err
+		}
+		return request.InlineResult.Result, nil
+	}
+	return provider.Search(ctx, request)
 }
 
 func (s DispatchService) failScreening(ctx context.Context, item screening.Screening, token, message string) error {

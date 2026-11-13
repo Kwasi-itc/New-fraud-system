@@ -42,7 +42,7 @@ test("renders source outcomes without treating execution completion or partial r
   await expect(panel).toContainText("Potential matches are not confirmed hits.");
   await expect(panel.getByRole("article", { name: "Screening confirmed-partial", exact: true })).toContainText("Confirmed match");
   await expect(panel.getByRole("article", { name: "Screening confirmed-partial", exact: true })).toContainText("Provider results are still incomplete.");
-  await expect(panel).toContainText("does not change the original score or outcome");
+  await expect(panel).toContainText("while leaving its numeric score unchanged");
   await expect(panel).not.toContainText("private-provider-error");
   await expect(panel.getByRole("button")).toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });

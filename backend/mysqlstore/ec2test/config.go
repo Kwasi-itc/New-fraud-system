@@ -27,6 +27,7 @@ const Environment = "EC2_MYSQL_TEST_CONFIG"
 type Config struct {
 	Address, AdminUser, CAFile, AccountHost, ReferencePasswordFile string
 	Origins                                                        []string
+	Gateway                                                        bool
 }
 
 func Enabled() bool { return os.Getenv(Environment) != "" }

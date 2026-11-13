@@ -1,0 +1,5 @@
+FROM python:3.13-alpine
+RUN apk add --no-cache docker-cli docker-cli-compose nodejs openssl
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /repo
+CMD ["python", "-m", "unittest", "discover", "-s", "docker/mysql-ec2", "-p", "test_*.py", "-v"]

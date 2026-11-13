@@ -34,5 +34,5 @@ test("authorized case evidence is projected and rendered as stored candidate car
   await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
   await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Stored screening evidence" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Candidate", exact: true })).toBeVisible();
+  await expect(page.locator("summary").filter({ hasText: "Candidate" })).toBeVisible();
 });

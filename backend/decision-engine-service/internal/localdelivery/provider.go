@@ -52,7 +52,10 @@ func NewProvider(db *sql.DB, database, token string, tenant uuid.UUID, authorize
 	if err != nil {
 		return nil, err
 	}
-	intake, err := mysqlpublication.NewIntake(screen, []string{"local-development"})
+	// Legacy exact-watchlist work stays local-development. Authored synthetic
+	// catalog work uses the opensanctions alias and is processed by the native
+	// screening worker, including captured synchronous evidence.
+	intake, err := mysqlpublication.NewIntake(screen, []string{"local-development", "opensanctions"})
 	if err != nil {
 		return nil, err
 	}

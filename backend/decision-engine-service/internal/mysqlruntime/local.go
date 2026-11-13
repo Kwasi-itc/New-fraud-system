@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/localdelivery"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/localtenants"
@@ -31,6 +32,8 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/localdev"
 	"github.com/Kwasi-itc/New-fraud-system/backend/mysqlstore/migrations"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/localmatching"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlpublication"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -291,6 +294,13 @@ func OpenLocal(ctx context.Context, worker bool) (*Application, *sql.DB, error) 
 			return fail(err)
 		}
 		dispatch[kind] = client
+	}
+	p.Evaluation.InlineScreeningEvaluator = func(ctx context.Context, tenant string, raw json.RawMessage) (screening.InlineEvaluation, error) {
+		result, count, partial, err := localmatching.Evaluate(ctx, raw)
+		if err == nil {
+			result, count, partial, err = mysqlpublication.ApplyInlineCounterpartyExclusions(ctx, db, "fraud", uuid.MustParse(tenant), raw, result)
+		}
+		return screening.InlineEvaluation{Result: result, MatchCount: count, Partial: partial}, err
 	}
 	r := &Runtime{deps: Dependencies{DB: db, Database: "fraud", Models: models, IndexPreparation: models, RequestAuthority: authority(false), ServiceAuthority: authority(true), IDs: localIDs{}, Clock: localClock{}, Dispatch: dispatch}, policy: p}
 	runner, err := migrations.New(db, c.Plan)

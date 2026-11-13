@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-12",
+  "entryPoint": "node docker/setup.mjs",
+  "terminalWrapper": "sh docker/setup.sh",
+  "windowsWrapper": "docker/setup.ps1",
+  "composeFile": "docker/compose.yaml",
+  "publicPort": 8088,
+  "hostRequirements": {"node": "22+", "dockerEngine": "linux", "compose": "2.24.4+"},
+  "verification": {
+    "portableTestsPassedInLinux": 8,
+    "posixPermissionsAndShellWrapperPassed": true,
+    "installedPlatformRestartWithoutPowerShellPassed": true,
+    "allSixFraudAPIsReadyAfterRestart": true,
+    "keycloakDiscoveryThroughGatewayPassed": true,
+    "browserLoginWithRetainedAccountPassed": true,
+    "authenticatedFrontendAPIContractsPassed": 4,
+    "authenticatedFrontendPagesPassed": 4,
+    "identityLinksRetained": 31,
+    "membershipsRetained": 174,
+    "credentialAndKeyFilesUnchanged": 33,
+    "singleRuntimePortVerified": true,
+    "arm64AndAmd64ImageVariantsChecked": ["mysql:8.4.8", "quay.io/keycloak/keycloak:26.8.0", "nginx:1.30.6-alpine", "axllent/mailpit:v1.31.2", "node:22-alpine", "golang:1.25.0", "golang:1.25.8", "gcr.io/distroless/base-debian12"]
+  },
+  "limitations": [
+    "A physical MacBook was unavailable; macOS and native Apple Silicon execution have not been exercised.",
+    "Fresh-install orchestration, migration ordering and failure behavior were tested with fixtures. A complete empty-database installation with this launcher was not exercised.",
+    "End-to-end startup verification reused the existing installed platform on Docker Desktop for Windows."
+  ]
+}

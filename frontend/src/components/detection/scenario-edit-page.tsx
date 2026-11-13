@@ -29,6 +29,9 @@ import {
   type FunctionVariableTableFieldOption,
 } from "@/components/detection/function-variable-modal";
 import { RuleBuilderSimple } from "@/components/detection/rule-builder-simple";
+import { ScenarioAddMenu } from "@/components/detection/scenario-add-menu";
+import { ScenarioScreeningRow } from "@/components/detection/scenario-screening-row";
+import { getScenarioScreeningList, scenarioScreeningKey, screeningDescription, type ScreeningListItem } from "@/lib/scenario-screening";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -524,6 +527,14 @@ export function ScenarioEditPage({
   const [selectedIterationId, setSelectedIterationId] = useState<string | null>(null);
   const [ruleGroupFilter, setRuleGroupFilter] = useState("");
   const [ruleSearch, setRuleSearch] = useState("");
+  const [ruleTypeFilter, setRuleTypeFilter] = useState("all");
+  const screeningQuery = useQuery({
+    queryKey: scenarioScreeningKey(tenantId, scenarioId),
+    queryFn: () => getScenarioScreeningList(scenarioId),
+    enabled: Boolean(tenantId && scenarioId && activeTab === "Rules"),
+    retry: false,
+    staleTime: 0,
+  });
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
     queryFn: () => decisionEngineApi.getScenario(tenantId, scenarioId),
@@ -1113,13 +1124,21 @@ export function ScenarioEditPage({
   const distinctRuleGroups = Array.from(
     new Set(rules.map((rule) => rule.rule_group).filter(Boolean))
   );
-  const filteredRules = rules.filter((rule) => {
+  type RuleRow = { kind: "rule"; rule: Rule } | { kind: "screening"; rule: ScreeningListItem };
+  const ruleRows: RuleRow[] = [
+    ...rules.map(rule => ({ kind: "rule" as const, rule })),
+    ...(screeningQuery.data?.rules ?? []).map(rule => ({ kind: "screening" as const, rule })),
+  ];
+  const filteredRules = ruleRows.filter((row) => {
+    const rule = row.rule;
+    const description = row.kind === "rule" ? row.rule.description ?? "" : screeningDescription(row.rule, screeningQuery.data?.default_threshold);
     const matchesSearch =
       !ruleSearch ||
       rule.name.toLowerCase().includes(ruleSearch.toLowerCase()) ||
-      rule.description.toLowerCase().includes(ruleSearch.toLowerCase());
-    const matchesGroup = !ruleGroupFilter || rule.rule_group === ruleGroupFilter;
-    return matchesSearch && matchesGroup;
+      description.toLowerCase().includes(ruleSearch.toLowerCase());
+    const matchesGroup = !ruleGroupFilter || row.kind === "rule" && row.rule.rule_group === ruleGroupFilter;
+    const matchesType = ruleTypeFilter === "all" || row.kind === ruleTypeFilter;
+    return matchesSearch && matchesGroup && matchesType;
   });
 
   if (!tenantId) {
@@ -1822,7 +1841,10 @@ export function ScenarioEditPage({
                   className="h-10 rounded-xl border-slate-200 pl-11 text-[14px] shadow-none"
                 />
               </div>
-              <div className="relative flex gap-3">
+              <div className="relative flex flex-wrap justify-end gap-3">
+                <select aria-label="Rule type" value={ruleTypeFilter} onChange={event => setRuleTypeFilter(event.target.value)} className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[13px]">
+                  <option value="all">All rule types</option><option value="rule">Score rules</option><option value="screening">Screening rules</option>
+                </select>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1839,21 +1861,16 @@ export function ScenarioEditPage({
                     Rule group: {ruleGroupFilter}
                   </div>
                 ) : null}
-                <div className="relative">
-                  <Button
-                    disabled={!isDraftIteration || createRuleMutation.isPending}
-                    onClick={() => createRuleMutation.mutate()}
-                    className="h-9 rounded-xl bg-[#1f4f96] px-3.5 text-[13px] shadow-none hover:bg-[#163f79]"
-                  >
-                    <Plus className="size-4" />
-                    {createRuleMutation.isPending ? "Creating..." : "Add"}
-                  </Button>
-                </div>
-                {!isDraftIteration ? (
-                  <div className="absolute right-0 top-11 w-[280px] rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
-                    Select or create a draft iteration before adding rules.
-                  </div>
-                ) : null}
+                <ScenarioAddMenu
+                  scenarioId={scenarioId}
+                  canAddRule={isDraftIteration}
+                  creatingRule={createRuleMutation.isPending}
+                  onAddRule={() => createRuleMutation.mutate()}
+                  onOpen={() => {
+                    setRuleFiltersOpen(false);
+                    setRuleGroupFilterOpen(false);
+                  }}
+                />
                 {ruleFiltersOpen ? (
                   <div className="absolute right-[126px] top-11 z-10 w-[250px] rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_30px_rgba(15,23,42,0.08)]">
                     {ruleGroupFilterOpen ? (
@@ -1894,6 +1911,10 @@ export function ScenarioEditPage({
               </div>
             </div>
 
+            {rulesQuery.isError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>Score rules could not be loaded. Retry to see the complete rule list.</p><Button variant="outline" size="sm" onClick={() => void rulesQuery.refetch()}>Retry score rules</Button></div>}
+            {screeningQuery.isError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>{screeningQuery.error.message}</p><Button variant="outline" size="sm" onClick={() => void screeningQuery.refetch()}>Retry screening rules</Button></div>}
+            {!!screeningQuery.data?.rules.length && <p className="text-xs text-slate-500">Screening rules use live scenario settings. Changes apply to future decisions, independently of the selected iteration.</p>}
+            {!!screeningQuery.data?.other_rules && <p className="text-sm text-amber-800">{screeningQuery.data.other_rules} screening configuration(s) use settings this editor cannot display. <Link className="underline" href={`/detection/${scenarioId}/screening`}>View screening configurations</Link>.</p>}
             <Card className="overflow-hidden rounded-xl border border-slate-200 shadow-none">
               <CardContent className="p-0">
                 {validation ? (
@@ -1925,17 +1946,18 @@ export function ScenarioEditPage({
                   </div>
                 ) : null}
                 <div className="overflow-x-auto">
-                  {rulesQuery.isLoading ? (
+                  {rulesQuery.isLoading || screeningQuery.isLoading ? (
                     <div className="flex min-h-[140px] items-center justify-center text-[16px] text-slate-600">
                       Loading rules...
                     </div>
                   ) : filteredRules.length > 0 ? (
-                    <table className="min-w-full text-left">
+                    <table aria-label="Scenario rules" className="min-w-full text-left">
                       <thead>
                         <tr
                           className="border-b border-slate-200 bg-white text-[13px] font-semibold text-slate-950"
                         >
                           <th className="px-4 py-3">Name</th>
+                          <th className="px-4 py-3">Type</th>
                           <th className="px-4 py-3">Description</th>
                           <th className="px-4 py-3">Rule group</th>
                           <th className="px-4 py-3 text-center">Score Modifier</th>
@@ -1944,12 +1966,14 @@ export function ScenarioEditPage({
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRules.map((rule) => {
+                        {filteredRules.map((row) => {
+                          if (row.kind === "screening") return <ScenarioScreeningRow key={`screening:${row.rule.id}`} rule={row.rule} scenarioId={scenarioId} canEdit={screeningQuery.data?.can_edit ?? false} defaultThreshold={screeningQuery.data?.default_threshold} />;
+                          const rule = row.rule;
                           const ruleSummary = summarizeRuleFormula(rule.formula);
 
                           return (
                           <tr
-                            key={rule.id}
+                            key={`rule:${rule.id}`}
                             className="border-b border-slate-100 text-[14px] text-slate-950 last:border-b-0"
                           >
                             <td className="px-4 py-3 text-[14px] font-medium">
@@ -1974,6 +1998,7 @@ export function ScenarioEditPage({
                                 </div>
                               ) : null}
                             </td>
+                            <td className="px-4 py-3"><Badge className="border-blue-200 bg-blue-50 text-blue-800 normal-case tracking-normal">Score rule</Badge></td>
                             <td className="max-w-[440px] px-4 py-3 text-[13px]">
                               {rule.description ? (
                                 <span>{rule.description}</span>

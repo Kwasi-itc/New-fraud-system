@@ -14,7 +14,7 @@ const provider=parse(resolve(root,'.local/auth-provider/auth.env')), admin=parse
 const issuer=new URL(provider.OIDC_ISSUER_URL), origin='http://localhost:3002';
 assert.ok(['localhost','127.0.0.1'].includes(issuer.hostname));
 const output=resolve(root,'frontend/evidence/mysql-integration',new Date().toISOString().replaceAll(':','-'));mkdirSync(output,{recursive:true});
-const trace=[],suites=[];let user,browser,context,adminHeaders,tenant,table,scenario,decision,inbox,current='setup',failure,removedUser=false;
+const trace=[],suites=[];let user,browser,context,adminHeaders,tenant,table,scenario,decision,inbox,inlineRule,inlineDecision,current='setup',failure,removedUser=false;
 const request=async(url,options={})=>{try{return await fetch(url,{...options,redirect:'manual',signal:AbortSignal.timeout(30000)});}catch{throw Error('Request unavailable at '+new URL(url).pathname);}};
 const json=async(url,method,body,want=200,headers={})=>{const r=await request(url,{method,headers:{'Content-Type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body)});assert.ok([want].flat().includes(r.status),method+' '+new URL(url).pathname+' status '+r.status);return r.status===204?undefined:r.json();};
 async function suite(name,run){current=name;await run();suites.push({name,passed:true});console.log('PASS '+name);}
@@ -33,6 +33,7 @@ try {
   const p=spawnSync('docker',['compose','--profile','install','--env-file',resolve(local,'compose.env'),'-f','docker-compose-mysql.yml','run','--rm','--no-deps','migrate-auth','/app/install-auth','--provision','/runtime/provision-frontend.json'],{cwd:resolve(root,'backend/auth-service'),encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4<<20});assert.equal(p.status,0,'Synthetic identity provisioning failed; private output omitted');
  });
  const require=createRequire(resolve(root,'frontend/package.json'));const {chromium}=require('@playwright/test');browser=await chromium.launch({headless:true});context=await browser.newContext();const page=await context.newPage();page.setDefaultTimeout(20000);
+ page.on('response',response=>{const url=new URL(response.url());if(url.origin===origin&&url.pathname.startsWith('/api/case-refinement/'))trace.push({suite:current,service:'case-refinement',method:response.request().method(),path:url.pathname.slice('/api/case-refinement'.length),status:response.status(),expected:200});});
  await suite('real-browser-login-and-secure-cookie',async()=>{
   await page.goto(origin+'/login');await page.getByRole('button',{name:'Continue to sign in'}).click();
   await page.locator('#username').fill(user.username);await page.locator('#password').fill(user.password);await page.locator('#kc-login').click();await page.waitForURL(origin+'/my-account',{timeout:40000});
@@ -68,6 +69,8 @@ try {
   const own='/tenants/'+tenant;
   table=(await api('data-model','POST',own+'/tables',{name:'ui_payments'},201)).table.id;
   for(const [name,data_type]of [['amount','float'],['customer_name','string']])await api('data-model','POST','/tables/'+table+'/fields',{name,data_type,nullable:false},201);
+  await api('data-model','POST','/tables/'+table+'/fields',{name:'last_name',data_type:'string',nullable:true},201);
+  await api('data-model','POST','/tables/'+table+'/fields',{name:'account_id',data_type:'string',nullable:true},201);
   await until(()=>api('data-model','GET',own+'/data-model'),r=>r.data_model.tables.ui_payments?.fields.customer_name,'published payment fields');
   const settings=await api('data-model','GET','/tables/'+table+'/display-settings');assert.ok(settings);
   await page.goto(origin+'/your-data');await page.getByRole('button',{name:'Display settings for ui_payments'}).waitFor();
@@ -111,6 +114,103 @@ try {
   await api('scenario-screening','PUT','/scenarios/'+scenario+'/configs/'+rule.id,{...saved,name:'Updated synthetic screening'});
   const summary=await api('decision-screening','GET','/'+decision);assert.deepEqual(summary.screening_executions,[]);
   await page.goto(origin+'/cases');await page.getByRole('link',{name:'Frontend synthetic investigation',exact:true}).waitFor();
+ });
+ await suite('scenario-add-menu-opens-screening-without-creating',async()=>{
+  await page.goto(origin+'/detection/'+scenario+'/edit?tab=Rules');
+  await page.getByRole('button',{name:'Add',exact:true}).click();
+  const menu=page.getByRole('menu',{name:'Add to scenario'});
+  await menu.waitFor();
+  assert.equal(await menu.getByRole('menuitem').count(),2);
+  assert.equal(await menu.getByRole('menuitem',{name:'Add a rule',exact:true}).isDisabled(),true);
+  await menu.getByRole('menuitem',{name:'Add a screening',exact:true}).click();
+  await page.waitForURL(origin+'/detection/'+scenario+'/screening?create=1');
+  const form=page.getByRole('form',{name:'Screening configuration'});
+  await form.waitFor();
+  assert.equal(await form.getByLabel('Name',{exact:true}).inputValue(),'');
+  await form.getByRole('button',{name:'Cancel',exact:true}).click();
+  const configs=await api('scenario-screening','GET','/scenarios/'+scenario);
+  assert.equal(configs.rules.length,1);
+  assert.equal(configs.rules[0].name,'Updated synthetic screening');
+ });
+ await suite('inline-screening-authoring-evaluation-and-durable-evidence',async()=>{
+  const own='/tenants/'+tenant, path='/scenarios/'+scenario;
+  const capabilities=await api('scenario-screening','GET',path);
+  assert.equal(capabilities.inline_supported,true);assert.equal(capabilities.default_threshold,80);assert.equal(capabilities.default_result_limit,50);
+  await page.goto(origin+'/detection/'+scenario+'/screening?create=1');
+  const form=page.getByRole('form',{name:'Screening configuration'});
+  await form.getByLabel('Name',{exact:true}).fill('Inline synthetic beneficiary match');
+  await form.getByLabel('Screening timing').selectOption('during');
+  await form.getByLabel('Outcome when a possible match is found').selectOption('block_and_review');
+  await form.getByLabel('Name field',{exact:true}).selectOption('customer_name');
+  await form.getByRole('button',{name:'Add name field',exact:true}).click();
+  await form.getByLabel('Additional name field 1').selectOption('last_name');
+  await form.getByLabel('Counterparty identifier field (optional)').selectOption('account_id');
+  await form.getByLabel('Match threshold (0-100)').fill('100');
+  await form.getByLabel('Result limit (1-50)').fill('1');
+  await form.getByLabel('Review inbox').selectOption(inbox);
+  await form.getByLabel('Enable for future decisions').check();
+  await page.screenshot({path:resolve(output,'screening-editor-desktop.png'),fullPage:true});
+  await form.getByRole('button',{name:'Save configuration'}).click();
+  await page.getByRole('status').filter({hasText:'Screening configuration saved.'}).waitFor();
+  const saved=(await api('scenario-screening','GET',path)).rules.find(r=>r.name==='Inline synthetic beneficiary match');
+  assert.ok(saved);assert.deepEqual(saved.additional_name_fields,['last_name']);assert.equal(saved.forced_outcome,'block_and_review');assert.equal(saved.counterparty_id_field,'account_id');inlineRule=saved;
+  const badID=randomUUID();await api('scenario-screening','PUT',path+'/configs/'+badID,{...saved,id:badID,additional_name_fields:['unknown_field'],updated_at:null},422);
+  for(const [first,last,want]of [['Alex','Example','block_and_review'],['Unrelated','Synthetic','approve']]){
+   const evaluated=(await api('decisions','POST',own+'/scenarios/'+scenario+'/evaluate',{object_id:'ui-inline-'+randomUUID(),object_type:'ui_payments',fields:{amount:25,customer_name:first,last_name:last,account_id:'synthetic-account-001'}})).result.decision;
+   if(want==='block_and_review')inlineDecision=evaluated;
+   assert.equal(evaluated.outcome,want);assert.equal(evaluated.score,0);
+   // Raw execution evidence is intentionally unavailable through the browser
+   // proxy. Inspect it through the loopback-only development owner API.
+   const effects=(await json('http://localhost:8082/v1'+own+'/decisions/'+evaluated.id+'/screening-executions','GET')).screening_executions;
+   assert.equal(effects.length,1);assert.equal(effects[0].request_json.queries[0].name,first+' '+last);assert.equal(effects[0].request_json.inline_result.result.matches.length,want==='approve'?0:1);
+   await until(()=>api('decision-screening','GET','/'+evaluated.id),r=>r.screening_executions.some(e=>e.status==='completed'),'captured inline evidence projection');
+  }
+ });
+ await suite('screening-review-barrier-and-audited-refinement',async()=>{
+  const target=(await until(()=>api('decision-screening','GET','/'+inlineDecision.id),r=>r.screening_executions.some(e=>e.review_case_id&&e.source_id),'authorized screening case link')).screening_executions[0];
+  const reviewPath='/'+tenant+'/'+target.review_case_id+'/decisions';
+  const state=await api('case-review','GET',reviewPath+'?resource_id='+inlineDecision.id);
+  assert.ok(state.disabled_actions.approve);assert.deepEqual(state.actions,['decline']);
+  await api('case-review','POST',reviewPath,{operation_id:randomUUID(),resource_id:inlineDecision.id,expected_version:state.version,action:'approve',findings:'Must be rejected while matches remain'},400);
+  await page.goto(origin+'/detection/decisions/'+inlineDecision.id);
+  const panel=page.getByRole('region',{name:'Decision screening'});
+  await panel.getByRole('heading',{name:'Inline synthetic beneficiary match'}).waitFor();
+  await panel.getByRole('link',{name:'Start reviewing'}).click();
+  await page.getByRole('button',{name:'Inspect evidence',exact:true}).click();
+  await page.getByRole('button',{name:'Refine search',exact:true}).click();
+  await page.getByLabel('Refined name',{exact:true}).fill('Unrelated complete beneficiary');
+  await page.getByLabel('Refined similarity threshold').fill('100');
+  await page.getByRole('button',{name:'Preview results',exact:true}).click();
+  await page.getByRole('heading',{name:'No possible matches found'}).waitFor();
+  await page.getByLabel('Refinement findings').fill('Validated complete identity against synthetic customer record');
+  await page.screenshot({path:resolve(output,'screening-refinement-preview.png'),fullPage:true});
+  await page.getByRole('button',{name:'Apply changes',exact:true}).click();
+  await page.getByText('Refinement applied. Original evidence retained; review the replacement results in this case.').waitFor();
+  const cleared=await api('case-review','GET',reviewPath+'?resource_id='+inlineDecision.id);
+  assert.ok(cleared.actions.includes('approve'));assert.equal(cleared.disabled_actions?.approve,undefined);
+  const original=await api('case-evidence','GET','/'+tenant+'/'+target.review_case_id+'/screenings/'+target.source_id);assert.equal(original.matches.length,1);
+  const summary=(await api('decision-screening','GET','/'+inlineDecision.id)).screening_executions[0];assert.equal(summary.response_json.refined,true);assert.equal(summary.response_json.status,'no_hit');
+  const command={operation_id:randomUUID(),resource_id:inlineDecision.id,expected_version:cleared.version,action:'approve',findings:'Complete refined evidence reviewed'};
+  await api('case-review','POST',reviewPath,command);await api('case-review','POST',reviewPath,command);
+  const immutable=await api('decisions','GET','/tenants/'+tenant+'/decisions/'+inlineDecision.id);assert.equal(immutable.decision.outcome,'block_and_review');
+ });
+ await suite('counterparty-whitelist-and-future-evaluation-isolation',async()=>{
+  const evaluate=async account=>(await api('decisions','POST','/tenants/'+tenant+'/scenarios/'+scenario+'/evaluate',{object_id:'ui-whitelist-'+randomUUID(),object_type:'ui_payments',fields:{amount:25,customer_name:'Alex',last_name:'Example',account_id:account}})).result.decision;
+  const candidate=await evaluate('synthetic-account-002');assert.equal(candidate.outcome,'block_and_review');
+  const target=(await until(()=>api('decision-screening','GET','/'+candidate.id),r=>r.screening_executions.some(e=>e.review_case_id&&e.source_id),'whitelist screening case')).screening_executions[0];
+  const evidence=await api('case-evidence','GET','/'+tenant+'/'+target.review_case_id+'/screenings/'+target.source_id);const match=evidence.matches[0].id;
+  const path='/'+tenant+'/'+target.review_case_id+'/matches',state=await api('case-review','GET',path+'?resource_id='+match);
+  assert.ok(state.actions.includes('dismiss_and_whitelist'));
+  const command={operation_id:randomUUID(),resource_id:match,expected_version:state.version,action:'dismiss_and_whitelist',findings:'Confirmed different synthetic person for this account'};
+  await api('case-review','POST',path,command);await api('case-review','POST',path,command);
+  const suppressed=await evaluate('synthetic-account-002');assert.equal(suppressed.outcome,'approve');
+  await until(()=>api('decision-screening','GET','/'+suppressed.id),r=>r.screening_executions.some(e=>e.status==='completed'&&e.response_json.status==='no_hit'),'captured whitelist suppression in worker');
+  assert.equal((await evaluate('synthetic-account-003')).outcome,'block_and_review');
+  const active=await api('case-review','GET',path+'?resource_id='+match);assert.ok(active.actions.includes('remove_counterparty_exclusion'));
+  await api('case-review','POST',path,{operation_id:randomUUID(),resource_id:match,expected_version:active.version,action:'remove_counterparty_exclusion',findings:'Reassess subsequent synthetic evaluations'});
+  assert.equal((await evaluate('synthetic-account-002')).outcome,'block_and_review');
+  const currentRule=(await api('scenario-screening','GET','/scenarios/'+scenario)).rules.find(r=>r.id===inlineRule.id);
+  await api('scenario-screening','PUT','/scenarios/'+scenario+'/configs/'+inlineRule.id,{...currentRule,enabled:false});
  });
  await suite('manual-screening-through-current-user-identity',async()=>{
   const capabilities=await api('screening-search','GET','/capabilities');assert.equal(capabilities.configured,true);
