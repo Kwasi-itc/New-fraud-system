@@ -1,0 +1,76 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Single Ubuntu amd64 EC2 host for the shared PostgreSQL fraud stack. Application setup is an explicit step after launch.",
+  "Parameters": {
+    "VpcId": { "Type": "AWS::EC2::VPC::Id" },
+    "SubnetId": { "Type": "AWS::EC2::Subnet::Id", "Description": "Public subnet with an Internet Gateway route." },
+    "UbuntuAmiId": { "Type": "AWS::EC2::Image::Id", "Description": "Trusted Ubuntu 24.04 LTS amd64 AMI for this region." },
+    "InstanceType": { "Type": "String", "Description": "Choose an amd64 instance sized for all APIs, workers, PostgreSQL, Keycloak and image builds; no workload capacity is implied." },
+    "KeyPairName": { "Type": "AWS::EC2::KeyPair::KeyName" },
+    "AdminCidr": { "Type": "String", "AllowedPattern": "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}/(?:[1-9]|[12][0-9]|3[0-2])", "Description": "Operator IPv4 CIDR for SSH, normally your public IP /32. Prefix /0 is not permitted." },
+    "RootVolumeGiB": { "Type": "Number", "Default": 80, "MinValue": 30, "MaxValue": 2048 }
+  },
+  "Rules": {
+    "RestrictSSH": {
+      "Assertions": [{
+        "Assert": { "Fn::Not": [{ "Fn::Equals": [{ "Ref": "AdminCidr" }, "0.0.0.0/0"] }] },
+        "AssertDescription": "SSH must be restricted to an operator CIDR."
+      }]
+    }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Fraud HTTPS and certificate challenges; restricted operator SSH. No backend/database public ports.",
+        "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "CidrIp": { "Ref": "AdminCidr" } },
+          { "IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "CidrIp": "0.0.0.0/0" }
+        ]
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", "Principal": { "Service": "ec2.amazonaws.com" }, "Action": "sts:AssumeRole" }]
+        },
+        "ManagedPolicyArns": [{ "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore" }]
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": { "Roles": [{ "Ref": "InstanceRole" }] }
+    },
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": { "Ref": "UbuntuAmiId" },
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyPairName" },
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "MetadataOptions": { "HttpTokens": "required", "HttpEndpoint": "enabled", "HttpPutResponseHopLimit": 1 },
+        "NetworkInterfaces": [{ "DeviceIndex": "0", "AssociatePublicIpAddress": true, "SubnetId": { "Ref": "SubnetId" }, "GroupSet": [{ "Ref": "SecurityGroup" }] }],
+        "BlockDeviceMappings": [{ "DeviceName": "/dev/sda1", "Ebs": { "Encrypted": true, "VolumeType": "gp3", "VolumeSize": { "Ref": "RootVolumeGiB" }, "DeleteOnTermination": false } }],
+        "Tags": [{ "Key": "Name", "Value": "fraud-postgresql" }],
+        "UserData": { "Fn::Base64": "#!/bin/bash\nset -euo pipefail\nexport DEBIAN_FRONTEND=noninteractive\napt-get update\napt-get install -y git curl ca-certificates\n" }
+      }
+    },
+    "PublicAddress": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": "vpc", "Tags": [{ "Key": "Name", "Value": "fraud-postgresql" }] }
+    },
+    "PublicAddressAssociation": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": { "AllocationId": { "Fn::GetAtt": ["PublicAddress", "AllocationId"] }, "InstanceId": { "Ref": "Instance" } }
+    }
+  },
+  "Outputs": {
+    "InstanceId": { "Value": { "Ref": "Instance" } },
+    "PublicIPv4": { "Value": { "Ref": "PublicAddress" }, "Description": "Point the chosen domain A record here before HTTPS deployment." },
+    "SecurityGroupId": { "Value": { "Ref": "SecurityGroup" } }
+  }
+}

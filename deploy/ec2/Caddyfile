@@ -1,0 +1,26 @@
+{
+	admin off
+	email {$EC2_ACME_EMAIL}
+	# OAuth callbacks and request credentials must not enter diagnostic logs.
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>uri delete
+				request>headers delete
+			}
+		}
+	}
+}
+
+{$EC2_DOMAIN} {
+	@privateIdentity path /identity/admin /identity/admin/* /identity/realms/master /identity/realms/master/* /identity/health/* /identity/metrics
+	respond @privateIdentity 404
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy api-gateway:8080
+}
+
+# Container-only process check; this listener is never published on the host.
+:8081 {
+	respond /healthz "ok" 200
+}

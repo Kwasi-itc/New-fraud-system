@@ -1,5 +1,10 @@
 # New Workspace
 
+For a separate EC2 installation with a configurable HTTPS domain, see the
+[EC2 deployment setup](deploy/ec2/README.md). It includes an optional instance
+template, Docker bootstrap, private configuration, deployment/backups and HTTPS
+verification. No AWS resources are created by the local development setup.
+
 This directory is now the workspace root for the extracted system.
 
 ## Local Docker stack

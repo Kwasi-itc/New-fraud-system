@@ -1,0 +1,140 @@
+# Apply after docker-compose.yml and docker-compose.gateway.yml.
+x-database: &database
+  DATABASE_URL: ${EC2_DATABASE_URL:?Run deploy/ec2/run.sh configure first}
+x-runtime: &runtime
+  <<: *database
+  SERVICE_ALLOWED_ORIGINS: ${EC2_PUBLIC_ORIGIN}
+  ALLOWED_ORIGINS: ${EC2_PUBLIC_ORIGIN}
+  GIN_MODE: release
+  LOG_LEVEL: info
+
+services:
+  postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: !reset null
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - ./.local/ec2/postgres-password.txt:/run/secrets/postgres-password:ro
+  keycloak-db-init:
+    environment:
+      PGPASSWORD: ${EC2_POSTGRES_PASSWORD}
+  keycloak:
+    command: !override [start, --import-realm]
+    environment:
+      KC_HOSTNAME: ${EC2_PUBLIC_ORIGIN}/identity
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /identity
+      KC_PROXY_HEADERS: xforwarded
+      FRAUD_AUTH_REDIRECT_URI: ${EC2_PUBLIC_ORIGIN}/api/auth/callback
+    volumes: !override
+      - ./deploy/ec2/fraud-realm.json:/opt/keycloak/data/import/fraud-realm.json:ro
+
+  auth-migrate:
+    environment: *database
+  data-model-migrate:
+    environment: *database
+  ingestion-migrate:
+    environment: *database
+  decision-engine-migrate:
+    environment: *database
+  screening-migrate:
+    environment: *database
+  case-manager-migrate:
+    environment: *database
+
+  auth-service:
+    environment:
+      <<: *database
+      AUTH_ENV: production
+      AUTH_DEFAULT_TENANT_ID: ${AUTH_DEFAULT_TENANT_ID:-}
+      OIDC_ISSUER_URL: ${EC2_PUBLIC_ORIGIN}/identity/realms/fraud
+      # The public hostname resolves to tls-edge on the private Docker network.
+      # TLS and issuer validation remain enabled; no HTTP backchannel downgrade.
+      OIDC_BACKCHANNEL_ORIGIN: ""
+      OIDC_REDIRECT_URL: ${EC2_PUBLIC_ORIGIN}/api/auth/callback
+      AUTH_APP_ORIGIN: ${EC2_PUBLIC_ORIGIN}
+    depends_on:
+      tls-edge: {condition: service_started}
+  data-model-service:
+    restart: unless-stopped
+    environment: *runtime
+  ingestion-service:
+    restart: unless-stopped
+    environment: *runtime
+  decision-engine-service:
+    restart: unless-stopped
+    environment: *runtime
+  screening-service:
+    restart: unless-stopped
+    environment: *runtime
+  case-manager-service:
+    restart: unless-stopped
+    environment: *runtime
+  data-model-worker:
+    restart: unless-stopped
+    environment: *runtime
+  ingestion-worker:
+    restart: unless-stopped
+    environment: *runtime
+  decision-engine-worker:
+    restart: unless-stopped
+    environment: *runtime
+  screening-worker:
+    restart: unless-stopped
+    environment: *runtime
+  screening-case-delivery-worker:
+    restart: unless-stopped
+    environment: *runtime
+  case-manager-worker:
+    restart: unless-stopped
+    environment: *runtime
+
+  frontend:
+    restart: unless-stopped
+    depends_on:
+      auth-service: {condition: service_started}
+    environment:
+      APP_ORIGIN: ${EC2_PUBLIC_ORIGIN}
+      CASE_SESSION_COOKIE: __Host-fraud_session
+  api-gateway:
+    ports: !reset []
+    # Start routing/identity before auth discovery; frontend follows auth.
+    depends_on: !override {}
+    volumes: !override
+      - ./.local/ec2/nginx.conf:/etc/nginx/nginx.conf:ro
+  tls-edge:
+    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    environment:
+      EC2_DOMAIN: ${EC2_DOMAIN:?Configure an HTTPS domain}
+      EC2_ACME_EMAIL: ${EC2_ACME_EMAIL:?Configure a certificate contact email}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/ec2/Caddyfile:/etc/caddy/Caddyfile:ro
+      - edge_data:/data
+      - edge_config:/config
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    networks:
+      default:
+        aliases: ["${EC2_DOMAIN}"]
+    depends_on:
+      api-gateway: {condition: service_started}
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:8081/healthz]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres_data:
+    name: ${EC2_POSTGRES_VOLUME:?Configure the retained PostgreSQL volume}
+  edge_data:
+  edge_config:
