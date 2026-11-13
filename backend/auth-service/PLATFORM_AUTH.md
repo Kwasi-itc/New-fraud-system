@@ -1,5 +1,39 @@
 # Platform accounts, sessions and permissions
 
+## PostgreSQL gateway issuer changes
+
+An external account is identified by its exact OIDC issuer and subject. Moving
+the same local Keycloak realm from `http://localhost:8090/realms/fraud` to
+`http://localhost:8088/identity/realms/fraud` changes that issuer. Existing
+memberships alone cannot authorize the new issuer, so a valid provider login can
+still end at the generic sign-in denial page.
+
+After verifying the same persisted provider realm and subject, an operator can
+move one existing binding with the auth-owned admin command. Confirm the
+platform user UUID as well; never infer a link from an email or create a second
+platform user to work around an issuer change. Stop any auth deployment still
+accepting the previous issuer before running this operation.
+
+```powershell
+docker compose --env-file .local/postgres-dev/compose.env -p new-fraud-system -f docker-compose.yml -f docker-compose.gateway.yml exec -T auth-service /app/admin -action rebind-issuer -user "<existing platform user UUID>" -subject "<verified provider subject>" -from-issuer "http://localhost:8090/realms/fraud" -issuer "http://localhost:8088/identity/realms/fraud"
+```
+
+The destination must equal the running auth service's `OIDC_ISSUER_URL`. This
+operation rejects conflicting identities, preserves user IDs and memberships,
+revokes previous sessions and records `external_identity.issuer_rebound` for
+each existing tenant membership in the same transaction. An identical retry
+does not duplicate the audit or revoke newly created sessions. Audit failure
+rolls the entire repair back. It does not create provider accounts or grant roles.
+
+In the gateway overlay, `AUTH_DEFAULT_TENANT_ID` is an optional explicit login
+tenant. When unset, auth selects the first existing active tenant membership;
+the old `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` demo setting no longer forces a login
+tenant. The frontend does not currently provide a tenant switcher.
+
+The 2026-11-13 local repair moved only `kaddo`'s verified PostgreSQL binding to
+the gateway issuer, retaining its existing IT Consortium permissions. Provider
+credentials were checked for consistency without exposing or changing them.
+
 ## Invitation onboarding increment - 2026-10-09
 
 Application roles remain auth-owned; Keycloak owns login credentials, MFA and

@@ -1,4 +1,3 @@
-import { resolveServiceUrl } from "@/lib/service-url";
 
 export type IngestionApiErrorEnvelope = {
   error: {
@@ -24,10 +23,6 @@ export type UploadLog = {
 
 export type IngestedRecord = Record<string, unknown>;
 
-const configuredIngestionServiceBaseUrl =
-  process.env.NEXT_PUBLIC_INGESTION_SERVICE_URL;
-const ingestionServiceToken = process.env.NEXT_PUBLIC_INGESTION_SERVICE_TOKEN;
-
 async function ingestionFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
@@ -36,15 +31,13 @@ async function ingestionFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  if (ingestionServiceToken) {
-    headers.set("Authorization", `Bearer ${ingestionServiceToken}`);
-  }
-
   const response = await fetch(
-    `${resolveServiceUrl(configuredIngestionServiceBaseUrl, 8081)}${path}`,
+    `/api/ingestion${path.replace(/^\/v1/, "")}`,
     {
     ...init,
     headers,
+    credentials: "same-origin",
+    cache: "no-store",
     }
   );
 
@@ -53,7 +46,7 @@ async function ingestionFetch<T>(path: string, init?: RequestInit): Promise<T> {
       | IngestionApiErrorEnvelope
       | null;
     throw new Error(
-      errorBody?.error.message ?? `Request failed with status ${response.status}`
+      (typeof errorBody?.error === "string" ? errorBody.error : errorBody?.error?.message) ?? `Request failed with status ${response.status}`
     );
   }
 

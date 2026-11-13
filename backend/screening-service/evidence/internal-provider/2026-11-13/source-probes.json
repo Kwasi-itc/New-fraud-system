@@ -1,0 +1,71 @@
+{
+  "verified_at": "2026-11-13",
+  "note": "Prefix retrieval only; no complete parsing or ingestion verification. Redirect query strings omitted.",
+  "probes": [
+    {
+      "source": "ofac_sdn_xml",
+      "url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML",
+      "method": "GET",
+      "body_read_limit": 4096,
+      "status": 206,
+      "content_type": "text/xml",
+      "last_modified": "Mon, 09 Nov 2026 19:36:15 GMT",
+      "final_host": "wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com",
+      "final_path": "/Published/9d85db50-f549-40e7-9749-1a1260e624b9/2026-11-09/e9b8bcc6-880c-4138-a8ad-8a02f444f69e/SDN.XML",
+      "bytes_read": 4096,
+      "root_element": "{https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML}sdnList"
+    },
+    {
+      "source": "ofac_schema",
+      "url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML.xsd",
+      "method": "GET",
+      "body_read_limit": 4096,
+      "status": 206,
+      "content_type": "text/plain",
+      "last_modified": "Tue, 27 Feb 2024 19:18:56 GMT",
+      "final_host": "wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com",
+      "final_path": "/Export-XSDs/XML.xsd",
+      "bytes_read": 4096,
+      "root_element": "{http://www.w3.org/2001/XMLSchema}schema"
+    },
+    {
+      "source": "un_xml",
+      "url": "https://scsanctions.un.org/resources/xml/en/consolidated.xml",
+      "method": "GET",
+      "body_read_limit": 4096,
+      "status": 206,
+      "content_type": "application/xml",
+      "last_modified": "Fri, 13 Nov 2026 00:02:13 GMT",
+      "final_host": "unsolprodfiles.blob.core.windows.net",
+      "final_path": "/publiclegacyxmlfiles/EN/consolidatedLegacyByPRN.xml",
+      "bytes_read": 4096,
+      "root_element": "CONSOLIDATED_LIST"
+    },
+    {
+      "source": "un_name_xml",
+      "url": "https://scsanctions.un.org/resources/xml/en/name/consolidated.xml",
+      "method": "GET",
+      "body_read_limit": 4096,
+      "status": 206,
+      "content_type": "application/xml",
+      "last_modified": "Fri, 13 Nov 2026 00:02:12 GMT",
+      "final_host": "unsolprodfiles.blob.core.windows.net",
+      "final_path": "/publiclegacyxmlfiles/EN/consolidatedLegacyByNAME.xml",
+      "bytes_read": 4096,
+      "root_element": "CONSOLIDATED_LIST"
+    },
+    {
+      "source": "uk_xml",
+      "url": "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml",
+      "method": "GET",
+      "body_read_limit": 4096,
+      "status": 206,
+      "content_type": "text/xml",
+      "last_modified": "Thu, 12 Nov 2026 15:42:43 GMT",
+      "final_host": "sanctionslist.fcdo.gov.uk",
+      "final_path": "/docs/UK-Sanctions-List.xml",
+      "bytes_read": 4096,
+      "root_element": "Designations"
+    }
+  ]
+}

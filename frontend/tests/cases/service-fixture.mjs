@@ -2,6 +2,8 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { handleDisplay, resetDisplay } from "./display-fixture.mjs";
+import { handleManualScreening } from "./manual-screening-fixture.mjs";
+import { handleScenarioScreening } from "./scenario-screening-fixture.mjs";
 const tenant = "11111111-1111-4111-8111-111111111111";
 const inbox = "22222222-2222-4222-8222-222222222222";
 const id = "33333333-3333-4333-8333-333333333333";
@@ -14,6 +16,7 @@ let decisionUnlinked = false, decisionAttachDenied = false, decisionCreateLostAc
 let selectionReceipts = new Map(), selectedDecisions = new Set();
 let item, events;
 let reviews = new Map(), reviewReceipts = new Map(), reviewLostAck = false, reviewDenied = false;
+let exclusionMode = "";
 let uploads, files, tags, operations, reports;
 let revokedSessions = new Set();
 let invitations = [];
@@ -30,7 +33,11 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const send = (status, data) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
   if (url.pathname === "/health") return send(200, {});
+  if (await handleScenarioScreening(req, url, send)) return;
+  if (await handleManualScreening(req, url, send)) return;
   if (url.pathname === "/reset") resetDisplay();
+  if (url.pathname === "/reset") exclusionMode = "";
+  if (url.pathname === "/fixture/exclusions") { exclusionMode = url.searchParams.get("mode") ?? "filled"; return send(204); }
   if (await handleDisplay(req, url, send)) return;
   if (url.pathname === "/reset") { selectionReceipts = new Map(); selectedDecisions = new Set(); }
   if (url.pathname === "/reset") { workflowRules = new Map(); workflowDeleted = new Map(); workflowLostAck = false; workflowDenied = false; }
@@ -71,7 +78,7 @@ createServer(async (req, res) => {
     if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
     if (url.pathname === "/internal/session" && body.session === "fixture-workflow") return send(200, { access_token: "fixture-admin", session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Workflow administrator", roles: ["platform_admin", "case_manager_admin"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
     if (url.pathname === "/internal/logout") { revokedSessions.add(body.session); return send(204); }
-    if (url.pathname === "/internal/session") return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
+    if (url.pathname === "/internal/session") return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin"] : body.session === "fixture-platform" ? ["platform_viewer"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
     if (url.pathname === "/internal/sessions/list") return send(200, { items: [currentSessionID, otherSessionID].filter(id => !revokedSessionIDs.has(id)).map(id => ({ id, current: id === currentSessionID, created_at: "2026-10-06T12:00:00Z", expires_at: "2099-01-01T00:00:00Z", idle_until: "2099-01-01T00:00:00Z" })), next_after: "" });
     if (url.pathname === "/internal/sessions/revoke") {
       if (failSessionRevoke) return send(503, { error: "Unavailable" });
@@ -99,11 +106,30 @@ createServer(async (req, res) => {
   if (url.pathname === "/fixture/review") { reviewLostAck = url.searchParams.has("lost_ack"); reviewDenied = url.searchParams.has("denied"); return send(204); }
   if (url.pathname === "/fixture/transfers") { transfersEnabled = true; transferFailAck = url.searchParams.has("lost_ack"); return send(204); }
   if (url.pathname === "/fixture/screening") {
-    item = { ...item, name: "Screening review", type: url.searchParams.has("decision") ? "decision" : "continuous_screening", status: "pending", assigned_to: null, contributors: [] };
+    item = { ...item, name: "Screening review", type: url.searchParams.has("decision") ? "decision" : url.searchParams.has("manual") ? "manual_screening" : "continuous_screening", status: "pending", assigned_to: null, contributors: [] };
     screeningLinks = [{ id: screening, screening_id: screening, match_id: url.searchParams.has("match") ? "pending-match-1" : null, status: url.searchParams.has("match") ? "pending" : "awaiting_review", partial: !url.searchParams.has("match") }];
+    if (url.searchParams.has("archived_exclusion")) {
+      screeningLinks[0].status = "no_hit";
+      reviews.set("pending-match-1", { status: "no_hit", version: "1", eligible: true, actions: ["remove_exclusion"] });
+    }
     return send(204);
   }
   const token = req.headers.authorization;
+  if (url.pathname === `/v1/investigator/tenants/${tenant}/cases/${id}/exclusions`) {
+    if (token !== "Bearer fixture-analyst") return send(401, { error: "Investigator sign-in required." });
+    if (exclusionMode === "denied") return send(403, { error: "Current case/resource access is required." });
+    if (exclusionMode === "failed") return send(503, { error: "Exclusion history is temporarily unavailable." });
+    if (!exclusionMode || exclusionMode === "empty") return send(200, { events: [], applications: [], next_cursor: "" });
+    if (url.searchParams.has("operation_id")) return send(200, { events: [], applications: [{ screening_id: screening, match_id: "suppressed-match", applied_at: "2026-10-20T10:00:00Z" }], next_cursor: "" });
+    const older = !!url.searchParams.get("cursor");
+    const removed = reviews.get("pending-match-1")?.eligible === false;
+    return send(200, { events: [{
+      operation_id: older ? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" : "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      match_id: "pending-match-1", object_type: "Customer", object_id: older ? "older-customer" : "synthetic-customer",
+      provider: "Synthetic provider", entity_id: "synthetic-entity", actor_id: "synthetic-analyst",
+      findings: "Different identity <script>never execute</script>", activated: true, active: !removed, created_at: "2026-10-20T09:00:00Z",
+    }], applications: [], next_cursor: older ? "" : "fixture-next" });
+  }
   if (url.pathname.endsWith("/tables") && url.pathname.startsWith("/v1/tenants/")) {
     if (token !== "Bearer fixture-platform") return send(403, { error: { message: "Data Model permission required" } });
     if (url.pathname !== `/v1/tenants/${tenant}/tables`) return send(403, { error: { message: "Wrong tenant" } });
@@ -114,21 +140,23 @@ createServer(async (req, res) => {
     if (reviewDenied) return send(403, { error: "Current case/resource access is required." });
     let data; if (req.method === "POST") { let body = ""; for await (const chunk of req) body += chunk; data = JSON.parse(body); }
     const resource = data?.resource_id ?? url.searchParams.get("resource_id");
-    const state = reviews.get(resource) ?? { status: "pending", version: "0", eligible: item.status !== "closed", actions: resource === decision ? ["approve", "decline"] : ["confirmed_hit", "no_hit"], ...(resource === decision ? { machine_outcome: "review" } : {}) };
+    const state = reviews.get(resource) ?? { status: "pending", version: "0", eligible: item.status !== "closed", actions: resource === decision ? ["approve", "decline"] : item.type === "continuous_screening" ? ["confirmed_hit", "no_hit", "dismiss_and_exclude"] : ["confirmed_hit", "no_hit"], ...(resource === decision ? { machine_outcome: "review" } : {}) };
     if (!data) return send(200, state);
     const signature = JSON.stringify(data), receipt = reviewReceipts.get(data.operation_id);
     if (receipt) return receipt.signature === signature ? send(200, receipt.state) : send(409, { error: "Command conflicts." });
     if (!state.eligible || state.version !== data.expected_version) return send(409, { error: "Review changed; refresh before retrying." });
     if (!state.actions.includes(data.action) || !data.findings?.trim()) return send(400, { error: "Findings and a valid action are required." });
-    const result = { ...state, status: data.action, version: "1", eligible: false }; reviews.set(resource, result); reviewReceipts.set(data.operation_id, { signature, state: result });
+    const special = ["dismiss_and_exclude", "remove_exclusion"].includes(data.action);
+    const result = { ...state, status: special ? "no_hit" : data.action, version: String(Number(state.version) + 1), eligible: data.action === "dismiss_and_exclude", actions: data.action === "dismiss_and_exclude" ? ["remove_exclusion"] : state.actions }; reviews.set(resource, result); reviewReceipts.set(data.operation_id, { signature, state: result });
     record(resource === decision ? "decision_reviewed" : "screening_match_reviewed", data.findings);
-    screeningLinks = screeningLinks.map(link => link.match_id === resource ? { ...link, status: data.action } : link);
+    screeningLinks = screeningLinks.map(link => link.match_id === resource ? { ...link, status: result.status } : link);
     if (reviewLostAck) { reviewLostAck = false; return send(503, { error: "Review response unavailable. Retry the same operation." }); }
     return send(200, result);
   }
   if (url.pathname === `/v1/tenants/${tenant}/screenings/${screening}`) {
+    if (req.headers["x-screening-operator-token"] !== "fixture-screening-owner-private-token-32") return send(403, { error: "Private screening credential required" });
     if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" });
-    return send(200, { screening: { id: screening, partial: screeningLinks[0]?.partial, status: "awaiting_review", provider: "Test screening provider" }, matches: screeningLinks[0]?.match_id ? [{ id: "pending-match-1", status: "pending" }] : [] });
+    return send(200, { screening: { id: screening, partial: screeningLinks[0]?.partial, status: "awaiting_review", provider: "Test screening provider", LastError: "fixture-secret-error", RequestJSON: { provider_config: { api_key: "fixture-secret-key" } } }, matches: screeningLinks[0]?.match_id ? [{ id: "pending-match-1", status: "pending" }] : [] });
   }
   if (url.pathname === `/v1/tenants/${tenant}/decisions/${decision}`) { if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" }); return send(200, { decision: { id: decision, outcome: "review", score: 35 }, rule_executions: [{ name: "Velocity", result: true, score_modifier: 35 }] }); }
   if (!["Bearer fixture-analyst", "Bearer fixture-admin"].includes(token)) return send(401, { error: "Authentication required" });

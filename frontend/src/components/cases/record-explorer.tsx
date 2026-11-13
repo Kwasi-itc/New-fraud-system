@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,10 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { requestCase, writeCase } from "@/lib/case-manager-api";
 import { caseKeys } from "@/lib/case-manager-query";
+import { displayValue, useRecordDisplays } from "@/components/detection/decision-display";
 import { Problem, readable } from "./shared";
-import { StatusPill, ValueDisplay } from "./structured-data-viewer";
+import { CopyButton, StatusPill, ValueDisplay } from "./structured-data-viewer";
 
-type Hop = { connection: string; object_id: string; label: string };
+type Hop = { connection: string; object_id: string; label: string; relationshipLabel?: string };
 type Connection = { id: string; label: string; target: string; reason: string };
 type AssociatedDecision = {
   id: string;
@@ -103,6 +104,36 @@ export function RecordExplorer({
   const data = query.error ? undefined : query.data;
   const selected = data?.connections.find((e) => e.id === connection);
 
+  const objectsToDisplay = useMemo(() => {
+    const list: Array<{ object_type: string; object_id: string }> = [];
+    if (data?.table && data?.current?.object_id) {
+      list.push({ object_type: data.table, object_id: data.current.object_id });
+    }
+    if (selected?.target && data?.records) {
+      for (const r of data.records) {
+        list.push({ object_type: selected.target, object_id: r.object_id });
+      }
+    }
+    for (const h of path) {
+      if (h.label) {
+        list.push({ object_type: h.label, object_id: h.object_id });
+      }
+    }
+    return list;
+  }, [data?.table, data?.current?.object_id, data?.records, selected?.target, path]);
+
+  const displays = useRecordDisplays(
+    tenant,
+    session,
+    objectsToDisplay,
+    undefined,
+    open && objectsToDisplay.length > 0
+  );
+  const currentRecordDisplay =
+    data && data.table && data.current
+      ? displays.record({ object_type: data.table, object_id: data.current.object_id })
+      : undefined;
+
   async function attachDecision(target: AssociatedDecision) {
     if (
       !window.confirm(
@@ -143,20 +174,87 @@ export function RecordExplorer({
     setSaving(true);
     setSaveError(null);
     try {
+      // Generate clean display fields for the terminal record
+      const tableCols = displays.allColumns[data.table] ?? [];
+      const terminalFields: string[] = [];
+      if (tableCols.length > 0 && currentRecordDisplay?.values) {
+        for (const col of tableCols) {
+          const val = displayValue(currentRecordDisplay.values[col.id]);
+          if (val && val !== "—") {
+            terminalFields.push(`• **${col.label}**: ${val}`);
+          }
+        }
+      }
+
+      // Format terminal record caption / title
+      const terminalCaption =
+        currentRecordDisplay?.caption &&
+        currentRecordDisplay.caption !== data.current.object_id &&
+        !currentRecordDisplay.caption.startsWith("production-replay:")
+          ? currentRecordDisplay.caption
+          : "";
+      const terminalTitle = terminalCaption
+        ? `${readable(data.table)} · ${terminalCaption}`
+        : readable(data.table);
+
+      // Generate human-friendly exploration steps
       const trailSteps = path
-        .map((h, i) => `  ${i + 1}. [${h.connection}] ${h.label}: ${h.object_id}`)
+        .map((h, i) => {
+          const hopDisplay = displays.record({ object_type: h.label, object_id: h.object_id });
+          const hopCaption =
+            hopDisplay?.caption &&
+            hopDisplay.caption !== h.object_id &&
+            !hopDisplay.caption.startsWith("production-replay:")
+              ? hopDisplay.caption
+              : "";
+
+          const hopCols = (displays.allColumns[h.label] ?? []).slice(0, 3);
+          const hopFieldValues: string[] = [];
+          if (hopCols.length > 0 && hopDisplay?.values) {
+            for (const col of hopCols) {
+              const v = displayValue(hopDisplay.values[col.id]);
+              if (v && v !== "—") {
+                hopFieldValues.push(`${col.label}: ${v}`);
+              }
+            }
+          }
+
+          let relLabel = h.relationshipLabel || h.connection;
+          if (relLabel.startsWith("link:") || relLabel.startsWith("reverse:")) {
+            relLabel = "Related connection";
+          }
+          let relEnglish = readable(relLabel);
+          if (relEnglish.toLowerCase().endsWith("(reverse)")) {
+            const base = relEnglish.replace(/\(reverse\)/i, "").trim();
+            relEnglish = `Reverse ${readable(base)}`;
+          } else if (relEnglish.toLowerCase() === "shared pivot") {
+            relEnglish = "Shared pivot link";
+          }
+          const entityLabel = readable(h.label);
+          const namePart = hopCaption ? `${entityLabel} · ${hopCaption}` : entityLabel;
+          const extraPart = hopFieldValues.length > 0 ? ` (${hopFieldValues.join(", ")})` : "";
+          return `  ${i + 1}. Connected via ${relEnglish} → ${namePart}${extraPart}`;
+        })
         .join("\n");
-      const commentBody = [
+
+      const commentLines = [
         "### Investigation Connection Trail",
-        `• **Decision ID**: ${decisionId}`,
-        `• **Terminal Record**: \`${data.table}\` / \`${data.current.object_id}\``,
+        `• **Terminal Record**: ${terminalTitle}`,
         `• **Observed**: ${new Date().toISOString()}`,
+      ];
+
+      if (terminalFields.length > 0) {
+        commentLines.push("", "**Display Fields:**", ...terminalFields);
+      }
+
+      commentLines.push(
         "",
         "**Exploration Path:**",
         trailSteps || "  (Root entity direct inspection)",
         "",
-        "_Note: Live graph traversal record; not a static evidence snapshot._",
-      ].join("\n");
+        "_Note: Live graph traversal record; not a static evidence snapshot._"
+      );
+      const commentBody = commentLines.join("\n");
 
       await writeCase(tenant, `cases/${caseId}/comments`, {
         comment: commentBody,
@@ -198,9 +296,7 @@ export function RecordExplorer({
                 {path.length}/6 hops
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
-              Traverse live configured entity connections. Discovered records show live transactional state rather than immutable evidence snapshots.
-            </p>
+
           </div>
 
           {/* Navigation Trail */}
@@ -219,22 +315,34 @@ export function RecordExplorer({
             >
               Root Decision Record
             </button>
-            {path.map((hop, index) => (
-              <span key={index} className="flex items-center gap-1.5">
-                <ChevronRight className="size-3 text-slate-400" />
-                <button
-                  type="button"
-                  className={
-                    index === path.length - 1
-                      ? "rounded px-2.5 py-1 font-bold text-blue-700 bg-white shadow-2xs border border-blue-200 cursor-pointer"
-                      : "rounded px-2.5 py-1 text-slate-600 hover:bg-white hover:text-slate-900 transition-colors cursor-pointer"
-                  }
-                  onClick={() => navigate(path.slice(0, index + 1))}
-                >
-                  <span className="capitalize">{hop.label}</span>: <span className="font-mono">{hop.object_id}</span>
-                </button>
-              </span>
-            ))}
+            {path.map((hop, index) => {
+              const hopDisplay = hop.label
+                ? displays.record({ object_type: hop.label, object_id: hop.object_id })
+                : undefined;
+              const rawCaption = hopDisplay?.caption;
+              const caption =
+                rawCaption && !rawCaption.startsWith("production-replay:") && rawCaption !== hop.object_id
+                  ? rawCaption
+                  : null;
+              const isLast = index === path.length - 1;
+              return (
+                <span key={index} className="flex items-center gap-1.5">
+                  <ChevronRight className="size-3 text-slate-400" />
+                  <button
+                    type="button"
+                    className={
+                      isLast
+                        ? "rounded px-2.5 py-1 font-bold text-blue-700 bg-white shadow-2xs border border-blue-200 cursor-pointer"
+                        : "rounded px-2.5 py-1 text-slate-600 hover:bg-white hover:text-slate-900 transition-colors cursor-pointer"
+                    }
+                    onClick={() => navigate(path.slice(0, index + 1))}
+                  >
+                    <span className="capitalize">{hop.label}</span>
+                    {caption ? `: ${caption}` : ""}
+                  </button>
+                </span>
+              );
+            })}
           </nav>
 
           <Problem error={query.error} retry={() => void query.refetch()} />
@@ -249,34 +357,96 @@ export function RecordExplorer({
             <div className="space-y-4">
               {/* Current Record Details */}
               <div className="rounded-xl border border-slate-200/90 bg-slate-50/50 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <Database className="size-4 text-slate-600" />
-                    <h3 className="font-semibold text-sm text-slate-900">
-                      {data.table}: {data.current.object_id}
-                    </h3>
-                  </div>
-                  <span className="text-sm font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                    Live Record
-                  </span>
-                </div>
+                {(() => {
+                  const hasHumanCaption = Boolean(
+                    currentRecordDisplay?.caption &&
+                    currentRecordDisplay.caption !== data.current.object_id &&
+                    !currentRecordDisplay.caption.startsWith("production-replay:")
+                  );
 
-                {/* Attributes grid without raw JSON */}
-                <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                  {Object.entries(data.current.data).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="rounded-lg border border-slate-200/60 bg-white p-2.5 hover:border-slate-300 transition-colors"
-                    >
-                      <dt className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
-                        {readable(key)}
-                      </dt>
-                      <dd className="break-all font-medium text-slate-800">
-                        <ValueDisplay value={value} fieldKey={key} />
-                      </dd>
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5 mb-3.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Database className="size-4 text-slate-600" />
+                        <h3 className="font-semibold text-sm text-slate-900">
+                          <span className="capitalize">{data.table}</span>
+                          {hasHumanCaption ? (
+                            <>
+                              {" · "}
+                              <span className="font-bold text-slate-900">{currentRecordDisplay?.caption}</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-500 font-normal"> Record</span>
+                          )}
+                        </h3>
+                      </div>
+
                     </div>
-                  ))}
-                </dl>
+                  );
+                })()}
+
+                {/* Display Fields */}
+                {(() => {
+                  const tableCols = displays.allColumns[data.table] ?? [];
+                  const displayCols = tableCols;
+
+                  if (displayCols.length > 0 && currentRecordDisplay?.values) {
+                    return (
+                      <div className="grid gap-2 text-sm sm:grid-cols-2 md:grid-cols-3">
+                        {displayCols.map((col) => (
+                          <div
+                            key={col.id}
+                            className="rounded-lg border border-slate-200/70 bg-white p-2.5 shadow-2xs hover:border-slate-300 transition-colors"
+                          >
+                            <dt className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                              {col.label}
+                            </dt>
+                            <dd className="font-semibold text-slate-800 break-words">
+                              {displayValue(currentRecordDisplay.values[col.id])}
+                            </dd>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  // Fallback only if no configured display fields exist: filter out internal/technical IDs
+                  const filteredEntries = Object.entries(data.current.data).filter(([key, val]) => {
+                    const lk = key.toLowerCase();
+                    if (
+                      lk === "id" ||
+                      lk.endsWith("_id") ||
+                      lk === "object_id" ||
+                      lk === "stream_id" ||
+                      lk === "transaction_id" ||
+                      lk === "tenant_id"
+                    ) {
+                      return false;
+                    }
+                    if (typeof val === "string" && val.startsWith("production-replay:")) {
+                      return false;
+                    }
+                    return true;
+                  });
+
+                  return (
+                    <dl className="grid gap-2 text-sm sm:grid-cols-2 md:grid-cols-3">
+                      {filteredEntries.map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="rounded-lg border border-slate-200/60 bg-white p-2.5 hover:border-slate-300 transition-colors"
+                        >
+                          <dt className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                            {readable(key)}
+                          </dt>
+                          <dd className="break-all font-medium text-slate-800">
+                            <ValueDisplay value={value} fieldKey={key} />
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  );
+                })()}
               </div>
 
               {/* Connected Relationships */}
@@ -312,29 +482,62 @@ export function RecordExplorer({
                       Connected because: {selected.reason}
                     </p>
 
-                    <ul className="flex flex-wrap gap-2">
-                      {data.records.map((record) => (
-                        <li key={record.object_id}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={path.length >= 6}
-                            onClick={() =>
-                              navigate([
-                                ...path,
-                                {
-                                  connection,
-                                  object_id: record.object_id,
-                                  label: selected.target,
-                                },
-                              ])
-                            }
-                            className="text-sm bg-white border-blue-200 hover:bg-blue-50 text-blue-800"
-                          >
-                            Open {selected.target}: {record.object_id}
-                          </Button>
-                        </li>
-                      ))}
+                    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {data.records.map((record) => {
+                        const recDisplay = selected
+                          ? displays.record({ object_type: selected.target, object_id: record.object_id })
+                          : undefined;
+                        const caption =
+                          recDisplay?.caption && recDisplay.caption !== record.object_id
+                            ? recDisplay.caption
+                            : null;
+                        const targetCols = selected
+                          ? (displays.allColumns[selected.target] ?? []).slice(0, 3)
+                          : [];
+
+                        return (
+                          <li key={record.object_id}>
+                            <button
+                              type="button"
+                              disabled={path.length >= 6}
+                              onClick={() =>
+                                navigate([
+                                  ...path,
+                                  {
+                                    connection,
+                                    object_id: record.object_id,
+                                    label: selected.target,
+                                    relationshipLabel: selected.label,
+                                  },
+                                ])
+                              }
+                              className="w-full text-left rounded-lg border border-blue-200 bg-white p-2.5 hover:bg-blue-50/70 hover:border-blue-300 transition-all shadow-2xs group cursor-pointer disabled:opacity-50"
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="text-xs font-bold text-blue-900 truncate">
+                                  {caption || (record.object_id.startsWith("production-replay:") ? selected.target : record.object_id)}
+                                </span>
+                                <ArrowRight className="size-3 text-blue-400 group-hover:text-blue-700 transition-colors shrink-0" />
+                              </div>
+                              {targetCols.length > 0 && recDisplay?.values && (
+                                <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex flex-wrap gap-1 text-[11px]">
+                                  {targetCols.map((c) => (
+                                    <span
+                                      key={c.id}
+                                      className="text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60"
+                                    >
+                                      <span className="text-slate-400">{c.label}:</span>{" "}
+                                      <span className="font-medium text-slate-800">
+                                        {displayValue(recDisplay.values[c.id])}
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
 
                     {!data.records.length && (
@@ -408,11 +611,7 @@ export function RecordExplorer({
                         <StatusPill value={d.outcome} />
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-slate-600">
-                        <span className="font-mono text-sm text-slate-500">
-                          Decision {d.id}
-                        </span>
-                        <span>•</span>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
                         <span>Score: <strong className="text-slate-900">{d.score}</strong></span>
                         <span>•</span>
                         <span>Triggered: <strong>{d.triggered ? "Yes" : "No"}</strong></span>

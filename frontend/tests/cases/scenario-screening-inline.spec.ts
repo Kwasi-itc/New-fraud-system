@@ -1,0 +1,53 @@
+import { expect, test } from "@playwright/test";
+
+const scenario = "88888888-8888-4888-8888-888888888888";
+test.beforeEach(async ({ context, request }) => {
+  await request.get("http://127.0.0.1:3199/reset");
+  await context.addCookies([{ name: "case_test_session", value: "fixture-workflow", domain: "127.0.0.1", path: "/" }]);
+});
+
+test("configure synchronous screening with ordered name parts and local matching overrides", async ({ page, request }) => {
+  await request.get("http://127.0.0.1:3199/fixture/scenario-local-provider");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/detection/${scenario}/screening?create=1`);
+  const form = page.getByRole("form", { name: "Screening configuration" });
+  await expect(page.getByText(/No live sanctions coverage/)).toBeVisible();
+  await form.getByLabel("Rule name", { exact: true }).fill("Beneficiary match blocks for review");
+  await form.getByLabel("Run screening").selectOption("during");
+  await form.getByLabel("If a match is found").selectOption("block_and_review");
+  await expect(form.getByText("Run after these outcomes")).toHaveCount(0);
+  await expect(form.getByText(/The numeric score stays the same/)).toBeVisible();
+  await form.getByLabel("Name to check", { exact: true }).selectOption("first_name");
+  await expect(form.getByLabel("Additional name field 1")).toHaveCount(0);
+  await form.getByText("More identity details",{exact:true}).click();
+  await form.getByRole("button", { name: "Add name field", exact: true }).click();
+  await expect(form.getByRole("button", { name: "Save screening" })).toBeDisabled();
+  await form.getByLabel("Additional name field 1").selectOption("last_name");
+  await expect(form.getByLabel("Minimum similarity (%)")).toHaveAttribute("placeholder", "80");
+  await expect(form.getByLabel("Maximum matches")).toBeHidden();
+  await form.locator("summary").filter({hasText:"Advanced settings"}).focus();
+  await page.keyboard.press("Enter");
+  await expect(form.getByLabel("Maximum matches")).toHaveAttribute("placeholder", "50");
+  await expect(form.getByLabel("Source datasets")).toHaveCount(0);
+  await form.getByLabel("Minimum similarity (%)").fill("85");
+  await form.getByLabel("Maximum matches").fill("10");
+  await form.getByLabel("Review inbox").selectOption("22222222-2222-4222-8222-222222222222");
+  await form.getByRole("button", { name: "Save screening" }).click();
+  await expect(page.getByRole("status")).toContainText("saved");
+  await page.goto(`/detection/${scenario}/screening`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(form.getByLabel("Run screening")).toHaveValue("during");
+  await expect(form.getByLabel("If a match is found")).toHaveValue("block_and_review");
+  await expect(form.getByLabel("Additional name field 1")).toHaveValue("last_name");
+  await expect(form.getByLabel("Minimum similarity (%)")).toHaveValue("85");
+  await form.getByText("Advanced settings",{exact:true}).click();
+  await expect(form.getByLabel("Maximum matches")).toHaveValue("10");
+  await form.getByLabel("Name to check", { exact: true }).selectOption("last_name");
+  await expect(form.getByRole("alert").filter({ hasText: "different available field" })).toBeVisible();
+  await expect(form.getByRole("button", { name: "Save screening" })).toBeDisabled();
+  await form.getByRole("button", { name: "Remove name field 1" }).click();
+  await form.getByLabel("Run screening").selectOption("after");
+  await expect(form.getByText("Run after these outcomes")).toBeVisible();
+  await expect(form.getByRole("button", { name: "Save screening" })).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});

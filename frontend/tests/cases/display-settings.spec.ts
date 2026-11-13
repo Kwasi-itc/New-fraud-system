@@ -25,7 +25,7 @@ test("configure captions, linked labels and column order, then view them in Deci
   await expect(modal.getByLabel("Label for customer_id")).toHaveValue("Customer");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Display settings for payment" })).toBeFocused();
-  await page.route("**/v1/tenants/**", async route => {
+  await page.route("**/api/decisions/tenants/**", async route => {
     const path = new URL(route.request().url()).pathname;
     expect(path).toContain(tenant);
     const scenarios = [{ id: "scenario", name: "Payment checks", trigger_object_type: "payment", created_at: "2026-01-01T00:00:00Z" }];

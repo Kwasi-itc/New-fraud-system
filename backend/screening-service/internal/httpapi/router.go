@@ -24,6 +24,9 @@ import (
 )
 
 type RouterConfig struct {
+	ScreeningIntakeToken   string
+	ScreeningCallbackToken string
+	ScreeningOperatorToken string
 	InvestigatorVerifier   *identity.Verifier
 	CaseServiceAuthToken   string
 	AuthMode               string
@@ -83,6 +86,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	var screeningEnqueuer riverjobs.ScreeningEnqueuer = riverjobs.NoopScreeningEnqueuer{}
 	var datasetJobEnqueuer riverjobs.DatasetJobEnqueuer = riverjobs.NoopDatasetJobEnqueuer{}
 	var monitoredEnqueuer riverjobs.MonitoredObjectEnqueuer = riverjobs.NoopMonitoredObjectEnqueuer{}
+	manualQueueReady := false
 	if db != nil {
 		txManager = storepostgres.NewTransactionManager(db)
 		screeningRepo = storepostgres.NewScreeningRepository(db)
@@ -92,15 +96,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		fileRepo = storepostgres.NewScreeningFileRepository(db)
 		continuousRepo = storepostgres.NewContinuousConfigRepository(db)
 		monitoredObjRepo = storepostgres.NewMonitoredObjectRepository(db)
-		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
-			Workers: river.NewWorkers(),
-			Queues: map[string]river.QueueConfig{
-				cfg.ScreeningQueueName:  {MaxWorkers: max(1, cfg.ScreeningQueueWorkers)},
-				cfg.DatasetJobQueueName: {MaxWorkers: max(1, cfg.DatasetJobQueueWorkers)},
-				cfg.MonitoredQueueName:  {MaxWorkers: max(1, cfg.MonitoredQueueWorkers)},
-			},
-		})
+		// The API only inserts jobs. An empty non-nil Workers bundle makes River
+		// reject every job kind during insertion; cmd/worker owns registration.
+		riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{})
 		if err == nil {
+			manualQueueReady = true
 			screeningEnqueuer = riverjobs.NewRiverScreeningEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.ScreeningQueueName)
 			datasetJobEnqueuer = riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
 			monitoredEnqueuer = riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.MonitoredQueueName)
@@ -117,13 +117,14 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
-	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.AuthMode, cfg.AuthToken, cfg.HTTPClientTimeout)
+	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, "token", cfg.ScreeningCallbackToken, cfg.HTTPClientTimeout)
 	var datasetJobRepo ports.DatasetUpdateJobRepository
 	if db != nil {
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
 	}
 	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	registerInvestigator(router, db, cfg.InvestigatorVerifier, screeningService)
+	registerManualSearch(router, db, cfg.InvestigatorVerifier, screeningService, manualQueueReady, providerClient.ManualCapabilities())
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
 	whitelistHandler := handlers.NewWhitelistHandler(screeningService)
 	continuousHandler := handlers.NewContinuousHandler(screeningService)
@@ -132,6 +133,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internalDecisionHandler := handlers.NewInternalDecisionHandler(screeningService)
 
 	v1 := router.Group("/v1")
+	v1.Use(screeningOwnerBoundary(cfg.ScreeningOperatorToken, cfg.AuthToken))
 	v1.Use(authMiddleware(AuthConfig{
 		Mode:  cfg.AuthMode,
 		Token: cfg.AuthToken,
@@ -186,11 +188,13 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	v1.POST("/tenants/:tenantId/monitored-objects/:monitoredObjectId/requeue", continuousHandler.RequeueMonitoredObject)
 
 	internal := router.Group("/internal")
-	internal.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
-	}))
+	internal.Use(screeningServiceBoundary(cfg.ScreeningIntakeToken, cfg.AuthToken, cfg.ScreeningOperatorToken, cfg.ScreeningCallbackToken))
 	internal.POST("/v1/tenants/:tenantId/decision-screenings", internalDecisionHandler.Create)
+	internal.GET("/screening-capabilities", func(c *gin.Context) {
+		capability := providerClient.ManualCapabilities()
+		supported := capability.Configured && capability.Adapter == "opensanctions_match"
+		c.JSON(200, gin.H{"matching_settings_supported": supported, "address_supported": supported, "birth_date_supported": supported, "nationality_supported": supported, "country_supported": supported, "registration_number_supported": supported})
+	})
 
 	return router
 }

@@ -697,3 +697,7 @@ func (nilRuleRepository) Update(context.Context, scenario.Rule) (scenario.Rule, 
 func (nilRuleRepository) Delete(context.Context, string, string, string, string) error {
 	return nil
 }
+
+func (nilCustomListRepository) ScreeningIgnoreWords(context.Context, string, string) ([]string, error) {
+	return nil, nil
+}

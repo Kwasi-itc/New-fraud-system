@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-13",
+  "branch": "main",
+  "base_commit": "a2d241a",
+  "database": "PostgreSQL 16",
+  "application_data": "existing PostgreSQL database; no MySQL data migration",
+  "frontend_build": "passed",
+  "go_regressions": [
+    {
+      "service": "decision-engine",
+      "top_level_passed": 253,
+      "test_subtest_passed": 400,
+      "failed": 0,
+      "skipped": [
+        "TestConfiguredMMDBCanResolvePublicIP"
+      ]
+    },
+    {
+      "service": "screening",
+      "top_level_passed": 95,
+      "test_subtest_passed": 199,
+      "failed": 0,
+      "skipped": []
+    },
+    {
+      "service": "case-manager",
+      "top_level_passed": 90,
+      "test_subtest_passed": 157,
+      "failed": 0,
+      "skipped": []
+    }
+  ],
+  "frontend_browser_tests": {
+    "passed": 61,
+    "failed": 0,
+    "kind": "browser contracts using service fixtures; PostgreSQL authorization verified separately"
+  },
+  "gateway_contracts": {
+    "services": 6,
+    "identity": true,
+    "passed": true
+  },
+  "limitations": [
+    "One optional GeoIP MMDB test skipped",
+    "No internal source provider or official feed connector implemented",
+    "PostgreSQL decision-time screening/forced outcomes not implemented",
+    "No case/auth Swagger endpoints on PostgreSQL main",
+    "No password-based user login was performed"
+  ],
+  "followup_checks": [
+    "New OpenAPI YAML duplicate-key regression test passed with HTTP handler suite",
+    "Private credential scan found no matches in changed files",
+    "git diff --check passed",
+    "Live OIDC discovery and login-start redirect/binding-cookie passed",
+    "Signed-out screening, ingestion, decision and authoring BFF routes returned 401"
+  ],
+  "live_swagger_browser": {
+    "passed": [
+      "data-model",
+      "ingestion",
+      "decisions",
+      "screening"
+    ],
+    "local_assets": true,
+    "unique_yaml_keys": true,
+    "correct_gateway_servers": true
+  },
+  "dashboard_followup": {
+    "status": "deployed",
+    "frontend": "http://localhost:8088",
+    "session_tenant": true,
+    "public_tenant_dependencies_remaining": 0,
+    "frontend_health": "healthy",
+    "gateway_health": 200,
+    "login": 200,
+    "signed_out_dashboard": 307,
+    "decision_health": 200,
+    "auth_readiness": 204,
+    "focused_browser": {
+      "passed": 19,
+      "failed": 0,
+      "workspace_tests": 8
+    },
+    "unresolved_broader_checks": [
+      "decision-selection: empty selection toolbar expected disabled but absent (2 assertions)",
+      "display-settings: controls not located (2 tests)"
+    ]
+  }
+}

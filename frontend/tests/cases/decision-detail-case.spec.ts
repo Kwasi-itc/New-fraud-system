@@ -9,7 +9,7 @@ const membershipPath = `**/api/cases/tenants/${tenant}/decision-case-memberships
 test.beforeEach(async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
-  await page.route("**/v1/tenants/**", async route => {
+  await page.route("**/api/decisions/tenants/**", async route => {
     const path = new URL(route.request().url()).pathname;
     expect(path).toContain(tenant);
     if (path.endsWith(`/decisions/${decision}`)) return route.fulfill({ json: {

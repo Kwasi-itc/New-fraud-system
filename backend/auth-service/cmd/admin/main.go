@@ -20,7 +20,9 @@ func main() {
 	}
 }
 func run() error {
-	action := flag.String("action", "", "migrate or provision")
+	action := flag.String("action", "", "migrate, provision or rebind-issuer")
+	fromIssuer := flag.String("from-issuer", "", "previous verified issuer for rebind-issuer")
+	userID := flag.String("user", "", "existing platform user UUID for rebind-issuer")
 	tenant := flag.String("tenant", "", "existing active tenant UUID")
 	issuer := flag.String("issuer", "", "exact trusted OIDC issuer")
 	subject := flag.String("subject", "", "verified provider subject")
@@ -56,8 +58,17 @@ func run() error {
 			return fmt.Errorf("provision failed; verify tenant, identity, roles and existing mapping")
 		}
 		fmt.Println("Platform user:", user)
+	case "rebind-issuer":
+		user, err := uuid.Parse(*userID)
+		if err != nil || user == uuid.Nil || *issuer == "" || *issuer != os.Getenv("OIDC_ISSUER_URL") {
+			return fmt.Errorf("require an existing platform user and the exact configured OIDC issuer")
+		}
+		if err = s.RebindIssuer(ctx, user, *subject, *fromIssuer, *issuer); err != nil {
+			return fmt.Errorf("issuer repair failed; verify original binding, provider subject and destination ownership")
+		}
+		fmt.Println("Provider issuer updated; user and memberships preserved. Sign in again.")
 	default:
-		return fmt.Errorf("choose migrate or provision")
+		return fmt.Errorf("choose migrate, provision or rebind-issuer")
 	}
 	return nil
 }

@@ -1369,3 +1369,7 @@ func TestEvaluateFormulaBooleanResult(t *testing.T) {
 		t.Fatalf("evaluateFormula() = false, want true")
 	}
 }
+
+func (stubCustomListRepo) ScreeningIgnoreWords(context.Context, string, string) ([]string, error) {
+	return nil, nil
+}

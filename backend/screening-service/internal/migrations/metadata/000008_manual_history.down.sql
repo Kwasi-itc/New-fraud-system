@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS screening.screenings_manual_creator_history_idx;

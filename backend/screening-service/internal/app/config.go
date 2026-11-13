@@ -9,6 +9,9 @@ import (
 )
 
 type Config struct {
+	ScreeningIntakeToken   string
+	ScreeningCallbackToken string
+	ScreeningOperatorToken string
 	CaseServiceAuthToken   string
 	Port                   string
 	DatabaseURL            string
@@ -69,6 +72,9 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		ScreeningIntakeToken:   os.Getenv("SCREENING_INTAKE_TOKEN"),
+		ScreeningCallbackToken: os.Getenv("SCREENING_CALLBACK_TOKEN"),
+		ScreeningOperatorToken: os.Getenv("SCREENING_OPERATOR_TOKEN"),
 		CaseServiceAuthToken:   getEnv("CASE_SERVICE_AUTH_TOKEN", os.Getenv("SERVICE_AUTH_TOKEN")),
 		Port:                   getEnv("PORT", "8085"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
@@ -100,8 +106,14 @@ func LoadConfig() (Config, error) {
 		MonitoredQueueWorkers:  monitoredQueueWorkers,
 	}
 
+	if err := validateScreeningServiceTokens(cfg.ScreeningIntakeToken, cfg.ScreeningCallbackToken, cfg.ServiceAuthToken, cfg.ScreeningOperatorToken); err != nil {
+		return Config{}, err
+	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
+	}
+	if err := validateOperatorToken(cfg.ScreeningOperatorToken, cfg.ServiceAuthToken); err != nil {
+		return Config{}, err
 	}
 	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
 		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
@@ -138,6 +150,13 @@ func LoadConfig() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func validateOperatorToken(token, serviceToken string) error {
+	if token != "" && (len(strings.TrimSpace(token)) < 32 || token == serviceToken) {
+		return fmt.Errorf("SCREENING_OPERATOR_TOKEN must be at least 32 non-padding characters and distinct from SERVICE_AUTH_TOKEN")
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {
@@ -198,4 +217,16 @@ func loadDotEnvIfPresent() {
 		value = strings.Trim(value, `"'`)
 		_ = os.Setenv(key, value)
 	}
+}
+
+func validateScreeningServiceTokens(intake, callback, general, operator string) error {
+	for _, token := range []string{intake, callback} {
+		if token != "" && (len(strings.TrimSpace(token)) < 32 || token == general || token == operator) {
+			return fmt.Errorf("screening integration credentials must be at least 32 non-padding characters and distinct from general/operator credentials")
+		}
+	}
+	if intake != "" && intake == callback {
+		return fmt.Errorf("screening intake and callback credentials must differ")
+	}
+	return nil
 }

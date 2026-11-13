@@ -1,5 +1,11 @@
 # Screening Service
 
+Current PostgreSQL runtime and retained frontend features are tracked in
+[PostgreSQL port status](POSTGRESQL_PORT_STATUS.md). Run the shared local stack
+using [PostgreSQL gateway setup](../../docker/POSTGRES_GATEWAY.md).
+The separate source collector/provider remains planned work:
+[internal provider implementation plan](INTERNAL_PROVIDER_PLAN.md).
+
 ## Reliable case callbacks
 
 Match reviews and file creation now enqueue case callbacks in `screening.case_event_outbox` in the same transaction as their mutations. The default Compose service `screening-case-delivery-worker` delivers them independently of provider jobs; its executable is `/app/case-delivery-worker`. It requires `DATABASE_URL`, `CASE_SERVICE_URL`, and `CASE_SERVICE_AUTH_TOKEN`. The case token's tenant allowlist must cover the producer tenants. Inbox lookups use `INBOX_SERVICE_URL` and the same case token.

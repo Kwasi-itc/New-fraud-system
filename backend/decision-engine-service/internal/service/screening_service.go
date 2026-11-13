@@ -188,7 +188,10 @@ func (s ScreeningService) RetryExecution(ctx context.Context, tenantID, executio
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var runErr error
 		updated, runErr = store.ScreeningExecutions().Update(ctx, item)
-		return runErr
+		if runErr != nil {
+			return runErr
+		}
+		return s.enqueuer.EnqueueTx(ctx, store.RawTx(), tenantID, executionID, nil)
 	})
 	return updated, err
 }

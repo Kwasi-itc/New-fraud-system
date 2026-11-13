@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceTenant } from "@/components/workspace-session";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,7 +68,7 @@ function parseExplicitItems(value: string) {
 }
 
 export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const queryClient = useQueryClient();
   const [scheduledFor, setScheduledFor] = useState("");
   const [mode, setMode] = useState<ExecutionMode>("ingested_candidates");
@@ -140,7 +142,7 @@ export function ScenarioExecutionPage({ scenarioId }: { scenarioId: string }) {
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this scenario.
+          Your workspace is unavailable. Sign in again to continue.
         </CardContent>
       </Card>
     );

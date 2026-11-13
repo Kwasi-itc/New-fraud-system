@@ -49,7 +49,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		NameRecognitionURL:                  cfg.NameRecognitionURL,
+		NameRecognitionToken:                cfg.NameRecognitionToken,
+		ScreeningServiceURL:                 cfg.ScreeningServiceURL,
+		ScreeningIntakeToken:                cfg.ScreeningIntakeToken,
+		ScreeningCallbackToken:              cfg.ScreeningCallbackToken,
 		WorkflowAuthoringToken:              cfg.WorkflowAuthoringToken,
+		ScreeningAuthoringToken:             cfg.ScreeningAuthoringToken,
 		InvestigatorVerifier:                verifier,
 		AuthMode:                            cfg.ServiceAuthMode,
 		AuthToken:                           cfg.ServiceAuthToken,

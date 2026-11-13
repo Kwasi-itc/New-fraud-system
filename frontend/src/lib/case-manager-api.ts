@@ -12,12 +12,12 @@ export type Inbox = { id: string; name: string; status: string; escalation_inbox
 export type InboxUser = { user_id: string; auto_assign_enabled: boolean; capacity: number };
 export type CaseRecord = {
   id: string; tenant_id: string; inbox_id: string; name: string; status: CaseStatus; outcome: CaseOutcome;
-  type: "decision" | "continuous_screening"; assigned_to?: string; assigned_to_name?: string; snoozed_until?: string;
+  type: "decision" | "continuous_screening" | "manual_screening"; assigned_to?: string; assigned_to_name?: string; snoozed_until?: string;
   sla_due_at?: string; boost_reason?: string; review_level?: string; created_at: string; updated_at: string;
   tags?: Tag[]; contributors?: { user_id: string; name?: string; created_at: string }[];
 };
 export type CaseEvent = { id: string; event_type: string; user_id?: string; additional_note: string; new_value: string; previous_value: string; created_at: string };
-export type DecisionLink = { id: string; decision_id: string; object_id: string; object_type: string; pivot_value?: string; created_at: string };
+export type DecisionLink = { id: string; decision_id: string; scenario_id?: string; object_id: string; object_type: string; pivot_value?: string; created_at: string };
 export type ScreeningLink = { id: string; screening_id: string; match_id?: string; status: string; partial?: boolean; created_at: string };
 export type CaseFile = { storage_key?: string; id: string; file_name: string; content_type: string; file_size: number; uploaded_by: string; created_at: string };
 export type QueuePage = { cases: CaseRecord[]; counts: Partial<Record<CaseStatus, number>>; next_cursor?: string };

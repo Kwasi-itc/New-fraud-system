@@ -1,0 +1,115 @@
+# PostgreSQL main stack, one public gateway. Compose 2.24.4+ supports !reset/!override.
+x-private-api: &private-api
+  SERVICE_AUTH_MODE: token
+  SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:?Run node docker/setup-postgres.mjs first}
+  GIN_MODE: release
+
+x-screening-tokens: &screening-tokens
+  SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:?Configure screening intake token}
+  SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:?Configure screening callback token}
+
+services:
+  postgres:
+    ports: !reset []
+
+  auth-service:
+    environment:
+      # Login selection is independent of the old frontend demo tenant setting.
+      AUTH_DEFAULT_TENANT_ID: ${AUTH_DEFAULT_TENANT_ID:-}
+      OIDC_ISSUER_URL: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}/identity/realms/fraud
+      OIDC_BACKCHANNEL_ORIGIN: http://keycloak:8080
+      OIDC_REDIRECT_URL: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}/api/auth/callback
+      AUTH_APP_ORIGIN: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}
+
+  keycloak:
+    ports: !reset []
+    environment:
+      KC_HOSTNAME: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}/identity
+      KC_HTTP_RELATIVE_PATH: /identity
+      KC_PROXY_HEADERS: xforwarded
+      FRAUD_AUTH_REDIRECT_URI: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}/api/auth/callback
+    healthcheck:
+      test: [CMD, /bin/bash, -c, "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /identity/health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; head -n 1 <&3 | grep -q '200'"]
+
+  data-model-service:
+    ports: !reset []
+  ingestion-service:
+    ports: !reset []
+    environment: *private-api
+  ingestion-worker:
+    environment: *private-api
+
+  decision-engine-service:
+    ports: !reset []
+    environment:
+      <<: [*private-api, *screening-tokens]
+      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN:?Configure screening authoring token}
+      GEOIP_MMDB_PATH: ""
+    volumes: !override
+      - ${CASE_USER_JWT_KEYS_FILE:?Configure platform public keys}:/run/secrets/case-user-public-keys.json:ro
+  decision-engine-worker:
+    restart: unless-stopped
+    environment:
+      <<: [*private-api, *screening-tokens]
+      GEOIP_MMDB_PATH: ""
+    volumes: !reset []
+
+  screening-service:
+    ports: !reset []
+    environment:
+      <<: [*private-api, *screening-tokens]
+      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:?Configure screening operator token}
+      SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
+      SCREENING_PROVIDER_URLS: ${SCREENING_PROVIDER_URLS:-}
+      OPENSANCTIONS_API_HOST: ${OPENSANCTIONS_API_HOST:-}
+      OPENSANCTIONS_AUTH_METHOD: ${OPENSANCTIONS_AUTH_METHOD:-}
+      OPENSANCTIONS_API_KEY: ${OPENSANCTIONS_API_KEY:-}
+      OPENSANCTIONS_SCOPE: ${OPENSANCTIONS_SCOPE:-default}
+  screening-worker:
+    environment:
+      <<: [*private-api, *screening-tokens]
+      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:?Configure screening operator token}
+      SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
+      SCREENING_PROVIDER_URLS: ${SCREENING_PROVIDER_URLS:-}
+      OPENSANCTIONS_API_HOST: ${OPENSANCTIONS_API_HOST:-}
+      OPENSANCTIONS_AUTH_METHOD: ${OPENSANCTIONS_AUTH_METHOD:-}
+      OPENSANCTIONS_API_KEY: ${OPENSANCTIONS_API_KEY:-}
+      OPENSANCTIONS_SCOPE: ${OPENSANCTIONS_SCOPE:-default}
+  screening-case-delivery-worker:
+    environment: *private-api
+  case-manager-service:
+    ports: !reset []
+
+  frontend:
+    ports: !reset []
+    build:
+      args:
+        NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ""
+        NEXT_PUBLIC_INGESTION_SERVICE_URL: ""
+        NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ""
+        NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ""
+    environment:
+      APP_ORIGIN: http://localhost:${POSTGRES_GATEWAY_PORT:-8088}
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      INGESTION_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN}
+      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN}
+      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN}
+      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ""
+      NEXT_PUBLIC_INGESTION_SERVICE_URL: ""
+      NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ""
+      NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ""
+
+  api-gateway:
+    extends:
+      file: docker/gateway/service.yaml
+      service: api-gateway
+    ports:
+      - 127.0.0.1:${POSTGRES_GATEWAY_PORT:-8088}:8080
+    depends_on:
+      frontend: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+
+# Preserve the original main-branch database volume regardless of project aliases.
+volumes:
+  postgres_data:
+    name: new-fraud-system_postgres_data

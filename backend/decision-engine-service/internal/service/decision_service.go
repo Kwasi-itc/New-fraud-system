@@ -75,6 +75,7 @@ type DBPoolStats struct {
 type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
+	NameRecognizer                screening.NameRecognizer
 	preparationMetrics            *preparationMetrics
 	payloadValidator              *payload.Validator
 	txManager                     ports.TransactionManager
@@ -2331,9 +2332,27 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 	}
 	now := s.clock.Now()
 	out := make([]screening.Execution, 0, len(configs))
+	ignoreCache := map[string][]string{}
 	for _, cfg := range configs {
 		if !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
 			continue
+		}
+		// Reuse the bounded workflow predicate contract; only the current object is
+		// visible, with no unscoped related-record lookup or provider side effect.
+		var configured struct {
+			Condition    *workflow.ConditionTree `json:"condition"`
+			IgnoreListID string                  `json:"ignore_list_id"`
+		}
+		if err := json.Unmarshal(cfg.ConfigJSON, &configured); err != nil {
+			return nil, invalidScreeningQuery("Invalid screening configuration.")
+		}
+		if configured.Condition != nil {
+			if err := configured.Condition.Validate(); err != nil {
+				return nil, invalidScreeningQuery("Invalid screening condition.")
+			}
+			if !configured.Condition.Matches(string(item.Outcome), objectFields) {
+				continue
+			}
 		}
 		exec := screening.Execution{
 			ID:         s.idGen.New().String(),
@@ -2345,10 +2364,28 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		}
-		req, err := buildScreeningDispatchRequest(exec.ID, cfg, exec, item.ObjectType, item.ObjectID, objectFields)
+		var ignoreWords []string
+		if configured.IgnoreListID != "" {
+			if s.customListRepo == nil {
+				return nil, invalidScreeningQuery("Ignore-list lookup unavailable.")
+			}
+			var cached bool
+			ignoreWords, cached = ignoreCache[configured.IgnoreListID]
+			if !cached {
+				ignoreWords, err = s.customListRepo.ScreeningIgnoreWords(ctx, item.TenantID, configured.IgnoreListID)
+				if err != nil {
+					return nil, invalidScreeningQuery("Configured ignore list is unavailable or exceeds supported limits.")
+				}
+				ignoreCache[configured.IgnoreListID] = ignoreWords
+			}
+		}
+		req, err := buildScreeningDispatchPreprocessed(ctx, exec.ID, cfg, exec, item.ObjectType, item.ObjectID, objectFields, ignoreWords, s.NameRecognizer)
 		if err != nil {
 			return nil, err
 		}
+		if req == nil {
+			continue
+		} // Explicit preprocessing skip; no provider execution.
 		exec.RequestJSON = req
 		out = append(out, exec)
 	}

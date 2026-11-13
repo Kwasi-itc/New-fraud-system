@@ -1,0 +1,63 @@
+{
+  "stage": "1: audit and implementation plan",
+  "verified_at": "2026-11-13",
+  "repository_head": "224731f",
+  "runtime_changes": false,
+  "application_database_access": false,
+  "baseline": {
+    "toolchain": "golang:1.25.8",
+    "source_mount": "read-only",
+    "container_network": "none",
+    "command": "go test -mod=readonly -count=1 -json ./internal/clients/provider ./internal/service ./internal/domain/screening ./localmatching ./mysqlpublication ./mysqlschema",
+    "exit_code": 0,
+    "top_level": {
+      "pass": 29
+    },
+    "test_and_subtest_results": {
+      "pass": 46
+    },
+    "packages": [
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider",
+        "result": "pass",
+        "note": "existing tests passed"
+      },
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening",
+        "result": "skip",
+        "note": "no test files"
+      },
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/localmatching",
+        "result": "skip",
+        "note": "no test files"
+      },
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service",
+        "result": "pass",
+        "note": "existing tests passed"
+      },
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlschema",
+        "result": "skip",
+        "note": "no test files"
+      },
+      {
+        "name": "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/mysqlpublication",
+        "result": "pass",
+        "note": "existing tests passed"
+      }
+    ]
+  },
+  "source_verification": {
+    "kind": "official bounded GET prefixes only",
+    "endpoints": 5,
+    "max_bytes_per_response": 4096,
+    "full_file_validation": false,
+    "source_ingestion": false,
+    "redirect_query_strings_retained": false
+  },
+  "database_migrations_tested": false,
+  "performance_measured": false,
+  "production_verified": false
+}

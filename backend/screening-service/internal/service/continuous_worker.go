@@ -66,9 +66,15 @@ func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, ite
 		return err
 	}
 
+	if config.ObjectType != item.ObjectType {
+		return fmt.Errorf("monitored object type does not match configuration")
+	}
 	record, err := s.tenantReader.GetRecord(ctx, item.TenantID, item.ObjectType, item.ObjectID)
 	if err != nil {
 		return err
+	}
+	if record.ObjectID != item.ObjectID || record.ObjectType != item.ObjectType {
+		return fmt.Errorf("ingestion record identity mismatch")
 	}
 
 	queries, err := buildQueries(config.FieldMapJSON, record.Fields)
@@ -96,6 +102,9 @@ func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, ite
 		}
 		if !currentConfig.Enabled {
 			return fmt.Errorf("continuous configuration is disabled")
+		}
+		if currentConfig.ObjectType != current.ObjectType {
+			return fmt.Errorf("monitored object type does not match configuration")
 		}
 		if !currentConfig.UpdatedAt.Equal(config.UpdatedAt) {
 			return fmt.Errorf("continuous configuration changed; retry current run")

@@ -59,6 +59,15 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 			}
 		}
 	}
+	// Case reads resolve contributor names through the auth owner's schema.
+	// Load the actual contract rather than stubbing identity tables.
+	authSchema, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "auth-service", "internal", "platform", "schema.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, string(authSchema)); err != nil {
+		t.Fatal("auth owner schema", err)
+	}
 	if _, err := db.Exec(ctx, `INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,'Intake test','intake_test','active',now(),now())`, tenant); err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +278,11 @@ func startCaseServer(t *testing.T, db *pgxpool.Pool, binary, tenant string) (str
 	endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant)
 	return endpoint, token
 }
-func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant string) (string, string, func(string, string, string) string) {
+
+const testIntakeToken = "synthetic-intake-private-token-32bytes"
+const testCallbackToken = "synthetic-callback-private-token-32bytes"
+
+func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant string, environment ...string) (string, string, func(string, string, string) string) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -308,6 +321,8 @@ func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant stri
 	dbURL.RawQuery = query.Encode()
 	cmd.Env = append(os.Environ(), "PORT="+strconv.Itoa(port), "DATABASE_URL="+dbURL.String(), "SERVICE_AUTH_MODE=token", "SERVICE_AUTH_TOKEN="+token, "SERVICE_AUTH_TENANT_IDS="+tenant, "USER_JWT_KEYS_FILE="+keysPath, "USER_JWT_ISSUER=intake-test", "USER_JWT_AUDIENCE=intake-test", "GIN_MODE=release")
 	cmd.Env = append(cmd.Env, "DATA_MODEL_SERVICE_URL=http://127.0.0.1:1", "INGESTION_SERVICE_URL=http://127.0.0.1:1")
+	cmd.Env = append(cmd.Env, "SCREENING_INTAKE_TOKEN="+testIntakeToken, "SCREENING_CALLBACK_TOKEN="+testCallbackToken)
+	cmd.Env = append(cmd.Env, environment...)
 	log, err := os.Create(filepath.Join(dir, "server.log"))
 	if err != nil {
 		t.Fatal(err)

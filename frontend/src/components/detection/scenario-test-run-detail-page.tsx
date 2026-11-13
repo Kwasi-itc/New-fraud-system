@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceTenant } from "@/components/workspace-session";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -160,7 +162,7 @@ export function ScenarioTestRunDetailPage({
   scenarioId: string;
   testRunId: string;
 }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.pushToast);
   const [objectId, setObjectId] = useState("test_object_001");
@@ -278,7 +280,7 @@ export function ScenarioTestRunDetailPage({
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this test run.
+          Your workspace is unavailable. Sign in again to continue.
         </CardContent>
       </Card>
     );

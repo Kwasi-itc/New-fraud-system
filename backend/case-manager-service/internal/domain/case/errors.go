@@ -25,5 +25,5 @@ func ValidOutcome(o Outcome) bool {
 }
 
 func ValidType(t Type) bool {
-	return t == TypeDecision || t == TypeContinuousScreening
+	return t == TypeDecision || t == TypeContinuousScreening || t == TypeManualScreening
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceTenant } from "@/components/workspace-session";
+
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -93,7 +95,7 @@ function ListModal({
 }
 
 export function ListDetailPage({ listId }: { listId: string }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const queryClient = useQueryClient();
   const [newValueOpen, setNewValueOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -244,7 +246,7 @@ export function ListDetailPage({ listId }: { listId: string }) {
     return (
       <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load list details.
+          Your workspace is unavailable. Sign in again to continue.
         </CardContent>
       </Card>
     );

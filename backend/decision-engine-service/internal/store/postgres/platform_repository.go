@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/platform"
 )
@@ -220,4 +221,39 @@ func (r IPFlagRepository) ListByIP(ctx context.Context, tenantID, ipAddress stri
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+// Bounded snapshot, tenant checked in the parent and child join. Missing lists
+// fail closed; an empty existing list is valid. No HTTP or writes occur here.
+func (r CustomListRepository) ScreeningIgnoreWords(ctx context.Context, tenant, list string) ([]string, error) {
+	rows, err := r.q.Query(ctx, `SELECT CASE WHEN octet_length(e.value)>1000 THEN repeat('x',1001) ELSE e.value END FROM core.custom_lists l LEFT JOIN core.custom_list_entries e ON e.tenant_id=l.tenant_id AND e.list_id=l.id WHERE l.tenant_id=$1 AND l.id=$2 ORDER BY e.id LIMIT 1001`, tenant, list)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	found := false
+	for rows.Next() {
+		found = true
+		var value *string
+		if err := rows.Scan(&value); err != nil {
+			return nil, err
+		}
+		if value != nil {
+			if len(*value) > 1000 {
+				return nil, fmt.Errorf("ignore-list entry exceeds supported size")
+			}
+			out = append(out, *value)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("ignore list unavailable")
+	}
+	if len(out) > 1000 {
+		return nil, fmt.Errorf("ignore list exceeds 1000 entries")
+	}
+	return out, nil
 }

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -186,6 +187,15 @@ func (r ScreeningRepository) Update(ctx context.Context, item screening.Screenin
 }
 
 func (r ScreeningMatchRepository) ReplaceForScreening(ctx context.Context, screeningID string, items []screening.Match) error {
+	var tenant string
+	if err := r.q.QueryRow(ctx, `SELECT tenant_id::text FROM screening.screenings WHERE id=$1`, screeningID).Scan(&tenant); err != nil {
+		return err
+	}
+	for _, item := range items {
+		if item.TenantID != tenant || item.ScreeningID != screeningID {
+			return fmt.Errorf("candidate does not belong to screening")
+		}
+	}
 	if _, err := r.q.Exec(ctx, `delete from screening.screening_matches where screening_id = $1`, screeningID); err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ test.beforeEach(async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
   // Detection owner reads are controlled; case writes use the real Next proxy.
-  await page.route("**/v1/tenants/**", async route => {
+  await page.route("**/api/decisions/tenants/**", async route => {
     const url = new URL(route.request().url());
     expect(url.pathname).toContain(tenant);
     if (url.pathname.endsWith("/scenarios")) return route.fulfill({ json: { scenarios: [{ id: scenario, name: "Payment checks", trigger_object_type: "payment", created_at: "2026-01-01T00:00:00Z" }] } });

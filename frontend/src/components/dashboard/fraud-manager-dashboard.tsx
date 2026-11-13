@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceTenant } from "@/components/workspace-session";
+
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
@@ -286,7 +288,7 @@ function GettingStartedChecklist({
 }
 
 function OperationsDashboard({ scenarios }: { scenarios: Scenario[] }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const decisionCountQueries = useQueries({
     queries: [undefined, ...outcomeCards.map((item) => item.outcome)].map((outcome) => ({
       queryKey: ["decision-engine", "dashboard-decision-count", tenantId, outcome ?? "all"],
@@ -478,7 +480,7 @@ function OperationsDashboard({ scenarios }: { scenarios: Scenario[] }) {
 }
 
 export function FraudManagerDashboard() {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const persistedCompletion = useFraudManagerOnboardingCompleted(tenantId);
   const assembledModelQuery = useAssembledDataModelQuery(tenantId);
   const scenariosQuery = useQuery({
@@ -574,7 +576,7 @@ export function FraudManagerDashboard() {
 
   if (!tenantId) {
     return (
-      <DashboardError message="Set NEXT_PUBLIC_DATA_MODEL_TENANT_ID to connect this dashboard to a tenant." />
+      <DashboardError message="Your workspace is unavailable. Sign in again to continue." />
     );
   }
 

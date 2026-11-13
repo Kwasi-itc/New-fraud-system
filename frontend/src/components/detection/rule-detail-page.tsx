@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceTenant } from "@/components/workspace-session";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -576,7 +578,7 @@ export function RuleDetailPage({
   ruleId: string;
   initialIterationId?: string | null;
 }) {
-  const tenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
+  const tenantId = useWorkspaceTenant();
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, scenarioId],
     queryFn: () => decisionEngineApi.getScenario(tenantId, scenarioId),
@@ -757,7 +759,7 @@ export function RuleDetailPage({
     return (
       <Card className="rounded-xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load rule authoring.
+          Your workspace is unavailable. Sign in again to continue.
         </CardContent>
       </Card>
     );

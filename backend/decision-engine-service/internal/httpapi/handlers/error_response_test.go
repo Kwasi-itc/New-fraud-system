@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"net/http"
 	"testing"
 
@@ -17,6 +18,7 @@ func TestClassifyDecisionEvaluationError(t *testing.T) {
 		wantStatus   int
 		wantCategory string
 	}{
+		{name: "typed screening value failure", err: fmt.Errorf("wrapped: %w", screening.ErrInvalidQuery), wantStatus: http.StatusUnprocessableEntity, wantCategory: "evaluation_invalid"},
 		{
 			name:         "aggregate pushdown overload",
 			err:          fmt.Errorf("aggregate pushdown failed: %w", ingestionclient.StatusError{Service: "ingestion-service", StatusCode: http.StatusTooManyRequests}),

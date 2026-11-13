@@ -1,4 +1,5 @@
 import { caseFetch, failure, relay } from "@/lib/server/case-proxy";
+import { screeningEvidence } from "@/lib/server/screening-evidence";
 
 export async function GET(_request: Request, context: { params: Promise<{ tenant: string; caseId: string; kind: string; resource: string }> }) {
   const { tenant, caseId, kind, resource } = await context.params;
@@ -8,9 +9,18 @@ export async function GET(_request: Request, context: { params: Promise<{ tenant
   const base = kind === "decisions" ? process.env.DECISION_ENGINE_SERVICE_URL : process.env.SCREENING_SERVICE_URL;
   if (!base) return failure("The evidence service is not configured.", 503);
   const token = kind === "decisions" ? process.env.DECISION_ENGINE_AUTH_TOKEN : process.env.SCREENING_AUTH_TOKEN;
+  const operator = kind === "screenings" ? process.env.SCREENING_OPERATOR_TOKEN : undefined;
+  if (kind === "screenings" && (!operator || operator.trim().length < 32 || operator === token)) return failure("Screening evidence is not configured.", 503);
   try {
-    return relay(await fetch(`${base.replace(/\/$/, "")}/v1/tenants/${tenant}/${kind}/${resource}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15000),
-    }));
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    if (operator) headers["X-Screening-Operator-Token"] = operator;
+    const response = await fetch(`${base.replace(/\/$/, "")}/v1/tenants/${tenant}/${kind}/${resource}`, {
+      headers, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15000),
+    });
+    if (kind === "screenings") {
+      if (!response.ok) return failure("Screening evidence is unavailable.", response.status >= 400 && response.status < 500 ? response.status : 503);
+      return Response.json(screeningEvidence(await response.json(), resource), { headers: { "Cache-Control": "private, no-store" } });
+    }
+    return relay(response);
   } catch { return failure("Evidence is temporarily unavailable. Please retry.", 503); }
 }

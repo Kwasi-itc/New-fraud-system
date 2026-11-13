@@ -159,7 +159,8 @@ func TestPostgresInventory(t *testing.T) {
 		t.Fatal("canceled read accepted")
 	}
 	// Missing migration/table is an explicit failure, not an empty inventory.
-	if _, err = conn.Exec(ctx, "DROP TABLE screening.investigator_reviews"); err != nil {
+	// Preserve newer foreign-key dependents while making the owner name absent.
+	if _, err = conn.Exec(ctx, "ALTER TABLE screening.investigator_reviews RENAME TO investigator_reviews_unavailable"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = ReadPage(ctx, conn, Request{TenantID: tenant, Source: "screening_review_actors", Limit: 2}); err == nil {

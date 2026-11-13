@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DecisionScreening } from "@/components/detection/decision-screening";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -215,7 +216,6 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
   const [triggerObjectOpen, setTriggerObjectOpen] = useState(true);
   const [rulesOpen, setRulesOpen] = useState(true);
   const [workflowExecutionsOpen, setWorkflowExecutionsOpen] = useState(true);
-  const [screeningExecutionsOpen, setScreeningExecutionsOpen] = useState(true);
   const [openRuleIds, setOpenRuleIds] = useState<Record<string, boolean>>({});
 
   const decisionQuery = useQuery({
@@ -226,11 +226,6 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
   const workflowExecutionsQuery = useQuery({
     queryKey: ["decision-engine", "workflow-executions", tenantId, decisionId],
     queryFn: () => decisionEngineApi.listWorkflowExecutions(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-  const screeningExecutionsQuery = useQuery({
-    queryKey: ["decision-engine", "screening-executions", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listScreeningExecutions(tenantId, decisionId),
     enabled: Boolean(tenantId && decisionId),
   });
   const scoringRequestsQuery = useQuery({
@@ -270,13 +265,11 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
   const isLoading =
     decisionQuery.isLoading ||
     workflowExecutionsQuery.isLoading ||
-    screeningExecutionsQuery.isLoading ||
     scoringRequestsQuery.isLoading ||
     rulesQuery.isLoading;
   const error =
     decisionQuery.error ??
     workflowExecutionsQuery.error ??
-    screeningExecutionsQuery.error ??
     scoringRequestsQuery.error ??
     rulesQuery.error;
 
@@ -327,14 +320,13 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
     [rulesQuery.data?.rules]
   );
   const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
-  const screeningExecutions = screeningExecutionsQuery.data?.screening_executions ?? [];
   void scoringRequestsQuery.data?.scoring_requests;
 
   if (!tenantId) {
     return (
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
         <CardContent className="p-5 text-sm text-amber-800">
-          Set `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` to load this decision.
+          Your workspace is unavailable. Sign in again to continue.
         </CardContent>
       </Card>
     );
@@ -768,78 +760,7 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-slate-200 shadow-none">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-5">
-                  <div>
-                    <div className="text-[15px] font-semibold text-slate-950">Screening Executions</div>
-                    <div className="text-[13px] text-slate-500">
-                      External screening requests created from this decision
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className="rounded-full border-slate-200 bg-white px-2.5 py-0.5 text-[12px] font-medium tracking-normal normal-case text-slate-700">
-                      {screeningExecutions.length}
-                    </Badge>
-                    <button
-                      type="button"
-                      onClick={() => setScreeningExecutionsOpen((current) => !current)}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                    >
-                      {screeningExecutionsOpen ? (
-                        <ChevronUp className="size-4" />
-                      ) : (
-                        <ChevronDown className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {screeningExecutionsOpen ? (
-                  <div className="space-y-3 p-5">
-                    {screeningExecutions.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-[13px] text-slate-500">
-                        No screening requests were created for this decision.
-                      </div>
-                    ) : (
-                      screeningExecutions.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-[14px] font-semibold text-slate-950">
-                                {item.provider_reference || item.config_id}
-                              </div>
-                              <div className="mt-1 text-[12px] text-slate-500">
-                                Config {item.config_id}
-                              </div>
-                            </div>
-                            <Badge
-                              className={cn(
-                                "rounded-full border px-2.5 py-0.5 text-[12px] font-medium tracking-normal normal-case",
-                                executionStatusClass(item.status)
-                              )}
-                            >
-                              {formatExecutionLabel(item.status)}
-                            </Badge>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-[12px] text-slate-500">
-                            <div>Created {formatDecisionDate(item.created_at)}</div>
-                            {item.failed_at && item.last_error ? (
-                              <div className="line-clamp-2 text-rose-700">
-                                Failed: {item.last_error}
-                              </div>
-                            ) : null}
-                            <div className="truncate">Execution ID {item.id}</div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
+            <DecisionScreening tenantId={tenantId} decisionId={decisionId} />
 
           </div>
 

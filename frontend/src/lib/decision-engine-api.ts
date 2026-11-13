@@ -1,4 +1,5 @@
-import { resolveServiceUrl } from "@/lib/service-url";
+
+import { prepareDecisionPage } from "./decision-pages";
 
 export type DecisionEngineApiErrorEnvelope = {
   error?: {
@@ -17,7 +18,7 @@ export type DecisionEngineApiErrorEnvelope = {
 export class DecisionEngineApiError extends Error {
   constructor(public readonly status: number, public readonly body: DecisionEngineApiErrorEnvelope | null) {
     const issues = body?.validation_errors?.map((issue) => `${issue.field}: ${issue.message}`).join("; ");
-    super(issues || body?.error?.message || body?.details || `Request failed with status ${status}`);
+    super(issues || (typeof body?.error === "string" ? body.error : body?.error?.message) || body?.details || `Request failed with status ${status}`);
     this.name = "DecisionEngineApiError";
   }
 }
@@ -566,6 +567,7 @@ export type CustomList = {
   kind: string;
   created_at: string;
   updated_at: string;
+  entry_count?: number;
 };
 
 export type CreateCustomListRequest = {
@@ -669,11 +671,6 @@ function appendDecisionListFilterParams(
   }
 }
 
-const configuredDecisionEngineServiceBaseUrl =
-  process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL;
-const decisionEngineServiceToken =
-  process.env.NEXT_PUBLIC_DECISION_ENGINE_SERVICE_TOKEN;
-
 async function decisionEngineFetch<T>(
   path: string,
   init?: RequestInit
@@ -685,15 +682,14 @@ async function decisionEngineFetch<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  if (decisionEngineServiceToken) {
-    headers.set("Authorization", `Bearer ${decisionEngineServiceToken}`);
-  }
-
+  const page = !init?.method || init.method === "GET" ? prepareDecisionPage(path) : undefined;
   const response = await fetch(
-    `${resolveServiceUrl(configuredDecisionEngineServiceBaseUrl, 8082)}${path}`,
+    `/api/decisions${(page?.path ?? path).replace(/^\/v1/, "")}`,
     {
     ...init,
     headers,
+    credentials: "same-origin",
+    cache: "no-store",
     }
   );
 
@@ -708,7 +704,9 @@ async function decisionEngineFetch<T>(
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  const data = await response.json();
+  page?.record(data);
+  return data as T;
 }
 
 export const decisionEnginePaths = {
@@ -1558,9 +1556,7 @@ export const decisionEngineApi = {
     }),
   listCustomListEntries: async (tenantId: string, listName?: string) =>
     decisionEngineFetch<{ custom_list_entries: CustomListEntry[] }>(
-      `${decisionEnginePaths.customListEntries(tenantId)}${
-        listName ? `?list_name=${encodeURIComponent(listName)}` : ""
-      }`
+      `${decisionEnginePaths.customListEntries(tenantId)}${listName ? `?list_name=${encodeURIComponent(listName)}` : ""}`
     ),
   listCustomListEntriesByList: async (tenantId: string, listId: string) =>
     decisionEngineFetch<{ custom_list_entries: CustomListEntry[] }>(

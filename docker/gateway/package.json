@@ -1,0 +1,8 @@
+{
+  "name": "fraud-local-gateway-assets",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "swagger-ui-dist": "5.35.0"
+  }
+}

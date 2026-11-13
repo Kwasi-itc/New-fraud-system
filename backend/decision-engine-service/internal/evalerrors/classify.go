@@ -2,6 +2,7 @@ package evalerrors
 
 import (
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"net/http"
 	"strings"
 
@@ -15,6 +16,12 @@ type Classification struct {
 }
 
 func Classify(err error) Classification {
+	if errors.Is(err, screening.ErrRecognitionFailed) {
+		return Classification{Status: http.StatusBadGateway, Category: "dependency_failure"}
+	}
+	if errors.Is(err, screening.ErrInvalidQuery) {
+		return Classification{Status: http.StatusUnprocessableEntity, Category: "evaluation_invalid"}
+	}
 	var contract *payload.ModelContractError
 	if errors.As(err, &contract) {
 		return Classification{Status: http.StatusBadGateway, Category: "dependency_failure"}

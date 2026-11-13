@@ -1596,7 +1596,9 @@ export function summarizeRuleFormula(ast: unknown) {
 
             const left =
               condition.leftMode === "function" && condition.leftFunction
-                ? condition.leftFunction.label
+                ? condition.leftFunction.ast
+                  ? summarizeRuleAstNode(condition.leftFunction.ast) ?? condition.leftFunction.label
+                  : condition.leftFunction.label
                 : condition.leftMode === "custom_list"
                   ? `List: ${condition.left}`
                   : condition.leftMode === "constant"
@@ -1615,7 +1617,9 @@ export function summarizeRuleFormula(ast: unknown) {
 
             const right =
               condition.rightMode === "function" && condition.rightFunction
-                ? condition.rightFunction.label
+                ? condition.rightFunction.ast
+                  ? summarizeRuleAstNode(condition.rightFunction.ast) ?? condition.rightFunction.label
+                  : condition.rightFunction.label
                 : condition.rightMode === "custom_list"
                   ? `List: ${condition.right}`
                   : condition.valueType === "string"
@@ -1669,6 +1673,20 @@ function formatRuleSummaryConstant(value: JSONValue | undefined): string | null 
   return null;
 }
 
+function formatDurationHuman(iso: string): string {
+  if (iso === "PT30M") return "30 minutes";
+  if (iso === "PT1H") return "1 hour";
+  if (iso === "PT24H" || iso === "P1D") return "24 hours";
+  const m = iso.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  if (!m) return iso;
+  const parts: string[] = [];
+  if (m[1]) parts.push(`${m[1]} ${m[1] === "1" ? "day" : "days"}`);
+  if (m[2]) parts.push(`${m[2]} ${m[2] === "1" ? "hour" : "hours"}`);
+  if (m[3]) parts.push(`${m[3]} ${m[3] === "1" ? "minute" : "minutes"}`);
+  if (m[4]) parts.push(`${m[4]} ${m[4] === "1" ? "second" : "seconds"}`);
+  return parts.length > 0 ? parts.join(" ") : iso;
+}
+
 function summarizeAggregatorFilters(node: RuleAstNode) {
   const filtersNode = node.named_children?.filters;
   const filters = filtersNode?.children ?? [];
@@ -1686,9 +1704,10 @@ function summarizeAggregatorFilters(node: RuleAstNode) {
         typeof filterNode.named_children?.operator?.constant === "string"
           ? filterNode.named_children.operator.constant
           : "=";
-      const value = formatRuleSummaryConstant(
-        filterNode.named_children?.value?.constant
-      );
+      const valNode = filterNode.named_children?.value;
+      const value =
+        summarizeRuleAstNode(valNode) ??
+        formatRuleSummaryConstant(valNode?.constant);
 
       return value ? `${fieldName} ${operator} ${value}` : `${fieldName} ${operator}`;
     })
@@ -1701,7 +1720,7 @@ function summarizeAggregatorFilters(node: RuleAstNode) {
   return rendered.join(" and ");
 }
 
-function summarizeRuleAstNode(ast: unknown): string | null {
+export function summarizeRuleAstNode(ast: unknown): string | null {
   if (!ast || typeof ast !== "object" || Array.isArray(ast)) {
     return null;
   }
@@ -1796,10 +1815,11 @@ function summarizeRuleAstNode(ast: unknown): string | null {
       node.named_children?.sign?.constant === "-"
         ? "-"
         : "+";
-    const duration =
+    const rawDuration =
       typeof node.named_children?.duration?.constant === "string"
         ? node.named_children.duration.constant
         : "PT0S";
+    const duration = formatDurationHuman(rawDuration);
     return `${timestamp} ${sign} ${duration}`;
   }
 

@@ -291,7 +291,7 @@ func (s ScreeningService) reviewMatch(ctx context.Context, store ports.MutationS
 		switch {
 		case confirmed > 0:
 			item.Status = screening.StatusConfirmedHit
-		case pending > 0:
+		case pending > 0 || item.Partial:
 			item.Status = screening.StatusAwaitingReview
 		default:
 			item.Status = screening.StatusNoHit
@@ -299,6 +299,8 @@ func (s ScreeningService) reviewMatch(ctx context.Context, store ports.MutationS
 		item.UpdatedAt = now
 		if item.Status == screening.StatusConfirmedHit || item.Status == screening.StatusNoHit {
 			item.CompletedAt = &now
+		} else {
+			item.CompletedAt = nil
 		}
 		if _, runErr = store.Screenings().Update(ctx, item); runErr != nil {
 			return runErr
@@ -563,9 +565,6 @@ func (s ScreeningService) DeleteContinuousConfig(ctx context.Context, tenantID, 
 }
 
 func (s ScreeningService) CreateMonitoredObject(ctx context.Context, tenantID, configID, objectType, objectID string, attributesJSON json.RawMessage) (screening.MonitoredObject, error) {
-	if _, err := s.continuousRepo.GetByID(ctx, tenantID, configID); err != nil {
-		return screening.MonitoredObject{}, err
-	}
 	now := s.clock.Now()
 	item := screening.MonitoredObject{
 		ID:             s.idGen.New().String(),
@@ -583,7 +582,13 @@ func (s ScreeningService) CreateMonitoredObject(ctx context.Context, tenantID, c
 	}
 	var created screening.MonitoredObject
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		var runErr error
+		config, runErr := store.ContinuousConfigs().GetByID(ctx, tenantID, configID)
+		if runErr != nil {
+			return runErr
+		}
+		if config.ObjectType != item.ObjectType {
+			return fmt.Errorf("monitored object type does not match configuration")
+		}
 		created, runErr = store.MonitoredObjects().Create(ctx, item)
 		if runErr != nil {
 			return runErr

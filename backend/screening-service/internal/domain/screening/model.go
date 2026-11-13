@@ -232,8 +232,13 @@ func (m MonitoredObject) Validate() error {
 }
 
 type SearchQuery struct {
-	Name string `json:"name"`
-	Type string `json:"type,omitempty"`
+	Name               string `json:"name"`
+	Type               string `json:"type,omitempty"`
+	BirthDate          string `json:"birth_date,omitempty"`
+	Nationality        string `json:"nationality,omitempty"`
+	Country            string `json:"country,omitempty"`
+	RegistrationNumber string `json:"registration_number,omitempty"`
+	Address            string `json:"address,omitempty"`
 }
 
 type SearchRequest struct {

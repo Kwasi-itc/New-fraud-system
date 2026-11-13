@@ -5030,7 +5030,6 @@ components:
         match_count:
           type: integer
           description: Number of matches reported by the screening service.
-      required: [tenant_id, screening_id, decision_id, scenario_id, screening_config_id, status, provider, object_type, object_id, provider_reference, last_error, partial, idempotency_key, match_count]
     ScenarioEnvelope:
       type: object
       properties:

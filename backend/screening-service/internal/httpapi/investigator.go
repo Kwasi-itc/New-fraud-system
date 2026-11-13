@@ -12,6 +12,7 @@ import (
 )
 
 func registerInvestigator(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService) {
+	registerCaseExclusions(router, db, verifier)
 	handler := func(c *gin.Context) {
 		identity.Serve(c.Writer, c.Request, verifier, func(p identity.Principal, resource string, cmd *identity.Command) (identity.State, error) {
 			tenant, e := uuid.Parse(c.Param("tenantId"))

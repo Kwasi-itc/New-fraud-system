@@ -16,7 +16,9 @@ import {
 } from "@/lib/case-manager-api";
 import { caseKeys, useCaseQuery } from "@/lib/case-manager-query";
 import type { Decision } from "@/lib/decision-engine-api";
+import { useDecisionDisplay } from "@/components/detection/decision-display";
 import { StatusPill } from "./structured-data-viewer";
+import { timestamp } from "./shared";
 import { cn } from "@/lib/utils";
 
 type Membership = {
@@ -156,6 +158,7 @@ export function CreateDecisionCaseModal({
   const client = useQueryClient();
   const inboxes = useCaseQuery<{ inboxes: Inbox[] }>(tenant, session, "inboxes");
   const [selected, setSelected] = useState(decisions);
+  const displays = useDecisionDisplay(tenant, session, selected);
   const [name, setName] = useState("");
   const [inbox, setInbox] = useState("");
   const [request, setRequest] = useState<CreateRequest | null>(null);
@@ -320,34 +323,60 @@ export function CreateDecisionCaseModal({
                 {selected.length} selected decisions
               </p>
               <ul className="max-h-56 divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200 bg-slate-50/30">
-                {selected.map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex items-start justify-between gap-3 p-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
-                        {scenarioNames.get(d.scenario_id) ?? d.scenario_id}
-                      </p>
-                      <p className="break-all text-slate-600 mt-0.5">
-                        {d.object_type}: {d.object_id} · {d.outcome.replaceAll("_", " ")}
-                      </p>
-                      <p className="break-all font-mono text-sm text-slate-400 mt-0.5">
-                        {d.id}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label={`Remove decision ${d.id}`}
-                      className="text-sm font-semibold text-blue-700 hover:underline shrink-0"
-                      onClick={() =>
-                        setSelected((items) => items.filter((item) => item.id !== d.id))
-                      }
+                {selected.map((d) => {
+                  const rec = displays.record(d);
+                  const caption = rec?.caption && rec.caption !== d.object_id ? rec.caption : null;
+                  return (
+                    <li
+                      key={d.id}
+                      className="flex items-start justify-between gap-3 p-3 text-sm"
                     >
-                      Remove
-                    </button>
-                  </li>
-                ))}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-slate-900">
+                            {scenarioNames.get(d.scenario_id) ?? d.scenario_id}
+                          </p>
+                          <StatusPill value={d.outcome} />
+                          {d.score != null && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                              Score: {d.score}
+                            </span>
+                          )}
+                        </div>
+                        <p className="break-all text-slate-700 mt-1 font-medium text-xs">
+                          <span className="capitalize text-slate-500 font-semibold">{d.object_type}:</span>{" "}
+                          <span className="font-semibold text-slate-900">{caption || d.object_id}</span>
+                          {caption && (
+                            <span className="font-mono text-slate-400 ml-1.5">
+                              ({d.object_id})
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
+                          <span className="font-mono">
+                            Decision {d.id.slice(0, 8)}…
+                          </span>
+                          {d.created_at && (
+                            <>
+                              <span>·</span>
+                              <span>Evaluated {timestamp(d.created_at)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Remove decision ${d.id}`}
+                        className="text-sm font-semibold text-blue-700 hover:underline shrink-0"
+                        onClick={() =>
+                          setSelected((items) => items.filter((item) => item.id !== d.id))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </fieldset>

@@ -28,6 +28,7 @@ type Type string
 
 const (
 	TypeDecision            Type = "decision"
+	TypeManualScreening     Type = "manual_screening"
 	TypeContinuousScreening Type = "continuous_screening"
 )
 
@@ -47,27 +48,27 @@ type Inbox struct {
 }
 
 type Case struct {
-	SLADueAt     *time.Time      `json:"sla_due_at,omitempty"`
-	ID           uuid.UUID       `json:"id"`
-	TenantID     uuid.UUID       `json:"tenant_id"`
-	InboxID      uuid.UUID       `json:"inbox_id"`
-	Name         string          `json:"name"`
+	SLADueAt       *time.Time      `json:"sla_due_at,omitempty"`
+	ID             uuid.UUID       `json:"id"`
+	TenantID       uuid.UUID       `json:"tenant_id"`
+	InboxID        uuid.UUID       `json:"inbox_id"`
+	Name           string          `json:"name"`
 	Status         Status          `json:"status"`
 	Outcome        Outcome         `json:"outcome"`
 	Type           Type            `json:"type"`
 	AssignedTo     *string         `json:"assigned_to,omitempty"`
 	AssignedToName *string         `json:"assigned_to_name,omitempty"`
 	SnoozedUntil   *time.Time      `json:"snoozed_until,omitempty"`
-	BoostReason  *string         `json:"boost_reason,omitempty"`
-	ReviewLevel  *string         `json:"review_level,omitempty"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
-	Decisions    []DecisionLink  `json:"decisions,omitempty"`
-	Screenings   []ScreeningLink `json:"screenings,omitempty"`
-	Tags         []Tag           `json:"tags,omitempty"`
-	Files        []File          `json:"files,omitempty"`
-	Events       []Event         `json:"events,omitempty"`
-	Contributors []Contributor   `json:"contributors,omitempty"`
+	BoostReason    *string         `json:"boost_reason,omitempty"`
+	ReviewLevel    *string         `json:"review_level,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+	Decisions      []DecisionLink  `json:"decisions,omitempty"`
+	Screenings     []ScreeningLink `json:"screenings,omitempty"`
+	Tags           []Tag           `json:"tags,omitempty"`
+	Files          []File          `json:"files,omitempty"`
+	Events         []Event         `json:"events,omitempty"`
+	Contributors   []Contributor   `json:"contributors,omitempty"`
 }
 
 type DecisionLink struct {

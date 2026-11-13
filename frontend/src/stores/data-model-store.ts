@@ -13,10 +13,9 @@ type DataModelWorkspaceState = {
   setSelectedTableId: (tableId: string | null) => void;
 };
 
-const defaultTenantId = process.env.NEXT_PUBLIC_DATA_MODEL_TENANT_ID ?? "";
 
 export const useDataModelWorkspaceStore = create<DataModelWorkspaceState>((set) => ({
-  tenantId: defaultTenantId,
+  tenantId: "",
   activeView: "data-model",
   selectedTableId: null,
   setTenantId: (tenantId) => set({ tenantId }),

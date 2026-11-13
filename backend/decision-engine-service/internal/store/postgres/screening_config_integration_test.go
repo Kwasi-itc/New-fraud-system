@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -107,6 +108,37 @@ func TestScreeningReviewInboxPersistenceAndMigration(t *testing.T) {
 		current.Status = screening.ExecutionStatusPending
 		if _, err := executions.Update(ctx, current); err == nil {
 			t.Fatal("generic source status overwrite")
+		}
+		retryID := uuid.NewString()
+		if _, err := db.Exec(ctx, `INSERT INTO core.screening_executions(id,tenant_id,config_id,decision_id,scenario_id,status,created_at) VALUES($1,$2,$3,$4,$5,'failed',now())`, retryID, tenant, item.ID, decision, scenario); err != nil {
+			t.Fatal(err)
+		}
+		retry, err := executions.GetByID(ctx, tenant, retryID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retry.Status = screening.ExecutionStatusPending
+		foreign := retry
+		foreign.TenantID = uuid.NewString()
+		if _, err := executions.Update(ctx, foreign); err == nil {
+			t.Fatal("cross-tenant retry write")
+		}
+		var wg sync.WaitGroup
+		results := make(chan error, 2)
+		for i := 0; i < 2; i++ {
+			wg.Add(1)
+			go func() { defer wg.Done(); _, err := executions.Update(ctx, retry); results <- err }()
+		}
+		wg.Wait()
+		close(results)
+		wins := 0
+		for err := range results {
+			if err == nil {
+				wins++
+			}
+		}
+		if wins != 1 {
+			t.Fatal("concurrent retry must have one winner", wins)
 		}
 	})
 	raw, err := os.ReadFile(filepath.Join("..", "..", "migrations", "metadata", "000017_screening_review_inbox.down.sql"))

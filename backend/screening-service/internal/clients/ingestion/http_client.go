@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,19 +20,24 @@ type HTTPClient struct {
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: timeout},
+		client:  &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
 func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectID string) (ports.TenantRecord, error) {
-	url := fmt.Sprintf("%s/v1/tenants/%s/records/%s/%s", c.baseURL, tenantID, objectType, objectID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	for _, part := range []string{tenantID, objectType, objectID} {
+		if strings.TrimSpace(part) == "" || part == "." || part == ".." {
+			return ports.TenantRecord{}, fmt.Errorf("invalid ingestion record identity")
+		}
+	}
+	endpoint := fmt.Sprintf("%s/v1/tenants/%s/records/%s/%s", c.baseURL, url.PathEscape(tenantID), url.PathEscape(objectType), url.PathEscape(objectID))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return ports.TenantRecord{}, fmt.Errorf("create request: %w", err)
+		return ports.TenantRecord{}, fmt.Errorf("could not create ingestion record request")
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return ports.TenantRecord{}, fmt.Errorf("perform request: %w", err)
+		return ports.TenantRecord{}, fmt.Errorf("ingestion record request failed")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -40,6 +46,9 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	var payload getRecordResponse
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("decode response: %w", err)
+	}
+	if payload.Record.ObjectID != objectID || payload.Record.ObjectType != objectType {
+		return ports.TenantRecord{}, fmt.Errorf("ingestion record identity mismatch")
 	}
 	return ports.TenantRecord{
 		ObjectID:   payload.Record.ObjectID,

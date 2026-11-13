@@ -4,6 +4,13 @@ This directory is now the workspace root for the extracted system.
 
 ## Local Docker stack
 
+For the PostgreSQL stack with the retained screening UI and a single local
+frontend/API origin, run `node docker/setup-postgres.mjs` and open
+http://localhost:8088. See [PostgreSQL gateway setup](docker/POSTGRES_GATEWAY.md)
+for prerequisites, private backups, API documentation and data-preservation details.
+The internal screening data provider remains planned work; start with its
+[PostgreSQL implementation plan](backend/screening-service/INTERNAL_PROVIDER_PLAN.md).
+
 The root `docker-compose.yml` runs the local/dev stack with one shared
 Postgres container, one-shot migration jobs, backend APIs, default workers, and
 the Next frontend.

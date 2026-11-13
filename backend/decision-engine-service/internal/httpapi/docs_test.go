@@ -7,7 +7,18 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 )
+
+func TestOpenAPISpecHasUniqueMappings(t *testing.T) {
+	var spec map[string]any
+	if err := yaml.Unmarshal(openAPISpec, &spec); err != nil {
+		t.Fatalf("invalid OpenAPI YAML: %v", err)
+	}
+	if spec["openapi"] != "3.0.3" {
+		t.Fatalf("unexpected OpenAPI version: %v", spec["openapi"])
+	}
+}
 
 func TestDocsRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)

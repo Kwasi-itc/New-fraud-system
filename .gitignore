@@ -24,6 +24,7 @@ server.err.log
 .env.*.local
 pii-hmac.key
 # Local development identity material (never mount private keys into services)
+/.local/
 .local/case-auth/
 .local/auth-provider/
 .local/stress-python-deps/
@@ -31,6 +32,7 @@ backend/stress-tests/database-scale-runs/
 .local/decision-commit-preview/
 backend/stress-tests/fraud_data/
 backend/stress-tests/internal-sync-replay-runs/
+backend/stress-tests/decision-benchmarks/
 
 # IDE and OS noise
 .DS_Store
