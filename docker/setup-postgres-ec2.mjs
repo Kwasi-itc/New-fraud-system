@@ -1,15 +1,16 @@
 import { randomBytes } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
-const usage = 'Usage: node docker/setup-postgres-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build]';
+const usage = 'Usage: node docker/setup-postgres-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build] [--skip-init]';
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 const valueFlags = new Set(['--port', '--project', '--env-file']);
-const booleanFlags = new Set(['--prepare-only', '--skip-build']);
+const booleanFlags = new Set(['--prepare-only', '--skip-build', '--skip-init']);
 const parsedArgs = {};
 
 for (let i = 0; i < args.length; i++) {
@@ -113,7 +114,7 @@ if (!config.CASE_USER_JWT_KEYS_FILE || config.CASE_USER_JWT_KEYS_FILE.includes('
   config.CASE_USER_JWT_KEYS_FILE = defaultProjectKeys;
 }
 
-for (const key of ['CASE_SERVICE_TENANT_IDS', 'CASE_USER_JWT_KEYS_FILE', 'CASE_USER_JWT_ISSUER']) {
+for (const key of ['CASE_USER_JWT_KEYS_FILE', 'CASE_USER_JWT_ISSUER']) {
   if (!config[key]) {
     throw new Error(`Configure ${key} in ${path.relative(root, sourceEnvPath)} or .local/${project}/compose.env before starting the system.`);
   }
@@ -151,8 +152,15 @@ config.COMPOSE_PROFILES = [...profiles].join(',');
 config.COMPOSE_PROJECT_NAME = project;
 config.POSTGRES_GATEWAY_PORT = String(port);
 
+// Placeholder so `docker compose config` passes before migrations/tenant discovery run.
+config.CASE_SERVICE_TENANT_IDS ||= NIL_UUID;
+
 const quote = value => `'${String(value).replaceAll("'", "\\'")}'`;
-writeFileSync(envFile, Object.entries(config).map(([key, value]) => `${key}=${quote(value)}`).join('\n') + '\n', { mode: 0o600 });
+function writeComposeEnv() {
+  writeFileSync(envFile, Object.entries(config).map(([key, value]) => `${key}=${quote(value)}`).join('\n') + '\n', { mode: 0o600 });
+}
+
+writeComposeEnv();
 console.log(`EC2 gateway configuration ready in ignored .local/${project} (source: ${path.relative(root, sourceEnvPath)}).`);
 
 const composeFiles = ['-f', 'docker-compose.ec2.yml', '-f', 'docker-compose.gateway.ec2.yml'];
@@ -165,12 +173,95 @@ function docker(extra, options = {}) {
   return result;
 }
 
+function runRdsContainer(commandArgs, { volumes = [], stdio = 'inherit' } = {}) {
+  const dockerArgs = [
+    'run', '--rm',
+    '-e', `PGHOST=${config.RDS_HOST}`,
+    '-e', `PGPORT=${config.RDS_PORT}`,
+    '-e', `PGDATABASE=${config.RDS_DATABASE}`,
+    '-e', `PGUSER=${config.RDS_USER}`,
+    '-e', `PGPASSWORD=${config.RDS_PASSWORD}`,
+    '-e', `PGSSLMODE=${config.RDS_SSLMODE}`,
+    ...volumes.flatMap(v => ['-v', v]),
+    'postgres:16',
+    ...commandArgs,
+  ];
+  const result = spawnSync('docker', dockerArgs, { cwd: root, stdio, encoding: 'utf8' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    const detail = result.stderr ? `\n${result.stderr.trim()}` : '';
+    throw new Error(`RDS initialization/query command failed.${detail}`);
+  }
+  return result;
+}
+
 docker(['config', '--quiet']);
 if (parsedArgs['--prepare-only']) process.exit(0);
+
+// 1. Run ./docker/postgres/init against RDS (replaces /docker-entrypoint-initdb.d from local Docker).
+const initDir = path.join(root, 'docker/postgres/init');
+if (!parsedArgs['--skip-init'] && existsSync(initDir) && readdirSync(initDir).length > 0) {
+  console.log('Running docker/postgres/init scripts against RDS...');
+  const initRunner = `set -eu
+for f in $(ls -1 /docker-entrypoint-initdb.d | sort); do
+  full="/docker-entrypoint-initdb.d/$f"
+  case "$f" in
+    *.sh)
+      echo "Running $f"
+      if [ -x "$full" ]; then "$full"; else sh "$full"; fi
+      ;;
+    *.sql)
+      echo "Running $f"
+      psql -X -v ON_ERROR_STOP=1 -f "$full"
+      ;;
+    *.sql.gz)
+      echo "Running $f"
+      gunzip -c "$full" | psql -X -v ON_ERROR_STOP=1
+      ;;
+  esac
+done`;
+  runRdsContainer(['/bin/sh', '-ec', initRunner], {
+    volumes: [`${initDir}:/docker-entrypoint-initdb.d:ro`],
+  });
+}
 
 if (!parsedArgs['--skip-build']) {
   docker(['build', '--parallel'], { env: { ...process.env, COMPOSE_PARALLEL_LIMIT: '2' } });
 }
+
+// 2. Run database migrations first so core.tenants exists before resolving the tenant UUID.
+docker([
+  'up', '--wait',
+  'data-model-migrate',
+  'auth-migrate',
+  'ingestion-migrate',
+  'decision-engine-migrate',
+  'screening-migrate',
+  'case-manager-migrate',
+]);
+
+// 3. Resolve a real tenant UUID from core.tenants if CASE_SERVICE_TENANT_IDS is missing or nil.
+if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UUID) {
+  const queryResult = runRdsContainer(
+    ['psql', '-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-c', "SELECT id FROM core.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;"],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+  const tenantId = queryResult.stdout.trim();
+  if (!tenantId || tenantId === NIL_UUID) {
+    throw new Error(
+      `No active tenant found in core.tenants on RDS (${config.RDS_DATABASE}). ` +
+      `Check docker/postgres/init/* to see if it seeds a tenant or create one in core.tenants, then set CASE_SERVICE_TENANT_IDS in ${path.relative(root, sourceEnvPath)}.`
+    );
+  }
+  config.CASE_SERVICE_TENANT_IDS = tenantId;
+  if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID) {
+    config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID = tenantId;
+  }
+  writeComposeEnv();
+  console.log(`Resolved active tenant UUID from RDS: ${tenantId}`);
+}
+
+// 4. Bring up the full application stack.
 docker(['up', '-d', '--wait', '--wait-timeout', '300']);
 
 const publicOrigin = config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`;
@@ -187,5 +278,3 @@ test -n "$client"
 docker(['exec', '-T', 'keycloak', '/bin/bash', '-ec', identityScript]);
 
 console.log(`Project (${project}) application: ${publicOrigin}\nAPI documentation: ${publicOrigin}/services/`);
-
-//new
