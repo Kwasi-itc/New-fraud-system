@@ -1,0 +1,530 @@
+x-backend-common: &backend-common
+  SERVICE_AUTH_MODE: disabled
+  SERVICE_AUTH_TOKEN: ""
+  CASE_SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:-}
+  LOG_LEVEL: info
+  GIN_MODE: debug
+  HTTP_CLIENT_TIMEOUT: 10s
+  SERVICE_ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
+  ALLOWED_ORIGINS: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${FRONTEND_FORWARDED_PORT:-3000}
+
+x-depends-on-migrations: &depends-on-migrations
+  auth-migrate:
+    condition: service_completed_successfully
+  data-model-migrate:
+    condition: service_completed_successfully
+  ingestion-migrate:
+    condition: service_completed_successfully
+  decision-engine-migrate:
+    condition: service_completed_successfully
+  screening-migrate:
+    condition: service_completed_successfully
+  case-manager-migrate:
+    condition: service_completed_successfully
+
+services:
+  auth-migrate:
+    build: ./backend/auth-service
+    entrypoint: ["/app/admin"]
+    command: ["-action", "migrate"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+    depends_on:
+      data-model-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  auth-service:
+    build: ./backend/auth-service
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/auth.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform.env
+      - path: ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/invitations.env
+        required: false
+    environment:
+      PORT: "8087"
+      AUTH_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-private.pem:/run/secrets/platform-private.pem:ro
+    depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  keycloak-db-init:
+    image: postgres:16
+    profiles: [local-idp]
+    environment:
+      PGHOST: ${RDS_HOST:?Configure RDS_HOST}
+      PGPORT: ${RDS_PORT:-5432}
+      PGDATABASE: ${RDS_DATABASE:?Configure RDS_DATABASE}
+      PGUSER: ${RDS_USER:?Configure RDS_USER}
+      PGPASSWORD: ${RDS_PASSWORD:?Configure RDS_PASSWORD}
+      PGSSLMODE: ${RDS_SSLMODE:-require}
+    env_file:
+      - path: ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/database.env
+        required: false
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - 'test -n "$${KC_DB_PASSWORD:-}" || { echo "Run node backend/auth-service/scripts/setup-local-provider.mjs first" >&2; exit 1; }; exec psql -X -f /provider/provision.sql'
+    volumes:
+      - ./docker/keycloak/provision.sql:/provider/provision.sql:ro
+    restart: "no"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    profiles: [local-idp]
+    command: ["start-dev", "--import-realm"]
+    env_file:
+      - path: ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/keycloak.env
+        required: false
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://${RDS_HOST:?Configure RDS_HOST}:${RDS_PORT:-5432}/${RDS_DATABASE:?Configure RDS_DATABASE}?sslmode=${RDS_SSLMODE:-require}}
+      KC_DB_SCHEMA: ${KC_DB_SCHEMA:-keycloak}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-fraud_keycloak}
+      KC_DB_POOL_INITIAL_SIZE: "1"
+      KC_DB_POOL_MIN_SIZE: "1"
+      KC_DB_POOL_MAX_SIZE: "5"
+      KC_HOSTNAME: ${OIDC_LOCAL_PUBLIC_ORIGIN:-http://localhost:8090}
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: info
+    ports:
+      - "${KEYCLOAK_BIND_ADDRESS:-127.0.0.1}:${KEYCLOAK_FORWARDED_PORT:-8090}:8080"
+    volumes:
+      - ./docker/keycloak/fraud-realm.json:/opt/keycloak/data/import/fraud-realm.json:ro
+    depends_on:
+      keycloak-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; head -n 1 <&3 | grep -q '200'"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+    restart: unless-stopped
+
+  data-model-migrate:
+    build:
+      context: ./backend
+      dockerfile: data-model-service/Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+    restart: "no"
+
+  ingestion-migrate:
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+    depends_on:
+      data-model-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  decision-engine-migrate:
+    build:
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+    depends_on:
+      ingestion-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  screening-migrate:
+    build:
+      context: ./backend
+      dockerfile: screening-service/Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+    depends_on:
+      decision-engine-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  case-manager-migrate:
+    build:
+      context: ./backend
+      dockerfile: case-manager-service/Dockerfile
+    entrypoint: ["/app/migrate"]
+    command: ["up"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+    depends_on:
+      screening-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  data-model-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+    build:
+      context: ./backend
+      dockerfile: data-model-service/Dockerfile
+    environment:
+      <<: *backend-common
+      SERVICE_AUTH_MODE: token
+      USER_JWT_KEYS_FILE: /run/secrets/platform-public.json
+      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Configure platform issuer}
+      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
+      PORT: 8080
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      INDEX_WORKER_POLL_INTERVAL: 2s
+      INDEX_WORKER_MAX_ATTEMPTS: 5
+      INDEX_WORKER_RETRY_BASE_DELAY: 5s
+      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+    depends_on: *depends-on-migrations
+    volumes:
+      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/platform-public.json:ro
+    ports:
+      - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
+
+  ingestion-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-common
+      PORT: 8081
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DATABASE_MAX_CONNS: ${INGESTION_DATABASE_MAX_CONNS:-0}
+      DATABASE_MIN_CONNS: ${INGESTION_DATABASE_MIN_CONNS:-0}
+      READ_DATABASE_URL: ${READ_DATABASE_URL:-}
+      READ_DATABASE_MAX_CONNS: ${READ_DATABASE_MAX_CONNS:-0}
+      READ_DATABASE_MIN_CONNS: ${READ_DATABASE_MIN_CONNS:-0}
+      WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-}
+      WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
+      WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      DATA_MODEL_CACHE_MAX_ENTRIES: ${DATA_MODEL_CACHE_MAX_ENTRIES:-128}
+      DATA_MODEL_CACHE_MAX_BYTES: ${DATA_MODEL_CACHE_MAX_BYTES:-16777216}
+      DATA_MODEL_READ_MODE: ${DATA_MODEL_READ_MODE:-sql}
+      WORKER_POLL_INTERVAL: 5s
+      WORKER_MAX_ATTEMPTS: 3
+      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
+      WRITE_PATH_OVERLOAD_MODE: ${WRITE_PATH_OVERLOAD_MODE:-defer_async}
+      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
+    depends_on: *depends-on-migrations
+    ports:
+      - "${INGESTION_FORWARDED_PORT:-8081}:8081"
+
+  decision-engine-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+    build:
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
+    environment:
+      <<: *backend-common
+      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
+      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
+      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
+      USER_REQUIRE_SESSION: "true"
+      PORT: 8082
+      DATABASE_MAX_CONNS: ${DECISION_DATABASE_MAX_CONNS:-0}
+      DATABASE_MIN_CONNS: ${DECISION_DATABASE_MIN_CONNS:-0}
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      AGGREGATE_PUSHDOWN_MODE: enabled
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg,count_distinct
+      LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
+      LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
+      LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
+      TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
+      GEOIP_MMDB_PATH: ${GEOIP_MMDB_PATH-/data/geoip/dbip-city-lite.mmdb}
+      GEOIP_LOCALE: ${GEOIP_LOCALE:-en}
+      RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
+      SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
+      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+    volumes:
+      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+      - type: bind
+        source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
+        target: /data/geoip/dbip-city-lite.mmdb
+        read_only: true
+    depends_on: *depends-on-migrations
+    ports:
+      - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
+
+  screening-service:
+    build:
+      context: ./backend
+      dockerfile: screening-service/Dockerfile
+    environment:
+      <<: *backend-common
+      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
+      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
+      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
+      USER_REQUIRE_SESSION: "true"
+      PORT: 8085
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    volumes:
+      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+    depends_on: *depends-on-migrations
+    ports:
+      - "${SCREENING_FORWARDED_PORT:-8085}:8085"
+
+  case-manager-service:
+    build:
+      context: ./backend
+      dockerfile: case-manager-service/Dockerfile
+    environment:
+      <<: *backend-common
+      LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
+      PORT: 8086
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      SERVICE_AUTH_MODE: token
+      SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:?Set CASE_SERVICE_AUTH_TOKEN to a secret of at least 32 bytes}
+      SERVICE_AUTH_TENANT_IDS: ${CASE_SERVICE_TENANT_IDS:?Set the allowed case integration tenant UUIDs}
+      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
+      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
+      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
+      USER_REQUIRE_SESSION: "true"
+      DB_POOL_MAX_CONNS: ${CASE_DB_POOL_MAX_CONNS:-8}
+      GIN_MODE: release
+    volumes:
+      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+    depends_on: *depends-on-migrations
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "${CASE_MANAGER_FORWARDED_PORT:-8086}:8086"
+
+  screening-case-delivery-worker:
+    build:
+      context: ./backend
+      dockerfile: screening-service/Dockerfile
+    entrypoint: ["/app/case-delivery-worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${SCREENING_DELIVERY_DATABASE_URL:-${DATABASE_URL:?Configure RDS DATABASE_URL}}
+      DATABASE_MAX_CONNS: 2
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_POLL_INTERVAL: 2s
+      WORKER_BATCH_LIMIT: 50
+    depends_on:
+      <<: *depends-on-migrations
+      case-manager-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  data-model-worker:
+    build:
+      context: ./backend
+      dockerfile: data-model-service/Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      INDEX_WORKER_POLL_INTERVAL: 2s
+      INDEX_WORKER_MAX_ATTEMPTS: 5
+      INDEX_WORKER_RETRY_BASE_DELAY: 5s
+      INDEX_WORKER_RETRY_MAX_DELAY: 2m
+    depends_on: *depends-on-migrations
+
+  ingestion-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+    build:
+      context: ./backend/ingestion-service
+      dockerfile: Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      READ_DATABASE_URL: ${READ_DATABASE_URL:-}
+      READ_DATABASE_MAX_CONNS: ${READ_DATABASE_MAX_CONNS:-0}
+      READ_DATABASE_MIN_CONNS: ${READ_DATABASE_MIN_CONNS:-0}
+      WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-}
+      WORKER_DATABASE_MAX_CONNS: ${WORKER_DATABASE_MAX_CONNS:-4}
+      WORKER_DATABASE_MIN_CONNS: ${WORKER_DATABASE_MIN_CONNS:-0}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      DATA_MODEL_CACHE_MAX_ENTRIES: ${DATA_MODEL_CACHE_MAX_ENTRIES:-128}
+      DATA_MODEL_CACHE_MAX_BYTES: ${DATA_MODEL_CACHE_MAX_BYTES:-16777216}
+      DATA_MODEL_READ_MODE: ${DATA_MODEL_READ_MODE:-sql}
+      WORKER_POLL_INTERVAL: 5s
+      WORKER_MAX_ATTEMPTS: 3
+      WRITE_PATH_CONCURRENCY_LIMIT: ${WRITE_PATH_CONCURRENCY_LIMIT:-200}
+      WRITE_PATH_OVERLOAD_MODE: ${WRITE_PATH_OVERLOAD_MODE:-defer_async}
+      AGGREGATE_QUERY_CONCURRENCY_LIMIT: ${AGGREGATE_QUERY_CONCURRENCY_LIMIT:-16}
+    depends_on:
+      <<: *depends-on-migrations
+      data-model-service:
+        condition: service_started
+
+  decision-engine-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+    build:
+      context: ./backend
+      dockerfile: decision-engine-service/Dockerfile
+    entrypoint: ["/app/worker"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *backend-common
+      DATABASE_MAX_CONNS: ${DECISION_WORKER_DATABASE_MAX_CONNS:-0}
+      DATABASE_MIN_CONNS: ${DECISION_WORKER_DATABASE_MIN_CONNS:-0}
+      LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      AGGREGATE_PUSHDOWN_MODE: enabled
+      AGGREGATE_PUSHDOWN_AGGREGATES: count,sum,avg,count_distinct
+      LIVE_DECISION_MODE: ${LIVE_DECISION_MODE:-sync}
+      LIVE_ASYNC_FALLBACK_ENABLED: ${LIVE_ASYNC_FALLBACK_ENABLED:-false}
+      LIVE_ASYNC_OBJECT_TYPES: ${LIVE_ASYNC_OBJECT_TYPES:-}
+      TENANT_DATA_READ_MODE: ${TENANT_DATA_READ_MODE:-ingestion_http}
+      GEOIP_MMDB_PATH: ${GEOIP_MMDB_PATH-/data/geoip/dbip-city-lite.mmdb}
+      GEOIP_LOCALE: ${GEOIP_LOCALE:-en}
+      RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
+      SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
+      AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+    volumes:
+      - type: bind
+        source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
+        target: /data/geoip/dbip-city-lite.mmdb
+        read_only: true
+    depends_on:
+      <<: *depends-on-migrations
+      data-model-service:
+        condition: service_started
+      ingestion-service:
+        condition: service_started
+      screening-service:
+        condition: service_started
+      case-manager-service:
+        condition: service_healthy
+
+  screening-worker:
+    profiles:
+      - screening-worker
+    build:
+      context: ./backend
+      dockerfile: screening-service/Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      <<: *backend-common
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      INGESTION_SERVICE_URL: http://ingestion-service:8081
+      DECISION_ENGINE_URL: http://decision-engine-service:8082
+      INBOX_SERVICE_URL: http://case-manager-service:8086
+      CASE_SERVICE_URL: http://case-manager-service:8086
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+    depends_on:
+      <<: *depends-on-migrations
+      ingestion-service:
+        condition: service_started
+      decision-engine-service:
+        condition: service_started
+      case-manager-service:
+        condition: service_healthy
+
+  case-manager-worker:
+    build:
+      context: ./backend
+      dockerfile: case-manager-service/Dockerfile
+    entrypoint: ["/app/worker"]
+    environment:
+      USER_REQUIRE_SESSION: "true"
+      LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
+      DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
+      DB_POOL_MAX_CONNS: 4
+      WORKER_MODE: poll
+      WORKER_POLL_INTERVAL: 15s
+      WORKER_BATCH_LIMIT: 100
+      OUTBOX_PUBLISHER_URL: ${CASE_OUTBOX_PUBLISHER_URL:-}
+      OUTBOX_PUBLISHER_AUTH_TOKEN: ${CASE_OUTBOX_PUBLISHER_AUTH_TOKEN:-}
+    depends_on:
+      <<: *depends-on-migrations
+    restart: unless-stopped
+
+  frontend:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/proxy.env
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DATA_MODEL_FORWARDED_PORT:-8080}
+        NEXT_PUBLIC_INGESTION_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${INGESTION_FORWARDED_PORT:-8081}
+        NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}
+        NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
+    environment:
+      DATA_MODEL_SERVICE_URL: http://data-model-service:8080
+      AUTH_SERVICE_URL: http://auth-service:8087
+      CASE_MANAGER_SERVICE_URL: http://case-manager-service:8086
+      DECISION_ENGINE_SERVICE_URL: http://decision-engine-service:8082
+      SCREENING_SERVICE_URL: http://screening-service:8085
+      DECISION_ENGINE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
+      SCREENING_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
+      CASE_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
+      CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-__Host-fraud_session}
+      APP_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DATA_MODEL_FORWARDED_PORT:-8080}
+      NEXT_PUBLIC_INGESTION_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${INGESTION_FORWARDED_PORT:-8081}
+      NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${NEXT_PUBLIC_SERVICE_BASE_URL:-http://localhost}:${DECISION_ENGINE_FORWARDED_PORT:-8082}
+      NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
+    depends_on:
+      data-model-service:
+        condition: service_started
+      ingestion-service:
+        condition: service_started
+      decision-engine-service:
+        condition: service_started
+    ports:
+      - "${FRONTEND_FORWARDED_PORT:-3000}:3000"
+
+networks:
+  # Keep this stack's service DNS namespace private. Set a different value
+  # for each independently running instance of this stack.
+  default:
+    name: ${FRAUD_INTERNAL_NETWORK:-${COMPOSE_PROJECT_NAME:-new-fraud-system}_internal}

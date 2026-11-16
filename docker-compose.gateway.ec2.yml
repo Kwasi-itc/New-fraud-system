@@ -1,0 +1,49 @@
+# docker-compose.gateway.ec2.yml
+# Usage: docker compose --env-file .local/<project>/compose.env -p <project> -f docker-compose.ec2.yml -f docker-compose.gateway.yml -f docker-compose.gateway.ec2.yml up -d
+
+x-ec2-origins: &ec2-origins
+  SERVICE_ALLOWED_ORIGINS: ${GATEWAY_PUBLIC_ORIGIN:?Set GATEWAY_PUBLIC_ORIGIN (e.g. http://<ec2-ip>:8088 or https://domain)}
+  ALLOWED_ORIGINS: ${GATEWAY_PUBLIC_ORIGIN:?Set GATEWAY_PUBLIC_ORIGIN}
+
+services:
+  auth-service:
+    environment:
+      <<: *ec2-origins
+      AUTH_APP_ORIGIN: ${GATEWAY_PUBLIC_ORIGIN}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-${GATEWAY_PUBLIC_ORIGIN}/identity/realms/fraud}
+
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${GATEWAY_PUBLIC_ORIGIN}/identity
+      # Required if terminating TLS in front of EC2 (e.g., AWS ALB / Nginx / Caddy)
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+
+  data-model-service:
+    environment:
+      <<: *ec2-origins
+
+  ingestion-service:
+    environment:
+      <<: *ec2-origins
+
+  decision-engine-service:
+    environment:
+      <<: *ec2-origins
+
+  screening-service:
+    environment:
+      <<: *ec2-origins
+
+  case-manager-service:
+    environment:
+      <<: *ec2-origins
+
+  frontend:
+    environment:
+      APP_ORIGIN: ${GATEWAY_PUBLIC_ORIGIN}
+      # Defaults to non-__Host- cookie for HTTP EC2 testing; set CASE_SESSION_COOKIE=__Host-fraud_session when using HTTPS
+      CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-fraud_session}
+      NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ${GATEWAY_PUBLIC_ORIGIN}/services/data-model
+      NEXT_PUBLIC_INGESTION_SERVICE_URL: ${GATEWAY_PUBLIC_ORIGIN}/services/ingestion
+      NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ${GATEWAY_PUBLIC_ORIGIN}/services/decision-engine
