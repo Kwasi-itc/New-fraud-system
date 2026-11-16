@@ -6,30 +6,40 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
-const usage = 'Usage: node docker/setup-ec2.mjs [--project new-fraud-system] [--port 8088] [--prepare-only] [--skip-build]';
+const usage = 'Usage: node docker/setup-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build]';
 
-function getArgValue(flag) {
-  const index = args.indexOf(flag);
-  if (index === -1) return undefined;
-  const value = args[index + 1];
-  if (!value || value.startsWith('--')) {
-    throw new Error(`Missing value for ${flag}.\n${usage}`);
+const valueFlags = new Set(['--port', '--project', '--env-file']);
+const booleanFlags = new Set(['--prepare-only', '--skip-build']);
+const parsedArgs = {};
+
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  const eqIndex = arg.indexOf('=');
+  const flag = eqIndex >= 0 ? arg.slice(0, eqIndex) : arg;
+
+  if (booleanFlags.has(flag) && eqIndex === -1) {
+    parsedArgs[flag] = true;
+  } else if (valueFlags.has(flag)) {
+    const value = eqIndex >= 0 ? arg.slice(eqIndex + 1) : args[++i];
+    if (!value || (eqIndex === -1 && value.startsWith('--'))) {
+      throw new Error(`Missing value for ${flag}.\n${usage}`);
+    }
+    parsedArgs[flag] = value;
+  } else {
+    throw new Error(usage);
   }
-  return value;
 }
 
-const requestedPort = getArgValue('--port');
-const requestedProject = getArgValue('--project');
+const requestedPort = parsedArgs['--port'];
+const requestedProject = parsedArgs['--project'];
+const requestedEnvFile = parsedArgs['--env-file'];
 
-const valueIndices = new Set(
-  ['--port', '--project']
-    .map(flag => args.indexOf(flag))
-    .filter(index => index >= 0)
-    .map(index => index + 1)
-);
+const sourceEnvPath = requestedEnvFile
+  ? path.resolve(process.cwd(), requestedEnvFile)
+  : path.join(root, '.env');
 
-if (args.some((arg, i) => !['--port', '--project', '--prepare-only', '--skip-build'].includes(arg) && !valueIndices.has(i))) {
-  throw new Error(usage);
+if (requestedEnvFile && !existsSync(sourceEnvPath)) {
+  throw new Error(`Environment file not found: ${sourceEnvPath}`);
 }
 
 function parse(file) {
@@ -43,15 +53,21 @@ function parse(file) {
   }));
 }
 
-const rootEnv = parse(path.join(root, '.env'));
-const project = requestedProject ?? rootEnv.COMPOSE_PROJECT_NAME ?? 'new-fraud-system';
+const baseEnv = parse(sourceEnvPath);
+const project = requestedProject ?? baseEnv.COMPOSE_PROJECT_NAME ?? 'new-fraud-system';
 if (!/^[a-z0-9][a-z0-9_-]*$/.test(project)) {
   throw new Error('Project name must start with a lowercase letter or number and contain only lowercase letters, numbers, hyphens, or underscores.');
 }
 
 const directory = path.join(root, '.local', project);
 const envFile = path.join(directory, 'compose.env');
-const config = { ...rootEnv, ...parse(envFile) };
+const existingComposeEnv = parse(envFile);
+
+// When --env-file is explicitly supplied, let its values update existing compose.env keys
+// while preserving previously generated tokens that are not defined in the source .env file.
+const config = requestedEnvFile
+  ? { ...existingComposeEnv, ...baseEnv }
+  : { ...baseEnv, ...existingComposeEnv };
 
 const port = Number(requestedPort ?? config.POSTGRES_GATEWAY_PORT ?? 8088);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) {
@@ -101,12 +117,12 @@ if (!config.CASE_USER_JWT_KEYS_FILE || config.CASE_USER_JWT_KEYS_FILE.includes('
 
 for (const key of ['CASE_SERVICE_TENANT_IDS', 'CASE_USER_JWT_KEYS_FILE', 'CASE_USER_JWT_ISSUER']) {
   if (!config[key]) {
-    throw new Error(`Configure ${key} in .env or .local/${project}/compose.env before starting the system.`);
+    throw new Error(`Configure ${key} in ${path.relative(root, sourceEnvPath)} or .local/${project}/compose.env before starting the system.`);
   }
 }
 
 if (!config.DATABASE_URL) {
-  throw new Error(`Configure RDS DATABASE_URL in .env or .local/${project}/compose.env before starting the system.`);
+  throw new Error(`Configure RDS DATABASE_URL in ${path.relative(root, sourceEnvPath)} or .local/${project}/compose.env before starting the system.`);
 }
 
 // Derive RDS_HOST / RDS_PORT / RDS_DATABASE / RDS_USER / RDS_PASSWORD / RDS_SSLMODE from DATABASE_URL if not explicitly set.
@@ -139,9 +155,14 @@ config.POSTGRES_GATEWAY_PORT = String(port);
 
 const quote = value => `'${String(value).replaceAll("'", "\\'")}'`;
 writeFileSync(envFile, Object.entries(config).map(([key, value]) => `${key}=${quote(value)}`).join('\n') + '\n', { mode: 0o600 });
-console.log(`EC2 gateway configuration ready in ignored .local/${project}. Project identity material isolated.`);
+console.log(`EC2 gateway configuration ready in ignored .local/${project} (source: ${path.relative(root, sourceEnvPath)}).`);
 
-const compose = ['compose', '--env-file', envFile, '-p', project, '-f', 'docker-compose.ec2.yml', '-f', 'docker-compose.gateway.yml'];
+const composeFiles = ['-f', 'docker-compose.ec2.yml', '-f', 'docker-compose.gateway.yml'];
+if (existsSync(path.join(root, 'docker-compose.gateway.ec2.yml'))) {
+  composeFiles.push('-f', 'docker-compose.gateway.ec2.yml');
+}
+
+const compose = ['compose', '--env-file', envFile, '-p', project, ...composeFiles];
 function docker(extra, options = {}) {
   const result = spawnSync('docker', [...compose, ...extra], { cwd: root, stdio: 'inherit', ...options });
   if (result.error) throw result.error;
@@ -150,9 +171,9 @@ function docker(extra, options = {}) {
 }
 
 docker(['config', '--quiet']);
-if (args.includes('--prepare-only')) process.exit(0);
+if (parsedArgs['--prepare-only']) process.exit(0);
 
-if (!args.includes('--skip-build')) {
+if (!parsedArgs['--skip-build']) {
   docker(['build', '--parallel'], { env: { ...process.env, COMPOSE_PARALLEL_LIMIT: '2' } });
 }
 docker(['up', '-d', '--wait', '--wait-timeout', '300']);
