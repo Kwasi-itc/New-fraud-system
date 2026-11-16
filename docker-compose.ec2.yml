@@ -62,6 +62,7 @@ services:
       PGUSER: ${RDS_USER:?Configure RDS_USER}
       PGPASSWORD: ${RDS_PASSWORD:?Configure RDS_PASSWORD}
       PGSSLMODE: ${RDS_SSLMODE:-require}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-fraud_keycloak}
     env_file:
       - path: ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/database.env
         required: false
