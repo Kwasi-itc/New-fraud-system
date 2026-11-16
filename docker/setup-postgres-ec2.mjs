@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
-const usage = 'Usage: node docker/setup-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build]';
+const usage = 'Usage: node docker/setup-postgres-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build]';
 
 const valueFlags = new Set(['--port', '--project', '--env-file']);
 const booleanFlags = new Set(['--prepare-only', '--skip-build']);
@@ -63,8 +63,6 @@ const directory = path.join(root, '.local', project);
 const envFile = path.join(directory, 'compose.env');
 const existingComposeEnv = parse(envFile);
 
-// When --env-file is explicitly supplied, let its values update existing compose.env keys
-// while preserving previously generated tokens that are not defined in the source .env file.
 const config = requestedEnvFile
   ? { ...existingComposeEnv, ...baseEnv }
   : { ...baseEnv, ...existingComposeEnv };
@@ -157,12 +155,9 @@ const quote = value => `'${String(value).replaceAll("'", "\\'")}'`;
 writeFileSync(envFile, Object.entries(config).map(([key, value]) => `${key}=${quote(value)}`).join('\n') + '\n', { mode: 0o600 });
 console.log(`EC2 gateway configuration ready in ignored .local/${project} (source: ${path.relative(root, sourceEnvPath)}).`);
 
-const composeFiles = ['-f', 'docker-compose.ec2.yml', '-f', 'docker-compose.gateway.yml'];
-if (existsSync(path.join(root, 'docker-compose.gateway.ec2.yml'))) {
-  composeFiles.push('-f', 'docker-compose.gateway.ec2.yml');
-}
-
+const composeFiles = ['-f', 'docker-compose.ec2.yml', '-f', 'docker-compose.gateway.ec2.yml'];
 const compose = ['compose', '--env-file', envFile, '-p', project, ...composeFiles];
+
 function docker(extra, options = {}) {
   const result = spawnSync('docker', [...compose, ...extra], { cwd: root, stdio: 'inherit', ...options });
   if (result.error) throw result.error;
@@ -192,3 +187,5 @@ test -n "$client"
 docker(['exec', '-T', 'keycloak', '/bin/bash', '-ec', identityScript]);
 
 console.log(`Project (${project}) application: ${publicOrigin}\nAPI documentation: ${publicOrigin}/services/`);
+
+//new
