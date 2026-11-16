@@ -281,6 +281,7 @@ if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UU
 docker(['up', '-d', '--wait', '--wait-timeout', '300']);
 
 const publicOrigin = (config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`).replace(/\/+$/, '');
+const sslRequired = publicOrigin.startsWith('http://') ? 'NONE' : 'EXTERNAL';
 // Import does not update an existing realm. Change only this client's redirect allowlist.
 const identityScript = `set -eu
 admin=/opt/keycloak/bin/kcadm.sh
@@ -293,6 +294,8 @@ case "$rel_path" in
   *) server_url="http://localhost:8080/\${rel_path%/}" ;;
 esac
 "$admin" config credentials --config "$cfg" --server "$server_url" --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null
+"$admin" update realms/master --config "$cfg" -s "sslRequired=${sslRequired}"
+"$admin" update realms/fraud --config "$cfg" -s "sslRequired=${sslRequired}"
 client=$("$admin" get clients --config "$cfg" -r fraud -q clientId=fraud-auth --fields id --format csv --noquotes)
 test -n "$client"
 "$admin" update "clients/$client" --config "$cfg" -r fraud -s 'redirectUris=["${publicOrigin}/api/auth/callback"]'
