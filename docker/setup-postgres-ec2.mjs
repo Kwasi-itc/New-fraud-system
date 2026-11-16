@@ -210,15 +210,36 @@ if (!parsedArgs['--skip-build']) {
 }
 
 // 1. Run database migrations first so core.tenants exists before resolving the tenant UUID.
-docker([
-  'up', '--wait',
+const migrateServices = [
   'data-model-migrate',
   'auth-migrate',
   'ingestion-migrate',
   'decision-engine-migrate',
   'screening-migrate',
   'case-manager-migrate',
-]);
+];
+docker(['up', ...migrateServices]);
+
+for (const service of migrateServices) {
+  const idResult = spawnSync('docker', [...compose, 'ps', '-a', '-q', service], {
+    cwd: root,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8',
+  });
+  const containerId = idResult.stdout?.trim();
+  if (!containerId) {
+    throw new Error(`Migration container for ${service} was not found.`);
+  }
+  const stateResult = spawnSync(
+    'docker',
+    ['inspect', '--format', '{{.State.Status}}:{{.State.ExitCode}}', containerId],
+    { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' },
+  );
+  const state = stateResult.stdout?.trim();
+  if (state !== 'exited:0') {
+    throw new Error(`Migration ${service} failed (${state || 'unknown state'}). Check: docker logs ${containerId}`);
+  }
+}
 
 // 2. Resolve an active tenant UUID from core.tenants if CASE_SERVICE_TENANT_IDS is missing or nil.
 if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UUID) {
