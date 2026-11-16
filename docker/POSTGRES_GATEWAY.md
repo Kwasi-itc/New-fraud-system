@@ -20,6 +20,18 @@ Use `--port 8099` to choose another local port, or `--prepare-only` to prepare a
 
 The command preserves existing provider/platform keys and credentials, creates missing private integration tokens in ignored `.local/postgres-dev/compose.env`, backs up PostgreSQL before service migrations, builds images and starts the stack. It updates only the existing Keycloak `fraud-auth` client's callback allowlist for the gateway origin. Do not run concurrent setup commands.
 
+## EC2 RDS setup and initial tenant
+
+For an EC2 host using RDS, prepare the required `.env` and project-scoped identity files, then run:
+
+```sh
+node docker/setup-postgres-ec2.mjs
+```
+
+After service migrations, this setup detects whether RDS already has an active tenant. If it does not, it starts data-model-service and runs the separate [`setup-root-tenant-ec2.mjs`](./setup-root-tenant-ec2.mjs) script. That script creates the `Root` tenant (`external_key: root`) through the authenticated data-model API and provisions its tenant schema. It safely reuses and provisions an existing pending root tenant on retries, then EC2 setup stores its UUID for the application.
+
+The root tenant is a data-model tenant only; this does not create an application user, grant membership, or replace platform identity setup. Keep the data-model service credential in `.local/<project>/data-model.env` private.
+
 Backups include private application and identity data. Keep `.local/` private. Startup can take several minutes for an existing large database. Do not delete the PostgreSQL volume to resolve a configuration error.
 
 ## Addresses

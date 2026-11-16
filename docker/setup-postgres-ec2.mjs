@@ -1,16 +1,16 @@
 import { randomBytes } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
-const usage = 'Usage: node docker/setup-postgres-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build] [--skip-init]';
+const usage = 'Usage: node docker/setup-postgres-ec2.mjs [--project new-fraud-system] [--port 8088] [--env-file .env] [--prepare-only] [--skip-build]';
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 const valueFlags = new Set(['--port', '--project', '--env-file']);
-const booleanFlags = new Set(['--prepare-only', '--skip-build', '--skip-init']);
+const booleanFlags = new Set(['--prepare-only', '--skip-build']);
 const parsedArgs = {};
 
 for (let i = 0; i < args.length; i++) {
@@ -49,7 +49,7 @@ function parse(file) {
     const match = line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
     if (!match) return [];
     let value = match[2].trim();
-    if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
+    if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1).replaceAll("\\'", "'");
     return [[match[1], value]];
   }));
 }
@@ -152,7 +152,15 @@ config.COMPOSE_PROFILES = [...profiles].join(',');
 config.COMPOSE_PROJECT_NAME = project;
 config.POSTGRES_GATEWAY_PORT = String(port);
 
-// Placeholder so `docker compose config` passes before migrations/tenant discovery run.
+// Preserve any real tenant UUID already stored in .local/<project>/compose.env if source .env had NIL_UUID.
+if (config.CASE_SERVICE_TENANT_IDS === NIL_UUID && existingComposeEnv.CASE_SERVICE_TENANT_IDS && existingComposeEnv.CASE_SERVICE_TENANT_IDS !== NIL_UUID) {
+  config.CASE_SERVICE_TENANT_IDS = existingComposeEnv.CASE_SERVICE_TENANT_IDS;
+}
+if (config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID && existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID && existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID !== NIL_UUID) {
+  config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID = existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID;
+}
+
+// Temporary placeholder so `docker compose config` succeeds prior to tenant discovery.
 config.CASE_SERVICE_TENANT_IDS ||= NIL_UUID;
 
 const quote = value => `'${String(value).replaceAll("'", "\\'")}'`;
@@ -173,7 +181,7 @@ function docker(extra, options = {}) {
   return result;
 }
 
-function runRdsContainer(commandArgs, { volumes = [], stdio = 'inherit' } = {}) {
+function queryRds(sql) {
   const dockerArgs = [
     'run', '--rm',
     '-e', `PGHOST=${config.RDS_HOST}`,
@@ -182,54 +190,26 @@ function runRdsContainer(commandArgs, { volumes = [], stdio = 'inherit' } = {}) 
     '-e', `PGUSER=${config.RDS_USER}`,
     '-e', `PGPASSWORD=${config.RDS_PASSWORD}`,
     '-e', `PGSSLMODE=${config.RDS_SSLMODE}`,
-    ...volumes.flatMap(v => ['-v', v]),
     'postgres:16',
-    ...commandArgs,
+    'psql', '-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-c', sql,
   ];
-  const result = spawnSync('docker', dockerArgs, { cwd: root, stdio, encoding: 'utf8' });
+  const result = spawnSync('docker', dockerArgs, { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     const detail = result.stderr ? `\n${result.stderr.trim()}` : '';
-    throw new Error(`RDS initialization/query command failed.${detail}`);
+    throw new Error(`RDS query failed.${detail}`);
   }
-  return result;
+  return result.stdout.trim();
 }
 
 docker(['config', '--quiet']);
 if (parsedArgs['--prepare-only']) process.exit(0);
 
-// 1. Run ./docker/postgres/init against RDS (replaces /docker-entrypoint-initdb.d from local Docker).
-const initDir = path.join(root, 'docker/postgres/init');
-if (!parsedArgs['--skip-init'] && existsSync(initDir) && readdirSync(initDir).length > 0) {
-  console.log('Running docker/postgres/init scripts against RDS...');
-  const initRunner = `set -eu
-for f in $(ls -1 /docker-entrypoint-initdb.d | sort); do
-  full="/docker-entrypoint-initdb.d/$f"
-  case "$f" in
-    *.sh)
-      echo "Running $f"
-      if [ -x "$full" ]; then "$full"; else sh "$full"; fi
-      ;;
-    *.sql)
-      echo "Running $f"
-      psql -X -v ON_ERROR_STOP=1 -f "$full"
-      ;;
-    *.sql.gz)
-      echo "Running $f"
-      gunzip -c "$full" | psql -X -v ON_ERROR_STOP=1
-      ;;
-  esac
-done`;
-  runRdsContainer(['/bin/sh', '-ec', initRunner], {
-    volumes: [`${initDir}:/docker-entrypoint-initdb.d:ro`],
-  });
-}
-
 if (!parsedArgs['--skip-build']) {
   docker(['build', '--parallel'], { env: { ...process.env, COMPOSE_PARALLEL_LIMIT: '2' } });
 }
 
-// 2. Run database migrations first so core.tenants exists before resolving the tenant UUID.
+// 1. Run database migrations first so core.tenants exists before resolving the tenant UUID.
 docker([
   'up', '--wait',
   'data-model-migrate',
@@ -240,28 +220,43 @@ docker([
   'case-manager-migrate',
 ]);
 
-// 3. Resolve a real tenant UUID from core.tenants if CASE_SERVICE_TENANT_IDS is missing or nil.
+// 2. Resolve an active tenant UUID from core.tenants if CASE_SERVICE_TENANT_IDS is missing or nil.
 if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UUID) {
-  const queryResult = runRdsContainer(
-    ['psql', '-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-c', "SELECT id FROM core.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;"],
-    { stdio: ['ignore', 'pipe', 'pipe'] }
-  );
-  const tenantId = queryResult.stdout.trim();
+  let tenantId = queryRds("SELECT id FROM core.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;");
   if (!tenantId || tenantId === NIL_UUID) {
-    throw new Error(
-      `No active tenant found in core.tenants on RDS (${config.RDS_DATABASE}). ` +
-      `Check docker/postgres/init/* to see if it seeds a tenant or create one in core.tenants, then set CASE_SERVICE_TENANT_IDS in ${path.relative(root, sourceEnvPath)}.`
-    );
+    console.log('No active tenant found on RDS; creating and provisioning the root tenant.');
+    docker(['up', '-d', '--wait', 'data-model-service']);
+    const tenantSetup = spawnSync(process.execPath, [
+      path.join(root, 'docker/setup-root-tenant-ec2.mjs'),
+      '--project',
+      project,
+    ], { cwd: root, stdio: 'inherit' });
+    if (tenantSetup.error) throw tenantSetup.error;
+    if (tenantSetup.status !== 0) throw new Error('Root tenant setup failed; resolve the reported error and re-run EC2 setup.');
+    tenantId = queryRds("SELECT id FROM core.tenants WHERE external_key = 'root' AND status = 'active' ORDER BY created_at ASC LIMIT 1;");
+  }
+  if (!tenantId || tenantId === NIL_UUID) {
+    throw new Error(`No active tenant exists in core.tenants on RDS (${config.RDS_DATABASE}) after root tenant setup.`);
   }
   config.CASE_SERVICE_TENANT_IDS = tenantId;
+  let frontendNeedsRebuild = false;
   if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID) {
     config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID = tenantId;
+    frontendNeedsRebuild = true;
   }
   writeComposeEnv();
   console.log(`Resolved active tenant UUID from RDS: ${tenantId}`);
+  if (frontendNeedsRebuild) {
+    if (!parsedArgs['--skip-build']) {
+      console.log('Rebuilding frontend with resolved NEXT_PUBLIC_DATA_MODEL_TENANT_ID...');
+      docker(['build', 'frontend']);
+    } else {
+      console.log('Note: --skip-build was passed; re-run without --skip-build if frontend needs the updated NEXT_PUBLIC_DATA_MODEL_TENANT_ID baked into its bundle.');
+    }
+  }
 }
 
-// 4. Bring up the full application stack.
+// 3. Bring up the full application stack.
 docker(['up', '-d', '--wait', '--wait-timeout', '300']);
 
 const publicOrigin = config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`;
