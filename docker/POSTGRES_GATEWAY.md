@@ -34,6 +34,24 @@ The root tenant is a data-model tenant only; this does not create an application
 
 Backups include private application and identity data. Keep `.local/` private. Startup can take several minutes for an existing large database. Do not delete the PostgreSQL volume to resolve a configuration error.
 
+For private EC2 deployments accessed over plain HTTP only, set both
+`AUTH_COOKIE_SECURE=false` and `CASE_SESSION_COOKIE=fraud_session` in `.env`
+before setup, or in the active `.local/<project>/compose.env` (which takes
+precedence for an existing project). Then recreate the frontend:
+
+```sh
+docker compose --env-file .local/new-fraud-system/compose.env -p new-fraud-system \
+  -f docker-compose.ec2.yml -f docker-compose.gateway.ec2.yml \
+  up -d --build --force-recreate frontend
+```
+
+Replace `new-fraud-system` with the project name used during setup.
+This disables transport protection for the login-binding and session cookies;
+use only on a trusted private network. Do not use these settings for public
+traffic. Restore `AUTH_COOKIE_SECURE=true` and `CASE_SESSION_COOKIE=__Host-fraud_session`
+when using HTTPS. The separate `deploy/ec2` HTTPS deployment keeps Secure cookies
+enabled.
+
 ## Addresses
 
 | Purpose | Default address |

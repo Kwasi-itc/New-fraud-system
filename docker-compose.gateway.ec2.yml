@@ -99,6 +99,8 @@ services:
         NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ""
     environment:
       APP_ORIGIN: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}
+      # HTTP only for private EC2 testing. Set AUTH_COOKIE_SECURE=true when using HTTPS.
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-fraud_session}
       INGESTION_SERVICE_URL: http://ingestion-service:8081
       INGESTION_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN}

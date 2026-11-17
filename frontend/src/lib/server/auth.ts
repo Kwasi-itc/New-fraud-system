@@ -1,9 +1,18 @@
 import "server-only";
 import { cookies } from "next/headers";
 export type PlatformSession = { id: string; user_id: string; tenant_id: string; name: string; roles: string[]; version: number; expires_at: string };
-export const sessionCookie = () => process.env.CASE_SESSION_COOKIE ?? "__Host-fraud_session";
-export const loginCookie = "__Host-fraud_login";
-export const cookieOptions = { httpOnly: true, secure: true, sameSite: "lax" as const, path: "/" };
+const secureCookieSetting = process.env.AUTH_COOKIE_SECURE ?? "true";
+if (secureCookieSetting !== "true" && secureCookieSetting !== "false") {
+  throw new Error("AUTH_COOKIE_SECURE must be true or false.");
+}
+const secureCookies = secureCookieSetting === "true";
+const configuredSessionCookie = process.env.CASE_SESSION_COOKIE;
+if (!secureCookies && (configuredSessionCookie?.startsWith("__Host-") || configuredSessionCookie?.startsWith("__Secure-"))) {
+  throw new Error("CASE_SESSION_COOKIE cannot use a __Host- or __Secure- prefix when AUTH_COOKIE_SECURE=false.");
+}
+export const sessionCookie = () => configuredSessionCookie ?? (secureCookies ? "__Host-fraud_session" : "fraud_session");
+export const loginCookie = secureCookies ? "__Host-fraud_login" : "fraud_login";
+export const cookieOptions = { httpOnly: true, secure: secureCookies, sameSite: "lax" as const, path: "/" };
 export const privateHeaders = { "Cache-Control": "private, no-store" };
 export async function authCall(path: string, body: unknown) {
   const base = process.env.AUTH_SERVICE_URL, token = process.env.AUTH_PROXY_TOKEN;
