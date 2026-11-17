@@ -157,15 +157,58 @@ func (s Store) BeginLogin(ctx context.Context, issuer string) (Login, error) {
 
 // DELETE RETURNING consumes the attempt before any provider network call.
 func (s Store) ConsumeLogin(ctx context.Context, state, binding, issuer string) (Login, error) {
-	if !validSecret(state) || !validSecret(binding) {
-		return Login{}, ErrDenied
+	if !validSecret(state) {
+		return Login{}, fmt.Errorf("invalid state format: %w", ErrDenied)
+	}
+	if !validSecret(binding) {
+		return Login{}, fmt.Errorf("invalid binding format: %w", ErrDenied)
 	}
 	var l Login
 	err := s.DB.QueryRow(ctx, `DELETE FROM identity.login_transactions WHERE digest=$1 AND binding_digest=$2 AND issuer=$3 AND expires_at>now() RETURNING nonce,verifier,invitation_digest`, digest(state), digest(binding), issuer).Scan(&l.Nonce, &l.Verifier, &l.InvitationDigest)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Login{}, ErrDenied
+		reason, diagnosticErr := s.loginConsumeFailureReason(ctx, state, binding, issuer)
+		if diagnosticErr != nil {
+			return Login{}, fmt.Errorf("login transaction did not match; failure diagnosis unavailable: %v: %w", diagnosticErr, ErrDenied)
+		}
+		return Login{}, fmt.Errorf("login transaction rejected: %s: %w", reason, ErrDenied)
 	}
 	return l, err
+}
+
+func (s Store) loginConsumeFailureReason(ctx context.Context, state, binding, issuer string) (string, error) {
+	var stateExists, bindingMatches, issuerMatches, unexpired bool
+	err := s.DB.QueryRow(ctx, `
+		SELECT
+			EXISTS(SELECT 1 FROM identity.login_transactions WHERE digest=$1),
+			EXISTS(SELECT 1 FROM identity.login_transactions WHERE digest=$1 AND binding_digest=$2),
+			EXISTS(SELECT 1 FROM identity.login_transactions WHERE digest=$1 AND issuer=$3),
+			EXISTS(SELECT 1 FROM identity.login_transactions WHERE digest=$1 AND expires_at>now())
+	`, digest(state), digest(binding), issuer).Scan(&stateExists, &bindingMatches, &issuerMatches, &unexpired)
+	if err != nil {
+		return "", err
+	}
+	return describeLoginConsumeFailure(stateExists, bindingMatches, issuerMatches, unexpired), nil
+}
+
+func describeLoginConsumeFailure(stateExists, bindingMatches, issuerMatches, unexpired bool) string {
+	if !stateExists {
+		return "state not found (invalid state, expired and removed, or already consumed)"
+	}
+
+	var reasons []string
+	if !bindingMatches {
+		reasons = append(reasons, "binding does not match")
+	}
+	if !issuerMatches {
+		reasons = append(reasons, "issuer does not match")
+	}
+	if !unexpired {
+		reasons = append(reasons, "login transaction expired")
+	}
+	if len(reasons) == 0 {
+		return "transaction was consumed or changed concurrently"
+	}
+	return strings.Join(reasons, "; ")
 }
 
 type Session struct {

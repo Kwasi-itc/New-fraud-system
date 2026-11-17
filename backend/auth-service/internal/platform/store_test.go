@@ -190,6 +190,28 @@ func TestPlatformSessionsAndPermissions(t *testing.T) {
 	}
 }
 
+func TestDescribeLoginConsumeFailure(t *testing.T) {
+	for _, test := range []struct {
+		name                               string
+		stateExists, binding, issuer, live bool
+		want                               string
+	}{
+		{name: "unknown or consumed state", want: "state not found (invalid state, expired and removed, or already consumed)"},
+		{name: "invalid binding", stateExists: true, issuer: true, live: true, want: "binding does not match"},
+		{name: "invalid issuer", stateExists: true, binding: true, live: true, want: "issuer does not match"},
+		{name: "expired", stateExists: true, binding: true, issuer: true, want: "login transaction expired"},
+		{name: "multiple mismatches", stateExists: true, live: true, want: "binding does not match; issuer does not match"},
+		{name: "concurrent consume", stateExists: true, binding: true, issuer: true, live: true, want: "transaction was consumed or changed concurrently"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got := describeLoginConsumeFailure(test.stateExists, test.binding, test.issuer, test.live)
+			if got != test.want {
+				t.Fatalf("reason = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 func TestRevocationLocksAndRollback(t *testing.T) {
 	s, tenant := fixture(t)
 	ctx := context.Background()
