@@ -1,0 +1,29 @@
+# Optional development/staging overlay. This service is never enabled by the
+# default stack. Migrate owner schemas and review source rights before use.
+services:
+  screening-source-worker:
+    profiles: [screening-sources]
+    build:
+      context: ./backend
+      dockerfile: screening-service/Dockerfile
+    entrypoint: [/app/source-worker]
+    command: [-mode, poll, -poll-interval, 30s, -batch, "4"]
+    environment:
+      SOURCE_DATABASE_URL_FILE: /run/secrets/screening-source-dsn
+    secrets: [screening-source-dsn]
+    user: "65532:65532"
+    read_only: true
+    tmpfs: [/tmp:size=192m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    cpus: "1.0"
+    pids_limit: 64
+    stop_grace_period: 30s
+    restart: unless-stopped
+    depends_on:
+      screening-migrate:
+        condition: service_completed_successfully
+secrets:
+  screening-source-dsn:
+    file: ${SCREENING_SOURCE_DSN_FILE:?Set the path to a separately provisioned collector DSN secret}

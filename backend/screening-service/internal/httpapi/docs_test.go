@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 )
 
 func TestDocsRoutesServeOpenAPISpecAndDocsPage(t *testing.T) {
@@ -47,5 +48,33 @@ func TestDocsRoutesServeOpenAPISpecAndDocsPage(t *testing.T) {
 	}
 	if !strings.Contains(redocRec.Body.String(), "redoc.standalone.js") {
 		t.Fatal("expected redoc bootstrap in redoc page")
+	}
+}
+
+func TestControlledManualOpenAPIHasUniqueKeysAndSessionBoundRoutes(t *testing.T) {
+	var spec struct {
+		OpenAPI string                    `yaml:"openapi"`
+		Paths   map[string]map[string]any `yaml:"paths"`
+	}
+	if err := yaml.Unmarshal(openAPISpec, &spec); err != nil {
+		t.Fatal("invalid or duplicate OpenAPI mapping", err)
+	}
+	if spec.OpenAPI != "3.0.3" {
+		t.Fatal("OpenAPI version missing")
+	}
+	for _, path := range []string{"/v1/manual-screenings/capabilities", "/v1/manual-screenings", "/v1/manual-screenings/{id}", "/v1/manual-screenings/{id}/matches/{matchId}/enrich", "/v1/investigator/tenants/{tenantId}/cases/{caseId}/matches/{matchId}/enrich"} {
+		operation, ok := spec.Paths[path]
+		if !ok {
+			t.Fatal("manual route undocumented", path)
+		}
+		for method, value := range operation {
+			if method != "get" && method != "post" {
+				continue
+			}
+			data, ok := value.(map[string]any)
+			if !ok || data["security"] == nil {
+				t.Fatal("session security missing", path, method)
+			}
+		}
 	}
 }

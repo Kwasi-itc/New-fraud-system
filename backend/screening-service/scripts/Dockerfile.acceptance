@@ -1,0 +1,7 @@
+# Disposable verification tooling only. Not an application deployment image.
+FROM postgres:16 AS postgres-tools
+FROM golang:1.27.4
+COPY --from=postgres-tools /usr/lib/postgresql/16/bin/pg_dump /usr/local/bin/pg_dump
+COPY --from=postgres-tools /usr/lib/postgresql/16/bin/pg_restore /usr/local/bin/pg_restore
+COPY --from=postgres-tools /usr/lib/x86_64-linux-gnu/libpq.so.5* /usr/lib/x86_64-linux-gnu/
+RUN pg_dump --version && pg_restore --version

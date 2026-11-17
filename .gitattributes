@@ -1,1 +1,2 @@
 /deploy/ec2/*.sh text eol=lf
+/backend/screening-service/scripts/test-controlled-provider.sh text eol=lf

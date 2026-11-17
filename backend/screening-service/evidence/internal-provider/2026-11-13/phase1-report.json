@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-13",
+  "base_commit": "18c6e5d",
+  "branch": "main",
+  "implementation_revision": "uncommitted Phase 1 working-tree changes at base_commit",
+  "scope": "Controlled records to PostgreSQL publication to existing manual screening API, durable queue, actual worker, history, enrichment, investigator review and results UI",
+  "provider": "internal-watchlists",
+  "profile": "exact-name-v1",
+  "status": "Integration-tested for the controlled manual vertical slice; full acceptance gates A-C remain open",
+  "completed_task_ids_for_controlled_contract": ["FND-03", "PRV-01"],
+  "integration_tested_subsets_of_open_tasks": ["FND-01", "DB-01", "ING-01", "MAT-01", "API-01", "API-02", "FND-02"],
+  "database_boundary": {
+    "engine": "PostgreSQL 16",
+    "disposable_container": "fraud-provider-phase1-db",
+    "network": "fraud-provider-phase1-test",
+    "storage": "tmpfs; no application volume mounts",
+    "application_database_accessed": false,
+    "owner_schemas": ["core", "ingestion", "screening", "case_manager", "identity"],
+    "restricted_reader_role_tested": true,
+    "production_reader_writer_credentials_provisioned": false,
+    "cursor_receipts": "Reader INSERT permitted on operational cursor metadata only; source tables remain SELECT-only in the restricted-role test"
+  },
+  "fixtures": [
+    {
+      "path": "testdata/controlled-watchlist.json",
+      "sha256": "dbf6284bca97670fb58c9862e85fe046e80bc8bcdbb374d4bb04899e30620036",
+      "records": 2,
+      "types": ["Person", "Organization"],
+      "classification": "fictional controlled data; not official designations or PEP coverage"
+    }
+  ],
+  "migration": {
+    "up": "internal/migrations/metadata/000011_controlled_sources.up.sql",
+    "up_sha256": "770c8c9afaf1829ee65dd238b4575e0006069a3ad7ace8839520e867a79069ae",
+    "down": "internal/migrations/metadata/000011_controlled_sources.down.sql",
+    "down_sha256": "b7b1b071e6e00a7ee043affddf86c806270bbf5b51836f70f4a5365e90df5dd9",
+    "fresh_upgrade_down_up_tested": true,
+    "application_installation": false
+  },
+  "runs": [
+    {
+      "name": "full-screening-go",
+      "working_directory": "backend/screening-service",
+      "command": "bash scripts/test-controlled-provider.sh full",
+      "environment": "Go 1.25.8; GOMAXPROCS=2; CGO_ENABLED=0; SCREENING_TEST_DATABASE_URL targets only disposable PostgreSQL; fresh screening/decision/case binaries built by script",
+      "test_start_utc": "2026-11-13T23:08:19.793537576Z",
+      "test_end_utc": "2026-11-13T23:08:52.313534294Z",
+      "packages_passed": 13,
+      "top_level_passed": 105,
+      "test_and_subtest_passed": 209,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "raw_log": ".local/provider-phase1/verified-backend.jsonl (ignored; not published)"
+    },
+    {
+      "name": "existing-screening-browser-regressions",
+      "working_directory": "frontend",
+      "command": "npx playwright test manual-screening.spec.ts screening-capabilities.spec.ts screening-evidence.spec.ts screening-report.spec.ts --reporter=json",
+      "start_utc": "2026-11-13T23:07:36.927Z",
+      "suite_duration_ms": 40276.423,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "backend_boundary": "Existing contract fixture suites; separate live-provider run below",
+      "raw_log": ".local/provider-phase1/verified-browser.json (ignored)"
+    },
+    {
+      "name": "existing-ui-actual-internal-provider",
+      "working_directory": "frontend",
+      "command": "npx playwright test internal-provider-live.spec.ts --reporter=line",
+      "environment": "CONTROLLED_BROWSER_STATE_FILE points to isolated Go API/worker handshake; native browser connects to loopback test API; temporary test JWT never committed",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "reported_test_duration_seconds": 11.4,
+      "authentication_boundary": "Browser session establishment is fixture-based; real signed backend JWT, current membership/session checks and BFF authorization are used",
+      "data_boundary": "Real PostgreSQL publication, actual Go API, durable River jobs and actual worker; no fake provider/search/results/enrichment/history",
+      "assertions": ["person alias result", "published dataset generation", "source reference", "profile", "source enrichment", "saved history reopen", "organization alias result", "printable report link"],
+      "screenshot": ".local/provider-phase1/controlled-results.png (ignored; visually inspected)",
+      "companion_backend_run": "9 focused top-level tests passed with no skips; .local/provider-phase1/live-browser.jsonl (ignored)"
+    },
+    {
+      "name": "frontend-compilation",
+      "working_directory": "frontend",
+      "commands": ["npx tsc --noEmit", "npm run build"],
+      "result": "passed; final production build includes legacy capability compatibility fix",
+      "raw_log": ".local/provider-phase1/frontend-build.log (ignored)"
+    }
+  ],
+  "negative_and_recovery_assertions": [
+    "unknown provider causes no default HTTP call or synthetic execution",
+    "invalid and duplicate registry configuration rejected",
+    "missing or foreign tenant scope denied across all five operations",
+    "private metadata, record enrichment, freshness and delta denied to other tenant",
+    "mixed dataset selection fails as a whole when any ref is denied or absent",
+    "catalog and delta cursors reject cross-scope replay",
+    "revoked identity denied at execution",
+    "restricted reader cannot stage, publish or modify authoritative source tables",
+    "invalid/truncated/empty/duplicate import preserves active publication",
+    "publication event insertion failure rolls back active pointer",
+    "concurrent parents produce one winner; stale parent cannot publish",
+    "unchanged canonical content publication is idempotent",
+    "saved-generation enrichment remains available after a later publication",
+    "anonymous, invalid JWT and forged tenant JSON rejected by actual API",
+    "existing authorized investigator transaction reviews persisted internal candidate"
+  ],
+  "limits": {
+    "import_bytes": 10485760,
+    "records_per_import": 50000,
+    "records_per_batch": 200,
+    "selected_dataset_refs": 10,
+    "queries": 10,
+    "results": 50,
+    "visible_datasets": 500,
+    "catalog_delta_page_default": 100,
+    "catalog_delta_page_max": 500,
+    "cursor_ttl_hours": 1
+  },
+  "out_of_scope_and_remaining": [
+    "official OFAC/UN/EU/UK/Ghana sources and complete live-source verification",
+    "raw source artifact file retention and parser/encoding threat matrix",
+    "scheduled source worker, process-death/lease recovery and bounded staging/cursor cleanup",
+    "field diffs, removals, audited rollback, retention/GC and complete publication-to-rescreen fanout",
+    "typed identifier/category queries, fuzzy retrieval and calibrated labelled quality corpus",
+    "internal-provider scenario authoring and continuous job authority",
+    "full scenario/retry/idempotency/concurrent-review/retention journey matrix",
+    "customer private-list management permissions and UI",
+    "decision-time enforcement and policy",
+    "production restricted connection configuration, deployment, load/restore and release acceptance"
+  ],
+  "performance_measurement": "Not performed; test durations are not latency/TPS evidence and do not establish 500 TPS or 50 ms",
+  "cleanup": "Dedicated tmpfs PostgreSQL container and test network removed after verification; temporary browser JWT state and completion marker deleted; ignored logs/screenshot retained locally",
+  "existing_secrets_or_credentials_modified": false,
+  "production_provider_configuration_changed": false,
+  "synthetic_fallback_registered": false,
+  "architectural_approval_needed_for_delivered_slice": false
+}

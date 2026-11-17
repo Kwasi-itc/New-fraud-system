@@ -5,12 +5,13 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 	"github.com/google/uuid"
+	"regexp"
 )
 
 type ManualScreeningInput struct {
 	TenantID    uuid.UUID `json:"-"`
 	ScreeningID uuid.UUID `json:"screening_id"`
-	CandidateID uuid.UUID `json:"candidate_id"`
+	CandidateID string    `json:"candidate_id"`
 	InboxID     uuid.UUID `json:"inbox_id"`
 }
 
@@ -24,8 +25,11 @@ func (s CaseService) InvestigateManualScreening(ctx context.Context, in ManualSc
 	if p.Kind != access.User || p.SessionID == uuid.Nil {
 		return casepkg.Case{}, casepkg.ErrForbidden
 	}
-	if err := requireIDs(in.ScreeningID, in.CandidateID, in.InboxID); err != nil {
+	if err := requireIDs(in.ScreeningID, in.InboxID); err != nil {
 		return casepkg.Case{}, err
+	}
+	if !screeningCandidateID.MatchString(in.CandidateID) {
+		return casepkg.Case{}, casepkg.Invalid("Invalid screening candidate.")
 	}
 	return transact(ctx, s, func(tx CaseService) (casepkg.Case, error) {
 		if err := tx.intake.Lock(ctx, in.TenantID, "screening", in.ScreeningID.String()); err != nil {
@@ -73,3 +77,5 @@ func (s CaseService) InvestigateManualScreening(ctx context.Context, in ManualSc
 		return item, err
 	})
 }
+
+var screeningCandidateID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,200}$`)

@@ -1,0 +1,320 @@
+{
+  "date": "2026-11-14",
+  "go": "1.27.4",
+  "postgres": "16.15",
+  "runs": {
+    "normalizer": {
+      "log": "normalizer-revision-tests.jsonl",
+      "passed_top_level": 23,
+      "passed_including_subtests": 23,
+      "failed": [],
+      "skipped_tests": [],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    },
+    "screening": {
+      "log": "screening-post-normalizer-final.jsonl",
+      "passed_top_level": 134,
+      "passed_including_subtests": 269,
+      "failed": [],
+      "skipped_tests": [
+        "TestOfficialLiveArtifacts",
+        "TestSourceStageCrashHelper",
+        "TestSourceWorkloadConcurrentPublicationAndLargeCatalog"
+      ],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/app",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/blob",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/case",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/decisionengine",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/inbox",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/matching",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconfig",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconnectors",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    },
+    "companions": {
+      "log": "companion-final.jsonl",
+      "passed_top_level": 378,
+      "passed_including_subtests": 627,
+      "failed": [],
+      "skipped_tests": [
+        "TestConfiguredMMDBCanResolvePublicIP",
+        "TestIntegrationAsyncValidationFailureRollbackAndTenantIsolation",
+        "TestIntegrationAsyncExecutionCreateReturnsCompletedInlineWhenRowCompletesWithinWaitWindow",
+        "TestIntegrationAsyncExecutionCreateTimesOutThenCompletesLater",
+        "TestIntegrationAsyncExecutionCallbackFailureThenSuccessUpdatesDeliveryState",
+        "TestIntegrationNoHitEvidencePersistenceRollbackAndTenantIsolation"
+      ],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/identity-preflight",
+        "github.com/Kwasi-itc/New-fraud-system/backend/auth-service/cmd/server",
+        "github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider",
+        "github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/preflight",
+        "github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/cmd/worker",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/app",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/datamodel",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/dispatch",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/ingestion",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/screeningcapabilities",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/geoip",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/handlers",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+        "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/httpapi",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/httpapi/handlers",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/service",
+        "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/store/postgres",
+        "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+      ]
+    },
+    "hardening": {
+      "log": "hardening-final-fixed.jsonl",
+      "passed_top_level": 7,
+      "passed_including_subtests": 7,
+      "failed": [],
+      "skipped_tests": [],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/app",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    },
+    "quality": {
+      "log": "quality-deterministic-final.jsonl",
+      "passed_top_level": 2,
+      "passed_including_subtests": 2,
+      "failed": [],
+      "skipped_tests": [],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    },
+    "source_fixtures": {
+      "log": "source-parsers-final.jsonl",
+      "passed_top_level": 4,
+      "passed_including_subtests": 22,
+      "failed": [],
+      "skipped_tests": [
+        "TestOfficialLiveArtifacts"
+      ],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconnectors"
+      ]
+    },
+    "workload": {
+      "log": "workload-post-normalizer-final.jsonl",
+      "passed_top_level": 1,
+      "passed_including_subtests": 1,
+      "failed": [],
+      "skipped_tests": [],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    },
+    "real_browser_backend": {
+      "log": "live-browser-post-normalizer-backend.jsonl",
+      "passed_top_level": 1,
+      "passed_including_subtests": 1,
+      "failed": [],
+      "skipped_tests": [],
+      "packages": [
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/decisionengine",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/blob",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/case",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/inbox",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/app",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconfig",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/matching",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconnectors",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers",
+        "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+      ]
+    }
+  },
+  "companions": {
+    "auth-service": {
+      "top": 33,
+      "total": 60
+    },
+    "decision-engine-service": {
+      "top": 254,
+      "total": 409
+    },
+    "case-manager-service": {
+      "top": 90,
+      "total": 157
+    },
+    "investigator": {
+      "top": 1,
+      "total": 1
+    }
+  },
+  "browsers": {
+    "whole_frontend": {
+      "stats": {
+        "startTime": "2026-11-14T15:27:23.154Z",
+        "duration": 1193686.68,
+        "expected": 111,
+        "skipped": 1,
+        "unexpected": 21,
+        "flaky": 0
+      },
+      "failed": [
+        {
+          "file": "decision-selection.spec.ts",
+          "title": "select decisions, show actual membership, create one case and navigate"
+        },
+        {
+          "file": "decision-selection.spec.ts",
+          "title": "selection clears on filter/page-size changes and modal supports remove/cancel"
+        },
+        {
+          "file": "display-settings.spec.ts",
+          "title": "configure captions, linked labels and column order, then view them in Decisions"
+        },
+        {
+          "file": "display-settings.spec.ts",
+          "title": "permission failure keeps the editor and unsaved changes visible"
+        },
+        {
+          "file": "record-explorer.spec.ts",
+          "title": "investigator explores a relationship, follows the trail and saves a case note"
+        },
+        {
+          "file": "record-explorer.spec.ts",
+          "title": "uncertain attachment refreshes membership and revoked exploration hides decisions"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "decision lookup retains closed membership and creates from an unlinked decision"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator records approve with history and no automatic case closure"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator records decline with history and no automatic case closure"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator records confirmed_hit with history and no automatic case closure"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator records no_hit with history and no automatic case closure"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "decision screening arrives with its decision (partial empty)"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "decision screening arrives with its decision (match)"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "screening arrival is visible before review (partial zero matches)"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "screening arrival is visible before review (pending match)"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator inspects evidence, comments, closes, reloads, and reopens"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "empty queues and tenant switches never show another tenant's cached cases"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "evidence uploads finalize, survive reload, and download through the private proxy"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "report drafts retain findings, require completion fields, and export privately"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "decision transfer confirms destination and safely retries a lost acknowledgment"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "stale closure refreshes state and reopening handles capacity errors"
+        }
+      ]
+    },
+    "real_provider": {
+      "stats": {
+        "startTime": "2026-11-14T18:36:37.244Z",
+        "duration": 12918.052,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "failed": []
+    },
+    "unchanged_HEAD_sample": {
+      "stats": {
+        "startTime": "2026-11-14T15:51:18.446Z",
+        "duration": 79849.848,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 3,
+        "flaky": 0
+      },
+      "failed": [
+        {
+          "file": "display-settings.spec.ts",
+          "title": "configure captions, linked labels and column order, then view them in Decisions"
+        },
+        {
+          "file": "record-explorer.spec.ts",
+          "title": "investigator explores a relationship, follows the trail and saves a case note"
+        },
+        {
+          "file": "workspace.spec.ts",
+          "title": "investigator records approve with history and no automatic case closure"
+        }
+      ]
+    }
+  },
+  "scope": "Disposable PostgreSQL databases; no application DB migrations or production activation. Counts include only executed tests, never skipped tests. The whole browser suite is not green."
+}

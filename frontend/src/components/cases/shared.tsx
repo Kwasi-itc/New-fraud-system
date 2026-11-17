@@ -100,8 +100,19 @@ export function WorkspaceTabs<T extends string>({
             aria-selected={isActive}
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
+            tabIndex={isActive ? 0 : -1}
             type="button"
             onClick={() => onChange(tab.id)}
+            onKeyDown={(event) => {
+              const index = tabs.findIndex(item => item.id === tab.id);
+              const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
+                : event.key === "ArrowRight" ? (index + 1) % tabs.length
+                : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : -1;
+              if (next < 0) return;
+              event.preventDefault();
+              onChange(tabs[next].id);
+              (event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next])?.focus();
+            }}
             className={cn(
               "inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all cursor-pointer",
               isActive

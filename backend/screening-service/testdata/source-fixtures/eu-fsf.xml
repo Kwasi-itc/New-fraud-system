@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export xmlns="http://eu.europa.ec/fpi/fsd/export" generationDate="2026-11-14T00:00:00Z">
+ <sanctionEntity logicalId="100" euReferenceNumber="EU.FIXTURE.1"><subjectType code="person" classificationCode="P"/><regulation programme="FIXTURE"/><nameAlias wholeName="Ama Fixture Mensori"/><nameAlias wholeName="Ama M"/><birthdate birthdate="1980-05-12"/><citizenship countryIso2Code="GH"/><identification identificationTypeCode="passport" number="0012345" countryIso2Code="GH"/></sanctionEntity>
+ <sanctionEntity logicalId="200" euReferenceNumber="EU.FIXTURE.2"><subjectType code="enterprise" classificationCode="E"/><regulation programme="FIXTURE"/><nameAlias wholeName="Fictional Cedar Finance"/></sanctionEntity>
+</export>

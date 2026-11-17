@@ -7,6 +7,7 @@ import (
 )
 
 type ScreeningAuthoringService struct {
+	InternalInlineSupported  bool
 	NameRecognitionSupported bool
 	Capabilities             func(context.Context) (screening.AuthoringCapabilities, error)
 	Store                    ScreeningAuthoringStore
@@ -17,11 +18,31 @@ func (s ScreeningAuthoringService) List(ctx context.Context, t, sc string, a wor
 	out, err := s.Store.List(ctx, t, sc, a)
 	out.NameRecognitionSupported = s.NameRecognitionSupported
 	if err == nil && s.Capabilities != nil {
+		providers := out.Providers
 		out.AuthoringCapabilities, _ = s.Capabilities(ctx)
+		out.Providers = append([]screening.ProviderOption{{ID: "opensanctions", Name: "OpenSanctions", Configured: out.ProviderConfigured || out.MatchingSupported}}, providers...)
+	}
+	for i := range out.Providers {
+		if out.Providers[i].ID == "internal-watchlists" {
+			out.Providers[i].InlineSupported = s.InternalInlineSupported
+		}
 	}
 	return out, err
 }
 func (s ScreeningAuthoringService) Save(ctx context.Context, t, sc string, a workflow.AuthoringActor, r screening.AuthoringRule) (screening.AuthoringRule, error) {
+	if r.ProviderKey() == "internal-watchlists" {
+		if r.ForcedOutcome != "" && !s.InternalInlineSupported {
+			return screening.AuthoringRule{}, screening.ErrInlineUnavailable
+		}
+		if err := r.Validate(); err != nil {
+			return screening.AuthoringRule{}, screening.ErrMatchingUnavailable
+		}
+		out, err := s.Store.Save(ctx, t, sc, a, r)
+		if err == nil && s.Cache != nil {
+			s.Cache.InvalidateActiveScreeningConfigs(ctx, t, sc)
+		}
+		return out, err
+	}
 	if r.ForcedOutcome != "" {
 		if s.Capabilities == nil {
 			return screening.AuthoringRule{}, screening.ErrInlineUnavailable

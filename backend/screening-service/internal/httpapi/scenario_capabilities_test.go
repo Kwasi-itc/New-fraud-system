@@ -29,7 +29,7 @@ func TestScenarioAddressCapabilities(t *testing.T) {
 					continue
 				}
 				var got map[string]bool
-				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &got) != nil || len(got) != 6 || got["matching_settings_supported"] != tc.want || got["address_supported"] != tc.want || got["birth_date_supported"] != tc.want || got["nationality_supported"] != tc.want || got["country_supported"] != tc.want || got["registration_number_supported"] != tc.want {
+				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &got) != nil || len(got) != 7 || got["provider_configured"] != (tc.want || tc.name == "generic") || got["matching_settings_supported"] != tc.want || got["address_supported"] != tc.want || got["birth_date_supported"] != tc.want || got["nationality_supported"] != tc.want || got["country_supported"] != tc.want || got["registration_number_supported"] != tc.want {
 					t.Fatal(w.Code, w.Body.String())
 				}
 			}

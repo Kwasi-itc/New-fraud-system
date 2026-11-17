@@ -1,0 +1,19 @@
+{
+  "scope": "One docker stats observation during the final disposable workload; not peak, sustained utilization or an attribution of all memory to this workload. PostgreSQL also retains cache from preceding tests.",
+  "observations": [
+    {
+      "role": "Go workload",
+      "cpu": "14.52%",
+      "memory": "96.48MiB / 7.173GiB",
+      "io": "0B / 21.1MB",
+      "processes": "14"
+    },
+    {
+      "role": "PostgreSQL",
+      "cpu": "99.28%",
+      "memory": "1.101GiB / 7.173GiB",
+      "io": "169MB / 18.9MB",
+      "processes": "16"
+    }
+  ]
+}

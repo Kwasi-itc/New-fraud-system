@@ -239,6 +239,9 @@ export function RecordExplorer({
 
       const commentLines = [
         "### Investigation Connection Trail",
+        `Decision: ${decisionId}`,
+        `Record: ${data.table}/${data.current.object_id}`,
+        `Record path: ${JSON.stringify(path.map(({ connection, object_id, label }) => ({ connection, object_id, table: label })))}`,
         `• **Terminal Record**: ${terminalTitle}`,
         `• **Observed**: ${new Date().toISOString()}`,
       ];
@@ -368,7 +371,7 @@ export function RecordExplorer({
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5 mb-3.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Database className="size-4 text-slate-600" />
-                        <h3 className="font-semibold text-sm text-slate-900">
+                        <h3 aria-label={`${data.table}: ${data.current.object_id}`} className="font-semibold text-sm text-slate-900">
                           <span className="capitalize">{data.table}</span>
                           {hasHumanCaption ? (
                             <>
@@ -499,6 +502,7 @@ export function RecordExplorer({
                           <li key={record.object_id}>
                             <button
                               type="button"
+                              aria-label={`Open ${selected.target}: ${record.object_id}`}
                               disabled={path.length >= 6}
                               onClick={() =>
                                 navigate([

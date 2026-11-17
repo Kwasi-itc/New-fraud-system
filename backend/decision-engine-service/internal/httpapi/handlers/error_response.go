@@ -11,6 +11,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/payload"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/evalerrors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
 
 type apiErrorEnvelope struct {
@@ -41,6 +42,18 @@ func writeBadRequestError(c *gin.Context, code, message string, err error, attrs
 }
 
 func writeDecisionEvaluationError(c *gin.Context, code, message string, err error, attrs ...any) {
+	var failure *service.InlineFailure
+	if errors.As(err, &failure) {
+		status := http.StatusServiceUnavailable
+		if failure.Status == "timed_out" {
+			status = http.StatusGatewayTimeout
+		}
+		if failure.Status == "configuration_changed" {
+			status = http.StatusConflict
+		}
+		writeAPIError(c, apiErrorSpec{Status: status, Category: "screening"}, "screening_"+failure.Status, failure.Error(), err, attrs...)
+		return
+	}
 	writeAPIError(c, classifyDecisionEvaluationError(err), code, message, err, attrs...)
 }
 

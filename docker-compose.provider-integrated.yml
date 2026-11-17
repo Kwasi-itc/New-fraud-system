@@ -1,0 +1,49 @@
+# Opt-in overlay for the EXISTING shared-database fraud deployment.
+# Apply screening migration 23, provision a restricted provider reader and issue
+# per-tenant client credentials first. This overlay never bootstraps another DB.
+services:
+  screening-provider:
+    user: "${PROVIDER_RUN_UID:-65532}:${PROVIDER_RUN_GID:-65532}"
+    image: fraud-screening-provider:dev
+    build:
+      context: .
+      dockerfile: backend/screening-service/Dockerfile.provider
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/provider-reader-dsn
+      PROVIDER_DATABASE_MAX_CONNS: "8"
+      PROVIDER_MAX_CONCURRENT: "8"
+    secrets: [provider-reader-dsn]
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 96
+    mem_limit: 768m
+    depends_on:
+      screening-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, /app/provider-server, -healthcheck]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+    restart: unless-stopped
+  screening-service:
+    environment: &provider-http
+      INTERNAL_PROVIDER_TRANSPORT: http
+      PROVIDER_HTTP_URL: http://screening-provider:8091
+      PROVIDER_CLIENT_KEYS_FILE: /run/secrets/provider-client-keys
+    secrets: [provider-client-keys]
+  screening-worker:
+    environment: *provider-http
+    secrets: [provider-client-keys]
+  decision-engine-service:
+    environment: *provider-http
+    secrets: [provider-client-keys]
+  decision-engine-worker:
+    environment: *provider-http
+    secrets: [provider-client-keys]
+secrets:
+  provider-reader-dsn:
+    file: ${PROVIDER_SHARED_READER_DSN_FILE:?Provision a restricted reader on the shared database}
+  provider-client-keys:
+    file: ${PROVIDER_CLIENT_KEYS_FILE:?Provision a per-tenant provider client keyring}

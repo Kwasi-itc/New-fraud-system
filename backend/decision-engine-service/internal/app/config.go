@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/lookup"
 	"os"
 	"sort"
 	"strconv"
@@ -10,6 +12,8 @@ import (
 )
 
 type Config struct {
+	ProviderTransport                   *lookup.Transport
+	InternalScreeningPolicy             service.InlinePolicy
 	NameRecognitionURL                  string
 	NameRecognitionToken                string
 	ScreeningIntakeToken                string
@@ -73,6 +77,8 @@ type Config struct {
 	OutboxQueueName                     string
 	OutboxQueueWorkers                  int
 	WorkerPollInterval                  time.Duration
+	RiverFetchCooldown                  time.Duration
+	RiverFetchPollInterval              time.Duration
 	WorkerBatchLimit                    int
 }
 
@@ -100,12 +106,32 @@ var defaultWorkerTaskPriorities = map[string]int{
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
+	inlineEnabled, err := strconv.ParseBool(getEnv("INTERNAL_SCREENING_INLINE_ENABLED", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("INTERNAL_SCREENING_INLINE_ENABLED must be true or false")
+	}
+	inlineTimeout, err := getEnvDuration("INTERNAL_SCREENING_TIMEOUT", time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	inlinePolicy := service.InlinePolicy{Enabled: inlineEnabled, Failure: os.Getenv("INTERNAL_SCREENING_FAILURE_POLICY"), Timeout: inlineTimeout}
+	if err = inlinePolicy.Validate(); err != nil {
+		return Config{}, err
+	}
 
 	httpClientTimeout, err := getEnvDuration("HTTP_CLIENT_TIMEOUT", 10*time.Second)
 	if err != nil {
 		return Config{}, err
 	}
 	workerPollInterval, err := getEnvDuration("WORKER_POLL_INTERVAL", 15*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	riverCooldown, err := getEnvDuration("RIVER_FETCH_COOLDOWN", 100*time.Millisecond)
+	if err != nil {
+		return Config{}, err
+	}
+	riverPoll, err := getEnvDuration("RIVER_FETCH_POLL_INTERVAL", time.Second)
 	if err != nil {
 		return Config{}, err
 	}
@@ -217,6 +243,7 @@ func LoadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("DATABASE_MIN_CONNS must not exceed DATABASE_MAX_CONNS")
 	}
 	cfg := Config{
+		InternalScreeningPolicy:             inlinePolicy,
 		NameRecognitionURL:                  os.Getenv("SCREENING_NAME_RECOGNITION_URL"),
 		NameRecognitionToken:                os.Getenv("SCREENING_NAME_RECOGNITION_TOKEN"),
 		ScreeningIntakeToken:                os.Getenv("SCREENING_INTAKE_TOKEN"),
@@ -280,6 +307,8 @@ func LoadConfig() (Config, error) {
 		OutboxQueueName:                     getEnv("OUTBOX_QUEUE_NAME", "outbox_events"),
 		OutboxQueueWorkers:                  outboxQueueWorkers,
 		WorkerPollInterval:                  workerPollInterval,
+		RiverFetchCooldown:                  riverCooldown,
+		RiverFetchPollInterval:              riverPoll,
 		WorkerBatchLimit:                    workerBatchLimit,
 	}
 
@@ -321,6 +350,9 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.WorkerPollInterval <= 0 {
 		return Config{}, fmt.Errorf("WORKER_POLL_INTERVAL must be greater than zero")
+	}
+	if cfg.RiverFetchCooldown < 5*time.Millisecond || cfg.RiverFetchCooldown > time.Second || cfg.RiverFetchPollInterval < cfg.RiverFetchCooldown || cfg.RiverFetchPollInterval > time.Minute {
+		return Config{}, fmt.Errorf("RIVER_FETCH_COOLDOWN must be 5ms..1s; RIVER_FETCH_POLL_INTERVAL must be at least the cooldown and at most 1m")
 	}
 	if cfg.WorkerBatchLimit <= 0 {
 		return Config{}, fmt.Errorf("WORKER_BATCH_LIMIT must be greater than zero")
@@ -413,6 +445,10 @@ func LoadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("AGGREGATE_REMOTE_CONCURRENCY_LIMIT must be less than or equal to %d", maxAggregateRemoteConcurrencyLimit)
 	}
 
+	cfg.ProviderTransport, err = lookup.TransportFromEnvironment(cfg.HTTPClientTimeout)
+	if err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 

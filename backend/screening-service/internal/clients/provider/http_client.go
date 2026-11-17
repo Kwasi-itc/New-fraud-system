@@ -64,8 +64,12 @@ func NewHTTPClient(defaultBaseURL string, providerURLs map[string]string, timeou
 	}
 	defaultProvider := ""
 	if defaultClient.baseURL != "" {
-		defaultProvider = "default"
-		clients[defaultProvider] = defaultClient
+		// The legacy default URL has one explicit identity. It must never resolve
+		// an unknown provider key.
+		defaultProvider = "opensanctions"
+		if _, exists := clients[defaultProvider]; !exists {
+			clients[defaultProvider] = defaultClient
+		}
 	}
 
 	openClient := newOpenSanctionsClient(openCfg, providerURLs, defaultBaseURL, timeout)
@@ -143,6 +147,11 @@ func normalizeProviderURLs(input map[string]string) map[string]string {
 }
 
 func (c HTTPClient) Search(ctx context.Context, request screening.SearchRequest) (screening.ProviderResult, error) {
+	for _, query := range request.Queries {
+		if len(query.Identifiers) > 0 {
+			return screening.ProviderResult{}, fmt.Errorf("typed identifiers require the internal identifier-evidence-v1 profile")
+		}
+	}
 	if c.shouldUseOpenSanctions(request.Provider) {
 		return c.openSanctions.Search(ctx, request)
 	}
@@ -297,11 +306,6 @@ func (c HTTPClient) resolveProvider(provider string) (singleProviderClient, erro
 			return client, nil
 		}
 	}
-	if c.defaultProvider != "" {
-		if client, ok := c.clients[c.defaultProvider]; ok && client.baseURL != "" {
-			return client, nil
-		}
-	}
 
 	known := make([]string, 0, len(c.clients))
 	for key := range c.clients {
@@ -311,6 +315,19 @@ func (c HTTPClient) resolveProvider(provider string) (singleProviderClient, erro
 	}
 	sort.Strings(known)
 	return singleProviderClient{}, fmt.Errorf("provider %q is not configured; known providers: %s", provider, strings.Join(known, ","))
+}
+
+// Configured resolves exactly one named legacy adapter. Synthetic and internal
+// adapters cannot be registered as generic HTTP connections.
+func (c HTTPClient) Configured(key string) bool {
+	if key == "" || key == "synthetic" || key == "internal-watchlists" {
+		return false
+	}
+	if c.shouldUseOpenSanctions(key) {
+		return true
+	}
+	_, err := c.resolveProvider(key)
+	return err == nil
 }
 
 func (c singleProviderClient) get(ctx context.Context, path, cursor string) ([]byte, error) {

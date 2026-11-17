@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/lookup"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -144,7 +145,9 @@ func main() {
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
-		Workers: workers,
+		FetchCooldown:     cfg.RiverFetchCooldown,
+		FetchPollInterval: cfg.RiverFetchPollInterval,
+		Workers:           workers,
 		Queues: map[string]river.QueueConfig{
 			cfg.ScheduledExecutionQueueName: {
 				MaxWorkers: cfg.ScheduledExecutionQueueWorkers,
@@ -220,6 +223,10 @@ func main() {
 	)
 	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(geoIPLookup)
+	decisionService.InlinePolicy = cfg.InternalScreeningPolicy
+	if cfg.InternalScreeningPolicy.Enabled {
+		decisionService.InlineScreening = lookup.Facade{DB: db, Transport: cfg.ProviderTransport}
+	}
 
 	executionService := service.NewExecutionService(
 		txManager,

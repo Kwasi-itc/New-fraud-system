@@ -1,4 +1,4 @@
-FROM golang:1.24.2 AS builder
+FROM golang:1.27.4 AS builder
 
 WORKDIR /app/case-manager-service
 COPY case-manager-service/go.mod case-manager-service/go.sum ./

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-11-14T10:12:32.285Z",
+  "calibrated_threshold": 79,
+  "default_threshold": 85,
+  "holdout_previously_evaluated": false,
+  "v1_dataset_previously_observed": true,
+  "hashes": {
+    "backend/screening-service/internal/matching/name.go": "59773b44758f4ab5fb5ba0c71addfa4f89c4bd1c3f18d145d714710eb7586a65",
+    "backend/screening-service/internal/matching/token_v2.go": "a6b9fff9bb16eb4d30645d1efbfe9fa82bdf6a1a99d07933617002c338579fb5",
+    "backend/screening-service/testdata/matching-corpus-v1.json": "b37a40041e969c675af1aff16d4c67de5cd1754d008551806190fc1abc9730c3",
+    "backend/screening-service/testdata/matching-corpus-v2.json": "7997e7e4aae86421d4c6c18f0995e0f09b101b25728b89753925aeb7938c76ad"
+  }
+}

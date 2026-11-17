@@ -495,7 +495,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 
 // Launch only against the disposable database, with an explicit local-only
 // environment; never inherit provider credentials or deployment endpoints.
-func startJourneyWorker(t *testing.T, db *pgxpool.Pool, binary string, environment ...string) {
+func startJourneyWorker(t *testing.T, db *pgxpool.Pool, binary string, environment ...string) func() {
 	t.Helper()
 	cfg := db.Config().ConnConfig
 	u := url.URL{Scheme: "postgres", Host: net.JoinHostPort(cfg.Host, strconv.Itoa(int(cfg.Port))), Path: "/" + cfg.Database, User: url.UserPassword(cfg.User, cfg.Password)}
@@ -526,13 +526,20 @@ func startJourneyWorker(t *testing.T, db *pgxpool.Pool, binary string, environme
 		log.Close()
 		t.Fatal(err)
 	}
+	var stopOnce sync.Once
+	stop := func() {
+		stopOnce.Do(func() {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
+			_ = log.Close()
+		})
+	}
 	t.Cleanup(func() {
-		_ = cmd.Process.Kill()
-		_ = cmd.Wait()
-		_ = log.Close()
+		stop()
 		if t.Failed() {
 			raw, _ := os.ReadFile(path)
 			t.Log(string(raw))
 		}
 	})
+	return stop
 }

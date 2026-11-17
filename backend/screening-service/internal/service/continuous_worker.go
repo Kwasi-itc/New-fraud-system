@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 )
 
 type ContinuousWorkerService struct {
@@ -77,12 +79,38 @@ func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, ite
 		return fmt.Errorf("ingestion record identity mismatch")
 	}
 
-	queries, err := buildQueries(config.FieldMapJSON, record.Fields)
+	fieldMap := config.FieldMapJSON
+	var providerConfig json.RawMessage
+	if config.Provider == sourcedata.Provider {
+		mapping, e := sourcedata.DecodeContinuous(config.FieldMapJSON)
+		if e != nil {
+			return e
+		}
+		fieldMap, _ = json.Marshal(mapping.Fields)
+		providerConfig, _ = json.Marshal(mapping.Selection)
+		preparer, ok := s.screeningService.provider.(interface {
+			ForContinuousObject(context.Context, screening.ContinuousConfig, screening.MonitoredObject) (context.Context, error)
+		})
+		if !ok {
+			return sourcedata.ErrNotReady
+		}
+		ctx, e = preparer.ForContinuousObject(ctx, config, item)
+		if e != nil {
+			return e
+		}
+	}
+	queries, err := buildQueries(fieldMap, record.Fields)
 	if err != nil {
 		return err
 	}
 	if len(queries) == 0 {
 		return fmt.Errorf("no screening queries could be derived for monitored object %s", item.ID)
+	}
+	request := screening.SearchRequest{Provider: config.Provider, ObjectType: item.ObjectType, ObjectID: item.ObjectID, Queries: queries, ProviderConfig: providerConfig}
+	if config.Provider == sourcedata.Provider {
+		if err = s.screeningService.validateProvider(ctx, item.TenantID, request); err != nil {
+			return err
+		}
 	}
 
 	return s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -109,7 +137,7 @@ func (s ContinuousWorkerService) processMonitoredObject(ctx context.Context, ite
 		if !currentConfig.UpdatedAt.Equal(config.UpdatedAt) {
 			return fmt.Errorf("continuous configuration changed; retry current run")
 		}
-		created, err := s.screeningService.createScreening(ctx, store, item.TenantID, screening.SearchRequest{Provider: config.Provider, ObjectType: item.ObjectType, ObjectID: item.ObjectID, Queries: queries})
+		created, err := s.screeningService.createScreening(ctx, store, item.TenantID, request)
 		if err != nil {
 			return err
 		}
@@ -134,7 +162,13 @@ func buildQueries(fieldMapJSON []byte, fields map[string]any) ([]screening.Searc
 		return nil, fmt.Errorf("decode field map: %w", err)
 	}
 	queries := make([]screening.SearchQuery, 0, len(fieldMap))
-	for fieldName, queryType := range fieldMap {
+	keys := make([]string, 0, len(fieldMap))
+	for key := range fieldMap {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, fieldName := range keys {
+		queryType := fieldMap[fieldName]
 		raw, ok := fields[fieldName]
 		if !ok {
 			continue

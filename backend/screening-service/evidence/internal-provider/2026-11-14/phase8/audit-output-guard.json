@@ -1,0 +1,21 @@
+{
+  "protected_checks": [
+    {
+      "fixture_path": "testdata/matching-corpus-v1.json",
+      "rejected": true,
+      "bytes_unchanged": true
+    },
+    {
+      "fixture_path": "testdata/matching-corpus-v2.json",
+      "rejected": true,
+      "bytes_unchanged": true
+    },
+    {
+      "fixture_path": "internal/matching/frozen.go",
+      "rejected": true,
+      "bytes_unchanged": true
+    }
+  ],
+  "separate_report_generated": true,
+  "original_corpora_touched": false
+}

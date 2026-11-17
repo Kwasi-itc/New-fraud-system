@@ -1,0 +1,1293 @@
+{
+  "version": 2,
+  "source": "gh-pep-executive",
+  "parser": "gh-pep-v1",
+  "records": [
+    {
+      "id": "gh-pep-exec-001",
+      "name": "John Dramani Mahama",
+      "type": "Person",
+      "aliases": [
+        "John Mahama",
+        "JDM",
+        "President John Dramani Mahama",
+        "President Mahama",
+        "Mahama"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "President of the Republic of Ghana, Commander-in-Chief of the Ghana Armed Forces"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: President of the Republic of Ghana, Commander-in-Chief of the Ghana Armed Forces; Status: active; Known Family: Lordina Mahama (Spouse / First Lady), Ibrahim Mahama (Brother), Alfred Mahama (Brother), Sharaf Mahama (Son), Shafiq Mahama (Son), Shahid Mahama (Son); Known Associates: Julius Debrah (Chief of Staff), Joyce Bawah Mogtari (Special Advisor), Prosper Bani (Senior Presidential Coordinator), Prof. Joshua Alabi (Senior Advisor)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-002",
+      "name": "Jane Naana Opoku-Agyemang",
+      "type": "Person",
+      "aliases": [
+        "Prof. Jane Naana Opoku-Agyemang",
+        "Naana Jane Opoku-Agyemang",
+        "Prof. Naana Opoku-Agyemang",
+        "Vice President Jane Naana Opoku-Agyemang",
+        "Opoku-Agyemang",
+        "Jane Opoku-Agyemang"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Vice President of the Republic of Ghana"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Vice President of the Republic of Ghana; Status: active; Known Family: Dr. Kweku Opoku-Agyemang (Son), Dr. Kwabena Opoku-Agyemang (Son), Dr. Adwoa Opoku-Agyemang (Daughter); Known Associates: President John Dramani Mahama (President)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-003",
+      "name": "Julius Debrah",
+      "type": "Person",
+      "aliases": [
+        "Hon. Julius Debrah",
+        "Debrah"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Presidential Advisor and Chief of Staff at the Presidency"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Presidential Advisor and Chief of Staff at the Presidency; Status: active; Known Associates: President John Dramani Mahama (President), Dr. Valerie Sawyerr (Senior Staffer)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-004",
+      "name": "Prosper Douglas Bani",
+      "type": "Person",
+      "aliases": [
+        "Prosper Bani",
+        "Bani"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Presidential Coordinator, Former Minister for the Interior"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Presidential Coordinator, Former Minister for the Interior; Status: active; Known Associates: President John Dramani Mahama (President)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-005",
+      "name": "Valerie Esther Sawyerr",
+      "type": "Person",
+      "aliases": [
+        "Dr. Valerie Sawyerr",
+        "Valerie Sawyerr",
+        "Sawyerr"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Presidential Staffer, Former Deputy Chief of Staff"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Presidential Staffer, Former Deputy Chief of Staff; Status: active; Known Associates: President John Dramani Mahama (President), Julius Debrah (Chief of Staff)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-006",
+      "name": "Joyce Bawah Mogtari",
+      "type": "Person",
+      "aliases": [
+        "Joyce Bawa Mogtari",
+        "Mogtari",
+        "Joyce Mogtari"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Special Presidential Envoy and Senior Advisor to the President"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Special Presidential Envoy and Senior Advisor to the President; Status: active; Known Associates: President John Dramani Mahama (President)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-007",
+      "name": "Felix Kwakye Ofosu",
+      "type": "Person",
+      "aliases": [
+        "Felix Ofosu Kwakye",
+        "Hon. Felix Kwakye Ofosu",
+        "Ofosu",
+        "Felix Ofosu"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Presidential Spokesperson, Member of Parliament for Abura Asebu Kwamankese"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Presidential Spokesperson, Member of Parliament for Abura Asebu Kwamankese; Status: active; Known Associates: President John Dramani Mahama (President)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-008",
+      "name": "Johnson Asiedu Nketiah",
+      "type": "Person",
+      "aliases": [
+        "Asiedu Nketiah",
+        "General Mosquito",
+        "Nketiah",
+        "Johnson Nketiah"
+      ],
+      "source_reference": "https://parliament.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "National Chairman, National Democratic Congress (NDC), Former Member of Parliamentary Service Board"
+        ],
+        "listedAt": [
+          "2022-12-18"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: National Chairman, National Democratic Congress (NDC), Former Member of Parliamentary Service Board; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-009",
+      "name": "Fifi Fiavi Kwetey",
+      "type": "Person",
+      "aliases": [
+        "Fifi Kwetey",
+        "Fiifi Kwetey",
+        "Kwetey"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "General Secretary, National Democratic Congress (NDC), Former Minister for Transport & Agriculture"
+        ],
+        "listedAt": [
+          "2022-12-18"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: General Secretary, National Democratic Congress (NDC), Former Minister for Transport & Agriculture; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-010",
+      "name": "Joshua Alabi",
+      "type": "Person",
+      "aliases": [
+        "Prof. Joshua Alabi",
+        "Alabi"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Presidential Advisor, Former Campaign Coordinator"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Presidential Advisor, Former Campaign Coordinator; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-011",
+      "name": "Seth Emmanuel Terkper",
+      "type": "Person",
+      "aliases": [
+        "Seth Terkper",
+        "Terkper"
+      ],
+      "source_reference": "https://mofep.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Presidential Economic Advisor, Former Minister for Finance"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Presidential Economic Advisor, Former Minister for Finance; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-012",
+      "name": "Hannah Serwaa Tetteh",
+      "type": "Person",
+      "aliases": [
+        "Hannah Tetteh",
+        "Tetteh"
+      ],
+      "source_reference": "https://mfa.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Diplomatic Advisor, Special Representative of the UN Secretary-General, Former Foreign Minister"
+        ],
+        "listedAt": [
+          "2025-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Diplomatic Advisor, Special Representative of the UN Secretary-General, Former Foreign Minister; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-013",
+      "name": "Nana Addo Dankwa Akufo-Addo",
+      "type": "Person",
+      "aliases": [
+        "Nana Akufo-Addo",
+        "William Addo Dankwa Akufo-Addo",
+        "Addo Dankwa Akufo-Addo",
+        "Akufo-Addo",
+        "Addo Akufo-Addo"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former President of the Republic of Ghana (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former President of the Republic of Ghana (2017–2025); Status: cooling_off; Known Family: Rebecca Akufo-Addo (Spouse / Former First Lady), Gyankroma Akufo-Addo (Daughter), Edwina Nana Dokua Akufo-Addo (Daughter), Adriana Dukua Akufo-Addo (Daughter), Edward Akufo-Addo (Brother), Ken Ofori-Atta (Cousin); Known Associates: Gabby Asare Otchere-Darko (Nephew / Senior Advisor), Akosua Frema Osei-Opare (Former Chief of Staff)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-014",
+      "name": "Mahamudu Bawumia",
+      "type": "Person",
+      "aliases": [
+        "Dr. Mahamudu Bawumia",
+        "Bawumia"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Vice President of the Republic of Ghana (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Vice President of the Republic of Ghana (2017–2025); Status: cooling_off; Known Family: Samira Bawumia (Spouse / Former Second Lady), Alhaji Ahmed Ramadan (Father-in-law), Abu Ramadan (Brother-in-law); Known Associates: Nana Addo Dankwa Akufo-Addo (Former President)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-015",
+      "name": "Akosua Frema Osei-Opare",
+      "type": "Person",
+      "aliases": [
+        "Frema Osei-Opare",
+        "Osei-Opare",
+        "Akosua Osei-Opare"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Chief of Staff at the Presidency (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief of Staff at the Presidency (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-016",
+      "name": "Kenneth Nana Yaw Ofori-Atta",
+      "type": "Person",
+      "aliases": [
+        "Ken Ofori-Atta",
+        "Ofori-Atta",
+        "Kenneth Ofori-Atta"
+      ],
+      "source_reference": "https://mofep.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Finance, Senior Presidential Advisor on Economy (2017–2024)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Finance, Senior Presidential Advisor on Economy (2017–2024); Status: cooling_off; Known Family: Prof. Angela Ofori-Atta (Spouse), Nana Addo Dankwa Akufo-Addo (Cousin); Known Associates: Keli Gadzekpo (Business Associate / Databank Co-founder)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-017",
+      "name": "Mohammed Amin Adam",
+      "type": "Person",
+      "aliases": [
+        "Dr. Mohammed Amin Adam",
+        "Anta",
+        "Adam",
+        "Mohammed Adam"
+      ],
+      "source_reference": "https://mofep.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Finance, Former Minister of State at Finance (2024–2025)"
+        ],
+        "listedAt": [
+          "2024-02-14"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Finance, Former Minister of State at Finance (2024–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-018",
+      "name": "Godfred Yeboah Dame",
+      "type": "Person",
+      "aliases": [
+        "Godfred Dame",
+        "Dame"
+      ],
+      "source_reference": "https://mojagd.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Attorney-General and Minister for Justice (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-01-21"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Attorney-General and Minister for Justice (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-019",
+      "name": "Dominic Bingham Aduna Nitiwul",
+      "type": "Person",
+      "aliases": [
+        "Dominic Nitiwul",
+        "Nitiwul"
+      ],
+      "source_reference": "https://gafonline.mil.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Defence, Member of Parliament for Bimbilla (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Defence, Member of Parliament for Bimbilla (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-020",
+      "name": "Henry Quartey",
+      "type": "Person",
+      "aliases": [
+        "Hon. Henry Quartey",
+        "Quartey"
+      ],
+      "source_reference": "https://mint.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for the Interior, Former Greater Accra Regional Minister (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-01-21"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for the Interior, Former Greater Accra Regional Minister (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-021",
+      "name": "Shirley Ayorkor Botchwey",
+      "type": "Person",
+      "aliases": [
+        "Ayorkor Botchwey",
+        "Botchwey",
+        "Shirley Botchwey"
+      ],
+      "source_reference": "https://mfa.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Commonwealth Secretary-General, Former Minister for Foreign Affairs (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Commonwealth Secretary-General, Former Minister for Foreign Affairs (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-022",
+      "name": "Samuel Abu Jinapor",
+      "type": "Person",
+      "aliases": [
+        "Abu Jinapor",
+        "Jinapor",
+        "Samuel Jinapor"
+      ],
+      "source_reference": "https://mlnr.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Lands and Natural Resources, MP for Damongo (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-03-05"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Lands and Natural Resources, MP for Damongo (2021–2025); Status: cooling_off; Known Family: John Abdulai Jinapor (Brother / MP Yapei-Kusawgu)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-023",
+      "name": "Matthew Opoku Prempeh",
+      "type": "Person",
+      "aliases": [
+        "Dr. Matthew Opoku Prempeh",
+        "Napo",
+        "Prempeh",
+        "Matthew Prempeh"
+      ],
+      "source_reference": "https://energymin.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Energy, Former Minister for Education (2017–2024)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Energy, Former Minister for Education (2017–2024); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-024",
+      "name": "Ursula Owusu-Ekuful",
+      "type": "Person",
+      "aliases": [
+        "Ursula Owusu",
+        "Owusu-Ekuful"
+      ],
+      "source_reference": "https://moc.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Communications and Digitalisation (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Communications and Digitalisation (2017–2025); Status: cooling_off; Known Family: Dr. Sam Ekuful (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-025",
+      "name": "Bryan Acheampong",
+      "type": "Person",
+      "aliases": [
+        "Dr. Bryan Acheampong",
+        "Acheampong"
+      ],
+      "source_reference": "https://mofa.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Food and Agriculture, MP for Abetifi (2020–2025)"
+        ],
+        "listedAt": [
+          "2020-02-13"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Food and Agriculture, MP for Abetifi (2020–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-026",
+      "name": "Kojo Oppong Nkrumah",
+      "type": "Person",
+      "aliases": [
+        "Oppong Nkrumah",
+        "Nkrumah",
+        "Kojo Nkrumah"
+      ],
+      "source_reference": "https://mwh.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Works and Housing, Former Minister for Information (2018–2025)"
+        ],
+        "listedAt": [
+          "2018-11-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Works and Housing, Former Minister for Information (2018–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-027",
+      "name": "Ambrose Dery",
+      "type": "Person",
+      "aliases": [
+        "Ambrose Derry",
+        "Dery"
+      ],
+      "source_reference": "https://mint.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for the Interior, Former Minister of State at the Presidency (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for the Interior, Former Minister of State at the Presidency (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-028",
+      "name": "Alan John Kwadwo Kyerematen",
+      "type": "Person",
+      "aliases": [
+        "Alan Kyerematen",
+        "Alan Cash",
+        "Kyerematen"
+      ],
+      "source_reference": "https://moti.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Leader Movement for Change, Former Minister for Trade and Industry (2017–2023)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Leader Movement for Change, Former Minister for Trade and Industry (2017–2023); Status: cooling_off; Known Family: Patricia Christabel Kyerematen (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-029",
+      "name": "Francis Asenso-Boakye",
+      "type": "Person",
+      "aliases": [
+        "Asenso-Boakye"
+      ],
+      "source_reference": "https://mrh.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Roads and Highways, Former Minister for Works and Housing (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-03-05"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Roads and Highways, Former Minister for Works and Housing (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-exec-030",
+      "name": "Cecilia Abena Dapaah",
+      "type": "Person",
+      "aliases": [
+        "Cecilia Dapaah",
+        "Dapaah"
+      ],
+      "source_reference": "https://osp.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Minister for Sanitation and Water Resources, Subject of OSP Anti-Corruption Investigation"
+        ],
+        "listedAt": [
+          "2018-08-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Minister for Sanitation and Water Resources, Subject of OSP Anti-Corruption Investigation; Status: cooling_off; Known Family: Daniel Osei Kuffour (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    }
+  ]
+}

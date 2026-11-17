@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 
 type Report = {
   id: string; provider?: string; status: string; partial?: boolean; created_at?: string;
-  query?: { name: string; entity_type: string; threshold: number; limit: number; birth_date?: string; nationality?: string; country?: string; registration_number?: string; address?: string; datasets?: string[] };
+  query?: { name: string; entity_type: string; threshold: number; limit: number; birth_date?: string; nationality?: string; country?: string; registration_number?: string; address?: string; datasets?: string[]; profile?: string; dataset_selection?: { scope: string; id: string }[] };
   matches?: { id: string; entity_id: string; name: string; status?: string; score: number; schema: string; datasets?: string[]; properties: Record<string, string[]> }[];
 };
-const labels: Record<string, string> = { alias: "Also known as", birthDate: "Birth date", nationality: "Nationality", country: "Country", address: "Address", topics: "Topics" };
+const labels: Record<string, string> = { alias: "Also known as", birthDate: "Birth date", nationality: "Nationality", country: "Country", address: "Address", topics: "Topics", registrationNumber: "Registration number", source: "Source reference", sourceRecord: "Source record", datasetVersion: "Dataset version", matchingProfile: "Matching profile", matchedAlias: "Matched name", matchReason: "Why it matched", matchingStrategy: "Matching method", matchedField: "Matched field", comparisonValues: "Compared names", nameScore: "Name score", attributeEvidence: "Identity details" };
 
 export function ScreeningReport({ id, scope }: { id: string; scope: string }) {
   const report = useQuery({
@@ -47,7 +47,7 @@ export function ScreeningReport({ id, scope }: { id: string; scope: string }) {
         <h2 className="text-lg font-semibold">Search settings</h2>
         <p className="break-words">{query.name} · {query.entity_type}</p>
         <p>Matching threshold: {query.threshold}% · Result limit: {query.limit}</p>
-        <dl className="space-y-2 text-sm">{[["Birth date", query.birth_date], ["Nationality", query.nationality], ["Country", query.country], ["Registration number", query.registration_number], ["Address", query.address], ["Requested datasets", query.datasets?.join(", ")]].map(([label, value]) => value && <div key={label}><dt className="font-medium">{label}</dt><dd className="break-words">{value}</dd></div>)}</dl>
+        <dl className="space-y-2 text-sm">{[["Birth date", query.birth_date], ["Nationality", query.nationality], ["Country", query.country], ["Registration number", query.registration_number], ["Address", query.address], ["Requested datasets", query.datasets?.join(", ")], ["Matching method", query.profile], ["Selected internal datasets", query.dataset_selection?.map(ref => `${ref.scope}:${ref.id}`).join(", ")]].map(([label, value]) => value && <div key={label}><dt className="font-medium">{label}</dt><dd className="break-words">{value}</dd></div>)}</dl>
       </section>}
       {ready && <section aria-label="Stored candidates" className="space-y-4">
         <h2 className="text-lg font-semibold">{data.matches?.length ?? 0} stored candidates</h2>

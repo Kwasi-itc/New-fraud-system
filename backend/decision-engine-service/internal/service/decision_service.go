@@ -30,6 +30,16 @@ type DecisionEvaluationRequest struct {
 	Fields       map[string]any `json:"fields"`
 	prepared     *preparedObject
 	storedSource bool
+	staged       *stagedDecision
+}
+
+// An inline-enabled multi-scenario request evaluates all providers before
+// opening a write transaction. One failed/partial lookup aborts the whole batch;
+// successful decisions and dependent queues/outbox commit together afterwards.
+type stagedDecision struct {
+	ctx    context.Context
+	save   func(ports.MutationStore) error
+	result DecisionEvaluationResult
 }
 
 func (r DecisionEvaluationRequest) JSONBody() (json.RawMessage, error) {
@@ -75,6 +85,8 @@ type DBPoolStats struct {
 type DBPoolStatsProvider func() DBPoolStats
 
 type DecisionService struct {
+	InlineScreening               InlineScreening
+	InlinePolicy                  InlinePolicy
 	NameRecognizer                screening.NameRecognizer
 	preparationMetrics            *preparationMetrics
 	payloadValidator              *payload.Validator
@@ -557,6 +569,12 @@ func (s DecisionService) evaluateScenario(
 		return DecisionEvaluationResult{}, err
 	}
 	item.RequestBody = requestBody
+	currentStage = "inline_screening"
+	item, inlineExecs, inlineResults, err := s.evaluateInlineScreenings(ctx, item, req.Fields)
+	if err != nil {
+		return DecisionEvaluationResult{}, err
+	}
+	markTiming("inline_screening")
 
 	var stored decision.Decision
 	var storedExecs []decision.RuleExecution
@@ -575,6 +593,7 @@ func (s DecisionService) evaluateScenario(
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
+	screeningExecs = append(inlineExecs, screeningExecs...)
 	screeningBuiltAt := time.Now()
 	timings["screening_build_us"] = screeningBuiltAt.Sub(screeningBuildStartedAt).Microseconds()
 	stageStartedAt = screeningBuiltAt
@@ -594,7 +613,10 @@ func (s DecisionService) evaluateScenario(
 	var outboxEventCount int
 	txTimings := &ports.TransactionTimings{}
 	currentStage = "tx_begin"
-	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), func(store ports.MutationStore) error {
+	if req.staged != nil {
+		ctx = req.staged.ctx
+	}
+	persist := func(store ports.MutationStore) error {
 		txStartedAt := time.Now()
 		txStageStartedAt := txStartedAt
 		markTxTiming := func(stage string) {
@@ -633,7 +655,15 @@ func (s DecisionService) evaluateScenario(
 			return err
 		}
 		for _, item := range storedScreeningExecs {
+			if item.Status != screening.ExecutionStatusPending {
+				continue
+			}
 			if err := s.screeningExecutionEnqueuer.EnqueueTx(ctx, store.RawTx(), item.TenantID, item.ID, nil); err != nil {
+				return err
+			}
+		}
+		for _, evidence := range inlineResults {
+			if err := s.InlineScreening.Persist(ctx, store.RawTx(), evidence); err != nil {
 				return err
 			}
 		}
@@ -668,7 +698,19 @@ func (s DecisionService) evaluateScenario(
 		markTxTiming("outbox_insert")
 		timings["tx_body_total_us"] = time.Since(txStartedAt).Microseconds()
 		return err
-	})
+	}
+	if req.staged != nil {
+		plan := req.staged
+		plan.save = func(store ports.MutationStore) error {
+			if e := persist(store); e != nil {
+				return e
+			}
+			plan.result = DecisionEvaluationResult{ModelRevision: model.RevisionID, Triggered: true, Decision: &stored, RuleExecutions: storedExecs}
+			return nil
+		}
+		return DecisionEvaluationResult{ModelRevision: model.RevisionID, Triggered: true, Decision: &item, RuleExecutions: ruleExecs}, nil
+	}
+	err = s.txManager.Run(ports.WithTransactionTimings(ctx, txTimings), persist)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
 	}
@@ -2110,6 +2152,7 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	evalCache := asteval.NewEvaluationCache()
 	aggregateCache := asteval.NewAggregateResultCache()
 	evaluationNow := s.clock.Now()
+	plans := make([]stagedDecision, len(scenarios))
 
 	group, groupCtx := errgroup.WithContext(ctx)
 	group.SetLimit(resolveScenarioEvaluationConcurrency(s.scenarioEvaluationConcurrency, len(scenarios)))
@@ -2117,7 +2160,12 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		i := i
 		scn := scn
 		group.Go(func() error {
-			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, req, evalCache, aggregateCache, evaluationNow)
+			scenarioRequest := req
+			if s.InlinePolicy.Enabled {
+				plans[i].ctx = ctx
+				scenarioRequest.staged = &plans[i]
+			}
+			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, scenarioRequest, evalCache, aggregateCache, evaluationNow)
 			if err != nil {
 				return err
 			}
@@ -2127,6 +2175,25 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	}
 	if err := group.Wait(); err != nil {
 		return MultiScenarioEvaluationResult{}, err
+	}
+	if s.InlinePolicy.Enabled {
+		if e := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+			for i := range plans {
+				if plans[i].save != nil {
+					if e := plans[i].save(store); e != nil {
+						return e
+					}
+				}
+			}
+			return nil
+		}); e != nil {
+			return MultiScenarioEvaluationResult{}, e
+		}
+		for i := range plans {
+			if plans[i].save != nil {
+				results.Results[i] = plans[i].result
+			}
+		}
 	}
 	if hasCacheStats {
 		cacheDelta := s.snapshotCacheStatsOrZero(cacheStatsBefore, hasCacheStats)
@@ -2326,6 +2393,9 @@ func stringPtr(value string) *string {
 }
 
 func (s DecisionService) buildScreeningExecutions(ctx context.Context, item decision.Decision, objectFields map[string]any) ([]screening.Execution, error) {
+	return s.buildSelectedScreenings(ctx, item, objectFields, false)
+}
+func (s DecisionService) buildSelectedScreenings(ctx context.Context, item decision.Decision, objectFields map[string]any, during bool) ([]screening.Execution, error) {
 	configs, err := s.getActiveScreeningConfigs(ctx, item.TenantID, item.ScenarioID)
 	if err != nil {
 		return nil, err
@@ -2334,7 +2404,16 @@ func (s DecisionService) buildScreeningExecutions(ctx context.Context, item deci
 	out := make([]screening.Execution, 0, len(configs))
 	ignoreCache := map[string][]string{}
 	for _, cfg := range configs {
-		if !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
+		var mode struct {
+			Forced string `json:"forced_outcome"`
+		}
+		if json.Unmarshal(cfg.ConfigJSON, &mode) != nil {
+			return nil, invalidScreeningQuery("Invalid screening configuration.")
+		}
+		if (mode.Forced != "") != during {
+			continue
+		}
+		if !during && !stringAllowed(cfg.AllowedOutcomes, string(item.Outcome)) {
 			continue
 		}
 		// Reuse the bounded workflow predicate contract; only the current object is

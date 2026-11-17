@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdnList xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+ <publshInformation><Publish_Date>11/14/2026</Publish_Date><Record_Count>4</Record_Count></publshInformation>
+ <sdnEntry><uid>100</uid><firstName>Ama</firstName><lastName>Fixture Mensori</lastName><sdnType>Individual</sdnType><programList><program>FIXTURE</program></programList><akaList><aka><uid>101</uid><type>a.k.a.</type><category>weak</category><firstName>A.</firstName><lastName>Mensori</lastName></aka></akaList><idList><id><uid>102</uid><idType>Passport</idType><idNumber>0012345</idNumber><idCountry>Ghana</idCountry></id></idList><dateOfBirthList><dateOfBirthItem><uid>103</uid><dateOfBirth>12 May 1980</dateOfBirth><mainEntry>true</mainEntry></dateOfBirthItem></dateOfBirthList></sdnEntry>
+ <sdnEntry><uid>200</uid><lastName>Fictional Cedar Finance</lastName><sdnType>Entity</sdnType><programList><program>FIXTURE</program></programList><addressList><address><uid>201</uid><city>Accra</city><country>Ghana</country></address></addressList></sdnEntry>
+ <sdnEntry><uid>300</uid><lastName>Fictional Vessel</lastName><sdnType>Vessel</sdnType><programList><program>FIXTURE</program></programList><idList><id><uid>301</uid><idType>IMO Number</idType><idNumber>0001234</idNumber></id></idList></sdnEntry>
+ <sdnEntry><uid>400</uid><lastName>Fictional Aircraft</lastName><sdnType>Aircraft</sdnType><programList><program>FIXTURE</program></programList></sdnEntry>
+</sdnList>

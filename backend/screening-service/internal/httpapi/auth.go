@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/subtle"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,7 @@ func screeningOwnerBoundary(token, serviceToken string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "screening_owner_requires_private_operator"})
 			return
 		}
+		c.Request = c.Request.WithContext(provideraccess.WithScope(c.Request.Context(), provideraccess.GlobalOperator()))
 		c.Next()
 	}
 }
@@ -72,6 +74,9 @@ func screeningServiceBoundary(token string, forbidden ...string) gin.HandlerFunc
 			c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
 			return
 		}
+		// A dedicated credential alone grants no private source authority. The
+		// registry must additionally prove the persisted scenario execution.
+		c.Request = c.Request.WithContext(provideraccess.WithScenarioIntake(provideraccess.WithScope(c.Request.Context(), provideraccess.GlobalOperator())))
 		c.Next()
 	}
 }

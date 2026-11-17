@@ -20,7 +20,7 @@ type queryable interface {
 func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("parse database url: %w", err)
+		return nil, fmt.Errorf("invalid screening database configuration")
 	}
 	if raw := os.Getenv("DATABASE_MAX_CONNS"); raw != "" {
 		max, err := strconv.Atoi(raw)

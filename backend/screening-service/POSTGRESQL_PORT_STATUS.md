@@ -31,7 +31,7 @@ PostgreSQL model/scenario/decision-count endpoints also returned 200.
 
 The wider 25-test exploratory run found two decision-selection assertions that
 expect a disabled toolbar when the existing UI hides it, and two display-settings
-element lookup failures. Those four checks remain unresolved. The new tenant
+element lookup failures. Those four historical failures were subsequently investigated and repaired with the other Phase 8 browser failures; see [browser review](INTERNAL_PROVIDER_BROWSER_REVIEW.md). The new tenant
 test's independent request-context mistake was corrected and its authenticated
 foreign-tenant request now passes the 403 assertion. The focused passing run is
 not a claim that the entire frontend suite passes.
@@ -68,9 +68,9 @@ test results passed on disposable PostgreSQL, including repair rollback,
 conflicting identities and concurrent retries. Provider credentials match and
 fresh login initiation succeeds; user-password sign-in still needs a fresh retry.
 
-- [ ] Implement PostgreSQL decision-time screening and forced outcomes. Current screening runs after a decision is saved, and the inline capability stays disabled.
-- [ ] Implement the separate internal source collector, PostgreSQL source-data migrations and provider adapter from the [internal provider plan](INTERNAL_PROVIDER_PLAN.md).
-- [ ] Implement and independently verify authoritative OFAC/UN/other source connectors. No new source or synthetic catalog was activated by this switch.
+- [x] Implement PostgreSQL decision-time screening, forced outcomes and error-only atomic evidence/effects; verified with real APIs/workers. Runtime activation remains explicitly gated by [Phase 8 acceptance](INTERNAL_PROVIDER_ACCEPTANCE.md).
+- [x] Implement the separate source collector, migrations through 22 and scoped provider adapter; disposable regression/recovery verification passes. Production source use remains unapproved.
+- [x] Reverify complete retained OFAC SDN/UN/UK snapshots through publication/search/enrichment. EU/Ghana remain fixture-only; independent matching quality and rights/access remain open.
 - [ ] Configure a compatible screening provider before running new live searches; unconfigured capabilities remain unavailable and stored history stays readable.
 - [ ] Add PostgreSQL case/auth Swagger endpoints if required. Their APIs are routed, but main currently has no Swagger pages for those services.
 - [ ] Validate full user sign-in with an existing PostgreSQL membership. MySQL-only users and NovaPay data were intentionally not copied.

@@ -1,0 +1,14 @@
+{
+  "frozen_hashes_unchanged": {
+    "backend/screening-service/internal/matching/name.go": true,
+    "backend/screening-service/internal/matching/token_v2.go": true,
+    "backend/screening-service/testdata/matching-corpus-v1.json": true,
+    "backend/screening-service/testdata/matching-corpus-v2.json": true
+  },
+  "fixed_test_namespace": "UUIDv5(OID, matching-quality-fixture-v1), then principal ordinal",
+  "two_runs_equal_ignoring_latency": true,
+  "calibrated_threshold": 79,
+  "default_threshold": 85,
+  "change": "Only fixture tenant determinism changed after discovering UUID-dependent ordering at the 50-result bound. No scorer, label or corpus change; no seed search or threshold retuning.",
+  "production_quality": false
+}

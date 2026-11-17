@@ -1,82 +1,86 @@
-# Internal screening provider: implementation plan
+# Internal screening provider implementation plan
 
-Updated: 2026-11-13 UTC for PostgreSQL main. Stage 1 deliverable. The internal provider is not implemented.
+## Phase 8 acceptance update — 2026-11-15
 
-## Entry point and scope
+The [acceptance register](INTERNAL_PROVIDER_ACCEPTANCE.md) is the definitive current gate record. All 21 browser failures are repaired: **134 full-suite passes, zero failures, one dedicated skip**, plus a separate real API/PostgreSQL/worker **1/1 pass**. Final screening regression is **138/288**, auth **33/60**, decision **260/423**, case **90/157**, investigator **1/1** (top-level / including subtests). Name quality remains unaccepted; separate identifier engineering calibration is documented. The complete sustained workload measured **87.487 decisions/s, p95 290.738 ms**, below target. Migration 22, actual restricted logins, restored-clone binding, logical restore/worker replay and operational alert contracts pass disposable checks. Source permissions, representative quality/capacity, production security/recovery/alerting and explicit activation remain open. Existing frontend lint (20 errors/74 warnings) reproduces on HEAD and is recorded separately. **No production-ready claim or activation is made.**
 
-Build a provider we operate, fed from authoritative sources, without a hosted OpenSanctions dependency or purchased aggregated datasets. Extend the existing screening service; retain its orchestration, persisted results, investigations and authorization.
+See [matching](INTERNAL_PROVIDER_MATCHING_EVALUATION.md), [browser investigation](INTERNAL_PROVIDER_BROWSER_REVIEW.md), [source approvals](INTERNAL_PROVIDER_SOURCE_APPROVALS.md), [performance](INTERNAL_PROVIDER_PERFORMANCE.md), [security](INTERNAL_PROVIDER_SECURITY_ACCEPTANCE.md), [recovery](INTERNAL_PROVIDER_RECOVERY.md), [activation runbook](INTERNAL_PROVIDER_ACTIVATION.md) and [Phase 8 machine manifest](evidence/internal-provider/2026-11-14/phase8/manifest.json). Earlier dated measurements below remain historical where explicitly superseded by this update.
 
-The immediate requested deliverable is the repository audit and implementation plan. This pack completes that stage. None of the planned source connectors, database structures or matching capabilities below are claimed as implemented.
+Updated 2026-11-15 UTC, PostgreSQL main base 18c6e5d plus the uncommitted implementation. This pack supersedes the earlier Phase 1/2 status prose. PostgreSQL is the shared application database; MySQL data is preserved separately. **Development engineering is delivered across the approved workstreams; production readiness is not accepted.** No application DB migrations, production source activation, tenant grants for actual official data, credential changes, commit or push occurred.
 
-The existing documentation is a flat planning/runbook set at this service root. Keep this initiative in the same area under the INTERNAL_PROVIDER prefix, rather than introducing a second documentation hierarchy:
+## Acceptance and checkbox meaning
 
-- [Repository audit](INTERNAL_PROVIDER_AUDIT.md): actual contracts, composition, persistence, workers, tests and gaps.
-- [Source inventory](INTERNAL_PROVIDER_SOURCES.md): access, rights, formats, verification and Ghana strategy.
-- [Architecture and data model](INTERNAL_PROVIDER_DESIGN.md): boundaries, connector specifications, normalization, publication, matching and migration.
-- [Verification and operations](INTERNAL_PROVIDER_VERIFICATION.md): baseline evidence, future acceptance tests, security and performance.
-- [Progress and decisions](INTERNAL_PROVIDER_PROGRESS.md): stage log, unresolved questions and release gates.
-- [Baseline evidence](evidence/internal-provider/2026-11-13/report.json).
+A checked task means its engineering implementation and named verification are delivered. It does **not** approve quality, rights or production use. A source can be live-source-tested while its commercial/release gate remains closed. Migration 21 pins Unicode 17 normalization; older published projections require a new publication, not reinterpretation. No task IDs were added; all 37 original IDs and dependencies are retained in the [machine ledger](evidence/internal-provider/2026-11-14/phase8/task-ledger.json).
 
-## Decisions grounded in the audit
+| Gate | Current evidence | Acceptance |
+| --- | --- | --- |
+| A — provider foundation | Scoped five operations, strict registry, typed IDs and explicit dataset/category metadata | Functional integration tested |
+| B — controlled publication | Immutable snapshots, artifacts, safe publication, review, fencing and recovery | Functional integration tested |
+| C — existing workflows | Actual API/worker/history/review/case/browser journeys | Browser development gate passes; quality acceptance remains open |
+| D — lifecycle | Add/update/remove/unchanged/rollback, legal holds, complete fanout and recovery | Development integration tested; deployment retention/restore acceptance open |
+| E — inline enforcement | Error-only policy, bounded lookup, final-outcome ordering and atomic decision/effects, including batches | Functional integration tested; production quality/SLO/activation open |
 
-1. Target the shared PostgreSQL database on main and the screening-owned metadata migrations. The user retired the PostgreSQL development runtime; its data and historical evidence remain separate.
-2. Preserve the five-method ScreeningProvider contract. Add provider-specific ingestion components behind it.
-3. Run collection as a separately deployed process in the existing screening module, with its own database credentials and resource budget. Do not add a separate application database.
-4. Use a provider registry and a new explicit provider key, proposed as internal-watchlists. Keep synthetic data under an explicit development provider. Never relabel old synthetic evidence as real-source evidence.
-5. Reuse existing manual, scenario, continuous and investigation flows. Do not add a parallel customer search endpoint.
-6. Preserve current asynchronous screening and counterparty exclusions. Decision-time forced outcomes require a separate PostgreSQL implementation and tests; current capabilities disable them.
-7. Start with controlled fixtures, then complete OFAC SDN snapshot ingestion. UN follows; EU/UK and Ghana sources follow independently.
-8. Use PostgreSQL indexed retrieval as the first matching candidate. Additional search infrastructure requires measured justification.
-9. Unknown source rights and undocumented APIs remain unknown. They are not permission to scrape.
-10. A download probe is not a connector, a connector is not a published dataset, and a published dataset is not production acceptance.
+## Dependency-aware delivery
 
-## Actionable checklist
+- [x] Finish publication monitoring and the legacy multi-page/first-500 defect before relying on dataset updates.
+- [x] Add raw artifacts, fenced staging, rollback, explicit failed/staged retention and real interrupted-process recovery.
+- [x] Expand the corpus, freeze separate name scorers, measure retrieval and classification; add a separately named typed-ID profile.
+- [x] Measure larger datasets and fix the observed SQL join/cardinality/GIN-pending-list costs.
+- [x] Implement OFAC SDN, UN and UKSL with separate source/coverage/rights gates and complete isolated verification.
+- [x] Build the EU fixture connector and Ghana reviewed-notice workflow while independent access/rights gates remain closed.
+- [x] Deliver private tenant-list management with the approved administrator/two-person policy.
+- [x] Deliver inline screening with the approved error-only policy and immutable atomic evidence.
+- [ ] Accept matching quality and source/category coverage using independently adjudicated data.
+- [ ] Obtain source-specific usage/retention approvals, EU access and any ORC/PEP agreements.
+- [ ] Close the deployment SLO, restore, general frontend regression and release acceptance gates.
+- [ ] Separately authorize and execute production activation.
 
-Status values: Not started, In progress, Implemented, Tested, Blocked, Deferred.
-For planning documents, Tested means links/contracts or recorded checks were verified; it never means a runtime capability exists.
-Paths marked proposed are design locations, not existing modules.
+Implementation order varied only where dependencies justified it: source schema/typed provenance landed before live connectors; the auth-owned locking contract supports private approval; inline evidence uses the same owned schema. Blocked EU/ORC/PEP work did not stop independent engineering.
 
-| Done | ID | Work | Dependencies | Status | Files / ownership | Coverage / outstanding issues |
-| --- | --- | --- | --- | --- | --- | --- |
-| [x] | AUD-01 | Inspect real provider contracts and both runtime compositions | — | Tested | ports.go; provider/http_client.go; internal/app/app.go; cmd/server; cmd/worker | Source audit; focused baseline |
-| [x] | AUD-02 | Audit schemas, identity, persistence, review, queues and frontend boundaries | AUD-01 | Tested | internal/store/postgres; internal/migrations/metadata; internal/httpapi; frontend screening proxies | Existing evidence reviewed; full DB regression not rerun |
-| [x] | SRC-01 | Investigate international/Ghana sources and explicit unknowns | — | Tested | INTERNAL_PROVIDER_SOURCES.md | Official documentation + five bounded XML GET probes |
-| [x] | ARC-01 | Validate provider integration and deployment design | AUD-01, AUD-02 | Tested | INTERNAL_PROVIDER_DESIGN.md | Five methods mapped; hardcoded provider and decision-time integration remains unimplemented |
-| [x] | TST-01 | Run focused existing baseline without application DB access | AUD-01 | Tested | evidence/internal-provider/2026-11-13 | Historical migration-branch baseline: 29 top-level / 46 results; not PostgreSQL acceptance |
-| [ ] | FND-01 | Implement connector registry and typed ingestion models | ARC-01 | Not started | proposed internal/sourcedata | Optional delta interface; reject unknown capabilities |
-| [ ] | DB-01 | Add append-only source/version/record/index/run schema and grants | ARC-01 | Not started | proposed internal/migrations/metadata source-data migration; PostgreSQL role grants | Disposable target/reference migration tests required |
-| [ ] | ING-01 | Implement streaming staging, validation, atomic publication and diff | FND-01, DB-01 | Not started | proposed internal/sourceingest | Idempotency, removal, rollback and fencing tests |
-| [ ] | MAT-01 | Implement explainable indexed matching with controlled records | DB-01 | Not started | proposed internal/internalprovider; internal/matching | Alias/identifier/attribute tests; candidate completeness handling |
-| [ ] | PRV-01 | Register internal adapter with existing five-method contract | MAT-01 | Not started | internal/clients/provider; internal/app/app.go | Search, enrich, catalog, freshness and delta contract tests |
-| [ ] | API-01 | Generalize fixed provider selection and capability gating | PRV-01 | Not started | manual_search.go; decision screening authoring/store; frontend proxies | Preserve historic provider keys, read-only roles and DTO compatibility |
-| [ ] | INL-01 | Route decision-time matching to same screening-owned implementation | PRV-01, API-01 | Not started | proposed providerlookup; decision internal/service; screening internal/service | Read-only DB facade, trusted tenant context, unchanged evidence replay |
-| [ ] | FND-02 | Verify controlled provider through API, worker, history, case UI and inline decision | ING-01, PRV-01, API-01, INL-01 | Not started | existing orchestration and regression suites | Required foundation gate before real-source activation |
-| [ ] | OFAC-01 | Complete schema/rights/artifact review and official download specification | SRC-01 | In progress | INTERNAL_PROVIDER_SOURCES.md; proposed sourceconnectors/ofac | Prefix/schema-root probes passed; complete XSD/payload validation pending |
-| [ ] | OFAC-02 | Build official SDN snapshot connector and realistic fixtures | FND-01, OFAC-01 | Not started | proposed internal/sourceconnectors/ofac | Names, aliases, IDs, programs; account for non-person entity types |
-| [ ] | OFAC-03 | Verify import/update/removal end to end on disposable PostgreSQL | OFAC-02, FND-02 | Not started | ingestion and provider integration tests | Original IDs, field changes, no partial publication |
-| [ ] | OFAC-04 | Run explicit live retrieval/full-parse verification | OFAC-03 | Not started | proposed cmd/source-verify; evidence | Ordinary CI stays offline; no app migration |
-| [ ] | OPS-01 | Separate source-worker, configured schedules and administrator controls | ING-01 | Not started | proposed cmd/source-worker; Docker runtime/config/grants | Leases, jittered retries, stale state, manual run, secrets |
-| [ ] | OPS-02 | Publish update events and enqueue tenant rescreen jobs | OPS-01, PRV-01 | Not started | existing dataset jobs; proposed publication outbox | Global fetch once; bounded tenant fanout; receipt replay |
-| [ ] | UN-01 | Verify source terms/schema; implement independent UN snapshot connector | OFAC-03 | Not started | proposed internal/sourceconnectors/un | Official XML prefix fetched; full parsing and permission assessment pending |
-| [ ] | UK-01 | Implement current UKSL connector, identifiers and sanction types | UN-01 | Not started | proposed internal/sourceconnectors/uk | Current XML prefix fetched; do not use retired OFSI list |
-| [ ] | EU-01 | Establish current FSF access and permitted reuse before connector | SRC-01 | Blocked | INTERNAL_PROVIDER_SOURCES.md | Official robot guide found; deployment token/current bulk access not verified |
-| [ ] | EU-02 | Implement EU connector against verified schema | EU-01, UN-01 | Not started | proposed internal/sourceconnectors/eu | No third-party mirror or copied token |
-| [ ] | GH-01 | Resolve FIC/BoG/SEC/OSP access, category and correction processes | SRC-01 | Not started | source inventory and controlled import design | No bulk API/automation permission established |
-| [ ] | GH-02 | Implement auditable manual notice import with source attachments | GH-01, ING-01 | Not started | proposed controlled source intake CLI / private admin surface | Two-person publication approval; allegations distinct from convictions |
-| [ ] | GH-03 | Acquire ORC access and usage agreement if needed | SRC-01 | Blocked | source inventory | Paid search is documented; bulk API/auth/redistribution terms not established |
-| [ ] | GH-04 | Curate public-office/PEP and SOE records with validity periods | GH-01 | Deferred | proposed curation/import tools | Parliament/SIGA are leads, not complete PEP datasets |
-| [ ] | RSK-01 | Add category filtering and optional typed personal identifiers compatibly | API-01, MAT-01 | Not started | request DTOs, authoring, proxy validation and matching | Current SearchQuery has no passport/national-ID input |
-| [ ] | RES-01 | Implement reversible cross-source identity links | ING-01 | Deferred | proposed identity-link tables/events | Start source-separated; never merge by fuzzy name |
-| [ ] | HARD-01 | Execute malicious-file, authorization, process-death and concurrency gates | OFAC-03, OPS-02, INL-01 | Not started | verification matrix | Rights, XML limits, stale workers, denied tenants |
-| [ ] | PERF-01 | Benchmark real-size datasets and ingest/search interference | HARD-01 | Not started | disposable benchmark fixtures and EXPLAIN evidence | 500 TPS / 50 ms are targets, not current guarantees |
-| [ ] | REL-01 | Controlled release, rollback and operational acceptance | HARD-01, PERF-01 | Not started | release runbook and runtime profile | No automatic activation by adding a connector |
+## Original task ledger
 
-## Stage exit criteria
+| Engineering | ID / scope | Dependencies | Verification | Remaining acceptance |
+| --- | --- | --- | --- | --- |
+| [x] | FND-01 — Scoped contract and compatible DTO design | Plan approval | Integration-tested | Quality and deployment approval are separate. |
+| [x] | FND-03 — Strict registry and configuration validation | FND-01 scoped subset | Integration-tested | Actual deployment configuration is not changed. |
+| [x] | PRV-01 — Five-operation internal read adapter for controlled data | FND-01 scoped subset, FND-03 | Integration-tested | Source-specific quality is unaccepted. |
+| [x] | DB-01 — Additive PostgreSQL source schema and grants | FND-01 | Integration-tested | Deployment grants, lock window and backup acceptance remain. |
+| [x] | ING-01 — Streaming controlled import and atomic publication | DB-01, FND-01 | Integration-tested | No application or production imports performed. |
+| [x] | MAT-01 — Indexed retrieval, scoring and explanations | DB-01, PRV-01 | Integration-tested | Name quality fails; separate synthetic ID calibration is complete, with independent quality acceptance still open. |
+| [x] | API-01 — Registry-backed selection/capabilities and authoring | PRV-01, ING-01, MAT-01 | Integration-tested | New features require explicit runtime configuration. |
+| [x] | RSK-01 — Typed query and category inputs | FND-01, API-01, MAT-01 | Integration-tested | No broad category query or automatic legal identity classification. |
+| [x] | API-02 — Versioned evidence and historical enrichment | API-01, MAT-01 | Integration-tested | Published evidence has indefinite retention pending approved expiry policy. |
+| [ ] | QLT-01 — Labelled corpus and threshold profiles | MAT-01, RSK-01 | Measured; acceptance failed | Independent adjudication and source/category quality floors remain open. |
+| [x] | FND-02 — Actual API/worker/history/case/UI journey | API-01, API-02, RSK-01, QLT-01 | Full browser + actual PostgreSQL API/worker verified | All 21 failures closed; quality and release acceptance remain separate. |
+| [x] | LIF-01 — Source diff, removals, rollback and retention | ING-01, MAT-01, FND-02 | Integration-tested | Published/quarantined/review-held evidence is intentionally retained. |
+| [x] | OPS-01 — Separate source worker and private administration | LIF-01 | Integration-tested | No source or production worker enabled; operator rollout remains required. |
+| [x] | OPS-02 — Publication delivery and complete tenant rescreening | LIF-01, OPS-01, FND-02 | Integration-tested | Enrollment/configuration is explicit; historical decisions never silently re-evaluate. |
+| [ ] | OFAC-01 — Full schema/access/rights/coverage specification | Source inventory; may research alongside A-D | Specification and schema verified | Source-specific legal/retention/purpose approval is still required. |
+| [x] | OFAC-02 — Official SDN full-snapshot connector | FND-01, OPS-01, OFAC-01 | Live-source-tested | SDN only; not complete OFAC or ownership-derived coverage. |
+| [ ] | OFAC-03 — Disposable full lifecycle and quality acceptance | OFAC-02, Gates A-D, QLT-01 | Functional lifecycle tested; gate open | Official-source matching acceptance and approved release profile remain open. |
+| [x] | OFAC-04 — Explicit complete live verification | OFAC-03 and approved source access/retention | Live-source-tested | Research verification is not commercial activation or production verification. |
+| [x] | UN-01 — Independent UN snapshot connector | Gates A-D, OFAC-03, approved UN access/rights | Live-source-tested | Commercial reuse/retention approval and source quality remain open. |
+| [x] | UK-01 — Current UKSL connector | Gates A-D, OFAC-03, approved UK terms/schema | Live-source-tested | OGL exceptions, personal/third-party data and source quality require approval. |
+| [ ] | EU-01 — Establish FSF production access and permitted reuse | Source inventory; research may run earlier | Externally blocked | An approved access contract/token/endpoint and rights review are absent. |
+| [x] | EU-02 — EU snapshot connector | EU-01, Gates A-D, OFAC-03 | Fixture-tested | Full live schema, lifecycle and quality verification require EU-01. |
+| [ ] | GH-01 — Ghana notices access/classification/corrections | Source inventory; research may run earlier | Research/specification complete | Agency-specific acquisition, reuse, correction and retention approval required. |
+| [x] | GH-02 — Controlled official-notice intake | GH-01, Gates A-D | Integration-tested | No actual Ghana records published; content approval never approves rights. |
+| [ ] | GH-03 — ORC acquisition and allowed enrichment | Source inventory and agreement | Access blocked | Contract, price, entitlement, schema and purpose required. |
+| [ ] | GH-04 — Curated public-office/PEP/SOE evidence | GH-01, approved coverage/retention policy | Deferred by policy | Approved PEP/SOE taxonomy, provenance, purpose and retention policy required. |
+| [ ] | NSDN-01 — Separate future OFAC non-SDN coverage | OFAC-03 and source-specific scope approval | Deferred coverage | Select and approve each additional list and its classification. |
+| [x] | PVL-01 — Tenant import schema and authority | Gates A-D, approved private-list permissions/retention | Integration-tested | Explicit restricted writer connection required; no credentials provisioned. |
+| [x] | PVL-02 — Reviewed publication, update/removal and audit | PVL-01 | Integration-tested | Published evidence retained; no automatic expiry on private list deletion. |
+| [x] | PVL-03 — Tenant management BFF/UI and investigation compatibility | PVL-02, API-02 | Integration-tested + browser-tested | Full browser suite and separate real-provider journey pass; baseline lint debt remains. |
+| [x] | INL-01 — Shared screening-owned scoped read facade | Gates A-D; approved contract | Integration-tested | Feature remains inactive without explicit decision runtime flag. |
+| [x] | INL-02 — Outcome policy, deadlines and evaluation ordering | INL-01, institution policy approval, relevant source/list acceptance | Integration-tested | Production quality, timeout budget and per-scenario policy activation require acceptance. |
+| [x] | INL-03 — Atomic evidence, replay and projection | INL-02; owner migration review | Integration-tested | Ordinary API retry idempotency remains the existing decision API contract; failed lookups create no successful decision. |
+| [x] | HARD-01 — Security/recovery matrix by gate | Applicable feature tasks | Integration-tested + scanned | Not a production penetration test, RLS isolation or OS-image attestation. |
+| [ ] | PERF-01 — Source-scale and shared-DB workload evidence | MAT-01; repeat after D, each source/private path and E | Measured; acceptance open | Complete workload: 87.487 decisions/s, p95 290.738 ms; target 500/s and 50 ms plus deployment acceptance remain unmet. |
+| [ ] | REL-01 — Scoped release and rollback acceptance | A-D plus source-specific/HARD/PERF gates; add PVL or E for those features | Release gated | Quality, legal/access, capacity, operations, baseline lint and explicit activation approval remain. |
+| [ ] | RES-01 — Reversible cross-source identity linking | A-D, separate identity-link policy approval | Deferred by policy | Separate identity-link policy approval; never merge on fuzzy names. |
 
-- Stage 1: this linked audit/design/source inventory/checklist with verified baseline and explicit unknowns.
-- Stage 2: controlled records work through the existing API and inline decision path, with scoped authorization, compatible results and rollback-tested migrations.
-- Stage 3: OFAC full retrieval, parsing, repeatable import, modifications, removals, versioned search evidence and negative-path tests pass on isolated PostgreSQL.
-- Stages 4–6: each additional source independently passes access, parsing, integrity and classification gates. Do not label all Ghana data as sanctions.
-- Stage 7: measured throughput/latency, recovery, operational procedures and rights review support a limited release. Production acceptance is separate from fixture or live-download verification.
+Detailed implementation/files/tests are in [Progress](INTERNAL_PROVIDER_PROGRESS.md), [Verification](INTERNAL_PROVIDER_VERIFICATION.md), and the machine ledger. Completed engineering IDs (26): FND-01, FND-02, FND-03, PRV-01, DB-01, ING-01, MAT-01, API-01, RSK-01, API-02, LIF-01, OPS-01, OPS-02, OFAC-02, OFAC-04, UN-01, UK-01, EU-02, GH-02, PVL-01, PVL-02, PVL-03, INL-01, INL-02, INL-03, HARD-01.
 
-Next implementation stage: FND-01 and DB-01, followed by controlled provider integration. No application migration or provider switch is part of Stage 1.
+## Reserved decisions
+
+The user approved tenant administrators as importers/approvers with different people required, and error-only inline failure behavior with no successful decision/effects. These are resolved decisions. Source licensing/redistribution, production retention, PEP/SOE classification, identity linking, deployment SLO acceptance and activation remain reserved. No source readiness or documentation checkbox grants production authority.

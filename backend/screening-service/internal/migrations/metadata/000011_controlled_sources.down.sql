@@ -1,0 +1,12 @@
+BEGIN;
+DROP TABLE screening.source_read_cursors;
+DROP TABLE screening.provider_run_authority;
+ALTER TABLE screening.screenings DROP CONSTRAINT source_screening_scope_unique;
+DROP TABLE screening.source_publications;
+DROP TABLE screening.source_names;
+DROP TABLE screening.source_records;
+ALTER TABLE screening.source_datasets DROP CONSTRAINT source_active_generation_fk;
+DROP TABLE screening.source_versions;
+DROP TABLE screening.source_grants;
+DROP TABLE screening.source_datasets;
+COMMIT;

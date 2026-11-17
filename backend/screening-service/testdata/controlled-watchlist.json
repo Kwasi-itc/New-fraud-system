@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "source": "controlled-fixture",
+  "records": [
+    {
+      "id": "controlled-person-001",
+      "name": "Ama Testperson",
+      "type": "Person",
+      "aliases": ["Ama Fixture Alias"],
+      "properties": {"nationality": ["gh"]},
+      "source_reference": "Controlled fictional fixture; not an official designation"
+    },
+    {
+      "id": "controlled-company-001",
+      "name": "Example Fixture Payments Ltd",
+      "type": "Organization",
+      "aliases": ["Fixture Payments"],
+      "properties": {"country": ["gh"], "registrationNumber": ["TEST-00001"]},
+      "source_reference": "Controlled fictional fixture; not an official designation"
+    }
+  ]
+}

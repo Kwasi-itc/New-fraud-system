@@ -36,7 +36,7 @@ func TestEveryLegacyOwnerRouteRejectsGeneralCredential(t *testing.T) {
 			r := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: mode, AuthToken: "general", ScreeningOperatorToken: secret})
 			count := 0
 			for _, route := range r.Routes() {
-				if !strings.HasPrefix(route.Path, "/v1/") || strings.HasPrefix(route.Path, "/v1/manual-screenings") || strings.HasPrefix(route.Path, "/v1/investigator/") {
+				if !strings.HasPrefix(route.Path, "/v1/") || strings.HasPrefix(route.Path, "/v1/manual-screenings") || strings.HasPrefix(route.Path, "/v1/investigator/") || strings.HasPrefix(route.Path, "/v1/private-lists") {
 					continue
 				}
 				parts := strings.Split(route.Path, "/")

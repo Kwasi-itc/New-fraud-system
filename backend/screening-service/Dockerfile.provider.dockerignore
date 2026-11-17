@@ -1,0 +1,17 @@
+**
+!backend/
+!backend/screening-service/
+!backend/screening-service/**
+!backend/investigator/
+!backend/investigator/**
+!docker/
+!docker/gateway/
+!docker/gateway/package.json
+!docker/gateway/package-lock.json
+backend/screening-service/evidence/
+backend/screening-service/.local/
+backend/screening-service/.env*
+**/*.pem
+**/*token*.txt
+**/node_modules/
+**/.git/

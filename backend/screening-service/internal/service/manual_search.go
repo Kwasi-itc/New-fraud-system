@@ -13,6 +13,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -23,26 +24,34 @@ var ErrManualConflict = errors.New("operation ID already used for a different se
 // ManualSearchInput deliberately excludes tenant, provider credentials, case links,
 // and arbitrary provider configuration. Identity comes from the authenticated API.
 type ManualSearchInput struct {
-	OperationID        string   `json:"operation_id"`
-	Name               string   `json:"name"`
-	EntityType         string   `json:"entity_type"`
-	Threshold          int      `json:"threshold"`
-	Limit              int      `json:"limit"`
-	BirthDate          string   `json:"birth_date,omitempty"`
-	Nationality        string   `json:"nationality,omitempty"`
-	Country            string   `json:"country,omitempty"`
-	RegistrationNumber string   `json:"registration_number,omitempty"`
-	Address            string   `json:"address,omitempty"`
-	Datasets           []string `json:"datasets,omitempty"`
+	Identifiers        []sourcedata.Identifier `json:"identifiers,omitempty"`
+	Provider           string                  `json:"provider,omitempty"`
+	Profile            string                  `json:"profile,omitempty"`
+	DatasetSelection   []sourcedata.DatasetRef `json:"dataset_selection,omitempty"`
+	OperationID        string                  `json:"operation_id"`
+	Name               string                  `json:"name"`
+	EntityType         string                  `json:"entity_type"`
+	Threshold          int                     `json:"threshold"`
+	Limit              int                     `json:"limit"`
+	BirthDate          string                  `json:"birth_date,omitempty"`
+	Nationality        string                  `json:"nationality,omitempty"`
+	Country            string                  `json:"country,omitempty"`
+	RegistrationNumber string                  `json:"registration_number,omitempty"`
+	Address            string                  `json:"address,omitempty"`
+	Datasets           []string                `json:"datasets,omitempty"`
 }
 
 func (in ManualSearchInput) Request(actor string) (screening.SearchRequest, error) {
 	id, err := uuid.Parse(in.OperationID)
 	name := strings.TrimSpace(in.Name)
-	if err != nil || id == uuid.Nil || actor == "" || name == "" || utf8.RuneCountInString(name) > 200 || (in.EntityType != "Person" && in.EntityType != "Organization") || in.Threshold < 0 || in.Threshold > 100 || in.Limit < 1 || in.Limit > 50 {
+	if err != nil || id == uuid.Nil || actor == "" || name == "" || utf8.RuneCountInString(name) > 200 || (in.EntityType != "Person" && in.EntityType != "Organization" && !(in.Provider == sourcedata.Provider && (in.EntityType == "Vessel" || in.EntityType == "Aircraft"))) || in.Threshold < 0 || in.Threshold > 100 || in.Limit < 1 || in.Limit > 50 {
 		return screening.SearchRequest{}, ErrManualInput
 	}
 	query := screening.SearchQuery{Name: name, Type: in.EntityType, BirthDate: strings.TrimSpace(in.BirthDate), Nationality: strings.ToLower(strings.TrimSpace(in.Nationality)), Country: strings.ToLower(strings.TrimSpace(in.Country)), RegistrationNumber: strings.TrimSpace(in.RegistrationNumber), Address: strings.TrimSpace(in.Address)}
+	query.Identifiers = in.Identifiers
+	if sourcedata.ValidateQueryIdentifiers(in.Identifiers) != nil || (len(in.Identifiers) > 0 && (in.Provider != sourcedata.Provider || in.Profile != sourcedata.IdentifierProfile)) {
+		return screening.SearchRequest{}, ErrManualInput
+	}
 	if (in.EntityType == "Person" && (query.Country != "" || query.RegistrationNumber != "")) || (in.EntityType == "Organization" && (query.BirthDate != "" || query.Nationality != "")) {
 		return screening.SearchRequest{}, ErrManualInput
 	}
@@ -86,8 +95,27 @@ func (in ManualSearchInput) Request(actor string) (screening.SearchRequest, erro
 		Threshold int      `json:"threshold"`
 		Datasets  []string `json:"datasets,omitempty"`
 	}{in.Threshold, datasets})
+	provider := in.Provider
+	if provider == "" {
+		provider = "opensanctions"
+	} // documented v1 identity, not registry fallback
+	if provider == sourcedata.Provider {
+		profile := in.Profile
+		if profile == "" {
+			profile = sourcedata.Profile
+		}
+		if len(in.Datasets) > 0 || (profile == sourcedata.Profile && (query.BirthDate != "" || query.Nationality != "" || query.Country != "" || query.RegistrationNumber != "" || query.Address != "")) {
+			return screening.SearchRequest{}, ErrManualInput
+		}
+		config, _ = json.Marshal(sourcedata.Selection{Version: 2, Profile: profile, Datasets: in.DatasetSelection, Threshold: in.Threshold})
+		if _, err := sourcedata.DecodeSelection(config); err != nil {
+			return screening.SearchRequest{}, ErrManualInput
+		}
+	} else if provider != "opensanctions" || len(in.DatasetSelection) > 0 || in.Profile != "" {
+		return screening.SearchRequest{}, ErrManualInput
+	}
 	return screening.SearchRequest{
-		Provider: "opensanctions", ObjectType: in.EntityType, ObjectID: id.String(),
+		Provider: provider, ObjectType: in.EntityType, ObjectID: id.String(),
 		IdempotencyKey: manualPrefix(actor) + id.String(), IsManual: true,
 		Queries:        []screening.SearchQuery{query},
 		ProviderConfig: config, LimitOverride: &in.Limit,
@@ -104,6 +132,13 @@ func ManualSearchSettings(raw json.RawMessage) ManualSearchInput {
 		return in
 	}
 	q := req.Queries[0]
+	if req.Provider == sourcedata.Provider {
+		in.Provider = req.Provider
+		if selected, err := sourcedata.DecodeSelection(req.ProviderConfig); err == nil {
+			in.DatasetSelection = selected.Datasets
+			in.Profile = selected.Profile
+		}
+	}
 	in.Name = q.Name
 	in.EntityType = q.Type
 	in.BirthDate = q.BirthDate
@@ -111,6 +146,7 @@ func ManualSearchSettings(raw json.RawMessage) ManualSearchInput {
 	in.Country = q.Country
 	in.RegistrationNumber = q.RegistrationNumber
 	in.Address = q.Address
+	in.Identifiers = q.Identifiers
 	var config struct {
 		Threshold int      `json:"threshold"`
 		Datasets  []string `json:"datasets"`
@@ -129,6 +165,9 @@ func manualPrefix(actor string) string { return "manual:" + actor + ":" }
 func (s ScreeningService) CreateManualSearch(ctx context.Context, tenant, actor string, in ManualSearchInput) (screening.Screening, error) {
 	req, err := in.Request(actor)
 	if err != nil {
+		return screening.Screening{}, err
+	}
+	if err := s.validateProvider(ctx, tenant, req); err != nil {
 		return screening.Screening{}, err
 	}
 	var result screening.Screening

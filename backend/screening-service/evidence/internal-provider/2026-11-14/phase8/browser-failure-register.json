@@ -1,0 +1,170 @@
+[
+  {
+    "file": "decision-selection.spec.ts",
+    "title": "select decisions, show actual membership, create one case and navigate",
+    "original_line": 27,
+    "classification": "Outdated test expectation",
+    "remediation": "Hidden empty toolbar, explicit checkbox selection and modal count; membership/create/filter/remove/cancel assertions retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "decision-selection.spec.ts",
+    "title": "selection clears on filter/page-size changes and modal supports remove/cancel",
+    "original_line": 50,
+    "classification": "Outdated test expectation",
+    "remediation": "Hidden empty toolbar, explicit checkbox selection and modal count; membership/create/filter/remove/cancel assertions retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "display-settings.spec.ts",
+    "title": "configure captions, linked labels and column order, then view them in Decisions",
+    "original_line": 10,
+    "classification": "Outdated test expectation and fixture contract problem",
+    "remediation": "Current display-column/linked-field fixture, editor/live-fetch/filter/visibility interactions; persisted labels/order and permission failure retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "display-settings.spec.ts",
+    "title": "permission failure keeps the editor and unsaved changes visible",
+    "original_line": 52,
+    "classification": "Outdated test expectation and fixture contract problem",
+    "remediation": "Current display-column/linked-field fixture, editor/live-fetch/filter/visibility interactions; persisted labels/order and permission failure retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "record-explorer.spec.ts",
+    "title": "investigator explores a relationship, follows the trail and saves a case note",
+    "original_line": 3,
+    "classification": "Outdated test expectation; genuine audit defect discovered",
+    "remediation": "Current tabs/record labels, pagination/attachment/root return and revocation assertions retained; exact decision, record and path persisted and verified",
+    "final_status": "expected"
+  },
+  {
+    "file": "record-explorer.spec.ts",
+    "title": "uncertain attachment refreshes membership and revoked exploration hides decisions",
+    "original_line": 32,
+    "classification": "Outdated test expectation",
+    "remediation": "Current tabs/record labels, pagination/attachment/root return and revocation assertions retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "decision lookup retains closed membership and creates from an unlinked decision",
+    "original_line": 16,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "investigator records approve with history and no automatic case closure",
+    "original_line": 122,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "investigator records decline with history and no automatic case closure",
+    "original_line": 122,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "investigator records confirmed_hit with history and no automatic case closure",
+    "original_line": 122,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "investigator records no_hit with history and no automatic case closure",
+    "original_line": 122,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "decision screening arrives with its decision (partial empty)",
+    "original_line": 173,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "decision screening arrives with its decision (match)",
+    "original_line": 173,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "screening arrival is visible before review (partial zero matches)",
+    "original_line": 186,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "screening arrival is visible before review (pending match)",
+    "original_line": 186,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "investigator inspects evidence, comments, closes, reloads, and reopens",
+    "original_line": 205,
+    "classification": "Outdated test expectation and rule-execution fixture problem",
+    "remediation": "Actual execution DTO; tabs/actions plus evidence/comments/close/reload/reopen assertions retained",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "empty queues and tenant switches never show another tenant's cached cases",
+    "original_line": 227,
+    "classification": "Outdated test expectation",
+    "remediation": "Session tenant remains authoritative; explicit foreign-tenant BFF request must be 403 without leaked data",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "evidence uploads finalize, survive reload, and download through the private proxy",
+    "original_line": 257,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "report drafts retain findings, require completion fields, and export privately",
+    "original_line": 301,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "decision transfer confirms destination and safely retries a lost acknowledgment",
+    "original_line": 333,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  },
+  {
+    "file": "workspace.spec.ts",
+    "title": "stale closure refreshes state and reopening handles capacity errors",
+    "original_line": 388,
+    "classification": "Outdated test expectation",
+    "remediation": "Current case tabs, actions and persisted-state assertions",
+    "final_status": "expected"
+  }
+]

@@ -2,6 +2,10 @@ package app
 
 import (
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerproduct"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconfig"
 	"os"
 	"strconv"
 	"strings"
@@ -9,6 +13,9 @@ import (
 )
 
 type Config struct {
+	RemoteProvider         *providerproduct.Client
+	PrivateListDatabaseURL string
+	PrivateListPolicy      privatelists.Policy
 	ScreeningIntakeToken   string
 	ScreeningCallbackToken string
 	ScreeningOperatorToken string
@@ -45,6 +52,23 @@ type Config struct {
 
 func LoadConfig() (Config, error) {
 	loadDotEnvIfPresent()
+	privateURL, err := sourceconfig.ReadSecret("PRIVATE_LIST_DATABASE_URL")
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid private-list writer configuration")
+	}
+	for _, key := range []string{"PRIVATE_LIST_IMPORT_ROLES", "PRIVATE_LIST_APPROVE_ROLES"} {
+		value := strings.TrimSpace(os.Getenv(key))
+		if value != "" && value != "tenant_admin" {
+			return Config{}, fmt.Errorf("private-list import and approval are restricted to tenant_admin")
+		}
+		if value != "" && privateURL == "" {
+			return Config{}, fmt.Errorf("private-list writer connection is required")
+		}
+	}
+	privatePolicy := privatelists.Policy{}
+	if privateURL != "" {
+		privatePolicy = privatelists.TenantAdministratorPolicy()
+	}
 
 	httpClientTimeout, err := getEnvDuration("HTTP_CLIENT_TIMEOUT", 10*time.Second)
 	if err != nil {
@@ -72,6 +96,8 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		PrivateListDatabaseURL: privateURL,
+		PrivateListPolicy:      privatePolicy,
 		ScreeningIntakeToken:   os.Getenv("SCREENING_INTAKE_TOKEN"),
 		ScreeningCallbackToken: os.Getenv("SCREENING_CALLBACK_TOKEN"),
 		ScreeningOperatorToken: os.Getenv("SCREENING_OPERATOR_TOKEN"),
@@ -112,6 +138,9 @@ func LoadConfig() (Config, error) {
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
+	if privatePolicy.Configured() && cfg.PrivateListDatabaseURL == "" {
+		return Config{}, fmt.Errorf("PRIVATE_LIST_DATABASE_URL is required when private-list permissions are configured")
+	}
 	if err := validateOperatorToken(cfg.ScreeningOperatorToken, cfg.ServiceAuthToken); err != nil {
 		return Config{}, err
 	}
@@ -149,6 +178,13 @@ func LoadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("MONITORED_OBJECT_QUEUE_WORKERS must be greater than zero")
 	}
 
+	cfg.RemoteProvider, err = providerproduct.FromEnvironment(cfg.HTTPClientTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	if err := provider.ValidateConfiguration(cfg.ScreeningProviderURL, cfg.ScreeningProviderURLs, cfg.OpenSanctionsAPIHost); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 

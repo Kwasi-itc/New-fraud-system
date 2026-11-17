@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-14",
+  "base_commit": "18c6e5d",
+  "branch": "main",
+  "revision": "Uncommitted Phase 1 and Phase 2 working-tree implementation",
+  "result": "Controlled scenario/provider/matching integration verified; matching quality and complete lifecycle acceptance remain open",
+  "provider": "internal-watchlists",
+  "profiles": [
+    "exact-name-v1",
+    "name-fuzzy-v1"
+  ],
+  "previously_verified_tasks_retained": [
+    "FND-03",
+    "PRV-01"
+  ],
+  "newly_integration_tested_task_ids": [
+    "API-01"
+  ],
+  "tested_subsets_of_open_tasks": [
+    "FND-01",
+    "DB-01",
+    "ING-01",
+    "MAT-01",
+    "RSK-01",
+    "API-02",
+    "QLT-01",
+    "FND-02",
+    "LIF-01"
+  ],
+  "database": {
+    "version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2), x86_64",
+    "target": "Dedicated tmpfs fraud-provider-phase2-db on fraud-provider-phase2-test; isolated databases per test",
+    "application_database_accessed": false,
+    "application_migrations_applied": false,
+    "migrations_created": [
+      "000012_fuzzy_names.up.sql",
+      "000012_fuzzy_names.down.sql"
+    ],
+    "shared_extensions": [
+      "pg_trgm",
+      "unaccent"
+    ],
+    "down_behavior": "Shared extensions retained; source index/generated projection/function reverted",
+    "production_roles_provisioned": false
+  },
+  "architecture": {
+    "scenario": "Existing session BFF -> current authoring permissions -> canonical v2 config/audit -> decision evaluation -> durable execution -> authenticated exact-request/parent proof -> separate run authority -> real screening worker -> published PostgreSQL data -> results/case delivery/enrichment/review",
+    "scope": "Manual sessions remain current-identity scoped. Scenario scopes bind active tenant/config, exact stored execution/request and its allowed dataset set across all five operations; no client tenant/owner field becomes authority.",
+    "enrichment": "Signed investigator JWT plus current tenant/case/inbox/exact-match access; provider IO outside locks; current access rechecked before merging with latest review state",
+    "source_owner_reads": "Decision authoring reads scoped screening publication metadata; screening validates core execution/config/decision parents. No cross-owner mutations introduced.",
+    "legacy": "Named OpenSanctions v1 meaning preserved; no synthetic fallback; actual internal scenario test observed zero legacy HTTP calls"
+  },
+  "runs": [
+    {
+      "name": "full-screening-suite",
+      "command": "bash scripts/test-controlled-provider.sh full",
+      "top_level_passed": 111,
+      "test_and_subtest_passed": 220,
+      "packages_passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "start_utc": "2026-11-14T06:34:29.928769072Z",
+      "end_utc": "2026-11-14T06:35:44.501132857Z",
+      "raw_log": ".local/provider-phase2/verified-backend.jsonl (ignored)"
+    },
+    {
+      "name": "final-authority-and-canonical-runtime-hardening",
+      "command": "CONTROLLED_TEST_RUN=TestInternalProviderScenarioAuthoringThroughRealWorkers|TestInternalProviderThroughAuthenticatedAPIWorkerAndReview|TestInternalProviderFiveOperationsAndIsolation|TestScopeRequires bash scripts/test-controlled-provider.sh full",
+      "note": "Fresh binaries; targeted verification after dataset-scope binding and canonical runtime validation; quality corpus not rerun or retuned",
+      "top_level_passed": 4,
+      "test_and_subtest_passed": 4,
+      "packages_passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "start_utc": "2026-11-14T06:51:35.631138014Z",
+      "end_utc": "2026-11-14T06:51:52.538240291Z",
+      "raw_log": ".local/provider-phase2/final-authority.jsonl (ignored)"
+    },
+    {
+      "name": "affected-decision-engine-regressions",
+      "working_directory": "backend/decision-engine-service",
+      "command": "go test -mod=readonly -count=1 -json ./internal/domain/screening ./internal/service ./internal/store/postgres ./internal/clients/screeningcapabilities ./internal/httpapi ./internal/httpapi/handlers",
+      "environment": "DECISION_TEST_DATABASE_URL and DECISION_ENGINE_TEST_DATABASE_URL point only to the disposable server",
+      "top_level_passed": 169,
+      "test_and_subtest_passed": 260,
+      "packages_passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "start_utc": "2026-11-14T06:51:25.944346889Z",
+      "end_utc": "2026-11-14T06:51:43.787874668Z",
+      "raw_log": ".local/provider-phase2/decision-regression.jsonl (ignored)"
+    },
+    {
+      "name": "existing-and-new-browser-contracts",
+      "working_directory": "frontend",
+      "command": "npx playwright test manual-screening.spec.ts screening-capabilities.spec.ts screening-evidence.spec.ts screening-report.spec.ts scenario-screening.spec.ts scenario-screening-list.spec.ts scenario-screening-inline.spec.ts decision-screening.spec.ts decision-screening-access.spec.ts internal-scenario-screening.spec.ts --reporter=json",
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "start_utc": "2026-11-14T06:57:29.284Z",
+      "duration_ms": 66294.584,
+      "raw_log": ".local/provider-phase2/final-browser.json (ignored)"
+    },
+    {
+      "name": "real-provider-browser-and-companion-backend",
+      "command": "npx playwright test internal-provider-live.spec.ts --reporter=json; signal ignored test-state .done immediately after exit",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "start_utc": "2026-11-14T07:14:33.738Z",
+      "duration_ms": 10415.994999999999,
+      "raw_log": ".local/provider-phase2/live-final-browser.json (ignored)",
+      "companion_backend": {
+        "top_level_passed": 13,
+        "test_and_subtest_passed": 18,
+        "packages_passed": 5,
+        "failed": 0,
+        "skipped": 0,
+        "start_utc": "2026-11-14T07:11:40.028593835Z",
+        "end_utc": "2026-11-14T07:14:44.674493487Z",
+        "raw_log": ".local/provider-phase2/live-final-backend.jsonl (ignored)"
+      },
+      "auth_boundary": "Browser session establishment is a fixture. BFF bearer JWT, backend current identity/case/inbox checks, PostgreSQL provider, durable queue, actual worker, matches, enrichment and history are real.",
+      "assertions": [
+        "Person and Organization alias results",
+        "saved history reopened",
+        "published generation/provenance",
+        "fuzzy spelling result and explanation",
+        "signed case-enrichment BFF success"
+      ],
+      "screenshot": ".local/provider-phase2/fuzzy-results.png (ignored; visually inspected)"
+    },
+    {
+      "name": "frontend-compilation",
+      "commands": [
+        "npx tsc --noEmit",
+        "npm run build"
+      ],
+      "result": "passed",
+      "logs": ".local/provider-phase2/frontend-build.log and typescript-current.log (ignored)"
+    }
+  ],
+  "quality": {
+    "artifact": "matching-quality.json",
+    "corpus_records": 200,
+    "corpus_queries": 2000,
+    "identity_families": 200,
+    "partitions": {
+      "development": 600,
+      "calibration": 400,
+      "holdout": 1000
+    },
+    "label_method": "Deterministic engineering transformations; independent two-reviewer adjudication pending",
+    "calibrated_threshold": 84,
+    "default_threshold": 85,
+    "holdout": {
+      "errors": 0,
+      "negative_queries": 500,
+      "partial_queries": 0,
+      "positive_queries": 500,
+      "precision": {
+        "numerator": 500,
+        "denominator": 540,
+        "value": 0.9259259259259259,
+        "wilson_95_low": 0.9007020430248498,
+        "wilson_95_high": 0.9451326989558331
+      },
+      "queries": 1000,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 500,
+        "value": 0,
+        "wilson_95_low": 4.336808689942018e-19,
+        "wilson_95_high": 0.007624340461552241
+      },
+      "query_false_positive_rate": {
+        "numerator": 26,
+        "denominator": 500,
+        "value": 0.052,
+        "wilson_95_low": 0.035730265115705276,
+        "wilson_95_high": 0.07510114393784553
+      },
+      "retrieval_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.227015,
+        "p95": 27.714333,
+        "p99": 39.619203
+      },
+      "scored_identity_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "default_85_holdout": {
+      "errors": 0,
+      "negative_queries": 500,
+      "partial_queries": 0,
+      "positive_queries": 500,
+      "precision": {
+        "numerator": 500,
+        "denominator": 539,
+        "value": 0.9276437847866419,
+        "wilson_95_low": 0.9026142675598807,
+        "wilson_95_high": 0.9466207945547702
+      },
+      "queries": 1000,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 500,
+        "value": 0,
+        "wilson_95_low": 4.336808689942018e-19,
+        "wilson_95_high": 0.007624340461552241
+      },
+      "query_false_positive_rate": {
+        "numerator": 25,
+        "denominator": 500,
+        "value": 0.05,
+        "wilson_95_low": 0.034093745243849435,
+        "wilson_95_high": 0.0727681611715476
+      },
+      "retrieval_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.227015,
+        "p95": 27.714333,
+        "p99": 39.619203
+      },
+      "scored_identity_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "threshold": 85
+    },
+    "oracle": {
+      "above_threshold_retrieval_losses": 0,
+      "queries": 40,
+      "threshold_percentage": 85
+    },
+    "proposed_point_floors_met": false,
+    "production_accuracy_claim": false
+  },
+  "performance": {
+    "environment": "Shared Docker Desktop development host, Go 1.25.8 GOMAXPROCS=2; existing application containers may contend; no dedicated workload profile",
+    "search": {
+      "p50_ms": 12.324664,
+      "p95_ms": 18.649991,
+      "p99_ms": 19.517957,
+      "samples": 100,
+      "scope": "Full provider Search only; excludes HTTP, queue, persistence and decision evaluation"
+    },
+    "query_plan_observation": "On 200 records/204 total fixture records PostgreSQL used source_names_pkey lookups and a small source_records scan; the new GIN index was not chosen. No production-scale index/throughput claim.",
+    "decision_latency_measured": false,
+    "sustainable_tps_measured": false
+  },
+  "lifecycle": {
+    "verified": [
+      "additions",
+      "record modifications",
+      "record removals",
+      "alias removal",
+      "stable scoped source identity",
+      "version/publication audit",
+      "atomic publication failure and concurrent-parent fencing",
+      "last good publication preserved",
+      "retained-generation enrichment",
+      "staged active pointer rejected"
+    ],
+    "rescreening": "Review incomplete: private maintenance is denied without explicit subscription authority; legacy maintenance has a first-500 object cap, per-object config reads and undrained delta pages. OPS-02 remains Planned; no complete automatic fanout claimed."
+  },
+  "remaining": [
+    "Precision/FPR floors not met; independent two-reviewer adjudication and representative coverage required",
+    "Typed passport/national-ID/issuer/category queries and identifier-only retrieval",
+    "Universal transliteration and language/source-specific calibration",
+    "Raw artifact retention, field diffs, audited rollback, evidence GC and process recovery",
+    "Authorized complete private/global rescreening and lifecycle delivery",
+    "Source-scale query plans, load, pool/storage budgets and production grants/rollout",
+    "Official feeds, full customer list management and inline enforcement are not implemented"
+  ],
+  "harness_corrections": [
+    "Initial capability test updated for the additive provider_configured field",
+    "Native option assertion uses its disabled attribute; full browser rerun passes",
+    "First live browser passed but manual completion signal was late; final rerun signals automatically and both browser/backend pass"
+  ],
+  "boundaries": {
+    "official_sources_fetched": false,
+    "existing_credentials_modified": false,
+    "production_provider_configuration_changed": false,
+    "application_containers_or_volumes_modified": false,
+    "commit_or_push_performed": false
+  },
+  "artifacts": [
+    {
+      "path": "testdata/matching-corpus-v1.json",
+      "sha256": "b37a40041e969c675af1aff16d4c67de5cd1754d008551806190fc1abc9730c3"
+    },
+    {
+      "path": "internal/matching/name.go",
+      "sha256": "59773b44758f4ab5fb5ba0c71addfa4f89c4bd1c3f18d145d714710eb7586a65"
+    },
+    {
+      "path": "internal/migrations/metadata/000012_fuzzy_names.up.sql",
+      "sha256": "fe4838064affb9c49c4a5e0f66ef645366b3d91120850563aaedfaf9931558b8"
+    },
+    {
+      "path": "internal/migrations/metadata/000012_fuzzy_names.down.sql",
+      "sha256": "24fbf9f47b52fc2b894ebf431e9e41d51c52498a8a1bcc4629d7d0bae48c4ed9"
+    }
+  ],
+  "cleanup": {
+    "disposable_container_removed": "fraud-provider-phase2-db",
+    "disposable_network_removed": "fraud-provider-phase2-test",
+    "temporary_browser_jwt_state_and_marker_deleted": true,
+    "application_containers_and_volumes_preserved": true,
+    "existing_auth_material_unchanged": true,
+    "ignored_raw_logs_and_screenshot_retained": true
+  },
+  "documentation_validation": {
+    "documents": 6,
+    "local_links_and_anchors": 123,
+    "unique_task_ids": 37,
+    "status_counts": {
+      "In progress": 9,
+      "Integration-tested": 3,
+      "Planned": 25
+    },
+    "all_task_fields_populated": true,
+    "explicit_dependency_cycles": 0,
+    "corpus_reproduced_without_rewriting_frozen_file": true,
+    "corpus_families_do_not_cross_partitions": true,
+    "artifact_hashes_verified": 4,
+    "changed_secret_paths": 0,
+    "changed_private_key_blocks": 0,
+    "git_diff_check": "passed",
+    "errors": []
+  }
+}

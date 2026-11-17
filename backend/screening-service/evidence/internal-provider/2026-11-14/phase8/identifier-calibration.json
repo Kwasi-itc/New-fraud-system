@@ -1,0 +1,2997 @@
+{
+  "calibration": {
+    "accepted_threshold": null,
+    "feasible_thresholds": [
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100
+    ],
+    "partition": "calibration only",
+    "policy": "No automatic selection: independent representative labels, confidence bounds and risk-owner approval remain mandatory; a feasible synthetic point estimate does not establish quality acceptance",
+    "runtime_threshold_changed": false,
+    "sweep": [
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 50
+        },
+        "threshold": 50
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 51
+        },
+        "threshold": 51
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 52
+        },
+        "threshold": 52
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 53
+        },
+        "threshold": 53
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 54
+        },
+        "threshold": 54
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 55
+        },
+        "threshold": 55
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 56
+        },
+        "threshold": 56
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 57
+        },
+        "threshold": 57
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 58
+        },
+        "threshold": 58
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 59
+        },
+        "threshold": 59
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 60
+        },
+        "threshold": 60
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 61
+        },
+        "threshold": 61
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 62
+        },
+        "threshold": 62
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 63
+        },
+        "threshold": 63
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 64
+        },
+        "threshold": 64
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 65
+        },
+        "threshold": 65
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 66
+        },
+        "threshold": 66
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 67
+        },
+        "threshold": 67
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 68
+        },
+        "threshold": 68
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 69
+        },
+        "threshold": 69
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 70
+        },
+        "threshold": 70
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 71
+        },
+        "threshold": 71
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 72
+        },
+        "threshold": 72
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 73
+        },
+        "threshold": 73
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 74
+        },
+        "threshold": 74
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 75
+        },
+        "threshold": 75
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 76
+        },
+        "threshold": 76
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 77
+        },
+        "threshold": 77
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 78
+        },
+        "threshold": 78
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 79
+        },
+        "threshold": 79
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 80
+        },
+        "threshold": 80
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 81
+        },
+        "threshold": 81
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 82
+        },
+        "threshold": 82
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 83
+        },
+        "threshold": 83
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 84
+        },
+        "threshold": 84
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 85
+        },
+        "threshold": 85
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 86
+        },
+        "threshold": 86
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 87
+        },
+        "threshold": 87
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 88
+        },
+        "threshold": 88
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 89
+        },
+        "threshold": 89
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 90
+        },
+        "threshold": 90
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 91
+        },
+        "threshold": 91
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 92
+        },
+        "threshold": 92
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 93
+        },
+        "threshold": 93
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 94
+        },
+        "threshold": 94
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 95
+        },
+        "threshold": 95
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 96
+        },
+        "threshold": 96
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 97
+        },
+        "threshold": 97
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 98
+        },
+        "threshold": 98
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 99
+        },
+        "threshold": 99
+      },
+      {
+        "meets_proposed_point_floors": true,
+        "metrics": {
+          "errors": 0,
+          "indeterminate_queries": 10,
+          "negative_queries": 80,
+          "partial_queries": 0,
+          "positive_queries": 90,
+          "precision": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "queries": 180,
+          "query_false_negative_rate": {
+            "numerator": 0,
+            "denominator": 90,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.04093562556432678
+          },
+          "query_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 80,
+            "value": 0,
+            "wilson_95_low": 0,
+            "wilson_95_high": 0.0458181295355271
+          },
+          "retrieval_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "retrieval_scoring_ms": {
+            "p50": 7.639,
+            "p95": 10.41,
+            "p99": 13.621
+          },
+          "scored_identity_recall": {
+            "numerator": 90,
+            "denominator": 90,
+            "value": 1,
+            "wilson_95_low": 0.9590643744356734,
+            "wilson_95_high": 1
+          },
+          "threshold": 100
+        },
+        "threshold": 100
+      }
+    ]
+  },
+  "corpus_sha256": "50d77e0f1bbc6f9b2f94160a58e6fbe8dd52aafdee85cab55074722f7f585e7f",
+  "default_threshold": 85,
+  "diagnostics": {
+    "commonality_definition": "A query token appears in at least 12 distinct retrieved corpus records; diagnostic only, never used to tune scoring.",
+    "counts": {
+      "candidate_dataset:private-controlled": {
+        "true_positive_candidate": 270
+      },
+      "common_token_at_least_12_records:false": {
+        "true_positive_candidate": 270
+      },
+      "entity_type:Organization": {
+        "true_positive_candidate": 90
+      },
+      "entity_type:Person": {
+        "true_positive_candidate": 90
+      },
+      "entity_type:Vessel": {
+        "true_positive_candidate": 90
+      },
+      "identifier_context:agreement": {
+        "true_positive_candidate": 180
+      },
+      "identifier_context:no_identifier_or_date_query": {
+        "true_positive_candidate": 90
+      },
+      "matched_field:name": {
+        "true_positive_candidate": 270
+      },
+      "name_length:16_plus_runes": {
+        "true_positive_candidate": 270
+      },
+      "partition:calibration": {
+        "true_positive_candidate": 90
+      },
+      "partition:development": {
+        "true_positive_candidate": 90
+      },
+      "partition:holdout": {
+        "true_positive_candidate": 90
+      },
+      "query_category_label:fictional_identifier_contract": {
+        "true_positive_candidate": 270
+      },
+      "query_source_label:private-controlled": {
+        "true_positive_candidate": 270
+      },
+      "strategy:exact_identifier_with_name_evidence": {
+        "true_positive_candidate": 180
+      },
+      "strategy:exact_normalized": {
+        "true_positive_candidate": 90
+      },
+      "stratum:exact_id_unrelated_name": {
+        "true_positive_candidate": 90
+      },
+      "stratum:exact_name_missing_identifier": {
+        "true_positive_candidate": 90
+      },
+      "stratum:outer_whitespace": {
+        "true_positive_candidate": 90
+      }
+    },
+    "development_examples": [],
+    "source_scope": "quality-global/private are fictional dataset labels; category labels are synthetic query strata and confounded with entity type. They are not measurements of official OFAC/UN/UK quality.",
+    "threshold": 85,
+    "transliteration_scope": "Explicit synthetic native-script aliases only; automatic transliteration is not implemented or assessed."
+  },
+  "families": 90,
+  "labels": "Deterministic typed-namespace contract examples; not independently adjudicated identity truth",
+  "limitations": [
+    "Artificial random unique names avoid name collisions and are not representative identity prevalence",
+    "Same-name different-passport examples are indeterminate: people can hold multiple passports",
+    "Missing namespace is rejected by request validation and is covered by separate unit/security tests, not labelled a true negative",
+    "No transliteration or real official-source quality claim; no LEI/IMO checksum-validation claim",
+    "Family partitions have distinct identifiers and names but share generation rules; no statistical independence or production acceptance claim"
+  ],
+  "partitions": {
+    "calibration": {
+      "errors": 0,
+      "indeterminate_queries": 10,
+      "negative_queries": 80,
+      "partial_queries": 0,
+      "positive_queries": 90,
+      "precision": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "queries": 180,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 90,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.04093562556432678
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 80,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.0458181295355271
+      },
+      "retrieval_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 7.639,
+        "p95": 10.41,
+        "p99": 13.621
+      },
+      "scored_identity_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "threshold": 85
+    },
+    "development": {
+      "errors": 0,
+      "indeterminate_queries": 10,
+      "negative_queries": 80,
+      "partial_queries": 0,
+      "positive_queries": 90,
+      "precision": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "queries": 180,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 90,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.04093562556432678
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 80,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.0458181295355271
+      },
+      "retrieval_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 7.201,
+        "p95": 9.759,
+        "p99": 18.389
+      },
+      "scored_identity_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "threshold": 85
+    },
+    "holdout": {
+      "errors": 0,
+      "indeterminate_queries": 10,
+      "negative_queries": 80,
+      "partial_queries": 0,
+      "positive_queries": 90,
+      "precision": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "queries": 180,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 90,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.04093562556432678
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 80,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.0458181295355271
+      },
+      "retrieval_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 7.602,
+        "p95": 11.221,
+        "p99": 14.153
+      },
+      "scored_identity_recall": {
+        "numerator": 90,
+        "denominator": 90,
+        "value": 1,
+        "wilson_95_low": 0.9590643744356734,
+        "wilson_95_high": 1
+      },
+      "threshold": 85
+    }
+  },
+  "production_quality_accepted": false,
+  "profile": "identifier-evidence-v1",
+  "queries": 540,
+  "runtime_threshold_changed": false,
+  "scorer_sha256": "432dad225a5713208c4a7839b85d8346d8066c4db91465413647ccf6e110b0c5"
+}

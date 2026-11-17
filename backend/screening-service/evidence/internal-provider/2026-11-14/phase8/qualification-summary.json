@@ -1,0 +1,558 @@
+{
+  "generated_at": "2026-11-15T19:56:34.320Z",
+  "tests": {
+    "screening-full-tests.jsonl": {
+      "screening-service": {
+        "passed_top_level": 138,
+        "passed_including_subtests": 288,
+        "failed": [],
+        "skipped_tests": [
+          "TestOfficialLiveArtifacts",
+          "TestAcceptanceCompleteDecisionWorkload",
+          "TestAcceptanceLogicalRestorePreservesEvidenceAndResumesWorkers",
+          "TestSourceStageCrashHelper",
+          "TestSourceWorkloadConcurrentPublicationAndLargeCatalog"
+        ],
+        "packages_failed": []
+      }
+    },
+    "auth-tests-final.jsonl": {
+      "auth-service": {
+        "passed_top_level": 33,
+        "passed_including_subtests": 60,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    },
+    "decision-tests-final.jsonl": {
+      "decision-engine-service": {
+        "passed_top_level": 260,
+        "passed_including_subtests": 423,
+        "failed": [],
+        "skipped_tests": [
+          "TestConfiguredMMDBCanResolvePublicIP"
+        ],
+        "packages_failed": []
+      }
+    },
+    "companion-tests.jsonl": {
+      "case-manager-service": {
+        "passed_top_level": 90,
+        "passed_including_subtests": 157,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      },
+      "investigator": {
+        "passed_top_level": 1,
+        "passed_including_subtests": 1,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    },
+    "restore-tests-final.jsonl": {
+      "screening-service": {
+        "passed_top_level": 1,
+        "passed_including_subtests": 1,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    },
+    "live-browser-backend.jsonl": {
+      "screening-service": {
+        "passed_top_level": 1,
+        "passed_including_subtests": 1,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    },
+    "quality-tests-final.jsonl": {
+      "screening-service": {
+        "passed_top_level": 2,
+        "passed_including_subtests": 2,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    },
+    "acceptance-performance-final.jsonl": {
+      "screening-service": {
+        "passed_top_level": 1,
+        "passed_including_subtests": 1,
+        "failed": [],
+        "skipped_tests": [],
+        "packages_failed": []
+      }
+    }
+  },
+  "browser-full-final.json": {
+    "startTime": "2026-11-15T19:31:42.138Z",
+    "duration": 367480.307,
+    "expected": 134,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "browser-live-final.json": {
+    "startTime": "2026-11-15T19:38:44.586Z",
+    "duration": 19288.751,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "frontend-production-audit-final.json": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "frontend-all-audit-final.json": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "lint_current": {
+    "errors": 20,
+    "warnings": 74,
+    "findings": [
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 1,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 2,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 3,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 4,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@next/next/no-assign-module-variable",
+        "line": 18,
+        "message": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable"
+      },
+      {
+        "file": "src/components/cases/assignee-search-dropdown.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 37,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/bulk-actions.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 45,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/case-detail.tsx",
+        "rule": "prefer-const",
+        "line": 1356,
+        "message": "'t' is never reassigned. Use 'const' instead."
+      },
+      {
+        "file": "src/components/cases/case-queue.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 105,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/decision-case.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 103,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/decision-case.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 103,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 158,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 165,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 173,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 661,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/detection/rule-operand-selector.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 204,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      }
+    ]
+  },
+  "lint_baseline": {
+    "errors": 20,
+    "warnings": 74,
+    "findings": [
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 1,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 2,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 3,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@typescript-eslint/no-require-imports",
+        "line": 4,
+        "message": "A `require()` style import is forbidden."
+      },
+      {
+        "file": "scripts/check-rule-roundtrip.js",
+        "rule": "@next/next/no-assign-module-variable",
+        "line": 18,
+        "message": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable"
+      },
+      {
+        "file": "src/components/cases/assignee-search-dropdown.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 37,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/bulk-actions.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 45,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/case-detail.tsx",
+        "rule": "prefer-const",
+        "line": 1356,
+        "message": "'t' is never reassigned. Use 'const' instead."
+      },
+      {
+        "file": "src/components/cases/case-queue.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 105,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/cases/decision-case.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 103,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/decision-case.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 103,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/cases/record-explorer.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 107,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 158,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 165,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 173,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      },
+      {
+        "file": "src/components/detection/rule-detail-page.tsx",
+        "rule": "react-hooks/preserve-manual-memoization",
+        "line": 661,
+        "message": "Compilation Skipped: Existing memoization could not be preserved"
+      },
+      {
+        "file": "src/components/detection/rule-operand-selector.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "line": 204,
+        "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+      }
+    ]
+  },
+  "lint_error_classes_match_baseline": true,
+  "lint_baseline_source_hashes": [
+    {
+      "file": "scripts/check-rule-roundtrip.js",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/assignee-search-dropdown.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/bulk-actions.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/case-detail.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/case-queue.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/decision-case.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/cases/record-explorer.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/detection/rule-detail-page.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    },
+    {
+      "file": "src/components/detection/rule-operand-selector.tsx",
+      "matches_HEAD_after_CRLF_normalization": true
+    }
+  ],
+  "scans": {
+    "screening-service": {
+      "findings": [
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-5932",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        }
+      ],
+      "configuration": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      }
+    },
+    "decision-engine-service": {
+      "findings": [
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-5932",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        }
+      ],
+      "configuration": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      }
+    },
+    "auth-service": {
+      "findings": [],
+      "configuration": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      }
+    },
+    "case-manager-service": {
+      "findings": [
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-5932",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6860",
+          "reachable": false
+        },
+        {
+          "id": "GO-2026-6866",
+          "reachable": false
+        }
+      ],
+      "configuration": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      }
+    }
+  },
+  "frozen_hashes": [
+    {
+      "file": "backend/screening-service/internal/matching/name.go",
+      "sha256": "59773b44758f4ab5fb5ba0c71addfa4f89c4bd1c3f18d145d714710eb7586a65",
+      "expected": "59773b44758f4ab5fb5ba0c71addfa4f89c4bd1c3f18d145d714710eb7586a65"
+    },
+    {
+      "file": "backend/screening-service/internal/matching/token_v2.go",
+      "sha256": "a6b9fff9bb16eb4d30645d1efbfe9fa82bdf6a1a99d07933617002c338579fb5",
+      "expected": "a6b9fff9bb16eb4d30645d1efbfe9fa82bdf6a1a99d07933617002c338579fb5"
+    },
+    {
+      "file": "backend/screening-service/testdata/matching-corpus-v1.json",
+      "sha256": "b37a40041e969c675af1aff16d4c67de5cd1754d008551806190fc1abc9730c3",
+      "expected": "b37a40041e969c675af1aff16d4c67de5cd1754d008551806190fc1abc9730c3"
+    },
+    {
+      "file": "backend/screening-service/testdata/matching-corpus-v2.json",
+      "sha256": "7997e7e4aae86421d4c6c18f0995e0f09b101b25728b89753925aeb7938c76ad",
+      "expected": "7997e7e4aae86421d4c6c18f0995e0f09b101b25728b89753925aeb7938c76ad"
+    }
+  ],
+  "frozen_files_unchanged": true,
+  "scope": "2026-11-14/15 Phase 8, disposable shared-schema PostgreSQL only; no activation",
+  "no_production_changes": true,
+  "production_ready": false
+}

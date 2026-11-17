@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-14",
+  "scans": {
+    "screening-service": {
+      "config": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      },
+      "reachable_ids": [],
+      "module_or_package_findings": 5,
+      "raw_sha256": "60919f7d176d16a425b8ca2e9542984dcf3579c7b9d4a0538c25e77094967dd0"
+    },
+    "decision-engine-service": {
+      "config": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      },
+      "reachable_ids": [],
+      "module_or_package_findings": 5,
+      "raw_sha256": "d1beecbed5df5f6f9e380d4604623270748c130cf4ded7273fc53f4a8b86bd90"
+    },
+    "auth-service": {
+      "config": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      },
+      "reachable_ids": [],
+      "module_or_package_findings": 0,
+      "raw_sha256": "faaac9c536a929469294fff5f92cf0dab090bb5c7371decafcc29a184a790617"
+    },
+    "case-manager-service": {
+      "config": {
+        "protocol_version": "v1.0.0",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.9.0",
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-11-11T02:51:11Z",
+        "go_version": "go1.27.4",
+        "scan_level": "symbol",
+        "scan_mode": "source"
+      },
+      "reachable_ids": [],
+      "module_or_package_findings": 5,
+      "raw_sha256": "11c8e5198df9ad60744cf2d9527ac30f6a1d1cde0cdef1df0f288010bc4abd5f"
+    }
+  },
+  "scanner": "govulncheck v1.9.0, source/symbol mode, public vuln.go.dev database",
+  "note": "JSON mode exit status was not treated as a clean bill of health; emitted reachable findings were inspected. This is not an image/OS/SBOM attestation."
+}

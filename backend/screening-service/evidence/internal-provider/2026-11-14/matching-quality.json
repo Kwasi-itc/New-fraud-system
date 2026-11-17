@@ -1,0 +1,3939 @@
+{
+  "calibrated_threshold": 84,
+  "calibration_selection": "Highest calibration F1; first/lower threshold wins ties; holdout labels not used for selection",
+  "calibration_sweep": [
+    {
+      "f1": 0.13236267372600927,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 2822,
+          "value": 0.07087172218284904,
+          "wilson_95_low": 0.06197586328800368,
+          "wilson_95_high": 0.0809342980588501
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 171,
+          "denominator": 200,
+          "value": 0.855,
+          "wilson_95_low": 0.7995133246921847,
+          "wilson_95_high": 0.8971064935799559
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 50
+      },
+      "threshold": 50
+    },
+    {
+      "f1": 0.13726835964310227,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 2714,
+          "value": 0.07369196757553427,
+          "wilson_95_low": 0.06445351650186348,
+          "wilson_95_high": 0.08413552555209286
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 168,
+          "denominator": 200,
+          "value": 0.84,
+          "wilson_95_low": 0.7828592983793289,
+          "wilson_95_high": 0.8843258796841297
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 51
+      },
+      "threshold": 51
+    },
+    {
+      "f1": 0.15904572564612324,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 2315,
+          "value": 0.08639308855291576,
+          "wilson_95_low": 0.07562288743780533,
+          "wilson_95_high": 0.09853367565300551
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 164,
+          "denominator": 200,
+          "value": 0.82,
+          "wilson_95_low": 0.7608852497127511,
+          "wilson_95_high": 0.8670537414057983
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 52
+      },
+      "threshold": 52
+    },
+    {
+      "f1": 0.18365472910927455,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1978,
+          "value": 0.10111223458038422,
+          "wilson_95_low": 0.08858993609649865,
+          "wilson_95_high": 0.11518088372528579
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 151,
+          "denominator": 200,
+          "value": 0.755,
+          "wilson_95_low": 0.6909575644379659,
+          "wilson_95_high": 0.8094313191096282
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 53
+      },
+      "threshold": 53
+    },
+    {
+      "f1": 0.18475750577367203,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1965,
+          "value": 0.10178117048346055,
+          "wilson_95_low": 0.0891798379851568,
+          "wilson_95_high": 0.11593645363468186
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 148,
+          "denominator": 200,
+          "value": 0.74,
+          "wilson_95_low": 0.6750925439746589,
+          "wilson_95_high": 0.7958616993642531
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 54
+      },
+      "threshold": 54
+    },
+    {
+      "f1": 0.22779043280182232,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1556,
+          "value": 0.12853470437017994,
+          "wilson_95_low": 0.11281536033238673,
+          "wilson_95_high": 0.1460836813215101
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 130,
+          "denominator": 200,
+          "value": 0.65,
+          "wilson_95_low": 0.5816346433604008,
+          "wilson_95_high": 0.7127117587264192
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 55
+      },
+      "threshold": 55
+    },
+    {
+      "f1": 0.2469135802469136,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1420,
+          "value": 0.14084507042253522,
+          "wilson_95_low": 0.12371951769399309,
+          "wilson_95_high": 0.15990859013985126
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 129,
+          "denominator": 200,
+          "value": 0.645,
+          "wilson_95_low": 0.5765211307549043,
+          "wilson_95_high": 0.7080137245956883
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 56
+      },
+      "threshold": 56
+    },
+    {
+      "f1": 0.26542800265428,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1307,
+          "value": 0.1530221882172915,
+          "wilson_95_low": 0.1345236576602642,
+          "wilson_95_high": 0.17355437580688926
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 116,
+          "denominator": 200,
+          "value": 0.58,
+          "wilson_95_low": 0.5107207393958046,
+          "wilson_95_high": 0.6462640083838327
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 57
+      },
+      "threshold": 57
+    },
+    {
+      "f1": 0.30395136778115506,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 1116,
+          "value": 0.17921146953405018,
+          "wilson_95_low": 0.15782192077657053,
+          "wilson_95_high": 0.20280185827692143
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 110,
+          "denominator": 200,
+          "value": 0.55,
+          "wilson_95_low": 0.48075615138475697,
+          "wilson_95_high": 0.6173593159775166
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 58
+      },
+      "threshold": 58
+    },
+    {
+      "f1": 0.338409475465313,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 982,
+          "value": 0.20366598778004075,
+          "wilson_95_low": 0.17965498726209914,
+          "wilson_95_high": 0.22998639595157364
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 100,
+          "denominator": 200,
+          "value": 0.5,
+          "wilson_95_low": 0.43136085960389187,
+          "wilson_95_high": 0.5686391403961082
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 59
+      },
+      "threshold": 59
+    },
+    {
+      "f1": 0.36101083032490977,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 908,
+          "value": 0.22026431718061673,
+          "wilson_95_low": 0.19451812028224774,
+          "wilson_95_high": 0.24836748764239275
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 90,
+          "denominator": 200,
+          "value": 0.45,
+          "wilson_95_low": 0.3826406840224836,
+          "wilson_95_high": 0.5192438486152432
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 60
+      },
+      "threshold": 60
+    },
+    {
+      "f1": 0.40983606557377045,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 776,
+          "value": 0.25773195876288657,
+          "wilson_95_low": 0.22820421506529867,
+          "wilson_95_high": 0.28964650222203103
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 84,
+          "denominator": 200,
+          "value": 0.42,
+          "wilson_95_low": 0.35373599161616726,
+          "wilson_95_high": 0.4892792606041954
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 61
+      },
+      "threshold": 61
+    },
+    {
+      "f1": 0.4683840749414519,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 654,
+          "value": 0.3058103975535168,
+          "wilson_95_low": 0.2717171944274552,
+          "wilson_95_high": 0.3421715372810276
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 78,
+          "denominator": 200,
+          "value": 0.39,
+          "wilson_95_low": 0.3250834313746962,
+          "wilson_95_high": 0.4590625404283025
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 62
+      },
+      "threshold": 62
+    },
+    {
+      "f1": 0.49079754601226994,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 615,
+          "value": 0.3252032520325203,
+          "wilson_95_low": 0.28936420316424416,
+          "wilson_95_high": 0.36321240278953526
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 69,
+          "denominator": 200,
+          "value": 0.345,
+          "wilson_95_low": 0.2825979437674894,
+          "wilson_95_high": 0.4132441074094632
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 63
+      },
+      "threshold": 63
+    },
+    {
+      "f1": 0.5018820577164367,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 597,
+          "value": 0.33500837520938026,
+          "wilson_95_low": 0.29830831554673654,
+          "wilson_95_high": 0.3738181712195675
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 69,
+          "denominator": 200,
+          "value": 0.345,
+          "wilson_95_low": 0.2825979437674894,
+          "wilson_95_high": 0.4132441074094632
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 64
+      },
+      "threshold": 64
+    },
+    {
+      "f1": 0.5434782608695653,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 536,
+          "value": 0.373134328358209,
+          "wilson_95_low": 0.3332294858772099,
+          "wilson_95_high": 0.4148446981673102
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 62,
+          "denominator": 200,
+          "value": 0.31,
+          "wilson_95_low": 0.2499894483607809,
+          "wilson_95_high": 0.37717177566258037
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 65
+      },
+      "threshold": 65
+    },
+    {
+      "f1": 0.5813953488372093,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 488,
+          "value": 0.4098360655737705,
+          "wilson_95_low": 0.3670708488365421,
+          "wilson_95_high": 0.4540097078717095
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 58,
+          "denominator": 200,
+          "value": 0.29,
+          "wilson_95_low": 0.23154025607067882,
+          "wilson_95_high": 0.3563747810077731
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 66
+      },
+      "threshold": 66
+    },
+    {
+      "f1": 0.60790273556231,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 458,
+          "value": 0.4366812227074236,
+          "wilson_95_low": 0.39197123873251566,
+          "wilson_95_high": 0.48244453990264163
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 56,
+          "denominator": 200,
+          "value": 0.28,
+          "wilson_95_low": 0.22236889773949026,
+          "wilson_95_high": 0.3459230458665071
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 67
+      },
+      "threshold": 67
+    },
+    {
+      "f1": 0.6339144215530903,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 431,
+          "value": 0.46403712296983757,
+          "wilson_95_low": 0.417480361051246,
+          "wilson_95_high": 0.5112292884746452
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 55,
+          "denominator": 200,
+          "value": 0.275,
+          "wilson_95_low": 0.21779700329307355,
+          "wilson_95_high": 0.34068339357669647
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 68
+      },
+      "threshold": 68
+    },
+    {
+      "f1": 0.6932409012131716,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 377,
+          "value": 0.5305039787798409,
+          "wilson_95_low": 0.4800724396489595,
+          "wilson_95_high": 0.580320144895857
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 44,
+          "denominator": 200,
+          "value": 0.22,
+          "wilson_95_low": 0.16816538358833258,
+          "wilson_95_high": 0.28238799918293667
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 69
+      },
+      "threshold": 69
+    },
+    {
+      "f1": 0.7220216606498194,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 354,
+          "value": 0.5649717514124294,
+          "wilson_95_low": 0.512903643939146,
+          "wilson_95_high": 0.615644904212871
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 40,
+          "denominator": 200,
+          "value": 0.2,
+          "wilson_95_low": 0.15045200926098115,
+          "wilson_95_high": 0.2608551865653788
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 70
+      },
+      "threshold": 70
+    },
+    {
+      "f1": 0.7633587786259541,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 324,
+          "value": 0.6172839506172839,
+          "wilson_95_low": 0.5632782647338405,
+          "wilson_95_high": 0.668541103912779
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 39,
+          "denominator": 200,
+          "value": 0.195,
+          "wilson_95_low": 0.1460552053440051,
+          "wilson_95_high": 0.25544044374612745
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 71
+      },
+      "threshold": 71
+    },
+    {
+      "f1": 0.7968127490039841,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 302,
+          "value": 0.6622516556291391,
+          "wilson_95_low": 0.6071706359472115,
+          "wilson_95_high": 0.7132568181261572
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 38,
+          "denominator": 200,
+          "value": 0.19,
+          "wilson_95_low": 0.14167171527790676,
+          "wilson_95_high": 0.25001238707599854
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 72
+      },
+      "threshold": 72
+    },
+    {
+      "f1": 0.8333333333333333,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 280,
+          "value": 0.7142857142857143,
+          "wilson_95_low": 0.6587508840848159,
+          "wilson_95_high": 0.764020336506343
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 35,
+          "denominator": 200,
+          "value": 0.175,
+          "wilson_95_low": 0.12860515066273331,
+          "wilson_95_high": 0.23364431148248993
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 73
+      },
+      "threshold": 73
+    },
+    {
+      "f1": 0.8528784648187633,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 269,
+          "value": 0.7434944237918215,
+          "wilson_95_low": 0.6881349286728821,
+          "wilson_95_high": 0.7919973817399958
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 34,
+          "denominator": 200,
+          "value": 0.17,
+          "wilson_95_low": 0.12427907912586969,
+          "wilson_95_high": 0.22815883628312625
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 74
+      },
+      "threshold": 74
+    },
+    {
+      "f1": 0.8602150537634409,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 265,
+          "value": 0.7547169811320755,
+          "wilson_95_low": 0.6995176284317246,
+          "wilson_95_high": 0.8026370637507758
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 34,
+          "denominator": 200,
+          "value": 0.17,
+          "wilson_95_low": 0.12427907912586969,
+          "wilson_95_high": 0.22815883628312625
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 75
+      },
+      "threshold": 75
+    },
+    {
+      "f1": 0.8752735229759301,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 257,
+          "value": 0.7782101167315175,
+          "wilson_95_low": 0.7235294134244115,
+          "wilson_95_high": 0.8246963197336756
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 33,
+          "denominator": 200,
+          "value": 0.165,
+          "wilson_95_low": 0.11996855328217307,
+          "wilson_95_high": 0.2226578153905955
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 76
+      },
+      "threshold": 76
+    },
+    {
+      "f1": 0.9009009009009009,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 244,
+          "value": 0.819672131147541,
+          "wilson_95_low": 0.7665971490947591,
+          "wilson_95_high": 0.8628374932862856
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 31,
+          "denominator": 200,
+          "value": 0.155,
+          "wilson_95_low": 0.11139636927689314,
+          "wilson_95_high": 0.21160690592342077
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 77
+      },
+      "threshold": 77
+    },
+    {
+      "f1": 0.9070294784580498,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 241,
+          "value": 0.8298755186721992,
+          "wilson_95_low": 0.7773514696343249,
+          "wilson_95_high": 0.8720483532790049
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 30,
+          "denominator": 200,
+          "value": 0.15,
+          "wilson_95_low": 0.10713593562241995,
+          "wilson_95_high": 0.20605579284166659
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 78
+      },
+      "threshold": 78
+    },
+    {
+      "f1": 0.91324200913242,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 238,
+          "value": 0.8403361344537815,
+          "wilson_95_low": 0.7884497520220316,
+          "wilson_95_high": 0.88141058040389
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 27,
+          "denominator": 200,
+          "value": 0.135,
+          "wilson_95_low": 0.09446570454787906,
+          "wilson_95_high": 0.18929138370752552
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 79
+      },
+      "threshold": 79
+    },
+    {
+      "f1": 0.9216589861751151,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 234,
+          "value": 0.8547008547008547,
+          "wilson_95_low": 0.8038209698476971,
+          "wilson_95_high": 0.8941229496989175
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 24,
+          "denominator": 200,
+          "value": 0.12,
+          "wilson_95_low": 0.08197992706375512,
+          "wilson_95_high": 0.17234252098296743
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 80
+      },
+      "threshold": 80
+    },
+    {
+      "f1": 0.9324009324009325,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 229,
+          "value": 0.8733624454148472,
+          "wilson_95_low": 0.8240442281504804,
+          "wilson_95_high": 0.9103610657610443
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 23,
+          "denominator": 200,
+          "value": 0.115,
+          "wilson_95_low": 0.07786373232561955,
+          "wilson_95_high": 0.16664716898487572
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 81
+      },
+      "threshold": 81
+    },
+    {
+      "f1": 0.9389671361502347,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 226,
+          "value": 0.8849557522123894,
+          "wilson_95_low": 0.8367727360307285,
+          "wilson_95_high": 0.9202708404101189
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 21,
+          "denominator": 200,
+          "value": 0.105,
+          "wilson_95_low": 0.06970748792681017,
+          "wilson_95_high": 0.1551803199112304
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 82
+      },
+      "threshold": 82
+    },
+    {
+      "f1": 0.947867298578199,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 222,
+          "value": 0.9009009009009009,
+          "wilson_95_low": 0.8545205925037492,
+          "wilson_95_high": 0.9336429312774283
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 17,
+          "denominator": 200,
+          "value": 0.085,
+          "wilson_95_low": 0.05374575017747561,
+          "wilson_95_high": 0.13189587071565567
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 83
+      },
+      "threshold": 83
+    },
+    {
+      "f1": 0.9592326139088729,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 217,
+          "value": 0.9216589861751152,
+          "wilson_95_low": 0.8781338511426455,
+          "wilson_95_high": 0.9505149042913674
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 13,
+          "denominator": 200,
+          "value": 0.065,
+          "wilson_95_low": 0.03837635464915299,
+          "wilson_95_high": 0.10801907929906895
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 84
+      },
+      "threshold": 84
+    },
+    {
+      "f1": 0.9592326139088729,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 200,
+          "denominator": 217,
+          "value": 0.9216589861751152,
+          "wilson_95_low": 0.8781338511426455,
+          "wilson_95_high": 0.9505149042913674
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 0,
+          "denominator": 200,
+          "value": 0,
+          "wilson_95_low": 1.734723475976807e-18,
+          "wilson_95_high": 0.018845326377266575
+        },
+        "query_false_positive_rate": {
+          "numerator": 13,
+          "denominator": 200,
+          "value": 0.065,
+          "wilson_95_low": 0.03837635464915299,
+          "wilson_95_high": 0.10801907929906895
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "threshold": 85
+      },
+      "threshold": 85
+    },
+    {
+      "f1": 0.9491525423728814,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 196,
+          "denominator": 213,
+          "value": 0.92018779342723,
+          "wilson_95_low": 0.8759135568498294,
+          "wilson_95_high": 0.9495743409604082
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 4,
+          "denominator": 200,
+          "value": 0.02,
+          "wilson_95_low": 0.0078044264163494685,
+          "wilson_95_high": 0.050287086905826436
+        },
+        "query_false_positive_rate": {
+          "numerator": 13,
+          "denominator": 200,
+          "value": 0.065,
+          "wilson_95_low": 0.03837635464915299,
+          "wilson_95_high": 0.10801907929906895
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 196,
+          "denominator": 200,
+          "value": 0.98,
+          "wilson_95_low": 0.9497129130941735,
+          "wilson_95_high": 0.9921955735836505
+        },
+        "threshold": 86
+      },
+      "threshold": 86
+    },
+    {
+      "f1": 0.945,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 189,
+          "denominator": 200,
+          "value": 0.945,
+          "wilson_95_low": 0.9042130012276914,
+          "wilson_95_high": 0.9690146582965411
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 11,
+          "denominator": 200,
+          "value": 0.055,
+          "wilson_95_low": 0.03098534170345884,
+          "wilson_95_high": 0.0957869987723084
+        },
+        "query_false_positive_rate": {
+          "numerator": 9,
+          "denominator": 200,
+          "value": 0.045,
+          "wilson_95_low": 0.023852543001492997,
+          "wilson_95_high": 0.0832967040018196
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 189,
+          "denominator": 200,
+          "value": 0.945,
+          "wilson_95_low": 0.9042130012276914,
+          "wilson_95_high": 0.9690146582965411
+        },
+        "threshold": 87
+      },
+      "threshold": 87
+    },
+    {
+      "f1": 0.945,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 189,
+          "denominator": 200,
+          "value": 0.945,
+          "wilson_95_low": 0.9042130012276914,
+          "wilson_95_high": 0.9690146582965411
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 11,
+          "denominator": 200,
+          "value": 0.055,
+          "wilson_95_low": 0.03098534170345884,
+          "wilson_95_high": 0.0957869987723084
+        },
+        "query_false_positive_rate": {
+          "numerator": 9,
+          "denominator": 200,
+          "value": 0.045,
+          "wilson_95_low": 0.023852543001492997,
+          "wilson_95_high": 0.0832967040018196
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 189,
+          "denominator": 200,
+          "value": 0.945,
+          "wilson_95_low": 0.9042130012276914,
+          "wilson_95_high": 0.9690146582965411
+        },
+        "threshold": 88
+      },
+      "threshold": 88
+    },
+    {
+      "f1": 0.9473684210526316,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 189,
+          "denominator": 199,
+          "value": 0.949748743718593,
+          "wilson_95_low": 0.9099839887498027,
+          "wilson_95_high": 0.9724786056364403
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 11,
+          "denominator": 200,
+          "value": 0.055,
+          "wilson_95_low": 0.03098534170345884,
+          "wilson_95_high": 0.0957869987723084
+        },
+        "query_false_positive_rate": {
+          "numerator": 8,
+          "denominator": 200,
+          "value": 0.04,
+          "wilson_95_low": 0.020405632066152306,
+          "wilson_95_high": 0.07693206820093293
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 189,
+          "denominator": 200,
+          "value": 0.945,
+          "wilson_95_low": 0.9042130012276914,
+          "wilson_95_high": 0.9690146582965411
+        },
+        "threshold": 89
+      },
+      "threshold": 89
+    },
+    {
+      "f1": 0.888283378746594,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 163,
+          "denominator": 167,
+          "value": 0.9760479041916168,
+          "wilson_95_low": 0.9400404624739321,
+          "wilson_95_high": 0.9906469777853889
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 37,
+          "denominator": 200,
+          "value": 0.185,
+          "wilson_95_low": 0.13730192800616042,
+          "wilson_95_high": 0.2445706276115175
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 163,
+          "denominator": 200,
+          "value": 0.815,
+          "wilson_95_low": 0.7554293723884824,
+          "wilson_95_high": 0.8626980719938395
+        },
+        "threshold": 90
+      },
+      "threshold": 90
+    },
+    {
+      "f1": 0.8876712328767123,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 162,
+          "denominator": 165,
+          "value": 0.9818181818181818,
+          "wilson_95_low": 0.9479142454896411,
+          "wilson_95_high": 0.9937975894504637
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 38,
+          "denominator": 200,
+          "value": 0.19,
+          "wilson_95_low": 0.14167171527790676,
+          "wilson_95_high": 0.25001238707599854
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 162,
+          "denominator": 200,
+          "value": 0.81,
+          "wilson_95_low": 0.7499876129240015,
+          "wilson_95_high": 0.8583282847220932
+        },
+        "threshold": 91
+      },
+      "threshold": 91
+    },
+    {
+      "f1": 0.8876712328767123,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 162,
+          "denominator": 165,
+          "value": 0.9818181818181818,
+          "wilson_95_low": 0.9479142454896411,
+          "wilson_95_high": 0.9937975894504637
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 38,
+          "denominator": 200,
+          "value": 0.19,
+          "wilson_95_low": 0.14167171527790676,
+          "wilson_95_high": 0.25001238707599854
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 162,
+          "denominator": 200,
+          "value": 0.81,
+          "wilson_95_low": 0.7499876129240015,
+          "wilson_95_high": 0.8583282847220932
+        },
+        "threshold": 92
+      },
+      "threshold": 92
+    },
+    {
+      "f1": 0.8265895953757225,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 143,
+          "denominator": 146,
+          "value": 0.9794520547945206,
+          "wilson_95_low": 0.9413332370314517,
+          "wilson_95_high": 0.9929876185037926
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 57,
+          "denominator": 200,
+          "value": 0.285,
+          "wilson_95_low": 0.22695003004617292,
+          "wilson_95_high": 0.3511534602960517
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 143,
+          "denominator": 200,
+          "value": 0.715,
+          "wilson_95_low": 0.6488465397039482,
+          "wilson_95_high": 0.7730499699538271
+        },
+        "threshold": 93
+      },
+      "threshold": 93
+    },
+    {
+      "f1": 0.8231884057971014,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 142,
+          "denominator": 145,
+          "value": 0.9793103448275862,
+          "wilson_95_low": 0.9409404986135681,
+          "wilson_95_high": 0.9929390877686783
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 58,
+          "denominator": 200,
+          "value": 0.29,
+          "wilson_95_low": 0.23154025607067882,
+          "wilson_95_high": 0.3563747810077731
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 142,
+          "denominator": 200,
+          "value": 0.71,
+          "wilson_95_low": 0.6436252189922268,
+          "wilson_95_high": 0.7684597439293211
+        },
+        "threshold": 94
+      },
+      "threshold": 94
+    },
+    {
+      "f1": 0.8231884057971014,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 142,
+          "denominator": 145,
+          "value": 0.9793103448275862,
+          "wilson_95_low": 0.9409404986135681,
+          "wilson_95_high": 0.9929390877686783
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 58,
+          "denominator": 200,
+          "value": 0.29,
+          "wilson_95_low": 0.23154025607067882,
+          "wilson_95_high": 0.3563747810077731
+        },
+        "query_false_positive_rate": {
+          "numerator": 3,
+          "denominator": 200,
+          "value": 0.015,
+          "wilson_95_low": 0.00511423779325831,
+          "wilson_95_high": 0.04316572879269026
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 142,
+          "denominator": 200,
+          "value": 0.71,
+          "wilson_95_low": 0.6436252189922268,
+          "wilson_95_high": 0.7684597439293211
+        },
+        "threshold": 95
+      },
+      "threshold": 95
+    },
+    {
+      "f1": 0.8211143695014663,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 140,
+          "denominator": 141,
+          "value": 0.9929078014184397,
+          "wilson_95_low": 0.9609230269560807,
+          "wilson_95_high": 0.9987469538059501
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 60,
+          "denominator": 200,
+          "value": 0.3,
+          "wilson_95_low": 0.24074744682371402,
+          "wilson_95_high": 0.36679068372719265
+        },
+        "query_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 200,
+          "value": 0.005,
+          "wilson_95_low": 0.0008831687156009814,
+          "wilson_95_high": 0.02777370439789293
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 140,
+          "denominator": 200,
+          "value": 0.7,
+          "wilson_95_low": 0.6332093162728074,
+          "wilson_95_high": 0.7592525531762859
+        },
+        "threshold": 96
+      },
+      "threshold": 96
+    },
+    {
+      "f1": 0.8211143695014663,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 140,
+          "denominator": 141,
+          "value": 0.9929078014184397,
+          "wilson_95_low": 0.9609230269560807,
+          "wilson_95_high": 0.9987469538059501
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 60,
+          "denominator": 200,
+          "value": 0.3,
+          "wilson_95_low": 0.24074744682371402,
+          "wilson_95_high": 0.36679068372719265
+        },
+        "query_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 200,
+          "value": 0.005,
+          "wilson_95_low": 0.0008831687156009814,
+          "wilson_95_high": 0.02777370439789293
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 140,
+          "denominator": 200,
+          "value": 0.7,
+          "wilson_95_low": 0.6332093162728074,
+          "wilson_95_high": 0.7592525531762859
+        },
+        "threshold": 97
+      },
+      "threshold": 97
+    },
+    {
+      "f1": 0.7476635514018692,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 120,
+          "denominator": 121,
+          "value": 0.9917355371900827,
+          "wilson_95_low": 0.9546693563957512,
+          "wilson_95_high": 0.9985396266145802
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 80,
+          "denominator": 200,
+          "value": 0.4,
+          "wilson_95_low": 0.33460578566807336,
+          "wilson_95_high": 0.46916327960737997
+        },
+        "query_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 200,
+          "value": 0.005,
+          "wilson_95_low": 0.0008831687156009814,
+          "wilson_95_high": 0.02777370439789293
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 120,
+          "denominator": 200,
+          "value": 0.6,
+          "wilson_95_low": 0.53083672039262,
+          "wilson_95_high": 0.6653942143319266
+        },
+        "threshold": 98
+      },
+      "threshold": 98
+    },
+    {
+      "f1": 0.6644518272425249,
+      "metrics": {
+        "errors": 0,
+        "negative_queries": 200,
+        "partial_queries": 0,
+        "positive_queries": 200,
+        "precision": {
+          "numerator": 100,
+          "denominator": 101,
+          "value": 0.9900990099009901,
+          "wilson_95_low": 0.9460328420055449,
+          "wilson_95_high": 0.9982500887510318
+        },
+        "queries": 400,
+        "query_false_negative_rate": {
+          "numerator": 100,
+          "denominator": 200,
+          "value": 0.5,
+          "wilson_95_low": 0.43136085960389187,
+          "wilson_95_high": 0.5686391403961082
+        },
+        "query_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 200,
+          "value": 0.005,
+          "wilson_95_low": 0.0008831687156009814,
+          "wilson_95_high": 0.02777370439789293
+        },
+        "retrieval_recall": {
+          "numerator": 200,
+          "denominator": 200,
+          "value": 1,
+          "wilson_95_low": 0.9811546736227335,
+          "wilson_95_high": 1
+        },
+        "retrieval_scoring_ms": {
+          "p50": 13.94692,
+          "p95": 27.214091,
+          "p99": 33.29824
+        },
+        "scored_identity_recall": {
+          "numerator": 100,
+          "denominator": 200,
+          "value": 0.5,
+          "wilson_95_low": 0.43136085960389187,
+          "wilson_95_high": 0.5686391403961082
+        },
+        "threshold": 99
+      },
+      "threshold": 99
+    }
+  ],
+  "corpus_sha256": "b37a40041e969c675af1aff16d4c67de5cd1754d008551806190fc1abc9730c3",
+  "default_85_holdout": {
+    "errors": 0,
+    "negative_queries": 500,
+    "partial_queries": 0,
+    "positive_queries": 500,
+    "precision": {
+      "numerator": 500,
+      "denominator": 539,
+      "value": 0.9276437847866419,
+      "wilson_95_low": 0.9026142675598807,
+      "wilson_95_high": 0.9466207945547702
+    },
+    "queries": 1000,
+    "query_false_negative_rate": {
+      "numerator": 0,
+      "denominator": 500,
+      "value": 0,
+      "wilson_95_low": 4.336808689942018e-19,
+      "wilson_95_high": 0.007624340461552241
+    },
+    "query_false_positive_rate": {
+      "numerator": 25,
+      "denominator": 500,
+      "value": 0.05,
+      "wilson_95_low": 0.034093745243849435,
+      "wilson_95_high": 0.0727681611715476
+    },
+    "retrieval_recall": {
+      "numerator": 500,
+      "denominator": 500,
+      "value": 1,
+      "wilson_95_low": 0.9923756595384479,
+      "wilson_95_high": 1
+    },
+    "retrieval_scoring_ms": {
+      "p50": 12.227015,
+      "p95": 27.714333,
+      "p99": 39.619203
+    },
+    "scored_identity_recall": {
+      "numerator": 500,
+      "denominator": 500,
+      "value": 1,
+      "wilson_95_low": 0.9923756595384479,
+      "wilson_95_high": 1
+    },
+    "threshold": 85
+  },
+  "default_request_threshold": 85,
+  "identity_families": 200,
+  "labels": "Deterministic engineering transformations; independent two-reviewer adjudication pending",
+  "limitations": [
+    "Not official-source or independent human-labelled evidence",
+    "Wilson intervals treat query rows as independent; shared-family correlation means they are descriptive, not institution acceptance bounds",
+    "Combined strata/source/type cells below 50 are unassessed; no broad source/category coverage claim",
+    "Thresholds are profile/dataset specific and do not prove identity; no automatic production threshold update"
+  ],
+  "metrics": {
+    "category:controlled_fixture": {
+      "errors": 0,
+      "negative_queries": 165,
+      "partial_queries": 0,
+      "positive_queries": 165,
+      "precision": {
+        "numerator": 165,
+        "denominator": 181,
+        "value": 0.9116022099447514,
+        "wilson_95_low": 0.8612402371639487,
+        "wilson_95_high": 0.9448559760483577
+      },
+      "queries": 330,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 165,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.022751869401778084
+      },
+      "query_false_positive_rate": {
+        "numerator": 12,
+        "denominator": 165,
+        "value": 0.07272727272727272,
+        "wilson_95_low": 0.04208959007591575,
+        "wilson_95_high": 0.12280746195833095
+      },
+      "retrieval_recall": {
+        "numerator": 165,
+        "denominator": 165,
+        "value": 1,
+        "wilson_95_low": 0.977248130598222,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.226232,
+        "p95": 28.159278,
+        "p99": 41.963123
+      },
+      "scored_identity_recall": {
+        "numerator": 165,
+        "denominator": 165,
+        "value": 1,
+        "wilson_95_low": 0.977248130598222,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "category:tenant_watchlist": {
+      "errors": 0,
+      "negative_queries": 335,
+      "partial_queries": 0,
+      "positive_queries": 335,
+      "precision": {
+        "numerator": 335,
+        "denominator": 359,
+        "value": 0.9331476323119777,
+        "wilson_95_low": 0.9024564785270212,
+        "wilson_95_high": 0.9546671837215296
+      },
+      "queries": 670,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 335,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.01133703896230397
+      },
+      "query_false_positive_rate": {
+        "numerator": 14,
+        "denominator": 335,
+        "value": 0.041791044776119404,
+        "wilson_95_low": 0.025054705756019664,
+        "wilson_95_high": 0.0689168493527186
+      },
+      "retrieval_recall": {
+        "numerator": 335,
+        "denominator": 335,
+        "value": 1,
+        "wilson_95_low": 0.988662961037696,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.227015,
+        "p95": 27.713434,
+        "p99": 39.619203
+      },
+      "scored_identity_recall": {
+        "numerator": 335,
+        "denominator": 335,
+        "value": 1,
+        "wilson_95_low": 0.988662961037696,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "entity:Organization": {
+      "errors": 0,
+      "negative_queries": 250,
+      "partial_queries": 0,
+      "positive_queries": 250,
+      "precision": {
+        "numerator": 250,
+        "denominator": 273,
+        "value": 0.9157509157509157,
+        "wilson_95_low": 0.8767579694989619,
+        "wilson_95_high": 0.9432059223508652
+      },
+      "queries": 500,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 250,
+        "value": 0,
+        "wilson_95_low": 8.673617379884035e-19,
+        "wilson_95_high": 0.015133299495444574
+      },
+      "query_false_positive_rate": {
+        "numerator": 10,
+        "denominator": 250,
+        "value": 0.04,
+        "wilson_95_low": 0.021869911954542545,
+        "wilson_95_high": 0.07205272358126646
+      },
+      "retrieval_recall": {
+        "numerator": 250,
+        "denominator": 250,
+        "value": 1,
+        "wilson_95_low": 0.9848667005045553,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.258033,
+        "p95": 27.232918,
+        "p99": 41.963123
+      },
+      "scored_identity_recall": {
+        "numerator": 250,
+        "denominator": 250,
+        "value": 1,
+        "wilson_95_low": 0.9848667005045553,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "threshold": 84
+    },
+    "entity:Person": {
+      "errors": 0,
+      "negative_queries": 250,
+      "partial_queries": 0,
+      "positive_queries": 250,
+      "precision": {
+        "numerator": 250,
+        "denominator": 267,
+        "value": 0.9363295880149812,
+        "wilson_95_low": 0.900411070314229,
+        "wilson_95_high": 0.959870811988929
+      },
+      "queries": 500,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 250,
+        "value": 0,
+        "wilson_95_low": 8.673617379884035e-19,
+        "wilson_95_high": 0.015133299495444574
+      },
+      "query_false_positive_rate": {
+        "numerator": 16,
+        "denominator": 250,
+        "value": 0.064,
+        "wilson_95_low": 0.039774745277095874,
+        "wilson_95_high": 0.10142149188293179
+      },
+      "retrieval_recall": {
+        "numerator": 250,
+        "denominator": 250,
+        "value": 1,
+        "wilson_95_low": 0.9848667005045553,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.205395,
+        "p95": 28.159278,
+        "p99": 38.592312
+      },
+      "scored_identity_recall": {
+        "numerator": 250,
+        "denominator": 250,
+        "value": 1,
+        "wilson_95_low": 0.9848667005045553,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "threshold": 84
+    },
+    "partition:calibration": {
+      "errors": 0,
+      "negative_queries": 200,
+      "partial_queries": 0,
+      "positive_queries": 200,
+      "precision": {
+        "numerator": 200,
+        "denominator": 217,
+        "value": 0.9216589861751152,
+        "wilson_95_low": 0.8781338511426455,
+        "wilson_95_high": 0.9505149042913674
+      },
+      "queries": 400,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 200,
+        "value": 0,
+        "wilson_95_low": 1.734723475976807e-18,
+        "wilson_95_high": 0.018845326377266575
+      },
+      "query_false_positive_rate": {
+        "numerator": 13,
+        "denominator": 200,
+        "value": 0.065,
+        "wilson_95_low": 0.03837635464915299,
+        "wilson_95_high": 0.10801907929906895
+      },
+      "retrieval_recall": {
+        "numerator": 200,
+        "denominator": 200,
+        "value": 1,
+        "wilson_95_low": 0.9811546736227335,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 13.94692,
+        "p95": 27.214091,
+        "p99": 33.29824
+      },
+      "scored_identity_recall": {
+        "numerator": 200,
+        "denominator": 200,
+        "value": 1,
+        "wilson_95_low": 0.9811546736227335,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "partition:development": {
+      "errors": 0,
+      "negative_queries": 300,
+      "partial_queries": 0,
+      "positive_queries": 300,
+      "precision": {
+        "numerator": 300,
+        "denominator": 312,
+        "value": 0.9615384615384616,
+        "wilson_95_low": 0.9339861104377456,
+        "wilson_95_high": 0.9778637811988684
+      },
+      "queries": 600,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 300,
+        "value": 0,
+        "wilson_95_low": 8.673617379884035e-19,
+        "wilson_95_high": 0.012642971224546034
+      },
+      "query_false_positive_rate": {
+        "numerator": 8,
+        "denominator": 300,
+        "value": 0.02666666666666667,
+        "wilson_95_low": 0.01357306980864708,
+        "wilson_95_high": 0.05172894295058982
+      },
+      "retrieval_recall": {
+        "numerator": 300,
+        "denominator": 300,
+        "value": 1,
+        "wilson_95_low": 0.9873570287754538,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "retrieval_scoring_ms": {
+        "p50": 10.423375,
+        "p95": 17.686636,
+        "p99": 28.909033
+      },
+      "scored_identity_recall": {
+        "numerator": 300,
+        "denominator": 300,
+        "value": 1,
+        "wilson_95_low": 0.9873570287754538,
+        "wilson_95_high": 0.9999999999999998
+      },
+      "threshold": 84
+    },
+    "partition:holdout": {
+      "errors": 0,
+      "negative_queries": 500,
+      "partial_queries": 0,
+      "positive_queries": 500,
+      "precision": {
+        "numerator": 500,
+        "denominator": 540,
+        "value": 0.9259259259259259,
+        "wilson_95_low": 0.9007020430248498,
+        "wilson_95_high": 0.9451326989558331
+      },
+      "queries": 1000,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 500,
+        "value": 0,
+        "wilson_95_low": 4.336808689942018e-19,
+        "wilson_95_high": 0.007624340461552241
+      },
+      "query_false_positive_rate": {
+        "numerator": 26,
+        "denominator": 500,
+        "value": 0.052,
+        "wilson_95_low": 0.035730265115705276,
+        "wilson_95_high": 0.07510114393784553
+      },
+      "retrieval_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.227015,
+        "p95": 27.714333,
+        "p99": 39.619203
+      },
+      "scored_identity_recall": {
+        "numerator": 500,
+        "denominator": 500,
+        "value": 1,
+        "wilson_95_low": 0.9923756595384479,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "source:quality-global": {
+      "errors": 0,
+      "negative_queries": 165,
+      "partial_queries": 0,
+      "positive_queries": 165,
+      "precision": {
+        "numerator": 165,
+        "denominator": 181,
+        "value": 0.9116022099447514,
+        "wilson_95_low": 0.8612402371639487,
+        "wilson_95_high": 0.9448559760483577
+      },
+      "queries": 330,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 165,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.022751869401778084
+      },
+      "query_false_positive_rate": {
+        "numerator": 12,
+        "denominator": 165,
+        "value": 0.07272727272727272,
+        "wilson_95_low": 0.04208959007591575,
+        "wilson_95_high": 0.12280746195833095
+      },
+      "retrieval_recall": {
+        "numerator": 165,
+        "denominator": 165,
+        "value": 1,
+        "wilson_95_low": 0.977248130598222,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.226232,
+        "p95": 28.159278,
+        "p99": 41.963123
+      },
+      "scored_identity_recall": {
+        "numerator": 165,
+        "denominator": 165,
+        "value": 1,
+        "wilson_95_low": 0.977248130598222,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "source:quality-private": {
+      "errors": 0,
+      "negative_queries": 335,
+      "partial_queries": 0,
+      "positive_queries": 335,
+      "precision": {
+        "numerator": 335,
+        "denominator": 359,
+        "value": 0.9331476323119777,
+        "wilson_95_low": 0.9024564785270212,
+        "wilson_95_high": 0.9546671837215296
+      },
+      "queries": 670,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 335,
+        "value": 0,
+        "wilson_95_low": 0,
+        "wilson_95_high": 0.01133703896230397
+      },
+      "query_false_positive_rate": {
+        "numerator": 14,
+        "denominator": 335,
+        "value": 0.041791044776119404,
+        "wilson_95_low": 0.025054705756019664,
+        "wilson_95_high": 0.0689168493527186
+      },
+      "retrieval_recall": {
+        "numerator": 335,
+        "denominator": 335,
+        "value": 1,
+        "wilson_95_low": 0.988662961037696,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.227015,
+        "p95": 27.713434,
+        "p99": 39.619203
+      },
+      "scored_identity_recall": {
+        "numerator": 335,
+        "denominator": 335,
+        "value": 1,
+        "wilson_95_low": 0.988662961037696,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:alias": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 59,
+        "value": 0.847457627118644,
+        "wilson_95_low": 0.7348201621622644,
+        "wilson_95_high": 0.9176153600140352
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 4,
+        "denominator": 50,
+        "value": 0.08,
+        "wilson_95_low": 0.03154951408859298,
+        "wilson_95_high": 0.18838246918342838
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 10.046413,
+        "p95": 18.777479,
+        "p99": 33.163637
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:diacritic": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 53,
+        "value": 0.9433962264150944,
+        "wilson_95_low": 0.8462979168981911,
+        "wilson_95_high": 0.9805633385150642
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.594425,
+        "p95": 26.746912,
+        "p99": 37.718319
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:entity_type": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.877782,
+        "p95": 26.363516,
+        "p99": 37.44635
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:exact": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 62,
+        "value": 0.8064516129032258,
+        "wilson_95_low": 0.6914820382117386,
+        "wilson_95_high": 0.8856619175970974
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 9,
+        "denominator": 50,
+        "value": 0.18,
+        "wilson_95_low": 0.09770192670234178,
+        "wilson_95_high": 0.30796053674300783
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.140401,
+        "p95": 27.232918,
+        "p99": 36.410059
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:identifier_evidence": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 14.208505,
+        "p95": 32.111443,
+        "p99": 43.550539
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:minor_spelling": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 51,
+        "value": 0.9803921568627451,
+        "wilson_95_low": 0.8969543127385502,
+        "wilson_95_high": 0.9965303073589391
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.780502,
+        "p95": 27.184997,
+        "p99": 29.068742
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:partial_name": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 54,
+        "value": 0.9259259259259259,
+        "wilson_95_low": 0.8244588416140005,
+        "wilson_95_high": 0.9708184722344951
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 4,
+        "denominator": 50,
+        "value": 0.08,
+        "wilson_95_low": 0.03154951408859298,
+        "wilson_95_high": 0.18838246918342838
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 9.761967,
+        "p95": 19.365458,
+        "p99": 22.74997
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:significant_spelling": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 53,
+        "value": 0.9433962264150944,
+        "wilson_95_low": 0.8462979168981911,
+        "wilson_95_high": 0.9805633385150642
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 3,
+        "denominator": 50,
+        "value": 0.06,
+        "wilson_95_low": 0.02061497034897397,
+        "wilson_95_high": 0.16217091688838173
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 12.197772,
+        "p95": 33.094721,
+        "p99": 47.067232
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:transliteration_alias": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 55,
+        "value": 0.9090909090909091,
+        "wilson_95_low": 0.8042250541602005,
+        "wilson_95_high": 0.9605418449258196
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 3,
+        "denominator": 50,
+        "value": 0.06,
+        "wilson_95_low": 0.02061497034897397,
+        "wilson_95_high": 0.16217091688838173
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 13.106153,
+        "p95": 27.680048,
+        "p99": 37.797216
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    },
+    "stratum:word_order": {
+      "errors": 0,
+      "negative_queries": 50,
+      "partial_queries": 0,
+      "positive_queries": 50,
+      "precision": {
+        "numerator": 50,
+        "denominator": 53,
+        "value": 0.9433962264150944,
+        "wilson_95_low": 0.8462979168981911,
+        "wilson_95_high": 0.9805633385150642
+      },
+      "queries": 100,
+      "query_false_negative_rate": {
+        "numerator": 0,
+        "denominator": 50,
+        "value": 0,
+        "wilson_95_low": 6.938893903907228e-18,
+        "wilson_95_high": 0.07134759913335872
+      },
+      "query_false_positive_rate": {
+        "numerator": 3,
+        "denominator": 50,
+        "value": 0.06,
+        "wilson_95_low": 0.02061497034897397,
+        "wilson_95_high": 0.16217091688838173
+      },
+      "retrieval_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "retrieval_scoring_ms": {
+        "p50": 13.0621,
+        "p95": 28.306713,
+        "p99": 34.39233
+      },
+      "scored_identity_recall": {
+        "numerator": 50,
+        "denominator": 50,
+        "value": 1,
+        "wilson_95_low": 0.9286524008666414,
+        "wilson_95_high": 1
+      },
+      "threshold": 84
+    }
+  },
+  "oracle": {
+    "above_threshold_retrieval_losses": 0,
+    "queries": 40,
+    "threshold_percentage": 85
+  },
+  "partitions": {
+    "calibration": 400,
+    "development": 600,
+    "holdout": 1000
+  },
+  "production_quality_claim": false,
+  "profile": "name-fuzzy-v1",
+  "proposed_point_floors_met": false,
+  "provider_search_latency": {
+    "p50_ms": 12.324664,
+    "p95_ms": 18.649991,
+    "p99_ms": 19.517957,
+    "samples": 100,
+    "scope": "Full provider Search only; excludes HTTP, queue, persistence and decision evaluation"
+  },
+  "queries": 2000,
+  "runtime_query_plan": [
+    {
+      "Plan": {
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 23.21,
+        "Total Cost": 23.21,
+        "Plan Rows": 1,
+        "Plan Width": 568,
+        "Actual Startup Time": 10.193,
+        "Actual Total Time": 10.223,
+        "Actual Rows": 126,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 320,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 23.21,
+            "Total Cost": 23.21,
+            "Plan Rows": 1,
+            "Plan Width": 568,
+            "Actual Startup Time": 10.191,
+            "Actual Total Time": 10.206,
+            "Actual Rows": 126,
+            "Actual Loops": 1,
+            "Sort Key": [
+              "(similarity(n.fuzzy_name, screening.name_key_v1(j.name))) DESC",
+              "r.entity_id",
+              "n.original",
+              "(screening.name_key_v1(j.name))"
+            ],
+            "Sort Method": "quicksort",
+            "Sort Space Used": 151,
+            "Sort Space Type": "Memory",
+            "Shared Hit Blocks": 320,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Nested Loop",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Join Type": "Inner",
+                "Startup Cost": 20.39,
+                "Total Cost": 23.2,
+                "Plan Rows": 1,
+                "Plan Width": 568,
+                "Actual Startup Time": 0.754,
+                "Actual Total Time": 9.718,
+                "Actual Rows": 126,
+                "Actual Loops": 1,
+                "Inner Unique": false,
+                "Join Filter": "((n.owner_scope = d.owner) AND (n.dataset_id = d.dataset) AND (n.generation = d.generation) AND (n.fuzzy_name % screening.name_key_v1(j.name)))",
+                "Rows Removed by Join Filter": 272,
+                "Shared Hit Blocks": 320,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Hash Join",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Join Type": "Inner",
+                    "Startup Cost": 20.11,
+                    "Total Cost": 21.5,
+                    "Plan Rows": 1,
+                    "Plan Width": 574,
+                    "Actual Startup Time": 0.492,
+                    "Actual Total Time": 0.573,
+                    "Actual Rows": 100,
+                    "Actual Loops": 1,
+                    "Inner Unique": false,
+                    "Hash Cond": "(j.type = r.entity_type)",
+                    "Shared Hit Blocks": 13,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Function Scan",
+                        "Parent Relationship": "Outer",
+                        "Parallel Aware": false,
+                        "Async Capable": false,
+                        "Function Name": "jsonb_to_recordset",
+                        "Alias": "j",
+                        "Startup Cost": 0,
+                        "Total Cost": 1,
+                        "Plan Rows": 100,
+                        "Plan Width": 96,
+                        "Actual Startup Time": 0.01,
+                        "Actual Total Time": 0.011,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Local Hit Blocks": 0,
+                        "Local Read Blocks": 0,
+                        "Local Dirtied Blocks": 0,
+                        "Local Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Hash",
+                        "Parent Relationship": "Inner",
+                        "Parallel Aware": false,
+                        "Async Capable": false,
+                        "Startup Cost": 20.1,
+                        "Total Cost": 20.1,
+                        "Plan Rows": 1,
+                        "Plan Width": 520,
+                        "Actual Startup Time": 0.474,
+                        "Actual Total Time": 0.478,
+                        "Actual Rows": 200,
+                        "Actual Loops": 1,
+                        "Hash Buckets": 1024,
+                        "Original Hash Buckets": 1024,
+                        "Hash Batches": 1,
+                        "Original Hash Batches": 1,
+                        "Peak Memory Usage": 114,
+                        "Shared Hit Blocks": 13,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Local Hit Blocks": 0,
+                        "Local Read Blocks": 0,
+                        "Local Dirtied Blocks": 0,
+                        "Local Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Hash Join",
+                            "Parent Relationship": "Outer",
+                            "Parallel Aware": false,
+                            "Async Capable": false,
+                            "Join Type": "Inner",
+                            "Startup Cost": 2.75,
+                            "Total Cost": 20.1,
+                            "Plan Rows": 1,
+                            "Plan Width": 520,
+                            "Actual Startup Time": 0.052,
+                            "Actual Total Time": 0.22,
+                            "Actual Rows": 200,
+                            "Actual Loops": 1,
+                            "Inner Unique": false,
+                            "Hash Cond": "((r.owner_scope = d.owner) AND (r.dataset_id = d.dataset) AND (r.generation = d.generation))",
+                            "Shared Hit Blocks": 13,
+                            "Shared Read Blocks": 0,
+                            "Shared Dirtied Blocks": 0,
+                            "Shared Written Blocks": 0,
+                            "Local Hit Blocks": 0,
+                            "Local Read Blocks": 0,
+                            "Local Dirtied Blocks": 0,
+                            "Local Written Blocks": 0,
+                            "Temp Read Blocks": 0,
+                            "Temp Written Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Parent Relationship": "Outer",
+                                "Parallel Aware": false,
+                                "Async Capable": false,
+                                "Relation Name": "source_records",
+                                "Alias": "r",
+                                "Startup Cost": 0,
+                                "Total Cost": 15.04,
+                                "Plan Rows": 204,
+                                "Plan Width": 456,
+                                "Actual Startup Time": 0.011,
+                                "Actual Total Time": 0.066,
+                                "Actual Rows": 204,
+                                "Actual Loops": 1,
+                                "Shared Hit Blocks": 13,
+                                "Shared Read Blocks": 0,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "Local Hit Blocks": 0,
+                                "Local Read Blocks": 0,
+                                "Local Dirtied Blocks": 0,
+                                "Local Written Blocks": 0,
+                                "Temp Read Blocks": 0,
+                                "Temp Written Blocks": 0
+                              },
+                              {
+                                "Node Type": "Hash",
+                                "Parent Relationship": "Inner",
+                                "Parallel Aware": false,
+                                "Async Capable": false,
+                                "Startup Cost": 1,
+                                "Total Cost": 1,
+                                "Plan Rows": 100,
+                                "Plan Width": 64,
+                                "Actual Startup Time": 0.029,
+                                "Actual Total Time": 0.03,
+                                "Actual Rows": 2,
+                                "Actual Loops": 1,
+                                "Hash Buckets": 1024,
+                                "Original Hash Buckets": 1024,
+                                "Hash Batches": 1,
+                                "Original Hash Batches": 1,
+                                "Peak Memory Usage": 9,
+                                "Shared Hit Blocks": 0,
+                                "Shared Read Blocks": 0,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "Local Hit Blocks": 0,
+                                "Local Read Blocks": 0,
+                                "Local Dirtied Blocks": 0,
+                                "Local Written Blocks": 0,
+                                "Temp Read Blocks": 0,
+                                "Temp Written Blocks": 0,
+                                "Plans": [
+                                  {
+                                    "Node Type": "Function Scan",
+                                    "Parent Relationship": "Outer",
+                                    "Parallel Aware": false,
+                                    "Async Capable": false,
+                                    "Function Name": "jsonb_to_recordset",
+                                    "Alias": "d",
+                                    "Startup Cost": 0,
+                                    "Total Cost": 1,
+                                    "Plan Rows": 100,
+                                    "Plan Width": 64,
+                                    "Actual Startup Time": 0.024,
+                                    "Actual Total Time": 0.025,
+                                    "Actual Rows": 2,
+                                    "Actual Loops": 1,
+                                    "Shared Hit Blocks": 0,
+                                    "Shared Read Blocks": 0,
+                                    "Shared Dirtied Blocks": 0,
+                                    "Shared Written Blocks": 0,
+                                    "Local Hit Blocks": 0,
+                                    "Local Read Blocks": 0,
+                                    "Local Dirtied Blocks": 0,
+                                    "Local Written Blocks": 0,
+                                    "Temp Read Blocks": 0,
+                                    "Temp Written Blocks": 0
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Index Scan",
+                    "Parent Relationship": "Inner",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Scan Direction": "Forward",
+                    "Index Name": "source_names_pkey",
+                    "Relation Name": "source_names",
+                    "Alias": "n",
+                    "Startup Cost": 0.28,
+                    "Total Cost": 0.93,
+                    "Plan Rows": 1,
+                    "Plan Width": 112,
+                    "Actual Startup Time": 0.009,
+                    "Actual Total Time": 0.01,
+                    "Actual Rows": 4,
+                    "Actual Loops": 100,
+                    "Index Cond": "((owner_scope = r.owner_scope) AND (dataset_id = r.dataset_id) AND (generation = r.generation) AND (record_id = r.record_id))",
+                    "Rows Removed by Index Recheck": 0,
+                    "Shared Hit Blocks": 307,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 1,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 1.24,
+      "Triggers": [],
+      "Execution Time": 10.322
+    }
+  ],
+  "scorer_sha256": "59773b44758f4ab5fb5ba0c71addfa4f89c4bd1c3f18d145d714710eb7586a65",
+  "version": 1,
+  "evaluation_boundary": "First frozen engineering holdout; scorer and projection were not tuned using holdout results. Subsequent changes bind scenario authority and runtime configuration; they do not alter this scorer/corpus."
+}

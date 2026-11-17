@@ -1,0 +1,94 @@
+{
+  "corpus_sha256": "7997e7e4aae86421d4c6c18f0995e0f09b101b25728b89753925aeb7938c76ad",
+  "records": 240,
+  "queries": 4800,
+  "invalid_relevant_references": 0,
+  "identical_input_groups_with_conflicting_determinate_labels": 137,
+  "queries_in_conflicting_input_groups": 443,
+  "identical_input_groups_crossing_partitions": 368,
+  "shared_exact_name_or_alias_groups": 84,
+  "name_groups_crossing_family_partitions": 59,
+  "determinate_negative_queries_with_nonconflicting_exact_catalog_names": 0,
+  "determinate_positive_queries_sharing_exact_catalog_names": 337,
+  "queries_without_identifier_or_date": 4320,
+  "source_labels": [
+    "quality-global",
+    "quality-private"
+  ],
+  "entity_by_category": {
+    "synthetic_sanctions": {
+      "Person": 60
+    },
+    "synthetic_pep_evidence": {
+      "Organization": 60
+    },
+    "synthetic_regulatory_warning": {
+      "Person": 60
+    },
+    "tenant_watchlist": {
+      "Organization": 60
+    }
+  },
+  "by_stratum": {
+    "exact": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "alias": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 100
+    },
+    "minor_spelling": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "significant_spelling": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "partial_name": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "word_order": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "diacritic": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "transliteration_alias": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 237
+    },
+    "identifier_evidence": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    },
+    "entity_type": {
+      "queries": 480,
+      "negative_exact_name_candidates": 0,
+      "positive_shared_exact_names": 0
+    }
+  },
+  "examples": [],
+  "method": "Exact duplicate request keys use all raw query fields and a fixed selection. Name collision diagnostics use NFKC lowercase/whitespace only, not the production scoring normalizer. Source/category labels are fictional strata, not official-source acceptance.",
+  "label_method": "Deterministic engineering transformations; independent human adjudication pending",
+  "limitations": [
+    "A different fictional identity does not make an overlapping name an observable true negative. Candidate relevance and legal identity truth require different annotations.",
+    "Families split by ordinal still share aliases, name tokens and identical query inputs; query-level Wilson intervals do not establish independent acceptance.",
+    "No labels, holdout cases, thresholds or frozen scorer files were changed.",
+    "No numeric acceptance claim is inferred from this corpus audit."
+  ],
+  "quality_accepted": false
+}

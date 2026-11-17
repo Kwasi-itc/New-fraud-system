@@ -88,6 +88,18 @@ func NewScreeningService(
 }
 
 func (s ScreeningService) CreateScreening(ctx context.Context, tenantID string, request screening.SearchRequest) (screening.Screening, error) {
+	if preparer, ok := s.provider.(interface {
+		Prepare(context.Context, string, screening.SearchRequest) (context.Context, error)
+	}); ok {
+		var err error
+		ctx, err = preparer.Prepare(ctx, tenantID, request)
+		if err != nil {
+			return screening.Screening{}, err
+		}
+	}
+	if err := s.validateProvider(ctx, tenantID, request); err != nil {
+		return screening.Screening{}, err
+	}
 	var created screening.Screening
 	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var err error
@@ -142,6 +154,13 @@ func (s ScreeningService) createScreening(ctx context.Context, store ports.Mutat
 	created, err := store.Screenings().Create(ctx, item)
 	if err != nil {
 		return screening.Screening{}, err
+	}
+	if scoped, ok := s.provider.(interface {
+		Capture(context.Context, pgx.Tx, screening.Screening) error
+	}); ok {
+		if err := scoped.Capture(ctx, store.RawTx(), created); err != nil {
+			return screening.Screening{}, err
+		}
 	}
 	err = s.enqueuer.EnqueueTx(ctx, store.RawTx(), created.TenantID, created.ID, nil)
 	return created, err
@@ -389,36 +408,55 @@ func (s ScreeningService) SearchWhitelist(ctx context.Context, tenantID string, 
 	return s.whitelistRepo.Search(ctx, tenantID, entityID, counterpartyIdentifier)
 }
 
-func (s ScreeningService) EnrichMatch(ctx context.Context, tenantID, matchID string) (screening.Match, error) {
+func (s ScreeningService) PrepareMatchEnrichment(ctx context.Context, tenantID, matchID string) (screening.Match, screening.EnrichmentResult, error) {
 	match, err := s.matchRepo.GetByID(ctx, tenantID, matchID)
+	if err != nil {
+		return match, screening.EnrichmentResult{}, err
+	}
+	if scoped, ok := s.provider.(interface {
+		ForMatch(context.Context, screening.Match) (context.Context, error)
+	}); ok {
+		ctx, err = scoped.ForMatch(ctx, match)
+		if err != nil {
+			return match, screening.EnrichmentResult{}, err
+		}
+	}
+	result, err := s.provider.Enrich(ctx, match.Provider, match.EntityID)
+	return match, result, err
+}
+
+// ApplyMatchEnrichment performs SQL only. The caller may use the existing
+// investigator transaction to recheck current case/inbox access before merging.
+func (s ScreeningService) ApplyMatchEnrichment(ctx context.Context, store ports.MutationStore, original screening.Match, result screening.EnrichmentResult) (screening.Match, error) {
+	if _, err := store.Screenings().Lock(ctx, original.TenantID, original.ScreeningID); err != nil {
+		return screening.Match{}, err
+	}
+	current, err := store.ScreeningMatches().GetByID(ctx, original.TenantID, original.ID)
 	if err != nil {
 		return screening.Match{}, err
 	}
-	result, err := s.provider.Enrich(ctx, match.Provider, match.EntityID)
+	if current.ScreeningID != original.ScreeningID || current.EntityID != original.EntityID || current.Provider != original.Provider {
+		return screening.Match{}, fmt.Errorf("enrichment relationship changed")
+	}
+	merged, err := mergePayloads(current.Payload, result.RawPayload)
+	if err != nil {
+		return screening.Match{}, err
+	}
+	current.Payload = merged
+	current.Enriched = true
+	current.UpdatedAt = s.clock.Now()
+	return store.ScreeningMatches().Update(ctx, current)
+}
+func (s ScreeningService) EnrichMatch(ctx context.Context, tenantID, matchID string) (screening.Match, error) {
+	match, result, err := s.PrepareMatchEnrichment(ctx, tenantID, matchID)
 	if err != nil {
 		return screening.Match{}, err
 	}
 	var updated screening.Match
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
-		// Provider IO stays outside the transaction. Preserve any review committed
-		// while enrichment was in flight by merging into the current row.
-		if _, err := store.Screenings().Lock(ctx, tenantID, match.ScreeningID); err != nil {
-			return err
-		}
-		current, runErr := store.ScreeningMatches().GetByID(ctx, tenantID, matchID)
-		if runErr != nil {
-			return runErr
-		}
-		merged, runErr := mergePayloads(current.Payload, result.RawPayload)
-		if runErr != nil {
-			return runErr
-		}
-		match = current
-		match.Payload = merged
-		match.Enriched = true
-		match.UpdatedAt = s.clock.Now()
-		updated, runErr = store.ScreeningMatches().Update(ctx, match)
-		return runErr
+		var err error
+		updated, err = s.ApplyMatchEnrichment(ctx, store, match, result)
+		return err
 	})
 	return updated, err
 }

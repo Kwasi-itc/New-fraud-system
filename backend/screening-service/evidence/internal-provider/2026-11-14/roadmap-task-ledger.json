@@ -1,0 +1,693 @@
+{
+  "no_new_task_ids": true,
+  "checkbox_meaning": "Engineering delivered and verified at the named level; remaining acceptance gates are stated separately. This is not production verification.",
+  "tasks": [
+    {
+      "id": "FND-01",
+      "scope": "Scoped contract and compatible DTO design",
+      "dependencies": "Plan approval",
+      "files": "internal/provideraccess, internal/sourcedata, internal/domain/screening, internal/httpapi; decision authoring DTOs",
+      "requirements": "All five operations take verified scope; typed identifiers, category/ref selection, generation-bound enrichment and safe errors; document v1/v2 projections",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Scoped v2 requests, exact saved evidence, typed IDs and category-labelled explicit dataset refs.",
+      "remaining": "Quality and deployment approval are separate.",
+      "prior_phase2_evidence": "Manual and bounded scenario-job scopes, exact stored-request proof, all-five-operation job selection denials and v1 compatibility pass; typed identifier/category collection migration remains",
+      "prior_files": "provideraccess; ports/scoped_provider.go; sourcedata; canonical v2 authoring/OpenAPI/BFF",
+      "current_files": "internal/provideraccess, internal/sourcedata, internal/domain/screening, internal/httpapi; decision authoring DTOs",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "FND-03",
+      "scope": "Strict registry and configuration validation",
+      "dependencies": "FND-01 scoped subset",
+      "files": "internal/providerregistry, internal/clients/provider/configuration.go, internal/httpapi/router.go, cmd/worker",
+      "requirements": "One factory; explicit provider/ref resolution; named legacy adapter; no default fallback or synthetic registration",
+      "previous_status": "Integration-tested",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Strict shared provider registry and named legacy compatibility; no synthetic/unknown-provider fallback.",
+      "remaining": "Actual deployment configuration is not changed.",
+      "prior_phase2_evidence": "Strict config/unit tests plus real API/worker selection, unavailable refs and no-unintended-HTTP assertions pass; deployed readiness remains REL-01",
+      "prior_files": "providerregistry; clients/provider/configuration.go and http_client.go; httpapi/router.go; cmd/worker/main.go",
+      "current_files": "internal/providerregistry, internal/clients/provider/configuration.go, internal/httpapi/router.go, cmd/worker",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "PRV-01",
+      "scope": "Five-operation internal read adapter for controlled data",
+      "dependencies": "FND-01 scoped subset, FND-03",
+      "files": "internal/internalprovider, internal/ports/scoped_provider.go",
+      "requirements": "Scoped exact-name-v1 and explainable name-fuzzy-v1 search; saved-generation enrichment, paged catalog, publication freshness/delta and strict complete selectors",
+      "previous_status": "Integration-tested",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Scoped Search, Enrich, Catalog, Freshness and Delta; all four entity types supported internally.",
+      "remaining": "Source-specific quality is unaccepted.",
+      "prior_phase2_evidence": "Real PG/manual and scenario scopes, global/private refs, cursor replay, current grants and saved-generation evidence pass; controlled profile only, no external-source or quality acceptance",
+      "prior_files": "internalprovider; sourcedata; ports/scoped_provider.go",
+      "current_files": "internal/internalprovider, internal/ports/scoped_provider.go",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "DB-01",
+      "scope": "Additive PostgreSQL source schema and grants",
+      "dependencies": "FND-01",
+      "files": "internal/migrations/metadata/000011–000021, scripts/source-role-grants.sql; auth-service/internal/platform/schema_v4.sql",
+      "requirements": "Scoped composite constraints; source/run/artifact/generation/record/index/publication structures; independently tracked migrations; restricted writer/reader accounts",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Owner migrations 11–21, immutable generations, artifacts, indices, leases, review, normalizer revision and inline constraints; restricted-role template tested.",
+      "remaining": "Deployment grants, lock window and backup acceptance remain.",
+      "prior_phase2_evidence": "Controlled schema fresh/upgrade/down-up, generated fuzzy projection, restricted-reader writes denied and actual query plan recorded; artifact store, production grants and full interruption matrix remain",
+      "prior_files": "metadata/000011_controlled_sources.* and 000012_fuzzy_names.*; sourceingest; internalprovider",
+      "current_files": "internal/migrations/metadata/000011–000021, scripts/source-role-grants.sql; auth-service/internal/platform/schema_v4.sql",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "ING-01",
+      "scope": "Streaming controlled import and atomic publication",
+      "dependencies": "DB-01, FND-01",
+      "files": "internal/sourceingest, internal/sourcedata, cmd/source-import",
+      "requirements": "Bounded input, pinned normalizer, duplicate rejection, staging, parent-revision fencing and atomic pointer + event; no network under locks",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Bounded streaming full snapshots, original artifacts, source identity ordering, parent fencing and atomic publication/event.",
+      "remaining": "No application or production imports performed.",
+      "prior_phase2_evidence": "Controlled initial/idempotent/invalid/truncated/empty/duplicate imports, failure rollback and concurrent/stale-parent publication pass; raw artifact retention and process-death/lease matrix remain",
+      "prior_files": "sourceingest/controlled.go; cmd/source-import; sourcedata",
+      "current_files": "internal/sourceingest, internal/sourcedata, cmd/source-import",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "MAT-01",
+      "scope": "Indexed retrieval, scoring and explanations",
+      "dependencies": "DB-01, PRV-01",
+      "files": "internal/matching, internal/internalprovider/fuzzy.go and identifiers.go; migrations 12/14/18/21",
+      "requirements": "Pin scope/generations; bounded batched exact/identifier/alias/fuzzy candidates; no arbitrary-subset scan; version algorithm and preserve conflicts",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Indexed name/alias plus exact typed-ID retrieval; separate explainable profiles; bounded candidates and partial overflow.",
+      "remaining": "Matching acceptance fails; ID profile is functionally tested, uncalibrated.",
+      "prior_phase2_evidence": "Exact/alias/Unicode/type and explainable fuzzy cases, 2,000-query engineering corpus and 40-query brute-force oracle sample pass functionally; precision/FPR floors fail; identifier-only retrieval and source-scale acceptance remain",
+      "prior_files": "matching/name.go; internalprovider/fuzzy.go; sourcedata; versioned PG name projection and GIN index",
+      "current_files": "internal/matching, internal/internalprovider/fuzzy.go and identifiers.go; migrations 12/14/18/21",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "matching-v2-current.json",
+        "matching-reproducibility.json"
+      ]
+    },
+    {
+      "id": "API-01",
+      "scope": "Registry-backed selection/capabilities and authoring",
+      "dependencies": "PRV-01, ING-01, MAT-01",
+      "files": "internal/httpapi/manual_search.go, internal/providerregistry; decision authoring/store; frontend manual/scenario forms and BFF",
+      "requirements": "v2 explicit provider/ref selection with existing session/tenant/actor checks; preserve named v1 meaning; revalidate queued selections",
+      "previous_status": "Integration-tested",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Manual and scenario authoring, BFF selection/capabilities, persisted execution authority and current revalidation.",
+      "remaining": "New features require explicit runtime configuration.",
+      "prior_phase2_evidence": "Manual/scenario save/reopen, explicit profile/ref persistence, real producer and source workers, current authority, request-forgery/revocation denials and legacy UI regressions pass; no inline or private maintenance authority added",
+      "prior_files": "Decision authoring domain/service/store; screening registry/intake; existing manual/scenario BFF and forms",
+      "current_files": "internal/httpapi/manual_search.go, internal/providerregistry; decision authoring/store; frontend manual/scenario forms and BFF",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "RSK-01",
+      "scope": "Typed query and category inputs",
+      "dependencies": "FND-01, API-01, MAT-01",
+      "files": "internal/sourcedata/identifiers.go; decision domain/screening/identifier.go and service/screening_dispatch_request.go; frontend identifier-fields.tsx",
+      "requirements": "Wire optional typed IDs/categories consistently, retaining original strings and issuer semantics; unsupported legacy fields rejected",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Typed IDs retain text, type, jurisdiction and issuer; mapped scenario fields reject numbers. Categories are selected through labelled dataset refs, not inferred identity risk.",
+      "remaining": "No broad category query or automatic legal identity classification.",
+      "prior_phase2_evidence": "Existing optional registration/date/country/nationality/address inputs are applied or rejected per profile; conflict and date-precision cases pass; typed passport/national-ID collections, issuers and category query filters remain",
+      "prior_files": "Profile-aware source validation/scoring; decision mapped fields; OpenAPI/BFF/evidence projections",
+      "current_files": "internal/sourcedata/identifiers.go; decision domain/screening/identifier.go and service/screening_dispatch_request.go; frontend identifier-fields.tsx",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "matching-v2-current.json",
+        "matching-reproducibility.json"
+      ]
+    },
+    {
+      "id": "API-02",
+      "scope": "Versioned evidence and historical enrichment",
+      "dependencies": "API-01, MAT-01",
+      "files": "internal/httpapi/investigator_enrichment.go, internal/providerregistry, lookup; frontend stored-evidence/screening-evidence/case evidence",
+      "requirements": "Keep original search snapshot immutable; source/generation/profile evidence and a namespaced supplement are tenant-scoped",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Pinned generation/source/profile evidence, case-scoped enrichment, protected inline snapshots and private historical access.",
+      "remaining": "Published evidence has indefinite retention pending approved expiry policy.",
+      "prior_phase2_evidence": "Retained generation/provenance, actual scenario candidate case enrichment/review, current case/inbox checks and latest-row merge pass; full expiry/retention/concurrency matrix remains",
+      "prior_files": "providerregistry; service enrichment prepare/apply; investigator_enrichment.go; manual/case/report projections and BFF",
+      "current_files": "internal/httpapi/investigator_enrichment.go, internal/providerregistry, lookup; frontend stored-evidence/screening-evidence/case evidence",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "QLT-01",
+      "scope": "Labelled corpus and threshold profiles",
+      "dependencies": "MAT-01, RSK-01",
+      "files": "testdata/matching-corpus-v1.json and matching-corpus-v2.json; internal/matching; scripts corpus generators; store/postgres/matching_quality_integration_test.go",
+      "requirements": "Adjudicated labels, identity-group train/holdout separation, per-source/category/profile calibration; no threshold copying",
+      "previous_status": "In progress",
+      "engineering_delivered": false,
+      "verification_level": "Measured; acceptance failed",
+      "implementation": "4,800 labelled fictional queries, frozen family partitions, token-v2 profile, calibration/holdout and repeated deterministic report.",
+      "remaining": "Independent adjudication and source/category quality floors remain open.",
+      "prior_phase2_evidence": "200 families, 2,000 queries split 600/400/1,000; calibrated threshold 84; holdout recall 100%, precision 92.59%, negative-query FPR 5.2%; proposed floors fail and independent adjudication remains",
+      "prior_files": "testdata/matching-corpus-v1.json; scripts/generate-matching-corpus.mjs; matching_quality_integration_test.go",
+      "current_files": "testdata/matching-corpus-v1.json and matching-corpus-v2.json; internal/matching; scripts corpus generators; store/postgres/matching_quality_integration_test.go",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "matching-v2-current.json",
+        "matching-reproducibility.json"
+      ]
+    },
+    {
+      "id": "FND-02",
+      "scope": "Actual API/worker/history/case/UI journey",
+      "dependencies": "API-01, API-02, RSK-01, QLT-01",
+      "files": "internal/store/postgres/internal_provider_integration_test.go and internal_scenario_journey_integration_test.go; frontend/tests/cases/internal-provider-live.spec.ts",
+      "requirements": "Reuse async dispatch and investigator permissions; no inline capability change",
+      "previous_status": "In progress",
+      "engineering_delivered": false,
+      "verification_level": "Integration-tested journey; gate open",
+      "implementation": "Actual API, worker, history, review, case delivery/enrichment and browser monitoring journeys pass.",
+      "remaining": "Whole frontend suite has 21 failures; quality acceptance remains open.",
+      "prior_phase2_evidence": "Actual scenario authoring -> decision worker -> screening worker -> persisted evidence -> case delivery -> signed enrichment/review passes; existing UI and real-provider fuzzy browser pass; QLT/RSK/full retry matrix remain",
+      "prior_files": "Internal provider/scenario PG journeys; actual worker helper; existing frontend/manual/scenario/case suites",
+      "current_files": "internal/store/postgres/internal_provider_integration_test.go and internal_scenario_journey_integration_test.go; frontend/tests/cases/internal-provider-live.spec.ts",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "LIF-01",
+      "scope": "Source diff, removals, rollback and retention",
+      "dependencies": "ING-01, MAT-01, FND-02",
+      "files": "internal/sourceingest/lifecycle.go and artifact_cleanup.go; source lifecycle/process recovery integration tests",
+      "requirements": "Replace complete generations, track field removals, retain evidence; rollback is a new event; bounded GC cannot delete pinned evidence",
+      "previous_status": "In progress",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Diff/add/update/remove/unchanged, new-generation rollback, retained history, legal holds, bounded failed/staged cleanup and killed-process recovery.",
+      "remaining": "Published/quarantined/review-held evidence is intentionally retained.",
+      "prior_phase2_evidence": "Add/update/remove, alias removal, stable IDs, atomic publication failure/concurrency and historical generation access verified; field diffs, audited rollback, retention/GC and full rescreen delivery remain",
+      "prior_files": "sourceingest publication; fuzzy_provider_integration_test.go; source readiness validation",
+      "current_files": "internal/sourceingest/lifecycle.go and artifact_cleanup.go; source lifecycle/process recovery integration tests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "OPS-01",
+      "scope": "Separate source worker and private administration",
+      "dependencies": "LIF-01",
+      "files": "internal/sourcecollector, cmd/source-worker, cmd/source-admin, docker-compose.screening-sources.yml, Dockerfile",
+      "requirements": "Configured UTC cadence, lease fences, bounded pools/retries/jitter, manual retry, rights enablement, redacted diagnostics",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Separate source worker/CLI/profile, UTC cadence, conditional checks, fenced leases, retry cap/jitter, diagnostics and recovery.",
+      "remaining": "No source or production worker enabled; operator rollout remains required.",
+      "prior_phase2_evidence": "Two workers, process death, stale source and 304 behavior; no unreviewed automatic feed or broad DB grants",
+      "prior_files": "proposed cmd/source-worker; connectors registry; Docker/runtime/grants",
+      "current_files": "internal/sourcecollector, cmd/source-worker, cmd/source-admin, docker-compose.screening-sources.yml, Dockerfile",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "OPS-02",
+      "scope": "Publication delivery and complete tenant rescreening",
+      "dependencies": "LIF-01, OPS-01, FND-02",
+      "files": "internal/sourcemonitor, internal/service/dataset_maintenance.go and continuous_worker.go, internal/store/postgres/dataset_maintenance.go; migrations 13/17/20",
+      "requirements": "Drain delta and object pages with durable checkpoints/receipts; replace first-500 cap/N+1 config fetch; fan out only entitled tenants including previous no-hits",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Durable manual-query and live-object fanout; complete legacy delta/object pagination; 601 real rescreens and 603-object paths.",
+      "remaining": "Enrollment/configuration is explicit; historical decisions never silently re-evaluate.",
+      "prior_phase2_evidence": "More than 500 objects, multiple delta pages, page-boundary crash/retry, new tenants/revoked access and removals; no skipped objects/cursor advance on failure",
+      "prior_files": "dataset_update_worker.go; monitored repositories/queue; proposed publication outbox",
+      "current_files": "internal/sourcemonitor, internal/service/dataset_maintenance.go and continuous_worker.go, internal/store/postgres/dataset_maintenance.go; migrations 13/17/20",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "OFAC-01",
+      "scope": "Full schema/access/rights/coverage specification",
+      "dependencies": "Source inventory; may research alongside A-D",
+      "files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors registry/fixtures",
+      "requirements": "Pin classic SDN schema and approved hosts; assess retention/reuse and unsupported types; label SDN-only",
+      "previous_status": "Planned",
+      "engineering_delivered": false,
+      "verification_level": "Specification and schema verified",
+      "implementation": "Official endpoints/XSD, SDN mapping, coverage and access/terms evidence documented.",
+      "remaining": "Source-specific legal/retention/purpose approval is still required.",
+      "prior_phase2_evidence": "Full schema/mapping/rights record and realistic fixture specification; prefix probes do not complete this task",
+      "prior_files": "INTERNAL_PROVIDER_SOURCES.md; future connector config",
+      "current_files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors registry/fixtures",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "OFAC-02",
+      "scope": "Official SDN full-snapshot connector",
+      "dependencies": "FND-01, OPS-01, OFAC-01",
+      "files": "internal/sourceconnectors; internal/sourcecollector/pipeline.go; testdata/source-fixtures",
+      "requirements": "Stream approved export; original IDs/names/aliases/IDs/programs, source types and metadata; safe XML/redirect policy",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Live-source-tested",
+      "implementation": "Classic SDN hardened connector; all 19,565 records parsed/published, all four types searched/enriched, unchanged full snapshot verified.",
+      "remaining": "SDN only; not complete OFAC or ownership-derived coverage.",
+      "prior_phase2_evidence": "Offline schema-realistic good/malicious/truncated fixtures and bounded memory; no network dependency in ordinary CI",
+      "prior_files": "proposed internal/sourceconnectors/ofac",
+      "current_files": "internal/sourceconnectors; internal/sourcecollector/pipeline.go; testdata/source-fixtures",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "OFAC-03",
+      "scope": "Disposable full lifecycle and quality acceptance",
+      "dependencies": "OFAC-02, Gates A-D, QLT-01",
+      "files": "internal/store/postgres/source_collector_integration_test.go and lifecycle/quality suites; cmd/source-verify",
+      "requirements": "Publish, update, remove, preserve evidence and expose truthful SDN coverage; repeat relevant security gates",
+      "previous_status": "Planned",
+      "engineering_delivered": false,
+      "verification_level": "Functional lifecycle tested; gate open",
+      "implementation": "Common transactional lifecycle/review/update/removal and source fixture/actual snapshot checks pass.",
+      "remaining": "Official-source matching acceptance and approved release profile remain open.",
+      "prior_phase2_evidence": "Full parser-to-search/review/update/removal journey, repeat import and restricted-role failures pass",
+      "prior_files": "source ingestion/provider/API integration suites",
+      "current_files": "internal/store/postgres/source_collector_integration_test.go and lifecycle/quality suites; cmd/source-verify",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "OFAC-04",
+      "scope": "Explicit complete live verification",
+      "dependencies": "OFAC-03 and approved source access/retention",
+      "files": "cmd/source-verify; evidence/internal-provider/2026-11-14/official-source-verification.json",
+      "requirements": "Complete retrieval/hash/schema/count/reconcile/search, isolated data and sanitized report",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Live-source-tested",
+      "implementation": "Complete official download/hash/XSD evidence and isolated full parse/publication/search/enrich/idempotency report.",
+      "remaining": "Research verification is not commercial activation or production verification.",
+      "prior_phase2_evidence": "Live-source-tested report with provenance and remaining gaps; no app import or production status inferred",
+      "prior_files": "proposed private source-verify CLI; evidence reports",
+      "current_files": "cmd/source-verify; evidence/internal-provider/2026-11-14/official-source-verification.json",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "UN-01",
+      "scope": "Independent UN snapshot connector",
+      "dependencies": "Gates A-D, OFAC-03, approved UN access/rights",
+      "files": "internal/sourceconnectors; testdata/source-fixtures; cmd/source-verify",
+      "requirements": "Permanent IDs, alias quality/date precision and regime references; one ordering, no duplicate dataset",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Live-source-tested",
+      "implementation": "1,007 records; stable IDs, aliases and date precision; Person/Organization search/enrichment and unchanged publication verified.",
+      "remaining": "Commercial reuse/retention approval and source quality remain open.",
+      "prior_phase2_evidence": "Source-specific fixtures plus complete lifecycle/quality/live report before activation",
+      "prior_files": "proposed sourceconnectors/un",
+      "current_files": "internal/sourceconnectors; testdata/source-fixtures; cmd/source-verify",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "UK-01",
+      "scope": "Current UKSL connector",
+      "dependencies": "Gates A-D, OFAC-03, approved UK terms/schema",
+      "files": "internal/sourceconnectors; testdata/source-fixtures; cmd/source-verify",
+      "requirements": "UKSL IDs and sanction types; historical OFSI IDs retained, no retired feed",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Live-source-tested",
+      "implementation": "Current UKSL, 6,440 records; organizations/persons/vessels, native names and identifiers; unchanged snapshot verified.",
+      "remaining": "OGL exceptions, personal/third-party data and source quality require approval.",
+      "prior_phase2_evidence": "Current-format full parsing/lifecycle, distinct restrictions and source quality; independent of UN code",
+      "prior_files": "proposed sourceconnectors/uk",
+      "current_files": "internal/sourceconnectors; testdata/source-fixtures; cmd/source-verify",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "EU-01",
+      "scope": "Establish FSF production access and permitted reuse",
+      "dependencies": "Source inventory; research may run earlier",
+      "files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors registry",
+      "requirements": "Verify current endpoint/token/schema/terms; never copy example/test tokens",
+      "previous_status": "Planned; access blocked",
+      "engineering_delivered": false,
+      "verification_level": "Externally blocked",
+      "implementation": "Official FSF acquisition and token/rights requirements recorded; no borrowed/example credentials used.",
+      "remaining": "An approved access contract/token/endpoint and rights review are absent.",
+      "prior_phase2_evidence": "Access/schema/rights evidence; remains blocked until obtained",
+      "prior_files": "source specification and private access references",
+      "current_files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors registry",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "EU-02",
+      "scope": "EU snapshot connector",
+      "dependencies": "EU-01, Gates A-D, OFAC-03",
+      "files": "internal/sourceconnectors; testdata/source-fixtures",
+      "requirements": "Approved FSF schema and acquisition; preserve legal/source IDs",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Fixture-tested",
+      "implementation": "Hardened FSF 1.1 parser, IDs/provenance, strict acquisition boundary and shared publication groundwork.",
+      "remaining": "Full live schema, lifecycle and quality verification require EU-01.",
+      "prior_phase2_evidence": "Independent fixture, lifecycle, quality and complete live verification",
+      "prior_files": "proposed sourceconnectors/eu",
+      "current_files": "internal/sourceconnectors; testdata/source-fixtures",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "GH-01",
+      "scope": "Ghana notices access/classification/corrections",
+      "dependencies": "Source inventory; research may run earlier",
+      "files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors/notices.go",
+      "requirements": "Verify acquisition rights and authoritative notice/category; no invented bulk API",
+      "previous_status": "Planned",
+      "engineering_delivered": false,
+      "verification_level": "Research/specification complete",
+      "implementation": "FIC, BoG, SEC, OSP and ORC authority/acquisition/category limits documented separately.",
+      "remaining": "Agency-specific acquisition, reuse, correction and retention approval required.",
+      "prior_phase2_evidence": "Source-specific access/retention/correction record; unresolved agency stays disabled",
+      "prior_files": "FIC/BoG/SEC/OSP specifications",
+      "current_files": "INTERNAL_PROVIDER_SOURCES.md; internal/sourceconnectors/notices.go",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "GH-02",
+      "scope": "Controlled official-notice intake",
+      "dependencies": "GH-01, Gates A-D",
+      "files": "internal/reviewednotices, cmd/source-notice; migration 19; reviewed notice integration tests",
+      "requirements": "Distinct global publication authority, attachment/provenance and two-person review; allegations remain distinct",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Global operator plus current human identity, retained attachments, two-person content review, withdrawal, audit and retention holds.",
+      "remaining": "No actual Ghana records published; content approval never approves rights.",
+      "prior_phase2_evidence": "Incorrect category, missing source, self-approval, corrections/removals and source lifecycle tests",
+      "prior_files": "proposed private operator structured import",
+      "current_files": "internal/reviewednotices, cmd/source-notice; migration 19; reviewed notice integration tests",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "GH-03",
+      "scope": "ORC acquisition and allowed enrichment",
+      "dependencies": "Source inventory and agreement",
+      "files": "INTERNAL_PROVIDER_SOURCES.md; reference/contract-only registry",
+      "requirements": "Establish fees/auth/export format, entitlement/redistribution and purpose; not a sanctions feed",
+      "previous_status": "Planned; access blocked",
+      "engineering_delivered": false,
+      "verification_level": "Access blocked",
+      "implementation": "ORC remains a contracted corporate-information source, not an invented public bulk API.",
+      "remaining": "Contract, price, entitlement, schema and purpose required.",
+      "prior_phase2_evidence": "Agreement + schema + independent tests before coding/activation; access currently unresolved",
+      "prior_files": "source specification; proposed contracted connector",
+      "current_files": "INTERNAL_PROVIDER_SOURCES.md; reference/contract-only registry",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "GH-04",
+      "scope": "Curated public-office/PEP/SOE evidence",
+      "dependencies": "GH-01, approved coverage/retention policy",
+      "files": "INTERNAL_PROVIDER_PLAN.md and INTERNAL_PROVIDER_SOURCES.md; deferred, no production feed",
+      "requirements": "Role/institution/validity/provenance, no inferred family relation or complete PEP claim",
+      "previous_status": "Planned; deferred",
+      "engineering_delivered": false,
+      "verification_level": "Deferred by policy",
+      "implementation": "No inferred PEP or complete-office-holder coverage is claimed.",
+      "remaining": "Approved PEP/SOE taxonomy, provenance, purpose and retention policy required.",
+      "prior_phase2_evidence": "Curator review and correction/expiry/identity tests; deferred until policy/access exists",
+      "prior_files": "proposed curation/import tools",
+      "current_files": "INTERNAL_PROVIDER_PLAN.md and INTERNAL_PROVIDER_SOURCES.md; deferred, no production feed",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "official-source-verification.json"
+      ]
+    },
+    {
+      "id": "NSDN-01",
+      "scope": "Separate future OFAC non-SDN coverage",
+      "dependencies": "OFAC-03 and source-specific scope approval",
+      "files": "INTERNAL_PROVIDER_PLAN.md and INTERNAL_PROVIDER_SOURCES.md; deferred separate coverage",
+      "requirements": "Separate dataset/category/sanction-type mapping; never extend SDN coverage labels implicitly",
+      "previous_status": "Planned; deferred",
+      "engineering_delivered": false,
+      "verification_level": "Deferred coverage",
+      "implementation": "OFAC non-SDN remains separate from SDN; no implicit expansion.",
+      "remaining": "Select and approve each additional list and its classification.",
+      "prior_phase2_evidence": "Access/schema, classification and full acceptance for each selected non-SDN list; no current coverage claim",
+      "prior_files": "source specification; future independent dataset connector",
+      "current_files": "INTERNAL_PROVIDER_PLAN.md and INTERNAL_PROVIDER_SOURCES.md; deferred separate coverage",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "PVL-01",
+      "scope": "Tenant import schema and authority",
+      "dependencies": "Gates A-D, approved private-list permissions/retention",
+      "files": "internal/privatelists, internal/httpapi/private_lists.go, internal/app; auth-owner schema v4; backend/investigator/roles.go",
+      "requirements": "Versioned bounded UTF-8 CSV; verified tenant injected; duplicate ID errors; category tenant_watchlist; distinct import/approve rights",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Approved tenant_admin mapping, signed/current identity, bounded UTF-8 CSV, duplicates/invalid IDs denied, tenant injected.",
+      "remaining": "Explicit restricted writer connection required; no credentials provisioned.",
+      "prior_phase2_evidence": "Malformed/oversized/mixed-tenant input, ambiguous duplicate, forged/global source flags, role denial; no installed role assumed",
+      "prior_files": "proposed tenant-list DTO/service; auth-owner permission mapping",
+      "current_files": "internal/privatelists, internal/httpapi/private_lists.go, internal/app; auth-owner schema v4; backend/investigator/roles.go",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "PVL-02",
+      "scope": "Reviewed publication, update/removal and audit",
+      "dependencies": "PVL-01",
+      "files": "internal/privatelists, internal/sourceingest; migrations 15/19; private lifecycle/role/API tests",
+      "requirements": "Approval binds content hash/parent; distinct author/approver; same generations/fences/outbox; explicit clear/archive/rollback",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Distinct reviewer/hash/parent binding; snapshot, clear/archive/restore, durable audit/version history and recovery.",
+      "remaining": "Published evidence retained; no automatic expiry on private list deletion.",
+      "prior_phase2_evidence": "Self-approval, changed content, conflicting parent, removed records, audited versions, failed import, tenant-only rescreen >500",
+      "prior_files": "proposed private intake/review; existing source publication machinery",
+      "current_files": "internal/privatelists, internal/sourceingest; migrations 15/19; private lifecycle/role/API tests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "PVL-03",
+      "scope": "Tenant management BFF/UI and investigation compatibility",
+      "dependencies": "PVL-02, API-02",
+      "files": "frontend/src/components/screening/private-lists.tsx, frontend/src/lib/server/private-list-proxy.ts, private-list BFF/page/tests",
+      "requirements": "Current session/membership and resource checks; escaped content; no operator secrets; explicit global/private labels",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested + browser-tested",
+      "implementation": "Private list BFF/UI, capability gating, uploads, approval, diff, history pages and restore, isolated tenants.",
+      "remaining": "Whole unrelated frontend suite is not green.",
+      "prior_phase2_evidence": "Two-tenant import/search/catalog/enrich/delta/export/cache/cursor matrix; revocation, read-only UI and complete audit/history",
+      "prior_files": "future private-list routes/BFF/pages; auth/investigator integration",
+      "current_files": "frontend/src/components/screening/private-lists.tsx, frontend/src/lib/server/private-list-proxy.ts, private-list BFF/page/tests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "INL-01",
+      "scope": "Shared screening-owned scoped read facade",
+      "dependencies": "Gates A-D; approved contract",
+      "files": "lookup, internal/internalprovider; decision-engine-service/go.mod, internal/service/inline_screening.go, app composition",
+      "requirements": "Same matcher/entitlements/exclusions; SELECT-only projections; no source IO/mutation; check Go module dependency direction",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Screening-owned Go facade shares matcher, current grants/exclusions and generation-pinned read; no source HTTP calls.",
+      "remaining": "Feature remains inactive without explicit decision runtime flag.",
+      "prior_phase2_evidence": "API/worker/inline results agree for same scope/request/generations; grant denials, no import cycles, tenant/exclusion tests",
+      "prior_files": "proposed providerlookup; decision service composition; read grants",
+      "current_files": "lookup, internal/internalprovider; decision-engine-service/go.mod, internal/service/inline_screening.go, app composition",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "INL-02",
+      "scope": "Outcome policy, deadlines and evaluation ordering",
+      "dependencies": "INL-01, institution policy approval, relevant source/list acceptance",
+      "files": "decision service/authoring/error mapping, frontend scenario capabilities; inline policy tests",
+      "requirements": "Match before final outcome/dependent effects; bounded total budget; default error fail-closed; approved alternative explicit and versioned",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Approved error-only failure policy, aggregate deadline and strongest forced hit outcome before workflow/scoring/effects.",
+      "remaining": "Production quality, timeout budget and per-scenario policy activation require acceptance.",
+      "prior_phase2_evidence": "Base/forced precedence, timeout/partial/stale/conflict errors, no approve-on-error, workflows reflect final outcome; no capability before pass",
+      "prior_files": "DecisionService.evaluateScenario; screening authoring/capabilities; workflow/scoring builders",
+      "current_files": "decision service/authoring/error mapping, frontend scenario capabilities; inline policy tests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "INL-03",
+      "scope": "Atomic evidence, replay and projection",
+      "dependencies": "INL-02; owner migration review",
+      "files": "lookup; migration 16; decision_engine_service/internal/service/decision_service.go; inline real-binary integration tests",
+      "requirements": "Bind immutable request/config/generation/exclusion/policy snapshot; commit with decision/effects; worker never re-searches saved evaluation",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested",
+      "implementation": "Decision/executions/evidence/effects atomic, including inline-enabled multi-scenario batches; immutable replay protected.",
+      "remaining": "Ordinary API retry idempotency remains the existing decision API contract; failed lookups create no successful decision.",
+      "prior_phase2_evidence": "DB rollback, changed dataset/exclusion policy, lost acknowledgement, replay/digest mismatch and history retention; Gate E passes separately",
+      "prior_files": "decision-owned evidence persistence; execution/outbox; screening projector",
+      "current_files": "lookup; migration 16; decision_engine_service/internal/service/decision_service.go; inline real-binary integration tests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "HARD-01",
+      "scope": "Security/recovery matrix by gate",
+      "dependencies": "Applicable feature tasks",
+      "files": "integration/fixture/API/browser tests; four participating go.mod/go.sum and Dockerfiles; source-role-grants.sql",
+      "requirements": "XML/SSRF limits, private grants, stale leases, denied tenants, source rights and process recovery",
+      "previous_status": "Planned",
+      "engineering_delivered": true,
+      "verification_level": "Integration-tested + scanned",
+      "implementation": "Signed API denial, restricted roles, malicious XML/SSRF, bounded storage/downloads, actual process kill, retry storms and patched dependency scans.",
+      "remaining": "Not a production penetration test, RLS isolation or OS-image attestation.",
+      "prior_phase2_evidence": "All relevant negative paths and existing regressions pass on isolated infrastructure; no broad all-green claim",
+      "prior_files": "verification matrix and actual API/worker/DB tests",
+      "current_files": "integration/fixture/API/browser tests; four participating go.mod/go.sum and Dockerfiles; source-role-grants.sql",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "security-scan-summary.json"
+      ]
+    },
+    {
+      "id": "PERF-01",
+      "scope": "Source-scale and shared-DB workload evidence",
+      "dependencies": "MAT-01; repeat after D, each source/private path and E",
+      "files": "internal/store/postgres/source_workload_integration_test.go; dataset_maintenance/source_lifecycle integration tests; evidence workload plans/reports",
+      "requirements": "Report hardware/dataset/algorithm/concurrency; quality/latency under ingest/search interference and bounded storage/GC/pools",
+      "previous_status": "Planned",
+      "engineering_delivered": false,
+      "verification_level": "Measured; acceptance open",
+      "implementation": "40k-record/1k-query workload, real plans, concurrent import, 601 rescreens and resource observations recorded.",
+      "remaining": "500 complete decision TPS, provider p95 ≤20 ms and deployment SLO acceptance are unproven.",
+      "prior_phase2_evidence": "Meet approved per-profile latency/quality targets; report successful TPS and p50/p95/p99; no 500 TPS claim before representative measurement",
+      "prior_files": "disposable harness; query plans; deployment profile",
+      "current_files": "internal/store/postgres/source_workload_integration_test.go; dataset_maintenance/source_lifecycle integration tests; evidence workload plans/reports",
+      "tests_and_evidence": [
+        "regression-summary.json",
+        "workload-final.json",
+        "workload-final.plan.json"
+      ]
+    },
+    {
+      "id": "REL-01",
+      "scope": "Scoped release and rollback acceptance",
+      "dependencies": "A-D plus source-specific/HARD/PERF gates; add PVL or E for those features",
+      "files": "docker-compose.screening-sources.yml; scripts/source-role-grants.sql; six-document pack and evidence manifests",
+      "requirements": "Explicit reviewed enablement, rights/retention, backup/restore, operational alerts and rollback",
+      "previous_status": "Planned",
+      "engineering_delivered": false,
+      "verification_level": "Release gated",
+      "implementation": "Optional restricted worker profile, no-login role template, recovery/rollback/runbook and evidence pack prepared.",
+      "remaining": "Quality, legal/access, operations, wider frontend failures and explicit activation approval remain.",
+      "prior_phase2_evidence": "Limited source release has its own evidence; production requires signed operational acceptance; no automatic configuration switch",
+      "prior_files": "release runbook; runtime profile; evidence manifests",
+      "current_files": "docker-compose.screening-sources.yml; scripts/source-role-grants.sql; six-document pack and evidence manifests",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    },
+    {
+      "id": "RES-01",
+      "scope": "Reversible cross-source identity linking",
+      "dependencies": "A-D, separate identity-link policy approval",
+      "files": "INTERNAL_PROVIDER_PLAN.md / INTERNAL_PROVIDER_DESIGN.md; deferred, no identity-merge implementation",
+      "requirements": "Keep original source records and scoped identities; never merge on fuzzy names",
+      "previous_status": "Planned; deferred",
+      "engineering_delivered": false,
+      "verification_level": "Deferred by policy",
+      "implementation": "Source records remain separate, reversible linking is not implemented or needed for current provider operation.",
+      "remaining": "Separate identity-link policy approval; never merge on fuzzy names.",
+      "prior_phase2_evidence": "Corroboration, undo/history and false-merge tests; not needed for initial provider release",
+      "prior_files": "proposed identity-link structures/events",
+      "current_files": "INTERNAL_PROVIDER_PLAN.md / INTERNAL_PROVIDER_DESIGN.md; deferred, no identity-merge implementation",
+      "tests_and_evidence": [
+        "regression-summary.json"
+      ]
+    }
+  ]
+}

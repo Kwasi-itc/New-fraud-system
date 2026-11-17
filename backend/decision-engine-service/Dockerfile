@@ -1,9 +1,10 @@
-FROM golang:1.25.0 AS builder
+FROM golang:1.27.4 AS builder
 
 WORKDIR /app/decision-engine-service
 
 COPY decision-engine-service/go.mod decision-engine-service/go.sum ./
 COPY investigator ../investigator
+COPY screening-service ../screening-service
 RUN go mod download
 
 COPY decision-engine-service/ .

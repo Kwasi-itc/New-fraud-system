@@ -13,7 +13,10 @@ import (
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerregistry"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -62,12 +65,58 @@ func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc ma
 			manualError(c, err)
 			return
 		}
+		if scope, err := provideraccess.FromPrincipal(p); err == nil {
+			c.Request = c.Request.WithContext(provideraccess.WithScope(c.Request.Context(), scope))
+		}
+		var choices []providerregistry.Capabilities
+		if resolver, ok := svc.(interface {
+			ProviderCapabilities(context.Context) ([]providerregistry.Capabilities, error)
+		}); ok {
+			choices, err = resolver.ProviderCapabilities(c.Request.Context())
+			if err != nil {
+				manualError(c, err)
+				return
+			}
+		}
 		if c.Param("id") == "capabilities" && c.Request.Method == http.MethodGet {
 			if len(catalog) == 0 {
 				c.JSON(503, gin.H{"error": "Provider capabilities unavailable."})
 				return
 			}
-			c.JSON(200, catalog[0])
+			if len(choices) > 0 {
+				// Preserve the v1 root shape while exposing explicit provider choices.
+				raw, _ := json.Marshal(choices[0])
+				body := gin.H{}
+				_ = json.Unmarshal(raw, &body)
+				body["providers"] = choices
+				c.JSON(200, body)
+			} else {
+				c.JSON(200, catalog[0])
+			}
+			return
+		}
+		if c.Param("matchId") != "" && c.Request.Method == http.MethodPost {
+			id, e := uuid.Parse(c.Param("id"))
+			if e != nil || id == uuid.Nil || len(c.Param("matchId")) > 200 {
+				c.JSON(400, gin.H{"error": "Invalid candidate reference."})
+				return
+			}
+			if enrich, ok := svc.(interface {
+				EnrichManualSearch(context.Context, string, string, string, string) (screening.Match, error)
+			}); ok {
+				if _, err = enrich.EnrichManualSearch(c.Request.Context(), p.TenantID.String(), p.Subject, id.String(), c.Param("matchId")); err != nil {
+					manualError(c, err)
+					return
+				}
+				details, e := svc.GetManualSearch(c.Request.Context(), p.TenantID.String(), p.Subject, id.String())
+				if e != nil {
+					manualError(c, e)
+					return
+				}
+				c.JSON(200, manualView(details))
+				return
+			}
+			c.JSON(503, gin.H{"error": "Enrichment unavailable."})
 			return
 		}
 		if c.Request.Method == http.MethodPost {
@@ -84,6 +133,27 @@ func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc ma
 			}
 			if len(catalog) > 0 {
 				cap := catalog[0]
+				requested := in.Provider
+				if requested == "" {
+					requested = "opensanctions"
+				}
+				if len(choices) > 0 {
+					found := false
+					for _, choice := range choices {
+						if choice.ID == requested {
+							cap = choice.ManualCapabilities
+							if requested == sourcedata.Provider && in.Profile != "" && choice.ProfileFields[in.Profile] != nil {
+								cap.Fields = choice.ProfileFields[in.Profile]
+							}
+							found = true
+							break
+						}
+					}
+					if !found {
+						manualError(c, providerregistry.ErrProvider)
+						return
+					}
+				}
 				if !cap.Configured {
 					c.JSON(503, gin.H{"error": "Screening provider is not configured."})
 					return
@@ -128,11 +198,15 @@ func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc ma
 		c.JSON(200, manualView(details))
 	}
 	router.POST("/v1/manual-screenings", handle)
+	router.POST("/v1/manual-screenings/:id/matches/:matchId/enrich", handle)
 	router.GET("/v1/manual-screenings", handle)
 	router.GET("/v1/manual-screenings/:id", handle)
 }
 
 func manualCapabilityAllows(cap provider.ManualCapabilities, in service.ManualSearchInput) bool {
+	if len(in.Identifiers) > 0 && !slices.Contains(cap.Fields[in.EntityType], "identifiers") {
+		return false
+	}
 	if !slices.Contains(cap.EntityTypes, in.EntityType) || !slices.Contains(cap.Fields[in.EntityType], "name") ||
 		in.Threshold < cap.ThresholdMin || in.Threshold > cap.ThresholdMax ||
 		in.Limit < 1 || in.Limit > cap.LimitMax || (!cap.DatasetSelection && len(in.Datasets) > 0) {
@@ -156,6 +230,18 @@ func manualError(c *gin.Context, err error) {
 		c.JSON(auth.Code, gin.H{"error": auth.Message})
 	case errors.Is(err, service.ErrManualInput):
 		c.JSON(400, gin.H{"error": "Invalid search settings. Check the name, entity-specific fields, ISO country codes, birth date, dataset IDs, threshold and result limit."})
+	case errors.Is(err, providerregistry.ErrProvider):
+		c.JSON(400, gin.H{"error": "unknown_provider"})
+	case errors.Is(err, sourcedata.ErrInput), errors.Is(err, sourcedata.ErrCursor):
+		c.JSON(400, gin.H{"error": "invalid_provider_input"})
+	case errors.Is(err, provideraccess.ErrScope):
+		c.JSON(403, gin.H{"error": "provider_scope_required"})
+	case errors.Is(err, sourcedata.ErrDataset):
+		c.JSON(404, gin.H{"error": "dataset_unavailable"})
+	case errors.Is(err, sourcedata.ErrNotReady):
+		c.JSON(503, gin.H{"error": "dataset_not_ready"})
+	case errors.Is(err, sourcedata.ErrEvidence):
+		c.JSON(410, gin.H{"error": "evidence_unavailable"})
 	case errors.Is(err, service.ErrManualConflict):
 		c.JSON(409, gin.H{"error": "This operation belongs to another search. Start a new search."})
 	case errors.Is(err, pgx.ErrNoRows):
@@ -184,12 +270,12 @@ func manualView(details screening.Details) gin.H {
 		}
 		_ = json.Unmarshal(match.Payload, &payload)
 		properties := map[string][]string{}
-		for _, key := range []string{"alias", "country", "nationality", "birthDate", "address", "topics"} {
+		for _, key := range []string{"alias", "country", "nationality", "birthDate", "registrationNumber", "address", "topics", "source", "sourceRecord", "datasetVersion", "matchingProfile", "matchedAlias", "matchReason", "matchingStrategy", "matchedField", "comparisonValues", "nameScore", "attributeEvidence", "sourceType", "sourceIdentifiers", "matchedAliasQuality", "programs", "listedAt", "sanctionsImposed", "sourceStatus", "birthDateText", "countryText", "nationalityText"} {
 			if values := payload.Properties[key]; len(values) > 0 {
 				properties[key] = values
 			}
 		}
-		items = append(items, gin.H{"id": match.ID, "entity_id": match.EntityID, "name": match.Name, "status": match.Status, "score": match.Score, "schema": payload.Schema, "datasets": payload.Datasets, "properties": properties})
+		items = append(items, gin.H{"id": match.ID, "entity_id": match.EntityID, "name": match.Name, "status": match.Status, "score": match.Score, "schema": payload.Schema, "datasets": payload.Datasets, "properties": properties, "enriched": match.Enriched})
 	}
 	return gin.H{"id": details.Screening.ID, "provider": details.Screening.Provider, "status": details.Screening.Status, "partial": details.Screening.Partial, "created_at": details.Screening.CreatedAt, "matches": items, "query": service.ManualSearchSettings(details.Screening.RequestJSON)}
 }

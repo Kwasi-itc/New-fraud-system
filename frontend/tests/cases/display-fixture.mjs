@@ -4,6 +4,7 @@ const reference = "13131313-1313-4313-8313-131313131313";
 const customer = "14141414-1414-4414-8414-141414141414";
 const amount = "15151515-1515-4515-8515-151515151515";
 const link = "16161616-1616-4616-8616-161616161616";
+const fullName = "17171717-1717-4717-8717-171717171717";
 let enabled = false, deny = false, settings;
 export function resetDisplay() { enabled = false; deny = false; settings = { table_id: table, name: "payment", version: 0, caption_field: "", displayed_fields: [], field_order: [reference, customer, amount], field_display: {}, fields: [{ id: reference, name: "reference", data_type: "string", enum_labels: {} }, { id: customer, name: "customer_id", data_type: "string", enum_labels: {} }, { id: amount, name: "amount", data_type: "float", enum_labels: {} }], links: [{ id: link, field_id: customer, name: "customer", target_table: "customer", target_field: "object_id", caption_field: "full_name" }] }; }
 resetDisplay();
@@ -21,10 +22,13 @@ export async function handleDisplay(req, url, send) {
       if (body.version !== settings.version) { send(409, { error: { message: "Settings changed; reload" } }); return true; }
       settings = { ...settings, ...body, version: settings.version + 1 };
     }
-    send(200, settings); return true;
+    send(200, { ...settings, links: settings.links.map(l => ({...l, target_fields: [{ id: fullName, name: "full_name", data_type: "string" }]})) }); return true;
   }
   if (url.pathname.endsWith("/record-displays")) {
     let raw = ""; for await (const chunk of req) raw += chunk; const { objects } = JSON.parse(raw);
+    if (settings.display_columns) {
+      send(200, { columns: { payment: settings.display_columns.map(c => ({ id:c.id, label:c.label, data_type:c.field_id===amount?"float":"string" })) }, records:objects.map(o => ({...o, caption:settings.caption_field?`PAY-${o.object_id}`:o.object_id, found:true, values:Object.fromEntries(settings.display_columns.map(c=>[c.id,c.type==="relation"?"Ada Customer":c.field_id===amount?12.5:"PAY-001"]))})) }); return true;
+    }
     const selected = settings.field_order.filter(id => settings.displayed_fields.includes(id));
     send(200, { columns: { payment: selected.map(id => ({ id, label: settings.field_display[id]?.label || settings.fields.find(f => f.id === id).name, data_type: settings.fields.find(f => f.id === id).data_type })) }, records: objects.map(o => ({ ...o, caption: settings.caption_field ? `PAY-${o.object_id}` : o.object_id, found: true, values: Object.fromEntries(selected.map(id => [id, id === customer ? (settings.field_display[id]?.link_id ? "Ada Customer" : "c1") : id === amount ? 12.5 : "PAY-001"])) })) }); return true;
   }

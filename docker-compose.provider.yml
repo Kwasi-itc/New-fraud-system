@@ -1,0 +1,134 @@
+# Independent product installation. No fraud platform, identity server or River.
+x-provider-image: &provider-image
+  image: fraud-screening-provider:dev
+  build:
+    context: .
+    dockerfile: backend/screening-service/Dockerfile.provider
+x-provider-runtime: &provider-runtime
+  <<: *provider-image
+  user: "${PROVIDER_RUN_UID:-65532}:${PROVIDER_RUN_GID:-65532}"
+  read_only: true
+  tmpfs: ["/tmp:size=192m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 96
+  mem_limit: 768m
+
+services:
+  provider-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: provider_owner
+      POSTGRES_DB: screening_provider
+      POSTGRES_PASSWORD_FILE: /run/secrets/owner-password
+    secrets: [owner-password]
+    volumes: [provider_catalog:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U provider_owner -d screening_provider"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  provider-migrate:
+    <<: *provider-runtime
+    entrypoint: [/app/provider-admin]
+    command: [-action, bootstrap]
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/owner-dsn
+    secrets: [owner-dsn]
+    depends_on:
+      provider-db: {condition: service_healthy}
+
+  provider-api-login:
+    <<: *provider-runtime
+    entrypoint: [/app/provider-admin]
+    command: [-action, provision-login, -login, provider_runtime, -capability, screening_provider_reader]
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/owner-dsn
+      PROVIDER_LOGIN_PASSWORD_FILE: /run/secrets/reader-password
+    secrets: [owner-dsn, reader-password]
+    depends_on:
+      provider-migrate: {condition: service_completed_successfully}
+
+  provider:
+    <<: *provider-runtime
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/reader-dsn
+      PROVIDER_DATABASE_MAX_CONNS: "8"
+      PROVIDER_MAX_CONCURRENT: "8"
+      PROVIDER_REQUEST_TIMEOUT: 2s
+    secrets: [reader-dsn]
+    ports: ["${PROVIDER_BIND_ADDRESS:-127.0.0.1}:${PROVIDER_PORT:-8091}:8091"]
+    depends_on:
+      provider-api-login: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, /app/provider-server, -healthcheck]
+      interval: 10s
+      timeout: 4s
+      start_period: 10s
+      retries: 12
+    restart: unless-stopped
+
+  provider-admin:
+    <<: *provider-runtime
+    profiles: [tools]
+    entrypoint: [/app/provider-admin]
+    command: [-action, status]
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/owner-dsn
+    secrets: [owner-dsn]
+    volumes: ["${PROVIDER_SECRET_DIR:?Prepare provider secrets}:/output"]
+
+  provider-import:
+    <<: *provider-runtime
+    profiles: [tools]
+    entrypoint: [/app/source-import]
+    environment:
+      SOURCE_DATABASE_URL_FILE: /run/secrets/owner-dsn
+    secrets: [owner-dsn]
+    volumes:
+      - "${PROVIDER_IMPORT_DIR:-./backend/screening-service/testdata}:/input:ro"
+
+  provider-source-admin:
+    <<: *provider-runtime
+    profiles: [tools]
+    entrypoint: [/app/source-admin]
+    command: [-action, diagnostics]
+    environment:
+      SOURCE_DATABASE_URL_FILE: /run/secrets/owner-dsn
+    secrets: [owner-dsn]
+
+  provider-collector-login:
+    <<: *provider-runtime
+    profiles: [sources]
+    entrypoint: [/app/provider-admin]
+    command: [-action, provision-login, -login, provider_collector, -capability, screening_provider_collector]
+    environment:
+      PROVIDER_DATABASE_URL_FILE: /run/secrets/owner-dsn
+      PROVIDER_LOGIN_PASSWORD_FILE: /run/secrets/collector-password
+    secrets: [owner-dsn, collector-password]
+    depends_on:
+      provider-migrate: {condition: service_completed_successfully}
+
+  provider-source-worker:
+    <<: *provider-runtime
+    profiles: [sources]
+    entrypoint: [/app/source-worker]
+    command: [-mode, poll, -batch, "4", -poll-interval, 30s]
+    environment:
+      SOURCE_DATABASE_URL_FILE: /run/secrets/collector-dsn
+    secrets: [collector-dsn]
+    depends_on:
+      provider-collector-login: {condition: service_completed_successfully}
+    restart: unless-stopped
+
+secrets:
+  owner-password: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/owner-password.txt"}
+  reader-password: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/reader-password.txt"}
+  collector-password: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/collector-password.txt"}
+  owner-dsn: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/owner-dsn.txt"}
+  reader-dsn: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/reader-dsn.txt"}
+  collector-dsn: {file: "${PROVIDER_SECRET_DIR:?Prepare provider secrets}/collector-dsn.txt"}
+volumes:
+  provider_catalog:

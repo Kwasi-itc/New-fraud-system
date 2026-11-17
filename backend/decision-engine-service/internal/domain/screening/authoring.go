@@ -14,7 +14,7 @@ import (
 
 var ErrRecognitionUnavailable = errors.New("Name recognition is not configured.")
 
-var ErrMatchingUnavailable = errors.New("Explicit matching settings require the configured direct OpenSanctions adapter.")
+var ErrMatchingUnavailable = errors.New("Matching settings are unavailable for this provider or dataset selection.")
 
 var ErrInvalidQuery = errors.New("invalid screening query")
 
@@ -32,6 +32,10 @@ var datasetIdentifier = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}$`)
 var fieldName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
 
 type AuthoringRule struct {
+	IdentifierFields        []IdentifierMapping     `json:"identifier_fields,omitempty"`
+	Provider                string                  `json:"provider,omitempty"`
+	Profile                 string                  `json:"profile,omitempty"`
+	DatasetSelection        []DatasetRef            `json:"dataset_selection,omitempty"`
 	CounterpartyIDField     string                  `json:"counterparty_id_field,omitempty"`
 	ForcedOutcome           string                  `json:"forced_outcome,omitempty"`
 	UseNER                  bool                    `json:"use_ner,omitempty"`
@@ -60,6 +64,37 @@ type AuthoringRule struct {
 }
 
 func (r AuthoringRule) Validate() error {
+	if len(r.IdentifierFields) > 5 {
+		return fmt.Errorf("Choose at most five identifier fields.")
+	}
+	for _, m := range r.IdentifierFields {
+		if r.ProviderKey() != "internal-watchlists" || r.Profile != "identifier-evidence-v1" || !m.Valid() {
+			return fmt.Errorf("Identifier fields require the identifier evidence method and a jurisdiction or issuer.")
+		}
+	}
+	if r.ProviderKey() != "opensanctions" && r.ProviderKey() != "internal-watchlists" {
+		return fmt.Errorf("Choose a supported screening provider.")
+	}
+	if r.ProviderKey() == "internal-watchlists" {
+		if (r.Profile != "exact-name-v1" && r.Profile != "name-fuzzy-v1" && r.Profile != "name-token-v2" && r.Profile != "identifier-evidence-v1") || len(r.DatasetSelection) < 1 || len(r.DatasetSelection) > 10 || len(r.Datasets) > 0 || r.UseNER || r.IgnoreNERClassification {
+			return fmt.Errorf("Choose a supported internal matching profile and 1 to 10 datasets.")
+		}
+		seen := map[DatasetRef]bool{}
+		for _, ref := range r.DatasetSelection {
+			if !ref.Valid() || seen[ref] {
+				return fmt.Errorf("Choose unique global or own-tenant dataset references.")
+			}
+			seen[ref] = true
+		}
+		if r.Profile == "exact-name-v1" && (r.BirthDateField != "" || r.NationalityField != "" || r.CountryField != "" || r.RegistrationField != "" || r.AddressField != "") {
+			return fmt.Errorf("Exact-name-v1 supports name fields only.")
+		}
+		if r.Profile != "exact-name-v1" && r.Threshold != nil && *r.Threshold < 50 {
+			return fmt.Errorf("Name-fuzzy-v1 requires a threshold from 50 to 100.")
+		}
+	} else if r.Profile != "" || len(r.DatasetSelection) > 0 {
+		return fmt.Errorf("Internal profile and scoped datasets require the internal provider.")
+	}
 	if r.CounterpartyIDField != "" && !fieldName.MatchString(r.CounterpartyIDField) {
 		return fmt.Errorf("Choose a supported counterparty text field.")
 	}
@@ -107,7 +142,7 @@ func (r AuthoringRule) Validate() error {
 	if strings.TrimSpace(r.Name) == "" || len(r.Name) > 200 {
 		return fmt.Errorf("A name of at most 200 bytes is required.")
 	}
-	if r.EntityType != "Person" && r.EntityType != "Organization" {
+	if r.EntityType != "Person" && r.EntityType != "Organization" && !(r.ProviderKey() == "internal-watchlists" && (r.EntityType == "Vessel" || r.EntityType == "Aircraft")) {
 		return fmt.Errorf("Choose Person or Organization.")
 	}
 	if !fieldName.MatchString(r.NameField) {
@@ -175,6 +210,9 @@ func (r AuthoringRule) ConfigJSON() json.RawMessage {
 		fields["registration_number"] = r.RegistrationField
 	}
 	config := map[string]any{"authoring_version": 1, "entity_type": r.EntityType, "query_fields": fields}
+	if len(r.IdentifierFields) > 0 {
+		config["identifier_fields"] = r.IdentifierFields
+	}
 	if r.CounterpartyIDField != "" {
 		config["counterparty_id_field"] = r.CounterpartyIDField
 	}
@@ -215,6 +253,17 @@ func (r AuthoringRule) ConfigJSON() json.RawMessage {
 	if len(provider) > 0 {
 		config["provider_config"] = provider
 	}
+	if r.ProviderKey() == "internal-watchlists" {
+		threshold := 100
+		if r.Profile != "exact-name-v1" {
+			threshold = 85
+		}
+		if r.Threshold != nil {
+			threshold = *r.Threshold
+		}
+		config["authoring_version"] = 2
+		config["provider_config"] = map[string]any{"version": 2, "profile": r.Profile, "dataset_selection": r.DatasetSelection, "threshold": threshold}
+	}
 	if r.ResultLimit != nil {
 		config["limit_override"] = *r.ResultLimit
 	}
@@ -225,6 +274,7 @@ func (r AuthoringRule) ConfigJSON() json.RawMessage {
 func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 	r := AuthoringRule{ID: c.ID, Name: c.Name, Enabled: c.Active, Outcomes: c.AllowedOutcomes, UpdatedAt: &c.UpdatedAt}
 	var v struct {
+		IdentifierFields        []IdentifierMapping     `json:"identifier_fields"`
 		CounterpartyIDField     string                  `json:"counterparty_id_field"`
 		ForcedOutcome           string                  `json:"forced_outcome"`
 		AdditionalNameFields    []string                `json:"additional_name_fields"`
@@ -235,18 +285,26 @@ func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 		RemoveDigits            bool                    `json:"remove_digits"`
 		Condition               *workflow.ConditionTree `json:"condition"`
 		Provider                struct {
-			Threshold *int     `json:"threshold"`
-			Datasets  []string `json:"datasets"`
+			Threshold *int         `json:"threshold"`
+			Datasets  []string     `json:"datasets"`
+			Profile   string       `json:"profile"`
+			Selection []DatasetRef `json:"dataset_selection"`
 		} `json:"provider_config"`
 		Limit      *int              `json:"limit_override"`
 		Version    int               `json:"authoring_version"`
 		EntityType string            `json:"entity_type"`
 		Fields     map[string]string `json:"query_fields"`
 	}
-	if c.Provider != "opensanctions" || c.ReviewInboxID == nil || json.Unmarshal(c.ConfigJSON, &v) != nil || v.Version != 1 {
+	if c.ReviewInboxID == nil || json.Unmarshal(c.ConfigJSON, &v) != nil || !((c.Provider == "opensanctions" && v.Version == 1) || (c.Provider == "internal-watchlists" && v.Version == 2)) {
 		return r, false
 	}
 	r.MinimumNameLength, r.RemoveDigits = v.MinimumNameLength, v.RemoveDigits
+	r.IdentifierFields = v.IdentifierFields
+	if c.Provider == "internal-watchlists" {
+		r.Provider = c.Provider
+		r.Profile = v.Provider.Profile
+		r.DatasetSelection = v.Provider.Selection
+	}
 	r.UseNER, r.IgnoreNERClassification = v.UseNER, v.IgnoreNERClassification
 	r.IgnoreListID = v.IgnoreListID
 	r.Condition = v.Condition
@@ -271,20 +329,54 @@ func DecodeAuthoring(c Config) (AuthoringRule, bool) {
 }
 
 type AuthoringCapabilities struct {
-	CounterpartySupported     bool   `json:"counterparty_supported"`
-	InlineSupported           bool   `json:"inline_supported"`
-	ProviderName              string `json:"provider_name,omitempty"`
-	DefaultThreshold          *int   `json:"default_threshold,omitempty"`
-	DefaultResultLimit        *int   `json:"default_result_limit,omitempty"`
-	ThresholdSupported        bool   `json:"threshold_supported"`
-	ResultLimitSupported      bool   `json:"result_limit_supported"`
-	DatasetSelectionSupported bool   `json:"dataset_selection_supported"`
-	MatchingSupported         bool   `json:"matching_settings_supported"`
-	RegistrationSupported     bool   `json:"registration_number_supported"`
-	NationalitySupported      bool   `json:"nationality_supported"`
-	CountrySupported          bool   `json:"country_supported"`
-	AddressSupported          bool   `json:"address_supported"`
-	BirthDateSupported        bool   `json:"birth_date_supported"`
+	ProviderConfigured        bool             `json:"provider_configured,omitempty"`
+	Providers                 []ProviderOption `json:"providers,omitempty"`
+	CounterpartySupported     bool             `json:"counterparty_supported"`
+	InlineSupported           bool             `json:"inline_supported"`
+	ProviderName              string           `json:"provider_name,omitempty"`
+	DefaultThreshold          *int             `json:"default_threshold,omitempty"`
+	DefaultResultLimit        *int             `json:"default_result_limit,omitempty"`
+	ThresholdSupported        bool             `json:"threshold_supported"`
+	ResultLimitSupported      bool             `json:"result_limit_supported"`
+	DatasetSelectionSupported bool             `json:"dataset_selection_supported"`
+	MatchingSupported         bool             `json:"matching_settings_supported"`
+	RegistrationSupported     bool             `json:"registration_number_supported"`
+	NationalitySupported      bool             `json:"nationality_supported"`
+	CountrySupported          bool             `json:"country_supported"`
+	AddressSupported          bool             `json:"address_supported"`
+	BirthDateSupported        bool             `json:"birth_date_supported"`
+}
+
+var internalDatasetID = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,79}$`)
+
+type DatasetRef struct {
+	Scope string `json:"scope"`
+	ID    string `json:"id"`
+}
+
+func (r DatasetRef) Valid() bool {
+	return (r.Scope == "global" || r.Scope == "tenant") && internalDatasetID.MatchString(r.ID)
+}
+func (r AuthoringRule) ProviderKey() string {
+	if r.Provider == "" {
+		return "opensanctions"
+	}
+	return r.Provider
+}
+
+type DatasetOption struct {
+	Ref        DatasetRef `json:"ref"`
+	Name       string     `json:"name"`
+	Generation *string    `json:"generation"`
+	Category   string     `json:"category"`
+}
+type ProviderOption struct {
+	InlineSupported bool            `json:"inline_supported"`
+	ID              string          `json:"id"`
+	Name            string          `json:"name"`
+	Configured      bool            `json:"configured"`
+	Profiles        []string        `json:"profiles,omitempty"`
+	Datasets        []DatasetOption `json:"datasets,omitempty"`
 }
 
 type IgnoreListOption struct {

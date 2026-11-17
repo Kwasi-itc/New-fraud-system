@@ -20,8 +20,10 @@ import (
 	ingestionclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/ingestion"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerregistry"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcemonitor"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 )
 
@@ -34,10 +36,12 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 type workerRunner struct {
-	projector    storepostgres.ExecutionProjector
-	caseDelivery service.CaseDeliveryService
-	logger       *slog.Logger
-	batchLimit   int
+	datasetRecovery *service.DatasetUpdateWorkerService
+	monitor         sourcemonitor.Service
+	projector       storepostgres.ExecutionProjector
+	caseDelivery    service.CaseDeliveryService
+	logger          *slog.Logger
+	batchLimit      int
 }
 
 func main() {
@@ -73,6 +77,8 @@ func main() {
 		Scope:     cfg.OpenSanctionsScope,
 		Algorithm: cfg.OpenSanctionsAlgorithm,
 	})
+	providers := providerregistry.New(db, providerClient)
+	providers.Remote = cfg.RemoteProvider
 	ingestionReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
@@ -100,10 +106,10 @@ func main() {
 	screeningEnqueuer := riverjobs.NewRiverScreeningEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.ScreeningQueueName)
 	datasetJobEnqueuer := riverjobs.NewRiverDatasetJobEnqueuer(riverClient, 1, cfg.DatasetJobQueueName)
 	monitoredEnqueuer := riverjobs.NewRiverMonitoredObjectEnqueuer(riverClient, riverjobs.IntakeMaxAttempts, cfg.MonitoredQueueName)
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
-	dispatchService := service.NewDispatchService(txManager, systemClock{}, screeningRepo, matchRepo, providerClient, decisionPublisher)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providers, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
+	dispatchService := service.NewDispatchService(txManager, systemClock{}, screeningRepo, matchRepo, providers, decisionPublisher)
 	continuousWorker := service.NewContinuousWorkerService(txManager, systemClock{}, continuousRepo, monitoredObjRepo, ingestionReader, screeningService)
-	datasetWorker := service.NewDatasetUpdateWorkerService(txManager, systemClock{}, datasetJobRepo, continuousRepo, monitoredObjRepo, providerClient, monitoredEnqueuer)
+	datasetWorker := service.NewDatasetUpdateWorkerService(txManager, systemClock{}, datasetJobRepo, continuousRepo, monitoredObjRepo, providers, monitoredEnqueuer)
 	screeningWorker := riverjobs.NewScreeningWorker(dispatchService)
 	datasetJobWorker := riverjobs.NewDatasetJobWorker(datasetWorker)
 	monitoredWorker := riverjobs.NewMonitoredObjectWorker(continuousWorker)
@@ -111,7 +117,8 @@ func main() {
 	river.AddWorker(workers, &datasetJobWorker)
 	river.AddWorker(workers, &monitoredWorker)
 
-	runner := workerRunner{
+	runner := workerRunner{datasetRecovery: &datasetWorker,
+		monitor:      sourcemonitor.Service{DB: db, Enqueue: screeningEnqueuer, MonitoredEnqueue: monitoredEnqueuer},
 		projector:    storepostgres.NewExecutionProjector(db),
 		caseDelivery: service.NewCaseDeliveryService(storepostgres.NewCaseEventRepository(db), casePublisher, logger),
 		logger:       logger,
@@ -179,6 +186,16 @@ func (w workerRunner) runPollLoop(ctx context.Context, interval time.Duration) e
 func (w workerRunner) runOnce(ctx context.Context) error {
 	cycleStartedAt := time.Now()
 	w.logger.Info("screening worker cycle started", "batch_limit", w.batchLimit)
+	if w.datasetRecovery != nil {
+		if err := w.datasetRecovery.ProcessPendingJobs(ctx, w.batchLimit); err != nil {
+			return err
+		}
+	}
+	if w.monitor.DB != nil {
+		if err := w.monitor.RunBatch(ctx, w.batchLimit); err != nil {
+			return err
+		}
+	}
 	if failed, err := w.projector.RunBatch(ctx, w.batchLimit); err != nil {
 		return err
 	} else if failed > 0 {

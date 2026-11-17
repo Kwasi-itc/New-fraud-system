@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Screening Service API
-  version: 0.2.0
+  version: 0.4.0
   description: |-
     This service handles screening requests, match review, whitelist management, continuous screening,
     dataset updates, and the related file and callback flows around screening work.
@@ -21,6 +21,353 @@ tags:
   - name: Internal
     description: Internal service-to-service screening intake routes.
 paths:
+  /v1/manual-screenings/{id}/monitor:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Screenings]
+      summary: "Saved-query monitoring; GET accepts after for history pagination"
+      description: "Saved-query monitoring; GET accepts after for history pagination. POST accepts enabled or retry_target. Only the current creator can enroll, pause or retry."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+    post:
+      tags: [Screenings]
+      summary: "Saved-query monitoring; GET accepts after for history pagination"
+      description: "Saved-query monitoring; GET accepts after for history pagination. POST accepts enabled or retry_target. Only the current creator can enroll, pause or retry."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists:
+    get:
+      tags: [Screenings]
+      summary: "Private lists in the signed session tenant; GET accepts after"
+      description: "Private lists in the signed session tenant; GET accepts after. POST requires operation_id, name, purpose and rights_reference. Tenant administrators import and approve, with different people required."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+    post:
+      tags: [Screenings]
+      summary: "Private lists in the signed session tenant; GET accepts after"
+      description: "Private lists in the signed session tenant; GET accepts after. POST requires operation_id, name, purpose and rights_reference. Tenant administrators import and approve, with different people required."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/capabilities:
+    get:
+      tags: [Screenings]
+      summary: "Current private-list capabilities and actor identity"
+      description: "Current private-list capabilities and actor identity."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Screenings]
+      summary: "Private-list metadata and import history; before is an import UUID cursor"
+      description: "Private-list metadata and import history; before is an import UUID cursor."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+    post:
+      tags: [Screenings]
+      summary: "Submit a reviewed snapshot or explicit clear, archive or restore command"
+      description: "Submit a reviewed snapshot or explicit clear, archive or restore command. Body requires operation_id and action; snapshot includes csv, restore includes restore_generation."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/recover:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+    post:
+      tags: [Screenings]
+      summary: "Recover expired staging receipts with current administrator authority"
+      description: "Recover expired staging receipts with current administrator authority."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports/{importId}:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+      - {name: importId, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Screenings]
+      summary: "Read a tenant-scoped immutable import receipt"
+      description: "Read a tenant-scoped immutable import receipt."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports/{importId}/diff:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+      - {name: importId, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Screenings]
+      summary: "Bounded before-publication version diff; after is the last record ID"
+      description: "Bounded before-publication version diff; after is the last record ID."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports/{importId}/artifact:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+      - {name: importId, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Screenings]
+      summary: "Download retained original upload as a plain text attachment with SHA-256 header"
+      description: "Download retained original upload as a plain text attachment with SHA-256 header."
+      security: [{investigatorJWT: []}]
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            text/plain:
+              schema: {type: string}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports/{importId}/approve:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+      - {name: importId, in: path, required: true, schema: {type: string}}
+    post:
+      tags: [Screenings]
+      summary: "Review this exact pending import using current administrator authority; approval requires a different person and a matching parent generation"
+      description: "Review this exact pending import using current administrator authority; approval requires a different person and a matching parent generation."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/private-lists/{listId}/imports/{importId}/reject:
+    parameters:
+      - {name: listId, in: path, required: true, schema: {type: string}}
+      - {name: importId, in: path, required: true, schema: {type: string}}
+    post:
+      tags: [Screenings]
+      summary: "Review this exact pending import using current administrator authority; approval requires a different person and a matching parent generation"
+      description: "Review this exact pending import using current administrator authority; approval requires a different person and a matching parent generation."
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GenericObject"}
+      responses:
+        "200":
+          description: Authorized response; responses are private no-store.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GenericObject"}
+        "401": {description: Signed platform session required}
+        "403": {description: Current role or resource authorization denied}
+        "409": {description: Conflicting operation or publication}
+        "503": {description: Required database or feature unavailable}
+  /v1/investigator/tenants/{tenantId}/cases/{caseId}/matches/{matchId}/enrich:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: caseId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: matchId, in: path, required: true, schema: {type: string, maxLength: 200}}
+    post:
+      tags: [Screenings]
+      summary: Load retained source details for a candidate linked to an authorized case
+      description: Uses the signed human session and current case, inbox, tenant and exact match link. Provider IO runs outside locks; authority is rechecked before merging with the latest review state. No operator credential or client-supplied source reference is accepted.
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200': {description: Source supplement persisted; original match and review status preserved}
+        '401': {description: Valid signed platform session required}
+        '403': {description: Current tenant, case, inbox or resource access denied}
+        '404': {description: Dataset unavailable to this tenant}
+        '410': {description: Retained source evidence unavailable}
+        '503': {description: Source or identity temporarily unavailable}
+  /v1/manual-screenings/capabilities:
+    get:
+      tags: [Provider]
+      summary: Discover screening providers and datasets authorized for the current session
+      description: Preserves the v1 legacy connection fields and adds a providers collection. Internal dataset refs, names and versions are filtered by the verified tenant and current entitlements. Configuration is not proof of real-source coverage.
+      security: [{investigatorJWT: []}]
+      responses:
+        '200': {description: Provider capabilities and authorized dataset selections}
+        '401': {description: Valid platform session required}
+        '403': {description: Current investigator membership required}
+        '503': {description: Screening or identity unavailable}
+  /v1/manual-screenings:
+    get:
+      tags: [Screenings]
+      summary: List the current investigator's saved manual searches
+      security: [{investigatorJWT: []}]
+      responses:
+        '200': {description: Bounded creator-scoped search history}
+        '400': {description: Invalid filter or cursor}
+        '401': {description: Valid platform session required}
+        '403': {description: Current investigator membership required}
+    post:
+      tags: [Screenings]
+      summary: Queue an authenticated manual screening search
+      description: Tenant and actor come from the verified platform session, never request JSON. Internal searches require explicit authorized published dataset refs. exact-name-v1 preserves normalized name/alias semantics; name-fuzzy-v1 adds indexed similarity and explainable identifier/date evidence, with threshold 50-100. Unsupported fields are rejected. Existing omitted-provider requests retain the v1 opensanctions identity. There is no unknown-provider or synthetic fallback.
+      security: [{investigatorJWT: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ManualSearchRequest'}
+      responses:
+        '202': {description: Persisted search and durable queue job, or identical operation replay}
+        '400': {description: Invalid or unsupported input or unknown provider}
+        '401': {description: Valid platform session required}
+        '403': {description: Current investigator membership required}
+        '404': {description: Requested dataset unavailable or not authorized; no partial selection executes}
+        '409': {description: Operation ID already belongs to a different request}
+        '503': {description: Dataset unpublished or service unavailable}
+  /v1/manual-screenings/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [Screenings]
+      summary: Reopen saved results without rerunning the provider
+      security: [{investigatorJWT: []}]
+      responses:
+        '200': {description: Creator-scoped status and candidates, including allowed source record, dataset version and matching explanation properties}
+        '401': {description: Valid platform session required}
+        '404': {description: Search unavailable to this creator and tenant}
+  /v1/manual-screenings/{id}/matches/{matchId}/enrich:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: matchId, in: path, required: true, schema: {type: string, maxLength: 200}}
+    post:
+      tags: [Screenings]
+      summary: Load source details for an authorized saved candidate
+      description: Requires the current creator and tenant. Internal evidence reads the saved dataset generation, adds a namespaced supplement and preserves original match evidence and concurrent review state.
+      security: [{investigatorJWT: []}]
+      responses:
+        '200': {description: Saved result projection with enriched candidate state}
+        '401': {description: Valid platform session required}
+        '403': {description: Current membership or scope denied}
+        '404': {description: Saved search, candidate or dataset unavailable to this tenant}
+        '410': {description: Saved source generation no longer retained}
+        '503': {description: Source service unavailable}
   /v1/investigator/tenants/{tenantId}/cases/{caseId}/review:
     parameters:
       - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
@@ -921,6 +1268,50 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    ControlledDatasetRef:
+      type: object
+      additionalProperties: false
+      required: [scope, id]
+      properties:
+        scope: {type: string, enum: [global, tenant], description: Tenant owner is injected from authenticated context}
+        id: {type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,79}$'}
+    ManualSearchRequest:
+      type: object
+      additionalProperties: false
+      required: [operation_id, name, entity_type, threshold, limit]
+      properties:
+        operation_id: {type: string, format: uuid}
+        provider: {type: string, enum: [opensanctions, internal-watchlists], default: opensanctions}
+        profile: {type: string, enum: [exact-name-v1, name-fuzzy-v1, name-token-v2, identifier-evidence-v1], description: Internal provider only; omitted internal profile retains exact-name-v1. Scores are candidates for review and are not calibrated identity probabilities.}
+        name: {type: string, minLength: 1, maxLength: 200}
+        entity_type: {type: string, enum: [Person, Organization, Vessel, Aircraft], description: Vessel and Aircraft require the internal provider.}
+        threshold: {type: integer, minimum: 0, maximum: 100}
+        limit: {type: integer, minimum: 1, maximum: 50}
+        dataset_selection:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: Required for internal-watchlists. Every selected dataset must be authorized and published. Cannot be combined with legacy datasets or unsupported identity fields.
+          items: {$ref: '#/components/schemas/ControlledDatasetRef'}
+        datasets: {type: array, maxItems: 10, description: Legacy OpenSanctions dataset IDs only, items: {type: string}}
+        birth_date: {type: string, description: Capability-gated Person input; fuzzy date conflict caps score below 50}
+        nationality: {type: string, description: Capability-gated Person ISO country input; agreement/disagreement evidence}
+        country: {type: string, description: Capability-gated Organization ISO country input; agreement/disagreement evidence}
+        registration_number: {type: string, description: Capability-gated Organization input; preserve leading zeros; fuzzy conflict caps score below 50}
+        address: {type: string, description: Capability-gated identity evidence; no guaranteed exact geographic filter}
+        identifiers:
+          type: array
+          maxItems: 10
+          description: Internal identifier-evidence-v1 only. Exact text including leading zeros and punctuation; never numeric or fuzzy. Local IDs require country or issuer. The full issuer and country namespace must agree with the source.
+          items:
+            type: object
+            additionalProperties: false
+            required: [type, value]
+            properties:
+              type: {type: string, enum: [passport, national_id, registration, tax_id, lei, imo]}
+              value: {type: string, minLength: 1, maxLength: 200}
+              country: {type: string, minLength: 2, maxLength: 2}
+              issuer: {type: string, maxLength: 200}
     InvestigatorReviewState:
       type: object
       required: [status, version, eligible, actions]

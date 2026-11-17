@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { handleDisplay, resetDisplay } from "./display-fixture.mjs";
 import { handleManualScreening } from "./manual-screening-fixture.mjs";
 import { handleScenarioScreening } from "./scenario-screening-fixture.mjs";
+import { handleControlledProvider } from "./controlled-provider-live-fixture.mjs";
+import { handlePrivateLists } from "./private-list-fixture.mjs";
 const tenant = "11111111-1111-4111-8111-111111111111";
 const inbox = "22222222-2222-4222-8222-222222222222";
 const id = "33333333-3333-4333-8333-333333333333";
@@ -33,6 +35,8 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const send = (status, data) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
   if (url.pathname === "/health") return send(200, {});
+  if (await handleControlledProvider(req, url, send)) return;
+  if (await handlePrivateLists(req, url, send)) return;
   if (await handleScenarioScreening(req, url, send)) return;
   if (await handleManualScreening(req, url, send)) return;
   if (url.pathname === "/reset") resetDisplay();
@@ -75,7 +79,8 @@ createServer(async (req, res) => {
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw || "{}");
     if (url.pathname === "/internal/invitations/start") return body.token === "a".repeat(43) ? send(200, { url: "http://127.0.0.1:3199/provider-login", binding: "fixture-login-binding" }) : send(403, {});
-    if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
+    if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow", "fixture-private-importer", "fixture-private-reviewer"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
+    if (url.pathname === "/internal/session" && ["fixture-private-importer","fixture-private-reviewer"].includes(body.session)) return send(200,{access_token:body.session,session:{id:body.session,user_id:body.session,tenant_id:tenant,name:"Fictional tenant administrator",roles:["tenant_admin"],version:1,expires_at:"2099-01-01T00:00:00Z"}});
     if (url.pathname === "/internal/session" && body.session === "fixture-workflow") return send(200, { access_token: "fixture-admin", session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Workflow administrator", roles: ["platform_admin", "case_manager_admin"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
     if (url.pathname === "/internal/logout") { revokedSessions.add(body.session); return send(204); }
     if (url.pathname === "/internal/session") return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin"] : body.session === "fixture-platform" ? ["platform_viewer"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
@@ -158,7 +163,7 @@ createServer(async (req, res) => {
     if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" });
     return send(200, { screening: { id: screening, partial: screeningLinks[0]?.partial, status: "awaiting_review", provider: "Test screening provider", LastError: "fixture-secret-error", RequestJSON: { provider_config: { api_key: "fixture-secret-key" } } }, matches: screeningLinks[0]?.match_id ? [{ id: "pending-match-1", status: "pending" }] : [] });
   }
-  if (url.pathname === `/v1/tenants/${tenant}/decisions/${decision}`) { if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" }); return send(200, { decision: { id: decision, outcome: "review", score: 35 }, rule_executions: [{ name: "Velocity", result: true, score_modifier: 35 }] }); }
+  if (url.pathname === `/v1/tenants/${tenant}/decisions/${decision}`) { if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" }); return send(200, { decision: { id: decision, outcome: "review", score: 35 }, rule_executions: [{ id: "fixture-execution", rule_id: "fixture-velocity", rule_name: "Velocity", outcome: "hit", score_modifier: 35 }] }); }
   if (!["Bearer fixture-analyst", "Bearer fixture-admin"].includes(token)) return send(401, { error: "Authentication required" });
   if (!url.pathname.startsWith(`/v1/tenants/${tenant}/`)) return send(403, { error: "You cannot access this tenant." });
   const path = url.pathname.slice(`/v1/tenants/${tenant}/`.length);

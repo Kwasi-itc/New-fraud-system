@@ -4,6 +4,7 @@ test("investigator explores a relationship, follows the trail and saves a case n
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
   await page.goto(`/cases/${caseId}?tenant=${tenant}`);
+  await page.getByRole("tab", { name: "Investigation & Connections", exact: true }).click();
   await page.getByRole("button", { name: "Explore connections", exact: true }).click();
   const explorer = page.getByRole("region", { name: "Record connections" });
   await expect(explorer.getByRole("heading", { name: "customer: customer-42", exact: true })).toBeVisible();
@@ -24,15 +25,26 @@ test("investigator explores a relationship, follows the trail and saves a case n
   await expect(decisions.getByRole("button", { name: "Attach decision to this case" })).toHaveCount(0);
   page.once("dialog", d => d.accept()); await explorer.getByRole("button", { name: "Save connection trail to case notes" }).click();
   await expect(explorer.getByRole("status")).toHaveText("Connection trail added to case notes.");
-  await expect(page.getByText(/Investigation connection trail\nDecision:/)).toBeVisible();
-  await explorer.getByRole("button", { name: "Decision record", exact: true }).click();
+  await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
+  await expect(page.getByText("Investigation Connection Trail", { exact: true })).toBeVisible();
+  // Human-friendly rendering must retain precise identities in the audit note.
+  const history=await page.request.get(`/api/cases/tenants/${tenant}/cases/${caseId}/links/events`);
+  expect(history.status()).toBe(200);
+  const note=(await history.json()).items.find((e:{additional_note?:string})=>e.additional_note?.includes("Investigation Connection Trail"))?.additional_note;
+  expect(note).toContain("44444444-4444-4444-8444-444444444444");
+  expect(note).toContain("payment/payment-1");
+  expect(note).toContain("reverse:fixture-link");
+  await page.getByRole("tab", { name: "Investigation & Connections", exact: true }).click();
+  await explorer.getByRole("button", { name: "Root Decision Record", exact: true }).click();
   await expect(explorer.getByRole("heading", { name: "customer: customer-42", exact: true })).toBeVisible();
 });
 
 test("uncertain attachment refreshes membership and revoked exploration hides decisions", async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:3199/reset"); await request.get("http://127.0.0.1:3199/fixture/explorer-lost-ack");
   await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await page.goto(`/cases/${caseId}?tenant=${tenant}`); await page.getByRole("button", { name: "Explore connections", exact: true }).click();
+  await page.goto(`/cases/${caseId}?tenant=${tenant}`);
+  await page.getByRole("tab", { name: "Investigation & Connections", exact: true }).click();
+  await page.getByRole("button", { name: "Explore connections", exact: true }).click();
   const explorer = page.getByRole("region", { name: "Record connections" });
   await explorer.getByRole("combobox").selectOption("reverse:fixture-link"); await explorer.getByRole("button", { name: "Open payment: payment-1" }).click();
   page.once("dialog", d => d.accept()); await explorer.getByRole("button", { name: "Attach decision to this case" }).click();

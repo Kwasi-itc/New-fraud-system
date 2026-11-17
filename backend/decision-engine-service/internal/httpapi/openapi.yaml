@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Decision Engine Service API
-  version: 0.2.0
+  version: 0.3.0
   description: |-
     This service helps teams define fraud scenarios, test decision logic, and review the decisions produced for tenant records.
 
@@ -30,6 +30,46 @@ tags:
   - name: Internal
     description: Internal service-to-service callbacks used by other backend services.
 paths:
+  /internal/screening-authoring/tenants/{tenantId}/scenarios/{scenarioId}:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: scenarioId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-User, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-Session, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-Version, in: header, required: true, schema: {type: integer, minimum: 1}}
+    get:
+      tags: [Screening and Scoring]
+      summary: Read scenario screening rules and tenant-authorized provider choices
+      description: Private BFF boundary. Current auth-owned membership and scenario/inbox access are checked before reading rules or source metadata. Returns explicit provider profiles and only entitled global/own-tenant dataset refs. Existing v1 rules retain OpenSanctions identity; internal v2 configuration is explicit. No inline capability is enabled.
+      security: [{screeningAuthoringBearer: []}]
+      responses:
+        '200': {description: Rules, mapped fields, capabilities and provider/dataset choices}
+        '403': {description: Current membership or scenario access denied}
+        '404': {description: Scenario unavailable}
+  /internal/screening-authoring/tenants/{tenantId}/scenarios/{scenarioId}/configs/{configId}:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: scenarioId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: configId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-User, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-Session, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: X-Screening-Version, in: header, required: true, schema: {type: integer, minimum: 1}}
+    put:
+      tags: [Screening and Scoring]
+      summary: Save an audited scenario screening rule with explicit provider selection
+      description: Existing strict authoring rule fields apply. Internal selection requires provider internal-watchlists, profile exact-name-v1 or name-fuzzy-v1, and 1-10 unique dataset_selection refs with scope global or tenant and a stable id. A tenant ref's owner comes from verified scope. Threshold is profile-specific; fuzzy minimum is 50. Every dataset must be entitled and published. Unsupported provider/profile/fields, NER for internal matching and forced outcomes are rejected. Existing updated_at conflict checks, current administrator role and inbox authorization remain mandatory. Provider selection is persisted into the execution request and revalidated at actual intake/worker execution.
+      security: [{screeningAuthoringBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, description: Existing versioned AuthoringRule contract with provider/profile/dataset_selection fields}
+      responses:
+        '200': {description: Persisted rule and new updated_at conflict version}
+        '400': {description: Invalid or unsupported rule or provider/profile selector}
+        '403': {description: Current administrator/scenario/inbox access denied}
+        '409': {description: Configuration changed or is not editable by this contract}
+        '422': {description: Selected provider/dataset/profile capability unavailable}
   /v1/investigator/tenants/{tenantId}/cases/{caseId}/review:
     parameters:
       - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
@@ -2790,6 +2830,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
+    screeningAuthoringBearer:
+      type: http
+      scheme: bearer
+      description: Dedicated private authoring credential used only by the session-protected BFF; headers alone do not confer authority.
     investigatorJWT:
       type: http
       scheme: bearer

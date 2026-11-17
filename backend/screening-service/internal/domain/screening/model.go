@@ -3,6 +3,7 @@ package screening
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"strings"
 	"time"
 )
@@ -173,6 +174,11 @@ type ContinuousConfig struct {
 }
 
 func (c ContinuousConfig) Validate() error {
+	if c.Provider == sourcedata.Provider {
+		if _, e := sourcedata.DecodeContinuous(c.FieldMapJSON); e != nil {
+			return e
+		}
+	}
 	if strings.TrimSpace(c.TenantID) == "" {
 		return fmt.Errorf("tenant_id is required")
 	}
@@ -232,13 +238,14 @@ func (m MonitoredObject) Validate() error {
 }
 
 type SearchQuery struct {
-	Name               string `json:"name"`
-	Type               string `json:"type,omitempty"`
-	BirthDate          string `json:"birth_date,omitempty"`
-	Nationality        string `json:"nationality,omitempty"`
-	Country            string `json:"country,omitempty"`
-	RegistrationNumber string `json:"registration_number,omitempty"`
-	Address            string `json:"address,omitempty"`
+	Identifiers        []sourcedata.Identifier `json:"identifiers,omitempty"`
+	Name               string                  `json:"name"`
+	Type               string                  `json:"type,omitempty"`
+	BirthDate          string                  `json:"birth_date,omitempty"`
+	Nationality        string                  `json:"nationality,omitempty"`
+	Country            string                  `json:"country,omitempty"`
+	RegistrationNumber string                  `json:"registration_number,omitempty"`
+	Address            string                  `json:"address,omitempty"`
 }
 
 type SearchRequest struct {

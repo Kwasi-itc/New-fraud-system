@@ -26,7 +26,10 @@ var schemaV2 string
 //go:embed schema_v3.sql
 var schemaV3 string
 
-const SchemaVersion = 3
+//go:embed schema_v4.sql
+var schemaV4 string
+
+const SchemaVersion = 4
 
 var ErrDenied = errors.New("identity or permission denied")
 var ErrConflict = errors.New("account changed or last active tenant administrator would be removed")
@@ -49,6 +52,9 @@ func (s Store) Migrate(ctx context.Context) error {
 		return err
 	}
 	if _, err = tx.Exec(ctx, schemaV3); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, schemaV4); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

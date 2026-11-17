@@ -1,0 +1,10 @@
+BEGIN;
+SET LOCAL lock_timeout='5s';
+DROP TRIGGER source_rescreen_completion_trigger ON screening.screenings;
+DROP FUNCTION screening.finish_source_rescreen_v1();
+DROP TRIGGER source_publication_delivery_trigger ON screening.source_publications;
+DROP FUNCTION screening.enqueue_source_publication_v1();
+DROP TABLE screening.source_lifecycle_audit,screening.source_retention_policies,screening.source_version_artifacts,screening.source_artifacts;
+ALTER TABLE screening.source_versions DROP COLUMN lease_until;
+DROP TABLE screening.source_rescreen_attempts,screening.source_rescreen_targets,screening.source_publication_delivery,screening.source_monitor_datasets,screening.source_monitors;
+COMMIT;

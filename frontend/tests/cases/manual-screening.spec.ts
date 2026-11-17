@@ -135,6 +135,21 @@ test("manual organization search uses owner API and renders candidates", async (
   await expect(page.getByRole("region", { name: "Search results" }).getByText("ORG-123", { exact: true })).toBeVisible();
 });
 
+test("screening workspace fits laptop and mobile widths with readable candidate details", async ({ page }) => {
+  await page.goto("/screening-search");
+  await page.getByLabel("Name", { exact: true }).fill("Responsive review");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "2 potential matches" })).toBeVisible();
+  for (const width of [1280, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect(page.getByRole("button", { name: "Open investigation", exact: true }).first()).toBeVisible();
+  }
+  await page.getByText("Candidate details", { exact: true }).first().click();
+  await expect(page.getByRole("article").first().getByText("Provider identifier", { exact: true })).toBeVisible();
+  await expect(page.getByText("1980-01-01", { exact: true })).toBeVisible();
+});
+
 for (const name of ["Nobody", "Partial", "Failure", "Denied"]) {
   test(`manual search ${name} state`, async ({ page }) => {
     await page.goto("/screening-search");

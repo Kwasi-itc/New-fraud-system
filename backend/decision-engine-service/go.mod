@@ -1,17 +1,17 @@
 module github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/lib/pq v1.10.9
 	github.com/oschwald/maxminddb-golang/v2 v2.5.0
 	github.com/riverqueue/river v0.31.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 )
 
 require (
@@ -54,14 +54,20 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require github.com/Kwasi-itc/New-fraud-system/backend/investigator v0.0.0
 
+require (
+	github.com/Kwasi-itc/New-fraud-system/backend/screening-service v0.0.0
+	golang.org/x/text v0.42.0
+	gopkg.in/yaml.v3 v3.0.1
+)
+
 replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator
+
+replace github.com/Kwasi-itc/New-fraud-system/backend/screening-service => ../screening-service

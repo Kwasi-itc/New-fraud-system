@@ -59,7 +59,7 @@ export function DecisionScreening({ tenantId, decisionId }: { tenantId: string; 
               const request = item.request_json && typeof item.request_json === "object" && !Array.isArray(item.request_json) ? item.request_json : {};
               return <article key={item.id} aria-label={`Screening ${item.id}`} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{request.provider === "opensanctions" ? "OpenSanctions" : "Screening provider"}</h3>
+                  <h3 className="text-sm font-semibold">{request.provider === "opensanctions" ? "OpenSanctions" : request.provider === "internal-watchlists" ? "Internal watchlists" : "Screening provider"}</h3>
                   <Badge className={`border ${state.tone}`}>{state.label}</Badge>
                 </div>
                 <p className="text-sm text-slate-700">{state.text}</p>

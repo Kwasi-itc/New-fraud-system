@@ -107,6 +107,15 @@ func (s DispatchService) processScreening(ctx context.Context, item screening.Sc
 		return s.failScreening(ctx, item, token, err.Error())
 	}
 
+	if scoped, ok := s.provider.(interface {
+		ForRun(context.Context, screening.Screening) (context.Context, error)
+	}); ok {
+		var err error
+		ctx, err = scoped.ForRun(ctx, item)
+		if err != nil {
+			return s.failScreening(ctx, item, token, "provider_scope_unavailable")
+		}
+	}
 	result, err := s.provider.Search(ctx, request)
 	if err != nil {
 		return s.failScreening(ctx, item, token, err.Error())

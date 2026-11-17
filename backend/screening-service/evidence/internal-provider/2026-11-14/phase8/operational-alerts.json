@@ -1,0 +1,12 @@
+{
+  "deployment_monitoring_accepted": false,
+  "external_alert_delivery_configured": false,
+  "fault_codes": {
+    "enabled_not_ready": true,
+    "expired_source_leases": true,
+    "quarantined": true,
+    "source_retry_exhausted": true
+  },
+  "max_queue_age_seconds": 300,
+  "status": "degraded"
+}

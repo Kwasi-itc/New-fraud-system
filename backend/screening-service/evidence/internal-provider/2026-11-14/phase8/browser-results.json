@@ -1,0 +1,2042 @@
+[
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "signed-out pages require login and auth writes reject foreign origins",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1691,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "investigator sees current roles, cannot administer accounts, and can log out",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1861,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "administrator access editor confirms writes and displays version conflicts",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1343,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "investigator can inspect and revoke another own session with confirmation",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 977,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "revoke-all clears the session and requires login",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1300,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "auth.spec.ts",
+    "title": "session revocation failure keeps an actionable error and does not claim success",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 933,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "case-tabs.spec.ts",
+    "title": "investigator navigates the case sections by keyboard with named active panels",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2366,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "data-model-auth.spec.ts",
+    "title": "Data Model proxy requires a session and rejects foreign-origin writes",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 68,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "data-model-auth.spec.ts",
+    "title": "Data Model proxy forwards original identity and relays owner denials",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 384,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-detail-case.spec.ts",
+    "title": "individual decision shows the case name and links directly to case details",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1328,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-detail-case.spec.ts",
+    "title": "individual decision distinguishes unlinked membership",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 914,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-detail-case.spec.ts",
+    "title": "individual decision distinguishes unavailable membership",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 831,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-detail-case.spec.ts",
+    "title": "case lookup failure stays visible and can be retried",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1100,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening-access.spec.ts",
+    "title": "gateway requires a session and ignores supplied actor and tenant",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 59,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening-access.spec.ts",
+    "title": "foreign decision is denied without leaking backend errors",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 69,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening.spec.ts",
+    "title": "renders source outcomes without treating execution completion or partial results as clear",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1207,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening.spec.ts",
+    "title": "polls active execution to completion then allows explicit refresh",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4013,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening.spec.ts",
+    "title": "screening denial or service failure does not hide the decision or expose errors",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1232,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening.spec.ts",
+    "title": "independent loading state leaves the original decision visible",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 813,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-screening.spec.ts",
+    "title": "refresh displays recovery performed by the owner without a browser mutation",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1102,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-selection.spec.ts",
+    "title": "select decisions, show actual membership, create one case and navigate",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3114,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-selection.spec.ts",
+    "title": "selection clears on filter/page-size changes and modal supports remove/cancel",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2981,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-selection.spec.ts",
+    "title": "lost creation response retries identical operation without duplicate history",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3376,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "decision-selection.spec.ts",
+    "title": "revoked inbox access keeps the modal and displays the failure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2269,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "display-settings.spec.ts",
+    "title": "configure captions, linked labels and column order, then view them in Decisions",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6285,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "display-settings.spec.ts",
+    "title": "permission failure keeps the editor and unsaved changes visible",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2144,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "exclusion-management.spec.ts",
+    "title": "case exclusion history paginates, exposes scoped applications and supports removal",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3086,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "exclusion-management.spec.ts",
+    "title": "history has empty, denied and retry states",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2764,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "internal-provider-live.spec.ts",
+    "title": "published internal records reach the existing results, enrichment and history UI",
+    "status": "skipped",
+    "expected_status": "skipped",
+    "results": [
+      {
+        "status": "skipped",
+        "duration_ms": 187,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "internal-scenario-screening.spec.ts",
+    "title": "internal provider, profile and scoped dataset survive authoring BFF save and reopen",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3651,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "internal-scenario-screening.spec.ts",
+    "title": "case source enrichment BFF rejects foreign origin, signed-out and foreign tenant",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 124,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "invitations.spec.ts",
+    "title": "administrator invites, sees queued delivery, cancels and reads audit",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2242,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "invitations.spec.ts",
+    "title": "non administrators cannot view invitations or audit",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 948,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "invitations.spec.ts",
+    "title": "invitation fragment is removed and posted only on explicit acceptance",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 917,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "continuous candidate can be excluded and the exclusion removed through explicit reviewed actions",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3997,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "manual freeform review offers no exclusion control",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2676,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "archived-source exclusion removal is explicit and retries the same operation",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3209,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "exclusion findings reserve audit-prefix space before submitting",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2181,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "manual investigation records confirmed_hit with a retry-safe command",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2616,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-case-review.spec.ts",
+    "title": "manual investigation records no_hit with a retry-safe command",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2557,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "incomplete search refinement copies settings without execution and creates a separate run",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3254,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "refinement requires explicit removal of unsupported stored settings",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3033,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "candidate investigation selects an authorized inbox and opens the case",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2709,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "investigation failure remains visible and retry reuses the same search",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2561,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "generic capability hides unsupported fields without blocking history",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2265,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "unconfigured provider disables new searches but preserves stored history",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1400,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "capability load failure can be retried",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1363,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "manual organization search uses owner API and renders candidates",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2594,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "manual search Nobody state",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1608,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "manual search Partial state",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2198,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "manual search Failure state",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1419,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "manual search Denied state",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1029,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "lost create response retries identical operation and original input",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1841,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "invalid empty input does not submit and proxy rejects foreign origins",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1155,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "person identifying fields are sent and stored history reopens without a new search",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2456,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "manual-screening.spec.ts",
+    "title": "history keyset navigation, filters and retry",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2796,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "private-lists.spec.ts",
+    "title": "private list upload, separate review and version restore use the BFF",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3206,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "private-lists.spec.ts",
+    "title": "private list BFF rejects foreign origins, signed-out access and unsupported paths",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 53,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "record-explorer.spec.ts",
+    "title": "investigator explores a relationship, follows the trail and saves a case note",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3843,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "record-explorer.spec.ts",
+    "title": "uncertain attachment refreshes membership and revoked exploration hides decisions",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3235,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-inline.spec.ts",
+    "title": "configure synchronous screening with ordered name parts and local matching overrides",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4371,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-list.spec.ts",
+    "title": "lists score and screening rules together with their real behavior and enabled state",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1534,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-list.spec.ts",
+    "title": "search and type filters include screening rules, including a screening-only scenario",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2059,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-list.spec.ts",
+    "title": "opens the selected configuration directly and refreshes its row after saving",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2805,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-list.spec.ts",
+    "title": "a read-only member can view the selected screening without writable controls",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1454,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening-list.spec.ts",
+    "title": "a screening failure is visible without hiding score rules and can recover",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1281,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "create, reopen and disable a mapped scenario screening configuration",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3350,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "conflict retains draft; invalid outcomes and unauthorized proxy are denied",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1957,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "unsupported provider hides address mapping and preserves name-only creation",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1320,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "saved birth-date mapping survives capability loss until explicitly cleared",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2307,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "nationality and country mappings persist and require explicit entity-switch resolution",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2887,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "registration mapping persists and requires explicit removal on Person switch and capability loss",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2871,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "scenario-screening.spec.ts",
+    "title": "matching settings survive reopen and require explicit clearing after capability loss",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4636,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-capabilities.spec.ts",
+    "title": "identity fields work independently of datasets and type drafts survive switching",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1865,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-capabilities.spec.ts",
+    "title": "dataset-only capability and tighter bounds cannot submit unsupported defaults",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1707,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-capabilities.spec.ts",
+    "title": "clearing unsupported refinement preserves supported identifying fields",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3294,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-capabilities.spec.ts",
+    "title": "incomplete capability contract fails closed",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1689,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-evidence.spec.ts",
+    "title": "screening evidence allowlist removes owner secrets and raw payloads",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-evidence.spec.ts",
+    "title": "screening evidence rejects an unexpected parent",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-evidence.spec.ts",
+    "title": "evidence gateway denies signed-out and foreign-tenant requests",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 110,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-evidence.spec.ts",
+    "title": "authorized case evidence is projected and rendered as stored candidate cards",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1479,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-evidence.spec.ts",
+    "title": "identifier-profile case candidates can load and retain source details",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4091,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "stored report renders provenance and review states without rerunning and prints only report content",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5720,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "report preserves Partial semantics",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1755,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "report preserves Nobody semantics",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2519,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "report denies unavailable IDs without leaking response details and supports transient retry",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1044,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "report requires a session",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 711,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "a pending search cannot be printed as a completed results report",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 745,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "a failed search cannot be printed as a completed results report",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 732,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "a archived search cannot be printed as a completed results report",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 873,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "screening-report.spec.ts",
+    "title": "current permission denial prevents report rendering",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 902,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "multiple browser drafts, title placeholders and saved-rule deletion",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5763,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "draft storage errors are visible and drafts are scoped to the signed-in user",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2777,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "delete rejects stale versions and recovers after a lost acknowledgement",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1292,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "nested conditions and do nothing survive save and reload",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4947,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "workflow gateway rejects signed-out, foreign-origin and investigator-only writes",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 183,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "save, reload and disable a case workflow using real inbox IDs",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3574,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "lost save response refreshes saved state and revoked access blocks changes",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4604,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workflows.spec.ts",
+    "title": "workflow editor keeps condition/action controls, cancellation and mobile layout",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5605,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "dashboard loads the signed-in workspace without a configured tenant",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2169,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "operations dashboard counts decisions for the same session tenant",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1716,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "Detection uses the session tenant even with a foreign tenant link",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1085,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "Cases stays in the session workspace and rejects direct foreign access",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1088,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "scenario page requests the signed-in tenant without public configuration",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1285,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "execution page requests the signed-in tenant without public configuration",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2036,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "test page requests the signed-in tenant without public configuration",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1516,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace-tenant.spec.ts",
+    "title": "list page requests the signed-in tenant without public configuration",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1771,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "empty tenant queue handles nullable collections without a page crash",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 1791,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "decision lookup retains closed membership and creates from an unlinked decision",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6140,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "decision attachment confirms the case and handles revoked access without losing selection",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4486,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "uncertain creation discovers committed membership and prevents another create",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2538,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "queue filters survive reload, history navigation and return from a case",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 8692,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "queue restores UTC and boolean filters and scopes assigned-to-me to the session",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3059,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "investigator records approve with history and no automatic case closure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5291,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "investigator records decline with history and no automatic case closure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5203,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "investigator records confirmed_hit with history and no automatic case closure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6499,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "investigator records no_hit with history and no automatic case closure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4482,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "uncertain review retries the identical operation without duplicate history",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3780,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "review access revocation preserves findings and rejects cross-origin commands",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3712,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "decision screening arrives with its decision (partial empty)",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3438,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "decision screening arrives with its decision (match)",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3317,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "screening arrival is visible before review (partial zero matches)",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3202,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "screening arrival is visible before review (pending match)",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3613,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "investigator inspects evidence, comments, closes, reloads, and reopens",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5479,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "empty queues and tenant URL tampering retain the authenticated workspace scope",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3420,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "unauthorized inboxes and failed writes remain actionable",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2707,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "proxy requires a session and rejects cross-origin writes",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 135,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "evidence uploads finalize, survive reload, and download through the private proxy",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3228,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "bulk close reports results and retains the operation ID for retry",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 3128,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "administrators create, update, and archive tags",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 2138,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "report drafts retain findings, require completion fields, and export privately",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5636,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "decision transfer confirms destination and safely retries a lost acknowledgment",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4955,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "single and bulk closure validate whitespace and UTF-8 findings size",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 5153,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "stale closure refreshes state and reopening handles capacity errors",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6143,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-full-final.json",
+    "file": "workspace.spec.ts",
+    "title": "analytics filters reconcile visible cases and hide data after access failure",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 4349,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "invocation": "browser-live-final.json",
+    "file": "internal-provider-live.spec.ts",
+    "title": "published internal records reach the existing results, enrichment and history UI",
+    "status": "expected",
+    "expected_status": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration_ms": 6956,
+        "retry": 0,
+        "errors": []
+      }
+    ]
+  }
+]

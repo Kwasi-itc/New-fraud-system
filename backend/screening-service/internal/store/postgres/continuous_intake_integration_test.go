@@ -331,7 +331,9 @@ func TestContinuousRetryCannotErasePublishedMatches(t *testing.T) {
 func TestContinuousProducerMigrationPreservesHistory(t *testing.T) {
 	db := deliveryDatabase(t)
 	ctx := context.Background()
-	for _, name := range []string{"000007_execution_projection.down.sql", "000005_continuous_case_arrival.down.sql", "000005_continuous_case_arrival.up.sql", "000007_execution_projection.up.sql", "000007_execution_projection.down.sql"} {
+	// Unwind the newer source-authority FK before downgrading its parent
+	// tenant-consistency constraint. Retain the original history-preservation test.
+	for _, name := range []string{"000023_provider_clients.down.sql", "000022_source_statistics.down.sql", "000021_normalizer_revision.down.sql", "000020_continuous_sources.down.sql", "000019_reviewed_notices.down.sql", "000018_fuzzy_read_latency.down.sql", "000017_dataset_maintenance.down.sql", "000016_inline_evidence.down.sql", "000015_private_lists.down.sql", "000014_source_connectors.down.sql", "000013_source_lifecycle.down.sql", "000012_fuzzy_names.down.sql", "000011_controlled_sources.down.sql", "000007_execution_projection.down.sql", "000005_continuous_case_arrival.down.sql", "000005_continuous_case_arrival.up.sql", "000007_execution_projection.up.sql", "000007_execution_projection.down.sql"} {
 		data, err := os.ReadFile(filepath.Join("..", "..", "migrations", "metadata", name))
 		if err != nil {
 			t.Fatal(err)

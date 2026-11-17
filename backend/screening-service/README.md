@@ -3,8 +3,11 @@
 Current PostgreSQL runtime and retained frontend features are tracked in
 [PostgreSQL port status](POSTGRESQL_PORT_STATUS.md). Run the shared local stack
 using [PostgreSQL gateway setup](../../docker/POSTGRES_GATEWAY.md).
-The separate source collector/provider remains planned work:
-[internal provider implementation plan](INTERNAL_PROVIDER_PLAN.md).
+The internal provider and collector are implemented; production acceptance gates
+remain in the [acceptance register](INTERNAL_PROVIDER_ACCEPTANCE.md).
+For the independently deployable API, use the
+[standalone provider setup](STANDALONE_PROVIDER.md) and
+[delivery checklist](STANDALONE_PROVIDER_PLAN.md).
 
 ## Reliable case callbacks
 

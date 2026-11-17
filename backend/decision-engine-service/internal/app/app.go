@@ -49,6 +49,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
+		ProviderTransport:                   cfg.ProviderTransport,
+		InternalScreeningPolicy:             cfg.InternalScreeningPolicy,
 		NameRecognitionURL:                  cfg.NameRecognitionURL,
 		NameRecognitionToken:                cfg.NameRecognitionToken,
 		ScreeningServiceURL:                 cfg.ScreeningServiceURL,

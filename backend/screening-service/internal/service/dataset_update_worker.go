@@ -6,6 +6,7 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 )
 
@@ -44,11 +45,14 @@ func NewDatasetUpdateWorkerService(
 
 func (s DatasetUpdateWorkerService) ProcessPendingJobs(ctx context.Context, limit int) error {
 	items, err := s.datasetJobRepo.ListByStatus(ctx, screening.DatasetUpdateJobStatusPending, limit)
+	if recovery, ok := s.datasetJobRepo.(ports.DatasetMaintenanceRepository); ok {
+		items, err = recovery.RecoverableMaintenance(ctx, limit)
+	}
 	if err != nil {
 		return err
 	}
 	for _, item := range items {
-		if err := s.processJob(ctx, item); err != nil {
+		if err := s.RunJob(ctx, item.TenantID, item.ID); err != nil {
 			return err
 		}
 	}
@@ -60,13 +64,19 @@ func (s DatasetUpdateWorkerService) RunJob(ctx context.Context, tenantID, jobID 
 	if err != nil {
 		return err
 	}
-	if item.Status != screening.DatasetUpdateJobStatusPending {
+	if item.Status != screening.DatasetUpdateJobStatusPending && item.Status != screening.DatasetUpdateJobStatusProcessing {
 		return nil
 	}
 	return s.processJob(ctx, item)
 }
 
 func (s DatasetUpdateWorkerService) processJob(ctx context.Context, item screening.DatasetUpdateJob) error {
+	if _, ok := s.datasetJobRepo.(ports.DatasetMaintenanceRepository); ok && (item.JobType == "rescreen_monitored_objects" || item.JobType == "dataset_delta_sync" || item.JobType == "dataset_delta_rescreen") {
+		return s.runMaintenance(ctx, item)
+	}
+	// Existing maintenance jobs are authenticated owner operations and have no
+	// tenant-private selector/authority. Do not infer private access from TenantID.
+	ctx = provideraccess.WithScope(ctx, provideraccess.GlobalOperator())
 	now := s.clock.Now()
 	item.Status = screening.DatasetUpdateJobStatusProcessing
 	item.AttemptCount++

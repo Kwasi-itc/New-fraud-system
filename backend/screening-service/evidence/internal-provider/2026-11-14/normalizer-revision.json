@@ -1,0 +1,27 @@
+{
+  "old": {
+    "unicode": "15.0.0",
+    "normalizer": "nfkc-casefold-v1"
+  },
+  "current": {
+    "unicode": "17.0.0",
+    "normalizer": "nfkc-casefold-u17-v1"
+  },
+  "migration": 21,
+  "historical_projections": "Immutable and available to historical enrichment; excluded from current search until a current-normalizer generation is published.",
+  "same_raw_snapshot": "A normalizer change creates a new publication and rescreen event; collectors bypass conditional-304 reuse.",
+  "tests": {
+    "log": "normalizer-revision-tests.jsonl",
+    "passed_top_level": 23,
+    "passed_including_subtests": 23,
+    "failed": [],
+    "skipped_tests": [],
+    "packages": [
+      "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening",
+      "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres",
+      "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service",
+      "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata",
+      "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
+    ]
+  }
+}

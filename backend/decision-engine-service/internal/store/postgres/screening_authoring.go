@@ -40,6 +40,11 @@ func (r ScreeningAuthoringRepository) List(ctx context.Context, t, sc string, a 
 	if err := authorizeWorkflow(ctx, r.DB, t, a, false); err != nil {
 		return out, err
 	}
+	providers, providerErr := internalScreeningProviders(ctx, r.DB, t)
+	if providerErr != nil {
+		return out, providerErr
+	}
+	out.Providers = providers
 	if err := r.DB.QueryRow(ctx, `SELECT name FROM core.scenarios WHERE tenant_id=$1 AND id=$2`, t, sc).Scan(&out.ScenarioName); err != nil {
 		return out, err
 	}
@@ -113,6 +118,11 @@ func (r ScreeningAuthoringRepository) Save(ctx context.Context, t, sc string, a 
 	if err = authorizeWorkflow(ctx, tx, t, a, true); err != nil {
 		return empty, err
 	}
+	if in.ProviderKey() == "internal-watchlists" {
+		if err = validateInternalScreeningSelection(ctx, tx, t, in); err != nil {
+			return empty, err
+		}
+	}
 	// Configs execute outside this authoring transaction. Serialize edits only per scenario.
 	var scenario string
 	if err = tx.QueryRow(ctx, `SELECT id FROM core.scenarios WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, t, sc).Scan(&scenario); err != nil {
@@ -133,7 +143,11 @@ func (r ScreeningAuthoringRepository) Save(ctx context.Context, t, sc string, a 
 			return empty, screening.ErrAuthoringConflict
 		}
 	}
-	for _, mapped := range append([]string{in.NameField, in.CounterpartyIDField, in.AddressField, in.BirthDateField, in.NationalityField, in.CountryField, in.RegistrationField}, in.AdditionalNameFields...) {
+	mappedFields := append([]string{in.NameField, in.CounterpartyIDField, in.AddressField, in.BirthDateField, in.NationalityField, in.CountryField, in.RegistrationField}, in.AdditionalNameFields...)
+	for _, m := range in.IdentifierFields {
+		mappedFields = append(mappedFields, m.ValueField, m.CountryField)
+	}
+	for _, mapped := range mappedFields {
 		if mapped == "" {
 			continue
 		}
@@ -182,7 +196,7 @@ func (r ScreeningAuthoringRepository) Save(ctx context.Context, t, sc string, a 
 	if !create && !now.After(old.UpdatedAt) {
 		now = old.UpdatedAt.Add(time.Microsecond)
 	}
-	item := screening.Config{ID: in.ID, TenantID: t, ScenarioID: sc, Name: in.Name, AllowedOutcomes: in.Outcomes, Provider: "opensanctions", ConfigJSON: in.ConfigJSON(), Active: in.Enabled, ReviewInboxID: &in.InboxID, CreatedAt: now, UpdatedAt: now}
+	item := screening.Config{ID: in.ID, TenantID: t, ScenarioID: sc, Name: in.Name, AllowedOutcomes: in.Outcomes, Provider: in.ProviderKey(), ConfigJSON: in.ConfigJSON(), Active: in.Enabled, ReviewInboxID: &in.InboxID, CreatedAt: now, UpdatedAt: now}
 	var saved screening.Config
 	if create {
 		saved, err = repo.Create(ctx, item)

@@ -14,31 +14,39 @@ import (
 )
 
 type screeningDispatchConfig struct {
-	UseNER                       bool                     `json:"use_ner"`
-	IgnoreNERClassification      bool                     `json:"ner_ignore_classification"`
-	IgnoreListID                 string                   `json:"ignore_list_id"`
-	AuthoringVersion             int                      `json:"authoring_version"`
-	MinimumNameLength            int                      `json:"minimum_name_length"`
-	RemoveDigits                 bool                     `json:"remove_digits"`
-	EntityType                   string                   `json:"entity_type"`
-	Queries                      []screeningDispatchQuery `json:"queries"`
-	Query                        map[string]any           `json:"query"`
-	QueryFields                  map[string]string        `json:"query_fields"`
-	AdditionalNameFields         []string                 `json:"additional_name_fields"`
-	ProviderConfig               json.RawMessage          `json:"provider_config"`
-	LimitOverride                *int                     `json:"limit_override"`
-	UniqueCounterpartyIdentifier *string                  `json:"unique_counterparty_identifier"`
-	CounterpartyIDField          string                   `json:"counterparty_id_field"`
+	IdentifierFields             []screening.IdentifierMapping `json:"identifier_fields"`
+	UseNER                       bool                          `json:"use_ner"`
+	IgnoreNERClassification      bool                          `json:"ner_ignore_classification"`
+	IgnoreListID                 string                        `json:"ignore_list_id"`
+	AuthoringVersion             int                           `json:"authoring_version"`
+	MinimumNameLength            int                           `json:"minimum_name_length"`
+	RemoveDigits                 bool                          `json:"remove_digits"`
+	EntityType                   string                        `json:"entity_type"`
+	Queries                      []screeningDispatchQuery      `json:"queries"`
+	Query                        map[string]any                `json:"query"`
+	QueryFields                  map[string]string             `json:"query_fields"`
+	AdditionalNameFields         []string                      `json:"additional_name_fields"`
+	ProviderConfig               json.RawMessage               `json:"provider_config"`
+	LimitOverride                *int                          `json:"limit_override"`
+	UniqueCounterpartyIdentifier *string                       `json:"unique_counterparty_identifier"`
+	CounterpartyIDField          string                        `json:"counterparty_id_field"`
 }
 
 type screeningDispatchQuery struct {
-	RegistrationNumber string `json:"registration_number,omitempty"`
-	Nationality        string `json:"nationality,omitempty"`
-	Country            string `json:"country,omitempty"`
-	BirthDate          string `json:"birth_date,omitempty"`
-	Address            string `json:"address,omitempty"`
-	Name               string `json:"name"`
-	Type               string `json:"type,omitempty"`
+	Identifiers        []dispatchIdentifier `json:"identifiers,omitempty"`
+	RegistrationNumber string               `json:"registration_number,omitempty"`
+	Nationality        string               `json:"nationality,omitempty"`
+	Country            string               `json:"country,omitempty"`
+	BirthDate          string               `json:"birth_date,omitempty"`
+	Address            string               `json:"address,omitempty"`
+	Name               string               `json:"name"`
+	Type               string               `json:"type,omitempty"`
+}
+type dispatchIdentifier struct {
+	Type    string `json:"type"`
+	Value   string `json:"value"`
+	Country string `json:"country,omitempty"`
+	Issuer  string `json:"issuer,omitempty"`
 }
 
 type screeningDispatchRequest struct {
@@ -62,6 +70,11 @@ func buildScreeningDispatchWithWords(execID string, cfg screening.Config, item s
 	return buildScreeningDispatchPreprocessed(context.Background(), execID, cfg, item, objectType, objectID, objectFields, ignoreWords, nil)
 }
 func buildScreeningDispatchPreprocessed(ctx context.Context, execID string, cfg screening.Config, item screening.Execution, objectType, objectID string, objectFields map[string]any, ignoreWords []string, recognize screening.NameRecognizer) ([]byte, error) {
+	if cfg.Provider == "internal-watchlists" {
+		if _, ok := screening.DecodeAuthoring(cfg); !ok {
+			return nil, invalidScreeningQuery("Internal screening requires a valid version-2 authored configuration.")
+		}
+	}
 	var config screeningDispatchConfig
 	if len(cfg.ConfigJSON) > 0 {
 		if err := json.Unmarshal(cfg.ConfigJSON, &config); err != nil {
@@ -92,6 +105,52 @@ func buildScreeningDispatchPreprocessed(ctx context.Context, execID string, cfg 
 				Name: name,
 				Type: strings.TrimSpace(config.EntityType),
 			})
+		}
+	}
+	if len(config.IdentifierFields) > 0 {
+		if cfg.Provider != "internal-watchlists" || len(config.Queries) > 0 {
+			return nil, invalidScreeningQuery("Identifier mapping requires a mapped internal query.")
+		}
+		ids := []dispatchIdentifier{}
+		for _, m := range config.IdentifierFields {
+			if !m.Valid() {
+				return nil, invalidScreeningQuery("Invalid identifier mapping.")
+			}
+			value := objectFields[m.ValueField]
+			if value == nil || value == "" {
+				continue
+			}
+			text, ok := value.(string)
+			if !ok || len(text) > 200 || !utf8.ValidString(text) || strings.ContainsRune(text, 0) {
+				return nil, invalidScreeningQuery("Mapped identifiers must be bounded text; numeric conversion is forbidden.")
+			}
+			country := ""
+			if m.CountryField != "" {
+				raw := objectFields[m.CountryField]
+				if raw != nil {
+					var ok bool
+					country, ok = raw.(string)
+					if !ok {
+						return nil, invalidScreeningQuery("Identifier country must be text.")
+					}
+				}
+				country = strings.ToLower(strings.TrimSpace(country))
+				if country != "" {
+					region, e := language.ParseRegion(country)
+					if e != nil || len(country) != 2 || !region.IsCountry() {
+						return nil, invalidScreeningQuery("Identifier country must be an ISO country code.")
+					}
+				}
+			}
+			if m.Type != "lei" && m.Type != "imo" && country == "" && strings.TrimSpace(m.Issuer) == "" {
+				return nil, invalidScreeningQuery("Identifier jurisdiction or issuer is required.")
+			}
+			if strings.TrimSpace(text) != "" {
+				ids = append(ids, dispatchIdentifier{Type: m.Type, Value: text, Country: country, Issuer: m.Issuer})
+			}
+		}
+		for i := range queries {
+			queries[i].Identifiers = ids
 		}
 	}
 	if field := config.QueryFields["address"]; field != "" {
@@ -303,7 +362,7 @@ func buildScreeningDispatchPreprocessed(ctx context.Context, execID string, cfg 
 
 func resolveScreeningQueryName(config screeningDispatchConfig, objectFields map[string]any) (string, error) {
 	if len(config.AdditionalNameFields) > 0 {
-		if config.AuthoringVersion != 1 || len(config.AdditionalNameFields) > 4 || config.QueryFields["name"] == "" {
+		if (config.AuthoringVersion != 1 && config.AuthoringVersion != 2) || len(config.AdditionalNameFields) > 4 || config.QueryFields["name"] == "" {
 			return "", invalidScreeningQuery("Invalid combined name mapping.")
 		}
 		parts := []string{}
@@ -332,7 +391,7 @@ func resolveScreeningQueryName(config screeningDispatchConfig, objectFields map[
 		return name, nil
 	}
 	if fieldName := strings.TrimSpace(config.QueryFields["name"]); fieldName != "" {
-		if config.AuthoringVersion == 1 && objectFields[fieldName] != nil {
+		if (config.AuthoringVersion == 1 || config.AuthoringVersion == 2) && objectFields[fieldName] != nil {
 			if _, ok := objectFields[fieldName].(string); !ok {
 				return "", invalidScreeningQuery("Mapped name must be text.")
 			}

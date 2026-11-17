@@ -1,0 +1,50 @@
+{
+  "different_approver_required": true,
+  "foreign_tenant_admin_denied": true,
+  "large_publication_statistics_verified": true,
+  "limitations": [
+    "Disposable generated credentials only; no production secret rotation, TLS/network or managed-role acceptance",
+    "These are trusted service capabilities, not per-tenant DB roles or row-level security; tenant authority is enforced by current-identity application contracts"
+  ],
+  "logins": [
+    {
+      "actual_login_verified": true,
+      "capability": "screening_source_reader",
+      "create_database": false,
+      "create_role": false,
+      "identity_mutation_denied": true,
+      "superuser": false,
+      "wrong_password_rejected": true
+    },
+    {
+      "actual_login_verified": true,
+      "capability": "screening_private_writer",
+      "create_database": false,
+      "create_role": false,
+      "identity_mutation_denied": true,
+      "superuser": false,
+      "wrong_password_rejected": true
+    },
+    {
+      "actual_login_verified": true,
+      "capability": "screening_source_collector",
+      "create_database": false,
+      "create_role": false,
+      "identity_mutation_denied": true,
+      "superuser": false,
+      "wrong_password_rejected": true
+    },
+    {
+      "actual_login_verified": true,
+      "capability": "",
+      "create_database": false,
+      "create_role": false,
+      "identity_mutation_denied": true,
+      "superuser": false,
+      "wrong_password_rejected": true
+    }
+  ],
+  "private_records": 5001,
+  "production_credentials_changed": false,
+  "same_primary_binding_checked": true
+}

@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: Standalone Screening Provider
+  version: 1.0.0
+  description: >-
+    Synchronous matching and versioned source evidence without fraud decisions,
+    cases, saved screening jobs or human platform sessions. Explicitly select
+    permitted published datasets. Scores are similarity evidence, not identity
+    probabilities. Incomplete output must not be treated as a clean result.
+security:
+  - providerKey: []
+paths:
+  /healthz:
+    get:
+      security: []
+      summary: Process health
+      responses:
+        '200': {description: Process alive}
+  /readyz:
+    get:
+      security: []
+      summary: Database and catalog contract readiness, not source or quality acceptance
+      responses:
+        '200': {description: Ready}
+        '503': {description: Catalog unavailable}
+  /v1/search:
+    post:
+      summary: Match entities against explicitly selected datasets
+      description: Requires search permission. Returns synchronously. No decision, scenario, case or job is created. Authenticated attempts consume a shared minute budget. A partial response is explicitly incomplete.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Search'}
+            example:
+              profile: name-fuzzy-v1
+              threshold: 85
+              dataset_selection: [{scope: global, id: demo-watchlist}]
+              queries: [{name: Ama Testperson, type: Person}]
+              limit: 10
+      responses:
+        '200':
+          description: Matching evidence, pinned datasets, matching profile, partial indicator, provider_reference and matches; contract_version 2 is the shared source-evidence format
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [contract_version, provider_reference, partial, matches]
+                properties:
+                  contract_version: {type: integer, enum: [2]}
+                  provider_reference: {type: string}
+                  partial: {type: boolean}
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        entity_id: {type: string}
+                        name: {type: string}
+                        score: {type: number, minimum: 0, maximum: 1}
+                        matched_texts: {type: array, items: {type: string}}
+                        payload: {type: object, description: Source provenance, matching explanation and permitted record attributes}
+        '400': {$ref: '#/components/responses/Input'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {description: Dataset unavailable to this client; no narrowed partial selection runs}
+        '429': {$ref: '#/components/responses/RateLimit'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+        '504': {description: Evaluation deadline exceeded; no successful clean result}
+  /v1/enrich:
+    post:
+      summary: Retrieve a permitted record from its exact retained dataset generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [dataset, generation, record_id]
+              properties:
+                dataset: {$ref: '#/components/schemas/Dataset'}
+                generation: {type: string, format: uuid}
+                record_id: {type: string, maxLength: 200}
+      responses:
+        '200': {description: Namespaced source supplement; raw XML and private ingestion configuration are excluded}
+        '400': {$ref: '#/components/responses/Input'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {description: Dataset unavailable}
+        '410': {description: Source record/generation unavailable}
+        '429': {$ref: '#/components/responses/RateLimit'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/datasets:
+    get:
+      summary: Discover only this client's entitled datasets and readiness
+      parameters:
+        - {$ref: '#/components/parameters/Datasets'}
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/Limit'}
+      responses:
+        '200': {description: Bounded dataset page with category, generation, readiness, record count and next_cursor}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '400': {$ref: '#/components/responses/Input'}
+        '429': {$ref: '#/components/responses/RateLimit'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/freshness:
+    get:
+      summary: Inspect explicitly selected dataset publication and collection freshness
+      parameters:
+        - {$ref: '#/components/parameters/Datasets'}
+      responses:
+        '200': {description: Dataset generations and freshness; publication time is not external verification time}
+        '400': {$ref: '#/components/responses/Input'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {description: Dataset unavailable}
+        '429': {$ref: '#/components/responses/RateLimit'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/deltas:
+    get:
+      summary: Read publication changes with a credential/entitlement-bound cursor
+      parameters:
+        - {$ref: '#/components/parameters/Datasets'}
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/Limit'}
+      responses:
+        '200': {description: Publication events, next_cursor, has_more and changed; preserves immutable prior generations}
+        '400': {$ref: '#/components/responses/Input'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {description: Dataset unavailable}
+        '429': {$ref: '#/components/responses/RateLimit'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  securitySchemes:
+    providerKey:
+      type: http
+      scheme: bearer
+      bearerFormat: spk_credential-id.secret
+      description: Provider-issued machine credential. Platform sessions and service/operator tokens are not accepted here. Never put credentials in URL parameters.
+  parameters:
+    Datasets:
+      name: dataset
+      in: query
+      description: Repeat scope:id, for example dataset=global:demo-watchlist. Required for freshness/deltas. At most ten unique refs.
+      schema: {type: array, maxItems: 10, items: {type: string}}
+      style: form
+      explode: true
+    Cursor:
+      name: cursor
+      in: query
+      schema: {type: string, maxLength: 100}
+    Limit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+  responses:
+    Input: {description: Invalid, oversized, unsupported or stale-cursor input}
+    Unauthorized: {description: Missing, invalid, expired or revoked provider credential}
+    Forbidden: {description: Operation or current client authority denied}
+    RateLimit: {description: Shared minute budget or API concurrency limit reached; Retry-After supplied}
+    Unavailable: {description: Source/catalog unavailable; no successful clean result}
+  schemas:
+    Dataset:
+      type: object
+      additionalProperties: false
+      required: [scope, id]
+      properties:
+        scope: {type: string, enum: [global, tenant]}
+        id: {type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,79}$'}
+    Search:
+      type: object
+      additionalProperties: false
+      required: [profile, dataset_selection, queries, limit]
+      properties:
+        profile: {type: string, enum: [exact-name-v1, name-fuzzy-v1, name-token-v2, identifier-evidence-v1]}
+        threshold: {type: integer, minimum: 0, maximum: 100, default: 0, description: Fuzzy/identifier profiles require an explicit value from 50-100; exact profile defaults to 0 and preserves exact semantics}
+        dataset_selection: {type: array, minItems: 1, maxItems: 10, items: {$ref: '#/components/schemas/Dataset'}}
+        limit: {type: integer, minimum: 1, maximum: 50}
+        queries:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type]
+            properties:
+              name: {type: string, minLength: 1, maxLength: 200}
+              type: {type: string, enum: [Person, Organization, Vessel, Aircraft]}
+              birth_date: {type: string, description: Person date/year; unsupported by exact profile}
+              nationality: {type: string, description: Person ISO alpha-2 country}
+              country: {type: string, description: Organization ISO alpha-2 country}
+              registration_number: {type: string, description: Organization identifier; leading zeros retained}
+              address: {type: string, maxLength: 300}
+              identifiers:
+                type: array
+                maxItems: 10
+                description: identifier-evidence-v1 only; exact namespace/value matching
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [type, value]
+                  properties:
+                    type: {type: string, enum: [passport, national_id, registration, tax_id, lei, imo]}
+                    value: {type: string, minLength: 1, maxLength: 200}
+                    country: {type: string, minLength: 2, maxLength: 2}
+                    issuer: {type: string, maxLength: 200}

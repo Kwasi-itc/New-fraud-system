@@ -1,0 +1,28 @@
+# Build from the repository root. This runtime contains no fraud API/worker.
+FROM node:22-alpine AS documentation
+WORKDIR /assets
+COPY docker/gateway/package.json docker/gateway/package-lock.json ./
+RUN npm ci --ignore-scripts --omit=dev
+
+FROM golang:1.27.4 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /src/screening-service
+COPY backend/screening-service/go.mod backend/screening-service/go.sum ./
+COPY backend/investigator ../investigator
+RUN go mod download
+COPY backend/screening-service/ ./
+ENV CGO_ENABLED=0 GOFLAGS=-buildvcs=false
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -mod=readonly -trimpath -o /out/provider-server ./cmd/provider-server
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -mod=readonly -trimpath -o /out/provider-admin ./cmd/provider-admin
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -mod=readonly -trimpath -o /out/source-worker ./cmd/source-worker
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -mod=readonly -trimpath -o /out/source-admin ./cmd/source-admin
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -mod=readonly -trimpath -o /out/source-import ./cmd/source-import
+
+FROM gcr.io/distroless/base-debian12:nonroot
+WORKDIR /app
+COPY --from=builder /out/ /app/
+COPY --from=documentation /assets/node_modules/swagger-ui-dist/swagger-ui.css /app/swagger/swagger-ui.css
+COPY --from=documentation /assets/node_modules/swagger-ui-dist/swagger-ui-bundle.js /app/swagger/swagger-ui-bundle.js
+EXPOSE 8091
+ENTRYPOINT ["/app/provider-server"]

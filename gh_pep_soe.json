@@ -1,0 +1,1111 @@
+{
+  "version": 2,
+  "source": "gh-pep-soe",
+  "parser": "gh-pep-v1",
+  "records": [
+    {
+      "id": "gh-pep-soe-001",
+      "name": "Gertrude Araba Esaaba Torkornoo",
+      "type": "Person",
+      "aliases": [
+        "Chief Justice Gertrude Torkornoo",
+        "Gertrude Torkornoo",
+        "Torkornoo"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chief Justice of the Republic of Ghana, Head of the Judiciary"
+        ],
+        "listedAt": [
+          "2023-06-12"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chief Justice of the Republic of Ghana, Head of the Judiciary; Status: active; Known Family: Francis Torkornoo (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-002",
+      "name": "Paul Baffoe-Bonnie",
+      "type": "Person",
+      "aliases": [
+        "Justice Paul Baffoe-Bonnie",
+        "Baffoe-Bonnie"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Justice of the Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2008-06-11"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Justice of the Supreme Court of Ghana; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-003",
+      "name": "Gabriel Pwamang",
+      "type": "Person",
+      "aliases": [
+        "Justice Gabriel Pwamang",
+        "Pwamang"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2015-06-29"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-004",
+      "name": "Emmanuel Yonny Kulendi",
+      "type": "Person",
+      "aliases": [
+        "Justice Yonny Kulendi",
+        "Yonny Kulendi",
+        "Kulendi",
+        "Emmanuel Kulendi"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2020-05-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-005",
+      "name": "Kissi Agyebeng",
+      "type": "Person",
+      "aliases": [
+        "Special Prosecutor Kissi Agyebeng",
+        "Agyebeng"
+      ],
+      "source_reference": "https://osp.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Special Prosecutor of the Republic of Ghana, Office of the Special Prosecutor (OSP)"
+        ],
+        "listedAt": [
+          "2021-08-05"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Special Prosecutor of the Republic of Ghana, Office of the Special Prosecutor (OSP); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-006",
+      "name": "Joseph Whittal",
+      "type": "Person",
+      "aliases": [
+        "Commissioner Joseph Whittal",
+        "Whittal"
+      ],
+      "source_reference": "https://chraj.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Commissioner, Commission on Human Rights and Administrative Justice (CHRAJ)"
+        ],
+        "listedAt": [
+          "2016-12-20"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Commissioner, Commission on Human Rights and Administrative Justice (CHRAJ); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-007",
+      "name": "Jean Adukwei Mensa",
+      "type": "Person",
+      "aliases": [
+        "Jean Mensa",
+        "Mrs. Jean Mensa",
+        "Mensa"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chairperson, Electoral Commission of Ghana"
+        ],
+        "listedAt": [
+          "2018-07-23"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chairperson, Electoral Commission of Ghana; Status: active; Known Family: Dr. Charles Mensa (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-008",
+      "name": "Johnson Akuamoah Asiedu",
+      "type": "Person",
+      "aliases": [
+        "Akuamoah Asiedu",
+        "Asiedu",
+        "Johnson Asiedu"
+      ],
+      "source_reference": "https://ghaudit.org",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Auditor-General of the Republic of Ghana, Ghana Audit Service"
+        ],
+        "listedAt": [
+          "2021-08-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Auditor-General of the Republic of Ghana, Ghana Audit Service; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-009",
+      "name": "Ernest Kwamina Yedu Addison",
+      "type": "Person",
+      "aliases": [
+        "Dr. Ernest Addison",
+        "Dr. Ernest K. Y. Addison",
+        "Addison",
+        "Ernest Addison"
+      ],
+      "source_reference": "https://bog.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Governor, Bank of Ghana (Central Bank)"
+        ],
+        "listedAt": [
+          "2017-03-30"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Governor, Bank of Ghana (Central Bank); Status: active; Known Family: Philip Addison (Brother)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-010",
+      "name": "Maxwell Opoku-Afari",
+      "type": "Person",
+      "aliases": [
+        "Dr. Maxwell Opoku-Afari",
+        "Opoku-Afari"
+      ],
+      "source_reference": "https://bog.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "First Deputy Governor, Bank of Ghana"
+        ],
+        "listedAt": [
+          "2017-08-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: First Deputy Governor, Bank of Ghana; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-011",
+      "name": "Elsie Addo Awadzi",
+      "type": "Person",
+      "aliases": [
+        "Mrs. Elsie Addo Awadzi",
+        "Awadzi",
+        "Elsie Awadzi"
+      ],
+      "source_reference": "https://bog.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Second Deputy Governor, Bank of Ghana"
+        ],
+        "listedAt": [
+          "2018-02-14"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Second Deputy Governor, Bank of Ghana; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-012",
+      "name": "Kwabena Osei-Bonsu",
+      "type": "Person",
+      "aliases": [
+        "K. Osei-Bonsu",
+        "Osei-Bonsu"
+      ],
+      "source_reference": "https://fic.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chief Executive Officer, Financial Intelligence Centre (FIC Ghana)"
+        ],
+        "listedAt": [
+          "2020-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chief Executive Officer, Financial Intelligence Centre (FIC Ghana); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-013",
+      "name": "Thomas Oppong-Peprah",
+      "type": "Person",
+      "aliases": [
+        "Lt. Gen. Thomas Oppong-Peprah",
+        "Oppong-Peprah"
+      ],
+      "source_reference": "https://gafonline.mil.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chief of Defence Staff (CDS), Ghana Armed Forces"
+        ],
+        "listedAt": [
+          "2024-02-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chief of Defence Staff (CDS), Ghana Armed Forces; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-014",
+      "name": "George Akuffo Dampare",
+      "type": "Person",
+      "aliases": [
+        "Dr. George Akuffo Dampare",
+        "IGP Dampare",
+        "Dampare",
+        "George Dampare"
+      ],
+      "source_reference": "https://police.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Inspector-General of Police (IGP), Ghana Police Service"
+        ],
+        "listedAt": [
+          "2021-08-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Inspector-General of Police (IGP), Ghana Police Service; Status: active; Known Family: Anita Dampare (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-015",
+      "name": "David Asamoah",
+      "type": "Person",
+      "aliases": [
+        "David Boadi Asamoah",
+        "Ing. David Asamoah",
+        "Asamoah"
+      ],
+      "source_reference": "https://ecg.com.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Acting Managing Director, Electricity Company of Ghana (ECG)"
+        ],
+        "listedAt": [
+          "2024-09-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Acting Managing Director, Electricity Company of Ghana (ECG); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-016",
+      "name": "Daniel Wilson Addo",
+      "type": "Person",
+      "aliases": [
+        "Daniel Addo",
+        "Addo"
+      ],
+      "source_reference": "https://cbg.com.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Managing Director, Consolidated Bank Ghana (CBG)"
+        ],
+        "listedAt": [
+          "2018-08-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Managing Director, Consolidated Bank Ghana (CBG); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-017",
+      "name": "Patrick Kuma-Aboagye",
+      "type": "Person",
+      "aliases": [
+        "Dr. Patrick Kuma-Aboagye",
+        "Kuma-Aboagye"
+      ],
+      "source_reference": "https://ghs.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Director-General, Ghana Health Service (GHS)"
+        ],
+        "listedAt": [
+          "2019-11-25"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Director-General, Ghana Health Service (GHS); Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-018",
+      "name": "Julie Essiam",
+      "type": "Person",
+      "aliases": [
+        "Commissioner-General Julie Essiam",
+        "Essiam"
+      ],
+      "source_reference": "https://gra.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Commissioner-General, Ghana Revenue Authority (GRA) (2024–2025)"
+        ],
+        "listedAt": [
+          "2024-03-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Commissioner-General, Ghana Revenue Authority (GRA) (2024–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-019",
+      "name": "Opoku-Ahweneeh Danquah",
+      "type": "Person",
+      "aliases": [
+        "Opoku Danquah",
+        "Danquah"
+      ],
+      "source_reference": "https://gnpcghana.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Chief Executive Officer, Ghana National Petroleum Corporation (GNPC) (2022–2024)"
+        ],
+        "listedAt": [
+          "2022-04-21"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Executive Officer, Ghana National Petroleum Corporation (GNPC) (2022–2024); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-020",
+      "name": "Emmanuel Antwi-Darkwa",
+      "type": "Person",
+      "aliases": [
+        "Ing. Emmanuel Antwi-Darkwa",
+        "Antwi-Darkwa"
+      ],
+      "source_reference": "https://vra.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Chief Executive, Volta River Authority (VRA) (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-02-06"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Executive, Volta River Authority (VRA) (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-021",
+      "name": "Samuel Dubik Masubir Mahama",
+      "type": "Person",
+      "aliases": [
+        "Dubik Mahama",
+        "Samuel Mahama",
+        "Mahama"
+      ],
+      "source_reference": "https://ecg.com.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Managing Director, Electricity Company of Ghana (ECG) (2022–2024)"
+        ],
+        "listedAt": [
+          "2022-05-13"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Managing Director, Electricity Company of Ghana (ECG) (2022–2024); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-022",
+      "name": "Edwin Alfred Provencal",
+      "type": "Person",
+      "aliases": [
+        "Edwin Provencal",
+        "Provencal"
+      ],
+      "source_reference": "https://bost.com.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Managing Director, Bulk Energy Storage and Transportation (BOST) (2019–2025)"
+        ],
+        "listedAt": [
+          "2019-08-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Managing Director, Bulk Energy Storage and Transportation (BOST) (2019–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-023",
+      "name": "Kofi Bosompem Osafo-Maafo",
+      "type": "Person",
+      "aliases": [
+        "Kofi Osafo-Maafo",
+        "Osafo-Maafo"
+      ],
+      "source_reference": "https://ssnit.org.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Director-General, Social Security and National Insurance Trust (SSNIT) (2024–2025)"
+        ],
+        "listedAt": [
+          "2024-04-08"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Director-General, Social Security and National Insurance Trust (SSNIT) (2024–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-024",
+      "name": "Mustapha Abdul-Hamid",
+      "type": "Person",
+      "aliases": [
+        "Dr. Mustapha Abdul-Hamid",
+        "Abdul-Hamid"
+      ],
+      "source_reference": "https://npa.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Chief Executive, National Petroleum Authority (NPA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-07-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Executive, National Petroleum Authority (NPA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-025",
+      "name": "Joe Anokye",
+      "type": "Person",
+      "aliases": [
+        "Anokye"
+      ],
+      "source_reference": "https://nca.org.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Director-General, National Communications Authority (NCA) (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Director-General, National Communications Authority (NCA) (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-026",
+      "name": "Joseph Boahen Aidoo",
+      "type": "Person",
+      "aliases": [
+        "Hon. Joseph Boahen Aidoo",
+        "Aidoo",
+        "Joseph Aidoo"
+      ],
+      "source_reference": "https://cocobod.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Chief Executive, Ghana Cocoa Board (COCOBOD) (2017–2024)"
+        ],
+        "listedAt": [
+          "2017-01-27"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Executive, Ghana Cocoa Board (COCOBOD) (2017–2024); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Former Office Holder"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    }
+  ]
+}

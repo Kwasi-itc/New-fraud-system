@@ -2,8 +2,9 @@ import "server-only";
 import { platformSession } from "./auth";
 import { failure, relay } from "./case-proxy";
 
-export async function manualScreeningProxy(request: Request, id?: string) {
+export async function manualScreeningProxy(request: Request, id?: string, matchId?: string, action?: "monitor") {
   if (id && id !== "capabilities" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return failure("Invalid search identifier.", 400);
+  if (matchId && !/^[A-Za-z0-9_-]{1,200}$/.test(matchId)) return failure("Invalid candidate identifier.", 400);
   let body: string | undefined;
   if (request.method === "POST") {
     if (request.headers.get("origin") !== (process.env.APP_ORIGIN ?? new URL(request.url).origin)) return failure("Invalid request origin.", 403);
@@ -23,8 +24,8 @@ export async function manualScreeningProxy(request: Request, id?: string) {
     if (!session.session.roles.some(role => ["case_investigator", "case_manager_admin"].includes(role))) return failure("An investigator role is required.", 403);
     const base = process.env.SCREENING_SERVICE_URL;
     if (!base) return failure("Screening is not configured.", 503);
-    const query = request.method === "GET" && !id ? new URL(request.url).search : "";
-    return await relay(await fetch(`${base.replace(/\/$/, "")}/v1/manual-screenings${id ? `/${id}` : ""}${query}`, {
+    const query = request.method === "GET" && (!id || action === "monitor") ? new URL(request.url).search : "";
+    return await relay(await fetch(`${base.replace(/\/$/, "")}/v1/manual-screenings${id ? `/${id}` : ""}${matchId ? `/matches/${encodeURIComponent(matchId)}/enrich` : ""}${action ? `/${action}` : ""}${query}`, {
       method: request.method, body, headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
       cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15000),
     }));

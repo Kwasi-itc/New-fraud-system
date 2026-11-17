@@ -46,9 +46,10 @@ func TestManualScreeningIntakeAtomicityAuthorizationAndConcurrency(t *testing.T)
 	verified := access.WithPrincipal(ctx, principal)
 	seed := func(actor string, status string) service.ManualScreeningInput {
 		t.Helper()
-		id, match := uuid.New(), uuid.New()
+		id := uuid.New()
+		match := uuid.NewString() + "-" + id.String()
 		exec(`INSERT INTO screening.screenings(id,tenant_id,provider,object_type,object_id,status,is_manual,idempotency_key,created_at,updated_at) VALUES($1,$2,'opensanctions','Person','synthetic',$3,true,$4,now(),now())`, id, tenant, status, "manual:"+actor+":"+uuid.NewString())
-		exec(`INSERT INTO screening.screening_matches(id,tenant_id,screening_id,entity_id,provider,status,name,created_at,updated_at) VALUES($1,$2,$3,'synthetic-entity','opensanctions','pending','Synthetic candidate',now(),now())`, match.String(), tenant, id)
+		exec(`INSERT INTO screening.screening_matches(id,tenant_id,screening_id,entity_id,provider,status,name,created_at,updated_at) VALUES($1,$2,$3,'synthetic-entity','opensanctions','pending','Synthetic candidate',now(),now())`, match, tenant, id)
 		return service.ManualScreeningInput{TenantID: tenant, ScreeningID: id, CandidateID: match, InboxID: inbox.ID}
 	}
 	in := seed(user.String(), "awaiting_review")
@@ -59,11 +60,11 @@ func TestManualScreeningIntakeAtomicityAuthorizationAndConcurrency(t *testing.T)
 			t.Fatal("new intake without inbox access", err)
 		}
 		exec(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.New(), tenant, inbox.ID, user.String())
-		exec(`UPDATE screening.screening_matches SET status='no_hit' WHERE id=$1`, in.CandidateID.String())
+		exec(`UPDATE screening.screening_matches SET status='no_hit' WHERE id=$1`, in.CandidateID)
 		if _, err := s.InvestigateManualScreening(verified, in); !errors.Is(err, casepkg.ErrConflict) {
 			t.Fatal("stale reviewed candidate", err)
 		}
-		exec(`UPDATE screening.screening_matches SET status='pending' WHERE id=$1`, in.CandidateID.String())
+		exec(`UPDATE screening.screening_matches SET status='pending' WHERE id=$1`, in.CandidateID)
 		foreign := in
 		foreign.TenantID = uuid.New()
 		if _, err := s.InvestigateManualScreening(verified, foreign); !errors.Is(err, casepkg.ErrForbidden) {
@@ -146,7 +147,7 @@ func TestManualScreeningIntakeAtomicityAuthorizationAndConcurrency(t *testing.T)
 		if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE case_id=$1 AND event_type='screening_added' AND user_id=$2`, canonical, user.String()).Scan(&events); err != nil || events != 1 {
 			t.Fatal("audit identity", events, err)
 		}
-		exec(`UPDATE screening.screening_matches SET status='confirmed_hit' WHERE id=$1`, in.CandidateID.String())
+		exec(`UPDATE screening.screening_matches SET status='confirmed_hit' WHERE id=$1`, in.CandidateID)
 		item, err := s.InvestigateManualScreening(verified, in)
 		if err != nil || item.ID != canonical {
 			t.Fatal("ack retry after review", err)

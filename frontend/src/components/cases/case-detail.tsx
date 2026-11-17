@@ -252,7 +252,7 @@ export function CaseDetail({
         {/* Main Workspace Column */}
         <div className="space-y-6 min-w-0">
           {/* Active Tab Panel Container */}
-          <div className={activeTab === "overview" ? "space-y-6" : "hidden"}>
+          <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden={activeTab !== "overview"} className={activeTab === "overview" ? "space-y-6" : "hidden"}>
             {/* Linked Decisions & Connections */}
             <CaseDecisionsPanel
               tenant={tenant}
@@ -325,7 +325,7 @@ export function CaseDetail({
           </div>
 
           {/* Dedicated Full-Width Investigation & Connections Tab Panel */}
-          <div className={activeTab === "investigation" ? "space-y-6" : "hidden"}>
+          <div role="tabpanel" id="panel-investigation" aria-labelledby="tab-investigation" hidden={activeTab !== "investigation"} className={activeTab === "investigation" ? "space-y-6" : "hidden"}>
             <CaseInvestigationConnectionsPanel
               tenant={tenant}
               session={session}
@@ -334,7 +334,7 @@ export function CaseDetail({
           </div>
 
           {/* Screenings Tab Panel */}
-          <div className={activeTab === "screenings" ? "space-y-6" : "hidden"}>
+          <div role="tabpanel" id="panel-screenings" aria-labelledby="tab-screenings" hidden={activeTab !== "screenings"} className={activeTab === "screenings" ? "space-y-6" : "hidden"}>
             <CaseExclusions tenant={tenant} session={session} caseId={id} />
             <CaseScreeningsPanel
               tenant={tenant}
@@ -344,7 +344,7 @@ export function CaseDetail({
           </div>
 
           {/* Files & SAR Tab Panel */}
-          <div className={activeTab === "files" ? "space-y-6" : "hidden"}>
+          <div role="tabpanel" id="panel-files" aria-labelledby="tab-files" hidden={activeTab !== "files"} className={activeTab === "files" ? "space-y-6" : "hidden"}>
             <CaseFilesPanel
               tenant={tenant}
               session={session}
@@ -356,7 +356,7 @@ export function CaseDetail({
           </div>
 
           {/* Activity Timeline Tab Panel */}
-          <div className={activeTab === "activity" ? "space-y-6" : "hidden"}>
+          <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden={activeTab !== "activity"} className={activeTab === "activity" ? "space-y-6" : "hidden"}>
             <CaseTimeline
               tenant={tenant}
               session={session}

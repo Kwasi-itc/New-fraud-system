@@ -1,0 +1,8 @@
+{
+  "source": "ofac-sdn",
+  "validation_errors": 0,
+  "records": 19565,
+  "dtd": "prohibited",
+  "external_resolver": "disabled",
+  "schema_sha256": "1b32871c50abbafd09a38a71d8759b3a99e8a89d97902829c660a9e93476dd0a"
+}

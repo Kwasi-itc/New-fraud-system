@@ -1,0 +1,169 @@
+{
+  "created_at": "2026-11-15T20:00:33.875Z",
+  "period": "2026-11-14/15 UTC",
+  "base_commit": "18c6e5d",
+  "scope": "Phase 8 acceptance/remediation; no production activation",
+  "production_ready": false,
+  "files": [
+    {
+      "file": "acceptance-gates.json",
+      "bytes": 12999,
+      "sha256": "38445480193702ef96e87c85d3c2f846103707a83f56a0965eac10ad2c668418"
+    },
+    {
+      "file": "audit-output-guard.json",
+      "bytes": 475,
+      "sha256": "74b049bf6eae005764999cb2eed49a82ceabf3859b3eb1b744dd78284a72ee2c"
+    },
+    {
+      "file": "auth-service-vulnerability-scan.json",
+      "bytes": 667050,
+      "sha256": "14943017b319f64f22f45474d8d2ef3f45541a70047292113a2ca493581185fa"
+    },
+    {
+      "file": "browser-failure-register.json",
+      "bytes": 7392,
+      "sha256": "67e1c73f50def18e09820f8f16d3b4d84974db62937dfc94574b5dbc828fc225"
+    },
+    {
+      "file": "browser-results.json",
+      "bytes": 50832,
+      "sha256": "310c584b2a84bdaf5586c8d3ae9b34c1c616758577c5655f713cff0586785a53"
+    },
+    {
+      "file": "candidate-plan-analyzed.json",
+      "bytes": 18182,
+      "sha256": "123a9e33795ca625a14790edda5ac32e287baa01c072a79dd054c6c609e8b092"
+    },
+    {
+      "file": "candidate-plan-before-maintenance.json",
+      "bytes": 14559,
+      "sha256": "2d41810d269da2e8717a6167c4294781d2af894c3264d560b26269c191bb5941"
+    },
+    {
+      "file": "candidate-plan-fresh.json",
+      "bytes": 18181,
+      "sha256": "7d3ecff4f0f64f1b87cf37cf7d46f521894cd4bde58017cb7cc0da0876d602f6"
+    },
+    {
+      "file": "candidate-plan-manually-analyzed.json",
+      "bytes": 18182,
+      "sha256": "123a9e33795ca625a14790edda5ac32e287baa01c072a79dd054c6c609e8b092"
+    },
+    {
+      "file": "case-manager-service-vulnerability-scan.json",
+      "bytes": 960551,
+      "sha256": "cb5b24af75de7aa395b3d0ea1d02fd95660ed8b7c01513f14d100960484e739e"
+    },
+    {
+      "file": "corpus-audit.json",
+      "bytes": 3252,
+      "sha256": "c36cfbb60a992faac79310f73ea3050a44608aca20e9278d7d4ffe4324645c0c"
+    },
+    {
+      "file": "decision-engine-service-vulnerability-scan.json",
+      "bytes": 962767,
+      "sha256": "af3fcfd12ebb7b608070953e1a26a296679da4df086c596e213bee58da64db25"
+    },
+    {
+      "file": "decision-performance-summary.json",
+      "bytes": 11064,
+      "sha256": "8b903eb3d36c628422c8a131b927917ce5ed279e3ab4b962d2b815e818414410"
+    },
+    {
+      "file": "decision-performance-undrained-1000.json",
+      "bytes": 155812,
+      "sha256": "52631f30e460957de411bbf839d5d8e7bc73366175c6471ed06486b207bb63fd"
+    },
+    {
+      "file": "decision-performance.json",
+      "bytes": 165865,
+      "sha256": "01f4c4b07078ea008d39f153bdcc62ce9948782058ef5e2fcb009fe9cc97c561"
+    },
+    {
+      "file": "decision-query-profile-undrained-1000.json",
+      "bytes": 22019,
+      "sha256": "10bdb6b3eeb51bbb48a2548e36eeb05aaa57c637ab9155b88e980be30a2b6a44"
+    },
+    {
+      "file": "decision-query-profile.json",
+      "bytes": 21410,
+      "sha256": "acaa2af6954700aa530f80df50213c6de2a6b80686ff90f2baccdfd5a845a193"
+    },
+    {
+      "file": "frontend-all-audit-final.json",
+      "bytes": 364,
+      "sha256": "c486c92b1a70606a98d6b93759122aae9daf2781b5ee0936a5b293ca57e1fb55"
+    },
+    {
+      "file": "frontend-production-audit-final.json",
+      "bytes": 364,
+      "sha256": "d4b5af96b8d19b8ec6c53588caf38ffdc3ddc6121cd65c40f4eda9526c4f15a1"
+    },
+    {
+      "file": "go-test-results.json",
+      "bytes": 195257,
+      "sha256": "39af406568d0fc5894e8aceacee58c412e8345fbd82d459847d5c99083000abc"
+    },
+    {
+      "file": "identifier-calibration.json",
+      "bytes": 85809,
+      "sha256": "0a571fa65d6c2a363687033abd9aed43c6dc294a3f113e77d57e4112f3ff8e90"
+    },
+    {
+      "file": "logical-restore.json",
+      "bytes": 16532,
+      "sha256": "75d5de52d39ad40577ddc8678a419a067ec9daa78a454059ad554cd16a62ca91"
+    },
+    {
+      "file": "name-v1-diagnostics.json",
+      "bytes": 351591,
+      "sha256": "7d9a5635c19d42bf957b2c6b9e638080e8002ac609da515eb2cbbd655564dbf2"
+    },
+    {
+      "file": "name-v2-diagnostics.json",
+      "bytes": 352904,
+      "sha256": "389d699643616c61be00d35ebe07be7d725a7851cf8e586909918e2f32d79cc4"
+    },
+    {
+      "file": "official-source-reverification.json",
+      "bytes": 3891,
+      "sha256": "1a9059b2a54daac88457cfd8bcd96f756d61dcb816cffb19d1773d65fb34b386"
+    },
+    {
+      "file": "operational-alerts.json",
+      "bytes": 299,
+      "sha256": "ea244fee21ed6985af9cc8d0b758ec58650006e16883290f635aff3e08354c5b"
+    },
+    {
+      "file": "performance-resources.json",
+      "bytes": 31205,
+      "sha256": "c2d17ece96ce1832beb9c17a738ef30b10eaf90b8f1c94a799e03a5cb2765db5"
+    },
+    {
+      "file": "qualification-summary.json",
+      "bytes": 18130,
+      "sha256": "beff9ba7a6d1293b86dfb79efe698ee61a8e63bec818e5a1ec7737faf8cc8615"
+    },
+    {
+      "file": "restricted-logins.json",
+      "bytes": 1587,
+      "sha256": "231f5117b595728be1a47ff7beadb494a5e6fbf3debe7100d990735d18953ad0"
+    },
+    {
+      "file": "screening-service-vulnerability-scan.json",
+      "bytes": 962761,
+      "sha256": "2f344754fcd527e1345cb68554d7d705a0965c227b532dac67cbd10b311bb3c3"
+    },
+    {
+      "file": "source-approval-register.json",
+      "bytes": 7767,
+      "sha256": "e346e12c46769c77b082c012d0c1ddb9e606e2319eb59745ea4c1981fac70699"
+    },
+    {
+      "file": "task-ledger.json",
+      "bytes": 53001,
+      "sha256": "2ada51865632259081dd3733680813de25f0ca054d1515dc63b093e6dc81e6fd"
+    }
+  ]
+}

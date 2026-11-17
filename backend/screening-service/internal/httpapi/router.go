@@ -18,12 +18,18 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerproduct"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerregistry"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 )
 
 type RouterConfig struct {
+	RemoteProvider         *providerproduct.Client
+	PrivateListWriter      *pgxpool.Pool
+	PrivateListPolicy      privatelists.Policy
 	ScreeningIntakeToken   string
 	ScreeningCallbackToken string
 	ScreeningOperatorToken string
@@ -114,6 +120,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		Scope:     cfg.OpenSanctionsScope,
 		Algorithm: cfg.OpenSanctionsAlgorithm,
 	})
+	providers := providerregistry.New(db, providerClient)
+	providers.Remote = cfg.RemoteProvider
 	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
@@ -122,9 +130,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	if db != nil {
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
 	}
-	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providerClient, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
+	screeningService := service.NewScreeningService(txManager, uuidGenerator{}, systemClock{}, screeningRepo, matchRepo, commentRepo, whitelistRepo, fileRepo, continuousRepo, monitoredObjRepo, datasetJobRepo, providers, inboxReader, casePublisher, blobStore, decisionPublisher, screeningEnqueuer, datasetJobEnqueuer, monitoredEnqueuer)
 	registerInvestigator(router, db, cfg.InvestigatorVerifier, screeningService)
 	registerManualSearch(router, db, cfg.InvestigatorVerifier, screeningService, manualQueueReady, providerClient.ManualCapabilities())
+	registerSourceMonitor(router, db, cfg.InvestigatorVerifier, screeningService, manualQueueReady)
+	registerPrivateLists(router, db, cfg.PrivateListWriter, cfg.InvestigatorVerifier, cfg.PrivateListPolicy)
 	screeningHandler := handlers.NewScreeningHandler(screeningService)
 	whitelistHandler := handlers.NewWhitelistHandler(screeningService)
 	continuousHandler := handlers.NewContinuousHandler(screeningService)
@@ -193,7 +203,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internal.GET("/screening-capabilities", func(c *gin.Context) {
 		capability := providerClient.ManualCapabilities()
 		supported := capability.Configured && capability.Adapter == "opensanctions_match"
-		c.JSON(200, gin.H{"matching_settings_supported": supported, "address_supported": supported, "birth_date_supported": supported, "nationality_supported": supported, "country_supported": supported, "registration_number_supported": supported})
+		c.JSON(200, gin.H{"provider_configured": capability.Configured, "matching_settings_supported": supported, "address_supported": supported, "birth_date_supported": supported, "nationality_supported": supported, "country_supported": supported, "registration_number_supported": supported})
 	})
 
 	return router

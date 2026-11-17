@@ -19,9 +19,9 @@ export function screeningEvidence(value: unknown, expectedID: string) {
     },
     matches: Array.isArray(body.matches) ? body.matches.map(value => {
       const match = object(value), payload = object(match.Payload ?? match.payload), properties = object(payload.properties);
-      return { id: scalar(match, "ID", "id"), entity_id: scalar(match, "EntityID", "entity_id"), name: scalar(match, "Name", "name"), status: scalar(match, "Status", "status"), score: scalar(match, "Score", "score"),
+      return { id: scalar(match, "ID", "id"), entity_id: scalar(match, "EntityID", "entity_id"), name: scalar(match, "Name", "name"), status: scalar(match, "Status", "status"), enriched: scalar(match, "Enriched", "enriched"), score: scalar(match, "Score", "score"),
         schema: typeof payload.schema === "string" ? payload.schema : undefined, datasets: strings(payload.datasets),
-        properties: Object.fromEntries(["alias", "country", "nationality", "birthDate", "address", "topics"].map(key => [key, strings(properties[key])]).filter(([, values]) => values.length)),
+        properties: Object.fromEntries(["alias", "country", "nationality", "birthDate", "registrationNumber", "address", "topics", "source", "sourceRecord", "datasetVersion", "matchingProfile", "matchedAlias", "matchReason", "matchingStrategy", "matchedField", "comparisonValues", "nameScore", "attributeEvidence", "sourceType", "sourceIdentifiers", "matchedAliasQuality", "programs", "listedAt", "sanctionsImposed", "sourceStatus", "birthDateText", "countryText", "nationalityText"].map(key => [key, strings(properties[key])]).filter(([, values]) => values.length)),
       };
     }) : [],
   };

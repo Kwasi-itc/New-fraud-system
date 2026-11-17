@@ -26,12 +26,15 @@ test.beforeEach(async ({ page, context, request }) => {
 
 test("select decisions, show actual membership, create one case and navigate", async ({ page }) => {
   const add = page.getByRole("button", { name: /^Add to Case/ });
-  await expect(add).toBeDisabled();
+  await expect(add).toHaveCount(0);
+  await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).not.toBeChecked();
   await expect(page.getByLabel(`Select decision ${linked}`, { exact: true })).toBeDisabled();
   await expect(page.getByLabel(`Select decision ${privateID}`, { exact: true })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Payment investigation · investigating" })).toBeVisible();
   await page.getByLabel("Select eligible decisions on this page").check();
-  await expect(add).toHaveText("Add to Case (2)");
+  await expect(add).toBeEnabled();
+  await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).toBeChecked();
+  await expect(page.getByLabel(`Select decision ${second}`, { exact: true })).toBeChecked();
   await add.click();
   const modal = page.getByRole("dialog", { name: "Create case" });
   await expect(modal.getByText("2 selected decisions")).toBeVisible();
@@ -58,10 +61,12 @@ test("selection clears on filter/page-size changes and modal supports remove/can
   await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeFocused();
   await page.getByLabel(`Select decision ${first}`, { exact: true }).check();
   await page.getByRole("combobox", { name: "Rows per page" }).selectOption("10");
-  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^Add to Case/ })).toHaveCount(0);
+  await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).not.toBeChecked();
   await page.getByLabel(`Select decision ${first}`, { exact: true }).check();
   await page.getByPlaceholder("Search by decision, object, or scenario").fill("payment");
-  await expect(page.getByRole("button", { name: /^Add to Case/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^Add to Case/ })).toHaveCount(0);
+  await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).not.toBeChecked();
   await page.getByPlaceholder("Search by decision, object, or scenario").clear();
   await expect(page.getByLabel(`Select decision ${first}`, { exact: true })).not.toBeChecked();
 });

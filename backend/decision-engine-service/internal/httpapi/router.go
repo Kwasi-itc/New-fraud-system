@@ -21,9 +21,12 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/tenantdata"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/lookup"
 )
 
 type RouterConfig struct {
+	ProviderTransport                   *lookup.Transport
+	InternalScreeningPolicy             service.InlinePolicy
 	NameRecognitionURL                  string
 	NameRecognitionToken                string
 	ScreeningServiceURL                 string
@@ -197,6 +200,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(cfg.GeoIPLookup)
+	decisionService.InlinePolicy = cfg.InternalScreeningPolicy
+	if db != nil && cfg.InternalScreeningPolicy.Enabled && cfg.InternalScreeningPolicy.Validate() == nil {
+		decisionService.InlineScreening = lookup.Facade{DB: db, Transport: cfg.ProviderTransport}
+	}
 	testRunService.SetGeoIPLookup(cfg.GeoIPLookup)
 	workflowService := service.NewWorkflowService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, workflowRepo, workflowExecutionRepo)
 	workflowRuleService := service.NewWorkflowRuleService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
@@ -261,7 +268,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	}
 	snoozeHandler := handlers.NewSnoozeHandler(snoozeService)
 	if db != nil && len(cfg.ScreeningAuthoringToken) >= 32 {
-		author := handlers.ScreeningAuthoringHandler{Service: service.ScreeningAuthoringService{NameRecognitionSupported: decisionService.NameRecognizer != nil, Capabilities: screeningcapabilities.Reader(cfg.ScreeningServiceURL, cfg.ScreeningIntakeToken, cfg.HTTPClientTimeout), Store: storepostgres.ScreeningAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
+		author := handlers.ScreeningAuthoringHandler{Service: service.ScreeningAuthoringService{InternalInlineSupported: decisionService.InlineScreening != nil, NameRecognitionSupported: decisionService.NameRecognizer != nil, Capabilities: screeningcapabilities.Reader(cfg.ScreeningServiceURL, cfg.ScreeningIntakeToken, cfg.HTTPClientTimeout), Store: storepostgres.ScreeningAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
 		group := router.Group("/internal/screening-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.ScreeningAuthoringToken}))
 		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
 		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/configs/:configId", author.Handle)

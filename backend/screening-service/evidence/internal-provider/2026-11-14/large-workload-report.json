@@ -1,0 +1,30 @@
+{
+  "concurrency": 8,
+  "concurrent_full_import": true,
+  "dataset_records": 40000,
+  "dataset_type": "mechanical synthetic names, not labelled accuracy or real-source distribution",
+  "errors": 0,
+  "exact_lookup_index_verified": true,
+  "go_heap_inuse_after_bytes": 18767872,
+  "go_heap_inuse_before_bytes": 46219264,
+  "go_total_alloc_delta_bytes": 326158160,
+  "go_version": "go1.25.8",
+  "gomaxprocs": 2,
+  "ingest_publish_ms": 3675,
+  "ingest_records_per_second": 10882.666247136256,
+  "missing_expected_source_ids": 0,
+  "p50_ms": 48.999,
+  "p95_ms": 1777.793,
+  "p99_ms": 2006.526,
+  "partial": 0,
+  "production_throughput_claim": false,
+  "profiles": [
+    "exact-name-v1",
+    "name-fuzzy-v1"
+  ],
+  "published_second_generation": "e46a21f7-1309-43a1-a28f-9877bc1190ee",
+  "requests": 1000,
+  "scope": "in-process provider and PostgreSQL, excludes API/queue/rules",
+  "search_throughput_per_second": 10.524027088092963,
+  "search_wall_ms": 95020
+}

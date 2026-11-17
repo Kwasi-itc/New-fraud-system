@@ -331,6 +331,8 @@ export function Evidence({
   resource: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [enriching, setEnriching] = useState("");
+  const [enrichError, setEnrichError] = useState("");
   const query = useQuery({
     queryKey: [...caseKeys.scope(tenant, session), caseId, "evidence", kind, resource],
     enabled: open,
@@ -388,7 +390,12 @@ export function Evidence({
             kind === "decisions" ? (
               <DecisionRuleExecutions data={query.data} tenant={tenant} />
             ) : (
-              <StoredScreeningEvidence data={query.data} />
+              <><StoredScreeningEvidence data={query.data} enriching={enriching} onEnrich={async match => {
+                setEnriching(match); setEnrichError("");
+                try { const response = await fetch(`/api/case-screening-enrichment/${tenant}/${caseId}/${encodeURIComponent(match)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Source details unavailable."); await query.refetch(); }
+                catch (cause) { setEnrichError(cause instanceof Error ? cause.message : "Source details unavailable."); }
+                finally { setEnriching(""); }
+              }} />{enrichError && <p role="alert" className="text-sm text-red-700">{enrichError}</p>}</>
             )
           )}
         </div>

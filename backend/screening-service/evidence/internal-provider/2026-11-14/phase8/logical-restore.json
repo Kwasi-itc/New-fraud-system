@@ -1,0 +1,542 @@
+{
+  "auth_definer_public_execute": false,
+  "backup_bytes": 398055,
+  "backup_sha256": "8c988790f2580e6fe9a007df29169adb44ed23df508d02027ca525c3c0323060",
+  "cross_tenant_private_read_denied": true,
+  "current_search_verified": true,
+  "dump_ms": 549,
+  "expired_staging_recovered": 1,
+  "historical_inline_generation_preserved": true,
+  "immutable_trigger_after_restore": true,
+  "inventories_equal_before_recovery": true,
+  "limitations": [
+    "Logical dump of a quiesced development fixture, not a managed-service snapshot or WAL/PITR test",
+    "No RPO guarantee beyond this consistent backup snapshot; no geographic restore, encrypted storage or credential recovery acceptance",
+    "Production RTO requires deployment data volume, owner-role mapping, network, storage and restart qualification"
+  ],
+  "new_generation_rollback_verified": true,
+  "pending_effect_replay_ms": 213,
+  "pending_worker_effects_replayed": true,
+  "production_recovery_accepted": false,
+  "restore_ms": 2370,
+  "source_scope": "New disposable shared-schema database; synthetic data and generated test identities only",
+  "table_and_sequence_inventories": {
+    "case_manager.ai_case_reviews": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.case_contributors": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.case_decisions": {
+      "content_digest": "1352b30dd681bc91f513b1bed48abb07",
+      "count": 1
+    },
+    "case_manager.case_events": {
+      "content_digest": "63019df97538df10ba96828223ccaf24",
+      "count": 3
+    },
+    "case_manager.case_files": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.case_screenings": {
+      "content_digest": "8eebbe5a5825ed4a4da863b8dc03a97c",
+      "count": 1
+    },
+    "case_manager.case_tags": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.cases": {
+      "content_digest": "1edd3b79d8162ba3244d1ce973b07a1e",
+      "count": 1
+    },
+    "case_manager.evidence_uploads": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.inbox_events": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.inbox_users": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.inboxes": {
+      "content_digest": "80aca0eca1c90f8d730bad55bac6b21f",
+      "count": 1
+    },
+    "case_manager.intake_receipts": {
+      "content_digest": "c56d6b9c081f3353527144586c057e1f",
+      "count": 1
+    },
+    "case_manager.outbox_events": {
+      "content_digest": "1b197bd4c2a8985bcf4452f154217ef3",
+      "count": 3
+    },
+    "case_manager.screening_intake_routes": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.suspicious_activity_reports": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "case_manager.tags": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.async_decision_executions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.custom_list_entries": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.custom_lists": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.decisions": {
+      "content_digest": "c75122aba83e0c1a53dc4de68314176e",
+      "count": 2
+    },
+    "core.field_enum_values": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.index_jobs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.ingestion_contracts": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.investigator_reviews": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.ip_flags": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.model_fields": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.model_links": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.model_pivots": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.model_tables": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.navigation_options": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.outbox_events": {
+      "content_digest": "e1829ab2d68ebbb6935745bc3bfe9d94",
+      "count": 6
+    },
+    "core.phantom_decisions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.phantom_rule_executions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.record_tags": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.risk_snapshots": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.rule_executions": {
+      "content_digest": "69b5d8042212511da0bd3ca748c06cfb",
+      "count": 4
+    },
+    "core.rule_snoozes": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.rules": {
+      "content_digest": "b96e56558e845b883ac78306f949597d",
+      "count": 2
+    },
+    "core.scenario_iterations": {
+      "content_digest": "65137373c35363d98818e3ab548d2103",
+      "count": 1
+    },
+    "core.scenario_publications": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.scenarios": {
+      "content_digest": "7b4ae45325235f1ebff6de13e95cc12e",
+      "count": 1
+    },
+    "core.scheduled_executions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.schema_change_log": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.scoring_configs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.scoring_requests": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.screening_authoring_events": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.screening_configs": {
+      "content_digest": "d24c1daedea5f3157fe308c63146cfae",
+      "count": 1
+    },
+    "core.screening_executions": {
+      "content_digest": "244fb099e896fbd9561ddad2f8c88c00",
+      "count": 2
+    },
+    "core.table_options": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.tenant_schema_migrations": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.tenants": {
+      "content_digest": "42a0ff8627ebe3bf196b902086db3c29",
+      "count": 2
+    },
+    "core.test_runs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.workflow_actions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.workflow_authoring_events": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.workflow_conditions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.workflow_executions": {
+      "content_digest": "a4191960b12fe5c81d62f38dcb904a68",
+      "count": 2
+    },
+    "core.workflow_rules": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "core.workflows": {
+      "content_digest": "f62f6d49bcb897d63996cdf2209b87a7",
+      "count": 1
+    },
+    "identity.audit_events": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "identity.external_identities": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "identity.invitation_delivery": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "identity.invitations": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "identity.login_transactions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "identity.memberships": {
+      "content_digest": "edac877787d9e1c7b5ed755ffffe3a5a",
+      "count": 3
+    },
+    "identity.schema_migrations": {
+      "content_digest": "a25b54392f51ff46408ddfd966b19f28",
+      "count": 4
+    },
+    "identity.sessions": {
+      "content_digest": "3bbd44ec2d9534e94bcdabb4189b8134",
+      "count": 3
+    },
+    "identity.users": {
+      "content_digest": "1b0acac3a741965530fcd817594ed86e",
+      "count": 3
+    },
+    "public.river_client": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "public.river_client_queue": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "public.river_job": {
+      "content_digest": "565a3507ccbe99b9534b0eba08d0a680",
+      "count": 10
+    },
+    "public.river_leader": {
+      "content_digest": "53497837e2bec7d224c20612e0ea26d0",
+      "count": 1
+    },
+    "public.river_migration": {
+      "content_digest": "1447b3d916d98c4759ddd222ac979ac3",
+      "count": 6
+    },
+    "public.river_queue": {
+      "content_digest": "d3cc23ef9726ad37a32d7fc461fe8eb8",
+      "count": 10
+    },
+    "screening.case_event_outbox": {
+      "content_digest": "f8d47a3e99ecf57a37a181c3da4899f1",
+      "count": 2
+    },
+    "screening.continuous_runs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.continuous_screening_configs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.database_identity": {
+      "content_digest": "a8d932ed807d1873e07b4d376093e48e",
+      "count": 1
+    },
+    "screening.dataset_maintenance_progress": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.dataset_maintenance_receipts": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.dataset_update_jobs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.execution_projection_queue": {
+      "content_digest": "a1eabd622d3dd43bc371d50fb4d8ad7d",
+      "count": 1
+    },
+    "screening.inline_evidence": {
+      "content_digest": "bdeae23b7cf35ab5f880ab9058b0bbaf",
+      "count": 2
+    },
+    "screening.investigator_reviews": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.monitored_objects": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.object_exclusion_applications": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.object_exclusion_events": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.object_exclusions": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.private_imports": {
+      "content_digest": "980a66545ad5af97f9db2b7b6e560462",
+      "count": 1
+    },
+    "screening.private_list_audit": {
+      "content_digest": "2b4db589495653b2d86cb6a510a73e3a",
+      "count": 4
+    },
+    "screening.private_lists": {
+      "content_digest": "9d64a43fa1244fb0418c7ab93404cd2b",
+      "count": 1
+    },
+    "screening.provider_run_authority": {
+      "content_digest": "51952524e8dee953d5dd74665a7f13b6",
+      "count": 2
+    },
+    "screening.reviewed_notice_audit": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.reviewed_notice_datasets": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.reviewed_notice_imports": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.screening_files": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.screening_match_comments": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.screening_matches": {
+      "content_digest": "c7d770269115fe7a1f7826546af9f2e5",
+      "count": 3
+    },
+    "screening.screening_whitelist_entries": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.screenings": {
+      "content_digest": "53d5d9d4e05ac5fb10af764c9b5792ff",
+      "count": 4
+    },
+    "screening.source_artifacts": {
+      "content_digest": "321a4692f3e150a925ca8cf211d44539",
+      "count": 4
+    },
+    "screening.source_connections": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_continuous_delivery": {
+      "content_digest": "8f62c6d9918308f5bf7e8b1856ef6962",
+      "count": 2
+    },
+    "screening.source_continuous_receipts": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_datasets": {
+      "content_digest": "1942ddd9870e61fa53cda5b83fb4c35c",
+      "count": 3
+    },
+    "screening.source_grants": {
+      "content_digest": "8346444395f6f490b219207838e76577",
+      "count": 4
+    },
+    "screening.source_identifiers": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_import_runs": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_lifecycle_audit": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_monitor_audit": {
+      "content_digest": "66f5e12808025a5c8d94c4948f1aedaf",
+      "count": 2
+    },
+    "screening.source_monitor_datasets": {
+      "content_digest": "bd36e506d2501677a3650e08999519aa",
+      "count": 1
+    },
+    "screening.source_monitors": {
+      "content_digest": "e0b02609971e28a51d1ada62c28d3bd0",
+      "count": 1
+    },
+    "screening.source_names": {
+      "content_digest": "077fe09fc7a510b4e5efdc872a93bb8d",
+      "count": 14
+    },
+    "screening.source_publication_delivery": {
+      "content_digest": "d5ad00ba77d68b31ced79dbe87b66c57",
+      "count": 4
+    },
+    "screening.source_publications": {
+      "content_digest": "b3e97ace015439dbea0c10f90ade4a7c",
+      "count": 4
+    },
+    "screening.source_read_cursors": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_records": {
+      "content_digest": "6f88dc806217091147e2d2133a508954",
+      "count": 8
+    },
+    "screening.source_rescreen_attempts": {
+      "content_digest": "21f58f656dcc866dc9e6be10b813a845",
+      "count": 1
+    },
+    "screening.source_rescreen_targets": {
+      "content_digest": "292ff9b71018055095080ad335559bc3",
+      "count": 1
+    },
+    "screening.source_retention_holds": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_retention_policies": {
+      "content_digest": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "screening.source_version_artifacts": {
+      "content_digest": "8c4b5818f078b0032d44517594315fe8",
+      "count": 4
+    },
+    "screening.source_versions": {
+      "content_digest": "59a8c0d0cd44eb65ce9b589345487080",
+      "count": 5
+    },
+    "sequence:public.river_job_id_seq": {
+      "is_called": true,
+      "last_value": 10
+    },
+    "sequence:screening.private_list_audit_id_seq": {
+      "is_called": true,
+      "last_value": 4
+    },
+    "sequence:screening.reviewed_notice_audit_id_seq": {
+      "is_called": false,
+      "last_value": 1
+    },
+    "sequence:screening.source_lifecycle_audit_id_seq": {
+      "is_called": false,
+      "last_value": 1
+    },
+    "sequence:screening.source_monitor_audit_id_seq": {
+      "is_called": true,
+      "last_value": 2
+    },
+    "sequence:screening.source_publications_id_seq": {
+      "is_called": true,
+      "last_value": 4
+    }
+  },
+  "target_scope": "New empty disposable database; no overwrite/clean flags"
+}

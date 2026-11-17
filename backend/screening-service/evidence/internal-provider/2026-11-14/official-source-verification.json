@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-14",
+  "sources": [
+    {
+      "artifact_bytes": 29558472,
+      "artifact_name": "ofac-sdn.xml",
+      "artifact_sha256": "55badef6928044db9fd5e798e6279802c1fa2019fa82a580a2e0d29a741ec9ae",
+      "coverage": "SDN only; not consolidated non-SDN lists or ownership-derived restrictions",
+      "database_scope": "new disposable verification database, dropped at exit",
+      "duration_ms": 110512,
+      "entity_type_search_enrich_verified": {
+        "Aircraft": true,
+        "Organization": true,
+        "Person": true,
+        "Vessel": true
+      },
+      "generation": "cb0498ec-c8dc-4735-96da-9564b7594b42",
+      "matching_quality_claim": false,
+      "mode": "existing-live-artifact-parser-publication-search-enrich",
+      "parsed": {
+        "total": 19565,
+        "by_type": {
+          "Aircraft": 342,
+          "Organization": 10112,
+          "Person": 7541,
+          "Vessel": 1570
+        },
+        "publisher_date": "11/13/2026",
+        "expected_count": 19565,
+        "parser": "ofac-classic-v1"
+      },
+      "production_activated": false,
+      "rights_state": "unreviewed",
+      "search_partial_by_type": {
+        "Aircraft": false,
+        "Organization": false,
+        "Person": false,
+        "Vessel": false
+      },
+      "source": "ofac-sdn",
+      "stable_url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML",
+      "tenant_grants_created": 0,
+      "unchanged_full_snapshot_verified": true
+    },
+    {
+      "artifact_bytes": 22168338,
+      "artifact_name": "uksl.xml",
+      "artifact_sha256": "7b3185f86831077c54c3f47d1186da957d65d1c721180d51001c848ee6a9cce1",
+      "coverage": "Current UKSL designations and specified ships; historical OFSI IDs retained; not obsolete OFSI feed",
+      "database_scope": "new disposable verification database, dropped at exit",
+      "duration_ms": 31137,
+      "entity_type_search_enrich_verified": {
+        "Organization": true,
+        "Person": true,
+        "Vessel": true
+      },
+      "generation": "abd8b285-2306-48c7-8910-bf78906f4f4e",
+      "matching_quality_claim": false,
+      "mode": "existing-live-artifact-parser-publication-search-enrich",
+      "parsed": {
+        "total": 6440,
+        "by_type": {
+          "Organization": 1676,
+          "Person": 4070,
+          "Vessel": 694
+        },
+        "publisher_date": "12/11/2026",
+        "parser": "uksl-v1"
+      },
+      "production_activated": false,
+      "rights_state": "unreviewed",
+      "search_partial_by_type": {
+        "Organization": false,
+        "Person": false,
+        "Vessel": false
+      },
+      "source": "uksl",
+      "stable_url": "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml",
+      "tenant_grants_created": 0,
+      "unchanged_full_snapshot_verified": true
+    },
+    {
+      "artifact_bytes": 2177747,
+      "artifact_name": "un.xml",
+      "artifact_sha256": "63fb633a895464bce6b89362c3e6c36e8b218586c3770b80dfb855692d7efa71",
+      "coverage": "UN Security Council consolidated individuals and entities; not a PEP database",
+      "database_scope": "new disposable verification database, dropped at exit",
+      "duration_ms": 3556,
+      "entity_type_search_enrich_verified": {
+        "Organization": true,
+        "Person": true
+      },
+      "generation": "d44e1229-9f3f-443a-a0dd-1100e6e9a6a5",
+      "matching_quality_claim": false,
+      "mode": "existing-live-artifact-parser-publication-search-enrich",
+      "parsed": {
+        "total": 1007,
+        "by_type": {
+          "Organization": 274,
+          "Person": 733
+        },
+        "publisher_date": "2026-11-14T00:00:05.893Z",
+        "parser": "un-consolidated-v1"
+      },
+      "production_activated": false,
+      "rights_state": "unreviewed",
+      "search_partial_by_type": {
+        "Organization": false,
+        "Person": false
+      },
+      "source": "un-consolidated",
+      "stable_url": "https://scsanctions.un.org/resources/xml/en/consolidated.xml",
+      "tenant_grants_created": 0,
+      "unchanged_full_snapshot_verified": true
+    }
+  ],
+  "raw_official_records_in_repository": false,
+  "commercial_activation": false
+}

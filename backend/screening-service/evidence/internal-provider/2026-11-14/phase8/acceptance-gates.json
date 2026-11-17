@@ -1,0 +1,210 @@
+{
+  "updated_at": "2026-11-15T20:00:33.274Z",
+  "existing_task_ids_only": true,
+  "production_ready": false,
+  "gates": [
+    {
+      "tasks": "QLT-01, MAT-01",
+      "requirement": "Name matching quality",
+      "status": "RELEASE BLOCKED — investigation complete, floors fail",
+      "prior": "Frozen v2 recall 97.12%, precision 24.27%, FPR 10.54%",
+      "gap": "137 conflicting input groups; 368 cross-partition input groups; source/type confounding; no feasible threshold 50–100",
+      "remediation": "Independent representative/adjudicated new corpus; freeze before new profile development/evaluation",
+      "dependencies": "Approved candidate/identity truth and authorized representative sources",
+      "tests": "Unchanged v1/v2 remeasurement, retrieval oracle, corpus/alias/commonality/ID/source/type/strategy slices",
+      "criteria": "Recall ≥99%, precision ≥95%, FPR/FNR ≤1%, retrieval ≥99.5%, no partial-as-clean; independent uncertainty/coverage acceptance",
+      "approval": "Risk/data owners and independent reviewers",
+      "files": [
+        "corpus-audit.json",
+        "name-v2-diagnostics.json"
+      ]
+    },
+    {
+      "tasks": "RSK-01, QLT-01",
+      "requirement": "Identifier matching quality",
+      "status": "DEVELOPMENT VERIFIED — independent quality acceptance open",
+      "prior": "Typed namespace/leading-zero/conflict functional tests",
+      "gap": "540 synthetic contract queries are not real identity truth; 30 ambiguous passport rows remain indeterminate",
+      "remediation": "Obtain independently adjudicated representative typed-ID cases and approve profile policy",
+      "dependencies": "ID provenance/namespace/availability and representative source data",
+      "tests": "Separate 90-family calibration/development/holdout; exact/different namespace/value, missing IDs and conflicts; no runtime change",
+      "criteria": "Same quality/uncertainty floors as approved intended use; no accepted threshold inferred from mechanical 100% point estimates",
+      "approval": "Risk/data quality owner",
+      "files": [
+        "identifier-calibration.json"
+      ]
+    },
+    {
+      "tasks": "FND-02, PVL-03",
+      "requirement": "Browser regressions",
+      "status": "DEVELOPMENT VERIFIED — all 21 original failures closed",
+      "prior": "111 pass / 21 fail / 1 skip; three HEAD reproductions",
+      "gap": "No remaining browser failures; separate baseline lint debt is recorded below",
+      "remediation": "All obsolete interactions/fixtures repaired; audit/accessibility/identifier-enrichment defects fixed without weakening controls",
+      "dependencies": "Current tabs, column/execution contracts and authenticated tenant authority",
+      "tests": "Entire suite 134 pass / 0 fail / 1 dedicated skip / 0 flaky; actual API/PG/worker journey 1/1 pass without skip",
+      "criteria": "All original 21 mapped to final passing tests; persisted review/audit/permission/tenant assertions retained",
+      "approval": "Release owner still approves deployment",
+      "files": [
+        "browser-failure-register.json",
+        "browser-results.json"
+      ]
+    },
+    {
+      "tasks": "OFAC-01/03/04",
+      "requirement": "OFAC SDN permission",
+      "status": "EXTERNAL APPROVAL REQUIRED",
+      "prior": "Actual complete 19,565-record parse/XSD/publication/search/enrichment",
+      "gap": "No signed institution-specific commercial/use/redistribution/privacy/retention decision",
+      "remediation": "Complete source-specific signed rights, attribution, correction, purpose and cadence record",
+      "dependencies": "Legal/compliance/management review and intended jurisdictions",
+      "tests": "Retained official snapshot reverified through migration 22, repeated full import unchanged",
+      "criteria": "Named reviewer, permission/basis/reference, allowed uses, retention/backup/delisting and freshness approved; SDN-only scope",
+      "approval": "Legal/compliance plus operations/management",
+      "files": [
+        "official-source-reverification.json",
+        "source-approval-register.json"
+      ]
+    },
+    {
+      "tasks": "UN-01, UK-01",
+      "requirement": "UN and UK permission",
+      "status": "EXTERNAL APPROVAL REQUIRED — separate source decisions",
+      "prior": "Actual complete 1,007 UN / 6,440 UK records verified",
+      "gap": "UN reuse restrictions and UK personal-data/third-party exceptions unresolved for intended service",
+      "remediation": "Obtain separate authoritative use decisions, conditions, attribution and retention/correction policies",
+      "dependencies": "Publisher terms and intended commercial/hosting/API use",
+      "tests": "Both retained full snapshots reverified through migration 22; actual search/enrichment and unchanged import",
+      "criteria": "Source-specific signed use/access/freshness decisions; no public-availability assumption",
+      "approval": "Legal/compliance and operations",
+      "files": [
+        "official-source-reverification.json",
+        "source-approval-register.json"
+      ]
+    },
+    {
+      "tasks": "EU-01/02, GH-01/02/03/04, NSDN-01, RES-01",
+      "requirement": "Excluded/unapproved coverage",
+      "status": "EXCLUDED — access/policy pending",
+      "prior": "EU fictional XML and Ghana fictional reviewed-upload tests; ORC/PEP/non-SDN/linking deferred",
+      "gap": "No live authorized EU/Ghana/ORC/PEP source or identity-link policy supplied",
+      "remediation": "Obtain approved access/contract/schema/category/privacy policy before separately scoped live acceptance",
+      "dependencies": "Source agencies/contracts and institution policy",
+      "tests": "Fixture security/lifecycle remain green; do not claim actual-source coverage",
+      "criteria": "Only approved actual coverage advertised; no invented endpoints, classification or permission",
+      "approval": "Access/legal/compliance/management",
+      "files": [
+        "source-approval-register.json"
+      ]
+    },
+    {
+      "tasks": "PERF-01, INL-01/02/03",
+      "requirement": "Complete decision capacity",
+      "status": "RELEASE BLOCKED — complete workload measured, SLO fails",
+      "prior": "536.96 provider-only searches/s, not complete throughput",
+      "gap": "Final 87.487 complete decisions/s and p95 290.738 ms do not meet 500/s and 50 ms",
+      "remediation": "Profile representative deployment, candidate/persistence/background costs; qualify fixed-arrival-rate/soak and DB resource budget",
+      "dependencies": "Intended EC2/RDS environment, approved representative sources/rules and real dependencies",
+      "tests": "10,000 HTTP decisions; 10,000 workflow/30,000 outbox receipts; 40k+20 concurrent publication/20 rescreens; zero errors/incomplete/retry/discard",
+      "criteria": "Approved sustained API/effects SLO, p50/95/99, backpressure/recovery, all-replica pools/resources/headroom; no provider-only extrapolation",
+      "approval": "Operations/capacity and risk owners",
+      "files": [
+        "decision-performance-summary.json",
+        "decision-query-profile.json",
+        "performance-resources.json"
+      ]
+    },
+    {
+      "tasks": "DB-01, HARD-01",
+      "requirement": "Migration qualification",
+      "status": "DEVELOPMENT VERIFIED — deployment-scale staging open",
+      "prior": "Fresh/upgrade/down-up through screening 21/auth 4",
+      "gap": "Target-volume migration/lock window and actual managed role mapping not rehearsed",
+      "remediation": "Review and rehearse approved owner migration order through 22 plus template in staging",
+      "dependencies": "Shared owner schemas, auth v4, migration owner and maintenance window",
+      "tests": "Fresh/down-up through 22; 5,001-record publication using actual restricted writer; PUBLIC routine denial",
+      "criteria": "Data/ownership/ACLs preserved; bounded lock window; normalizer republish and compatible rollback verified at target scale",
+      "approval": "DB/deployment owner",
+      "files": [
+        "qualification-summary.json",
+        "restricted-logins.json"
+      ]
+    },
+    {
+      "tasks": "LIF-01, OPS-01/02, REL-01",
+      "requirement": "Backup, restore and worker recovery",
+      "status": "DEVELOPMENT VERIFIED — production RPO/RTO/PITR open",
+      "prior": "Publication rollback, staging/process-kill recovery",
+      "gap": "No production-size encrypted storage/key/geographic/PITR recovery acceptance",
+      "remediation": "Perform managed staging restore/point-in-time/key recovery and approve RPO/RTO/retention",
+      "dependencies": "Approved backup/secret storage, owner role mapping, target environment",
+      "tests": "Actual pg_dump/restore to new empty DB; table/sequence inventory equality; versions/history/audit/evidence/ACLs preserved; clone binding denied; expired staging recovery/rollback/pending worker replay",
+      "criteria": "Deployment-volume restore and post-restore controls/receipts pass; approved measured RPO/RTO and retained evidence",
+      "approval": "DB/security/operations and retention owner",
+      "files": [
+        "logical-restore.json"
+      ]
+    },
+    {
+      "tasks": "HARD-01, PVL-01/02, INL-02/03",
+      "requirement": "Security acceptance",
+      "status": "DEVELOPMENT VERIFIED — deployment security review open",
+      "prior": "Signed/current authority, hostile XML/SSRF, two-person review, immutable/error-only evidence tests",
+      "gap": "No production image/OS/penetration/network/TLS/secrets attestation; known nonreachable module advisories retained",
+      "remediation": "Security owner scans exact release images/binaries, approves trusted capabilities/network/rotation and residual findings",
+      "dependencies": "Release artifacts/topology, secret manager and security owner",
+      "tests": "138 screening / 260 decision / 33 auth / 90 case top-level passes; actual DB logins and clone guard; zero reachable symbol findings; npm full/prod zero known findings",
+      "criteria": "No unauthorized data/effects/self-approval, no secret projection; accepted exact-release supply chain and credential/network review",
+      "approval": "Security owner",
+      "files": [
+        "qualification-summary.json",
+        "restricted-logins.json"
+      ]
+    },
+    {
+      "tasks": "OPS-01/02, REL-01",
+      "requirement": "Monitoring and incident response",
+      "status": "DEVELOPMENT VERIFIED — routing/on-call open",
+      "prior": "Aggregate source/rescreen/runtime diagnostics",
+      "gap": "No deployment scheduler/notification route/dead-man/acknowledgement test or named on-call",
+      "remediation": "Approve thresholds/owner; schedule private health command and rehearse alerts/incident response",
+      "dependencies": "Approved operational threshold and alert destination",
+      "tests": "All health signal/boundary/missing-counter unit tests; DB fault injection plus actual CLI degraded JSON/exit 2",
+      "criteria": "Quarantine/staleness/leases/retry exhaustion/lag/check failure detected and delivered/acknowledged within approved budget",
+      "approval": "Operations/on-call owner",
+      "files": [
+        "operational-alerts.json"
+      ]
+    },
+    {
+      "tasks": "FND-02, REL-01",
+      "requirement": "Existing frontend lint debt",
+      "status": "OPEN — baseline reproduced",
+      "prior": "Unrelated existing frontend lint issues",
+      "gap": "20 errors / 74 warnings; identical error file/rule classes and counts on unchanged HEAD with patched toolchain",
+      "remediation": "Separately review script imports/module variable, effect state synchronization, memo dependencies and const finding; no lint rules disabled",
+      "dependencies": "Frontend owner and focused behavioral review",
+      "tests": "Production build and all browsers green; baseline affected source text verified against HEAD after CRLF normalization",
+      "criteria": "Reviewed cleanup passes full lint without suppressing controls or regressions; release owner disposition recorded",
+      "approval": "Frontend/release owner",
+      "files": [
+        "qualification-summary.json"
+      ]
+    },
+    {
+      "tasks": "REL-01",
+      "requirement": "Production activation",
+      "status": "RELEASE BLOCKED — runbook delivered, no activation",
+      "prior": "Optional hardened profile and NOLOGIN capability template",
+      "gap": "Mandatory quality/capacity/rights/deployment/security/operational decisions remain open",
+      "remediation": "Complete outstanding gates, approve canary/rollback values and issue explicit release authorization",
+      "dependencies": "All mandatory gates above",
+      "tests": "Draft runbook includes migration order, credentials, source publication, measurable canary/rollback, incident and post-deploy checks",
+      "criteria": "Named signed acceptance and explicit production activation instruction; current work changes no production state",
+      "approval": "Separate explicit production authorization",
+      "files": [
+        "manifest.json"
+      ]
+    }
+  ]
+}

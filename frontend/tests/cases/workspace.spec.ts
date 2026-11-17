@@ -30,8 +30,8 @@ test("decision lookup retains closed membership and creates from an unlinked dec
   await page.getByRole("button", { name: "Create investigation", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/cases/${id}\\?tenant=`));
   await expect(page.getByRole("heading", { name: "Decision-led investigation", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: `Decision ${decision}`, exact: true }).click();
-  await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
+  await page.locator(`a[href^="/cases/decisions/${decision}?"]`).click();
+  await page.getByRole("button", { name: "Inspect rule executions", exact: true }).click();
   await expect(page.getByText("Velocity", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Decision-led investigation", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/cases/${id}\\?tenant=`));
@@ -124,6 +124,7 @@ for (const action of ["approve", "decline", "confirmed_hit", "no_hit"]) {
     if (match) await request.post("http://127.0.0.1:3199/fixture/screening?match=1");
     await page.goto(`/cases?tenant=${tenant}`);
     await page.getByRole("link", { name: match ? "Screening review" : "Payment investigation", exact: true }).click();
+    if (match) await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
     await page.getByRole("button", { name: match ? "Review match" : "Review decision", exact: true }).click();
     await page.getByLabel("Review action", { exact: true }).selectOption(action);
     await page.getByLabel("Review findings").fill(`Finding for ${action}`);
@@ -133,6 +134,7 @@ for (const action of ["approve", "decline", "confirmed_hit", "no_hit"]) {
     await expect(page.getByText("Review recorded with case history.")).toBeVisible();
     await expect(page.getByText(`Review status: ${action.replaceAll("_", " ")}`, { exact: true })).toBeVisible();
     await page.reload();
+    await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
     await expect(page.getByText(`Finding for ${action}`, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Reopen investigation", exact: true })).toHaveCount(0);
   });
@@ -175,6 +177,7 @@ for (const withMatch of [false, true]) {
     await page.goto(`/cases?tenant=${tenant}`);
     await page.getByRole("link", { name: "Screening review", exact: true }).click();
     await expect(page.getByRole("button", { name: "Transfer decision", exact: true })).toBeVisible();
+    await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
     await expect(page.getByText("Screening 66666666-6666-4666-8666-666666666666", { exact: true })).toBeVisible();
     await expect(page.getByText("Incomplete screening results.", { exact: false })).toHaveCount(withMatch ? 0 : 1);
     await page.reload();
@@ -187,12 +190,15 @@ for (const withMatch of [false, true]) {
     await request.post(`http://127.0.0.1:3199/fixture/screening${withMatch ? "?match=1" : ""}`);
     await page.goto(`/cases?tenant=${tenant}`);
     await page.getByRole("link", { name: "Screening review", exact: true }).click();
+    await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
     await expect(page.getByText("Screening 66666666-6666-4666-8666-666666666666", { exact: true })).toBeVisible();
     await expect(page.getByText(withMatch ? "Match pending-match-1 · pending" : "Screening result · awaiting review", { exact: true })).toBeVisible();
     await expect(page.getByText("Incomplete screening results.", { exact: false })).toHaveCount(withMatch ? 0 : 1);
     await page.getByRole("button", { name: "Inspect evidence", exact: true }).click();
-    await expect(page.getByText("Test screening provider", { exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Stored screening evidence", exact: true })).toContainText("Test screening provider");
+    await expect(page.getByText(/fixture-secret-(key|error)/)).toHaveCount(0);
     await page.reload();
+    await page.getByRole("tab", { name: "Screening Matches", exact: true }).click();
     await expect(page.getByText("Screening 66666666-6666-4666-8666-666666666666", { exact: true })).toBeVisible();
   });
 }
@@ -208,23 +214,25 @@ test("investigator inspects evidence, comments, closes, reloads, and reopens", a
   await page.screenshot({ path: test.info().outputPath("case-queue.png"), fullPage: true });
   await page.getByRole("link", { name: "Payment investigation" }).click();
   await expect(page.getByRole("heading", { name: "Payment investigation" })).toBeVisible();
-  await page.getByRole("button", { name: "Inspect evidence" }).click();
+  await page.getByRole("button", { name: "Inspect rule executions", exact: true }).click();
   await expect(page.getByText("Velocity", { exact: true })).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("case-detail.png"), fullPage: true });
   await page.getByLabel("Investigation note").fill("Customer contacted");
   await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
   await expect(page.getByText("Customer contacted", { exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Outcome", exact: true }).selectOption("confirmed_risk");
   await page.getByLabel("Closing findings").fill("Confirmed with customer");
   await page.getByRole("button", { name: "Close case", exact: true }).click();
   await expect(page.getByRole("button", { name: "Reopen investigation" })).toBeVisible();
   await page.reload();
+  await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
   await expect(page.getByText("Confirmed with customer", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Reopen investigation" }).click();
   await expect(page.getByRole("button", { name: "Close case", exact: true })).toBeVisible();
 });
 
-test("empty queues and tenant switches never show another tenant's cached cases", async ({ page }) => {
+test("empty queues and tenant URL tampering retain the authenticated workspace scope", async ({ page }) => {
   await page.goto(`/cases?tenant=${tenant}`);
   await expect(page.getByRole("link", { name: "Payment investigation" })).toBeVisible();
   if (await page.getByRole("button", { name: "Filters", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Filters", exact: true }).click();
@@ -232,8 +240,12 @@ test("empty queues and tenant switches never show another tenant's cached cases"
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.getByText("No cases match these filters.")).toBeVisible();
   await page.goto("/cases?tenant=99999999-9999-4999-8999-999999999999");
-  await expect(page.getByRole("alert").filter({ hasText: "cannot access this tenant" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Payment investigation" })).toHaveCount(0);
+  // Tenant query parameters no longer select authority. The authenticated
+  // workspace stays visible; an explicit cross-tenant API read must be denied.
+  await expect(page.getByRole("link", { name: "Payment investigation", exact: true })).toBeVisible();
+  const foreign = await page.request.get("/api/cases/tenants/99999999-9999-4999-8999-999999999999/case-queue");
+  expect(foreign.status()).toBe(403);
+  expect(await foreign.text()).not.toContain("Payment investigation");
 });
 
 test("unauthorized inboxes and failed writes remain actionable", async ({ page }) => {
@@ -256,10 +268,12 @@ test("proxy requires a session and rejects cross-origin writes", async ({ contex
 
 test("evidence uploads finalize, survive reload, and download through the private proxy", async ({ page, context }) => {
   await page.goto(`/cases/${id}?tenant=${tenant}`);
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   await page.getByLabel("Evidence file", { exact: true }).setInputFiles({ name: "note.txt", mimeType: "text/plain", buffer: Buffer.from("Retained evidence\n") });
   await page.getByRole("button", { name: "Upload evidence", exact: true }).click();
   await expect(page.getByText("Evidence attached.", { exact: true })).toBeVisible();
   await page.reload();
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   const link = page.getByRole("link", { name: "note.txt", exact: true });
   await expect(link).toBeVisible();
   const target = (await link.getAttribute("href"))!;
@@ -300,6 +314,7 @@ test("administrators create, update, and archive tags", async ({ page, context }
 
 test("report drafts retain findings, require completion fields, and export privately", async ({ page, context }) => {
   await page.goto(`/cases/${id}?tenant=${tenant}`);
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   await page.getByRole("button", { name: "New report", exact: true }).click();
   await page.getByLabel("New report title", { exact: true }).fill("Suspicious transfers");
   await page.getByRole("button", { name: "Create draft", exact: true }).click();
@@ -316,6 +331,7 @@ test("report drafts retain findings, require completion fields, and export priva
   await page.getByRole("button", { name: "Complete report", exact: true }).click();
   await expect(page.locator("summary").filter({ hasText: "Suspicious transfers" })).toContainText("completed");
   await page.reload();
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   await page.locator("summary").filter({ hasText: "Suspicious transfers" }).click();
   await expect(page.getByRole("textbox", { name: "Report narrative", exact: true })).toBeDisabled();
   await expect(page.getByRole("textbox", { name: "Report narrative", exact: true })).toHaveValue("Investigator reviewed transaction evidence.");
@@ -350,6 +366,7 @@ test("decision transfer confirms destination and safely retries a lost acknowled
   await expect(page.getByLabel("Transfer reason", { exact: true })).toHaveValue("Correct investigation grouping");
   await page.getByRole("button", { name: "Confirm transfer", exact: true }).click();
   await expect(page.getByText("No linked decisions.", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
   await expect(page.getByText("Correct investigation grouping", { exact: true })).toBeVisible();
   expect(operations).toHaveLength(2); expect(operations[0]).toBe(operations[1]);
   await page.reload();
@@ -395,7 +412,9 @@ test("stale closure refreshes state and reopening handles capacity errors", asyn
   await expect(page.getByRole("alert").filter({ hasText: "conflicts with current state" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reopen investigation" })).toBeVisible();
   await expect(page.getByLabel("Evidence file")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   await expect(page.getByText("Reopen the case to upload additional evidence.", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Activity & Audit", exact: true }).click();
   await expect(page.getByText("Other investigator findings", { exact: true })).toBeVisible();
   const endpoint = `**/api/cases/tenants/${tenant}/cases/${id}`;
   await page.route(endpoint, async route => {
@@ -414,6 +433,7 @@ test("stale closure refreshes state and reopening handles capacity errors", asyn
   expect((await reopenRequest).postDataJSON()).toEqual({ status: "investigating" });
   try { await expect(page.getByRole("button", { name: "Reopen investigation" })).toBeDisabled(); } finally { releaseRequest(); }
   await expect(page.getByRole("button", { name: "Close case", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Files & Reports", exact: true }).click();
   await expect(page.getByLabel("Evidence file")).toBeVisible();
   await page.reload();
   const overview = await page.request.get(`/api/cases/tenants/${tenant}/cases/${id}/overview`);

@@ -26,15 +26,15 @@ export function OpenInvestigation({ tenant, scope, screening, candidate }: { ten
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to open investigation."); }
     finally { setSending(false); }
   }
-  if (!open) return <Button type="button" variant="outline" className="mt-4" onClick={() => setOpen(true)}>Open investigation</Button>;
+  if (!open) return <Button type="button" variant="outline" className="mt-0 h-8 rounded-md px-2.5 text-xs" onClick={() => setOpen(true)}>Open investigation</Button>;
   const available = inboxes.data?.inboxes.filter(item => item.status === "active") ?? [];
-  return <section aria-label="Open candidate investigation" className="mt-4 space-y-3 rounded-lg bg-slate-50 p-4 text-sm">
+  return <section aria-label="Open candidate investigation" className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs">
     <p>Open or reuse one investigation for this stored search. All its candidates will be linked; no provider search is rerun and no match is confirmed.</p>
     {inboxes.isPending && <p role="status">Loading permitted inboxes…</p>}
     {inboxes.isError && <p role="alert">Unable to load inboxes. <button type="button" className="underline" onClick={() => void inboxes.refetch()}>Retry inboxes</button></p>}
     {inboxes.isSuccess && available.length === 0 && <p>No active inboxes are available to your account.</p>}
-    {!!available.length && <label className="block">Investigation inbox<select className="mt-2 block w-full rounded-lg border border-slate-300 p-2" value={inbox} disabled={sending} onChange={e => setInbox(e.target.value)}><option value="">Choose an inbox</option>{available.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+    {!!available.length && <label className="block font-medium">Investigation inbox<select className="mt-1 block h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm font-normal" value={inbox} disabled={sending} onChange={e => setInbox(e.target.value)}><option value="">Choose an inbox</option>{available.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
     {error && <p role="alert" className="text-red-700">{error}</p>}
-    <div className="flex flex-wrap gap-2"><Button type="button" disabled={sending || !inbox} onClick={() => void investigate()}>{sending ? "Opening…" : "Continue to investigation"}</Button><Button type="button" variant="outline" disabled={sending} onClick={() => setOpen(false)}>Cancel</Button></div>
+    <div className="flex flex-wrap gap-2"><Button type="button" className="h-8 rounded-md px-3 text-xs" disabled={sending || !inbox} onClick={() => void investigate()}>{sending ? "Opening…" : "Continue to investigation"}</Button><Button type="button" variant="outline" className="h-8 rounded-md px-3 text-xs" disabled={sending} onClick={() => setOpen(false)}>Cancel</Button></div>
   </section>;
 }

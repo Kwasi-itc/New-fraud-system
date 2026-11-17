@@ -45,3 +45,8 @@ ui_inspo/
 
 # Local IP geolocation databases (mounted at runtime)
 *.mmdb
+
+# Test results and temporary scrape artifacts
+test-results/
+playwright-report/
+*.html

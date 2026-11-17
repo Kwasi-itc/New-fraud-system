@@ -36,3 +36,26 @@ test("authorized case evidence is projected and rendered as stored candidate car
   await expect(page.getByRole("heading", { name: "Stored screening evidence" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Candidate", exact: true })).toBeVisible();
 });
+
+test("identifier-profile case candidates can load and retain source details", async ({ context, page, request }) => {
+  await request.post("http://127.0.0.1:3199/reset");
+  await context.addCookies([{ name:"case_test_session",value:"fixture-analyst",domain:"127.0.0.1",path:"/" }]);
+  await request.post("http://127.0.0.1:3199/fixture/screening?match=1");
+  let enriched=false;
+  await page.route("**/api/case-evidence/**/screenings/**", route=>route.fulfill({json:{screening:{provider:"internal-watchlists",status:"awaiting_review"},matches:[{id:"identifier-match",entity_id:"fixture-record",name:"Fictional identified candidate",status:"pending",enriched,datasets:["tenant fixture"],properties:{matchingProfile:["identifier-evidence-v1"],sourceIdentifiers:["passport · GH · 001234"]}}]}}));
+  await page.route("**/api/case-screening-enrichment/**/identifier-match",route=>{
+    expect(route.request().method()).toBe("POST");
+    enriched=true;return route.fulfill({json:{enriched:true}});
+  });
+  await page.goto("/cases/33333333-3333-4333-8333-333333333333");
+  await page.getByRole("tab",{name:"Screening Matches",exact:true}).click();
+  await page.getByRole("button",{name:"Inspect evidence",exact:true}).click();
+  await expect(page.getByRole("heading",{name:"Fictional identified candidate",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Load source details",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Source details loaded",exact:true})).toBeDisabled();
+  await page.reload();
+  await page.getByRole("tab",{name:"Screening Matches",exact:true}).click();
+  await page.getByRole("button",{name:"Inspect evidence",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Source details loaded",exact:true})).toBeDisabled();
+  await expect(page.getByText("passport · GH · 001234",{exact:true})).toBeVisible();
+});
