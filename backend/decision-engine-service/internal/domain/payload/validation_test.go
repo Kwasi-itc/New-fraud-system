@@ -127,6 +127,22 @@ func TestManagedMetadataAndStoredFailures(t *testing.T) {
 	}
 }
 
+func TestPostgresOpenEndedValidUntilIsOmittedFromEvaluationPayload(t *testing.T) {
+	values := map[string]any{
+		"user_id":     "u",
+		"count":       1,
+		"valid_until": "infinity",
+	}
+
+	out, err := NewValidator().Validate("t", "wallets", "w", values, model(), true)
+	if err != nil {
+		t.Fatalf("open-ended PostgreSQL valid_until should not invalidate a stored record: %v", err)
+	}
+	if _, ok := out["valid_until"]; ok {
+		t.Fatalf("open-ended system metadata should be omitted from evaluation payload: %#v", out["valid_until"])
+	}
+}
+
 func TestBoundedDeterministicErrorsAndCache(t *testing.T) {
 	v := NewValidator()
 	v.capacity = 2

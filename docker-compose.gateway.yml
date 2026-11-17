@@ -109,7 +109,7 @@ services:
       frontend: {condition: service_healthy}
       keycloak: {condition: service_healthy}
 
-# Preserve the original main-branch database volume regardless of project aliases.
+# Preserve the selected database volume regardless of project aliases.
 volumes:
   postgres_data:
-    name: new-fraud-system_postgres_data
+    name: ${POSTGRES_DATA_VOLUME_NAME:-new-fraud-system_postgres_data}

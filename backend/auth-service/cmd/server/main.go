@@ -57,7 +57,7 @@ func run() error {
 		return err
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	app := platform.Server{Store: platform.Store{DB: db}, Provider: provider, ProxyToken: os.Getenv("AUTH_PROXY_TOKEN"), Key: key, KeyID: os.Getenv("PLATFORM_JWT_KEY_ID"), Issuer: os.Getenv("PLATFORM_JWT_ISSUER"), Audience: os.Getenv("PLATFORM_JWT_AUDIENCE"), Logger: logger}
+	app := platform.Server{Store: platform.Store{DB: db}, Provider: provider, ProxyToken: os.Getenv("AUTH_PROXY_TOKEN"), Key: key, KeyID: os.Getenv("PLATFORM_JWT_KEY_ID"), Issuer: os.Getenv("PLATFORM_JWT_ISSUER"), Audience: os.Getenv("PLATFORM_JWT_AUDIENCE"), Logger: logger, DebugLoginErrors: os.Getenv("AUTH_DEBUG_LOGIN_ERRORS") == "true"}
 	app.DefaultTenantID = defaultTenant
 	if os.Getenv("AUTH_INVITATIONS_ENABLED") == "true" {
 		invitations, e := platform.NewInvitations(app.Store, provider.Issuer(), os.Getenv("AUTH_APP_ORIGIN"), os.Getenv("AUTH_INVITATION_KEY"))

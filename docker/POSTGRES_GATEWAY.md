@@ -20,7 +20,37 @@ Use `--port 8099` to choose another local port, or `--prepare-only` to prepare a
 
 The command preserves existing provider/platform keys and credentials, creates missing private integration tokens in ignored `.local/postgres-dev/compose.env`, backs up PostgreSQL before service migrations, builds images and starts the stack. It updates only the existing Keycloak `fraud-auth` client's callback allowlist for the gateway origin. Do not run concurrent setup commands.
 
+## EC2 RDS setup and initial tenant
+
+For an EC2 host using RDS, prepare the required `.env` and project-scoped identity files, then run:
+
+```sh
+node docker/setup-postgres-ec2.mjs
+```
+
+After service migrations, this setup detects whether RDS already has an active tenant. If it does not, it starts data-model-service and runs the separate [`setup-root-tenant-ec2.mjs`](./setup-root-tenant-ec2.mjs) script in a temporary Node container on the private Compose network. This lets the script call `data-model-service:8080` without publishing the service port on the EC2 host. It creates the `Root` tenant (`external_key: root`) through the authenticated data-model API and provisions its tenant schema. It safely reuses and provisions an existing pending root tenant on retries, then EC2 setup stores its UUID for the application.
+
+The root tenant is a data-model tenant only; this does not create an application user, grant membership, or replace platform identity setup. Keep the data-model service credential in `.local/<project>/data-model.env` private.
+
 Backups include private application and identity data. Keep `.local/` private. Startup can take several minutes for an existing large database. Do not delete the PostgreSQL volume to resolve a configuration error.
+
+For private EC2 deployments accessed over plain HTTP only, set both
+`AUTH_COOKIE_SECURE=false` and `CASE_SESSION_COOKIE=fraud_session` in `.env`
+before setup, or in the active `.local/<project>/compose.env` (which takes
+precedence for an existing project). Then recreate the frontend:
+
+```sh
+docker compose --env-file .local/new-fraud-system/compose.env -p new-fraud-system \
+  -f docker-compose.ec2.yml -f docker-compose.gateway.ec2.yml \
+  up -d --build --force-recreate frontend
+```
+
+Replace `new-fraud-system` with the project name used during setup.
+This disables transport protection for the login-binding and session cookies;
+use only on a trusted private network. Do not use these settings for public
+traffic. Restore `AUTH_COOKIE_SECURE=true` and `CASE_SESSION_COOKIE=__Host-fraud_session`
+when using HTTPS. The separate `deploy/ec2` HTTPS deployment keeps Secure cookies
+enabled.
 
 ## Addresses
 

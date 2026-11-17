@@ -5,16 +5,41 @@ type Context = { params: Promise<{ action: string }> };
 const fail = (message: string, status: number) => NextResponse.json({ error: message }, { status, headers: privateHeaders });
 function origin() { const value = process.env.APP_ORIGIN; if (!value) throw new Error("Application origin required"); return new URL(value).origin; }
 function redirect(path: string) { const response = NextResponse.redirect(new URL(path, origin()), 303); response.headers.set("Cache-Control", "private, no-store"); return response; }
+function authErrorMessage(body: string) {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object" && "error" in parsed && typeof parsed.error === "string") {
+      return parsed.error.replace(/[\r\n\t]/g, " ").slice(0, 500);
+    }
+  } catch {}
+  return "Auth service returned an unreadable error response.";
+}
 export async function GET(request: Request, context: Context) {
   const { action } = await context.params;
   try {
     if (action === "callback") {
       const url = new URL(request.url), jar = await cookies(); const binding = jar.get(loginCookie)?.value;
       jar.set(loginCookie, "", { ...cookieOptions, maxAge: 0 });
-      if (!binding || url.searchParams.has("error")) return redirect("/login?error=denied");
+      const providerErrorPresent = url.searchParams.has("error");
+      if (!binding || providerErrorPresent) {
+        console.warn("OIDC callback rejected before auth completion", {
+          reason: !binding ? "missing_login_binding_cookie" : "provider_returned_error",
+          bindingPresent: Boolean(binding),
+          providerErrorPresent,
+        });
+        return redirect("/login?error=denied");
+      }
+      console.info("Sending OIDC login completion request to auth service");
       const response = await authCall("login/complete", { binding, state: url.searchParams.get("state") ?? "", code: url.searchParams.get("code") ?? "" });
-      if (!response.ok) return redirect("/login?error=denied");
-      const result = await response.json(); jar.set(sessionCookie(), result.session, { ...cookieOptions, maxAge: 8 * 60 * 60 }); return redirect("/my-account");
+      const requestId = response.headers.get("x-request-id") ?? undefined;
+      if (!response.ok) {
+        const message = authErrorMessage(await response.text());
+        console.error("Auth service rejected OIDC login completion", { status: response.status, requestId, error: message });
+        return redirect("/login?error=denied");
+      }
+      const result = await response.json();
+      console.info("Auth service completed OIDC login", { status: response.status, requestId });
+      jar.set(sessionCookie(), result.session, { ...cookieOptions, maxAge: 8 * 60 * 60 }); return redirect("/my-account");
     }
     if (["members", "sessions", "invitations", "audit"].includes(action)) {
       const session = await rawSession(); if (!session) return fail("Sign in required.", 401);
@@ -23,7 +48,14 @@ export async function GET(request: Request, context: Context) {
       return new Response(await response.text(), { status: response.status, headers: { ...privateHeaders, "Content-Type": "application/json" } });
     }
     return fail("Not found", 404);
-  } catch { return fail("Authentication is temporarily unavailable. Please retry.", 503); }
+  } catch (error) {
+    if (action === "callback") {
+      console.error("OIDC callback processing failed", {
+        error: error instanceof Error ? error.message.slice(0, 300) : "unknown error",
+      });
+    }
+    return fail("Authentication is temporarily unavailable. Please retry.", 503);
+  }
 }
 export async function POST(request: Request, context: Context) {
   const { action } = await context.params;

@@ -215,6 +215,13 @@ func (v *Validator) Validate(tenant, objectType, objectID string, values map[str
 			}
 			f = field{definition: def}
 		}
+		// PostgreSQL serializes its open-ended TIMESTAMPTZ sentinel as the
+		// string "infinity" in to_jsonb output. valid_until is platform metadata,
+		// not a user model field, and is optional during evaluation, so omit the
+		// sentinel instead of treating it as an invalid RFC3339 timestamp.
+		if name == "valid_until" && isOpenEndedValidity(value) {
+			continue
+		}
 		if value == nil {
 			if !f.definition.Nullable {
 				add(name, "null_not_allowed", "field does not allow NULL")
@@ -338,4 +345,9 @@ func normalize(kind string, value any) (any, bool) {
 		}
 	}
 	return nil, false
+}
+
+func isOpenEndedValidity(value any) bool {
+	text, ok := value.(string)
+	return ok && strings.EqualFold(strings.TrimSpace(text), "infinity")
 }

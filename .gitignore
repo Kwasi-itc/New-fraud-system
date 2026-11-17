@@ -20,6 +20,7 @@ server.err.log
 
 # Environment files
 .env
+.env.transflow
 .env.local
 .env.*.local
 pii-hmac.key

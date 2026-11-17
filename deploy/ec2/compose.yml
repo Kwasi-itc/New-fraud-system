@@ -97,6 +97,7 @@ services:
       auth-service: {condition: service_started}
     environment:
       APP_ORIGIN: ${EC2_PUBLIC_ORIGIN}
+      AUTH_COOKIE_SECURE: "true"
       CASE_SESSION_COOKIE: __Host-fraud_session
   api-gateway:
     ports: !reset []

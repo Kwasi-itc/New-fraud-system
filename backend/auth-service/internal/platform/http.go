@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -27,6 +28,7 @@ type Server struct {
 	KeyID, Issuer, Audience string
 	Logger                  *slog.Logger
 	Invitations             *InvitationService
+	DebugLoginErrors        bool
 }
 
 func SigningKey(path string) (*rsa.PrivateKey, error) {
@@ -104,6 +106,9 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 }
 func respond(w http.ResponseWriter, v any) { _ = json.NewEncoder(w).Encode(v) }
 func (s Server) fail(w http.ResponseWriter, err error) {
+	s.failWithDetail(w, err, nil)
+}
+func (s Server) failWithDetail(w http.ResponseWriter, err, detail error) {
 	status := 503
 	msg := "Authentication service is unavailable."
 	if errors.Is(err, ErrDenied) {
@@ -114,10 +119,14 @@ func (s Server) fail(w http.ResponseWriter, err error) {
 		status = 409
 		msg = ErrConflict.Error()
 	}
+	if s.DebugLoginErrors && detail != nil {
+		msg = detail.Error()
+	}
 	w.WriteHeader(status)
 	respond(w, map[string]string{"error": msg})
 }
 func (s Server) start(w http.ResponseWriter, r *http.Request) {
+	s.Logger.Info("Starting OIDC login")
 	l, err := s.Store.BeginLogin(r.Context(), s.Provider.Issuer())
 	if err != nil {
 		s.fail(w, err)
@@ -139,16 +148,22 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
+	s.Logger.Info("Completing OIDC login", "state", in.State, "binding", in.Binding)
 	l, err := s.Store.ConsumeLogin(r.Context(), in.State, in.Binding, s.Provider.Issuer())
 	if err != nil {
-		s.fail(w, err)
+		detail := fmt.Errorf("consume login transaction (state, browser binding, issuer, or expiration mismatch): %w", err)
+		s.Logger.Error("login transaction rejected", "error", detail)
+		s.failWithDetail(w, err, detail)
 		return
 	}
+	s.Logger.Info("Consuming login transaction", "state", in.State, "binding", in.Binding)
 	id, err := s.Provider.Exchange(r.Context(), in.Code, l.Verifier, l.Nonce)
 	if err != nil {
-		s.fail(w, ErrDenied)
+		s.Logger.Error("OIDC exchange failed", "error", err)
+		s.failWithDetail(w, ErrDenied, fmt.Errorf("OIDC exchange or ID-token validation failed: %w", err))
 		return
 	}
+	s.Logger.Info("OIDC login completed", "issuer", id.Issuer, "subject", id.Subject, "name", id.Name, "email", id.Email, "email_verified", id.EmailVerified)
 	var raw string
 	if len(l.InvitationDigest) > 0 {
 		if s.Invitations == nil {
@@ -160,7 +175,9 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		raw, err = s.Store.CreateSessionForTenant(r.Context(), id.Issuer, id.Subject, s.DefaultTenantID)
 	}
 	if err != nil {
-		s.fail(w, err)
+		detail := fmt.Errorf("create login session: %w", err)
+		s.Logger.Error("login session creation failed", "error", detail)
+		s.failWithDetail(w, err, detail)
 		return
 	}
 	respond(w, map[string]string{"session": raw})
