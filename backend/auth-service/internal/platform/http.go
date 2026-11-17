@@ -126,6 +126,7 @@ func (s Server) failWithDetail(w http.ResponseWriter, err, detail error) {
 	respond(w, map[string]string{"error": msg})
 }
 func (s Server) start(w http.ResponseWriter, r *http.Request) {
+	s.Logger.Info("Starting OIDC login")
 	l, err := s.Store.BeginLogin(r.Context(), s.Provider.Issuer())
 	if err != nil {
 		s.fail(w, err)
