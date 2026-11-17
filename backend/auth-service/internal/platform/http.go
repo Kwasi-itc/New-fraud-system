@@ -160,6 +160,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		s.failWithDetail(w, ErrDenied, fmt.Errorf("OIDC exchange or ID-token validation failed: %w", err))
 		return
 	}
+	s.Logger.Info("OIDC login completed", "issuer", id.Issuer, "subject", id.Subject, "name", id.Name, "email", id.Email, "email_verified", id.EmailVerified)
 	var raw string
 	if len(l.InvitationDigest) > 0 {
 		if s.Invitations == nil {
