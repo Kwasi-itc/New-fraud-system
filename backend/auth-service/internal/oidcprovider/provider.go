@@ -7,11 +7,13 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -192,7 +194,7 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, expectedNonce s
 	}
 	token, err := p.oauth.Exchange(oidc.ClientContext(ctx, p.client), code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return Identity{}, errors.New("OIDC code exchange failed")
+		return Identity{}, tokenExchangeFailure(err)
 	}
 	raw, ok := token.Extra("id_token").(string)
 	if !ok || len(raw) > 65536 {
@@ -221,4 +223,34 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, expectedNonce s
 		return Identity{}, errors.New("OIDC access token binding invalid")
 	}
 	return Identity{Issuer: id.Issuer, Subject: id.Subject, Name: claims.Name, Email: claims.Email, EmailVerified: claims.EmailVerified}, nil
+}
+
+func tokenExchangeFailure(err error) error {
+	var providerErr *oauth2.RetrieveError
+	if !errors.As(err, &providerErr) {
+		return errors.New("OIDC code exchange failed: token endpoint request failed or returned an unrecognized response")
+	}
+
+	details := []string{"OIDC code exchange failed"}
+	if providerErr.Response != nil {
+		details = append(details, fmt.Sprintf("HTTP %d", providerErr.Response.StatusCode))
+	}
+	if providerErr.ErrorCode != "" {
+		details = append(details, "provider error "+safeDiagnostic(providerErr.ErrorCode, 80))
+	}
+	if description := safeDiagnostic(providerErr.ErrorDescription, 256); description != "" {
+		details = append(details, "description: "+description)
+	}
+	return errors.New(strings.Join(details, "; "))
+}
+
+func safeDiagnostic(value string, limit int) string {
+	fields := strings.FieldsFunc(value, unicode.IsControl)
+	value = strings.Join(fields, " ")
+	value = strings.Join(strings.Fields(value), " ")
+	runes := []rune(value)
+	if len(runes) > limit {
+		value = string(runes[:limit]) + "..."
+	}
+	return value
 }

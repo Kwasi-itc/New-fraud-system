@@ -64,7 +64,15 @@ func TestOIDCExchangeAndProviderSwap(t *testing.T) {
 						t.Error("incorrect confidential PKCE exchange")
 					}
 					if tokenMode == "error" {
-						http.Error(w, "sensitive provider diagnostic", 400)
+						w.WriteHeader(http.StatusBadRequest)
+						_ = json.NewEncoder(w).Encode(map[string]string{
+							"error":             "invalid_grant",
+							"error_description": "Code already used",
+						})
+						return
+					}
+					if tokenMode == "unstructured-error" {
+						http.Error(w, "sensitive provider diagnostic", http.StatusBadRequest)
 						return
 					}
 					claims := map[string]any{"iss": issuer, "sub": "external-operator", "aud": "app", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Minute).Unix(), "nonce": nonce, "email": "operator@example.test", "email_verified": true, "name": "Operator"}
@@ -142,9 +150,18 @@ func TestOIDCExchangeAndProviderSwap(t *testing.T) {
 				})
 			}
 			mutate = nil
-			for _, mode := range []string{"error", "forged"} {
+			for _, mode := range []string{"error", "unstructured-error", "forged"} {
 				tokenMode = mode
-				if _, err := p.Exchange(context.Background(), "test-code", verifier, nonce); err == nil || strings.Contains(err.Error(), "sensitive") {
+				_, err := p.Exchange(context.Background(), "test-code", verifier, nonce)
+				if err == nil {
+					t.Fatal("exchange failure accepted")
+				}
+				if mode == "error" && (!strings.Contains(err.Error(), "HTTP 400") ||
+					!strings.Contains(err.Error(), "invalid_grant") ||
+					!strings.Contains(err.Error(), "Code already used")) {
+					t.Fatalf("provider error details missing: %v", err)
+				}
+				if strings.Contains(err.Error(), "sensitive") || strings.Contains(err.Error(), "test-code") {
 					t.Fatal("unsafe exchange failure")
 				}
 			}
