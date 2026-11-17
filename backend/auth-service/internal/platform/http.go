@@ -146,6 +146,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := s.Provider.Exchange(r.Context(), in.Code, l.Verifier, l.Nonce)
 	if err != nil {
+		s.Logger.Error("OIDC exchange failed", "error", err)
 		s.fail(w, ErrDenied)
 		return
 	}
