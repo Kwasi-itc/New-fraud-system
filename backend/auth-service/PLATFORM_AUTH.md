@@ -160,6 +160,11 @@ the broader [TODO](IMPLEMENTATION_TODO.md) remains the release tracker.
   existing sessions: rebuild/recreate Auth, then sign out and back in. Invitation
   acceptance still selects the invitation's tenant. Interactive tenant switching
   is not implemented.
+* For temporary login diagnosis, `AUTH_DEBUG_LOGIN_ERRORS=true` returns additional
+  stage-specific errors from the private login-completion endpoint. It is disabled
+  by default; remove the setting and recreate auth-service after diagnosis. Do not
+  enable it on an internet-facing endpoint or share its responses: diagnostic
+  details can expose internal configuration or database errors.
 * Next resolves the opaque session through a private authenticated auth endpoint.
   Auth issues an RS256 credential valid for at most sixty seconds, audience
   `case-manager`, issuer `urn:fraud:identity`, with platform `sub`, `tenant_id`,

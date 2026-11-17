@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -217,7 +218,7 @@ func (s Store) CreateSessionForTenant(ctx context.Context, issuer, subject strin
 	var user, tenant uuid.UUID
 	err = tx.QueryRow(ctx, `SELECT u.id FROM identity.external_identities e JOIN identity.users u ON u.id=e.user_id WHERE e.issuer=$1 AND e.subject=$2 AND u.active FOR SHARE OF u`, issuer, subject).Scan(&user)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrDenied
+		return "", fmt.Errorf("no active platform identity matches the verified issuer and subject: %w", ErrDenied)
 	}
 	if err != nil {
 		return "", err
@@ -229,7 +230,7 @@ func (s Store) CreateSessionForTenant(ctx context.Context, issuer, subject strin
 		err = tx.QueryRow(ctx, `SELECT m.tenant_id FROM identity.memberships m JOIN core.tenants t ON t.id=m.tenant_id WHERE m.user_id=$1 AND m.tenant_id=$2 AND m.active AND t.status='active' FOR SHARE OF m`, user, requestedTenant).Scan(&tenant)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrDenied
+		return "", fmt.Errorf("no active membership exists for the selected login tenant, or the tenant is inactive: %w", ErrDenied)
 	}
 	if err != nil {
 		return "", err
