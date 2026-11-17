@@ -247,13 +247,7 @@ if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UU
   if (!tenantId || tenantId === NIL_UUID) {
     console.log('No active tenant found on RDS; creating and provisioning the root tenant.');
     docker(['up', '-d', '--wait', 'data-model-service']);
-    const tenantSetup = spawnSync(process.execPath, [
-      path.join(root, 'docker/setup-root-tenant-ec2.mjs'),
-      '--project',
-      project,
-    ], { cwd: root, stdio: 'inherit' });
-    if (tenantSetup.error) throw tenantSetup.error;
-    if (tenantSetup.status !== 0) throw new Error('Root tenant setup failed; resolve the reported error and re-run EC2 setup.');
+    docker(['run', '--rm', '--no-deps', '-T', 'root-tenant-setup']);
     tenantId = queryRds("SELECT id FROM core.tenants WHERE external_key = 'root' AND status = 'active' ORDER BY created_at ASC LIMIT 1;");
   }
   if (!tenantId || tenantId === NIL_UUID) {

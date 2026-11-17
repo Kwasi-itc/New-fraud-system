@@ -111,6 +111,17 @@ services:
       NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ""
       NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ""
 
+  root-tenant-setup:
+    image: node:22-alpine
+    profiles: [setup]
+    working_dir: /workspace
+    entrypoint: ["node"]
+    command: ["docker/setup-root-tenant-ec2.mjs", "--project", "${COMPOSE_PROJECT_NAME:-new-fraud-system}"]
+    volumes:
+      - ./docker:/workspace/docker:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}:/workspace/.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}:ro
+    restart: "no"
+
   api-gateway:
     extends:
       file: docker/gateway/service.yaml

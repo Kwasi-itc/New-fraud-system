@@ -28,7 +28,7 @@ For an EC2 host using RDS, prepare the required `.env` and project-scoped identi
 node docker/setup-postgres-ec2.mjs
 ```
 
-After service migrations, this setup detects whether RDS already has an active tenant. If it does not, it starts data-model-service and runs the separate [`setup-root-tenant-ec2.mjs`](./setup-root-tenant-ec2.mjs) script. That script creates the `Root` tenant (`external_key: root`) through the authenticated data-model API and provisions its tenant schema. It safely reuses and provisions an existing pending root tenant on retries, then EC2 setup stores its UUID for the application.
+After service migrations, this setup detects whether RDS already has an active tenant. If it does not, it starts data-model-service and runs the separate [`setup-root-tenant-ec2.mjs`](./setup-root-tenant-ec2.mjs) script in a temporary Node container on the private Compose network. This lets the script call `data-model-service:8080` without publishing the service port on the EC2 host. It creates the `Root` tenant (`external_key: root`) through the authenticated data-model API and provisions its tenant schema. It safely reuses and provisions an existing pending root tenant on retries, then EC2 setup stores its UUID for the application.
 
 The root tenant is a data-model tenant only; this does not create an application user, grant membership, or replace platform identity setup. Keep the data-model service credential in `.local/<project>/data-model.env` private.
 

@@ -46,12 +46,7 @@ if (!token) {
   throw new Error(`DATA_MODEL_SERVICE_TOKEN is missing from ${path.relative(root, serviceEnvPath)}.`);
 }
 
-const port = Number(config.DATA_MODEL_FORWARDED_PORT || '8080');
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error('DATA_MODEL_FORWARDED_PORT must be a valid TCP port.');
-}
-
-const baseUrl = `http://127.0.0.1:${port}`;
+const baseUrl = 'http://data-model-service:8080';
 const timeout = 60_000;
 
 async function waitForService() {
