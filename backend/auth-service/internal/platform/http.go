@@ -148,6 +148,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
+	s.Logger.Info("Completing OIDC login", "state", in.State, "binding", in.Binding)
 	l, err := s.Store.ConsumeLogin(r.Context(), in.State, in.Binding, s.Provider.Issuer())
 	if err != nil {
 		detail := fmt.Errorf("consume login transaction (state, browser binding, issuer, or expiration mismatch): %w", err)
@@ -155,6 +156,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		s.failWithDetail(w, err, detail)
 		return
 	}
+	s.Logger.Info("Consuming login transaction", "state", in.State, "binding", in.Binding)
 	id, err := s.Provider.Exchange(r.Context(), in.Code, l.Verifier, l.Nonce)
 	if err != nil {
 		s.Logger.Error("OIDC exchange failed", "error", err)
