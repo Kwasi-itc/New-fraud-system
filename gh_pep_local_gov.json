@@ -1,0 +1,1550 @@
+{
+  "version": 2,
+  "source": "gh-pep-local-gov",
+  "parser": "gh-pep-v1",
+  "records": [
+    {
+      "id": "gh-pep-reg-001",
+      "name": "Dr. Frank Amoakohene",
+      "type": "Person",
+      "aliases": [
+        "Frank Amoakohene",
+        "Dr. Frank Amoakohene (Ashanti Regional Minister)",
+        "Amoakohene"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Ashanti Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Ashanti; Role: Regional Minister, Ashanti Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Ashanti Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-002",
+      "name": "Linda Obenewaa Akweley Ocloo",
+      "type": "Person",
+      "aliases": [
+        "Linda Ocloo",
+        "Hon. Linda Ocloo",
+        "Ocloo"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Greater Accra Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Greater Accra; Role: Regional Minister, Greater Accra Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Greater Accra Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-003",
+      "name": "Ekow Panyin Okyere Eduamoah",
+      "type": "Person",
+      "aliases": [
+        "Ekow Eduamoah",
+        "Hon. Ekow Panyin Okyere Eduamoah",
+        "Eduamoah"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Central Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Central; Role: Regional Minister, Central Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Central Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-004",
+      "name": "Rita Akosua Adjei Awatey",
+      "type": "Person",
+      "aliases": [
+        "Rita Awatey",
+        "Rita Akosua Awatey",
+        "Awatey"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Eastern Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Eastern; Role: Regional Minister, Eastern Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Eastern Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-005",
+      "name": "Joseph Nelson",
+      "type": "Person",
+      "aliases": [
+        "Hon. Joseph Nelson",
+        "Nelson"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Western Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Western; Role: Regional Minister, Western Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Western Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-006",
+      "name": "Wilbert Petty Brentum",
+      "type": "Person",
+      "aliases": [
+        "Wilbert Brentum",
+        "Brentum"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Western North Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Western North; Role: Regional Minister, Western North Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Western North Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-007",
+      "name": "James Gunu",
+      "type": "Person",
+      "aliases": [
+        "Hon. James Gunu",
+        "Gunu"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Volta Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Volta; Role: Regional Minister, Volta Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Volta Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-008",
+      "name": "John Kwadwo Gyapong",
+      "type": "Person",
+      "aliases": [
+        "John Gyapong",
+        "Hon. John Kwadwo Gyapong",
+        "Gyapong"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Oti Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Oti; Role: Regional Minister, Oti Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Oti Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-009",
+      "name": "Joseph Addae Akwaboah",
+      "type": "Person",
+      "aliases": [
+        "Joseph Akwaboah",
+        "Hon. Joseph Addae Akwaboah",
+        "Akwaboah"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Bono Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Bono; Role: Regional Minister, Bono Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Bono Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-010",
+      "name": "Francis Owusu Antwi",
+      "type": "Person",
+      "aliases": [
+        "Francis Antwi",
+        "Hon. Francis Owusu Antwi",
+        "Antwi"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Bono East Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Bono East; Role: Regional Minister, Bono East Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Bono East Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-011",
+      "name": "Charity Gardner",
+      "type": "Person",
+      "aliases": [
+        "Hon. Charity Gardner",
+        "Mrs. Charity Gardner",
+        "Gardner"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Ahafo Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Ahafo; Role: Regional Minister, Ahafo Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Ahafo Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-012",
+      "name": "Ali Adolf John",
+      "type": "Person",
+      "aliases": [
+        "Ali Adolf",
+        "Hon. Ali Adolf John",
+        "John",
+        "Ali John"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Northern Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Northern; Role: Regional Minister, Northern Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Northern Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-013",
+      "name": "Salisu Be-Awuribe",
+      "type": "Person",
+      "aliases": [
+        "Salisu Be Awuribe",
+        "Hon. Salisu Be-Awuribe",
+        "Be-Awuribe"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Savannah Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Savannah; Role: Regional Minister, Savannah Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Savannah Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-014",
+      "name": "Ibrahim Tia",
+      "type": "Person",
+      "aliases": [
+        "Hon. Ibrahim Tia",
+        "Tia"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, North East Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: North East; Role: Regional Minister, North East Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "North East Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-015",
+      "name": "Akamugri Donatus Atanga",
+      "type": "Person",
+      "aliases": [
+        "Donatus Akamugri",
+        "Hon. Donatus Atanga",
+        "Atanga",
+        "Akamugri Atanga"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Upper East Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Upper East; Role: Regional Minister, Upper East Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Upper East Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-016",
+      "name": "Charles Lwanga Puozuing",
+      "type": "Person",
+      "aliases": [
+        "Charles Puozuing",
+        "Lawyer Charles Puozuing",
+        "Puozuing"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Active Office Holder",
+          "Regional Minister, Upper West Region"
+        ],
+        "listedAt": [
+          "2025-01-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Upper West; Role: Regional Minister, Upper West Region; Status: active"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+        ],
+        "address": [
+          "Upper West Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-001",
+      "name": "Elizabeth Sackey",
+      "type": "Person",
+      "aliases": [
+        "Hon. Elizabeth Sackey",
+        "Elizabeth Naa Kwatsoe Sackey",
+        "Mayor of Accra",
+        "Sackey"
+      ],
+      "source_reference": "https://ama.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive (Mayor), Accra Metropolitan Assembly (AMA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Greater Accra; Role: Former Metropolitan Chief Executive (Mayor), Accra Metropolitan Assembly (AMA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Greater Accra Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-002",
+      "name": "Samuel Pyne",
+      "type": "Person",
+      "aliases": [
+        "Sam Pyne",
+        "Hon. Sam Pyne",
+        "Mayor of Kumasi",
+        "Pyne"
+      ],
+      "source_reference": "https://kma.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive (Mayor), Kumasi Metropolitan Assembly (KMA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Ashanti; Role: Former Metropolitan Chief Executive (Mayor), Kumasi Metropolitan Assembly (KMA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Ashanti Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-003",
+      "name": "Abdul-Mumin Issah",
+      "type": "Person",
+      "aliases": [
+        "Abdul Mumin Issah",
+        "Hon. Abdul-Mumin Issah",
+        "Mayor of Sekondi-Takoradi",
+        "Issah"
+      ],
+      "source_reference": "https://stma.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive (Mayor), Sekondi-Takoradi Metropolitan Assembly (STMA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Western; Role: Former Metropolitan Chief Executive (Mayor), Sekondi-Takoradi Metropolitan Assembly (STMA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Western Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-004",
+      "name": "Sule Salifu",
+      "type": "Person",
+      "aliases": [
+        "Hon. Sule Salifu",
+        "Mayor of Tamale",
+        "Salifu"
+      ],
+      "source_reference": "https://tama.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive (Mayor), Tamale Metropolitan Assembly (TaMA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Northern; Role: Former Metropolitan Chief Executive (Mayor), Tamale Metropolitan Assembly (TaMA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Northern Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-005",
+      "name": "Ernest Arthur",
+      "type": "Person",
+      "aliases": [
+        "Hon. Ernest Arthur",
+        "Mayor of Cape Coast",
+        "Arthur"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive (Mayor), Cape Coast Metropolitan Assembly (CCMA) (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-05-15"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Central; Role: Former Metropolitan Chief Executive (Mayor), Cape Coast Metropolitan Assembly (CCMA) (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Central Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-006",
+      "name": "Yohane Amarh Ashitey",
+      "type": "Person",
+      "aliases": [
+        "Yohane Ashitey",
+        "Hon. Yohane Amarh Ashitey",
+        "MCE Tema",
+        "Ashitey"
+      ],
+      "source_reference": "https://tma.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Metropolitan Chief Executive, Tema Metropolitan Assembly (TMA) (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Greater Accra; Role: Former Metropolitan Chief Executive, Tema Metropolitan Assembly (TMA) (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Greater Accra Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-007",
+      "name": "George Cyril Bray",
+      "type": "Person",
+      "aliases": [
+        "Cyril Bray",
+        "Hon. George Cyril Bray",
+        "Bray",
+        "George Bray"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Ablekuma West Municipal Assembly (2018–2025)"
+        ],
+        "listedAt": [
+          "2018-03-15"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Greater Accra; Role: Former Municipal Chief Executive, Ablekuma West Municipal Assembly (2018–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Greater Accra Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-008",
+      "name": "Dr. Divine Richard Bosson",
+      "type": "Person",
+      "aliases": [
+        "Divine Bosson",
+        "Hon. Divine Bosson",
+        "Divine Richard Bosson",
+        "Bosson"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Ho Municipal Assembly (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Volta; Role: Former Municipal Chief Executive, Ho Municipal Assembly (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Volta Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-009",
+      "name": "Ansu Kumi",
+      "type": "Person",
+      "aliases": [
+        "Hon. Ansu Kumi",
+        "Kumi"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Sunyani Municipal Assembly (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Bono; Role: Former Municipal Chief Executive, Sunyani Municipal Assembly (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Bono Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-010",
+      "name": "Isaac Kwadjo Buabeng",
+      "type": "Person",
+      "aliases": [
+        "Isaac Buabeng",
+        "Hon. Isaac Kwadjo Buabeng",
+        "Buabeng"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Nsawam Adoagyiri Municipal Assembly (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-05-15"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Eastern; Role: Former Municipal Chief Executive, Nsawam Adoagyiri Municipal Assembly (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Eastern Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-011",
+      "name": "Tahir Zubairu",
+      "type": "Person",
+      "aliases": [
+        "Hon. Tahir Zubairu",
+        "Zubairu"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Wa Municipal Assembly (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Upper West; Role: Former Municipal Chief Executive, Wa Municipal Assembly (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Upper West Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mce-012",
+      "name": "Rex Asanga",
+      "type": "Person",
+      "aliases": [
+        "Hon. Rex Asanga",
+        "Asanga"
+      ],
+      "source_reference": "https://ghanadistricts.com",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Municipal Chief Executive, Bolgatanga Municipal Assembly (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-09-20"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Upper East; Role: Former Municipal Chief Executive, Bolgatanga Municipal Assembly (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Upper East Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-017",
+      "name": "Simon Osei-Mensah",
+      "type": "Person",
+      "aliases": [
+        "Hon. Simon Osei-Mensah",
+        "Osei-Mensah"
+      ],
+      "source_reference": "https://ashanti.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Ashanti Region (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Ashanti; Role: Former Regional Minister, Ashanti Region (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Ashanti Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-018",
+      "name": "Henry Quartey",
+      "type": "Person",
+      "aliases": [
+        "Hon. Henry Quartey",
+        "Quartey"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Greater Accra Region (2021–2024), Former Minister for the Interior (2024–2025)"
+        ],
+        "listedAt": [
+          "2021-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Greater Accra; Role: Former Regional Minister, Greater Accra Region (2021–2024), Former Minister for the Interior (2024–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Greater Accra Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-019",
+      "name": "Kwabena Okyere Darko-Mensah",
+      "type": "Person",
+      "aliases": [
+        "Kobby Okyere Darko-Mensah",
+        "Hon. Kwabena Okyere Darko-Mensah",
+        "Darko-Mensah",
+        "Kwabena Darko-Mensah"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Western Region (2019–2025)"
+        ],
+        "listedAt": [
+          "2019-02-28"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Western; Role: Former Regional Minister, Western Region (2019–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Western Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-020",
+      "name": "Dr. Archibald Yao Letsa",
+      "type": "Person",
+      "aliases": [
+        "Dr. Archibald Letsa",
+        "Hon. Archibald Yao Letsa",
+        "Archibald Yao Letsa",
+        "Letsa",
+        "Archibald Letsa"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Volta Region (2017–2025)"
+        ],
+        "listedAt": [
+          "2017-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Volta; Role: Former Regional Minister, Volta Region (2017–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Volta Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-021",
+      "name": "Seth Kwame Acheampong",
+      "type": "Person",
+      "aliases": [
+        "Hon. Seth Kwame Acheampong",
+        "Acheampong",
+        "Seth Acheampong"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Eastern Region (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Eastern; Role: Former Regional Minister, Eastern Region (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Eastern Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-022",
+      "name": "Justina Marigold Assan",
+      "type": "Person",
+      "aliases": [
+        "Mrs. Justina Marigold Assan",
+        "Justina Assan",
+        "Assan"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Central Region (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Central; Role: Former Regional Minister, Central Region (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Central Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-reg-023",
+      "name": "Shani Alhassan Saibu",
+      "type": "Person",
+      "aliases": [
+        "Alhaji Shani Alhassan Saibu",
+        "Hon. Shani Saibu",
+        "Saibu",
+        "Shani Saibu"
+      ],
+      "source_reference": "https://presidency.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP (MMDCE / Regional Minister)",
+          "Cooling-off Period (Former Office Holder)",
+          "Former Regional Minister, Northern Region (2021–2025)"
+        ],
+        "listedAt": [
+          "2021-02-17"
+        ],
+        "sourceStatus": [
+          "Ghana Sub-National PEP; Region: Northern; Role: Former Regional Minister, Northern Region (2021–2025); Status: cooling_off"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
+        ],
+        "address": [
+          "Northern Region, Ghana"
+        ]
+      }
+    }
+  ]
+}

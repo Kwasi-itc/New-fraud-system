@@ -132,6 +132,8 @@ const datasetDisplayNames: Record<string, string> = {
   "gh-pep-parliament": "Ghana Parliament PEPs",
   "gh-pep-soe": "Ghana SOE & Judiciary PEPs",
   "gh-pep-rca": "Ghana PEP Relatives & Associates",
+  "gh-pep-local-gov": "Ghana MMDCEs & Regional Ministers",
+  "gh-pep-parties": "Ghana Political Party Executives",
   us_ofac_sdn: "OFAC SDN",
   us_ofac_cons: "OFAC Consolidated",
   un_sc_sanctions: "UN Sanctions List",
@@ -313,6 +315,8 @@ export function ManualScreening({ scope }: { scope: string }) {
     { scope: "global", id: "gh-pep-parliament" },
     { scope: "global", id: "gh-pep-soe" },
     { scope: "global", id: "gh-pep-rca" },
+    { scope: "global", id: "gh-pep-local-gov" },
+    { scope: "global", id: "gh-pep-parties" },
   ]);
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
@@ -360,11 +364,11 @@ export function ManualScreening({ scope }: { scope: string }) {
         const ready = internalP.datasets.filter(d => !!d.generation).map(d => d.ref);
         if (ready.length > 0) {
           setSelectedDatasets(previous => {
-            if (previous.length === 0) return ready.slice(0, 10);
+            if (previous.length === 0) return ready.slice(0, 25);
             const existingKeys = new Set(previous.map(p => `${p.scope}:${p.id}`));
             const merged = [...previous];
             for (const r of ready) {
-              if (!existingKeys.has(`${r.scope}:${r.id}`) && merged.length < 10) {
+              if (!existingKeys.has(`${r.scope}:${r.id}`) && merged.length < 25) {
                 merged.push(r);
                 existingKeys.add(`${r.scope}:${r.id}`);
               }

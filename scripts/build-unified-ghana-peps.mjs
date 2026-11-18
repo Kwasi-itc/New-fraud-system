@@ -515,7 +515,7 @@ for (const cmp of crawledMps) {
 }
 
 // ============================================================================
-// 3. SOE, REGULATORS & JUDICIARY PEPS
+// 3. SOE, REGULATORS & JUDICIARY PEPS (Current 2025/2026 Active & Cooling-off)
 // ============================================================================
 const soeJudiciaryPeps = [
   // --- Judiciary & Supreme Court of Ghana ---
@@ -596,37 +596,27 @@ const soeJudiciaryPeps = [
     ref: "https://ghaudit.org"
   },
 
-  // --- Central Bank & Financial Intelligence ---
+  // --- Central Bank Leadership (Current 2025/2026 Administration) ---
   {
     id: "gh-pep-soe-009",
-    name: "Ernest Kwamina Yedu Addison",
-    aliases: ["Dr. Ernest Addison", "Dr. Ernest K. Y. Addison"],
-    role: "Governor, Bank of Ghana (Central Bank)",
-    term: "2017-03-30 to present",
+    name: "Johnson Pandit Kwesi Asiama",
+    aliases: ["Dr. Johnson Asiama", "Dr. Johnson Pandit Kwesi Asiama", "Governor Johnson Asiama"],
+    role: "Governor and Board Chairman, Bank of Ghana (Central Bank)",
+    term: "2025-02-01 to present",
     status: "active",
-    familyMembers: ["Philip Addison (Brother)"],
     ref: "https://bog.gov.gh"
   },
   {
     id: "gh-pep-soe-010",
-    name: "Maxwell Opoku-Afari",
-    aliases: ["Dr. Maxwell Opoku-Afari"],
+    name: "Zakari Mumuni",
+    aliases: ["Dr. Zakari Mumuni", "Deputy Governor Zakari Mumuni"],
     role: "First Deputy Governor, Bank of Ghana",
-    term: "2017-08-07 to present",
+    term: "2025-02-01 to present",
     status: "active",
     ref: "https://bog.gov.gh"
   },
   {
     id: "gh-pep-soe-011",
-    name: "Elsie Addo Awadzi",
-    aliases: ["Mrs. Elsie Addo Awadzi"],
-    role: "Second Deputy Governor, Bank of Ghana",
-    term: "2018-02-14 to present",
-    status: "active",
-    ref: "https://bog.gov.gh"
-  },
-  {
-    id: "gh-pep-soe-012",
     name: "Kwabena Osei-Bonsu",
     aliases: ["K. Osei-Bonsu"],
     role: "Chief Executive Officer, Financial Intelligence Centre (FIC Ghana)",
@@ -637,7 +627,7 @@ const soeJudiciaryPeps = [
 
   // --- Security Chiefs & Armed Forces ---
   {
-    id: "gh-pep-soe-013",
+    id: "gh-pep-soe-012",
     name: "Thomas Oppong-Peprah",
     aliases: ["Lt. Gen. Thomas Oppong-Peprah"],
     role: "Chief of Defence Staff (CDS), Ghana Armed Forces",
@@ -646,7 +636,7 @@ const soeJudiciaryPeps = [
     ref: "https://gafonline.mil.gh"
   },
   {
-    id: "gh-pep-soe-014",
+    id: "gh-pep-soe-013",
     name: "George Akuffo Dampare",
     aliases: ["Dr. George Akuffo Dampare", "IGP Dampare"],
     role: "Inspector-General of Police (IGP), Ghana Police Service",
@@ -656,18 +646,213 @@ const soeJudiciaryPeps = [
     ref: "https://police.gov.gh"
   },
 
-  // --- State-Owned Enterprises (Current & Acting Transition CEOs) ---
+  // --- Current 2025/2026 Active SOE CEOs & Managing Directors ---
+  {
+    id: "gh-pep-soe-014",
+    name: "Edward Bawa",
+    aliases: ["Hon. Edward Bawa", "Edward Abambire Bawa"],
+    role: "Acting Chief Executive Officer, Ghana National Petroleum Corporation (GNPC)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://gnpcghana.com"
+  },
   {
     id: "gh-pep-soe-015",
-    name: "David Asamoah",
-    aliases: ["David Boadi Asamoah", "Ing. David Asamoah"],
+    name: "Godwin Edudzi Tamakloe",
+    aliases: ["Godwin Edudzi Tamakloe, Esq.", "Edudzi Tamakloe", "Lawyer Edudzi Tamakloe"],
+    role: "Acting Chief Executive Officer, National Petroleum Authority (NPA)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://npa.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-016",
+    name: "Ransford Anertey Abbey",
+    aliases: ["Dr. Randy Abbey", "Dr. Ransford Abbey", "Randy Abbey"],
+    role: "Acting Chief Executive Officer, Ghana Cocoa Board (COCOBOD)",
+    term: "2025-01-21 to present",
+    status: "active",
+    ref: "https://cocobod.gh"
+  },
+  {
+    id: "gh-pep-soe-017",
+    name: "Anthony Kwasi Sarpong",
+    aliases: ["Anthony Sarpong", "Kwasi Sarpong", "Commissioner-General Anthony Sarpong"],
+    role: "Acting Commissioner-General, Ghana Revenue Authority (GRA)",
+    term: "2025-01-21 to present",
+    status: "active",
+    ref: "https://gra.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-018",
+    name: "Kwesi Afreh Biney",
+    aliases: ["Kwesi Biney", "Director-General Kwesi Afreh Biney"],
+    role: "Director-General, Social Security and National Insurance Trust (SSNIT)",
+    term: "2025-01-21 to present",
+    status: "active",
+    associates: ["Adam Sulley (Deputy Director-General, SSNIT)"],
+    ref: "https://ssnit.org.gh"
+  },
+  {
+    id: "gh-pep-soe-019",
+    name: "Adam Sulley",
+    aliases: ["Alhaji Adam Sulley"],
+    role: "Deputy Director-General (Operations & Benefits), Social Security and National Insurance Trust (SSNIT)",
+    term: "2025-01-21 to present",
+    status: "active",
+    ref: "https://ssnit.org.gh"
+  },
+  {
+    id: "gh-pep-soe-020",
+    name: "Edward Ekow Obeng-Kenzo",
+    aliases: ["Ing. Edward Obeng-Kenzo", "Edward Obeng-Kenzo", "Ing. Obeng-Kenzo"],
+    role: "Acting Chief Executive Officer, Volta River Authority (VRA)",
+    term: "2025-02-01 to present",
+    status: "active",
+    associates: ["Ing. Jabesh Amissah-Arthur (Board Chairman, VRA)"],
+    ref: "https://vra.com"
+  },
+  {
+    id: "gh-pep-soe-021",
+    name: "Jabesh Amissah-Arthur",
+    aliases: ["Ing. Jabesh Amissah-Arthur"],
+    role: "Board Chairman, Volta River Authority (VRA)",
+    term: "2025-02-01 to present",
+    status: "active",
+    ref: "https://vra.com"
+  },
+  {
+    id: "gh-pep-soe-022",
+    name: "Julius Kpekpena",
+    aliases: ["Ing. Julius Kpekpena", "Julius Kpekpena"],
     role: "Acting Managing Director, Electricity Company of Ghana (ECG)",
-    term: "2024-09-26 to present",
+    term: "2025-02-01 to present",
+    status: "active",
+    associates: ["Ing. Dr. William Amuna (Board Chairman, ECG)"],
+    ref: "https://ecg.com.gh"
+  },
+  {
+    id: "gh-pep-soe-023",
+    name: "William Amuna",
+    aliases: ["Ing. Dr. William Amuna", "Dr. William Amuna"],
+    role: "Board Chairman, Electricity Company of Ghana (ECG), Former CEO of GRIDCo",
+    term: "2025-02-01 to present",
     status: "active",
     ref: "https://ecg.com.gh"
   },
   {
-    id: "gh-pep-soe-016",
+    id: "gh-pep-soe-024",
+    name: "Afetsi Awoonor",
+    aliases: ["Afetsi Awoonor"],
+    role: "Acting Managing Director, Bulk Oil Storage and Transportation (BOST)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://bost.com.gh"
+  },
+  {
+    id: "gh-pep-soe-025",
+    name: "Judith Adjobah Blay",
+    aliases: ["Judith Blay", "Ms. Judith Adjobah Blay"],
+    role: "Acting Managing Director / CEO, Ghana National Gas Limited Company (Ghana Gas)",
+    term: "2025-02-01 to present",
+    status: "active",
+    associates: ["Kofi Totobi Quakyi (Board Chairman, Ghana Gas)"],
+    ref: "https://ghanagas.com.gh"
+  },
+  {
+    id: "gh-pep-soe-026",
+    name: "Kofi Totobi Quakyi",
+    aliases: ["Totobi Quakyi", "Hon. Kofi Totobi Quakyi"],
+    role: "Board Chairman, Ghana National Gas Limited Company (Ghana Gas)",
+    term: "2025-02-01 to present",
+    status: "active",
+    ref: "https://ghanagas.com.gh"
+  },
+  {
+    id: "gh-pep-soe-027",
+    name: "Paul Seidu Tanye-Kulono",
+    aliases: ["Major-General Paul Seidu Tanye-Kulono", "Maj. Gen. Tanye-Kulono"],
+    role: "Acting Director-General, Ghana Ports and Harbours Authority (GPHA)",
+    term: "2025-02-01 to present",
+    status: "active",
+    ref: "https://ghanaports.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-028",
+    name: "Michael Kpessa-Whyte",
+    aliases: ["Prof. Michael Kpessa-Whyte", "Michael Kpessa Whyte", "Prof. Kpessa-Whyte"],
+    role: "Director-General, State Interests and Governance Authority (SIGA)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://siga.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-029",
+    name: "Victoria Emefa Hardcastle",
+    aliases: ["Victoria Emefa Hardcastle, Esq.", "Victoria Hardcastle"],
+    role: "Acting Chief Executive Officer, Petroleum Commission of Ghana",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://petrocom.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-030",
+    name: "Sammy Gyamfi",
+    aliases: ["Sammy Gyamfi, Esq.", "Lawyer Sammy Gyamfi"],
+    role: "Acting Managing Director, Precious Minerals Marketing Company (PMMC)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://pmmc.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-031",
+    name: "Justina Nelson",
+    aliases: ["Justina Nelson"],
+    role: "Chief Executive Officer, Minerals Income Investment Fund (MIIF)",
+    term: "2025-01-15 to present",
+    status: "active",
+    associates: ["Dr. Kwaku Asiedu Nketia (Deputy CEO, MIIF)"],
+    ref: "https://miif.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-032",
+    name: "Kwaku Asiedu Nketia",
+    aliases: ["Dr. Kwaku Asiedu Nketia"],
+    role: "Deputy Chief Executive Officer, Minerals Income Investment Fund (MIIF)",
+    term: "2025-01-15 to present",
+    status: "active",
+    familyMembers: ["Johnson Asiedu Nketiah (Father / NDC National Chairman)"],
+    ref: "https://miif.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-033",
+    name: "Mohammed Abdul-Salam",
+    aliases: ["Mohammed Abdul Salam"],
+    role: "Acting Director-General, National Lottery Authority (NLA)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://nla.com.gh"
+  },
+  {
+    id: "gh-pep-soe-034",
+    name: "Nana Ama Browne Klutse",
+    aliases: ["Prof. Nana Ama Browne Klutse", "Nana Ama Browne Klutse"],
+    role: "Executive Director, Environmental Protection Agency (EPA Ghana)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://epa.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-035",
+    name: "Wisdom Yayra Koku Deku",
+    aliases: ["Wisdom Deku", "Wisdom Yayra Deku"],
+    role: "Executive Secretary & CEO, National Identification Authority (NIA)",
+    term: "2025-01-15 to present",
+    status: "active",
+    ref: "https://nia.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-036",
     name: "Daniel Wilson Addo",
     aliases: ["Daniel Addo"],
     role: "Managing Director, Consolidated Bank Ghana (CBG)",
@@ -676,7 +861,7 @@ const soeJudiciaryPeps = [
     ref: "https://cbg.com.gh"
   },
   {
-    id: "gh-pep-soe-017",
+    id: "gh-pep-soe-037",
     name: "Patrick Kuma-Aboagye",
     aliases: ["Dr. Patrick Kuma-Aboagye"],
     role: "Director-General, Ghana Health Service (GHS)",
@@ -685,18 +870,46 @@ const soeJudiciaryPeps = [
     ref: "https://ghs.gov.gh"
   },
 
-  // --- State-Owned Enterprises (Outgoing CEOs in Statutory Cooling-off Period) ---
+  // --- Outgoing SOE CEOs & Leadership (Under Statutory AML Act 1044 Cooling-off Period) ---
   {
-    id: "gh-pep-soe-018",
+    id: "gh-pep-soe-038",
+    name: "Ernest Kwamina Yedu Addison",
+    aliases: ["Dr. Ernest Addison", "Dr. Ernest K. Y. Addison", "Governor Ernest Addison"],
+    role: "Former Governor, Bank of Ghana (Central Bank) (2017–2025)",
+    term: "2017-03-30 to 2025-01-31",
+    status: "cooling_off",
+    familyMembers: ["Philip Addison (Brother)"],
+    ref: "https://bog.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-039",
+    name: "Maxwell Opoku-Afari",
+    aliases: ["Dr. Maxwell Opoku-Afari"],
+    role: "Former First Deputy Governor, Bank of Ghana (2017–2025)",
+    term: "2017-08-07 to 2025-01-31",
+    status: "cooling_off",
+    ref: "https://bog.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-040",
+    name: "Elsie Addo Awadzi",
+    aliases: ["Mrs. Elsie Addo Awadzi"],
+    role: "Former Second Deputy Governor, Bank of Ghana (2018–2025)",
+    term: "2018-02-14 to 2025-01-31",
+    status: "cooling_off",
+    ref: "https://bog.gov.gh"
+  },
+  {
+    id: "gh-pep-soe-041",
     name: "Julie Essiam",
     aliases: ["Commissioner-General Julie Essiam"],
     role: "Former Commissioner-General, Ghana Revenue Authority (GRA) (2024–2025)",
-    term: "2024-03-26 to 2025-01-06",
+    term: "2024-03-26 to 2025-01-20",
     status: "cooling_off",
     ref: "https://gra.gov.gh"
   },
   {
-    id: "gh-pep-soe-019",
+    id: "gh-pep-soe-042",
     name: "Opoku-Ahweneeh Danquah",
     aliases: ["Opoku Danquah"],
     role: "Former Chief Executive Officer, Ghana National Petroleum Corporation (GNPC) (2022–2024)",
@@ -705,16 +918,16 @@ const soeJudiciaryPeps = [
     ref: "https://gnpcghana.com"
   },
   {
-    id: "gh-pep-soe-020",
+    id: "gh-pep-soe-043",
     name: "Emmanuel Antwi-Darkwa",
     aliases: ["Ing. Emmanuel Antwi-Darkwa"],
     role: "Former Chief Executive, Volta River Authority (VRA) (2017–2025)",
-    term: "2017-02-06 to 2025-01-06",
+    term: "2017-02-06 to 2025-01-31",
     status: "cooling_off",
     ref: "https://vra.com"
   },
   {
-    id: "gh-pep-soe-021",
+    id: "gh-pep-soe-044",
     name: "Samuel Dubik Masubir Mahama",
     aliases: ["Dubik Mahama", "Samuel Mahama"],
     role: "Former Managing Director, Electricity Company of Ghana (ECG) (2022–2024)",
@@ -723,34 +936,43 @@ const soeJudiciaryPeps = [
     ref: "https://ecg.com.gh"
   },
   {
-    id: "gh-pep-soe-022",
+    id: "gh-pep-soe-045",
+    name: "David Asamoah",
+    aliases: ["David Boadi Asamoah", "Ing. David Asamoah"],
+    role: "Former Acting Managing Director, Electricity Company of Ghana (ECG) (2024–2025)",
+    term: "2024-09-26 to 2025-01-31",
+    status: "cooling_off",
+    ref: "https://ecg.com.gh"
+  },
+  {
+    id: "gh-pep-soe-046",
     name: "Edwin Alfred Provencal",
     aliases: ["Edwin Provencal"],
     role: "Former Managing Director, Bulk Energy Storage and Transportation (BOST) (2019–2025)",
-    term: "2019-08-26 to 2025-01-06",
+    term: "2019-08-26 to 2025-01-14",
     status: "cooling_off",
     ref: "https://bost.com.gh"
   },
   {
-    id: "gh-pep-soe-023",
+    id: "gh-pep-soe-047",
     name: "Kofi Bosompem Osafo-Maafo",
     aliases: ["Kofi Osafo-Maafo"],
     role: "Former Director-General, Social Security and National Insurance Trust (SSNIT) (2024–2025)",
-    term: "2024-04-08 to 2025-01-06",
+    term: "2024-04-08 to 2025-01-20",
     status: "cooling_off",
     ref: "https://ssnit.org.gh"
   },
   {
-    id: "gh-pep-soe-024",
+    id: "gh-pep-soe-048",
     name: "Mustapha Abdul-Hamid",
     aliases: ["Dr. Mustapha Abdul-Hamid"],
     role: "Former Chief Executive, National Petroleum Authority (NPA) (2021–2025)",
-    term: "2021-07-01 to 2025-01-06",
+    term: "2021-07-01 to 2025-01-14",
     status: "cooling_off",
     ref: "https://npa.gov.gh"
   },
   {
-    id: "gh-pep-soe-025",
+    id: "gh-pep-soe-049",
     name: "Joe Anokye",
     aliases: ["Joe Anokye"],
     role: "Former Director-General, National Communications Authority (NCA) (2017–2025)",
@@ -759,7 +981,7 @@ const soeJudiciaryPeps = [
     ref: "https://nca.org.gh"
   },
   {
-    id: "gh-pep-soe-026",
+    id: "gh-pep-soe-050",
     name: "Joseph Boahen Aidoo",
     aliases: ["Hon. Joseph Boahen Aidoo"],
     role: "Former Chief Executive, Ghana Cocoa Board (COCOBOD) (2017–2024)",
