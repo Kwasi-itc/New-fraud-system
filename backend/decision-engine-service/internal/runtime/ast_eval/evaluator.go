@@ -58,6 +58,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 			}
 			boolVal, ok := val.(bool)
 			if !ok {
+				if err := nullOperandError("and", "child", val); err != nil {
+					return nil, err
+				}
 				return nil, fmt.Errorf("and expects boolean children")
 			}
 			if !boolVal {
@@ -73,6 +76,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 			}
 			boolVal, ok := val.(bool)
 			if !ok {
+				if err := nullOperandError("or", "child", val); err != nil {
+					return nil, err
+				}
 				return nil, fmt.Errorf("or expects boolean children")
 			}
 			if boolVal {
@@ -90,6 +96,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		boolVal, ok := val.(bool)
 		if !ok {
+			if err := nullOperandError("not", "child", val); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("not expects boolean child")
 		}
 		return !boolVal, nil
@@ -118,6 +127,12 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if err != nil {
 			return nil, err
 		}
+		if err := nullOperandError(node.Function, "left operand", left); err != nil {
+			return nil, err
+		}
+		if err := nullOperandError(node.Function, "right operand", right); err != nil {
+			return nil, err
+		}
 		return containsValue(left, right)
 	case "string_not_contain":
 		if len(node.Children) != 2 {
@@ -129,6 +144,12 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		right, err := EvaluateNode(ctx, node.Children[1], runtime)
 		if err != nil {
+			return nil, err
+		}
+		if err := nullOperandError(node.Function, "left operand", left); err != nil {
+			return nil, err
+		}
+		if err := nullOperandError(node.Function, "right operand", right); err != nil {
 			return nil, err
 		}
 		contains, err := containsValue(left, right)
@@ -161,6 +182,12 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if err != nil {
 			return nil, err
 		}
+		if err := nullOperandError(node.Function, "left operand", left); err != nil {
+			return nil, err
+		}
+		if err := nullOperandError(node.Function, "right operand", right); err != nil {
+			return nil, err
+		}
 		matches, err := containsAnyValue(left, right)
 		if err != nil {
 			return nil, err
@@ -183,10 +210,16 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		leftStr, ok := left.(string)
 		if !ok {
+			if err := nullOperandError(node.Function, "left operand", left); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("%s expects string left operand", node.Function)
 		}
 		rightStr, ok := right.(string)
 		if !ok {
+			if err := nullOperandError(node.Function, "right operand", right); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("%s expects string right operand", node.Function)
 		}
 		if strings.ToLower(node.Function) == "starts_with" {
@@ -203,6 +236,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		strValue, ok := value.(string)
 		if !ok {
+			if err := nullOperandError(node.Function, "child", value); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("%s expects a string child", node.Function)
 		}
 		if strings.ToLower(node.Function) == "lower" {
@@ -471,6 +507,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		parsed, ok := parseTimeValue(value)
 		if !ok {
+			if err := nullOperandError(node.Function, "child", value); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("parse_time expects RFC3339 timestamp input")
 		}
 		return parsed, nil
@@ -637,6 +676,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		thresholdFloat, ok := toFloat(threshold)
 		if !ok {
+			if err := nullOperandError(node.Function, "threshold", threshold); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("fuzzy_match_filter_options threshold must resolve to number")
 		}
 		if thresholdFloat < 0 || thresholdFloat > 100 {
@@ -758,6 +800,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		template, ok := value.(string)
 		if !ok || template == "" {
+			if err := nullOperandError(node.Function, "child", value); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("string_template expects non-empty string template")
 		}
 		return renderStringTemplate(ctx, template, node.NamedChildren, runtime)
@@ -768,6 +813,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		modifierFloat, ok := toFloat(modifier)
 		if !ok {
+			if err := nullOperandError(node.Function, "modifier", modifier); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("score_computation modifier must resolve to number")
 		}
 		floorValue := 0.0
@@ -779,6 +827,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 			if value != nil {
 				number, ok := toFloat(value)
 				if !ok {
+					if err := nullOperandError(node.Function, "floor", value); err != nil {
+						return nil, err
+					}
 					return nil, fmt.Errorf("score_computation floor must resolve to number")
 				}
 				floorValue = number
@@ -796,6 +847,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		triggered, ok := childValue.(bool)
 		if !ok {
+			if err := nullOperandError(node.Function, "child", childValue); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("score_computation child must resolve to boolean")
 		}
 		if !triggered {
@@ -1195,6 +1249,9 @@ func evalStringNode(ctx context.Context, node domainast.Node, runtime Runtime, l
 	}
 	text, ok := value.(string)
 	if !ok {
+		if err := nullOperandError(label, "value", value); err != nil {
+			return "", err
+		}
 		return "", fmt.Errorf("%s must resolve to string", label)
 	}
 	return text, nil
@@ -1675,6 +1732,9 @@ func evalNamedString(ctx context.Context, node domainast.Node, name string, runt
 	}
 	text, ok := resolved.(string)
 	if !ok {
+		if err := nullOperandError(node.Function, name, resolved); err != nil {
+			return "", err
+		}
 		return "", fmt.Errorf("%s named child %q must resolve to string", node.Function, name)
 	}
 	return text, nil
@@ -1691,6 +1751,9 @@ func evalOptionalNamedString(ctx context.Context, node domainast.Node, name stri
 	}
 	text, ok := resolved.(string)
 	if !ok {
+		if err := nullOperandError(node.Function, name, resolved); err != nil {
+			return "", false, err
+		}
 		return "", false, fmt.Errorf("%s named child %q must resolve to string", node.Function, name)
 	}
 	return text, true, nil
@@ -1727,6 +1790,9 @@ func evalOptionalNamedNumber(ctx context.Context, node domainast.Node, name stri
 	}
 	number, ok := toFloat(value)
 	if !ok {
+		if err := nullOperandError(node.Function, name, value); err != nil {
+			return 0, false, err
+		}
 		return 0, false, fmt.Errorf("%s named child %q must resolve to number", node.Function, name)
 	}
 	return number, true, nil
@@ -1789,10 +1855,16 @@ func inValue(left, right any) (bool, error) {
 func arithmeticValue(op string, left, right any) (float64, error) {
 	leftNum, ok := toFloat(left)
 	if !ok {
+		if err := nullOperandError(op, "left operand", left); err != nil {
+			return 0, err
+		}
 		return 0, fmt.Errorf("%s expects numeric left operand", op)
 	}
 	rightNum, ok := toFloat(right)
 	if !ok {
+		if err := nullOperandError(op, "right operand", right); err != nil {
+			return 0, err
+		}
 		return 0, fmt.Errorf("%s expects numeric right operand", op)
 	}
 	switch op {

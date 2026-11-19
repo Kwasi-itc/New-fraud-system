@@ -1,0 +1,1088 @@
+{
+  "data_model": {
+    "version": "v1",
+    "tables": [
+      {
+        "name": "transactions",
+        "description": "One record per transaction LEG. A transfer produces two: a debit from the customer and a credit to the destination. Both carry the same trans_id.",
+        "alias": "Transactions",
+        "semantic_type": "entity",
+        "caption_field": "object_id",
+        "fields": [
+          {
+            "name": "trans_id",
+            "description": "Groups the debit and credit legs of one transfer. Not unique — exactly two records share it for a transfer.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "leg",
+            "description": "Which side of the transfer this record is.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "debit",
+                "label": "debit",
+                "sort_order": 1
+              },
+              {
+                "value": "credit",
+                "label": "credit",
+                "sort_order": 2
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "state",
+            "description": "Lifecycle state of this leg. callback_overdue, service_not_initiated and ledger_missing are RESERVED — declared so the model does not need changing later, but never sent in v1.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "initiated",
+                "label": "initiated",
+                "sort_order": 1
+              },
+              {
+                "value": "awaiting_callback",
+                "label": "awaiting_callback",
+                "sort_order": 2
+              },
+              {
+                "value": "callback_received",
+                "label": "callback_received",
+                "sort_order": 3
+              },
+              {
+                "value": "settled",
+                "label": "settled",
+                "sort_order": 4
+              },
+              {
+                "value": "failed",
+                "label": "failed",
+                "sort_order": 5
+              },
+              {
+                "value": "undetermined",
+                "label": "undetermined",
+                "sort_order": 6
+              },
+              {
+                "value": "blocked",
+                "label": "blocked",
+                "sort_order": 7
+              },
+              {
+                "value": "callback_overdue",
+                "label": "callback_overdue",
+                "sort_order": 8
+              },
+              {
+                "value": "service_not_initiated",
+                "label": "service_not_initiated",
+                "sort_order": 9
+              },
+              {
+                "value": "ledger_missing",
+                "label": "ledger_missing",
+                "sort_order": 10
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "operation",
+            "description": "Product the transaction belongs to.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "TRANSFER",
+                "label": "TRANSFER",
+                "sort_order": 1
+              },
+              {
+                "value": "AIRTIME",
+                "label": "AIRTIME",
+                "sort_order": 2
+              },
+              {
+                "value": "DATABUNDLE",
+                "label": "DATABUNDLE",
+                "sort_order": 3
+              },
+              {
+                "value": "BILLPAYMENT",
+                "label": "BILLPAYMENT",
+                "sort_order": 4
+              },
+              {
+                "value": "INVOICE",
+                "label": "INVOICE",
+                "sort_order": 5
+              },
+              {
+                "value": "VOUCHER",
+                "label": "VOUCHER",
+                "sort_order": 6
+              },
+              {
+                "value": "FUNDING",
+                "label": "FUNDING",
+                "sort_order": 7
+              },
+              {
+                "value": "CHANGO",
+                "label": "CHANGO",
+                "sort_order": 8
+              },
+              {
+                "value": "MOP",
+                "label": "MOP",
+                "sort_order": 9
+              },
+              {
+                "value": "RPAY",
+                "label": "RPAY",
+                "sort_order": 10
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "channel",
+            "description": "Where the transaction originated.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "app",
+                "label": "app",
+                "sort_order": 1
+              },
+              {
+                "value": "ws",
+                "label": "ws",
+                "sort_order": 2
+              },
+              {
+                "value": "ussd",
+                "label": "ussd",
+                "sort_order": 3
+              },
+              {
+                "value": "recurring",
+                "label": "recurring",
+                "sort_order": 4
+              },
+              {
+                "value": "auto_retry",
+                "label": "auto_retry",
+                "sort_order": 5
+              },
+              {
+                "value": "manual_retry",
+                "label": "manual_retry",
+                "sort_order": 6
+              },
+              {
+                "value": "unknown",
+                "label": "unknown",
+                "sort_order": 7
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "amount",
+            "description": "Amount sent to the payment provider, after any discount.",
+            "data_type": "float",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "original_amount",
+            "description": "Pre-discount amount. Null when no discount applied.",
+            "data_type": "float",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "currency",
+            "description": "Transaction currency.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "GHS",
+                "label": "GHS",
+                "sort_order": 1
+              },
+              {
+                "value": "RWF",
+                "label": "RWF",
+                "sort_order": 2
+              },
+              {
+                "value": "XAF",
+                "label": "XAF",
+                "sort_order": 3
+              },
+              {
+                "value": "USD",
+                "label": "USD",
+                "sort_order": 4
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "country_id",
+            "description": "Country the transaction belongs to.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "GH",
+                "label": "GH",
+                "sort_order": 1
+              },
+              {
+                "value": "RW",
+                "label": "RW",
+                "sort_order": 2
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "user_id",
+            "description": "Transflow account that initiated the transaction.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "wallet_id",
+            "description": "Funding wallet debited for this transaction.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "source_msisdn",
+            "description": "Funding wallet number, MASKED (e.g. 23324***001). Not suitable for matching — use wallets.wallet_number_hash.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "destination_ref",
+            "description": "Payout destination, unmasked. The account money is being sent to. Primary cash-out grouping identity.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "destination_network",
+            "description": "Network or bank the credit is routed to (MTN, VODAFONE, ...). Empty on a debit leg.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "funding_network",
+            "description": "Network of the wallet being debited.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "merchant_product_id",
+            "description": "Product used for this transaction.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "payment_ref",
+            "description": "Free text typed by the customer as the payment reference. Attacker-controlled — treat as untrusted.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "response_code",
+            "description": "Provider response code. Null until the provider responds.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "response_message",
+            "description": "Provider response message. Null until the provider responds.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "provider_transaction_id",
+            "description": "Payment provider transaction id. Null until known.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "is_recurring",
+            "description": "True when the debit came from a standing recurring mandate rather than a customer action.",
+            "data_type": "bool",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "expected_callback",
+            "description": "True only when the provider accepted the request and a callback is genuinely expected. FALSE for a clean synchronous rejection, which never produces a callback — do not treat those as pending.",
+            "data_type": "bool",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "initiated_at",
+            "description": "When this leg was initiated.",
+            "data_type": "timestamp",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "callback_received_at",
+            "description": "When the provider callback arrived. Null while still awaiting one.",
+            "data_type": "timestamp",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "seconds_to_callback",
+            "description": "Seconds between initiated_at and callback_received_at. Null while awaiting.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "account_age_hours",
+            "description": "Hours between the account being registered and this transaction. Precomputed by us.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "user_median_amount_90d",
+            "description": "Median transaction amount for this user over 90 days. Precomputed baseline for deviation rules.",
+            "data_type": "float",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "user_txn_count_24h",
+            "description": "Transactions by this user in the preceding 24 hours. Precomputed.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "destination_first_seen_hours",
+            "description": "Hours since we first ever saw this destination_ref. Precomputed.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          }
+        ],
+        "navigation_options": []
+      },
+      {
+        "name": "customers",
+        "description": "Transflow account holders. Sent on registration and on any account status change.",
+        "alias": "Customers",
+        "semantic_type": "person",
+        "caption_field": "display_name",
+        "fields": [
+          {
+            "name": "username_masked",
+            "description": "Login identity, masked. Phone number for mobile accounts, email for email accounts.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "username_hash",
+            "description": "Salted SHA-256 of the login identity. Stable — use this to match the same identity across accounts.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "auth_type",
+            "description": "How the account authenticates. IMPORTANT: wallet-ownership rules are only valid for mobile — see wallets.is_third_party.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "mobile",
+                "label": "mobile",
+                "sort_order": 1
+              },
+              {
+                "value": "email",
+                "label": "email",
+                "sort_order": 2
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "display_name",
+            "description": "Name the customer registered with.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "status",
+            "description": "Current account status.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "active",
+                "label": "active",
+                "sort_order": 1
+              },
+              {
+                "value": "dormant",
+                "label": "dormant",
+                "sort_order": 2
+              },
+              {
+                "value": "suspended",
+                "label": "suspended",
+                "sort_order": 3
+              },
+              {
+                "value": "pending",
+                "label": "pending",
+                "sort_order": 4
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "kyc_tier",
+            "description": "KYC tier name. Null when the account has completed no KYC.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "has_identity_number",
+            "description": "True when a government identity number is on file.",
+            "data_type": "bool",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "country_id",
+            "description": "Account country.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "GH",
+                "label": "GH",
+                "sort_order": 1
+              },
+              {
+                "value": "RW",
+                "label": "RW",
+                "sort_order": 2
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "registered_at",
+            "description": "When the account was created.",
+            "data_type": "timestamp",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "last_login_at",
+            "description": "Most recent login.",
+            "data_type": "timestamp",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "days_since_last_activity",
+            "description": "Days since the account was last active. Precomputed dormancy signal.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "distinct_devices",
+            "description": "Number of distinct devices linked to this account. Precomputed.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "auth_change_hours_ago",
+            "description": "Hours since the account credentials were last changed. Precomputed takeover signal.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          }
+        ],
+        "navigation_options": []
+      },
+      {
+        "name": "wallets",
+        "description": "Funding instruments attached to an account. Sent when a wallet is attached or reactivated.",
+        "alias": "Wallets",
+        "semantic_type": "entity",
+        "caption_field": "wallet_number_masked",
+        "fields": [
+          {
+            "name": "user_id",
+            "description": "Account the wallet is attached to.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "wallet_type",
+            "description": "Kind of funding instrument.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "mobile",
+                "label": "mobile",
+                "sort_order": 1
+              },
+              {
+                "value": "card",
+                "label": "card",
+                "sort_order": 2
+              },
+              {
+                "value": "bank",
+                "label": "bank",
+                "sort_order": 3
+              },
+              {
+                "value": "ecedi",
+                "label": "ecedi",
+                "sort_order": 4
+              },
+              {
+                "value": "transflow",
+                "label": "transflow",
+                "sort_order": 5
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "wallet_number_masked",
+            "description": "Wallet number, masked, for human review.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "wallet_number_hash",
+            "description": "Salted SHA-256 of the wallet number. The SAME instrument attached to two different accounts produces the SAME hash — this is the strongest cross-account signal in the model.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "financial_entity_id",
+            "description": "Provider the wallet belongs to (MTN, Telecel, a bank).",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "is_third_party",
+            "description": "True when the wallet number is not the account holder's own identity. ONLY meaningful when customers.auth_type = mobile; always false for email accounts, because an email username can never equal a wallet number.",
+            "data_type": "bool",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "is_verified",
+            "description": "Our stored verification flag. Note: this is currently set without proof of ownership, so a true value is weak evidence.",
+            "data_type": "bool",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "name_enquiry_name",
+            "description": "Account-holder name returned by the mobile-money provider for this number. Null when the provider did not return one.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "account_holder_name",
+            "description": "Name on the Transflow account. Compare against name_enquiry_name.",
+            "data_type": "string",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "name_match",
+            "description": "Our comparison of name_enquiry_name against account_holder_name, token-based and order-independent.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "exact",
+                "label": "exact",
+                "sort_order": 1
+              },
+              {
+                "value": "partial",
+                "label": "partial",
+                "sort_order": 2
+              },
+              {
+                "value": "none",
+                "label": "none",
+                "sort_order": 3
+              },
+              {
+                "value": "unknown",
+                "label": "unknown",
+                "sort_order": 4
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "attached_at",
+            "description": "When the wallet was attached.",
+            "data_type": "timestamp",
+            "nullable": false,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "minutes_since_signup",
+            "description": "Minutes between account registration and this wallet being attached. Precomputed.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "third_party_wallet_count",
+            "description": "How many third-party wallets this account now holds in total. One is often legitimate; two or more is the discriminating signal.",
+            "data_type": "int",
+            "nullable": true,
+            "is_enum": false,
+            "is_unique": false,
+            "enum_values": [],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          },
+          {
+            "name": "country_id",
+            "description": "Country the wallet belongs to.",
+            "data_type": "string",
+            "nullable": false,
+            "is_enum": true,
+            "is_unique": false,
+            "enum_values": [
+              {
+                "value": "GH",
+                "label": "GH",
+                "sort_order": 1
+              },
+              {
+                "value": "RW",
+                "label": "RW",
+                "sort_order": 2
+              }
+            ],
+            "distribution_category": "unknown",
+            "classification_source": "default",
+            "classification_policy_version": "distribution-v1",
+            "classification_evidence": {}
+          }
+        ],
+        "navigation_options": []
+      }
+    ],
+    "links": [
+      {
+        "name": "transaction_to_customer",
+        "parent_table": "customers",
+        "parent_field": "object_id",
+        "child_table": "transactions",
+        "child_field": "user_id"
+      },
+      {
+        "name": "transaction_to_wallet",
+        "parent_table": "wallets",
+        "parent_field": "object_id",
+        "child_table": "transactions",
+        "child_field": "wallet_id"
+      },
+      {
+        "name": "wallet_to_customer",
+        "parent_table": "customers",
+        "parent_field": "object_id",
+        "child_table": "wallets",
+        "child_field": "user_id"
+      }
+    ],
+    "pivots": [
+      {
+        "base_table": "transactions",
+        "field": "destination_ref"
+      },
+      {
+        "base_table": "transactions",
+        "field": "user_id"
+      },
+      {
+        "base_table": "transactions",
+        "field": "trans_id"
+      },
+      {
+        "base_table": "wallets",
+        "field": "wallet_number_hash"
+      }
+    ]
+  }
+}

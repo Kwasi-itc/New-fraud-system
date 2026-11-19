@@ -29,6 +29,7 @@ type TestRunRuleStat struct {
 	HitCount     int    `json:"hit_count"`
 	NoHitCount   int    `json:"no_hit_count"`
 	SnoozedCount int    `json:"snoozed_count"`
+	SkippedCount int    `json:"skipped_count"`
 	TotalCount   int    `json:"total_count"`
 }
 
@@ -237,6 +238,7 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 				RuleID:        item.RuleID,
 				RuleName:      item.RuleName,
 				Outcome:       item.Outcome,
+				SkipReason:    item.SkipReason,
 				ScoreModifier: item.ScoreModifier,
 				CreatedAt:     item.CreatedAt,
 			}
@@ -305,6 +307,8 @@ func (s TestRunService) RuleStats(ctx context.Context, tenantID, testRunID strin
 				current.HitCount++
 			case "snoozed":
 				current.SnoozedCount++
+			case "skipped":
+				current.SkippedCount++
 			default:
 				current.NoHitCount++
 			}
@@ -407,6 +411,10 @@ func evaluateScenarioByIteration(
 			evaluatedRule.Evaluation,
 		)
 		exec.ID = idGen.New().String()
+		if evaluatedRule.Skipped {
+			exec.Outcome = "skipped"
+			exec.SkipReason = evaluatedRule.SkipReason
+		}
 		ruleExecs = append(ruleExecs, exec)
 	}
 	item := decision.Decision{
@@ -508,6 +516,8 @@ func evaluatePhantomByIteration(
 		outcome := "no_hit"
 		if evaluatedRule.Matched {
 			outcome = "hit"
+		} else if evaluatedRule.Skipped {
+			outcome = "skipped"
 		}
 		ruleExecs = append(ruleExecs, decision.PhantomRuleExecution{
 			ID:                idGen.New().String(),
@@ -515,6 +525,7 @@ func evaluatePhantomByIteration(
 			RuleID:            evaluatedRule.Rule.ID,
 			RuleName:          evaluatedRule.Rule.Name,
 			Outcome:           outcome,
+			SkipReason:        evaluatedRule.SkipReason,
 			ScoreModifier:     evaluatedRule.Rule.ScoreModifier,
 			CreatedAt:         now,
 		})

@@ -66,12 +66,13 @@ func AdaptTestRunDecisionSummary(item service.TestRunDecisionSummary) TestRunDec
 }
 
 type TestRunRuleStatResponse struct {
-	RuleID        string `json:"rule_id"`
-	RuleName      string `json:"rule_name"`
-	HitCount      int    `json:"hit_count"`
-	NoHitCount    int    `json:"no_hit_count"`
-	SnoozedCount  int    `json:"snoozed_count"`
-	TotalCount    int    `json:"total_count"`
+	RuleID       string `json:"rule_id"`
+	RuleName     string `json:"rule_name"`
+	HitCount     int    `json:"hit_count"`
+	NoHitCount   int    `json:"no_hit_count"`
+	SnoozedCount int    `json:"snoozed_count"`
+	SkippedCount int    `json:"skipped_count"`
+	TotalCount   int    `json:"total_count"`
 }
 
 func AdaptTestRunRuleStat(item service.TestRunRuleStat) TestRunRuleStatResponse {
@@ -81,6 +82,7 @@ func AdaptTestRunRuleStat(item service.TestRunRuleStat) TestRunRuleStatResponse 
 		HitCount:     item.HitCount,
 		NoHitCount:   item.NoHitCount,
 		SnoozedCount: item.SnoozedCount,
+		SkippedCount: item.SkippedCount,
 		TotalCount:   item.TotalCount,
 	}
 }

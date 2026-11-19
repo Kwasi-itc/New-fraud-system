@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/scenario"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
@@ -74,6 +76,82 @@ func TestEvaluateRulesPreservesOrderAndSnoozes(t *testing.T) {
 	}
 	if results[2].Evaluation == nil || results[2].Evaluation.ReturnValue != false {
 		t.Fatalf("result[2].Evaluation = %#v, want evidence with false result", results[2].Evaluation)
+	}
+}
+
+func TestEvaluateRulesSkipsNullOperandFailureAndContinues(t *testing.T) {
+	t.Parallel()
+
+	rules := []scenario.Rule{
+		{
+			ID:            "null-median",
+			Name:          "baseline multiplication",
+			ScoreModifier: 100,
+			Formula:       []byte(`{"function":"gte","children":[{"function":"field_ref","named_children":{"field":{"constant":"amount"}}},{"function":"multiply","children":[{"function":"field_ref","named_children":{"field":{"constant":"user_median_amount_90d"}}},{"constant":10}]}]}`),
+		},
+		{
+			ID:            "null-check",
+			Name:          "explicit null check",
+			ScoreModifier: 5,
+			Formula:       []byte(`{"function":"is_null","children":[{"function":"field_ref","named_children":{"field":{"constant":"user_median_amount_90d"}}}]}`),
+		},
+		{
+			ID:            "independent-hit",
+			Name:          "independent rule",
+			ScoreModifier: 10,
+			Formula:       []byte(`{"constant":true}`),
+		},
+		{
+			ID:      "null-boolean-child",
+			Name:    "nullable boolean child",
+			Formula: []byte(`{"function":"and","children":[{"function":"is_multiple_of","named_children":{"value":{"function":"field_ref","named_children":{"field":{"constant":"user_median_amount_90d"}}},"divider":{"constant":2}}},{"constant":true}]}`),
+		},
+	}
+
+	results, err := evaluateRules(
+		context.Background(),
+		rules,
+		asteval.Runtime{Fields: map[string]any{"amount": 200.0, "user_median_amount_90d": nil}},
+		nil,
+		2,
+	)
+	if err != nil {
+		t.Fatalf("evaluateRules() error = %v", err)
+	}
+	if !results[0].Skipped || results[0].Matched || results[0].Evaluation != nil {
+		t.Fatalf("null-dependent rule result = %#v, want skipped without a match/evidence", results[0])
+	}
+	if results[0].SkipReason != "multiply left operand is null" {
+		t.Fatalf("skip reason = %q, want multiply left operand is null", results[0].SkipReason)
+	}
+	if results[1].Skipped || !results[1].Matched {
+		t.Fatalf("explicit null-check result = %#v, want a regular hit", results[1])
+	}
+	if results[2].Skipped || !results[2].Matched {
+		t.Fatalf("independent result = %#v, want an ordinary hit", results[2])
+	}
+	if !results[3].Skipped || results[3].SkipReason != "and child 1 is null" {
+		t.Fatalf("nullable boolean result = %#v, want a null-caused skip", results[3])
+	}
+}
+
+func TestEvaluateRulesDoesNotSkipNonNullTypeErrors(t *testing.T) {
+	t.Parallel()
+
+	rules := []scenario.Rule{{
+		ID:      "invalid-type",
+		Name:    "invalid numeric operand",
+		Formula: []byte(`{"function":"multiply","children":[{"function":"field_ref","named_children":{"field":{"constant":"user_median_amount_90d"}}},{"constant":10}]}`),
+	}}
+	_, err := evaluateRules(
+		context.Background(),
+		rules,
+		asteval.Runtime{Fields: map[string]any{"user_median_amount_90d": "not-a-number"}},
+		nil,
+		1,
+	)
+	if err == nil || errors.As(err, new(*asteval.NullOperandError)) {
+		t.Fatalf("evaluateRules() error = %v, want a fatal non-null type error", err)
 	}
 }
 
@@ -182,6 +260,68 @@ func TestEvaluateScenarioRetainsNoHitEvidenceAndScore(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEvaluateScenarioRecordsNullDependentRuleAsSkipped(t *testing.T) {
+	t.Parallel()
+
+	result, err := evaluateScenarioByIteration(
+		context.Background(),
+		ruleTestIDGen{value: uuid.MustParse("33333333-3333-3333-3333-333333333333")},
+		ruleTestClock{now: time.Now()},
+		"tenant-1",
+		"scenario-1",
+		"iter-1",
+		DecisionEvaluationRequest{
+			ObjectID:   "txn-1",
+			ObjectType: "transactions",
+			Fields: map[string]any{
+				"object_id":              "txn-1",
+				"amount":                 200.0,
+				"user_median_amount_90d": nil,
+			},
+		},
+		scenarioIterationRepoStub{iteration: scenario.Iteration{
+			ID: "iter-1", ScenarioID: "scenario-1", TenantID: "tenant-1",
+			TriggerFormula: []byte(`{"constant":true}`), ScoreReviewThreshold: intPtrTest(50),
+		}},
+		ruleRepoStub{rules: []scenario.Rule{
+			{
+				ID: "baseline", Name: "baseline", ScoreModifier: 100,
+				Formula: []byte(`{"function":"gte","children":[{"function":"field_ref","named_children":{"field":{"constant":"amount"}}},{"function":"multiply","children":[{"function":"field_ref","named_children":{"field":{"constant":"user_median_amount_90d"}}},{"constant":10}]}]}`),
+			},
+			{ID: "independent", Name: "independent", ScoreModifier: 10, Formula: []byte(`{"constant":true}`)},
+		}},
+		dataModelReaderStub{model: ports.TenantModel{
+			RevisionID: "rev-1", RecordLookupField: "object_id",
+			Tables: map[string]ports.TenantModelTable{"transactions": {
+				Name: "transactions", Fields: map[string]ports.TenantModelField{
+					"object_id":              {Name: "object_id", Type: "string"},
+					"amount":                 {Name: "amount", Type: "float"},
+					"user_median_amount_90d": {Name: "user_median_amount_90d", Type: "float", Nullable: true},
+				},
+			}},
+		}},
+		stubTenantDataReader{}, stubDecisionRepo{}, nil, nil, nil, nil,
+		asteval.AggregatePushdownModeEnabled, nil, 2,
+	)
+	if err != nil {
+		t.Fatalf("evaluateScenarioByIteration() error = %v", err)
+	}
+	if result.Decision == nil || result.Decision.Score != 10 || result.Decision.Outcome != decision.OutcomeApprove {
+		t.Fatalf("decision = %#v, want approved with score 10", result.Decision)
+	}
+	if len(result.RuleExecutions) != 2 {
+		t.Fatalf("got %d rule executions, want 2", len(result.RuleExecutions))
+	}
+	if result.RuleExecutions[0].Outcome != "skipped" ||
+		result.RuleExecutions[0].SkipReason != "multiply left operand is null" ||
+		result.RuleExecutions[0].ScoreModifier != 100 {
+		t.Fatalf("null-dependent execution = %#v, want skipped with reason and configured modifier", result.RuleExecutions[0])
+	}
+	if result.RuleExecutions[1].Outcome != "hit" {
+		t.Fatalf("independent execution = %#v, want hit", result.RuleExecutions[1])
 	}
 }
 

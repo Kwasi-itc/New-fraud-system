@@ -1087,7 +1087,7 @@ paths:
     get:
       tags: [Test Runs]
       summary: Summarize test-run rule execution results
-      description: Returns per-rule counts showing how often rules hit, missed, or were snoozed during the test run.
+      description: Returns per-rule counts showing hits, misses, snoozes, and null-caused skipped evaluations during the test run.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/TestRunId'
@@ -3643,7 +3643,10 @@ components:
           description: Human-readable rule name at evaluation time.
         outcome:
           type: string
-          description: Rule evaluation outcome, typically hit or miss style state.
+          description: Rule evaluation outcome; skipped means evaluation could not determine a result because an operand was null.
+        skip_reason:
+          type: string
+          description: Null-related reason when the rule outcome is skipped.
         score_modifier:
           type: integer
           description: Score contribution applied by this rule execution.
@@ -3651,7 +3654,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/EvaluationNode'
           nullable: true
-          description: Structured evaluation evidence snapshot. Present for `hit` executions, omitted for `no_hit` and `snoozed` executions to limit payload size.
+          description: Structured evaluation evidence snapshot. Present for evaluated rules; omitted for `snoozed` and `skipped` executions.
         created_at:
           type: string
           format: date-time
@@ -3814,10 +3817,13 @@ components:
         snoozed_count:
           type: integer
           description: Number of times the rule outcome was snoozed.
+        skipped_count:
+          type: integer
+          description: Number of times the rule could not be evaluated because an operand was null.
         total_count:
           type: integer
           description: Total number of executions counted for the rule.
-      required: [rule_id, rule_name, hit_count, no_hit_count, snoozed_count, total_count]
+      required: [rule_id, rule_name, hit_count, no_hit_count, snoozed_count, skipped_count, total_count]
     CreateWorkflowRequest:
       type: object
       description: Legacy outcome-driven workflow definition. This model triggers from final decision outcomes. Use structured workflow-rules when execution should depend on specific rule hits or payload expressions.

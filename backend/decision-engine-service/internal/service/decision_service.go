@@ -539,6 +539,10 @@ func (s DecisionService) evaluateScenario(
 			evaluatedRule.Evaluation,
 		)
 		exec.ID = s.idGen.New().String()
+		if evaluatedRule.Skipped {
+			exec.Outcome = "skipped"
+			exec.SkipReason = evaluatedRule.SkipReason
+		}
 		if evaluatedRule.Snoozed {
 			exec.Outcome = "snoozed"
 			ruleExecs = append(ruleExecs, exec)

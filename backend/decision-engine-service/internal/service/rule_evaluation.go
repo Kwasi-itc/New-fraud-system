@@ -18,6 +18,8 @@ type evaluatedRule struct {
 	Rule       scenario.Rule
 	Matched    bool
 	Snoozed    bool
+	Skipped    bool
+	SkipReason string
 	Evaluation *domainast.EvaluationNode
 }
 
@@ -53,6 +55,13 @@ func evaluateRules(
 			matched, evaluation, err := asteval.EvaluateFormulaWithEvidence(ruleCtx, rule.Formula, runtimeCtx)
 			if err != nil {
 				if shouldSuppressRuleCancellation(groupCtx, err) {
+					return nil
+				}
+				var nullErr *asteval.NullOperandError
+				if errors.As(err, &nullErr) {
+					result.Skipped = true
+					result.SkipReason = nullErr.Error()
+					results[i] = result
 					return nil
 				}
 				return fmt.Errorf("evaluate rule %q: %w", rule.Name, err)

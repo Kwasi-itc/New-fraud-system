@@ -35,7 +35,7 @@ def main(argv=None):
     if args.create_missing_users and not args.users_file:
         parser.error("--create-missing-users requires --users-file")
 
-    command = ["node", str(REPO / "docker/setup-postgres-ec2.mjs"), "--port", str(args.port)]
+    command = ["node", str(REPO / "docker/setup-postgres.mjs"), "--port", str(args.port)]
     if args.install:
         command.append("--install")
     if args.skip_build:

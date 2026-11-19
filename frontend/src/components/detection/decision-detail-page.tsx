@@ -54,6 +54,8 @@ function ruleOutcomeBadgeClass(outcome: string) {
       return "border-rose-200 bg-rose-50 text-rose-600";
     case "snoozed":
       return "border-amber-200 bg-amber-50 text-amber-700";
+    case "skipped":
+      return "border-orange-200 bg-orange-50 text-orange-700";
     case "error":
       return "border-slate-300 bg-slate-100 text-slate-700";
     case "no_hit":
@@ -590,6 +592,16 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
                                     </div>
                                   </div>
                                 </div>
+                                {item.skip_reason ? (
+                                  <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
+                                    <div className="text-[12px] font-medium text-orange-800">
+                                      Evaluation skipped
+                                    </div>
+                                    <div className="mt-1 text-[13px] text-orange-900">
+                                      {item.skip_reason}
+                                    </div>
+                                  </div>
+                                ) : null}
                                 {ruleDefinition ? (
                                   <div className="grid gap-4 md:grid-cols-2">
                                     <div>

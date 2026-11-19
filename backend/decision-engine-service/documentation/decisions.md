@@ -4,9 +4,9 @@ This document explains live evaluation, decision creation, decision reads, and i
 
 ## Rule evaluation evidence
 
-New decisions retain evaluation snapshots for both `hit` and `no_hit` rule executions in `core.rule_executions.evaluation`. Decision detail responses expose the snapshot through the existing `evaluation` field. Only hits contribute their configured score modifier to the decision score. Short-circuited conditions remain marked `skipped`; snoozed rules are not evaluated and have no snapshot.
+New decisions retain evaluation snapshots for both `hit` and `no_hit` rule executions in `core.rule_executions.evaluation`. Decision detail responses expose the snapshot through the existing `evaluation` field. Only hits contribute their configured score modifier to the decision score. If a rule fails because a strict evaluator operation receives a null operand, that rule is recorded as `skipped` with a `skip_reason`; other rules continue to run. Skipped rules do not contribute to the score and are distinct from `no_hit`. Errors unrelated to null operands still fail evaluation. Short-circuited AST conditions remain marked `skipped`; snoozed rules are not evaluated and have no snapshot.
 
-Older non-hit executions remain readable without evidence; they are not backfilled using current data. A failed scenario trigger still produces no decision. Evaluation errors retain the existing failure behavior. Decision lists remain summary-only. No additional migration is required beyond the existing rule evidence migration (000016).
+Older non-hit executions remain readable without evidence; they are not backfilled using current data. A failed scenario trigger still produces no decision. Decision lists remain summary-only. Migration `000024` adds nullable skip-reason columns to live and phantom rule-execution tables.
 
 Retaining non-hit snapshots increases database storage, write volume, and detail response sizes, especially for decisions with many rules. Evidence is not silently truncated. Production sizing and database latency must be measured against representative workloads before making capacity claims.
 

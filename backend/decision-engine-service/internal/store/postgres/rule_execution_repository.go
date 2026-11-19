@@ -21,9 +21,9 @@ func (r RuleExecutionRepository) CreateMany(ctx context.Context, items []decisio
 	out := make([]decision.RuleExecution, 0, len(items))
 	const stmt = `
 		insert into core.rule_executions (
-			id, decision_id, rule_id, rule_name, outcome, score_modifier, evaluation, created_at
-		) values ($1,$2,$3,$4,$5,$6,$7,$8)
-		returning id, decision_id, rule_id, rule_name, outcome, score_modifier, evaluation, created_at
+			id, decision_id, rule_id, rule_name, outcome, skip_reason, score_modifier, evaluation, created_at
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		returning id, decision_id, rule_id, rule_name, outcome, coalesce(skip_reason, ''), score_modifier, evaluation, created_at
 	`
 	for _, item := range items {
 		evaluationJSON, err := marshalRuleEvaluation(item.Evaluation)
@@ -40,6 +40,7 @@ func (r RuleExecutionRepository) CreateMany(ctx context.Context, items []decisio
 			item.RuleID,
 			item.RuleName,
 			item.Outcome,
+			nullableSkipReason(item.SkipReason),
 			item.ScoreModifier,
 			evaluationJSON,
 			item.CreatedAt,
@@ -49,6 +50,7 @@ func (r RuleExecutionRepository) CreateMany(ctx context.Context, items []decisio
 			&stored.RuleID,
 			&stored.RuleName,
 			&stored.Outcome,
+			&stored.SkipReason,
 			&stored.ScoreModifier,
 			&evaluationBytes,
 			&stored.CreatedAt,
@@ -67,7 +69,7 @@ func (r RuleExecutionRepository) CreateMany(ctx context.Context, items []decisio
 
 func (r RuleExecutionRepository) ListByDecision(ctx context.Context, tenantID, decisionID string) ([]decision.RuleExecution, error) {
 	const stmt = `
-		select re.id, re.decision_id, re.rule_id, re.rule_name, re.outcome, re.score_modifier, re.evaluation, re.created_at
+		select re.id, re.decision_id, re.rule_id, re.rule_name, re.outcome, coalesce(re.skip_reason, ''), re.score_modifier, re.evaluation, re.created_at
 		from core.rule_executions re
 		join core.decisions d on d.id = re.decision_id
 		where d.tenant_id = $1 and re.decision_id = $2
@@ -88,6 +90,7 @@ func (r RuleExecutionRepository) ListByDecision(ctx context.Context, tenantID, d
 			&item.RuleID,
 			&item.RuleName,
 			&item.Outcome,
+			&item.SkipReason,
 			&item.ScoreModifier,
 			&evaluationBytes,
 			&item.CreatedAt,
@@ -101,6 +104,13 @@ func (r RuleExecutionRepository) ListByDecision(ctx context.Context, tenantID, d
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func nullableSkipReason(reason string) any {
+	if reason == "" {
+		return nil
+	}
+	return reason
 }
 
 func marshalRuleEvaluation(evaluation any) ([]byte, error) {

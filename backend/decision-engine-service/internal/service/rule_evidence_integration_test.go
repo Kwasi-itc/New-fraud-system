@@ -55,12 +55,18 @@ func TestIntegrationNoHitEvidencePersistenceRollbackAndTenantIsolation(t *testin
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = storepostgres.NewRuleExecutionRepository(tx).CreateMany(ctx, []decision.RuleExecution{{
-			ID: uuid.NewString(), DecisionID: id, RuleID: owner, RuleName: "no hit",
-			Outcome: "no_hit", ScoreModifier: 50, CreatedAt: time.Now(),
-			Evaluation: &domainast.EvaluationNode{Function: "gt", ReturnValue: false,
-				Children: []domainast.EvaluationNode{{ReturnValue: 200.0}, {ReturnValue: 300.0}}},
-		}})
+		_, err = storepostgres.NewRuleExecutionRepository(tx).CreateMany(ctx, []decision.RuleExecution{
+			{
+				ID: uuid.NewString(), DecisionID: id, RuleID: owner, RuleName: "no hit",
+				Outcome: "no_hit", ScoreModifier: 50, CreatedAt: time.Now(),
+				Evaluation: &domainast.EvaluationNode{Function: "gt", ReturnValue: false,
+					Children: []domainast.EvaluationNode{{ReturnValue: 200.0}, {ReturnValue: 300.0}}},
+			},
+			{
+				ID: uuid.NewString(), DecisionID: id, RuleID: owner, RuleName: "nullable baseline",
+				Outcome: "skipped", SkipReason: "multiply left operand is null", ScoreModifier: 30, CreatedAt: time.Now(),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,8 +84,20 @@ func TestIntegrationNoHitEvidencePersistenceRollbackAndTenantIsolation(t *testin
 			t.Fatal(err)
 		}
 		if commit {
-			if len(items) != 1 || items[0].Evaluation == nil || items[0].Evaluation.ReturnValue != false {
-				t.Fatalf("missing persisted false evidence: %#v", items)
+			if len(items) != 2 {
+				t.Fatalf("got %d rule executions, want 2", len(items))
+			}
+			var foundNoHit, foundSkipped bool
+			for _, item := range items {
+				switch item.Outcome {
+				case "no_hit":
+					foundNoHit = item.Evaluation != nil && item.Evaluation.ReturnValue == false
+				case "skipped":
+					foundSkipped = item.SkipReason == "multiply left operand is null" && item.Evaluation == nil
+				}
+			}
+			if !foundNoHit || !foundSkipped {
+				t.Fatalf("missing persisted no-hit evidence or skipped reason: %#v", items)
 			}
 		} else {
 			var count int

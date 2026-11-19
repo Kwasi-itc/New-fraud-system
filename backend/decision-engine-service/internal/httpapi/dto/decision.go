@@ -75,6 +75,7 @@ type RuleExecutionResponse struct {
 	RuleID        string                    `json:"rule_id"`
 	RuleName      string                    `json:"rule_name"`
 	Outcome       string                    `json:"outcome"`
+	SkipReason    string                    `json:"skip_reason,omitempty"`
 	ScoreModifier int                       `json:"score_modifier"`
 	Evaluation    *domainast.EvaluationNode `json:"evaluation,omitempty"`
 	CreatedAt     time.Time                 `json:"created_at"`
@@ -136,6 +137,7 @@ func AdaptRuleExecution(r decision.RuleExecution) RuleExecutionResponse {
 		RuleID:        r.RuleID,
 		RuleName:      r.RuleName,
 		Outcome:       r.Outcome,
+		SkipReason:    r.SkipReason,
 		ScoreModifier: r.ScoreModifier,
 		Evaluation:    r.Evaluation,
 		CreatedAt:     r.CreatedAt,

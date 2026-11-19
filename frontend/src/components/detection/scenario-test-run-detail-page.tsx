@@ -127,23 +127,30 @@ function ResultPanel({
         <p className="text-[13px] font-medium text-slate-950">Rule executions</p>
         {result.rule_executions?.length ? (
           <div className="space-y-2">
-            {result.rule_executions.map((ruleExecution) => (
-              <div key={ruleExecution.id} className="rounded-xl border border-slate-200 px-3 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[13px] font-medium text-slate-950">
-                    {ruleExecution.rule_name}
+            {result.rule_executions.map((ruleExecution) => {
+              const scoreContribution =
+                ruleExecution.outcome === "hit" ? ruleExecution.score_modifier : 0;
+              return (
+                <div key={ruleExecution.id} className="rounded-xl border border-slate-200 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[13px] font-medium text-slate-950">
+                      {ruleExecution.rule_name}
+                    </p>
+                    <span className="text-[13px] text-[#dd3719]">
+                      {scoreContribution >= 0 ? `+${scoreContribution}` : scoreContribution}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] text-slate-500">
+                    Outcome: {ruleExecution.outcome}
                   </p>
-                  <span className="text-[13px] text-[#dd3719]">
-                    {ruleExecution.score_modifier >= 0
-                      ? `+${ruleExecution.score_modifier}`
-                      : ruleExecution.score_modifier}
-                  </span>
+                  {ruleExecution.skip_reason ? (
+                    <p className="mt-1 text-[12px] text-orange-700">
+                      Evaluation skipped: {ruleExecution.skip_reason}
+                    </p>
+                  ) : null}
                 </div>
-                <p className="mt-1 text-[12px] text-slate-500">
-                  Outcome: {ruleExecution.outcome}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-xl border border-slate-200 px-3 py-3 text-[13px] text-slate-500">
@@ -477,6 +484,7 @@ export function ScenarioTestRunDetailPage({
                         <span>Hit: {rule.hit_count}</span>
                         <span>No hit: {rule.no_hit_count}</span>
                         <span>Snoozed: {rule.snoozed_count}</span>
+                        <span>Skipped: {rule.skipped_count ?? 0}</span>
                         <span>Total: {rule.total_count}</span>
                       </div>
                     </div>

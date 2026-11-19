@@ -33,3 +33,15 @@ func TestAdaptDecisionDetailIncludesRequestBody(t *testing.T) {
 		t.Fatalf("outcome = %s, want %s", output.Outcome, decision.OutcomeReview)
 	}
 }
+
+func TestAdaptRuleExecutionIncludesSkipReason(t *testing.T) {
+	t.Parallel()
+
+	output := AdaptRuleExecution(decision.RuleExecution{
+		ID: "execution-1", DecisionID: "decision-1", RuleID: "rule-1",
+		RuleName: "baseline", Outcome: "skipped", SkipReason: "multiply left operand is null",
+	})
+	if output.Outcome != "skipped" || output.SkipReason != "multiply left operand is null" {
+		t.Fatalf("adapted rule execution = %#v, want skipped outcome and reason", output)
+	}
+}

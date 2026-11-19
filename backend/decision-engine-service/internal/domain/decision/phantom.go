@@ -22,6 +22,7 @@ type PhantomRuleExecution struct {
 	RuleID            string
 	RuleName          string
 	Outcome           string
+	SkipReason        string
 	ScoreModifier     int
 	CreatedAt         time.Time
 }

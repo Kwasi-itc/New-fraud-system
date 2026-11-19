@@ -220,6 +220,7 @@ export type RuleExecution = {
   rule_id: string;
   rule_name: string;
   outcome: string;
+  skip_reason?: string;
   score_modifier: number;
   evaluation?: RuleEvaluationNode;
   created_at: string;
@@ -296,6 +297,7 @@ export type TestRunRuleStat = {
   hit_count: number;
   no_hit_count: number;
   snoozed_count: number;
+  skipped_count?: number;
   total_count: number;
 };
 

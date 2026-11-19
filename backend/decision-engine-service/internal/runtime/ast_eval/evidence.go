@@ -20,6 +20,9 @@ func EvaluateFormulaWithEvidence(ctx context.Context, formula json.RawMessage, r
 	}
 	boolResult, ok := evaluation.ReturnValue.(bool)
 	if !ok {
+		if err := nullOperandError("formula", "result", evaluation.ReturnValue); err != nil {
+			return false, nil, err
+		}
 		return false, nil, fmt.Errorf("formula did not evaluate to boolean")
 	}
 	return boolResult, &evaluation, nil
@@ -46,6 +49,9 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 			evaluation.Children = append(evaluation.Children, childEval)
 			boolValue, ok := childEval.ReturnValue.(bool)
 			if !ok {
+				if err := nullOperandError("and", fmt.Sprintf("child %d", index+1), childEval.ReturnValue); err != nil {
+					return domainast.EvaluationNode{}, err
+				}
 				return domainast.EvaluationNode{}, fmt.Errorf("and expects boolean children")
 			}
 			if !boolValue {
@@ -68,6 +74,9 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 			evaluation.Children = append(evaluation.Children, childEval)
 			boolValue, ok := childEval.ReturnValue.(bool)
 			if !ok {
+				if err := nullOperandError("or", fmt.Sprintf("child %d", index+1), childEval.ReturnValue); err != nil {
+					return domainast.EvaluationNode{}, err
+				}
 				return domainast.EvaluationNode{}, fmt.Errorf("or expects boolean children")
 			}
 			if boolValue {
@@ -90,6 +99,9 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 		}
 		boolValue, ok := childEval.ReturnValue.(bool)
 		if !ok {
+			if err := nullOperandError("not", "child", childEval.ReturnValue); err != nil {
+				return domainast.EvaluationNode{}, err
+			}
 			return domainast.EvaluationNode{}, fmt.Errorf("not expects boolean child")
 		}
 		evaluation.Children = []domainast.EvaluationNode{childEval}

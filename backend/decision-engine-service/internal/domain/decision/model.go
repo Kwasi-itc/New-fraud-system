@@ -36,6 +36,7 @@ type RuleExecution struct {
 	RuleID        string
 	RuleName      string
 	Outcome       string
+	SkipReason    string
 	ScoreModifier int
 	Evaluation    *domainast.EvaluationNode
 	CreatedAt     time.Time

@@ -22,6 +22,7 @@ server.err.log
 .env
 .env.transflow
 .env.local
+.env.fraud
 .env.*.local
 pii-hmac.key
 # Local development identity material (never mount private keys into services)
