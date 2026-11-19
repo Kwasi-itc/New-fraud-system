@@ -82,6 +82,25 @@ async function scrapeLiveMmdces() {
   });
 
   console.log('------------------------------------------------------------------------');
+
+  // Save results to file
+  const rootTarget = 'crawled_mmdces.json';
+  const scriptsTarget = 'scripts/crawled_mmdces.json';
+
+  const outputPayload = {
+    crawledAt: new Date().toISOString(),
+    sourceUrl: url,
+    sourceName: "Ministry of Local Government, Decentralisation & Rural Development / GhanaDistricts Repository",
+    totalExtracted: mmdces.length,
+    records: mmdces
+  };
+
+  fs.writeFileSync(rootTarget, JSON.stringify(outputPayload, null, 2), 'utf8');
+  fs.writeFileSync(scriptsTarget, JSON.stringify(outputPayload, null, 2), 'utf8');
+
+  console.log(`[✓] Output successfully written to:`);
+  console.log(`    1. ${rootTarget}`);
+  console.log(`    2. ${scriptsTarget}`);
   console.log(`Direct live scrape finished successfully in ${elapsed}s with ZERO fallback.`);
   console.log('========================================================================\n');
 

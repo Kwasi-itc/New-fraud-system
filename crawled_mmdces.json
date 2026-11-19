@@ -1,0 +1,148 @@
+{
+  "crawledAt": "2026-11-19T18:59:33.217Z",
+  "sourceUrl": "https://ghanadistricts.com/Home/AllDistricts",
+  "sourceName": "Ministry of Local Government, Decentralisation & Rural Development / GhanaDistricts Repository",
+  "totalExtracted": 20,
+  "records": [
+    {
+      "rowId": "0",
+      "name": "Kodwjo Banahen Bediako",
+      "gender": "MALE",
+      "region": "ASHANTI",
+      "district": "Sekyere Central District"
+    },
+    {
+      "rowId": "1",
+      "name": "Adansi North DCE",
+      "gender": "MALE",
+      "region": "ASHANTI",
+      "district": "Adansi North District"
+    },
+    {
+      "rowId": "2",
+      "name": "Prosper Kwaku Addo",
+      "gender": "MALE",
+      "region": "OTI",
+      "district": "Krachi West Municipal"
+    },
+    {
+      "rowId": "3",
+      "name": "FREEMAN TSEKPO",
+      "gender": "MALE",
+      "region": "G. ACCRA",
+      "district": "Ashaiman Municipal"
+    },
+    {
+      "rowId": "4",
+      "name": "North Dayi DCE",
+      "gender": "MALE",
+      "region": "VOLTA",
+      "district": "North Dayi District"
+    },
+    {
+      "rowId": "5",
+      "name": "John M. Naabwomya",
+      "gender": "MALE",
+      "region": "UPPER E",
+      "district": "Talensi District"
+    },
+    {
+      "rowId": "6",
+      "name": "ANTIWI JOSEPH",
+      "gender": "MALE",
+      "region": "OTI",
+      "district": "Nkwanta South Municipal"
+    },
+    {
+      "rowId": "7",
+      "name": "Eric Stanley Acquah",
+      "gender": "MALE",
+      "region": "CENTRAL",
+      "district": "Mfantseman Municipal"
+    },
+    {
+      "rowId": "8",
+      "name": "OPOKU PLUS SAMPSON",
+      "gender": "MALE",
+      "region": "AHAFO",
+      "district": "Tano North Municipal"
+    },
+    {
+      "rowId": "9",
+      "name": "Dominic Adomah Ameyaw",
+      "gender": "MALE",
+      "region": "BONO",
+      "district": "Dormaa Central Municipal"
+    },
+    {
+      "rowId": "10",
+      "name": "REV. ATTA MENSAH",
+      "gender": "MALE",
+      "region": "CENTRAL",
+      "district": "Effutu Municipal"
+    },
+    {
+      "rowId": "11",
+      "name": "GODFRED KOKU KOFIE",
+      "gender": "MALE",
+      "region": "OTI",
+      "district": "Guan District"
+    },
+    {
+      "rowId": "12",
+      "name": "Builsa South DCE",
+      "gender": "MALE",
+      "region": "UPPER E",
+      "district": "Builsa South District"
+    },
+    {
+      "rowId": "13",
+      "name": "Wisdom Bondieu Seade",
+      "gender": "MALE",
+      "region": "VOLTA",
+      "district": "Keta Municipal"
+    },
+    {
+      "rowId": "14",
+      "name": "Kalala Nyamekye Eghan",
+      "gender": "MALE",
+      "region": "CENTRAL",
+      "district": "Awutu Senya West District"
+    },
+    {
+      "rowId": "15",
+      "name": "Addison Dodzi Mornyuie",
+      "gender": "MALE",
+      "region": "VOLTA",
+      "district": "Central Tongu District"
+    },
+    {
+      "rowId": "16",
+      "name": "Akwetey Agbo",
+      "gender": "MALE",
+      "region": "G. ACCRA",
+      "district": "Ga North Municipal"
+    },
+    {
+      "rowId": "17",
+      "name": "Jerryne Asante",
+      "gender": "FEMALE",
+      "region": "ASHANTI",
+      "district": "Ejisu Municipal"
+    },
+    {
+      "rowId": "18",
+      "name": "Seidu Braimah",
+      "gender": "MALE",
+      "region": "NORTHERN",
+      "district": "Tolon District"
+    },
+    {
+      "rowId": "19",
+      "name": "Kwabre East MCD",
+      "gender": "MALE",
+      "region": "ASHANTI",
+      "district": "Kwabre East Municipal"
+    }
+  ]
+}
