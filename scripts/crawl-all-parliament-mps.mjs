@@ -1,4 +1,10 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..');
 
 /**
  * Full Parliament of Ghana Official Web Crawler
@@ -74,8 +80,11 @@ async function main() {
   }
 
   console.log(`[Parliament Crawler] Total MPs successfully crawled and parsed: ${allMps.length}`);
-  fs.writeFileSync("parliament_crawled_mps.json", JSON.stringify(allMps, null, 2), "utf8");
-  console.log(`[Parliament Crawler] Saved parliament_crawled_mps.json`);
+  const rootTarget = path.join(ROOT_DIR, "parliament_crawled_mps.json");
+  const scriptsTarget = path.join(__dirname, "parliament_crawled_mps.json");
+  fs.writeFileSync(rootTarget, JSON.stringify(allMps, null, 2), "utf8");
+  fs.writeFileSync(scriptsTarget, JSON.stringify(allMps, null, 2), "utf8");
+  console.log(`[Parliament Crawler] Saved:\n  1. ${rootTarget}\n  2. ${scriptsTarget}`);
 }
 
 main().catch(console.error);
