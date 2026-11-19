@@ -508,78 +508,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q8620",
-      "name": "Kwame Nkrumah",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q8620",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Fathia Nkrumah, Samia Nkrumah"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q8620); Relationship: Spouse; Connected PEP: Fathia Nkrumah, Samia Nkrumah"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Fathia Nkrumah, Samia Nkrumah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q51005",
-      "name": "John Kufuor",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q51005",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Kwame Addo-Kufuor, Theresa Kufuor"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q51005); Relationship: Sibling; Connected PEP: Kwame Addo-Kufuor, Theresa Kufuor"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwame Addo-Kufuor, Theresa Kufuor]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q17354084",
       "name": "Elizabeth Dickson",
       "type": "Person",
@@ -674,13 +602,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Sibling",
-          "Connected PEPs: Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, Ken Ofori-Atta, William Ofori Atta"
+          "Connected PEPs: Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, William Ofori Atta, Ken Ofori-Atta"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q64748366); Relationship: Sibling; Connected PEP: Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, Ken Ofori-Atta, William Ofori Atta"
+          "Ghana RCA (Wikidata: Q64748366); Relationship: Sibling; Connected PEP: Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, William Ofori Atta, Ken Ofori-Atta"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, Ken Ofori-Atta, William Ofori Atta]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kofi Asante Ofori-Atta, Kwesi Amoako-Atta, William Ofori Atta, Ken Ofori-Atta]"
         ],
         "address": [
           "Ghana"
@@ -868,42 +796,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q78170633",
-      "name": "Mohammed Sadat Abdulai",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q78170633",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Ras Mubarak"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q78170633); Relationship: Sibling; Connected PEP: Ras Mubarak"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Ras Mubarak]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q17411276",
       "name": "Mahama Iddrisu",
       "type": "Person",
@@ -1084,42 +976,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q27947593",
-      "name": "Yvonne Nduom",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q27947593",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Paa Kwesi Nduom"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q27947593); Relationship: Spouse; Connected PEP: Paa Kwesi Nduom"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Paa Kwesi Nduom]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q7301648",
       "name": "Rebecca Akufo-Addo",
       "type": "Person",
@@ -1228,42 +1084,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q5438297",
-      "name": "Faustina Acheampong",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q5438297",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Ignatius Kutu Acheampong"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q5438297); Relationship: Spouse; Connected PEP: Ignatius Kutu Acheampong"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Ignatius Kutu Acheampong]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q18559687",
       "name": "Andrew Dalzel",
       "type": "Person",
@@ -1329,42 +1149,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kwame Nkrumah, Fathia Nkrumah, Samia Nkrumah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q6450303",
-      "name": "Kweku Baako Jnr",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q6450303",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Kofi Baako"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q6450303); Relationship: Child; Connected PEP: Kofi Baako"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Baako]"
         ],
         "address": [
           "Ghana"
@@ -2164,78 +1948,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q33084657",
-      "name": "Gina Blay",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q33084657",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Freddie Blay"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q33084657); Relationship: Spouse; Connected PEP: Freddie Blay"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Freddie Blay]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q104031634",
-      "name": "Sheila Bartels",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q104031634",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Kwamena Bartels"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q104031634); Relationship: Child; Connected PEP: Kwamena Bartels"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kwamena Bartels]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q113330274",
       "name": "Adwoa Akyaa",
       "type": "Person",
@@ -2488,11 +2200,155 @@
       }
     },
     {
-      "id": "gh-wd-rca-q61697679",
-      "name": "Lydia Seyram Alhassan",
+      "id": "gh-wd-rca-q327522",
+      "name": "J. E. Casely Hayford",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q61697679",
+      "source_reference": "http://www.wikidata.org/entity/Q327522",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: Archie Casely-Hayford"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q327522); Relationship: Father; Connected PEP: Archie Casely-Hayford"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Archie Casely-Hayford]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q175392",
+      "name": "Akosua Busia",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q175392",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Kofi Abrefa Busia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q175392); Relationship: Child; Connected PEP: Kofi Abrefa Busia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Abrefa Busia]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q7183599",
+      "name": "Philip Gbeho",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q7183599",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: James Victor Gbeho"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q7183599); Relationship: Father; Connected PEP: James Victor Gbeho"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of James Victor Gbeho]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q102167032",
+      "name": "Ato Ahwoi",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q102167032",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Kwamena Ahwoi, Kwesi Ahwoi"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q102167032); Relationship: Sibling; Connected PEP: Kwamena Ahwoi, Kwesi Ahwoi"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwamena Ahwoi, Kwesi Ahwoi]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q20722948",
+      "name": "Lordina Mahama",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q20722948",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -2510,13 +2366,949 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Spouse",
-          "Connected PEPs: Emmanuel Kwabena Kyeremateng Agyarko"
+          "Connected PEPs: John Mahama"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q61697679); Relationship: Spouse; Connected PEP: Emmanuel Kwabena Kyeremateng Agyarko"
+          "Ghana RCA (Wikidata: Q20722948); Relationship: Spouse; Connected PEP: John Mahama"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Emmanuel Kwabena Kyeremateng Agyarko]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Mahama]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q51005",
+      "name": "John Kufuor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q51005",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Kwame Addo-Kufuor, Theresa Kufuor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q51005); Relationship: Sibling; Connected PEP: Kwame Addo-Kufuor, Theresa Kufuor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwame Addo-Kufuor, Theresa Kufuor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q1270076",
+      "name": "Kofi Asante Ofori-Atta",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q1270076",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q1270076); Relationship: Sibling; Connected PEP: William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q1794910",
+      "name": "Kwamena Ahwoi",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q1794910",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Kwesi Ahwoi, Ato Ahwoi"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q1794910); Relationship: Sibling; Connected PEP: Kwesi Ahwoi, Ato Ahwoi"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwesi Ahwoi, Ato Ahwoi]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q22340175",
+      "name": "Abena Busia",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q22340175",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Kofi Abrefa Busia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q22340175); Relationship: Child; Connected PEP: Kofi Abrefa Busia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Abrefa Busia]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q43396440",
+      "name": "John Jinapor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q43396440",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Samuel Abu Jinapor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q43396440); Relationship: Sibling; Connected PEP: Samuel Abu Jinapor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Samuel Abu Jinapor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q313549",
+      "name": "Mrs.",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q313549",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Samuel Abu Jinapor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q313549); Relationship: Spouse; Connected PEP: Samuel Abu Jinapor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Samuel Abu Jinapor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q473946",
+      "name": "Amon Nikoi",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q473946",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Gloria Amon Nikoi"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q473946); Relationship: Spouse; Connected PEP: Gloria Amon Nikoi"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gloria Amon Nikoi]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q141907089",
+      "name": "Kwame Osei Akuoko Sarpong",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q141907089",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Nana Akuoko Sarpong"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q141907089); Relationship: Child; Connected PEP: Nana Akuoko Sarpong"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Nana Akuoko Sarpong]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q19561106",
+      "name": "Theresa Kufuor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q19561106",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: John Kufuor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q19561106); Relationship: Spouse; Connected PEP: John Kufuor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Kufuor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q19957726",
+      "name": "Ernestina Naadu Mills",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q19957726",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: John Evans Atta Mills"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q19957726); Relationship: Spouse; Connected PEP: John Evans Atta Mills"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Evans Atta Mills]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q5438297",
+      "name": "Faustina Acheampong",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q5438297",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Ignatius Kutu Acheampong"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q5438297); Relationship: Spouse; Connected PEP: Ignatius Kutu Acheampong"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Ignatius Kutu Acheampong]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q25705710",
+      "name": "Fulera Limann",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q25705710",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Hilla Limann"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q25705710); Relationship: Spouse; Connected PEP: Hilla Limann"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Hilla Limann]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q718601",
+      "name": "Nana Akufo-Addo",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q718601",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Edward Akufo-Addo, Rebecca Akufo-Addo"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q718601); Relationship: Child; Connected PEP: Edward Akufo-Addo, Rebecca Akufo-Addo"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Edward Akufo-Addo, Rebecca Akufo-Addo]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q137179629",
+      "name": "Ajoa Yeboah-Afari",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q137179629",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Boahene Yeboah-Afari"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q137179629); Relationship: Child; Connected PEP: Boahene Yeboah-Afari"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Boahene Yeboah-Afari]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q16107187",
+      "name": "Kwesi Ahwoi",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q16107187",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Kwamena Ahwoi, Ato Ahwoi"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q16107187); Relationship: Sibling; Connected PEP: Kwamena Ahwoi, Ato Ahwoi"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwamena Ahwoi, Ato Ahwoi]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q23541289",
+      "name": "Zanetor Agyeman-Rawlings",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q23541289",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Jerry Rawlings"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q23541289); Relationship: Child; Connected PEP: Jerry Rawlings"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Jerry Rawlings]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q23718894",
+      "name": "John Addo Kufuor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q23718894",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: John Kufuor, Theresa Kufuor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q23718894); Relationship: Child; Connected PEP: John Kufuor, Theresa Kufuor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of John Kufuor, Theresa Kufuor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q5373115",
+      "name": "Emmanuel Adama Mahama",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q5373115",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: John Mahama"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q5373115); Relationship: Father; Connected PEP: John Mahama"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of John Mahama]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q105036778",
+      "name": "Agnes Akosua Dodua",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q105036778",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Mother",
+          "Connected PEPs: William Ofori Atta"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q105036778); Relationship: Mother; Connected PEP: William Ofori Atta"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of William Ofori Atta]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q108049216",
+      "name": "AJ Akuoko-Sarpong",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q108049216",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Nana Akuoko Sarpong"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q108049216); Relationship: Child; Connected PEP: Nana Akuoko Sarpong"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Nana Akuoko Sarpong]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q1794901",
+      "name": "Kwame Addo-Kufuor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q1794901",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: John Kufuor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q1794901); Relationship: Sibling; Connected PEP: John Kufuor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of John Kufuor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q3108449",
+      "name": "Gladys Casely-Hayford",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q3108449",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Archie Casely-Hayford"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q3108449); Relationship: Sibling; Connected PEP: Archie Casely-Hayford"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Archie Casely-Hayford]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q104031634",
+      "name": "Sheila Bartels",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q104031634",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Kwamena Bartels"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q104031634); Relationship: Child; Connected PEP: Kwamena Bartels"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kwamena Bartels]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q59132463",
+      "name": "Emmanuel Kwabena Kyeremateng Agyarko",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q59132463",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Boakye Agyarko, Lydia Seyram Alhassan"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q59132463); Relationship: Sibling; Connected PEP: Boakye Agyarko, Lydia Seyram Alhassan"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Boakye Agyarko, Lydia Seyram Alhassan]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q39045954",
+      "name": "Bafuor Osei Akoto",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q39045954",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: Owusu Afriyie Akoto"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q39045954); Relationship: Father; Connected PEP: Owusu Afriyie Akoto"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Owusu Afriyie Akoto]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q67913463",
+      "name": "Ama Bame Busia",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q67913463",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Kofi Abrefa Busia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q67913463); Relationship: Sibling; Connected PEP: Kofi Abrefa Busia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kofi Abrefa Busia]"
         ],
         "address": [
           "Ghana"
@@ -2553,42 +3345,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Amon Nikoi]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q23540999",
-      "name": "James Mercer",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q23540999",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Egyapa Mercer"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q23540999); Relationship: Father; Connected PEP: Egyapa Mercer"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Egyapa Mercer]"
         ],
         "address": [
           "Ghana"
@@ -2740,11 +3496,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q327522",
-      "name": "J. E. Casely Hayford",
+      "id": "gh-wd-rca-q10761018",
+      "name": "Abd al-Aziz",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q327522",
+      "source_reference": "http://www.wikidata.org/entity/Q10761018",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -2762,49 +3518,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: Archie Casely-Hayford"
+          "Connected PEPs: Abdul Aziz Fatahiya"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q327522); Relationship: Father; Connected PEP: Archie Casely-Hayford"
+          "Ghana RCA (Wikidata: Q10761018); Relationship: Father; Connected PEP: Abdul Aziz Fatahiya"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Archie Casely-Hayford]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q30315761",
-      "name": "Boakye Agyarko",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q30315761",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Emmanuel Kwabena Kyeremateng Agyarko"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q30315761); Relationship: Sibling; Connected PEP: Emmanuel Kwabena Kyeremateng Agyarko"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Emmanuel Kwabena Kyeremateng Agyarko]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Abdul Aziz Fatahiya]"
         ],
         "address": [
           "Ghana"
@@ -2884,83 +3604,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q43371374",
-      "name": "Samuel Abu Jinapor",
+      "id": "gh-wd-rca-q19661278",
+      "name": "Mumuni Bawumia",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q43371374",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: John Jinapor"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q43371374); Relationship: Sibling; Connected PEP: John Jinapor"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of John Jinapor]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q179115",
-      "name": "widow",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q179115",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Gifty Twum Ampofo"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q179115); Relationship: Spouse; Connected PEP: Gifty Twum Ampofo"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gifty Twum Ampofo]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q7183599",
-      "name": "Philip Gbeho",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q7183599",
+      "source_reference": "http://www.wikidata.org/entity/Q19661278",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -2978,13 +3626,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: James Victor Gbeho"
+          "Connected PEPs: Mahamudu Bawumia"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q7183599); Relationship: Father; Connected PEP: James Victor Gbeho"
+          "Ghana RCA (Wikidata: Q19661278); Relationship: Father; Connected PEP: Mahamudu Bawumia"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of James Victor Gbeho]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Mahamudu Bawumia]"
         ],
         "address": [
           "Ghana"
@@ -2992,11 +3640,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q102167032",
-      "name": "Ato Ahwoi",
+      "id": "gh-wd-rca-q47454550",
+      "name": "Nketiah",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q102167032",
+      "source_reference": "http://www.wikidata.org/entity/Q47454550",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -3013,14 +3661,14 @@
         ],
         "programs": [
           "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Kwamena Ahwoi, Kwesi Ahwoi"
+          "Relationship: Father",
+          "Connected PEPs: Asiedu Nketia"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q102167032); Relationship: Sibling; Connected PEP: Kwamena Ahwoi, Kwesi Ahwoi"
+          "Ghana RCA (Wikidata: Q47454550); Relationship: Father; Connected PEP: Asiedu Nketia"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwamena Ahwoi, Kwesi Ahwoi]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Asiedu Nketia]"
         ],
         "address": [
           "Ghana"
@@ -3028,11 +3676,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q20722948",
-      "name": "Lordina Mahama",
+      "id": "gh-wd-rca-q8620",
+      "name": "Kwame Nkrumah",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q20722948",
+      "source_reference": "http://www.wikidata.org/entity/Q8620",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -3050,13 +3698,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Spouse",
-          "Connected PEPs: John Mahama"
+          "Connected PEPs: Fathia Nkrumah, Samia Nkrumah"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q20722948); Relationship: Spouse; Connected PEP: John Mahama"
+          "Ghana RCA (Wikidata: Q8620); Relationship: Spouse; Connected PEP: Fathia Nkrumah, Samia Nkrumah"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Mahama]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Fathia Nkrumah, Samia Nkrumah]"
         ],
         "address": [
           "Ghana"
@@ -3093,42 +3741,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of Herbert Taylor Ussher]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q1270076",
-      "name": "Kofi Asante Ofori-Atta",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1270076",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1270076); Relationship: Sibling; Connected PEP: William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of William Ofori Atta, Kwesi Amoako-Atta, Jones Ofori Atta]"
         ],
         "address": [
           "Ghana"
@@ -3208,11 +3820,47 @@
       }
     },
     {
-      "id": "gh-wd-rca-q1794910",
-      "name": "Kwamena Ahwoi",
+      "id": "gh-wd-rca-q26703047",
+      "name": "Matilda Amissah-Arthur",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1794910",
+      "source_reference": "http://www.wikidata.org/entity/Q26703047",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Kwesi Amissah-Arthur"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q26703047); Relationship: Spouse; Connected PEP: Kwesi Amissah-Arthur"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Kwesi Amissah-Arthur]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q3101406",
+      "name": "George Ayittey",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q3101406",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -3230,13 +3878,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Sibling",
-          "Connected PEPs: Kwesi Ahwoi, Ato Ahwoi"
+          "Connected PEPs: Sherry Ayittey"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1794910); Relationship: Sibling; Connected PEP: Kwesi Ahwoi, Ato Ahwoi"
+          "Ghana RCA (Wikidata: Q3101406); Relationship: Sibling; Connected PEP: Sherry Ayittey"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kwesi Ahwoi, Ato Ahwoi]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Sherry Ayittey]"
         ],
         "address": [
           "Ghana"
@@ -3273,6 +3921,42 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Arnold Wienholt Hodson]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q1066413",
+      "name": "Charles Wereko-Brobby",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q1066413",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Joyce Aryee"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q1066413); Relationship: Spouse; Connected PEP: Joyce Aryee"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Joyce Aryee]"
         ],
         "address": [
           "Ghana"
@@ -3345,42 +4029,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Arnold Wienholt Hodson]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q23718894",
-      "name": "John Addo Kufuor",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q23718894",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Theresa Kufuor, John Kufuor"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q23718894); Relationship: Child; Connected PEP: Theresa Kufuor, John Kufuor"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Theresa Kufuor, John Kufuor]"
         ],
         "address": [
           "Ghana"
@@ -3496,6 +4144,42 @@
       }
     },
     {
+      "id": "gh-wd-rca-q108537124",
+      "name": "Mariama Bawumia",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q108537124",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Mother",
+          "Connected PEPs: Mahamudu Bawumia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q108537124); Relationship: Mother; Connected PEP: Mahamudu Bawumia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of Mahamudu Bawumia]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q1707222",
       "name": "Joseph Henry Mensah",
       "type": "Person",
@@ -3568,11 +4252,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q473946",
-      "name": "Amon Nikoi",
+      "id": "gh-wd-rca-q26924422",
+      "name": "Cecilia Johnson",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q473946",
+      "source_reference": "http://www.wikidata.org/entity/Q26924422",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -3589,14 +4273,50 @@
         ],
         "programs": [
           "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Gloria Amon Nikoi"
+          "Relationship: Sibling",
+          "Connected PEPs: Sherry Ayittey"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q473946); Relationship: Spouse; Connected PEP: Gloria Amon Nikoi"
+          "Ghana RCA (Wikidata: Q26924422); Relationship: Sibling; Connected PEP: Sherry Ayittey"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gloria Amon Nikoi]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Sherry Ayittey]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q104224062",
+      "name": "Lariba Abudu",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q104224062",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Mahamudu Bawumia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q104224062); Relationship: Sibling; Connected PEP: Mahamudu Bawumia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Mahamudu Bawumia]"
         ],
         "address": [
           "Ghana"
@@ -3676,6 +4396,42 @@
       }
     },
     {
+      "id": "gh-wd-rca-q16733634",
+      "name": "Elizabeth Ofosu-Agyare",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q16733634",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Isaac Kwadwo Adjei Mensah"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q16733634); Relationship: Child; Connected PEP: Isaac Kwadwo Adjei Mensah"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Isaac Kwadwo Adjei Mensah]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q120367408",
       "name": "Samuel Akainyah",
       "type": "Person",
@@ -3705,78 +4461,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Alfred Augustus Akainyah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q141907089",
-      "name": "Kwame Osei Akuoko Sarpong",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q141907089",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Nana Akuoko Sarpong"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q141907089); Relationship: Child; Connected PEP: Nana Akuoko Sarpong"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Nana Akuoko Sarpong]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q718601",
-      "name": "Nana Akufo-Addo",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q718601",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Rebecca Akufo-Addo, Edward Akufo-Addo"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q718601); Relationship: Spouse; Connected PEP: Rebecca Akufo-Addo, Edward Akufo-Addo"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Rebecca Akufo-Addo, Edward Akufo-Addo]"
         ],
         "address": [
           "Ghana"
@@ -3820,6 +4504,78 @@
       }
     },
     {
+      "id": "gh-wd-rca-q274741",
+      "name": "Efua Theodora Sutherland",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q274741",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Mother",
+          "Connected PEPs: Esi Sutherland-Addy"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q274741); Relationship: Mother; Connected PEP: Esi Sutherland-Addy"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of Esi Sutherland-Addy]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q27947593",
+      "name": "Yvonne Nduom",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q27947593",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Paa Kwesi Nduom"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q27947593); Relationship: Spouse; Connected PEP: Paa Kwesi Nduom"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Paa Kwesi Nduom]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q75514370",
       "name": "Sarah Wormald Wienholt",
       "type": "Person",
@@ -3856,11 +4612,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q16107187",
-      "name": "Kwesi Ahwoi",
+      "id": "gh-wd-rca-q2645027",
+      "name": "Paa Grant",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q16107187",
+      "source_reference": "http://www.wikidata.org/entity/Q2645027",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -3878,13 +4634,49 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Sibling",
-          "Connected PEPs: Ato Ahwoi, Kwamena Ahwoi"
+          "Connected PEPs: Mary Grant"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q16107187); Relationship: Sibling; Connected PEP: Ato Ahwoi, Kwamena Ahwoi"
+          "Ghana RCA (Wikidata: Q2645027); Relationship: Sibling; Connected PEP: Mary Grant"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Ato Ahwoi, Kwamena Ahwoi]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Mary Grant]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q2637530",
+      "name": "Albert Adu Boahen",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q2637530",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: Charles Adu Boahen"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q2637530); Relationship: Father; Connected PEP: Charles Adu Boahen"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Charles Adu Boahen]"
         ],
         "address": [
           "Ghana"
@@ -3964,6 +4756,42 @@
       }
     },
     {
+      "id": "gh-wd-rca-q6450303",
+      "name": "Kweku Baako Jnr",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q6450303",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Kofi Baako"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q6450303); Relationship: Child; Connected PEP: Kofi Baako"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Baako]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q850396",
       "name": "Betty Mould-Iddrisu",
       "type": "Person",
@@ -4000,11 +4828,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q137179629",
-      "name": "Ajoa Yeboah-Afari",
+      "id": "gh-wd-rca-q115793549",
+      "name": "Maryam Uwais",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q137179629",
+      "source_reference": "http://www.wikidata.org/entity/Q115793549",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -4022,13 +4850,49 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Child",
-          "Connected PEPs: Boahene Yeboah-Afari"
+          "Connected PEPs: Isa Wali"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q137179629); Relationship: Child; Connected PEP: Boahene Yeboah-Afari"
+          "Ghana RCA (Wikidata: Q115793549); Relationship: Child; Connected PEP: Isa Wali"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Boahene Yeboah-Afari]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Isa Wali]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q28464314",
+      "name": "Samira Bawumia",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q28464314",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Mahamudu Bawumia"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q28464314); Relationship: Spouse; Connected PEP: Mahamudu Bawumia"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Mahamudu Bawumia]"
         ],
         "address": [
           "Ghana"
@@ -4072,47 +4936,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q104031591",
-      "name": "Ophelia Hayford",
+      "id": "gh-wd-rca-q44147107",
+      "name": "Fred T. Sai",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q104031591",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Ekow Hayford"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q104031591); Relationship: Spouse; Connected PEP: Ekow Hayford"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Ekow Hayford]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q99912770",
-      "name": "Krosbi Mensah",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q99912770",
+      "source_reference": "http://www.wikidata.org/entity/Q44147107",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -4130,49 +4958,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: Betty Crosby Mensah"
+          "Connected PEPs: Florence Oboshie Sai-Coffie"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q99912770); Relationship: Father; Connected PEP: Betty Crosby Mensah"
+          "Ghana RCA (Wikidata: Q44147107); Relationship: Father; Connected PEP: Florence Oboshie Sai-Coffie"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Betty Crosby Mensah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q5373115",
-      "name": "Emmanuel Adama Mahama",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q5373115",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: John Mahama"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q5373115); Relationship: Father; Connected PEP: John Mahama"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of John Mahama]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Florence Oboshie Sai-Coffie]"
         ],
         "address": [
           "Ghana"
@@ -4209,78 +5001,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Shenton Thomas]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q105036778",
-      "name": "Agnes Akosua Dodua",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q105036778",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Mother",
-          "Connected PEPs: William Ofori Atta"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q105036778); Relationship: Mother; Connected PEP: William Ofori Atta"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of William Ofori Atta]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q108049216",
-      "name": "AJ Akuoko-Sarpong",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q108049216",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Nana Akuoko Sarpong"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q108049216); Relationship: Child; Connected PEP: Nana Akuoko Sarpong"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Nana Akuoko Sarpong]"
         ],
         "address": [
           "Ghana"
@@ -4396,6 +5116,78 @@
       }
     },
     {
+      "id": "gh-wd-rca-q104527866",
+      "name": "Farouk Aliu Mahama",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q104527866",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Child",
+          "Connected PEPs: Aliu Mahama, Ramatu Mahama"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q104527866); Relationship: Child; Connected PEP: Aliu Mahama, Ramatu Mahama"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Aliu Mahama, Ramatu Mahama]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q94767227",
+      "name": "Rahana Abdul Aziz",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q94767227",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Abdul Aziz Fatahiya"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q94767227); Relationship: Sibling; Connected PEP: Abdul Aziz Fatahiya"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Abdul Aziz Fatahiya]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q1631455",
       "name": "Jacob Hackenburg Griffiths-Randolph",
       "type": "Person",
@@ -4432,11 +5224,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q3108449",
-      "name": "Gladys Casely-Hayford",
+      "id": "gh-wd-rca-q96592250",
+      "name": "Cecilia Koranteng-Addow",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q3108449",
+      "source_reference": "http://www.wikidata.org/entity/Q96592250",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -4453,14 +5245,14 @@
         ],
         "programs": [
           "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Archie Casely-Hayford"
+          "Relationship: Spouse",
+          "Connected PEPs: Gustav Koranteng-Addow"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q3108449); Relationship: Sibling; Connected PEP: Archie Casely-Hayford"
+          "Ghana RCA (Wikidata: Q96592250); Relationship: Spouse; Connected PEP: Gustav Koranteng-Addow"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Archie Casely-Hayford]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gustav Koranteng-Addow]"
         ],
         "address": [
           "Ghana"
@@ -4497,6 +5289,42 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Hugh Clifford]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q33084657",
+      "name": "Gina Blay",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q33084657",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Freddie Blay"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q33084657); Relationship: Spouse; Connected PEP: Freddie Blay"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Freddie Blay]"
         ],
         "address": [
           "Ghana"
@@ -4648,42 +5476,6 @@
       }
     },
     {
-      "id": "gh-wd-rca-q39045954",
-      "name": "Bafuor Osei Akoto",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q39045954",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Owusu Afriyie Akoto"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q39045954); Relationship: Father; Connected PEP: Owusu Afriyie Akoto"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Owusu Afriyie Akoto]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-wd-rca-q105223109",
       "name": "Kwasi Sainti Baffoe-Bonnie",
       "type": "Person",
@@ -4756,6 +5548,114 @@
       }
     },
     {
+      "id": "gh-wd-rca-q22328653",
+      "name": "Ahmed Ramadan",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q22328653",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: Mohammed Adamu Ramadan"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q22328653); Relationship: Father; Connected PEP: Mohammed Adamu Ramadan"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Mohammed Adamu Ramadan]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q61697679",
+      "name": "Lydia Seyram Alhassan",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q61697679",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Emmanuel Kwabena Kyeremateng Agyarko"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q61697679); Relationship: Spouse; Connected PEP: Emmanuel Kwabena Kyeremateng Agyarko"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Emmanuel Kwabena Kyeremateng Agyarko]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q23540999",
+      "name": "James Mercer",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q23540999",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Father",
+          "Connected PEPs: Egyapa Mercer"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q23540999); Relationship: Father; Connected PEP: Egyapa Mercer"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Egyapa Mercer]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
       "id": "gh-wd-rca-q54358710",
       "name": "George Benneh",
       "type": "Person",
@@ -4792,11 +5692,83 @@
       }
     },
     {
-      "id": "gh-wd-rca-q10761018",
-      "name": "Abd al-Aziz",
+      "id": "gh-wd-rca-q3282085",
+      "name": "Malika Gaïd",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q10761018",
+      "source_reference": "http://www.wikidata.org/entity/Q3282085",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Tahar Gaïd"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q3282085); Relationship: Sibling; Connected PEP: Tahar Gaïd"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Tahar Gaïd]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q30315761",
+      "name": "Boakye Agyarko",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q30315761",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: Emmanuel Kwabena Kyeremateng Agyarko"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q30315761); Relationship: Sibling; Connected PEP: Emmanuel Kwabena Kyeremateng Agyarko"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Emmanuel Kwabena Kyeremateng Agyarko]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q1660216",
+      "name": "Imoru Egala",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q1660216",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -4814,13 +5786,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: Abdul Aziz Fatahiya"
+          "Connected PEPs: Ramatu Mahama"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q10761018); Relationship: Father; Connected PEP: Abdul Aziz Fatahiya"
+          "Ghana RCA (Wikidata: Q1660216); Relationship: Father; Connected PEP: Ramatu Mahama"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Abdul Aziz Fatahiya]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Ramatu Mahama]"
         ],
         "address": [
           "Ghana"
@@ -4828,47 +5800,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q175392",
-      "name": "Akosua Busia",
+      "id": "gh-wd-rca-q29969393",
+      "name": "Adams",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q175392",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Kofi Abrefa Busia"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q175392); Relationship: Child; Connected PEP: Kofi Abrefa Busia"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Abrefa Busia]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q19661278",
-      "name": "Mumuni Bawumia",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q19661278",
+      "source_reference": "http://www.wikidata.org/entity/Q29969393",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -4886,13 +5822,121 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: Mahamudu Bawumia"
+          "Connected PEPs: Adams Abdul Salam"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q19661278); Relationship: Father; Connected PEP: Mahamudu Bawumia"
+          "Ghana RCA (Wikidata: Q29969393); Relationship: Father; Connected PEP: Adams Abdul Salam"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Mahamudu Bawumia]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Adams Abdul Salam]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q94993519",
+      "name": "Alice Teni Boon",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q94993519",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Jacob Bawiine Boon"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q94993519); Relationship: Spouse; Connected PEP: Jacob Bawiine Boon"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Jacob Bawiine Boon]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q43371374",
+      "name": "Samuel Abu Jinapor",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q43371374",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Sibling",
+          "Connected PEPs: John Jinapor"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q43371374); Relationship: Sibling; Connected PEP: John Jinapor"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of John Jinapor]"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-wd-rca-q179115",
+      "name": "widow",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "http://www.wikidata.org/entity/Q179115",
+      "source_type": "rca_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Relative or Close Associate (RCA)",
+          "Relationship: Spouse",
+          "Connected PEPs: Gifty Twum Ampofo"
+        ],
+        "sourceStatus": [
+          "Ghana RCA (Wikidata: Q179115); Relationship: Spouse; Connected PEP: Gifty Twum Ampofo"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gifty Twum Ampofo]"
         ],
         "address": [
           "Ghana"
@@ -4936,119 +5980,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q47454550",
-      "name": "Nketiah",
+      "id": "gh-wd-rca-q27892486",
+      "name": "Mouloud Gaïd",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q47454550",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Asiedu Nketia"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q47454550); Relationship: Father; Connected PEP: Asiedu Nketia"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Asiedu Nketia]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q59132463",
-      "name": "Emmanuel Kwabena Kyeremateng Agyarko",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q59132463",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Lydia Seyram Alhassan, Boakye Agyarko"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q59132463); Relationship: Spouse; Connected PEP: Lydia Seyram Alhassan, Boakye Agyarko"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Lydia Seyram Alhassan, Boakye Agyarko]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q26703047",
-      "name": "Matilda Amissah-Arthur",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q26703047",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Kwesi Amissah-Arthur"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q26703047); Relationship: Spouse; Connected PEP: Kwesi Amissah-Arthur"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Kwesi Amissah-Arthur]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q3101406",
-      "name": "George Ayittey",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q3101406",
+      "source_reference": "http://www.wikidata.org/entity/Q27892486",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5066,13 +6002,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Sibling",
-          "Connected PEPs: Sherry Ayittey"
+          "Connected PEPs: Tahar Gaïd"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q3101406); Relationship: Sibling; Connected PEP: Sherry Ayittey"
+          "Ghana RCA (Wikidata: Q27892486); Relationship: Sibling; Connected PEP: Tahar Gaïd"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Sherry Ayittey]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Tahar Gaïd]"
         ],
         "address": [
           "Ghana"
@@ -5080,47 +6016,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q1066413",
-      "name": "Charles Wereko-Brobby",
+      "id": "gh-wd-rca-q57915355",
+      "name": "Betty Crosby Mensah",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1066413",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Joyce Aryee"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1066413); Relationship: Spouse; Connected PEP: Joyce Aryee"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Joyce Aryee]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q22340175",
-      "name": "Abena Busia",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q22340175",
+      "source_reference": "http://www.wikidata.org/entity/Q57915355",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5138,13 +6038,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Child",
-          "Connected PEPs: Kofi Abrefa Busia"
+          "Connected PEPs: Krosbi Mensah"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q22340175); Relationship: Child; Connected PEP: Kofi Abrefa Busia"
+          "Ghana RCA (Wikidata: Q57915355); Relationship: Child; Connected PEP: Krosbi Mensah"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kofi Abrefa Busia]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Krosbi Mensah]"
         ],
         "address": [
           "Ghana"
@@ -5152,11 +6052,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q43396440",
-      "name": "John Jinapor",
+      "id": "gh-wd-rca-q78170633",
+      "name": "Mohammed Sadat Abdulai",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q43396440",
+      "source_reference": "http://www.wikidata.org/entity/Q78170633",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5174,157 +6074,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Sibling",
-          "Connected PEPs: Samuel Abu Jinapor"
+          "Connected PEPs: Ras Mubarak"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q43396440); Relationship: Sibling; Connected PEP: Samuel Abu Jinapor"
+          "Ghana RCA (Wikidata: Q78170633); Relationship: Sibling; Connected PEP: Ras Mubarak"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Samuel Abu Jinapor]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q108537124",
-      "name": "Mariama Bawumia",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q108537124",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Mother",
-          "Connected PEPs: Mahamudu Bawumia"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q108537124); Relationship: Mother; Connected PEP: Mahamudu Bawumia"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of Mahamudu Bawumia]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q313549",
-      "name": "Mrs.",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q313549",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Samuel Abu Jinapor"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q313549); Relationship: Spouse; Connected PEP: Samuel Abu Jinapor"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Samuel Abu Jinapor]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q26924422",
-      "name": "Cecilia Johnson",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q26924422",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Sherry Ayittey"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q26924422); Relationship: Sibling; Connected PEP: Sherry Ayittey"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Sherry Ayittey]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q104224062",
-      "name": "Lariba Abudu",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q104224062",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Mahamudu Bawumia"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q104224062); Relationship: Sibling; Connected PEP: Mahamudu Bawumia"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Mahamudu Bawumia]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Ras Mubarak]"
         ],
         "address": [
           "Ghana"
@@ -5361,42 +6117,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Grace Ayensu]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q16733634",
-      "name": "Elizabeth Ofosu-Agyare",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q16733634",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Isaac Kwadwo Adjei Mensah"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q16733634); Relationship: Child; Connected PEP: Isaac Kwadwo Adjei Mensah"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Isaac Kwadwo Adjei Mensah]"
         ],
         "address": [
           "Ghana"
@@ -5476,83 +6196,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q274741",
-      "name": "Efua Theodora Sutherland",
+      "id": "gh-wd-rca-q1374550",
+      "name": "Aliu Mahama",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q274741",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Mother",
-          "Connected PEPs: Esi Sutherland-Addy"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q274741); Relationship: Mother; Connected PEP: Esi Sutherland-Addy"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Mother of Esi Sutherland-Addy]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q2645027",
-      "name": "Paa Grant",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q2645027",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Mary Grant"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q2645027); Relationship: Sibling; Connected PEP: Mary Grant"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Mary Grant]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q19561106",
-      "name": "Theresa Kufuor",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q19561106",
+      "source_reference": "http://www.wikidata.org/entity/Q1374550",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5570,13 +6218,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Spouse",
-          "Connected PEPs: John Kufuor"
+          "Connected PEPs: Ramatu Mahama, Farouk Aliu Mahama"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q19561106); Relationship: Spouse; Connected PEP: John Kufuor"
+          "Ghana RCA (Wikidata: Q1374550); Relationship: Spouse; Connected PEP: Ramatu Mahama, Farouk Aliu Mahama"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Kufuor]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Ramatu Mahama, Farouk Aliu Mahama]"
         ],
         "address": [
           "Ghana"
@@ -5584,47 +6232,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q19957726",
-      "name": "Ernestina Naadu Mills",
+      "id": "gh-wd-rca-q64825271",
+      "name": "Etika",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q19957726",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: John Evans Atta Mills"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q19957726); Relationship: Spouse; Connected PEP: John Evans Atta Mills"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of John Evans Atta Mills]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q115793549",
-      "name": "Maryam Uwais",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q115793549",
+      "source_reference": "http://www.wikidata.org/entity/Q64825271",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5642,13 +6254,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Child",
-          "Connected PEPs: Isa Wali"
+          "Connected PEPs: Owuraku Amofah"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q115793549); Relationship: Child; Connected PEP: Isa Wali"
+          "Ghana RCA (Wikidata: Q64825271); Relationship: Child; Connected PEP: Owuraku Amofah"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Isa Wali]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Owuraku Amofah]"
         ],
         "address": [
           "Ghana"
@@ -5656,11 +6268,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q28464314",
-      "name": "Samira Bawumia",
+      "id": "gh-wd-rca-q104031591",
+      "name": "Ophelia Hayford",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q28464314",
+      "source_reference": "http://www.wikidata.org/entity/Q104031591",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5678,13 +6290,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Spouse",
-          "Connected PEPs: Mahamudu Bawumia"
+          "Connected PEPs: Ekow Hayford"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q28464314); Relationship: Spouse; Connected PEP: Mahamudu Bawumia"
+          "Ghana RCA (Wikidata: Q104031591); Relationship: Spouse; Connected PEP: Ekow Hayford"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Mahamudu Bawumia]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Ekow Hayford]"
         ],
         "address": [
           "Ghana"
@@ -5692,11 +6304,11 @@
       }
     },
     {
-      "id": "gh-wd-rca-q44147107",
-      "name": "Fred T. Sai",
+      "id": "gh-wd-rca-q99912770",
+      "name": "Krosbi Mensah",
       "type": "Person",
       "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q44147107",
+      "source_reference": "http://www.wikidata.org/entity/Q99912770",
       "source_type": "rca_evidence",
       "properties": {
         "country": [
@@ -5714,13 +6326,13 @@
         "programs": [
           "Relative or Close Associate (RCA)",
           "Relationship: Father",
-          "Connected PEPs: Florence Oboshie Sai-Coffie"
+          "Connected PEPs: Betty Crosby Mensah"
         ],
         "sourceStatus": [
-          "Ghana RCA (Wikidata: Q44147107); Relationship: Father; Connected PEP: Florence Oboshie Sai-Coffie"
+          "Ghana RCA (Wikidata: Q99912770); Relationship: Father; Connected PEP: Betty Crosby Mensah"
         ],
         "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Florence Oboshie Sai-Coffie]"
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Betty Crosby Mensah]"
         ],
         "address": [
           "Ghana"
@@ -5829,618 +6441,6 @@
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Kwesi Armah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q1794901",
-      "name": "Kwame Addo-Kufuor",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1794901",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: John Kufuor"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1794901); Relationship: Sibling; Connected PEP: John Kufuor"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of John Kufuor]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q104527866",
-      "name": "Farouk Aliu Mahama",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q104527866",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Aliu Mahama, Ramatu Mahama"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q104527866); Relationship: Child; Connected PEP: Aliu Mahama, Ramatu Mahama"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Aliu Mahama, Ramatu Mahama]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q94767227",
-      "name": "Rahana Abdul Aziz",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q94767227",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Abdul Aziz Fatahiya"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q94767227); Relationship: Sibling; Connected PEP: Abdul Aziz Fatahiya"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Abdul Aziz Fatahiya]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q96592250",
-      "name": "Cecilia Koranteng-Addow",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q96592250",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Gustav Koranteng-Addow"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q96592250); Relationship: Spouse; Connected PEP: Gustav Koranteng-Addow"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Gustav Koranteng-Addow]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q67913463",
-      "name": "Ama Bame Busia",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q67913463",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Kofi Abrefa Busia"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q67913463); Relationship: Sibling; Connected PEP: Kofi Abrefa Busia"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Kofi Abrefa Busia]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q22328653",
-      "name": "Ahmed Ramadan",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q22328653",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Mohammed Adamu Ramadan"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q22328653); Relationship: Father; Connected PEP: Mohammed Adamu Ramadan"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Mohammed Adamu Ramadan]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q3282085",
-      "name": "Malika Gaïd",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q3282085",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Tahar Gaïd"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q3282085); Relationship: Sibling; Connected PEP: Tahar Gaïd"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Tahar Gaïd]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q29969393",
-      "name": "Adams",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q29969393",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Adams Abdul Salam"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q29969393); Relationship: Father; Connected PEP: Adams Abdul Salam"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Adams Abdul Salam]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q27892486",
-      "name": "Mouloud Gaïd",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q27892486",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Sibling",
-          "Connected PEPs: Tahar Gaïd"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q27892486); Relationship: Sibling; Connected PEP: Tahar Gaïd"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Sibling of Tahar Gaïd]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q2637530",
-      "name": "Albert Adu Boahen",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q2637530",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Charles Adu Boahen"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q2637530); Relationship: Father; Connected PEP: Charles Adu Boahen"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Charles Adu Boahen]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q25705710",
-      "name": "Fulera Limann",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q25705710",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Hilla Limann"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q25705710); Relationship: Spouse; Connected PEP: Hilla Limann"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Hilla Limann]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q23541289",
-      "name": "Zanetor Agyeman-Rawlings",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q23541289",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Jerry Rawlings"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q23541289); Relationship: Child; Connected PEP: Jerry Rawlings"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Jerry Rawlings]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q1374550",
-      "name": "Aliu Mahama",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1374550",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Farouk Aliu Mahama, Ramatu Mahama"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1374550); Relationship: Father; Connected PEP: Farouk Aliu Mahama, Ramatu Mahama"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Farouk Aliu Mahama, Ramatu Mahama]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q1660216",
-      "name": "Imoru Egala",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q1660216",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Father",
-          "Connected PEPs: Ramatu Mahama"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q1660216); Relationship: Father; Connected PEP: Ramatu Mahama"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Father of Ramatu Mahama]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q94993519",
-      "name": "Alice Teni Boon",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q94993519",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Spouse",
-          "Connected PEPs: Jacob Bawiine Boon"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q94993519); Relationship: Spouse; Connected PEP: Jacob Bawiine Boon"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Spouse of Jacob Bawiine Boon]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q57915355",
-      "name": "Betty Crosby Mensah",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q57915355",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Krosbi Mensah"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q57915355); Relationship: Child; Connected PEP: Krosbi Mensah"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Krosbi Mensah]"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-wd-rca-q64825271",
-      "name": "Etika",
-      "type": "Person",
-      "aliases": [],
-      "source_reference": "http://www.wikidata.org/entity/Q64825271",
-      "source_type": "rca_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Relative or Close Associate (RCA)",
-          "Relationship: Child",
-          "Connected PEPs: Owuraku Amofah"
-        ],
-        "sourceStatus": [
-          "Ghana RCA (Wikidata: Q64825271); Relationship: Child; Connected PEP: Owuraku Amofah"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 RCA Screening [Child of Owuraku Amofah]"
         ],
         "address": [
           "Ghana"
