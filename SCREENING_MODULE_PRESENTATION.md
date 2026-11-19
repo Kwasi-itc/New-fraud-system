@@ -32,7 +32,7 @@ To build an **independent, sovereign, highly auditable Screening & Watchlist Pro
 
 ---
 
-## 2. Current State: 10 Verified Datasets (29,159 Active Records)
+## 2. Current State: 10 Verified Datasets (29,452 Active Records)
 
 As of November 2026, the in-house screening engine hosts **10 production-ready primary datasets**, all fully verified, tenant-granted, and operational:
 
@@ -42,24 +42,24 @@ As of November 2026, the in-house screening engine hosts **10 production-ready p
 | 2 | `uksl` | UK Sanctions List | UK Foreign, Commonwealth & Dev Office | Direct XML Stream Parser | 6,449 | **Approved & Active** |
 | 3 | `worldbank-debarred` | World Bank Ineligible Firms & Individuals | World Bank Group (`worldbank.org`) | Official REST API Gateway | 1,530 | **Approved & Active** |
 | 4 | `un-consolidated` | UN Security Council Sanctions | United Nations Security Council | Direct XML Stream Parser | 1,007 | **Approved & Active** |
-| 5 | `gh-pep-parliament` | Ghana Parliament PEPs | Parliament of Ghana (`parliament.gh`) | Direct HTML Scraper / Parser | 278 | **Approved & Active** |
-| 6 | `gh-pep-rca` | Ghana PEP Relatives & Associates | Wikidata SPARQL Graph + Disclosures | Recursive Graph Sync Engine | 190 | **Approved & Active** |
-| 7 | `gh-pep-soe` | Ghana SOE & Judiciary PEPs | Supreme Court, BoG, OSP, GRA, SOEs | Curated Statutory Roster | 50 | **Approved & Active** |
-| 8 | `gh-pep-local-gov` | Ghana MMDCEs & Regional Ministers | MLGDRD, Regional Coordinating Councils | Sub-National Scraper & Roster | 35 | **Approved & Active** |
+| 5 | `gh-pep-local-gov` | Ghana MMDCEs & Regional Ministers | MLGDRD, Regional Coordinating Councils | Sub-National Scraper & Roster | 328 | **Approved & Active** |
+| 6 | `gh-pep-parliament` | Ghana Parliament PEPs | Parliament of Ghana (`parliament.gh`) | Direct HTML Scraper / Parser | 278 | **Approved & Active** |
+| 7 | `gh-pep-rca` | Ghana PEP Relatives & Associates | Wikidata SPARQL Graph + Disclosures | Recursive Graph Sync Engine | 190 | **Approved & Active** |
+| 8 | `gh-pep-soe` | Ghana SOE & Judiciary PEPs | Supreme Court, BoG, OSP, GRA, SOEs | Curated Statutory Roster | 50 | **Approved & Active** |
 | 9 | `gh-pep-executive` | Ghana Executive PEPs | Presidency & Official Gazettes | Structured Ingestion Engine | 30 | **Approved & Active** |
 | 10 | `gh-pep-parties` | Ghana Political Party Executives | Electoral Commission of Ghana, Party Secretariats | National Executive Register | 25 | **Approved & Active** |
-| | **TOTAL** | **10 Primary Watchlists** | **Direct Official Sources** | **Unified Engine** | **29,159** | **100% Operational** |
+| | **TOTAL** | **10 Primary Watchlists** | **Direct Official Sources** | **Unified Engine** | **29,452** | **100% Operational** |
 
 ```mermaid
-pie title Active Record Distribution in In-House Engine (29,159 Total)
+pie title Active Record Distribution in In-House Engine (29,452 Total)
     "OFAC SDN (US)" : 19565
     "UK Sanctions List" : 6449
     "World Bank Debarred" : 1530
     "UN Consolidated" : 1007
+    "Ghana MMDCEs & Regional Ministers" : 328
     "Ghana Parliament PEPs" : 278
     "Ghana PEP Relatives (RCAs)" : 190
     "Ghana SOE & Judiciary PEPs" : 50
-    "Ghana MMDCEs & Regional Ministers" : 35
     "Ghana Executive PEPs" : 30
     "Ghana Political Party Executives" : 25
 ```
@@ -215,11 +215,11 @@ Every external source has a dedicated, tailored extraction script designed for r
   - **FATF Guidance on PEPs (Recommendation 12)** and **Ghana AML Act 1044** define Domestic PEPs to include *"senior politicians, heads of local government (Metropolitan, Municipal and District Chief Executives), and senior officials of political parties"*.
   - MMDCEs preside over significant local government budgets, public procurement, planning permits, and district assemblies.
   - Senior national executive officers of political parties exercise substantial public influence, campaign finance control, and political patronage.
-- **Sub-National Entities Covered (`gh-pep-local-gov` - 35 Records)**:
+- **Sub-National Entities Covered (`gh-pep-local-gov` - 328 Records)**:
   - **16 Regional Ministers**: All administrative regions (Greater Accra, Ashanti, Western, Eastern, Central, Northern, Volta, Upper East, Upper West, Bono, Bono East, Ahafo, Oti, Western North, Savannah, North East).
   - **Metropolitan Mayors (MCEs)**: Accra Metropolitan Assembly (AMA), Kumasi Metropolitan Assembly (KMA), Sekondi-Takoradi (STMA), Tamale Metropolitan (TMA), Cape Coast (CCMA), Tema Metropolitan (TMA).
-  - **Key Municipal & District Executives**: High-density economic centers including Ga East, Ga South, Ga West, Ga North, Sunyani, Ho, Koforidua (New Juaben), Obuasi, Tarkwa-Nsuaem.
-  - **Cooling-Off Transition Roster**: Historical MMDCE profiles (e.g. Elizabeth Sackey, Mohammed Adjei Sowah, Sam Pyne) maintained under `cooling_off` status to satisfy statutory AML obligations.
+  - **Complete 261 Districts Roster**: Full coverage across all 261 Metropolitan, Municipal, and District Assemblies (MMDAs) in Ghana (Ashanti 43, Eastern 33, Greater Accra 29, Central 22, Volta 18, Northern 16, Upper East 15, Western 14, Bono 12, Bono East 11, Upper West 11, Western North 9, Oti 9, Savannah 7, Ahafo 6, North East 6).
+  - **Cooling-Off Transition Roster**: Historical MMDCE profiles (e.g. Elizabeth Sackey, Sam Pyne, Ernest Arthur, Yohane Ashitey, Abdul-Mumin Issah, Sule Salifu, and former regional ministers) maintained under `cooling_off` status to satisfy statutory AML obligations.
 - **National Political Party Leadership Covered (`gh-pep-parties` - 25 Records)**:
   - **Core Executive Officers**: National Chairman, General Secretary, National Organizer, National Treasurer, and Flagbearer / Political Leaders.
   - **Parties Represented**:
@@ -550,7 +550,7 @@ gantt
 ## 9. Key Takeaways for Weekly Presentation
 
 1. **Self-Sufficiency Achieved**: We are no longer dependent on third-party commercial APIs to screen sanctions and PEPs.
-2. **29,159 Active Entities Live**: Loaded across 10 high-quality datasets covering global sanctions, World Bank debarment, and complete domestic Ghanaian governance (Executive, Parliament, SOEs, MMDCEs, and Political Parties).
+2. **29,452 Active Entities Live**: Loaded across 10 high-quality datasets covering global sanctions, World Bank debarment, and complete domestic Ghanaian governance (Executive, Parliament, SOEs, all 261 MMDCEs, and Political Parties).
 3. **Deepest RCA Coverage in the Market**: By harnessing knowledge-graph queries and curated disclosures, our engine detects political dynasties, spouses, siblings, and associates that international aggregators miss.
 4. **Sub-15ms Latency**: Native PostgreSQL indexing delivers instant, compliant screening without external API network latency.
 5. **Auditable & Sovereign**: Built to satisfy the strictest Bank of Ghana, FIC, and FATF regulatory inspection standards.
