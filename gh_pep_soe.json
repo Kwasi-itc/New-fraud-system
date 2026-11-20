@@ -2,7 +2,7 @@
   "version": 2,
   "source": "gh-pep-soe",
   "parser": "gh-pep-v1",
-  "total_records": 79,
+  "total_records": 80,
   "records": [
     {
       "id": "gh-pep-soe-001",
@@ -3333,6 +3333,47 @@
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-soe-0003",
+      "name": "Mr Osei Poku",
+      "type": "Person",
+      "aliases": [
+        "Poku"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
         ],
         "address": [
           "Accra, Ghana"

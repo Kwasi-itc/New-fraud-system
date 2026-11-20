@@ -58,7 +58,7 @@ function runSigaScraplingCrawler() {
       console.log('[✓] Scrapling SIGA crawler finished successfully.');
     } else {
       console.log(`[!] Scrapling crawler note: exited with code ${proc.status}`);
-      if (proc.stderr) console.log(proc.stderr.slice(0, 300));
+      if (proc.stderr) console.log(proc.stderr.trim());
     }
   } else {
     console.log('[!] Python binary or Scrapling script not found at standard path, verifying existing crawled artifact...');
