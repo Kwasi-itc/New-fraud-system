@@ -40,8 +40,12 @@ async function main() {
     console.log("\n[Step 1] Running Live Web Crawlers...");
     run("node scripts/crawl-all-parliament-mps.mjs", "Live Parliament Web Crawler");
     run("node scripts/sync-wikidata-ghana.mjs", "Wikidata SPARQL Knowledge Graph Fetcher");
+    run("node scripts/crawl-political-parties.mjs", "Senior Political Party Officials Crawler");
+    run("node scripts/crawl-judiciary.mjs", "Judicial Service Senior Figures Crawler");
   } else {
     console.log("\n[Step 1] Using existing or generated entity fixtures (pass --crawl for live scraping).");
+    run("node scripts/crawl-political-parties.mjs", "Senior Political Party Officials Registry");
+    run("node scripts/crawl-judiciary.mjs", "Judicial Service Senior Figures Registry");
   }
 
   // 2. Build Canonical JSON Fixtures

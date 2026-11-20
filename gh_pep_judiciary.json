@@ -1,0 +1,918 @@
+{
+  "version": 2,
+  "source": "gh-pep-judiciary",
+  "parser": "gh-pep-v1",
+  "description": "Judicial Service of Ghana Senior Judicial Figures (AML Act 1044) Registry",
+  "last_updated_at": "2026-11-20T13:44:51.276Z",
+  "total_records": 21,
+  "records": [
+    {
+      "id": "gh-pep-jud-0001",
+      "name": "Gertrude Araba Esaaba Torkornoo",
+      "type": "Person",
+      "aliases": [
+        "Chief Justice Gertrude Torkornoo",
+        "Gertrude Torkornoo",
+        "Justice Torkornoo",
+        "Torkornoo"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chief Justice of the Republic of Ghana, Head of the Judiciary",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2023-06-12"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chief Justice of the Republic of Ghana, Head of the Judiciary; Status: active; Court: Supreme Court of Ghana; Known Family: Francis Torkornoo (Spouse)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0002",
+      "name": "Paul Baffoe-Bonnie",
+      "type": "Person",
+      "aliases": [
+        "Justice Paul Baffoe-Bonnie",
+        "Baffoe-Bonnie"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Senior Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2008-06-11"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Senior Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0003",
+      "name": "Gabriel Pwamang",
+      "type": "Person",
+      "aliases": [
+        "Justice Gabriel Pwamang",
+        "Pwamang"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2015-06-29"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0004",
+      "name": "Mariama Owusu",
+      "type": "Person",
+      "aliases": [
+        "Justice Mariama Owusu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2019-12-17"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0005",
+      "name": "Avril Lovelace-Johnson",
+      "type": "Person",
+      "aliases": [
+        "Justice Avril Lovelace-Johnson",
+        "Lovelace-Johnson"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2019-12-17"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0006",
+      "name": "Issifu Omoro Tanko Amadu",
+      "type": "Person",
+      "aliases": [
+        "Justice Tanko Amadu",
+        "Tanko Amadu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2020-05-22"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0007",
+      "name": "Henrietta Mensa-Bonsu",
+      "type": "Person",
+      "aliases": [
+        "Justice Henrietta Mensa-Bonsu",
+        "Henrietta Mensa-Bonsu",
+        "Mensa-Bonsu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2020-05-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0008",
+      "name": "Emmanuel Yonny Kulendi",
+      "type": "Person",
+      "aliases": [
+        "Justice Yonny Kulendi",
+        "Yonny Kulendi",
+        "Kulendi"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2020-05-26"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0009",
+      "name": "Barbara Frances Ackah-Yensu",
+      "type": "Person",
+      "aliases": [
+        "Justice Barbara Ackah-Yensu",
+        "Ackah-Yensu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2022-12-28"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0010",
+      "name": "Samuel Kwame Adibu Asiedu",
+      "type": "Person",
+      "aliases": [
+        "Justice Samuel Adibu Asiedu",
+        "Adibu Asiedu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2022-12-28"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0011",
+      "name": "George Kingsley Koomson",
+      "type": "Person",
+      "aliases": [
+        "Justice George Koomson",
+        "Koomson"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2023-04-05"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0012",
+      "name": "Ernest Yao Gaewu",
+      "type": "Person",
+      "aliases": [
+        "Justice Ernest Gaewu",
+        "Gaewu"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2023-04-05"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0013",
+      "name": "Henry Anthony Kwofie",
+      "type": "Person",
+      "aliases": [
+        "Justice Henry Kwofie",
+        "Kwofie"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2024-01-03"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0014",
+      "name": "Yaw Darko Asare",
+      "type": "Person",
+      "aliases": [
+        "Justice Yaw Darko Asare",
+        "Darko Asare"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2024-01-03"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0015",
+      "name": "Richard Adjei-Frimpong",
+      "type": "Person",
+      "aliases": [
+        "Justice Richard Adjei-Frimpong",
+        "Adjei-Frimpong"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Supreme Court of Ghana",
+          "Judicial Branch: Supreme Court of Ghana"
+        ],
+        "listedAt": [
+          "2024-01-03"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Supreme Court of Ghana; Status: active; Court: Supreme Court of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0016",
+      "name": "Cyra Pamela C.A. Koranteng",
+      "type": "Person",
+      "aliases": [
+        "Justice Pamela Koranteng",
+        "Pamela Koranteng",
+        "Judicial Secretary Koranteng"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Judicial Secretary of the Republic of Ghana, Head of Judicial Administration",
+          "Judicial Branch: Judicial Service Administration / Court of Appeal"
+        ],
+        "listedAt": [
+          "2022-10-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Judicial Secretary of the Republic of Ghana, Head of Judicial Administration; Status: active; Court: Judicial Service Administration / Court of Appeal"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0017",
+      "name": "Afia Serwah Asare-Botwe",
+      "type": "Person",
+      "aliases": [
+        "Justice Afia Serwah Asare-Botwe",
+        "Asare-Botwe"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Court of Appeal, High Court Financial & Economic Crimes Division",
+          "Judicial Branch: Court of Appeal of Ghana"
+        ],
+        "listedAt": [
+          "2023-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Court of Appeal, High Court Financial & Economic Crimes Division; Status: active; Court: Court of Appeal of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0018",
+      "name": "Eric Kyei Baffour",
+      "type": "Person",
+      "aliases": [
+        "Justice Eric Kyei Baffour",
+        "Kyei Baffour"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Justice of the Court of Appeal",
+          "Judicial Branch: Court of Appeal of Ghana"
+        ],
+        "listedAt": [
+          "2023-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Justice of the Court of Appeal; Status: active; Court: Court of Appeal of Ghana"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Senior Judicial Figure)"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0019",
+      "name": "Kwasi Anin-Yeboah",
+      "type": "Person",
+      "aliases": [
+        "Chief Justice Anin-Yeboah",
+        "Justice Anin-Yeboah",
+        "Anin-Yeboah"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Chief Justice of the Republic of Ghana (2020–2023)",
+          "Judicial Branch: Supreme Court of Ghana (Retired)"
+        ],
+        "listedAt": [
+          "2020-01-07"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Justice of the Republic of Ghana (2020–2023); Status: cooling_off; Court: Supreme Court of Ghana (Retired)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Judicial Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0020",
+      "name": "Sophia Akuffo",
+      "type": "Person",
+      "aliases": [
+        "Chief Justice Sophia Akuffo",
+        "Sophia A.B. Akuffo"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Chief Justice of the Republic of Ghana (2017–2019)",
+          "Judicial Branch: Supreme Court of Ghana (Retired)"
+        ],
+        "listedAt": [
+          "2017-06-19"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Justice of the Republic of Ghana (2017–2019); Status: cooling_off; Court: Supreme Court of Ghana (Retired)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Judicial Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-jud-0021",
+      "name": "Georgina Theodora Wood",
+      "type": "Person",
+      "aliases": [
+        "Chief Justice Georgina Wood",
+        "Georgina Wood"
+      ],
+      "source_reference": "https://judicial.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Chief Justice of the Republic of Ghana (2007–2017)",
+          "Judicial Branch: Supreme Court of Ghana (Retired)"
+        ],
+        "listedAt": [
+          "2007-06-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Chief Justice of the Republic of Ghana (2007–2017); Status: cooling_off; Court: Supreme Court of Ghana (Retired)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Judicial Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    }
+  ]
+}
