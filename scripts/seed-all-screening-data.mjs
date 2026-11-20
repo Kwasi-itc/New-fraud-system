@@ -84,7 +84,7 @@ async function main() {
 
   // 5. Activate Generations and Refresh Statistics
   console.log("\n[Step 5] Activating Generations and Refreshing Statistics...");
-  const activateQuery = `UPDATE screening.source_connections c SET verified_generation = d.active_generation, last_success_at = now(), last_error = '' FROM screening.source_datasets d WHERE (d.owner_scope, d.id) = (c.owner_scope, c.dataset_id) AND d.active_generation IS NOT NULL; SELECT screening.refresh_source_statistics_v1();`;
+  const activateQuery = `UPDATE screening.source_connections c SET verified_generation = d.active_generation, last_success_at = now(), last_error = '', rights_state = 'approved', enabled = true, max_stale = interval '30 days' FROM screening.source_datasets d WHERE (d.owner_scope, d.id) = (c.owner_scope, c.dataset_id) AND d.active_generation IS NOT NULL; SELECT screening.refresh_source_statistics_v1();`;
   run(
     `docker exec new-fraud-system-postgres-1 psql -U fraud -d fraud -c "${activateQuery}"`,
     "Activate & Refresh Statistics"

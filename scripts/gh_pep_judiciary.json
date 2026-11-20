@@ -3,7 +3,7 @@
   "source": "gh-pep-judiciary",
   "parser": "gh-pep-v1",
   "description": "Judicial Service of Ghana Senior Judicial Figures (Live Scraped via Scrapling)",
-  "last_scraped_at": "2026-11-20T14:06:10Z",
+  "last_scraped_at": "2026-11-20T14:09:35Z",
   "total_records": 22,
   "records": [
     {
@@ -11,9 +11,9 @@
       "name": "Kwasi Anin-Yeboah",
       "type": "Person",
       "aliases": [
+        "Anin-Yeboah",
         "Kwasi Anin-Yeboah",
-        "Justice Kwasi Anin-Yeboah",
-        "Anin-Yeboah"
+        "Justice Kwasi Anin-Yeboah"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -56,8 +56,8 @@
       "type": "Person",
       "aliases": [
         "Gertrude Torkornoo",
-        "Justice Gertrude Torkornoo",
-        "Torkornoo"
+        "Torkornoo",
+        "Justice Gertrude Torkornoo"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -99,9 +99,9 @@
       "name": "Paul Baffoe-Bonnie",
       "type": "Person",
       "aliases": [
-        "Justice Paul Baffoe-Bonnie",
         "Paul Baffoe-Bonnie",
-        "Baffoe-Bonnie"
+        "Baffoe-Bonnie",
+        "Justice Paul Baffoe-Bonnie"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -143,9 +143,9 @@
       "name": "Gabriel Pwamang",
       "type": "Person",
       "aliases": [
+        "Justice Gabriel Pwamang",
         "Pwamang",
-        "Gabriel Pwamang",
-        "Justice Gabriel Pwamang"
+        "Gabriel Pwamang"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -188,8 +188,8 @@
       "type": "Person",
       "aliases": [
         "Lovelace-Johnson",
-        "Justice Avril Lovelace-Johnson",
-        "Avril Lovelace-Johnson"
+        "Avril Lovelace-Johnson",
+        "Justice Avril Lovelace-Johnson"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -231,9 +231,9 @@
       "name": "Issifu Omoro Tanko Amadu",
       "type": "Person",
       "aliases": [
-        "Amadu",
         "Justice Issifu Omoro Tanko Amadu",
-        "Issifu Omoro Tanko Amadu"
+        "Issifu Omoro Tanko Amadu",
+        "Amadu"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -275,9 +275,9 @@
       "name": "Henrietta Mensa-Bonsu",
       "type": "Person",
       "aliases": [
-        "Justice Henrietta Mensa-Bonsu",
+        "Mensa-Bonsu",
         "Henrietta Mensa-Bonsu",
-        "Mensa-Bonsu"
+        "Justice Henrietta Mensa-Bonsu"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -319,8 +319,8 @@
       "name": "Yonny Kulendi",
       "type": "Person",
       "aliases": [
-        "Yonny Kulendi",
         "Kulendi",
+        "Yonny Kulendi",
         "Justice Yonny Kulendi"
       ],
       "source_reference": "https://judicial.gov.gh",
@@ -364,8 +364,8 @@
       "type": "Person",
       "aliases": [
         "Asiedu",
-        "Justice Samuel Adibu Asiedu",
-        "Samuel Adibu Asiedu"
+        "Samuel Adibu Asiedu",
+        "Justice Samuel Adibu Asiedu"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -407,9 +407,9 @@
       "name": "George Kingsley Koomson",
       "type": "Person",
       "aliases": [
-        "Koomson",
         "George Kingsley Koomson",
-        "Justice George Kingsley Koomson"
+        "Justice George Kingsley Koomson",
+        "Koomson"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -451,9 +451,9 @@
       "name": "Ernest Gaewu",
       "type": "Person",
       "aliases": [
+        "Justice Ernest Gaewu",
         "Gaewu",
-        "Ernest Gaewu",
-        "Justice Ernest Gaewu"
+        "Ernest Gaewu"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -539,9 +539,9 @@
       "name": "Yaw Darko Asare",
       "type": "Person",
       "aliases": [
+        "Yaw Darko Asare",
         "Asare",
-        "Justice Yaw Darko Asare",
-        "Yaw Darko Asare"
+        "Justice Yaw Darko Asare"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -583,9 +583,9 @@
       "name": "Richard Adjei-Frimpong",
       "type": "Person",
       "aliases": [
-        "Justice Richard Adjei-Frimpong",
         "Richard Adjei-Frimpong",
-        "Adjei-Frimpong"
+        "Adjei-Frimpong",
+        "Justice Richard Adjei-Frimpong"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -627,9 +627,9 @@
       "name": "Senyo Dzamefe",
       "type": "Person",
       "aliases": [
+        "Dzamefe",
         "Justice Senyo Dzamefe",
-        "Senyo Dzamefe",
-        "Dzamefe"
+        "Senyo Dzamefe"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -672,8 +672,8 @@
       "type": "Person",
       "aliases": [
         "Justice Dennis Dominic Adjei",
-        "Dennis Dominic Adjei",
-        "Adjei"
+        "Adjei",
+        "Dennis Dominic Adjei"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -715,9 +715,9 @@
       "name": "Gbiel Simon Suurbaareh",
       "type": "Person",
       "aliases": [
-        "Suurbaareh",
+        "Gbiel Simon Suurbaareh",
         "Justice Gbiel Simon Suurbaareh",
-        "Gbiel Simon Suurbaareh"
+        "Suurbaareh"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -759,9 +759,9 @@
       "name": "Janapare Bartels-Kodwo",
       "type": "Person",
       "aliases": [
-        "Janapare Bartels-Kodwo",
+        "Bartels-Kodwo",
         "Justice Janapare Bartels-Kodwo",
-        "Bartels-Kodwo"
+        "Janapare Bartels-Kodwo"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",
@@ -935,9 +935,9 @@
       "name": "Afia Serwah Asare-Botwe",
       "type": "Person",
       "aliases": [
+        "Afia Serwah Asare-Botwe",
         "Justice Afia Serwah Asare-Botwe",
-        "Asare-Botwe",
-        "Afia Serwah Asare-Botwe"
+        "Asare-Botwe"
       ],
       "source_reference": "https://judicial.gov.gh",
       "source_type": "pep_evidence",

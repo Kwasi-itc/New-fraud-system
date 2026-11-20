@@ -3,7 +3,7 @@
   "source": "gh-pep-party",
   "parser": "gh-pep-v1",
   "description": "Ghana Senior Political Party Officials (Live Scraped via Scrapling)",
-  "last_scraped_at": "2026-11-20T14:07:24Z",
+  "last_scraped_at": "2026-11-20T14:15:49Z",
   "total_records": 41,
   "records": [
     {
@@ -306,8 +306,8 @@
       "name": "Charles Dwamena",
       "type": "Person",
       "aliases": [
-        "Charles Dwamena",
-        "Dwamena"
+        "Dwamena",
+        "Charles Dwamena"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1148,8 +1148,8 @@
       "name": "Louisa Hannah Bissiw",
       "type": "Person",
       "aliases": [
-        "Bissiw",
-        "Louisa Hannah Bissiw"
+        "Louisa Hannah Bissiw",
+        "Bissiw"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1318,8 +1318,8 @@
       "name": "Peter Boamah Otokunor",
       "type": "Person",
       "aliases": [
-        "Otokunor",
-        "Peter Boamah Otokunor"
+        "Peter Boamah Otokunor",
+        "Otokunor"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1445,8 +1445,8 @@
       "name": "Nana Yaa Jantuah",
       "type": "Person",
       "aliases": [
-        "Jantuah",
-        "Nana Yaa Jantuah"
+        "Nana Yaa Jantuah",
+        "Jantuah"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
