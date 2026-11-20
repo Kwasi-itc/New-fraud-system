@@ -1,0 +1,914 @@
+{
+  "version": 2,
+  "source": "gh-pep-siga",
+  "parser": "gh-pep-v1",
+  "description": "State Interests and Governance Authority (Act 990) Apex Board & Management PEPs",
+  "last_crawled_at": "2026-11-20T11:31:34Z",
+  "total_records": 22,
+  "records": [
+    {
+      "id": "gh-pep-siga-0001",
+      "name": "Nancy Dakwa Ampofo",
+      "type": "Person",
+      "aliases": [
+        "Ampofo"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Chair, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Chair, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0002",
+      "name": "Michael Kpessa-Whyte",
+      "type": "Person",
+      "aliases": [
+        "Michael Kpessa-Whyte",
+        "Kpessa-Whyte"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Director-General, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Director-General, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0003",
+      "name": "Osei Poku",
+      "type": "Person",
+      "aliases": [
+        "Poku"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0004",
+      "name": "Anthony Selom Dzadra",
+      "type": "Person",
+      "aliases": [
+        "Dzadra"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0005",
+      "name": "Kwadwo Brantuo Mpeani",
+      "type": "Person",
+      "aliases": [
+        "Mpeani"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0006",
+      "name": "Peter Osei Asamoah",
+      "type": "Person",
+      "aliases": [
+        "Asamoah"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0007",
+      "name": "Richard Kwame Siaw",
+      "type": "Person",
+      "aliases": [
+        "Siaw"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0008",
+      "name": "Emefa Aku Ansah",
+      "type": "Person",
+      "aliases": [
+        "Emefa Aku Ansah",
+        "Ansah"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0009",
+      "name": "Vida Addae",
+      "type": "Person",
+      "aliases": [
+        "Addae"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Member, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0010",
+      "name": "Stephen Asamoah Boateng",
+      "type": "Person",
+      "aliases": [
+        "Boateng"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Director-General, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Director-General, State Interests and Governance Authority (SIGA); Status: cooling_off; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0011",
+      "name": "Edward Boateng",
+      "type": "Person",
+      "aliases": [
+        "Boateng"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Director-General, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Director-General, State Interests and Governance Authority (SIGA); Status: cooling_off; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0012",
+      "name": "Terrence Darko",
+      "type": "Person",
+      "aliases": [
+        "Darko"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former Board Chair, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former Board Chair, State Interests and Governance Authority (SIGA); Status: cooling_off; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0013",
+      "name": "Millicent Atuguba",
+      "type": "Person",
+      "aliases": [
+        "Atuguba"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "General Manager, Administration & Operations, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: General Manager, Administration & Operations, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0014",
+      "name": "Samuel Obeng Ankomah",
+      "type": "Person",
+      "aliases": [
+        "Ankomah"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Finance, State Interests and Governance Authority (SIGA)"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Finance, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0015",
+      "name": "Eric Bonsu Agyabeng",
+      "type": "Person",
+      "aliases": [
+        "Agyabeng"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Performance Monitoring & Evaluation (PME), SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Performance Monitoring & Evaluation (PME), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0016",
+      "name": "Eric Albert Opoku",
+      "type": "Person",
+      "aliases": [
+        "Opoku"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Governance, Risk & Compliance (GRC), SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Governance, Risk & Compliance (GRC), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0017",
+      "name": "Joshua Adofo Boanya",
+      "type": "Person",
+      "aliases": [
+        "Boanya"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Information & Communications Technology (ICT), SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Information & Communications Technology (ICT), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0018",
+      "name": "Joseph Sarpong",
+      "type": "Person",
+      "aliases": [
+        "Sarpong"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Investment & Divestiture, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Investment & Divestiture, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0019",
+      "name": "Brigitte Ainuson",
+      "type": "Person",
+      "aliases": [
+        "Ainuson"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Board Secretary & General Counsel, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Board Secretary & General Counsel, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0020",
+      "name": "Zakari Alhassan",
+      "type": "Person",
+      "aliases": [
+        "Alhassan"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Corporate Affairs, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Corporate Affairs, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0021",
+      "name": "Frank Akekyi",
+      "type": "Person",
+      "aliases": [
+        "Akekyi"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Internal Audit, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Internal Audit, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-siga-0022",
+      "name": "Andrew A. Laryea",
+      "type": "Person",
+      "aliases": [
+        "Laryea"
+      ],
+      "source_reference": "https://siga.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Head of Human Resources, SIGA"
+        ],
+        "listedAt": [
+          "2024-01-15"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Head of Human Resources, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
+        ],
+        "address": [
+          "Accra, Ghana"
+        ]
+      }
+    }
+  ]
+}
