@@ -2,20 +2,18 @@
   "version": 2,
   "source": "gh-pep-party",
   "parser": "gh-pep-v1",
-  "description": "Ghana Senior Political Party Officials (Act 1044 Sec 59(1)(f)) PEP Registry",
-  "last_updated_at": "2026-11-20T13:44:51.131Z",
-  "total_records": 34,
+  "description": "Ghana Senior Political Party Officials (Live Scraped via Scrapling)",
+  "last_scraped_at": "2026-11-20T14:07:24Z",
+  "total_records": 41,
   "records": [
     {
       "id": "gh-pep-party-0001",
-      "name": "Stephen Ayesu Ntim",
+      "name": "Mahamudu Bawumia",
       "type": "Person",
       "aliases": [
-        "Chairman Stephen Ntim",
-        "Stephen Ntim",
-        "Ntim"
+        "Bawumia"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -33,14 +31,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "National Chairman, New Patriotic Party (NPP)",
+          "Leader, New Patriotic Party (NPP)",
           "Political Party: New Patriotic Party (NPP)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Chairman, New Patriotic Party (NPP); Status: active; Party: NPP; Known Family: Richmond Ntim (Son)"
+          "Ghana PEP; Role: Leader, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -52,13 +50,12 @@
     },
     {
       "id": "gh-pep-party-0002",
-      "name": "Danquah Smith Buttey",
+      "name": "Stephen Ayensu Ntim",
       "type": "Person",
       "aliases": [
-        "Smith Buttey",
-        "Danquah Buttey"
+        "Ntim"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -76,14 +73,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "1st Vice Chairman, New Patriotic Party (NPP)",
+          "Chairman, New Patriotic Party (NPP)",
           "Political Party: New Patriotic Party (NPP)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: 1st Vice Chairman, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: Chairman, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -95,101 +92,12 @@
     },
     {
       "id": "gh-pep-party-0003",
-      "name": "Rita Talata Asobayire",
+      "name": "Justin Frimpong-Kodua",
       "type": "Person",
       "aliases": [
-        "Rita Asobayire",
-        "Talata Asobayire"
+        "Frimpong-Kodua"
       ],
-      "source_reference": "https://newpatrioticparty.org",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Active Office Holder",
-          "2nd Vice Chairperson, New Patriotic Party (NPP)",
-          "Political Party: New Patriotic Party (NPP)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: 2nd Vice Chairperson, New Patriotic Party (NPP); Status: active; Party: NPP"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-party-0004",
-      "name": "Alhaji Masawudu Osman",
-      "type": "Person",
-      "aliases": [
-        "Masawudu Osman",
-        "Alhaji Masawudu"
-      ],
-      "source_reference": "https://newpatrioticparty.org",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Active Office Holder",
-          "3rd Vice Chairman, New Patriotic Party (NPP)",
-          "Political Party: New Patriotic Party (NPP)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: 3rd Vice Chairman, New Patriotic Party (NPP); Status: active; Party: NPP"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-party-0005",
-      "name": "Justin Kodua Frimpong",
-      "type": "Person",
-      "aliases": [
-        "JFK",
-        "Justin Frimpong Kodua",
-        "Lawyer Justin Kodua",
-        "Kodua Frimpong"
-      ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -214,7 +122,91 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: General Secretary, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: General Secretary, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0004",
+      "name": "Danquah Smith Buttey",
+      "type": "Person",
+      "aliases": [
+        "Buttey"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "1st Vice Chairman, New Patriotic Party (NPP)",
+          "Political Party: New Patriotic Party (NPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: 1st Vice Chairman, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0005",
+      "name": "Rita Talata Asobayire",
+      "type": "Person",
+      "aliases": [
+        "Asobayire"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "2nd Vice Chairperson, New Patriotic Party (NPP)",
+          "Political Party: New Patriotic Party (NPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: 2nd Vice Chairperson, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -226,14 +218,55 @@
     },
     {
       "id": "gh-pep-party-0006",
+      "name": "Alhaji Masawudu Osman",
+      "type": "Person",
+      "aliases": [
+        "Osman"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "3rd Vice Chairman, New Patriotic Party (NPP)",
+          "Political Party: New Patriotic Party (NPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: 3rd Vice Chairman, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0007",
       "name": "Henry Nana Boakye",
       "type": "Person",
       "aliases": [
-        "Nana B",
-        "Henry Boakye",
-        "Lawyer Nana Boakye"
+        "Henry Nana Boakye",
+        "Boakye"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -258,7 +291,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Organiser, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: National Organiser, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -269,14 +302,14 @@
       }
     },
     {
-      "id": "gh-pep-party-0007",
-      "name": "Dr. Charles Dwamena",
+      "id": "gh-pep-party-0008",
+      "name": "Charles Dwamena",
       "type": "Person",
       "aliases": [
-        "Dr. China",
-        "Charles Dwamena"
+        "Charles Dwamena",
+        "Dwamena"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -301,7 +334,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Treasurer, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: National Treasurer, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -312,14 +345,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0008",
+      "id": "gh-pep-party-0009",
       "name": "Kate Gyamfua",
       "type": "Person",
       "aliases": [
-        "Madam Kate Gyamfua",
         "Gyamfua"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -344,7 +376,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Women's Organiser, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: National Women's Organiser, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -355,14 +387,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0009",
+      "id": "gh-pep-party-0010",
       "name": "Salam Mohammed Mustapha",
       "type": "Person",
       "aliases": [
-        "Salam Mustapha",
-        "Commander Salam"
+        "Mustapha"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -387,7 +418,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Youth Organiser, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: National Youth Organiser, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -398,14 +429,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0010",
+      "id": "gh-pep-party-0011",
       "name": "Abdul Aziz Haruna Futa",
       "type": "Person",
       "aliases": [
-        "Aziz Futa",
-        "Alhaji Aziz Futa"
+        "Futa"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -430,7 +460,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Nasara Coordinator, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: National Nasara Coordinator, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -441,13 +471,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0011",
+      "id": "gh-pep-party-0012",
       "name": "Richard Ahiagbah",
       "type": "Person",
       "aliases": [
         "Ahiagbah"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -472,7 +502,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Director of Communications, New Patriotic Party (NPP); Status: active; Party: NPP"
+          "Ghana PEP; Role: Director of Communications, New Patriotic Party (NPP); Status: active; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -483,14 +513,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0012",
+      "id": "gh-pep-party-0013",
       "name": "Freddie Blay",
       "type": "Person",
       "aliases": [
-        "Frederick Worsemao Armah Blay",
-        "Chairman Blay"
+        "Blay"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -508,56 +537,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Former Official (AML Cooling-Off)",
-          "Former National Chairman, New Patriotic Party (NPP) (2018–2022)",
+          "Former National Chairman (2018–2022), New Patriotic Party (NPP)",
           "Political Party: New Patriotic Party (NPP)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Former National Chairman, New Patriotic Party (NPP) (2018–2022); Status: cooling_off; Party: NPP"
-        ],
-        "sanctionsImposed": [
-          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-party-0013",
-      "name": "John Boadu",
-      "type": "Person",
-      "aliases": [
-        "Boadu"
-      ],
-      "source_reference": "https://newpatrioticparty.org",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Former Official (AML Cooling-Off)",
-          "Former General Secretary, New Patriotic Party (NPP) (2018–2022)",
-          "Political Party: New Patriotic Party (NPP)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: Former General Secretary, New Patriotic Party (NPP) (2018–2022); Status: cooling_off; Party: NPP"
+          "Ghana PEP; Role: Former National Chairman (2018–2022), New Patriotic Party (NPP); Status: cooling_off; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
@@ -569,13 +556,12 @@
     },
     {
       "id": "gh-pep-party-0014",
-      "name": "Sammi Awuku",
+      "name": "John Boadu",
       "type": "Person",
       "aliases": [
-        "Samuel Awuku",
-        "Boys Abre"
+        "Boadu"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -593,14 +579,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Former Official (AML Cooling-Off)",
-          "Former National Organiser, New Patriotic Party (NPP) (2018–2022)",
+          "Former General Secretary (2018–2022), New Patriotic Party (NPP)",
           "Political Party: New Patriotic Party (NPP)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Former National Organiser, New Patriotic Party (NPP) (2018–2022); Status: cooling_off; Party: NPP"
+          "Ghana PEP; Role: Former General Secretary (2018–2022), New Patriotic Party (NPP); Status: cooling_off; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
@@ -612,12 +598,54 @@
     },
     {
       "id": "gh-pep-party-0015",
+      "name": "Sammi Awuku",
+      "type": "Person",
+      "aliases": [
+        "Awuku"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Former Official (AML Cooling-Off)",
+          "Former National Organiser (2018–2022), New Patriotic Party (NPP)",
+          "Political Party: New Patriotic Party (NPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Former National Organiser (2018–2022), New Patriotic Party (NPP); Status: cooling_off; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0016",
       "name": "Kwabena Abankwah Yeboah",
       "type": "Person",
       "aliases": [
-        "Abankwah Yeboah"
+        "Yeboah"
       ],
-      "source_reference": "https://newpatrioticparty.org",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -642,7 +670,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Former National Treasurer, New Patriotic Party (NPP); Status: cooling_off; Party: NPP"
+          "Ghana PEP; Role: Former National Treasurer, New Patriotic Party (NPP); Status: cooling_off; Party: NPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
@@ -653,58 +681,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0016",
-      "name": "Johnson Asiedu Nketiah",
-      "type": "Person",
-      "aliases": [
-        "General Mosquito",
-        "Asiedu Nketiah",
-        "Chairman Asiedu Nketiah"
-      ],
-      "source_reference": "https://ndc.org.gh",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Active Office Holder",
-          "National Chairman, National Democratic Congress (NDC)",
-          "Political Party: National Democratic Congress (NDC)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: National Chairman, National Democratic Congress (NDC); Status: active; Party: NDC; Known Family: Charles Asiedu (Son)"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
       "id": "gh-pep-party-0017",
-      "name": "Awudu Sofo Azorka",
+      "name": "John Mahama",
       "type": "Person",
       "aliases": [
-        "Chief Azorka",
-        "Sofo Azorka"
+        "Mahama"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -722,14 +705,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "1st National Vice Chairman, National Democratic Congress (NDC)",
+          "Leader, National Democratic Congress (NDC)",
           "Political Party: National Democratic Congress (NDC)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: 1st National Vice Chairman, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Leader, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -741,12 +724,12 @@
     },
     {
       "id": "gh-pep-party-0018",
-      "name": "Abanga Yakubu Alhassan",
+      "name": "Asiedu Nketia",
       "type": "Person",
       "aliases": [
-        "Yakubu Alhassan"
+        "Nketia"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -764,14 +747,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "National Vice Chairman, National Democratic Congress (NDC)",
+          "Chairperson, National Democratic Congress (NDC)",
           "Political Party: National Democratic Congress (NDC)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Vice Chairman, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Chairperson, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -783,13 +766,12 @@
     },
     {
       "id": "gh-pep-party-0019",
-      "name": "Fifi Fiavi Kwetey",
+      "name": "Fifi Kwetey",
       "type": "Person",
       "aliases": [
-        "Fifi Kwetey",
-        "Fiavi Kwetey"
+        "Kwetey"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -814,7 +796,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: General Secretary, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: General Secretary, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -826,12 +808,96 @@
     },
     {
       "id": "gh-pep-party-0020",
+      "name": "Awudu Sofo Azorka",
+      "type": "Person",
+      "aliases": [
+        "Azorka"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "1st National Vice Chairman, National Democratic Congress (NDC)",
+          "Political Party: National Democratic Congress (NDC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: 1st National Vice Chairman, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0021",
+      "name": "Abanga Yakubu Alhassan",
+      "type": "Person",
+      "aliases": [
+        "Alhassan"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "National Vice Chairman, National Democratic Congress (NDC)",
+          "Political Party: National Democratic Congress (NDC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: National Vice Chairman, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0022",
       "name": "Mustapha Gbande",
       "type": "Person",
       "aliases": [
         "Gbande"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -856,7 +922,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Deputy General Secretary (Operations), National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Deputy General Secretary (Operations), National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -867,13 +933,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0021",
+      "id": "gh-pep-party-0023",
       "name": "Barbara Serwaa Asamoah",
       "type": "Person",
       "aliases": [
-        "Barbara Asamoah"
+        "Asamoah"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -898,7 +964,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Deputy General Secretary (Administration), National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Deputy General Secretary (Administration), National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -909,13 +975,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0022",
+      "id": "gh-pep-party-0024",
       "name": "Joseph Yamin",
       "type": "Person",
       "aliases": [
         "Yamin"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -940,7 +1006,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Organiser, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: National Organiser, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -951,13 +1017,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0023",
+      "id": "gh-pep-party-0025",
       "name": "Alex Kyeremeh",
       "type": "Person",
       "aliases": [
         "Kyeremeh"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -982,7 +1048,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Treasurer, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: National Treasurer, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -993,13 +1059,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0024",
+      "id": "gh-pep-party-0026",
       "name": "Thomas Hughes Amissah",
       "type": "Person",
       "aliases": [
-        "Hughes Amissah"
+        "Amissah"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1024,7 +1090,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Deputy National Treasurer, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Deputy National Treasurer, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1035,14 +1101,14 @@
       }
     },
     {
-      "id": "gh-pep-party-0025",
+      "id": "gh-pep-party-0027",
       "name": "George Opare Addo",
       "type": "Person",
       "aliases": [
-        "Pablo",
-        "Opare Addo"
+        "Addo",
+        "George Opare Addo"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1067,7 +1133,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Youth Organiser, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: National Youth Organiser, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1078,14 +1144,14 @@
       }
     },
     {
-      "id": "gh-pep-party-0026",
-      "name": "Dr. Louisa Hannah Bissiw",
+      "id": "gh-pep-party-0028",
+      "name": "Louisa Hannah Bissiw",
       "type": "Person",
       "aliases": [
-        "Hannah Bissiw",
-        "Dr. Hannah Bissiw"
+        "Bissiw",
+        "Louisa Hannah Bissiw"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1110,7 +1176,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Women's Organiser, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: National Women's Organiser, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1121,14 +1187,14 @@
       }
     },
     {
-      "id": "gh-pep-party-0027",
+      "id": "gh-pep-party-0029",
       "name": "Sammy Gyamfi",
       "type": "Person",
       "aliases": [
-        "Sammy Gyamfi, Esq.",
-        "Lawyer Sammy Gyamfi"
+        "Sammy Gyamfi",
+        "Gyamfi"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1153,7 +1219,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Communications Officer, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: National Communications Officer, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1164,13 +1230,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0028",
+      "id": "gh-pep-party-0030",
       "name": "Malik Basintale",
       "type": "Person",
       "aliases": [
         "Basintale"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1195,7 +1261,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Deputy National Communications Officer, National Democratic Congress (NDC); Status: active; Party: NDC"
+          "Ghana PEP; Role: Deputy National Communications Officer, National Democratic Congress (NDC); Status: active; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1206,14 +1272,13 @@
       }
     },
     {
-      "id": "gh-pep-party-0029",
+      "id": "gh-pep-party-0031",
       "name": "Samuel Ofosu-Ampofo",
       "type": "Person",
       "aliases": [
-        "Elder Ofosu-Ampofo",
-        "Ofosu Ampofo"
+        "Ofosu-Ampofo"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1231,14 +1296,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Former Official (AML Cooling-Off)",
-          "Former National Chairman, National Democratic Congress (NDC) (2018–2022)",
+          "Former National Chairman (2018–2022), National Democratic Congress (NDC)",
           "Political Party: National Democratic Congress (NDC)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Former National Chairman, National Democratic Congress (NDC) (2018–2022); Status: cooling_off; Party: NDC"
+          "Ghana PEP; Role: Former National Chairman (2018–2022), National Democratic Congress (NDC); Status: cooling_off; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
@@ -1249,14 +1314,14 @@
       }
     },
     {
-      "id": "gh-pep-party-0030",
+      "id": "gh-pep-party-0032",
       "name": "Peter Boamah Otokunor",
       "type": "Person",
       "aliases": [
-        "Dr. Peter Otokunor",
-        "Otokunor"
+        "Otokunor",
+        "Peter Boamah Otokunor"
       ],
-      "source_reference": "https://ndc.org.gh",
+      "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -1281,92 +1346,7 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Former Deputy General Secretary, National Democratic Congress (NDC); Status: cooling_off; Party: NDC"
-        ],
-        "sanctionsImposed": [
-          "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-party-0031",
-      "name": "Nana Frimpomaa Sarpong Kumankumah",
-      "type": "Person",
-      "aliases": [
-        "Nana Frimpomaa",
-        "Kumankumah"
-      ],
-      "source_reference": "https://ec.gov.gh",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Active Office Holder",
-          "National Chairperson and Leader, Convention People's Party (CPP)",
-          "Political Party: Convention People's Party (CPP)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: National Chairperson and Leader, Convention People's Party (CPP); Status: active; Party: CPP"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
-        ],
-        "address": [
-          "Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-party-0032",
-      "name": "Nana Yaa Jantuah",
-      "type": "Person",
-      "aliases": [
-        "Yaa Jantuah"
-      ],
-      "source_reference": "https://ec.gov.gh",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Former Official (AML Cooling-Off)",
-          "Former General Secretary, Convention People's Party (CPP)",
-          "Political Party: Convention People's Party (CPP)"
-        ],
-        "listedAt": [
-          "2024-01-01"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: Former General Secretary, Convention People's Party (CPP); Status: cooling_off; Party: CPP"
+          "Ghana PEP; Role: Former Deputy General Secretary, National Democratic Congress (NDC); Status: cooling_off; Party: NDC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
@@ -1378,10 +1358,10 @@
     },
     {
       "id": "gh-pep-party-0033",
-      "name": "Moses Dani Baah",
+      "name": "Nana Akosua Frimpomaa Sarpong-Kumankumah National Executive Committee Interim Leadership",
       "type": "Person",
       "aliases": [
-        "Dani Baah"
+        "Leadership"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1401,14 +1381,14 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "National Chairman, People's National Convention (PNC)",
-          "Political Party: People's National Convention (PNC)"
+          "Leader, Convention People's Party (CPP)",
+          "Political Party: Convention People's Party (CPP)"
         ],
         "listedAt": [
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: National Chairman, People's National Convention (PNC); Status: active; Party: PNC"
+          "Ghana PEP; Role: Leader, Convention People's Party (CPP); Status: active; Party: CPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
@@ -1420,10 +1400,179 @@
     },
     {
       "id": "gh-pep-party-0034",
-      "name": "Janet Asana Nabla",
+      "name": "Nana Akosua Frimpomaa Sarpong-Kumankumah",
       "type": "Person",
       "aliases": [
-        "Janet Nabla"
+        "Sarpong-Kumankumah"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chairman, Convention People's Party (CPP)",
+          "Political Party: Convention People's Party (CPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chairman, Convention People's Party (CPP); Status: active; Party: CPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0035",
+      "name": "Nana Yaa Jantuah",
+      "type": "Person",
+      "aliases": [
+        "Jantuah",
+        "Nana Yaa Jantuah"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "General Secretary, Convention People's Party (CPP)",
+          "Political Party: Convention People's Party (CPP)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: General Secretary, Convention People's Party (CPP); Status: active; Party: CPP; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0036",
+      "name": "Bernard Anbataayela Mornah",
+      "type": "Person",
+      "aliases": [
+        "Mornah"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Leader, People's National Convention (PNC)",
+          "Political Party: People's National Convention (PNC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Leader, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0037",
+      "name": "Samson Asaki Awingobit",
+      "type": "Person",
+      "aliases": [
+        "Awingobit"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "Chairman, People's National Convention (PNC)",
+          "Political Party: People's National Convention (PNC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: Chairman, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0038",
+      "name": "Awudulai Ishaq",
+      "type": "Person",
+      "aliases": [
+        "Ishaq"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1450,7 +1599,133 @@
           "2024-01-01"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: General Secretary, People's National Convention (PNC); Status: active; Party: PNC"
+          "Ghana PEP; Role: General Secretary, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0039",
+      "name": "Martin Anafo",
+      "type": "Person",
+      "aliases": [
+        "Anafo"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "1st Vice Chairman, People's National Convention (PNC)",
+          "Political Party: People's National Convention (PNC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: 1st Vice Chairman, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0040",
+      "name": "Moses Dani Baah",
+      "type": "Person",
+      "aliases": [
+        "Baah"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "National Chairman, People's National Convention (PNC)",
+          "Political Party: People's National Convention (PNC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: National Chairman, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
+        ],
+        "sanctionsImposed": [
+          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
+        ],
+        "address": [
+          "Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-party-0041",
+      "name": "Janet Asana Nabla",
+      "type": "Person",
+      "aliases": [
+        "Nabla"
+      ],
+      "source_reference": "https://ec.gov.gh",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "nationality": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "nationalityText": [
+          "Ghanaian"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Active Office Holder",
+          "General Secretary, People's National Convention (PNC)",
+          "Political Party: People's National Convention (PNC)"
+        ],
+        "listedAt": [
+          "2024-01-01"
+        ],
+        "sourceStatus": [
+          "Ghana PEP; Role: General Secretary, People's National Convention (PNC); Status: active; Party: PNC; Statutory Mandate: Act 1044 Sec 59(1)(f)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening (Section 59(1)(f))"
