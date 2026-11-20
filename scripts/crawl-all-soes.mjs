@@ -116,7 +116,6 @@ async function run() {
       version: 2,
       source: 'gh-pep-soe',
       parser: 'gh-pep-v1',
-      total_records: repoRecords.length,
       records: repoRecords
     }, null, 2));
     console.log(`\n[✓] Ingested ${mergedCount} new Scrapling-crawled SIGA leadership PEPs into gh_pep_soe.json`);

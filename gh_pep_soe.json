@@ -2,7 +2,6 @@
   "version": 2,
   "source": "gh-pep-soe",
   "parser": "gh-pep-v1",
-  "total_records": 80,
   "records": [
     {
       "id": "gh-pep-soe-001",
@@ -2146,10 +2145,11 @@
       }
     },
     {
-      "id": "gh-pep-siga-0001",
+      "id": "gh-pep-soe-0001",
       "name": "Nancy Dakwa Ampofo",
       "type": "Person",
       "aliases": [
+        "Nancy Dakwa Ampofo",
         "Ampofo"
       ],
       "source_reference": "https://siga.gov.gh",
@@ -2187,8 +2187,8 @@
       }
     },
     {
-      "id": "gh-pep-siga-0003",
-      "name": "Osei Poku",
+      "id": "gh-pep-soe-0003",
+      "name": "Mr Osei Poku",
       "type": "Person",
       "aliases": [
         "Poku"
@@ -2228,7 +2228,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0004",
+      "id": "gh-pep-soe-0004",
       "name": "Anthony Selom Dzadra",
       "type": "Person",
       "aliases": [
@@ -2269,7 +2269,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0005",
+      "id": "gh-pep-soe-0005",
       "name": "Kwadwo Brantuo Mpeani",
       "type": "Person",
       "aliases": [
@@ -2310,7 +2310,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0006",
+      "id": "gh-pep-soe-0006",
       "name": "Peter Osei Asamoah",
       "type": "Person",
       "aliases": [
@@ -2351,7 +2351,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0007",
+      "id": "gh-pep-soe-0007",
       "name": "Richard Kwame Siaw",
       "type": "Person",
       "aliases": [
@@ -2392,7 +2392,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0008",
+      "id": "gh-pep-soe-0008",
       "name": "Emefa Aku Ansah",
       "type": "Person",
       "aliases": [
@@ -2434,7 +2434,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0009",
+      "id": "gh-pep-soe-0009",
       "name": "Vida Addae",
       "type": "Person",
       "aliases": [
@@ -2475,7 +2475,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0010",
+      "id": "gh-pep-soe-0010",
       "name": "Stephen Asamoah Boateng",
       "type": "Person",
       "aliases": [
@@ -2516,7 +2516,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0011",
+      "id": "gh-pep-soe-0011",
       "name": "Edward Boateng",
       "type": "Person",
       "aliases": [
@@ -2557,7 +2557,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0012",
+      "id": "gh-pep-soe-0012",
       "name": "Terrence Darko",
       "type": "Person",
       "aliases": [
@@ -2598,7 +2598,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0013",
+      "id": "gh-pep-soe-0013",
       "name": "Millicent Atuguba",
       "type": "Person",
       "aliases": [
@@ -2622,13 +2622,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "General Manager, Administration & Operations, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: General Manager, Administration & Operations, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2639,7 +2639,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0014",
+      "id": "gh-pep-soe-0014",
       "name": "Samuel Obeng Ankomah",
       "type": "Person",
       "aliases": [
@@ -2663,13 +2663,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Finance, State Interests and Governance Authority (SIGA)"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Finance, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2680,7 +2680,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0015",
+      "id": "gh-pep-soe-0015",
       "name": "Eric Bonsu Agyabeng",
       "type": "Person",
       "aliases": [
@@ -2704,13 +2704,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Performance Monitoring & Evaluation (PME), SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Performance Monitoring & Evaluation (PME), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2721,7 +2721,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0016",
+      "id": "gh-pep-soe-0016",
       "name": "Eric Albert Opoku",
       "type": "Person",
       "aliases": [
@@ -2745,13 +2745,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Governance, Risk & Compliance (GRC), SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Governance, Risk & Compliance (GRC), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2762,7 +2762,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0017",
+      "id": "gh-pep-soe-0017",
       "name": "Joshua Adofo Boanya",
       "type": "Person",
       "aliases": [
@@ -2786,13 +2786,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Information & Communications Technology (ICT), SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Information & Communications Technology (ICT), SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2803,7 +2803,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0018",
+      "id": "gh-pep-soe-0018",
       "name": "Joseph Sarpong",
       "type": "Person",
       "aliases": [
@@ -2827,13 +2827,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Investment & Divestiture, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Investment & Divestiture, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2844,7 +2844,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0019",
+      "id": "gh-pep-soe-0019",
       "name": "Brigitte Ainuson",
       "type": "Person",
       "aliases": [
@@ -2868,13 +2868,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Board Secretary & General Counsel, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Board Secretary & General Counsel, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2885,7 +2885,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0020",
+      "id": "gh-pep-soe-0020",
       "name": "Zakari Alhassan",
       "type": "Person",
       "aliases": [
@@ -2909,13 +2909,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Corporate Affairs, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Corporate Affairs, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2926,7 +2926,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0021",
+      "id": "gh-pep-soe-0021",
       "name": "Frank Akekyi",
       "type": "Person",
       "aliases": [
@@ -2950,13 +2950,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Internal Audit, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Internal Audit, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -2967,7 +2967,7 @@
       }
     },
     {
-      "id": "gh-pep-siga-0022",
+      "id": "gh-pep-soe-0022",
       "name": "Andrew A. Laryea",
       "type": "Person",
       "aliases": [
@@ -2991,13 +2991,13 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Active Office Holder",
-          "Head of Human Resources, SIGA"
+          "Senior Executive, State Interests and Governance Authority (SIGA)"
         ],
         "listedAt": [
           "2024-01-15"
         ],
         "sourceStatus": [
-          "Ghana PEP; Role: Head of Human Resources, SIGA; Status: active; Oversight: State Interests and Governance Authority (Act 990)"
+          "Ghana PEP; Role: Senior Executive, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
         ],
         "sanctionsImposed": [
           "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
@@ -3333,47 +3333,6 @@
         ],
         "sanctionsImposed": [
           "Statutory 1-Year AML Cooling-Off Period (Act 1044); Monitored Status"
-        ],
-        "address": [
-          "Accra, Ghana"
-        ]
-      }
-    },
-    {
-      "id": "gh-pep-soe-0003",
-      "name": "Mr Osei Poku",
-      "type": "Person",
-      "aliases": [
-        "Poku"
-      ],
-      "source_reference": "https://siga.gov.gh",
-      "source_type": "pep_evidence",
-      "properties": {
-        "country": [
-          "gh"
-        ],
-        "nationality": [
-          "gh"
-        ],
-        "countryText": [
-          "Ghana"
-        ],
-        "nationalityText": [
-          "Ghanaian"
-        ],
-        "programs": [
-          "Politically Exposed Person (PEP)",
-          "Active Office Holder",
-          "Board Member, State Interests and Governance Authority (SIGA)"
-        ],
-        "listedAt": [
-          "2024-01-15"
-        ],
-        "sourceStatus": [
-          "Ghana PEP; Role: Board Member, State Interests and Governance Authority (SIGA); Status: active; Oversight: State Interests and Governance Authority (Act 990)"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active PEP Screening"
         ],
         "address": [
           "Accra, Ghana"

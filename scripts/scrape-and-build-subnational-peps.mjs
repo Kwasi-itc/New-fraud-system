@@ -378,9 +378,13 @@ function transformParties(items) {
   };
 }
 
-// 2. Build and write Political Parties Fixture
-const partiesFixture = transformParties(politicalPartyPeps);
-fs.writeFileSync("gh_pep_parties.json", JSON.stringify(partiesFixture, null, 2), "utf8");
-console.log(`[Sub-National Builder] Saved gh_pep_parties.json (${partiesFixture.records.length} records).`);
+// 2. Build and write Political Parties Fixture only if not already present with richer active records
+if (!fs.existsSync("gh_pep_parties.json") || JSON.parse(fs.readFileSync("gh_pep_parties.json")).records.length <= politicalPartyPeps.length) {
+  const partiesFixture = transformParties(politicalPartyPeps);
+  fs.writeFileSync("gh_pep_parties.json", JSON.stringify(partiesFixture, null, 2), "utf8");
+  console.log(`[Sub-National Builder] Saved gh_pep_parties.json (${partiesFixture.records.length} records).`);
+} else {
+  console.log(`[Sub-National Builder] Keeping existing richer gh_pep_parties.json with ${JSON.parse(fs.readFileSync("gh_pep_parties.json")).records.length} records.`);
+}
 
 console.log("[Sub-National Builder] SUCCESS! Completed compilation for all 261 MMDCEs, Regional Ministers, and Political Parties.");

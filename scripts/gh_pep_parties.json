@@ -1,10 +1,7 @@
 {
   "version": 2,
-  "source": "gh-pep-party",
+  "source": "gh-pep-parties",
   "parser": "gh-pep-v1",
-  "description": "Ghana Senior Political Party Officials (Live Scraped via Scrapling)",
-  "last_scraped_at": "2026-11-20T14:15:49Z",
-  "total_records": 41,
   "records": [
     {
       "id": "gh-pep-party-0001",
@@ -1105,8 +1102,8 @@
       "name": "George Opare Addo",
       "type": "Person",
       "aliases": [
-        "Addo",
-        "George Opare Addo"
+        "George Opare Addo",
+        "Addo"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",
@@ -1191,8 +1188,8 @@
       "name": "Sammy Gyamfi",
       "type": "Person",
       "aliases": [
-        "Sammy Gyamfi",
-        "Gyamfi"
+        "Gyamfi",
+        "Sammy Gyamfi"
       ],
       "source_reference": "https://ec.gov.gh",
       "source_type": "pep_evidence",

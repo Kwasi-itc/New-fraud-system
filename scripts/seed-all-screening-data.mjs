@@ -35,31 +35,40 @@ async function main() {
   console.log("          SCREENING MODULE - AUTOMATED PEP SEEDING & INGESTION PIPELINE         ");
   console.log("================================================================================");
 
-  // 1. Optional Live Web Crawling
+  // 1. Build Canonical Base JSON Fixtures
+  console.log("\n[Step 1] Building Canonical JSON Fixtures...");
+  run("node scripts/build-unified-ghana-peps.mjs", "Core Ghana PEP Builder (Executive, MPs, SOEs, RCAs)");
+  run("node scripts/scrape-and-build-subnational-peps.mjs", "Sub-National & Political Party Builder");
+
+  // 2. Live Crawlers / Registry Enrichers
   if (shouldCrawl) {
-    console.log("\n[Step 1] Running Live Web Crawlers...");
+    console.log("\n[Step 2] Running Live Web Crawlers...");
     run("node scripts/crawl-all-parliament-mps.mjs", "Live Parliament Web Crawler");
     run("node scripts/sync-wikidata-ghana.mjs", "Wikidata SPARQL Knowledge Graph Fetcher");
+    run("node scripts/crawl-all-soes.mjs", "State-Owned Enterprises Live Crawler");
     run("node scripts/crawl-political-parties.mjs", "Senior Political Party Officials Crawler");
     run("node scripts/crawl-judiciary.mjs", "Judicial Service Senior Figures Crawler");
   } else {
-    console.log("\n[Step 1] Using existing or generated entity fixtures (pass --crawl for live scraping).");
+    console.log("\n[Step 2] Enriching with live scrapers & verified rosters...");
+    run("node scripts/crawl-all-soes.mjs", "State-Owned Enterprises Live Crawler");
     run("node scripts/crawl-political-parties.mjs", "Senior Political Party Officials Registry");
     run("node scripts/crawl-judiciary.mjs", "Judicial Service Senior Figures Registry");
   }
 
-  // 2. Build Canonical JSON Fixtures
-  console.log("\n[Step 2] Building Canonical JSON Fixtures...");
-  run("node scripts/build-unified-ghana-peps.mjs", "Core Ghana PEP Builder (Executive, MPs, SOEs, RCAs)");
-  run("node scripts/scrape-and-build-subnational-peps.mjs", "Sub-National & Political Party Builder");
-
   // 3. Register Datasets in PostgreSQL
   console.log("\n[Step 3] Registering Datasets & Tenant Grants in PostgreSQL...");
   const registerSql = path.join(__dirname, "register-all-ghana-peps.sql");
-  if (process.platform === "win32") {
-    run(`Get-Content scripts/register-all-ghana-peps.sql -Raw | docker exec -i new-fraud-system-postgres-1 psql -U fraud -d fraud`, "Register Datasets SQL (Win)");
-  } else {
-    run(`docker exec -i new-fraud-system-postgres-1 psql -U fraud -d fraud < scripts/register-all-ghana-peps.sql`, "Register Datasets SQL");
+  try {
+    const sqlContent = fs.readFileSync(registerSql, "utf8");
+    execSync("docker exec -i new-fraud-system-postgres-1 psql -U fraud -d fraud", {
+      cwd: ROOT_DIR,
+      input: sqlContent,
+      encoding: "utf8",
+      stdio: ["pipe", "inherit", "inherit"]
+    });
+  } catch (err) {
+    console.error("ERROR registering SQL datasets:", err.message);
+    process.exit(1);
   }
 
   // 4. Ingest All 6 Datasets

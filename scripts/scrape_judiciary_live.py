@@ -199,9 +199,6 @@ def main():
         "version": 2,
         "source": "gh-pep-judiciary",
         "parser": "gh-pep-v1",
-        "description": "Judicial Service of Ghana Senior Judicial Figures (Live Scraped via Scrapling)",
-        "last_scraped_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "total_records": len(pep_records),
         "records": pep_records
     }
 
