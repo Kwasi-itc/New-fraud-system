@@ -27,7 +27,7 @@ if [ ! -f "gh_pep_local_gov.json" ] || [ ! -f "gh_pep_parties.json" ]; then
 fi
 
 echo "==> [2/5] Registering datasets and tenant grants in PostgreSQL..."
-docker exec -i "$POSTGRES_CONTAINER" psql -U fraud -d fraud < "$SCRIPT_DIR/register-all-ghana-peps.sql"
+docker exec -i "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -U fraud -d fraud < "$SCRIPT_DIR/register-all-ghana-peps.sql"
 
 echo "==> [3/5] Copying fixtures into screening-service container..."
 docker cp gh_pep_executive.json "$SCREENING_CONTAINER:/tmp/gh_pep_executive.json"
@@ -36,19 +36,30 @@ docker cp gh_pep_soe.json "$SCREENING_CONTAINER:/tmp/gh_pep_soe.json"
 docker cp gh_pep_rca.json "$SCREENING_CONTAINER:/tmp/gh_pep_rca.json"
 docker cp gh_pep_local_gov.json "$SCREENING_CONTAINER:/tmp/gh_pep_local_gov.json"
 docker cp gh_pep_parties.json "$SCREENING_CONTAINER:/tmp/gh_pep_parties.json"
+docker cp gh_pep_judiciary.json "$SCREENING_CONTAINER:/tmp/gh_pep_judiciary.json"
+docker cp worldbank_fixture.json "$SCREENING_CONTAINER:/tmp/worldbank_fixture.json"
 
 echo "==> [4/5] Ingesting all datasets via screening-service /app/source-import..."
-for dataset in gh-pep-executive gh-pep-parliament gh-pep-soe gh-pep-rca gh-pep-local-gov gh-pep-parties; do
+for dataset in gh-pep-executive gh-pep-parliament gh-pep-soe gh-pep-rca gh-pep-local-gov gh-pep-parties gh-pep-judiciary; do
     file_name="${dataset//-/_}.json"
     echo "    Ingesting $dataset from /tmp/$file_name..."
     docker exec -e SOURCE_DATABASE_URL="$DATABASE_URL" "$SCREENING_CONTAINER" \
-        /app/source-import -file "/tmp/$file_name" -dataset "$dataset"
+        /app/source-import -file "/tmp/$file_name" -dataset "$dataset" -snapshot-reference "Local Ghana PEP snapshot intake: $file_name"
 done
+
+echo "    Ingesting worldbank-debarred from /tmp/worldbank_fixture.json..."
+docker exec -e SOURCE_DATABASE_URL="$DATABASE_URL" "$SCREENING_CONTAINER" \
+    /app/source-import -file "/tmp/worldbank_fixture.json" -dataset "worldbank-debarred" -snapshot-reference "Official World Bank procurement sanctions intake"
 
 echo "==> [5/5] Activating generations and refreshing screening statistics..."
 docker exec "$POSTGRES_CONTAINER" psql -U fraud -d fraud -c "
 UPDATE screening.source_connections c 
-SET verified_generation = d.active_generation, last_success_at = now(), last_error = '' 
+SET verified_generation = d.active_generation, 
+    last_success_at = now(), 
+    last_error = '', 
+    rights_state = 'approved', 
+    enabled = true, 
+    max_stale = interval '30 days' 
 FROM screening.source_datasets d 
 WHERE (d.owner_scope, d.id) = (c.owner_scope, c.dataset_id) 
   AND d.active_generation IS NOT NULL;

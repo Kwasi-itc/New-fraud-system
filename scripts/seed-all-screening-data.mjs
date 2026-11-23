@@ -4,7 +4,7 @@
  * 
  * Usage:
  *   node scripts/seed-all-screening-data.mjs           # Uses/generates fixtures & seeds database
- *   node scripts/seed-all-screening-data.mjs --crawl   # Runs live web crawlers (parliament.gh + wikidata) first
+ *   node scripts/seed-all-screening-data.mjs --crawl   # Refreshes source observations, including MMDCEs
  */
 
 import { execSync } from "child_process";
@@ -35,6 +35,9 @@ async function main() {
   console.log("          SCREENING MODULE - AUTOMATED PEP SEEDING & INGESTION PIPELINE         ");
   console.log("================================================================================");
 
+  // Refresh MMDCE observations BEFORE compiling; a failed fetch stops publication.
+  if (shouldCrawl) run('node scripts/scrape-live-mmdces.mjs', 'GhanaDistricts visible MMDCE table');
+
   // 1. Build Canonical Base JSON Fixtures
   console.log("\n[Step 1] Building Canonical JSON Fixtures...");
   run("node scripts/build-unified-ghana-peps.mjs", "Core Ghana PEP Builder (Executive, MPs, SOEs, RCAs)");
@@ -60,7 +63,7 @@ async function main() {
   const registerSql = path.join(__dirname, "register-all-ghana-peps.sql");
   try {
     const sqlContent = fs.readFileSync(registerSql, "utf8");
-    execSync("docker exec -i new-fraud-system-postgres-1 psql -U fraud -d fraud", {
+    execSync("docker exec -i new-fraud-system-postgres-1 psql -v ON_ERROR_STOP=1 -U fraud -d fraud", {
       cwd: ROOT_DIR,
       input: sqlContent,
       encoding: "utf8",
@@ -71,7 +74,7 @@ async function main() {
     process.exit(1);
   }
 
-  // 4. Ingest All 6 Datasets
+  // 4. Ingest all screening datasets (Ghana Sovereign PEPs & World Bank Debarred)
   console.log("\n[Step 4] Copying & Ingesting Datasets into screening-service...");
   const datasets = [
     { id: "gh-pep-executive", file: "gh_pep_executive.json" },
@@ -80,13 +83,15 @@ async function main() {
     { id: "gh-pep-rca", file: "gh_pep_rca.json" },
     { id: "gh-pep-local-gov", file: "gh_pep_local_gov.json" },
     { id: "gh-pep-parties", file: "gh_pep_parties.json" },
+    { id: "gh-pep-judiciary", file: "gh_pep_judiciary.json" },
+    { id: "worldbank-debarred", file: "worldbank_fixture.json" },
   ];
 
   for (const ds of datasets) {
     console.log(`    Ingesting ${ds.id} (${ds.file})...`);
     run(`docker cp ${ds.file} new-fraud-system-screening-service-1:/tmp/${ds.file}`, `Copy ${ds.file}`);
     run(
-      `docker exec -e SOURCE_DATABASE_URL=postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable new-fraud-system-screening-service-1 /app/source-import -file /tmp/${ds.file} -dataset ${ds.id}`,
+      `docker exec -e SOURCE_DATABASE_URL=postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable new-fraud-system-screening-service-1 /app/source-import -file /tmp/${ds.file} -dataset ${ds.id} -snapshot-reference "Local Ghana PEP snapshot intake: ${ds.file}"`,
       `Import ${ds.id}`
     );
   }
