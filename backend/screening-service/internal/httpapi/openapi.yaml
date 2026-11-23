@@ -1290,7 +1290,7 @@ components:
         dataset_selection:
           type: array
           minItems: 1
-          maxItems: 10
+          maxItems: 500
           description: Required for internal-watchlists. Every selected dataset must be authorized and published. Cannot be combined with legacy datasets or unsupported identity fields.
           items: {$ref: '#/components/schemas/ControlledDatasetRef'}
         datasets: {type: array, maxItems: 10, description: Legacy OpenSanctions dataset IDs only, items: {type: string}}

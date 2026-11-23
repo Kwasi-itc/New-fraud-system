@@ -149,7 +149,7 @@ func (p Provider) Visible(ctx context.Context, s provideraccess.Scope) ([]Datase
 	return items, nil
 }
 func (p Provider) selected(ctx context.Context, s provideraccess.Scope, refs []sourcedata.DatasetRef, ready bool) ([]Dataset, error) {
-	if len(refs) == 0 || len(refs) > 10 {
+	if len(refs) == 0 || len(refs) > sourcedata.MaxSelectedDatasets {
 		return nil, sourcedata.ErrInput
 	}
 	items, err := p.Visible(ctx, s)

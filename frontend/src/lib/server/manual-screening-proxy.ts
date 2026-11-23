@@ -13,7 +13,7 @@ export async function manualScreeningProxy(request: Request, id?: string, matchI
     if (reader) for (;;) {
       const { value, done } = await reader.read(); if (done) break;
       size += value.byteLength;
-      if (size > 4096) { await reader.cancel(); return failure("Search request is too large.", 413); }
+      if (size > 128 * 1024) { await reader.cancel(); return failure("Search request is too large.", 413); }
       chunks.push(value);
     }
     body = Buffer.concat(chunks).toString("utf8");

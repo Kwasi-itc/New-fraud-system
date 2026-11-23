@@ -11,7 +11,7 @@ import (
 // Indexed exact lookup is independent of name retrieval. Values bind as text;
 // there is no case folding, fuzzy comparison or numeric identifier conversion.
 func IdentifierCandidateStatement(keys []CandidateSelection, queries []screening.SearchQuery) (string, []any, error) {
-	if len(keys) < 1 || len(keys) > 10 || len(queries) < 1 || len(queries) > 10 {
+	if len(keys) < 1 || len(keys) > sourcedata.MaxSelectedDatasets || len(queries) < 1 || len(queries) > 10 {
 		return "", nil, sourcedata.ErrInput
 	}
 	args := []any{}

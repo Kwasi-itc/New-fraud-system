@@ -228,8 +228,9 @@ Total Execution Time: \x1b[1m${elapsed}s\x1b[0m
 • Wikidata Kinship Triples: \x1b[1m${relatives.length}\x1b[0m
 • Local Government MMDCEs: \x1b[1m${mmdces.length}\x1b[0m
 
-\x1b[33mAll extracted records are automatically normalized into canonical sourcedata.Record
-JSON schemas and indexed into PostgreSQL (screening.source_names) with Trigram GIN indexes.\x1b[0m
+\x1b[33mPreview only: this demo does not write fixtures or import into PostgreSQL.
+For retained MMDCE observations, run node scripts/scrape-live-mmdces.mjs,
+then compile and explicitly publish a reviewed snapshot.\x1b[0m
 `);
 }
 

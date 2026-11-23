@@ -199,7 +199,7 @@ func (s Server) Handler() (http.Handler, error) {
 			}
 			out.Selection = append(out.Selection, ref)
 		}
-		if len(out.Selection) > 10 {
+		if len(out.Selection) > sourcedata.MaxSelectedDatasets {
 			return out, sourcedata.ErrInput
 		}
 		for k := range values {
@@ -280,7 +280,7 @@ func decode(w http.ResponseWriter, r *http.Request, out any) error {
 	if e != nil || media != "application/json" {
 		return sourcedata.ErrInput
 	}
-	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32768))
+	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, sourcedata.MaxReadRequestBytes))
 	d.DisallowUnknownFields()
 	if e = d.Decode(out); e != nil {
 		return sourcedata.ErrInput

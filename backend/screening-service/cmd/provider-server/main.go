@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/contract"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/internalprovider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerproduct"
 )
@@ -74,7 +75,7 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	server := &http.Server{Addr: address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 * 1024}
+	server := &http.Server{Addr: address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: contract.MaxReadRequestBytes}
 	done := make(chan error, 1)
 	go func() { done <- server.ListenAndServe() }()
 	logger.Info("standalone provider listening", "address", address)

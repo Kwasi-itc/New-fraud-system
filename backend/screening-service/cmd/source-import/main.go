@@ -30,6 +30,7 @@ func run() error {
 	grants := flag.String("grant-tenants", "", "Tenant UUIDs granted access during registration")
 	register := flag.Bool("register", false, "Explicitly register a new controlled dataset")
 	stageOnly := flag.Bool("stage-only", false, "Validate/stage without publication")
+	snapshotReference := flag.String("snapshot-reference", "", "Explicit local snapshot acceptance reference for an already approved global JSON source; not a live fetch")
 	publish := flag.String("publish-generation", "", "Publish a previously staged generation")
 	rollback := flag.String("rollback-generation", "", "Restore a retained publication as a new fenced publication")
 	recover := flag.Bool("recover-interrupted", false, "Fail expired staging leases; never change active data")
@@ -39,6 +40,9 @@ func run() error {
 	stagedDays := flag.Int("retain-staged-days", 0, "Set explicit staged retention policy (minimum 1 day)")
 	legalHold := flag.Bool("legal-hold", true, "Preserve unpublished data regardless of age; published evidence is always retained")
 	flag.Parse()
+	if *snapshotReference != "" && (*owner != "" || *register || *stageOnly || *rollback != "" || *recover || *cleanup || *artifacts || *failedDays != 0 || *stagedDays != 0) {
+		return fmt.Errorf("snapshot-reference requires a registered global JSON source publication")
+	}
 	dsn, secretErr := sourceconfig.ReadSecret("SOURCE_DATABASE_URL")
 	if secretErr != nil || dsn == "" {
 		return fmt.Errorf("SOURCE_DATABASE_URL is required; no default database is selected")
@@ -143,7 +147,12 @@ func run() error {
 	if *stageOnly {
 		return json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "staged", "generation": generation})
 	}
-	result, err := store.Publish(ctx, key, generation)
+	var result sourceingest.Publication
+	if *snapshotReference != "" {
+		result, err = store.PublishSnapshot(ctx, key, generation, *snapshotReference)
+	} else {
+		result, err = store.Publish(ctx, key, generation)
+	}
 	if err != nil {
 		return err
 	}

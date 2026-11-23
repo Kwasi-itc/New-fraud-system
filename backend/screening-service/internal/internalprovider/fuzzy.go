@@ -49,7 +49,7 @@ type CandidateSelection struct {
 // default 100-row estimates caused 40,000-row scope scans and JIT per request.
 // Only generated placeholder numbers enter SQL; all source/query values bind.
 func CandidateStatement(keys []CandidateSelection, queries []screening.SearchQuery) (string, []any, error) {
-	if len(keys) < 1 || len(keys) > 10 || len(queries) < 1 || len(queries) > 10 {
+	if len(keys) < 1 || len(keys) > sourcedata.MaxSelectedDatasets || len(queries) < 1 || len(queries) > 10 {
 		return "", nil, sourcedata.ErrInput
 	}
 	args := []any{}

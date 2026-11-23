@@ -1,0 +1,119 @@
+{
+  "complete_national_roster": false,
+  "observed_at": "2026-11-20T16:59:52.028994+00:00",
+  "source_url": "https://www.ghanadistricts.com/home/AllDistricts",
+  "artifact_sha256": "674314b4b3139e35187559e9d0b97ed0902a95140bcc208f9c3bc433fc321b7b",
+  "source_rows": 20,
+  "named_observations": 16,
+  "rejected_rows": [
+    {
+      "row_id": "grid_DXDataRow1",
+      "name": "Adansi North DCE",
+      "district": "Adansi North District",
+      "reason": "office_placeholder_not_person"
+    },
+    {
+      "row_id": "grid_DXDataRow4",
+      "name": "North Dayi DCE",
+      "district": "North Dayi District",
+      "reason": "office_placeholder_not_person"
+    },
+    {
+      "row_id": "grid_DXDataRow12",
+      "name": "Builsa South DCE",
+      "district": "Builsa South District",
+      "reason": "office_placeholder_not_person"
+    },
+    {
+      "row_id": "grid_DXDataRow19",
+      "name": "Kwabre East MCD",
+      "district": "Kwabre East Municipal",
+      "reason": "office_placeholder_not_person"
+    }
+  ],
+  "added": [],
+  "matched": [
+    {
+      "id": "gh-pep-mmdce-096",
+      "name": "Kodwjo Banahen Bediako",
+      "district": "Sekyere Central District"
+    },
+    {
+      "id": "gh-pep-mmdce-206",
+      "name": "Prosper Kwaku Addo",
+      "district": "Krachi West Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-016",
+      "name": "FREEMAN TSEKPO",
+      "district": "Ashaiman Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-261",
+      "name": "John M. Naabwomya",
+      "district": "Talensi District"
+    },
+    {
+      "id": "gh-pep-mmdce-live-4b0f3bade4c81f9b18f201fb",
+      "name": "ANTIWI JOSEPH",
+      "district": "Nkwanta South Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-121",
+      "name": "Eric Stanley Acquah",
+      "district": "Mfantseman Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-304",
+      "name": "OPOKU PLUS SAMPSON",
+      "district": "Tano North Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-279",
+      "name": "Dominic Adomah Ameyaw",
+      "district": "Dormaa Central Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-114",
+      "name": "REV. ATTA MENSAH",
+      "district": "Effutu Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-210",
+      "name": "GODFRED KOKU KOFIE",
+      "district": "Guan District"
+    },
+    {
+      "id": "gh-pep-mmdce-live-e4fa92032baaecf625322014",
+      "name": "Wisdom Bondieu Seade",
+      "district": "Keta Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-live-f5426495f91975907d48ead4",
+      "name": "Kalala Nyamekye Eghan",
+      "district": "Awutu Senya West District"
+    },
+    {
+      "id": "gh-pep-mmdce-192",
+      "name": "Addison Dodzi Mornyuie",
+      "district": "Central Tongu District"
+    },
+    {
+      "id": "gh-pep-mmdce-030",
+      "name": "Akwetey Agbo",
+      "district": "Ga North Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-083",
+      "name": "Jerryne Asante",
+      "district": "Ejisu Municipal"
+    },
+    {
+      "id": "gh-pep-mmdce-230",
+      "name": "Seidu Braimah",
+      "district": "Tolon District"
+    }
+  ],
+  "retained_records": 331,
+  "note": "Visible observations supplement the curated baseline; absent people are retained. Baseline offices and legal labels are not nationally reverified by this fetch."
+}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -159,6 +161,29 @@ func TestManualRoutesDeniedBeforeService(t *testing.T) {
 		if res.Code != code || stub.calls != 0 {
 			t.Fatal("authorization did not stop service")
 		}
+	}
+}
+
+func TestManualRouteAcceptsCompleteCatalogBeyondOldBodyLimit(t *testing.T) {
+	stub := &manualStub{}
+	router := gin.New()
+	registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+		return identity.Principal{TenantID: uuid.New(), Subject: "actor"}, nil
+	}, stub)
+	in := service.ManualSearchInput{OperationID: uuid.NewString(), Provider: sourcedata.Provider, Profile: sourcedata.FuzzyProfile, Name: "Fictional Person", EntityType: "Person", Threshold: 70, Limit: 10}
+	for i := 0; i < sourcedata.MaxSelectedDatasets; i++ {
+		in.DatasetSelection = append(in.DatasetSelection, sourcedata.DatasetRef{Scope: "global", ID: fmt.Sprintf("catalog-%03d-%s", i, strings.Repeat("x", 50))})
+	}
+	body, e := json.Marshal(in)
+	if e != nil || len(body) <= 4096 {
+		t.Fatal("fixture does not exercise prior request limit", len(body), e)
+	}
+	req := httptest.NewRequest("POST", "/v1/manual-screenings", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+	if res.Code != 202 || stub.calls != 1 {
+		t.Fatal("full selection rejected at HTTP boundary", res.Code, res.Body.String())
 	}
 }
 

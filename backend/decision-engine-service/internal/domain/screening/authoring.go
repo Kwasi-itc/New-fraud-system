@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/contract"
 	"github.com/google/uuid"
 )
 
@@ -76,8 +77,8 @@ func (r AuthoringRule) Validate() error {
 		return fmt.Errorf("Choose a supported screening provider.")
 	}
 	if r.ProviderKey() == "internal-watchlists" {
-		if (r.Profile != "exact-name-v1" && r.Profile != "name-fuzzy-v1" && r.Profile != "name-token-v2" && r.Profile != "identifier-evidence-v1") || len(r.DatasetSelection) < 1 || len(r.DatasetSelection) > 10 || len(r.Datasets) > 0 || r.UseNER || r.IgnoreNERClassification {
-			return fmt.Errorf("Choose a supported internal matching profile and 1 to 10 datasets.")
+		if (r.Profile != "exact-name-v1" && r.Profile != "name-fuzzy-v1" && r.Profile != "name-token-v2" && r.Profile != "identifier-evidence-v1") || len(r.DatasetSelection) < 1 || len(r.DatasetSelection) > contract.MaxSelectedDatasets || len(r.Datasets) > 0 || r.UseNER || r.IgnoreNERClassification {
+			return fmt.Errorf("Choose a supported internal matching profile and published datasets from your organization's catalog.")
 		}
 		seen := map[DatasetRef]bool{}
 		for _, ref := range r.DatasetSelection {

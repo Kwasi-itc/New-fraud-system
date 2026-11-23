@@ -5,7 +5,7 @@ import fs from 'node:fs';
  * Ingestion and Fixture Builder
  * 
  * Generates:
- * 1. gh_pep_local_gov.json (dataset: gh-pep-local-gov) -> 328 records (all 261 MMDCEs + 16 Regional Ministers + Cooling-Off)
+ * 1. gh_pep_local_gov.json (dataset: gh-pep-local-gov): curated baseline plus observed MMDCEs; coverage is reported separately
  * 2. gh_pep_parties.json (dataset: gh-pep-parties)     -> 25 records (National Executives of major political parties)
  */
 

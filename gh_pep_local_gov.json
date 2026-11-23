@@ -9395,7 +9395,7 @@
       "aliases": [
         "Gemegah"
       ],
-      "source_reference": "https://ghanadistricts.com",
+      "source_reference": "https://ketama.gov.gh/2024/12/20/keta-municipal-assembly-holds-end-of-year-durbar-and-bids-farewell-to-mce/",
       "source_type": "pep_evidence",
       "properties": {
         "country": [
@@ -9413,17 +9413,11 @@
         "programs": [
           "Politically Exposed Person (PEP)",
           "Sub-National Domestic PEP (MMDCE / Regional Minister)",
-          "Active Office Holder",
-          "Municipal Chief Executive, Keta Municipal"
-        ],
-        "listedAt": [
-          "2025-01-28"
+          "Former Office Holder",
+          "Former Municipal Chief Executive, Keta Municipal"
         ],
         "sourceStatus": [
-          "Ghana Sub-National PEP; Region: Volta; Role: Municipal Chief Executive, Keta Municipal; Status: active"
-        ],
-        "sanctionsImposed": [
-          "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
+          "Ghana Sub-National PEP; Region: Volta; Role: Former Municipal Chief Executive, Keta Municipal; Status: former"
         ],
         "address": [
           "Volta Region, Ghana"
@@ -14156,6 +14150,87 @@
         ],
         "address": [
           "Ahafo Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mmdce-live-4b0f3bade4c81f9b18f201fb",
+      "name": "ANTIWI JOSEPH",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "https://www.ghanadistricts.com/home/AllDLeaders/190",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP",
+          "Municipal Chief Executive, Nkwanta South Municipal"
+        ],
+        "sourceStatus": [
+          "GhanaDistricts visible directory; Region: Oti; Role: Municipal Chief Executive, Nkwanta South Municipal; Status: source_listed; Assembly: Nkwanta South Municipal"
+        ],
+        "address": [
+          "Oti Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mmdce-live-e4fa92032baaecf625322014",
+      "name": "Wisdom Bondieu Seade",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "https://www.ghanadistricts.com/home/AllDLeaders/182",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP",
+          "Municipal Chief Executive, Keta Municipal"
+        ],
+        "sourceStatus": [
+          "GhanaDistricts visible directory; Region: Volta; Role: Municipal Chief Executive, Keta Municipal; Status: source_listed; Assembly: Keta Municipal"
+        ],
+        "address": [
+          "Volta Region, Ghana"
+        ]
+      }
+    },
+    {
+      "id": "gh-pep-mmdce-live-f5426495f91975907d48ead4",
+      "name": "Kalala Nyamekye Eghan",
+      "type": "Person",
+      "aliases": [],
+      "source_reference": "https://www.ghanadistricts.com/home/AllDLeaders/66",
+      "source_type": "pep_evidence",
+      "properties": {
+        "country": [
+          "gh"
+        ],
+        "countryText": [
+          "Ghana"
+        ],
+        "programs": [
+          "Politically Exposed Person (PEP)",
+          "Sub-National Domestic PEP",
+          "District Chief Executive, Awutu Senya West District"
+        ],
+        "sourceStatus": [
+          "GhanaDistricts visible directory; Region: Central; Role: District Chief Executive, Awutu Senya West District; Status: source_listed; Assembly: Awutu Senya West District"
+        ],
+        "address": [
+          "Central Region, Ghana"
         ]
       }
     }

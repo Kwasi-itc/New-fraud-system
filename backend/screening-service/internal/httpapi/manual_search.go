@@ -125,7 +125,7 @@ func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc ma
 				return
 			}
 			var in service.ManualSearchInput
-			decoder := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, 4096))
+			decoder := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, sourcedata.MaxReadRequestBytes))
 			decoder.DisallowUnknownFields()
 			if decoder.Decode(&in) != nil || decoder.Decode(new(any)) != io.EOF {
 				c.JSON(400, gin.H{"error": "Invalid search request."})

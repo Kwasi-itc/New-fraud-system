@@ -28,7 +28,7 @@ async function proxy(request: Request, context: Context) {
       if (reader) for (;;) {
         const { value, done } = await reader.read(); if (done) break;
         length += value.byteLength;
-        if (length > 8192) { await reader.cancel(); return failure(413, "Screening configuration is too large."); }
+        if (length > 128 * 1024) { await reader.cancel(); return failure(413, "Screening configuration is too large."); }
         chunks.push(value);
       }
       body = new Uint8Array(Buffer.concat(chunks));

@@ -7,6 +7,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/contract"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -47,7 +48,7 @@ func (h ScreeningAuthoringHandler) Handle(c *gin.Context) {
 			return
 		}
 		var in screening.AuthoringRule
-		dec := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, 8192))
+		dec := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, contract.MaxReadRequestBytes))
 		dec.DisallowUnknownFields()
 		if dec.Decode(&in) != nil || dec.Decode(new(any)) != io.EOF || in.ID != c.Param("configId") {
 			c.JSON(400, gin.H{"error": "Invalid screening configuration."})

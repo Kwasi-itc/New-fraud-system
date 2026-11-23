@@ -1,8 +1,10 @@
 import fs from 'node:fs';
+import { mergeObservations } from './lib/mmdce-observations.mjs';
 
 /**
- * Complete Roster of all 261 Ghana MMDCEs + 16 Regional Ministers + Cooling-Off Profiles
- * Generates canonical gh_pep_local_gov.json
+ * Curated sub-national baseline plus retained, source-observed MMDCEs.
+ * The legacy filename does not establish verified national coverage.
+ * Run scrape-live-mmdces.mjs before building to refresh visible observations.
  */
 
 function enrichAliases(name, existingAliases = []) {
@@ -55,7 +57,7 @@ const formerRegionalMinisters = [
   { id: "gh-pep-reg-023", name: "Shani Alhassan Saibu", region: "Northern", role: "Former Regional Minister, Northern Region (2021–2025)", status: "cooling_off", term: "2021-02-17" }
 ];
 
-// 3. Complete Roster of 261 MMDCEs mapped across all 16 regions
+// 3. Curated baseline. Keep its ordering stable: existing IDs depend on it.
 const rawMmdces = [
   // --- GREATER ACCRA (29 MMDAs) ---
   { district: "Accra Metropolitan", name: "Elizabeth Kwatsoe Tawiah Sackey", type: "Metropolitan", region: "Greater Accra", role: "Metropolitan Chief Executive (Mayor), Accra Metropolitan Assembly (AMA)", status: "cooling_off", aliases: ["Elizabeth Sackey", "Hon. Elizabeth Sackey", "Mayor of Accra"] },
@@ -264,7 +266,7 @@ const rawMmdces = [
   { district: "Central Tongu District", name: "Addison Dodzi Mornyuie", type: "District", region: "Volta", role: "District Chief Executive, Central Tongu", status: "active", aliases: ["Dodzi Mornyuie"] },
   { district: "Ho West District", name: "Ernest Victor Apau", type: "District", region: "Volta", role: "District Chief Executive, Ho West", status: "active", aliases: ["Victor Apau"] },
   { district: "Hohoe Municipal", name: "Daniel Noble Awume", type: "Municipal", region: "Volta", role: "Municipal Chief Executive, Hohoe Municipal", status: "active", aliases: ["Noble Awume"] },
-  { district: "Keta Municipal", name: "Emmanuel Gemegah", type: "Municipal", region: "Volta", role: "Municipal Chief Executive, Keta Municipal", status: "active", aliases: ["Emmanuel Gemegah"] },
+  { district: "Keta Municipal", name: "Emmanuel Gemegah", type: "Municipal", region: "Volta", role: "Former Municipal Chief Executive, Keta Municipal", status: "former", term: null, ref: "https://ketama.gov.gh/2024/12/20/keta-municipal-assembly-holds-end-of-year-durbar-and-bids-farewell-to-mce/", aliases: ["Emmanuel Gemegah"] },
   { district: "Ketu North Municipal", name: "Anthony Avorgbedor", type: "Municipal", region: "Volta", role: "Municipal Chief Executive, Ketu North", status: "active", aliases: ["Anthony Avorgbedor"] },
   { district: "Ketu South Municipal", name: "Maxwell Koffie Lugudor", type: "Municipal", region: "Volta", role: "Municipal Chief Executive, Ketu South (Aflao)", status: "active", aliases: ["Koffie Lugudor"] },
   { district: "Kpando Municipal", name: "Geoffrey Kodzo Badasu", type: "Municipal", region: "Volta", role: "Municipal Chief Executive, Kpando Municipal", status: "active", aliases: ["Geoffrey Badasu"] },
@@ -438,10 +440,11 @@ rawMmdces.forEach(m => {
     name: m.name,
     aliases: enrichAliases(m.name, m.aliases || []),
     region: m.region,
+    district: m.district,
     role: m.role,
     status: m.status,
-    term: m.status === 'cooling_off' ? "2021-09-20 to 2025-01-10" : "2025-01-28 to present",
-    ref: "https://ghanadistricts.com"
+    term: Object.hasOwn(m, 'term') ? m.term : (m.status === 'cooling_off' ? "2021-09-20 to 2025-01-10" : "2025-01-28 to present"),
+    ref: m.ref || "https://ghanadistricts.com"
   });
 });
 
@@ -458,16 +461,16 @@ const records = allSubnational.map(p => {
     programs: [
       "Politically Exposed Person (PEP)",
       "Sub-National Domestic PEP (MMDCE / Regional Minister)",
-      isCoolingOff ? "Cooling-off Period (Former Office Holder)" : "Active Office Holder",
+      p.status === 'former' ? 'Former Office Holder' : (isCoolingOff ? "Cooling-off Period (Former Office Holder)" : "Active Office Holder"),
       p.role
     ],
-    listedAt: [(p.term || "2025-01-28").slice(0, 10)],
+    ...(p.term ? { listedAt: [p.term.slice(0, 10)] } : {}),
     sourceStatus: [`Ghana Sub-National PEP; Region: ${p.region}; Role: ${p.role}; Status: ${p.status}`],
-    sanctionsImposed: [
+    ...(p.status === 'former' ? {} : { sanctionsImposed: [
       isCoolingOff
         ? "Enhanced Due Diligence (EDD) Required; AML Act 1044 Statutory Cooling-Off Period for Sub-National Official"
         : "Enhanced Due Diligence (EDD) Required; AML Act 1044 Active Sub-National PEP Screening"
-    ],
+    ] }),
     address: [p.region ? `${p.region} Region, Ghana` : "Ghana"]
   };
 
@@ -482,12 +485,19 @@ const records = allSubnational.map(p => {
   };
 });
 
+const previous = fs.existsSync('gh_pep_local_gov.json')
+  ? JSON.parse(fs.readFileSync('gh_pep_local_gov.json', 'utf8')).records : [];
+const capture = JSON.parse(fs.readFileSync(new URL('./crawled_mmdces.json', import.meta.url), 'utf8'));
+const merged = mergeObservations(records,
+  new Map(allSubnational.filter(p => p.district).map(p => [p.id, p.district])), previous, capture);
 const finalFixture = {
   version: 2,
   source: "gh-pep-local-gov",
   parser: "gh-pep-v1",
-  records
+  records: merged.records
 };
 
 fs.writeFileSync("gh_pep_local_gov.json", JSON.stringify(finalFixture, null, 2), "utf8");
+fs.writeFileSync(new URL('./mmdce-coverage.json', import.meta.url), JSON.stringify(merged.report, null, 2) + '\n', 'utf8');
+console.log(`Visible source observations: ${capture.records.length}; new records: ${merged.report.added.length}. National coverage is not verified.`);
 console.log(`SUCCESS! Saved gh_pep_local_gov.json with ${finalFixture.records.length} records.`);

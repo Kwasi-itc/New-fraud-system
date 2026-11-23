@@ -210,7 +210,7 @@ func (c *Client) Enrich(ctx context.Context, s provideraccess.Scope, ref sourced
 	return screening.EnrichmentResult{RawPayload: raw}, nil
 }
 func operationPath(path string, s provideraccess.Scope, op sourcedata.Operation) (string, error) {
-	if op.Provider != sourcedata.Provider || len(op.Selection) > 10 || len(op.Cursor) > 100 || op.Limit < 0 || op.Limit > 500 {
+	if op.Provider != sourcedata.Provider || len(op.Selection) > sourcedata.MaxSelectedDatasets || len(op.Cursor) > 100 || op.Limit < 0 || op.Limit > 500 {
 		return "", sourcedata.ErrInput
 	}
 	query := url.Values{}

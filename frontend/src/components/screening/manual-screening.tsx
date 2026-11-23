@@ -134,6 +134,7 @@ const datasetDisplayNames: Record<string, string> = {
   "gh-pep-rca": "Ghana PEP Relatives & Associates",
   "gh-pep-local-gov": "Ghana MMDCEs & Regional Ministers",
   "gh-pep-parties": "Ghana Political Party Executives",
+  "gh-pep-judiciary": "Ghana Judicial Service Supreme Court PEPs",
   us_ofac_sdn: "OFAC SDN",
   us_ofac_cons: "OFAC Consolidated",
   un_sc_sanctions: "UN Sanctions List",
@@ -231,15 +232,15 @@ function parseCandidateContext(match: Candidate) {
     statusBadge = "Cooling-Off";
   }
 
-  // Extract Role / Position
-  let role = "";
-  if (isPep) {
-    const roleProg = programs.find(p => !p.toLowerCase().includes("politically exposed") && !p.toLowerCase().includes("office holder") && !p.toLowerCase().includes("cooling-off"));
-    if (roleProg) role = roleProg;
-  }
-  if (!role && statusRaw) {
-    const roleMatch = statusRaw.match(/Role:\s*([^;]+)/i);
-    if (roleMatch) role = roleMatch[1].trim();
+  // Position is distinct from a PEP classification. Prefer the explicit source
+  // role; older snapshots may retain the specific position only in programs.
+  const genericRoleLabel = /\b(?:pep|politically exposed|office holder|cooling[-\s]?off)\b/i;
+  const sourceRole = (props.sourceStatus ?? [])
+    .map(status => status.match(/(?:^|;)\s*Role:\s*([^;]+)/i)?.[1].trim())
+    .find(value => value && !genericRoleLabel.test(value));
+  let role = sourceRole ?? "";
+  if (!role && isPep) {
+    role = programs.find(value => value.trim() && !genericRoleLabel.test(value)) ?? "";
   }
   if (!role && isDebarred) {
     role = props.sanctionsImposed?.[0] || "Ineligible / Debarred Firm";
@@ -306,18 +307,8 @@ export function ManualScreening({ scope }: { scope: string }) {
   const [identifiers, setIdentifiers] = useState<IdentifierInput[]>([]);
   const [provider, setProvider] = useState("internal-watchlists");
   const [profile, setProfile] = useState("name-fuzzy-v1");
-  const [selectedDatasets, setSelectedDatasets] = useState<DatasetRef[]>([
-    { scope: "global", id: "ofac-sdn" },
-    { scope: "global", id: "un-consolidated" },
-    { scope: "global", id: "uksl" },
-    { scope: "global", id: "worldbank-debarred" },
-    { scope: "global", id: "gh-pep-executive" },
-    { scope: "global", id: "gh-pep-parliament" },
-    { scope: "global", id: "gh-pep-soe" },
-    { scope: "global", id: "gh-pep-rca" },
-    { scope: "global", id: "gh-pep-local-gov" },
-    { scope: "global", id: "gh-pep-parties" },
-  ]);
+  const [selectedDatasets, setSelectedDatasets] = useState<DatasetRef[]>([]);
+  const selectionScope = useRef<string | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
     setExpandedMatches(prev => {
@@ -356,29 +347,14 @@ export function ManualScreening({ scope }: { scope: string }) {
     }
   }, [initialId, result]);
 
-  // Sync available datasets when catalog loads
+  // Initialize from this workspace's actual catalog once. Refreshes must not
+  // reselect lists the investigator deliberately cleared.
   useEffect(() => {
-    if (catalog.data?.providers) {
-      const internalP = catalog.data.providers.find(p => p.id === "internal-watchlists");
-      if (internalP?.datasets) {
-        const ready = internalP.datasets.filter(d => !!d.generation).map(d => d.ref);
-        if (ready.length > 0) {
-          setSelectedDatasets(previous => {
-            if (previous.length === 0) return ready.slice(0, 25);
-            const existingKeys = new Set(previous.map(p => `${p.scope}:${p.id}`));
-            const merged = [...previous];
-            for (const r of ready) {
-              if (!existingKeys.has(`${r.scope}:${r.id}`) && merged.length < 25) {
-                merged.push(r);
-                existingKeys.add(`${r.scope}:${r.id}`);
-              }
-            }
-            return merged;
-          });
-        }
-      }
-    }
-  }, [catalog.data]);
+    const datasets = catalog.data?.providers?.find(p => p.id === "internal-watchlists")?.datasets;
+    if (!datasets || selectionScope.current === scope) return;
+    selectionScope.current = scope;
+    setSelectedDatasets(datasets.filter(dataset => !!dataset.generation).map(dataset => dataset.ref));
+  }, [catalog.data, scope]);
 
   useEffect(() => {
     if (!result || !pending(result.status) || error) return;
@@ -448,6 +424,7 @@ export function ManualScreening({ scope }: { scope: string }) {
     setName(query.name);
     setEntityType(query.entity_type);
     setProvider(query.provider ?? "opensanctions");
+    selectionScope.current = scope;
     setSelectedDatasets(query.dataset_selection ?? []);
     setProfile(query.profile ?? "exact-name-v1");
     setIdentifiers(query.identifiers ?? []);
@@ -489,8 +466,11 @@ export function ManualScreening({ scope }: { scope: string }) {
     (!!datasets.trim() && !datasetSelection) || (!!identifiers.length && !supports("identifiers"));
 
   const settingsSupported = entityTypes.includes(entityType) && supports("name") && !!cap &&
-    (!internal || (selectedDatasets.length > 0 && selectedDatasets.length <= 10 && (cap.profiles ?? ["exact-name-v1"]).includes(profile) && (profile === "exact-name-v1" || threshold >= 50))) &&
+    (!internal || (selectedDatasets.length > 0 && (cap.profiles ?? ["exact-name-v1"]).includes(profile) && (profile === "exact-name-v1" || threshold >= 50))) &&
     threshold >= cap.threshold_min && threshold <= cap.threshold_max && limit >= 1 && limit <= cap.limit_max;
+  const datasetSelectionError = internal && selectedDatasets.length === 0
+    ? "Select at least one ready watchlist before searching."
+    : undefined;
 
   function clearUnsupported() {
     if (!supports("identifiers")) setIdentifiers([]);
@@ -849,13 +829,20 @@ export function ManualScreening({ scope }: { scope: string }) {
                   <legend className="px-1 text-xs font-semibold text-slate-800">
                     Watchlists <span className="font-normal text-slate-500">({selectedDatasets.length} selected)</span>
                   </legend>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-slate-500">Search all ready watchlists or choose specific lists.</p>
+                    <div className="flex shrink-0 gap-2">
+                      <button type="button" className="text-xs font-semibold text-blue-700" onClick={() => setSelectedDatasets((cap?.datasets ?? []).filter(dataset => !!dataset.generation).map(dataset => dataset.ref))}>Select all</button>
+                      <button type="button" className="text-xs font-semibold text-slate-600" onClick={() => setSelectedDatasets([])}>Clear all</button>
+                    </div>
+                  </div>
                   <div className="max-h-32 space-y-1.5 overflow-y-auto pr-1">
                     {cap?.datasets?.map(dataset => (
                       <label className="flex items-start gap-2 text-xs" key={`${dataset.ref.scope}:${dataset.ref.id}`}>
                         <input
                           type="checkbox"
                           className="mt-0.5 size-3.5 accent-blue-700 rounded"
-                          disabled={!dataset.generation}
+                          disabled={!dataset.generation && !selectedDatasets.some(ref => ref.id === dataset.ref.id && ref.scope === dataset.ref.scope)}
                           checked={selectedDatasets.some(ref => ref.id === dataset.ref.id && ref.scope === dataset.ref.scope)}
                           onChange={event => setSelectedDatasets(previous => event.target.checked ? [...previous, dataset.ref] : previous.filter(ref => ref.id !== dataset.ref.id || ref.scope !== dataset.ref.scope))}
                         />
@@ -908,7 +895,7 @@ export function ManualScreening({ scope }: { scope: string }) {
 
             {catalogReady && !settingsSupported && (
               <p role="alert" className="text-xs font-medium text-amber-900 bg-amber-50 p-2.5 rounded-md border border-amber-200">
-                Choose a supported entity type, matching threshold and result limit before searching.
+                {datasetSelectionError ?? "Choose a supported entity type, matching threshold and result limit before searching."}
               </p>
             )}
 
@@ -1242,8 +1229,8 @@ export function ManualScreening({ scope }: { scope: string }) {
                                     )}
                                   </div>
                                 ) : ctx.isPep ? (
-                                  <div className="text-xs text-slate-800 font-medium truncate max-w-[240px]" title={ctx.role}>
-                                    {ctx.role || "Public Office Holder"}
+                                  <div className="max-w-sm whitespace-normal break-words text-xs font-medium text-slate-800" title={ctx.role}>
+                                    {ctx.role || "Role not provided by source"}
                                   </div>
                                 ) : ctx.isDebarred ? (
                                   <div className="text-xs text-slate-700 truncate max-w-[240px]" title={ctx.complianceNotice || ctx.role}>
@@ -1427,6 +1414,19 @@ export function ManualScreening({ scope }: { scope: string }) {
                                             </dd>
                                           </div>
                                         )}
+                                      </dl>
+                                    </div>
+                                    <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:col-span-2 lg:col-span-3">
+                                      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-1 text-xs font-bold text-slate-800">
+                                        <FileText className="size-3.5 text-slate-500" />
+                                        Source evidence
+                                      </div>
+                                      <dl className="grid gap-3 text-xs sm:grid-cols-2">
+                                        {match.properties.source?.length > 0 && <div><dt className="text-[11px] font-semibold text-slate-500">Source reference</dt><dd className="mt-0.5 break-words text-slate-800">{match.properties.source.join(" · ")}</dd></div>}
+                                        {match.properties.sourceRecord?.length > 0 && <div><dt className="text-[11px] font-semibold text-slate-500">Source record</dt><dd className="mt-0.5 break-all font-mono text-slate-800">{match.properties.sourceRecord.join(" · ")}</dd></div>}
+                                        {match.properties.datasetVersion?.length > 0 && <div><dt className="text-[11px] font-semibold text-slate-500">Dataset version</dt><dd className="mt-0.5 break-all font-mono text-slate-800">{match.properties.datasetVersion.join(" · ")}</dd></div>}
+                                        {match.properties.sourceStatus?.length > 0 && <div><dt className="text-[11px] font-semibold text-slate-500">Status recorded by source</dt><dd className="mt-0.5 break-words text-slate-800">{match.properties.sourceStatus.join(" · ")}</dd></div>}
+                                        {match.properties.programs?.length > 0 && <div><dt className="text-[11px] font-semibold text-slate-500">Classification and source labels</dt><dd className="mt-0.5"><ul className="list-inside list-disc space-y-0.5 text-slate-800">{match.properties.programs.map((value, index) => <li key={index}>{value}</li>)}</ul></dd></div>}
                                       </dl>
                                     </div>
                                   </div>

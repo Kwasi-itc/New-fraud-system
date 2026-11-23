@@ -3,6 +3,7 @@ package sourcedata
 import (
 	"encoding/json"
 	"errors"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/contract"
 	"github.com/google/uuid"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
@@ -13,6 +14,8 @@ import (
 )
 
 const Provider = "internal-watchlists"
+const MaxSelectedDatasets = contract.MaxSelectedDatasets
+const MaxReadRequestBytes = contract.MaxReadRequestBytes
 const Profile = "exact-name-v1"
 const FuzzyProfile = "name-fuzzy-v1"
 const TokenProfile = "name-token-v2"
@@ -55,7 +58,7 @@ func DecodeSelection(raw json.RawMessage) (Selection, error) {
 	var v Selection
 	d := json.NewDecoder(strings.NewReader(string(raw)))
 	d.DisallowUnknownFields()
-	if d.Decode(&v) != nil || v.Version != 2 || (v.Profile != Profile && !IsFuzzyProfile(v.Profile)) || len(v.Datasets) < 1 || len(v.Datasets) > 10 || v.Threshold < 0 || v.Threshold > 100 || (IsFuzzyProfile(v.Profile) && v.Threshold < 50) {
+	if d.Decode(&v) != nil || v.Version != 2 || (v.Profile != Profile && !IsFuzzyProfile(v.Profile)) || len(v.Datasets) < 1 || len(v.Datasets) > MaxSelectedDatasets || v.Threshold < 0 || v.Threshold > 100 || (IsFuzzyProfile(v.Profile) && v.Threshold < 50) {
 		return v, ErrInput
 	}
 	var trailing any

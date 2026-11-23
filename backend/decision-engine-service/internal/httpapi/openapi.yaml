@@ -57,7 +57,7 @@ paths:
     put:
       tags: [Screening and Scoring]
       summary: Save an audited scenario screening rule with explicit provider selection
-      description: Existing strict authoring rule fields apply. Internal selection requires provider internal-watchlists, profile exact-name-v1 or name-fuzzy-v1, and 1-10 unique dataset_selection refs with scope global or tenant and a stable id. A tenant ref's owner comes from verified scope. Threshold is profile-specific; fuzzy minimum is 50. Every dataset must be entitled and published. Unsupported provider/profile/fields, NER for internal matching and forced outcomes are rejected. Existing updated_at conflict checks, current administrator role and inbox authorization remain mandatory. Provider selection is persisted into the execution request and revalidated at actual intake/worker execution.
+      description: Existing strict authoring rule fields apply. Internal selection requires provider internal-watchlists, profile exact-name-v1 or name-fuzzy-v1, and 1-500 unique dataset_selection refs with scope global or tenant and a stable id. A tenant ref's owner comes from verified scope. Threshold is profile-specific; fuzzy minimum is 50. Every dataset must be entitled and published. Unsupported provider/profile/fields, NER for internal matching and forced outcomes are rejected. Existing updated_at conflict checks, current administrator role and inbox authorization remain mandatory. Provider selection is persisted into the execution request and revalidated at actual intake/worker execution.
       security: [{screeningAuthoringBearer: []}]
       requestBody:
         required: true

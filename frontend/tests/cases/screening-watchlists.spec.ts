@@ -1,0 +1,52 @@
+import { expect, test } from "@playwright/test";
+
+test("all eleven published watchlists can be searched together and explicit choices survive refresh", async ({ page, context, request }) => {
+  await request.get("http://127.0.0.1:3199/reset");
+  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/" }]);
+  const datasets = Array.from({ length: 10 }, (_, index) => ({ ref: { scope: "global", id: `fixture-${index + 1}` }, name: `Fixture list ${index + 1}`, category: "pep_evidence", generation: "11111111-1111-4111-8111-111111111111" }));
+  datasets.push({ ref: { scope: "global", id: "gh-pep-judiciary" }, name: "Ghana Judicial Service Supreme Court PEPs", category: "pep_evidence", generation: "22222222-2222-4222-8222-222222222222" });
+  const provider = { id: "internal-watchlists", name: "Internal watchlists", configured: true, health: "available", fields: { Person: ["name"] }, profile_fields: { "name-fuzzy-v1": { Person: ["name"] } }, entity_types: ["Person"], profiles: ["name-fuzzy-v1"], threshold_min: 50, threshold_max: 100, limit_max: 50, dataset_selection: true, limitations: [], datasets };
+  let catalogLoads = 0;
+  await page.route("**/api/screening-search/capabilities", route => {
+    catalogLoads++;
+    return route.fulfill({ json: { ...provider, providers: [provider] } });
+  });
+  await page.clock.install();
+  await page.goto("/screening-search");
+  const lists = page.getByRole("group", { name: /Watchlists/ });
+  await expect(lists.getByRole("checkbox", { checked: true })).toHaveCount(11);
+  await expect(page.getByText("Choose a supported entity type, matching threshold and result limit before searching.", { exact: true })).toHaveCount(0);
+  const judiciary = lists.getByRole("checkbox", { name: /Ghana Judicial Service Supreme Court PEPs/ });
+  await expect(judiciary).toBeEnabled();
+  await expect(judiciary).toBeChecked();
+  await expect(lists.getByText("Not ready", { exact: false })).toHaveCount(0);
+  await lists.getByRole("checkbox").first().uncheck();
+  await expect(judiciary).toBeEnabled();
+  await expect(lists.getByRole("checkbox", { checked: true })).toHaveCount(10);
+  await page.clock.fastForward(120_000);
+  await page.evaluate(() => { window.dispatchEvent(new Event("offline")); window.dispatchEvent(new Event("online")); });
+  await expect.poll(() => catalogLoads).toBeGreaterThan(1);
+  await expect(lists.getByRole("checkbox", { checked: true })).toHaveCount(10);
+  await expect(judiciary).toBeChecked();
+  await lists.getByRole("button", { name: "Clear all", exact: true }).click();
+  await expect(lists.getByRole("checkbox", { checked: true })).toHaveCount(0);
+  await expect(page.getByText("Select at least one ready watchlist before searching.", { exact: true })).toBeVisible();
+  await lists.getByRole("button", { name: "Select all", exact: true }).click();
+  await expect(lists.getByRole("checkbox", { checked: true })).toHaveCount(11);
+  await page.getByLabel(/^Name\s/).fill("Fictional Judicial Fixture");
+  const resultId = "33333333-3333-4333-8333-333333333333";
+  let submitted: { dataset_selection?: { scope: string; id: string }[] } | undefined;
+  await page.route("**/api/screening-search", async route => {
+    if (route.request().method() !== "POST") return route.continue();
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 202, json: { id: resultId, status: "pending" } });
+  });
+  await page.route(`**/api/screening-search/${resultId}`, route => route.fulfill({ json: { id: resultId, status: "no_hit", partial: false, matches: [] } }));
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("No matches found for these search settings.")).toBeVisible();
+  expect(submitted?.dataset_selection).toHaveLength(11);
+  expect(submitted?.dataset_selection).toContainEqual({ scope: "global", id: "gh-pep-judiciary" });
+  expect(submitted?.dataset_selection).toContainEqual({ scope: "global", id: "fixture-1" });
+  expect(submitted?.dataset_selection).toContainEqual({ scope: "global", id: "fixture-2" });
+});
